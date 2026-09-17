@@ -8,9 +8,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.IRecipientBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
+import org.simplejavamail.internal.util.DsnNotifyOptions;
 
 import java.security.cert.X509Certificate;
+import java.util.Set;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.recipient.RecipientException.MISSING_ADDRESS;
@@ -110,6 +115,10 @@ public class RecipientBuilder implements IRecipientBuilder {
     @Nullable
     private X509Certificate smimeCertificate;
 
+    /** @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...) */
+    @NotNull
+    private Set<NotifyOption> deliveryStatusNotificationNotifyOptions = emptySet();
+
     /**
      * @see IRecipientBuilder#build()
      */
@@ -119,7 +128,7 @@ public class RecipientBuilder implements IRecipientBuilder {
         if (address == null) {
             throw new RecipientException(MISSING_ADDRESS);
         }
-        return new Recipient(name, address, type, smimeCertificate);
+        return new Recipient(name, address, type, smimeCertificate, deliveryStatusNotificationNotifyOptions);
     }
 
     /**
@@ -241,6 +250,29 @@ public class RecipientBuilder implements IRecipientBuilder {
     public IRecipientBuilder clearingSmimeCertificate() {
         this.smimeCertificate = null;
         return this;
+    }
+
+    /** @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...) */
+    @Override
+    @NotNull
+    public IRecipientBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final NotifyOption @NotNull ... notifyOptions) {
+        deliveryStatusNotificationNotifyOptions = DsnNotifyOptions.copyOf(asList(notifyOptions));
+        return this;
+    }
+
+    /** @see IRecipientBuilder#clearingDeliveryStatusNotificationNotifyOptions() */
+    @Override
+    @NotNull
+    public IRecipientBuilder clearingDeliveryStatusNotificationNotifyOptions() {
+        deliveryStatusNotificationNotifyOptions = emptySet();
+        return this;
+    }
+
+    /** @see IRecipientBuilder#getDeliveryStatusNotificationNotifyOptions() */
+    @Override
+    @NotNull
+    public Set<NotifyOption> getDeliveryStatusNotificationNotifyOptions() {
+        return deliveryStatusNotificationNotifyOptions;
     }
 
     /**

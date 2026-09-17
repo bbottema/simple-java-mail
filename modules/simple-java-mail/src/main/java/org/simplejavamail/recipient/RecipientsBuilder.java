@@ -6,15 +6,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.IRecipientsBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
+import org.simplejavamail.internal.util.DsnNotifyOptions;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
@@ -24,7 +29,7 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  */
 public class RecipientsBuilder implements IRecipientsBuilder {
 
-    private enum GroupSmimeCertificateMode {
+    private enum GroupPolicyMode {
         PRESERVE,
         DEFAULT,
         FIXED,
@@ -38,7 +43,13 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     private X509Certificate groupSmimeCertificate;
 
     @NotNull
-    private GroupSmimeCertificateMode groupSmimeCertificateMode = GroupSmimeCertificateMode.PRESERVE;
+    private GroupPolicyMode groupSmimeCertificateMode = GroupPolicyMode.PRESERVE;
+
+    @NotNull
+    private GroupPolicyMode groupNotifyMode = GroupPolicyMode.PRESERVE;
+
+    @NotNull
+    private Set<NotifyOption> groupNotifyOptions = emptySet();
 
     /**
      * @see IRecipientsBuilder#buildRecipients()
@@ -46,11 +57,11 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     @Override
     @NotNull
     public Collection<Recipient> buildRecipients() {
-        List<Recipient> recipientsWithGroupDefaults = new ArrayList<>();
-        for (Recipient recipient : recipients) {
-            recipientsWithGroupDefaults.add(copyRecipientApplyingGroupSmimeCertificate(recipient));
+        final List<Recipient> recipientsWithGroupPolicies = new ArrayList<>();
+        for (final Recipient recipient : recipients) {
+            recipientsWithGroupPolicies.add(copyRecipientApplyingGroupPolicies(recipient));
         }
-        return unmodifiableList(recipientsWithGroupDefaults);
+        return unmodifiableList(recipientsWithGroupPolicies);
     }
 
     /**
@@ -60,7 +71,7 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withDefaultSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
         this.groupSmimeCertificate = smimeCertificate;
-        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.DEFAULT;
+        this.groupSmimeCertificateMode = GroupPolicyMode.DEFAULT;
         return this;
     }
 
@@ -71,7 +82,7 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withFixedSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
         this.groupSmimeCertificate = smimeCertificate;
-        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.FIXED;
+        this.groupSmimeCertificateMode = GroupPolicyMode.FIXED;
         return this;
     }
 
@@ -82,7 +93,34 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder clearingSmimeCertificates() {
         this.groupSmimeCertificate = null;
-        this.groupSmimeCertificateMode = GroupSmimeCertificateMode.CLEAR;
+        this.groupSmimeCertificateMode = GroupPolicyMode.CLEAR;
+        return this;
+    }
+
+    /** @see IRecipientsBuilder#withDefaultDeliveryStatusNotificationNotifyOptions(NotifyOption...) */
+    @Override
+    @NotNull
+    public IRecipientsBuilder withDefaultDeliveryStatusNotificationNotifyOptions(@NotNull final NotifyOption @NotNull ... notifyOptions) {
+        groupNotifyOptions = DsnNotifyOptions.copyOf(asList(notifyOptions));
+        groupNotifyMode = GroupPolicyMode.DEFAULT;
+        return this;
+    }
+
+    /** @see IRecipientsBuilder#withFixedDeliveryStatusNotificationNotifyOptions(NotifyOption...) */
+    @Override
+    @NotNull
+    public IRecipientsBuilder withFixedDeliveryStatusNotificationNotifyOptions(@NotNull final NotifyOption @NotNull ... notifyOptions) {
+        groupNotifyOptions = DsnNotifyOptions.copyOf(asList(notifyOptions));
+        groupNotifyMode = GroupPolicyMode.FIXED;
+        return this;
+    }
+
+    /** @see IRecipientsBuilder#clearingDeliveryStatusNotificationNotifyOptions() */
+    @Override
+    @NotNull
+    public IRecipientsBuilder clearingDeliveryStatusNotificationNotifyOptions() {
+        groupNotifyOptions = emptySet();
+        groupNotifyMode = GroupPolicyMode.CLEAR;
         return this;
     }
 
@@ -199,7 +237,8 @@ public class RecipientsBuilder implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable Message.RecipientType fixedRecipientType) {
         for (Recipient recipient : recipients) {
-            withRecipient(new Recipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()), recipient.getSmimeCertificate()));
+            withRecipient(new Recipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()),
+                    recipient.getSmimeCertificate(), recipient.getDeliveryStatusNotificationNotifyOptions()));
         }
         return this;
     }
@@ -238,13 +277,30 @@ public class RecipientsBuilder implements IRecipientsBuilder {
      */
     @Override
     public IRecipientsBuilder withRecipient(@NotNull final Recipient recipient) {
-        recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
+        recipients.add(requireNonNull(recipient, "recipient"));
         return this;
     }
 
     @NotNull
-    private Recipient copyRecipientApplyingGroupSmimeCertificate(@NotNull final Recipient recipient) {
-        return new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), resolveSmimeCertificate(recipient));
+    private Recipient copyRecipientApplyingGroupPolicies(@NotNull final Recipient recipient) {
+        return new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), resolveSmimeCertificate(recipient),
+                resolveNotifyOptions(recipient));
+    }
+
+    @NotNull
+    private Set<NotifyOption> resolveNotifyOptions(@NotNull final Recipient recipient) {
+        switch (groupNotifyMode) {
+            case DEFAULT:
+                return recipient.getDeliveryStatusNotificationNotifyOptions().isEmpty()
+                        ? groupNotifyOptions : recipient.getDeliveryStatusNotificationNotifyOptions();
+            case FIXED:
+                return groupNotifyOptions;
+            case CLEAR:
+                return emptySet();
+            case PRESERVE:
+            default:
+                return recipient.getDeliveryStatusNotificationNotifyOptions();
+        }
     }
 
     @Nullable

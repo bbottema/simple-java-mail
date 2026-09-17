@@ -20,6 +20,14 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * When the {@link Email} was created from exact EML, defaults, validation and cryptographic processing have deliberately not changed it. The supplied
  * {@link MimeMessage} is backed by the authoritative input bytes; a custom implementation that serializes or forwards it must preserve that
  * representation rather than rebuilding it from the parsed Email getters.
+ * <p>
+ * SMTP envelope options, including a DSN envelope identifier, are available through {@link Email#getDeliveryStatusNotification()}, not MIME headers.
+ * A custom implementation owns their transport mapping and must reject an explicitly supplied envelope identifier if it cannot honor it.
+ * Simple Java Mail cannot inspect the remote capabilities of a caller-owned transport or external service.
+ * It therefore does not generate an ENVID for CustomMailer or report an effective identifier on the submission receipt.
+ * Recipient-specific NOTIFY preferences remain on each {@link org.simplejavamail.api.email.Recipient}, including override receivers.
+ * A custom implementation owns their mapping too: preserve occurrence order, prefer explicit recipient preferences over the shared Email fallback,
+ * and reject explicit preferences if the destination cannot honor them. Automatic ORCPT is not added by Simple Java Mail on this path.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  * @see <a href="https://simplejavamail.org/features.html#section-custom-mailer">Plug your own sending logic with a Custom Mailer</a>

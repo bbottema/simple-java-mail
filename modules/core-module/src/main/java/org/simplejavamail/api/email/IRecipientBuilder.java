@@ -4,12 +4,14 @@ import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 
 import java.security.cert.X509Certificate;
+import java.util.Set;
 
 /**
  * Produces immutable recipient object, with a name, emailaddress and recipient type (eg {@link Message.RecipientType#BCC}), and optionally an S/MIME
- * certificate for encrypting messages on a per-user basis.
+ * certificate for encrypting messages on a per-user basis and recipient-specific DSN notification preferences.
  */
 public interface IRecipientBuilder {
 
@@ -86,6 +88,27 @@ public interface IRecipientBuilder {
      * @see IRecipientsBuilder#clearingSmimeCertificates()
      */
     IRecipientBuilder clearingSmimeCertificate();
+
+    /**
+     * Chooses which delivery notifications to request for this recipient, replacing its previous preference. It wins over group defaults and the
+     * governance-resolved Email fallback, including Mailer Email overrides. A group's fixed preference can still replace it when building that group.
+     * Use {@link NotifyOption#NEVER} alone to request no notifications; an empty array restores fallback. Null options and NEVER combined with other events are rejected.
+     * For example, {@code withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)} requests failure and delay notifications.
+     * <p>
+     * Explicit recipient preferences require a supporting provider adapter and DSN on the actual connection; otherwise sending fails before MAIL FROM.
+     * The bundled managed Angus transport supports them; caller-owned Sessions and custom socket factories bypass its command hook.
+     * This does not guarantee that a DSN will arrive or change RET or ENVID.
+     *
+     * @see IRecipientsBuilder#withDefaultDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     * @see #clearingDeliveryStatusNotificationNotifyOptions()
+     */
+    @NotNull IRecipientBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ... notifyOptions);
+
+    /** Removes the local preference, allowing group defaults and then the Email fallback. This does not mean NEVER. */
+    @NotNull IRecipientBuilder clearingDeliveryStatusNotificationNotifyOptions();
+
+    /** Returns an immutable snapshot of the local NOTIFY preference; empty means inherit, not NEVER. */
+    @NotNull Set<NotifyOption> getDeliveryStatusNotificationNotifyOptions();
 
     /**
      * Creates a new {@link Recipient} instance, but first checks if address is set and throws an exception if not.

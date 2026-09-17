@@ -7,6 +7,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.converter.EmailConverter;
 import testutil.ConfigLoaderTestHelper;
 
@@ -92,8 +94,8 @@ class ExactEmailBuilderTest {
 				.withEnvelopeRecipients(Arrays.asList("second@example.org", "first@example.org", "Third <third@example.org>"))
 				.withEnvelopeSender("old-bounce@example.org")
 				.withEnvelopeSender("New Bounce <new-bounce@example.org>")
-				.withDeliveryStatusNotificationNotifyOptions("failure,delay")
-				.withDeliveryStatusNotificationReturnOption("headers_only")
+                .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)
+                .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY)
 				.buildEmail();
 
 		assertThat(email.getOverrideReceivers()).extracting(Recipient::getAddress)
@@ -103,6 +105,49 @@ class ExactEmailBuilderTest {
 				.containsExactly(DeliveryStatusNotification.NotifyOption.FAILURE, DeliveryStatusNotification.NotifyOption.DELAY);
 		assertThat(email.getDeliveryStatusNotification().getReturnOption())
 				.isEqualTo(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY);
+	}
+
+	@Test
+	void typedNotificationChoicesReplacePreferencesAndPreserveIdentifierAndBytes() {
+		final NotifyOption[] options = {NotifyOption.FAILURE, NotifyOption.DELAY};
+		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("recipient@example.org")
+				.fixingEnvelopeId("typed-exact")
+				.withDeliveryStatusNotificationNotifyOptions(NotifyOption.SUCCESS)
+				.withDeliveryStatusNotificationReturnOption(ReturnOption.FULL_MESSAGE)
+				.withDeliveryStatusNotificationNotifyOptions(options)
+				.withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY);
+		options[0] = NotifyOption.NEVER;
+
+		final Email email = builder.buildEmail();
+		assertThat(email.getDeliveryStatusNotification().getNotifyOptions()).containsExactly(NotifyOption.FAILURE, NotifyOption.DELAY);
+		assertThat(email.getDeliveryStatusNotification().getReturnOption()).isEqualTo(ReturnOption.HEADERS_ONLY);
+		assertThat(email.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("typed-exact");
+		assertThat(EmailConverter.emailToEMLByteArray(email)).containsExactly(EXACT_EML);
+	}
+
+	@Test
+	void typedExactPreferencesKeepNeverDistinctFromNoSharedPreference() {
+		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("recipient@example.org")
+				.withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY)
+				.withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER);
+		assertThat(builder.buildEmail().getDeliveryStatusNotification().getNotifyOptions()).containsExactly(NotifyOption.NEVER);
+		assertThat(builder.withDeliveryStatusNotificationNotifyOptions().buildEmail().getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
+		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER, NotifyOption.FAILURE).buildEmail())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("NEVER");
+	}
+
+	@Test
+	void typedExactChoicesRejectNullAndEmptyRequestsWithoutAnotherDsnOption() {
+		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("recipient@example.org");
+		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationReturnOption((ReturnOption) null))
+				.isInstanceOf(NullPointerException.class).hasMessageContaining("returnOption");
+		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions().buildEmail())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("At least one");
+		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, null).buildEmail())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("null");
 	}
 
 	@Test

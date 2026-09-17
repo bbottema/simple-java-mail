@@ -32,6 +32,7 @@ public final class MailSubmissionReceipt implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@Nullable private final String emailId;
+	@Nullable private final String envelopeId;
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@NotNull private final Instant submittedAt;
 	@NotNull private final MailSubmissionStatus status;
@@ -80,7 +81,22 @@ public final class MailSubmissionReceipt implements Serializable {
 	public MailSubmissionReceipt(@Nullable final String emailId, @Nullable final SmtpServerResponse smtpResponse,
 			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition) {
+		this(emailId, smtpResponse, submittedAt, status, recipientResults, retryDisposition, null);
+	}
+
+	/**
+	 * Creates a receipt retaining the transport's effective SMTP envelope identifier alongside its submission facts.
+	 *
+	 * @param envelopeId Unencoded ENVID used for the submission, or {@code null} when none was used or reported.
+	 * @see #getEnvelopeId()
+	 * @see #MailSubmissionReceipt(String, SmtpServerResponse, Instant, MailSubmissionStatus, List, MailRetryDisposition)
+	 */
+	public MailSubmissionReceipt(@Nullable final String emailId, @Nullable final SmtpServerResponse smtpResponse,
+			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
+			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
+			@Nullable final String envelopeId) {
 		this.emailId = emailId;
+		this.envelopeId = envelopeId;
 		this.smtpResponse = smtpResponse;
 		this.submittedAt = requireNonNull(submittedAt, "submittedAt");
 		this.status = requireNonNull(status, "status");
@@ -158,7 +174,7 @@ public final class MailSubmissionReceipt implements Serializable {
 					validUnsentRecipients == null ? Collections.emptyList() : validUnsentRecipients,
 					invalidRecipients == null ? Collections.emptyList() : invalidRecipients);
 			return new MailSubmissionReceipt(emailId, smtpResponse, submittedAt, restoredStatus, restoredRecipients,
-					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition);
+					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition, envelopeId);
 		} catch (final RuntimeException failure) {
 			final InvalidObjectException invalidReceipt = new InvalidObjectException("Invalid serialized mail submission receipt");
 			invalidReceipt.initCause(failure);
@@ -199,6 +215,22 @@ public final class MailSubmissionReceipt implements Serializable {
 	@Nullable
 	public String getEmailId() {
 		return emailId;
+	}
+
+	/**
+	 * Returns the unencoded SMTP envelope identifier (ENVID) used for this submission. A later DSN can return it as Original-Envelope-ID;
+	 * applications receiving those notifications can match it to this receipt. It identifies a send attempt, not the MIME message.
+	 * <p>
+	 * The bundled Angus adapter generates a fresh UUID when the actual connection supports DSN, unless the Email fixes an identifier.
+	 * A failed SMTP submission can still have an identifier: its presence does not imply server acceptance or guarantee a later notification.
+	 *
+	 * @return The effective identifier, or {@code null} when unavailable, including unsupported DSN, local pre-submission checks, logging-only,
+	 * CustomMailer/older adapters that do not report it, and legacy receipts. Unvalidated raw MAIL extensions are not reported here.
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 */
+	@Nullable
+	public String getEnvelopeId() {
+		return envelopeId;
 	}
 
 	/**

@@ -4,6 +4,7 @@ import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 
 import java.security.cert.X509Certificate;
 import java.util.Collection;
@@ -63,6 +64,27 @@ public interface IRecipientsBuilder {
     IRecipientsBuilder clearingSmimeCertificates();
 
     /**
+     * Fills missing recipient NOTIFY preferences when building the flat group. Existing recipient preferences win; a complete set replaces
+     * the Email fallback rather than merging events. The last default/fixed/clear group NOTIFY policy wins, independently of S/MIME policy.
+     * An empty array supplies no default. See the recipient method for validation and provider-support requirements.
+     * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     */
+    @NotNull IRecipientsBuilder withDefaultDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ... notifyOptions);
+
+    /**
+     * Replaces NOTIFY preferences on every produced recipient, including explicit source preferences. The last default/fixed/clear group policy wins.
+     * An empty array clears recipient preferences and restores the Email fallback; NEVER requests no notifications instead.
+     * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     */
+    @NotNull IRecipientsBuilder withFixedDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ... notifyOptions);
+
+    /**
+     * Strips copied recipient preferences and any group default/fixed NOTIFY policy from the produced recipients, restoring the Email fallback.
+     * Source recipients remain unchanged. This is not NEVER and does not clear S/MIME certificates.
+     */
+    @NotNull IRecipientsBuilder clearingDeliveryStatusNotificationNotifyOptions();
+
+    /**
      * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} with the name omitted.
      */
     @NotNull
@@ -90,7 +112,8 @@ public interface IRecipientsBuilder {
     IRecipientsBuilder withRecipient(@Nullable String name, boolean fixedName, @NotNull String singleAddress, @Nullable Message.RecipientType recipientType);
 
     /**
-     * Adds a new {@link Recipient} instance as copy of the provided recipient (copying name, address and {@link Message.RecipientType}).
+     * Adds the immutable recipient, retaining its name, address, type, S/MIME certificate and NOTIFY preference. Group policies apply when
+     * building the recipient list; the supplied recipient is not changed.
      * <p>
      * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email address
      * or omitted completely.

@@ -5,22 +5,31 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.NewsAddress;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
+import org.eclipse.angus.mail.smtp.SMTPSSLTransport;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
+import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,20 +39,236 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Ret
 
 class AngusMailTransportAdapterTest {
 
+    @ParameterizedTest
+    @CsvSource({"plain-id, plain-id", "order +42=, order+20+2B42+3D", "id RET=FULL, id+20RET+3DFULL", "+20, +2B20"})
+    void envelopeIdentifiersUseAngusXtextWithoutChangingTheReportedValue(final String identifier, final String encodedIdentifier) throws Exception {
+        final AngusMailTransportAdapter.AngusSmtpMessage facade = new AngusMailTransportAdapter.AngusSmtpMessage(
+                preparedMail(), "XTEST=keep", identifier, null);
+
+        assertThat(facade.getMailExtension()).isEqualTo("XTEST=keep ENVID=" + encodedIdentifier);
+        assertThat(facade.getEnvelopeIdUsed()).isEqualTo(identifier);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"smtp", "smtps", "message"})
+    void conflictingIdentifiersExplainTheConfigurationFixBeforeSending(final String configurationSource) throws Exception {
+        final SMTPMessage original = new SMTPMessage(message("body"));
+        original.getSession().getProperties().setProperty("mail.smtp.mailextension", "XTEST=keep ENVID=smtp-id");
+        original.getSession().getProperties().setProperty("mail.smtps.mailextension", "XTEST=keep ENVID=smtps-id");
+        if ("message".equals(configurationSource)) {
+            original.setMailExtension("XTEST=keep ENVID=message-id");
+        }
+        final String protocol = "smtps".equals(configurationSource) ? "smtps" : "smtp";
+        final SMTPTransport transport = transportRejectingSubmission(original.getSession(), protocol);
+        final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("fixed-selection").build();
+
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                new PreparedMail(original, recipients(), new DeliveryEnvelope(null, notification), ContentRequirement.NORMAL));
+
+        assertThat(result.getFailure()).hasValueSatisfying(failure -> {
+            assertThat(failure)
+                    .hasMessageContaining("An envelope identifier is configured twice")
+                    .hasMessageContaining("Remove the ENVID=... entry from that setting and keep fixingEnvelopeId(...)")
+                    .hasMessageContaining("Leave any other entries unchanged")
+                    .hasMessageContaining("No message was submitted")
+                    .hasMessageNotContaining("fixed-selection")
+                    .hasMessageNotContaining("ENVID=smtp-id")
+                    .hasMessageNotContaining("ENVID=smtps-id")
+                    .hasMessageNotContaining("ENVID=message-id");
+            assertSelectedConfigurationSource(failure, configurationSource, protocol);
+        });
+        assertThat(result.getEnvelopeId()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "XTEST=message"})
+    void explicitMessageExtensionStillOverridesConflictingSessionProperties(final String messageExtension) throws Exception {
+        final SMTPMessage original = new SMTPMessage(message("body"));
+        original.getSession().getProperties().setProperty("mail.smtp.mailextension", "ENVID=ignored-session-id");
+        original.setMailExtension(messageExtension);
+        final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("fixed-selection").build();
+
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(original.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(original, recipients(), new DeliveryEnvelope(null, notification), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).containsSame(transport.writeFailure);
+            assertThat(result.getEnvelopeId()).isEqualTo("fixed-selection");
+            assertThat(transport.commands).containsExactly("MAIL FROM:<sender@example.com>"
+                    + (messageExtension.isEmpty() ? "" : " " + messageExtension) + " ENVID=fixed-selection");
+            assertThat(original.getMailExtension()).isEqualTo(messageExtension);
+            assertThat(original.getSession().getProperty("mail.smtp.mailextension")).isEqualTo("ENVID=ignored-session-id");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void noRecipientsDoesNotReportASelectedEnvelopeId(final boolean fixedIdentifier) throws Exception {
+        final MimeMessage message = message("body");
+        final DeliveryStatusNotification dsn = fixedIdentifier ? DeliveryStatusNotification.builder().envelopeId("not-submitted").build() : null;
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, new Address[0], new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
+            assertThat(result.getEnvelopeId()).isNull();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void unparseableSenderDoesNotReportAnEnvelopeIdBeforeMailFrom() throws Exception {
+        final MimeMessage message = message("body");
+        message.setHeader("From", "broken <");
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).isInstanceOf(AddressException.class));
+            assertThat(result.getEnvelopeId()).isNull();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void unsupportedRecipientTypeDoesNotReportAnEnvelopeIdBeforeMailFrom() throws Exception {
+        final MimeMessage message = message("body");
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, new Address[]{new NewsAddress("example.group")}, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessageContaining("is not an InternetAddress"));
+            assertThat(result.getEnvelopeId()).isNull();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void commandWriteFailureReportsItsIdentifierButTheNextLocalFailureDoesNotReuseIt() throws Exception {
+        final MimeMessage message = message("body");
+        final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult attempted = adapter.sendMessage(transport,
+                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+            assertThat(attempted.getFailure()).containsSame(transport.writeFailure);
+            assertThat(attempted.getEnvelopeId()).isNotNull();
+            assertThat(transport.commands).containsExactly("MAIL FROM:<sender@example.com> ENVID=" + attempted.getEnvelopeId());
+
+            final MailTransportResult notAttempted = adapter.sendMessage(transport,
+                    new PreparedMail(message, new Address[0], new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+            assertThat(notAttempted.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
+            assertThat(notAttempted.getEnvelopeId()).isNull();
+            assertThat(transport.commands).hasSize(1);
+        }
+    }
+
+    @Test
+    void automaticFacadeRetainsExistingAngusOptionsAndDoesNotMutateTheMessage() throws Exception {
+        final SMTPMessage original = new SMTPMessage(message("body"));
+        original.setEnvelopeFrom("original-envelope@example.test");
+        original.setNotifyOptions(SMTPMessage.NOTIFY_DELAY);
+        original.setReturnOption(SMTPMessage.RETURN_FULL);
+        original.setAllow8bitMIME(true);
+        original.setSendPartial(true);
+        original.setSubmitter("original-submitter");
+        original.setMailExtension("XTEST=original");
+        final SMTPTransport transport = new SMTPTransport(original.getSession(), null) {
+            @Override
+            public boolean supportsExtension(final String extension) {
+                return "DSN".equals(extension);
+            }
+
+            @Override
+            public void sendMessage(final Message message, final Address[] addresses) {
+                final SMTPMessage facade = (SMTPMessage) message;
+                assertThat(facade).isNotSameAs(original);
+                assertThat(facade.getEnvelopeFrom()).isEqualTo(original.getEnvelopeFrom());
+                assertThat(facade.getNotifyOptions()).isEqualTo(original.getNotifyOptions());
+                assertThat(facade.getReturnOption()).isEqualTo(original.getReturnOption());
+                assertThat(facade.getAllow8bitMIME()).isTrue();
+                assertThat(facade.getSendPartial()).isTrue();
+                assertThat(facade.getSubmitter()).isEqualTo(original.getSubmitter());
+                assertThat(facade.getMailExtension()).startsWith("XTEST=original ENVID=");
+            }
+        };
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                new PreparedMail(original, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+        assertThat(result.getEnvelopeId()).isNotNull();
+        assertThat(original.getMailExtension()).isEqualTo("XTEST=original");
+    }
+
+    @Test
+    void directlyConstructedTransportWithoutUrlKeepsItsDefaultProtocolForEnvid() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.smtp.mailextension", "XTEST=direct");
+        final Session session = Session.getInstance(properties);
+        final SMTPTransport transport = new SMTPTransport(session, null) {
+            @Override
+            public boolean supportsExtension(final String extension) {
+                return "DSN".equals(extension);
+            }
+
+            @Override
+            public void sendMessage(final Message message, final Address[] addresses) {
+                assertThat(((SMTPMessage) message).getMailExtension()).isEqualTo("XTEST=direct ENVID=direct-id");
+            }
+        };
+        final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().envelopeId("direct-id").build();
+        final PreparedMail preparedMail = new PreparedMail(new MimeMessage(session), recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
+
+        assertThat(new AngusMailTransportAdapter().sendMessage(transport, preparedMail).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+    }
+
+    @Test
+    void envidUsesTheSelectedSmtpsExtensionWithoutMutatingEitherProtocolConfiguration() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.smtps.mailextension", "XTEST=secure");
+        properties.setProperty("mail.smtp.mailextension", "ENVID=unused-protocol");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
+        final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().envelopeId("smtps-id").build();
+        final PreparedMail preparedMail = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
+
+        final SMTPTransport transport = new SMTPSSLTransport(message.getSession(), new URLName("smtps", null, -1, null, null, null)) {
+            @Override
+            public boolean supportsExtension(final String extension) {
+                return "DSN".equals(extension);
+            }
+
+            @Override
+            public void sendMessage(final Message sending, final Address[] addresses) {
+                assertThat(((SMTPMessage) sending).getMailExtension()).isEqualTo("XTEST=secure ENVID=smtps-id");
+            }
+        };
+        assertThat(new AngusMailTransportAdapter().sendMessage(transport, preparedMail).getEnvelopeId()).isEqualTo("smtps-id");
+        assertThat(properties.getProperty("mail.smtps.mailextension")).isEqualTo("XTEST=secure");
+        assertThat(properties.getProperty("mail.smtp.mailextension")).isEqualTo("ENVID=unused-protocol");
+    }
+
     @Test
     void facadeMapsEnvelopeAndDsnWithoutChangingWireBytes() throws Exception {
         final MimeMessage message = message("body");
         final byte[] expected = bytes(message);
-        final DeliveryStatusNotification dsn = DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY);
+        final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().returnOption(HEADERS_ONLY)
+                .notifyOptions(FAILURE, DELAY).envelopeId("protected+42").build();
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
-                new DeliveryEnvelope("bounce@example.com", dsn), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+                new DeliveryEnvelope("bounce@example.com", dsn, List.of(new DeliveryRecipient(
+                        ((InternetAddress) recipients()[0]).getAddress(), List.of(DeliveryStatusNotification.NotifyOption.NEVER)))),
+                ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(new ManagedAngusTransport(message.getSession(), null), preparedMail, true);
 
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, "protected+42", recipientCommands);
 
         assertThat(facade.getEnvelopeFrom()).isEqualTo("bounce@example.com");
         assertThat(facade.getNotifyOptions()).isEqualTo(SMTPMessage.NOTIFY_FAILURE | SMTPMessage.NOTIFY_DELAY);
         assertThat(facade.getReturnOption()).isEqualTo(SMTPMessage.RETURN_HDRS);
+        assertThat(facade.getMailExtension()).isEqualTo("ENVID=protected+2B42");
+        assertThat(facade.getRecipientCommands()).isSameAs(recipientCommands);
         assertThat(bytes(facade)).containsExactly(expected);
     }
 
@@ -53,7 +278,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null);
         final byte[] before = bytes(facade);
 
         facade.saveChanges();
@@ -76,7 +301,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null);
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         facade.writeTo(output, new String[] {"Bcc", "Content-Length"});
@@ -182,6 +407,33 @@ class AngusMailTransportAdapterTest {
         return new Address[]{new InternetAddress("receiver@example.com")};
     }
 
+    private static SMTPTransport transportRejectingSubmission(final Session session, final String protocol) {
+        return new SMTPTransport(session, new URLName(protocol, null, -1, null, null, null)) {
+            @Override
+            public boolean supportsExtension(final String extension) {
+                return "DSN".equals(extension);
+            }
+
+            @Override
+            public void sendMessage(final Message message, final Address[] addresses) {
+                throw new AssertionError("Conflicting identifiers must be rejected before submission");
+            }
+        };
+    }
+
+    private static void assertSelectedConfigurationSource(final Throwable failure, final String configurationSource, final String protocol) {
+        if ("message".equals(configurationSource)) {
+            assertThat(failure).hasMessageContaining("in SMTPMessage.setMailExtension(...)")
+                    .hasMessageNotContaining("mail.smtp.mailextension")
+                    .hasMessageNotContaining("mail.smtps.mailextension");
+            return;
+        }
+        final String otherProtocol = "smtp".equals(protocol) ? "smtps" : "smtp";
+        assertThat(failure).hasMessageContaining("in the Mailer property 'mail." + protocol + ".mailextension'")
+                .hasMessageNotContaining("mail." + otherProtocol + ".mailextension")
+                .hasMessageNotContaining("SMTPMessage");
+    }
+
     private static PreparedMail preparedMail(final Address... envelope) throws Exception {
         return new PreparedMail(message("body"), envelope.length == 0 ? recipients() : envelope,
                 new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
@@ -191,6 +443,32 @@ class AngusMailTransportAdapterTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         message.writeTo(output);
         return output.toByteArray();
+    }
+
+    /** Runs Angus's actual preflight and MAIL FROM construction, stopping at its command-write boundary without a socket. */
+    private static final class CommandRecordingTransport extends SMTPTransport {
+        private final List<String> commands = new ArrayList<>();
+        private final MessagingException writeFailure = new MessagingException("Synthetic command-write failure");
+
+        private CommandRecordingTransport(final Session session) {
+            super(session, null);
+        }
+
+        @Override
+        protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
+            return true;
+        }
+
+        @Override
+        public boolean supportsExtension(final String extension) {
+            return "DSN".equals(extension);
+        }
+
+        @Override
+        protected void sendCommand(final String command) throws MessagingException {
+            commands.add(command);
+            throw writeFailure;
+        }
     }
 
     private static final class StaleResponseTransport extends SMTPTransport {

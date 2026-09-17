@@ -6,6 +6,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
+import org.eclipse.angus.mail.util.PropUtil;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.slf4j.Logger;
@@ -27,22 +28,30 @@ public final class ManagedAngusTransport extends SMTPTransport {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManagedAngusTransport.class);
     private final String propertyPrefix;
+    private final boolean allowUtf8;
     @Nullable private final AngusSocketFactory socketFactory;
     private final AtomicReference<Socket> rawSocket = new AtomicReference<>();
     private final AtomicBoolean aborted = new AtomicBoolean();
     private boolean commitPossible;
     private boolean readingFinalResponse;
     private boolean sending;
-    private int pendingRecipient = -1;
+    private int pendingRecipientIndex = -1;
     @Nullable private SmtpServerResponse finalResponse;
     private final List<SmtpServerResponse> recipientResponses = new ArrayList<>();
+    @Nullable private AngusRecipientCommands activeRecipientCommands;
 
     public ManagedAngusTransport(final Session session, final URLName urlName) {
         super(session, urlName, urlName == null ? "smtp" : urlName.getProtocol(),
                 urlName != null && "smtps".equals(urlName.getProtocol()));
         propertyPrefix = "mail." + (urlName == null ? "smtp" : urlName.getProtocol());
+        allowUtf8 = PropUtil.getBooleanProperty(session.getProperties(), "mail.mime.allowutf8", false);
         final Object configuredFactory = session.getProperties().get(propertyPrefix + ".socketFactory");
         socketFactory = configuredFactory instanceof AngusSocketFactory ? (AngusSocketFactory) configuredFactory : null;
+    }
+
+    /** Reuses Angus's SMTP xtext encoder for ENVID and ASCII ORCPT without creating or using a transport connection. */
+    static String encodeXtext(final String value) {
+        return xtext(value, false);
     }
 
     boolean hasTrackedSocketConfiguration() {
@@ -50,6 +59,11 @@ public final class ManagedAngusTransport extends SMTPTransport {
                 && session.getProperties().get(propertyPrefix + ".ssl.socketFactory") == null
                 && session.getProperty(propertyPrefix + ".ssl.socketFactory.class") == null
                 && "false".equals(session.getProperty(propertyPrefix + ".socketFactory.fallback"));
+    }
+
+    /** Match Angus's constructor-time wire encoding flag and the current, possibly post-STARTTLS capability set. */
+    boolean supportsUtf8RecipientCommands() {
+        return allowUtf8 && supportsExtension("SMTPUTF8");
     }
 
     @Override
@@ -112,43 +126,64 @@ public final class ManagedAngusTransport extends SMTPTransport {
 
     @Override
     public synchronized void sendMessage(final Message message, final Address[] recipients) throws MessagingException {
-        commitPossible = false;
-        readingFinalResponse = false;
-        pendingRecipient = -1;
-        finalResponse = null;
-        recipientResponses.clear();
-        sending = true;
+        beginSubmission(message);
         try {
             super.sendMessage(message, recipients);
         } finally {
-            sending = false;
+            endSubmission();
         }
+    }
+
+    private void beginSubmission(final Message message) {
+        commitPossible = false;
+        readingFinalResponse = false;
+        pendingRecipientIndex = -1;
+        finalResponse = null;
+        recipientResponses.clear();
+        activeRecipientCommands = message instanceof AngusMailTransportAdapter.AngusSmtpMessage
+                ? ((AngusMailTransportAdapter.AngusSmtpMessage) message).getRecipientCommands() : null;
+        sending = true;
+    }
+
+    private void endSubmission() {
+        sending = false;
+        activeRecipientCommands = null;
     }
 
     @Override
     protected void sendCommand(final String command) throws MessagingException {
         if (sending) {
-            readingFinalResponse = ".".equals(command) || command.startsWith("BDAT ") && command.endsWith(" LAST");
-            if (readingFinalResponse) {
-                // Mark before writing: an interrupted final command can still have reached the server.
-                commitPossible = true;
-            }
-            pendingRecipient = -1;
-            if (command.startsWith("RCPT TO:")) {
-                pendingRecipient = recipientResponses.size();
-                recipientResponses.add(null);
-            }
+            trackOutgoingCommand(command);
         }
-        super.sendCommand(command);
+        super.sendCommand(applyRecipientParameters(command));
+    }
+
+    private void trackOutgoingCommand(final String command) {
+        readingFinalResponse = ".".equals(command) || command.startsWith("BDAT ") && command.endsWith(" LAST");
+        if (readingFinalResponse) {
+            // Mark before writing: an interrupted final command can still have reached the server.
+            commitPossible = true;
+        }
+        pendingRecipientIndex = -1;
+        if (command.startsWith("RCPT TO:")) {
+            pendingRecipientIndex = recipientResponses.size();
+            recipientResponses.add(null);
+        }
+    }
+
+    private String applyRecipientParameters(final String command) throws MessagingException {
+        return pendingRecipientIndex >= 0 && activeRecipientCommands != null
+                ? activeRecipientCommands.applyToRecipientCommand(command, pendingRecipientIndex)
+                : command;
     }
 
     @Override
     protected int readServerResponse() throws MessagingException {
         final int response = super.readServerResponse();
         final SmtpServerResponse observed = AngusSubmissionResult.smtpResponse(response, getLastServerResponse());
-        if (pendingRecipient >= 0) {
-            recipientResponses.set(pendingRecipient, observed);
-            pendingRecipient = -1;
+        if (pendingRecipientIndex >= 0) {
+            recipientResponses.set(pendingRecipientIndex, observed);
+            pendingRecipientIndex = -1;
         }
         if (readingFinalResponse) {
             finalResponse = observed;

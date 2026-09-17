@@ -303,14 +303,18 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Sets the SMTP Delivery Status Notification (DSN) options for this email.
 	 * <p>
-	 * These options are passed to the SMTP transport as NOTIFY and RET parameters. They are transport-level options rather
-	 * than message headers, so they only take effect when the receiving SMTP server supports DSN.
+	 * These options are passed to the SMTP transport as NOTIFY, RET and optionally ENVID parameters, never as message headers.
+	 * NOTIFY/RET-only requests are best-effort when the server does not support DSN. Supplying an envelope identifier requires DSN support:
+	 * the bundled Angus adapter refuses the send before MAIL FROM if support is unavailable. Calling this method replaces the complete DSN value.
+	 * The NOTIFY set is a fallback: explicit recipient/group preferences win, including when this Email value comes from Mailer overrides.
+	 * Clearing this value does not clear recipient preferences. Those require managed-provider support and usable DSN, unlike this best-effort fallback.
+	 * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
 	 *
 	 * @param deliveryStatusNotification DSN options, or {@code null} to clear them.
 	 *
 	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
-	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
-	 * @see #withDeliveryStatusNotificationReturnOption(String)
+	 * @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
+	 * @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable @Cli.Optional DeliveryStatusNotification deliveryStatusNotification);
@@ -332,48 +336,55 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
 	 *
-	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
+	 * @see DeliveryStatusNotification.NotifyOption
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	EmailPopulatingBuilder withDeliveryStatusNotification(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
 
 	/**
-	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 * Chooses which delivery notifications to request, leaving any already configured return option and envelope identifier untouched.
+	 * These are later delivery notifications, not read receipts or the immediate send result. Server support does not guarantee a notification will arrive.
 	 *
-	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
+	 * @param notifyOptions Requested events: {@code SUCCESS}, {@code FAILURE}, or {@code DELAY}, or {@code NEVER} alone.
+	 *                      The CLI accepts comma/semicolon-separated names, ignoring case.
 	 *
-	 * @see #withDeliveryStatusNotificationNotifyOptions(String)
+	 * @see DeliveryStatusNotification.NotifyOption
 	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
 
 	/**
-	 * Sets the SMTP DSN notification events for this email, leaving any already configured return option untouched.
+	 * Chooses how much of the original email a delivery-failure notification may return, leaving notification events and the envelope identifier untouched.
 	 *
-	 * @param notifyOptions String representation of one or more DSN notification events, for example {@code "FAILURE,DELAY"}.
+	 * @param returnOption {@code FULL_MESSAGE} or {@code HEADERS_ONLY}, or {@code null} to clear the return preference in Java.
+	 *                     The CLI requires a value and also accepts {@code FULL} and {@code HDRS}, ignoring case.
 	 *
-	 * @see DeliveryStatusNotification#parseNotifyOptions(String)
+	 * @see DeliveryStatusNotification.ReturnOption
 	 */
-	EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull String notifyOptions);
+	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable DeliveryStatusNotification.ReturnOption returnOption);
 
 	/**
-	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
+	 * Fixes the SMTP transaction identifier (ENVID), retaining the notification events and return option. A later DSN can return this value as
+	 * Original-Envelope-ID so the application can match it to this send. It is not the MIME Message-ID and does not change message bytes.
+	 * <p>
+	 * By default, the bundled Angus adapter generates a fresh UUID for each send on a DSN-capable connection, without modifying the Email.
+	 * If DSN is unavailable, it sends normally without ENVID. The effective identifier is available through
+	 * {@link org.simplejavamail.api.mailer.MailSubmissionReceipt#getEnvelopeId()}, including the receipt supplied to a mail-send observer.
+	 * <p>
+	 * Supply an unencoded, non-empty printable ASCII value. Spaces, plus signs and equals signs are encoded automatically; the encoded value must
+	 * fit in 94 characters (100 including {@code ENVID=}). The value is preserved exactly, without trimming or generating a fallback.
+	 * Copying or reusing an Email deliberately retains a fixed identifier; choose a distinct value for sends you need to distinguish, including retries.
+	 * <p>
+	 * With an identifier configured, the transport adapter must support ENVID and the actual send connection must advertise DSN.
+	 * Otherwise submission fails before MAIL FROM; the identifier is never silently omitted. This does not guarantee a later notification or final
+	 * mailbox delivery. Logging-only mode does not contact a server. A CustomMailer receives this value on the Email and owns its enforcement.
+	 * There is no global configuration-property default for a per-send identifier.
 	 *
-	 * @param returnOption See {@link DeliveryStatusNotification.ReturnOption}.
-	 *
-	 * @see #withDeliveryStatusNotificationReturnOption(String)
+	 * @param envelopeId The unencoded fixed identifier, or {@code null} to resume automatic generation while retaining other DSN options.
+	 * @return This builder.
+	 * @throws IllegalArgumentException If the identifier is empty, contains non-printable/non-ASCII characters, or exceeds the encoded limit.
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable @Cli.Optional DeliveryStatusNotification.ReturnOption returnOption);
-
-	/**
-	 * Sets the SMTP DSN return option for this email, leaving any already configured notification events untouched.
-	 *
-	 * @param returnOption String representation of the DSN return option.
-	 *
-	 * @see DeliveryStatusNotification#parseReturnOption(String)
-	 */
-	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@NotNull String returnOption);
+	EmailPopulatingBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
 
 	/**
 	 * Sets the optional subject of this email.

@@ -1,20 +1,26 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Address;
+import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
+import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
+import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
@@ -27,8 +33,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.simplejavamail.mailer.internal.MailerException.INVALID_ENCODING;
@@ -80,18 +89,78 @@ public class SessionBasedEmailToMimeMessageConverter {
         if (processSecurityAndValidateSize) {
             mimeMessageConverter.validateMaximumEmailSize(emlBytes.length);
         }
-        final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
-        return new MailRehearsal(email, emlBytes, mimeMessage.getMessageID(), resolveEnvelopeSender(email),
-                requireMailboxAddresses(recipients), processSecurityAndValidateSize);
+        final PreparedMail preparedMail = prepareMail(email, mimeMessage);
+        return new MailRehearsal(email, emlBytes, mimeMessage.getMessageID(), preparedMail.getDeliveryEnvelope().getEnvelopeFrom(),
+                requireMailboxAddresses(preparedMail.getRecipients()), processSecurityAndValidateSize);
     }
 
     @NotNull
     public static PreparedMail convertAndLogPreparedMail(Session session, final Email email) throws MessagingException {
         final MimeMessage mimeMessage = convertAndLogMimeMessage(session, email);
+        return prepareMail(email, mimeMessage);
+    }
+
+    /** Rehearsal and sending share local envelope validation; only the provider can check negotiated server capabilities. */
+    @NotNull
+    private static PreparedMail prepareMail(final Email email, final MimeMessage mimeMessage) throws MessagingException {
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         return new PreparedMail(mimeMessage, recipients,
-                new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification()),
+                new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification(), resolveDeliveryRecipients(email, recipients)),
                 InternalEmail.requireInternalEmail(email).determineContentRequirement());
+    }
+
+    /** Duplicate recipient occurrences remain distinct and follow the exact order used for SMTP RCPT commands. */
+    private static List<DeliveryRecipient> resolveDeliveryRecipients(final Email email, final Address[] envelopeRecipients)
+            throws MailTransportCompatibilityException {
+        final List<Recipient> emailRecipients = emailRecipientsInEnvelopeOrder(email);
+        if (!hasRecipientNotificationPreferences(emailRecipients)) {
+            return emptyList();
+        }
+        requireMatchingRecipientOccurrences(emailRecipients, envelopeRecipients);
+        return bindNotificationPreferencesToEnvelope(emailRecipients, envelopeRecipients);
+    }
+
+    /** Jakarta Mail returns header recipients in TO, CC, BCC order; explicit envelope overrides retain their caller order. */
+    private static List<Recipient> emailRecipientsInEnvelopeOrder(final Email email) {
+        if (!email.getOverrideReceivers().isEmpty()) {
+            return new ArrayList<>(email.getOverrideReceivers());
+        }
+        final List<Recipient> recipients = new ArrayList<>();
+        for (final RecipientType type : new RecipientType[]{RecipientType.TO, RecipientType.CC, RecipientType.BCC}) {
+            for (final Recipient recipient : email.getRecipients()) {
+                if (type.equals(recipient.getType())) {
+                    recipients.add(recipient);
+                }
+            }
+        }
+        return recipients;
+    }
+
+    private static boolean hasRecipientNotificationPreferences(final List<Recipient> emailRecipients) {
+        return emailRecipients.stream().anyMatch(recipient -> !recipient.getDeliveryStatusNotificationNotifyOptions().isEmpty());
+    }
+
+    private static void requireMatchingRecipientOccurrences(final List<Recipient> emailRecipients, final Address[] envelopeRecipients)
+            throws MailTransportCompatibilityException {
+        if (emailRecipients.size() != envelopeRecipients.length) {
+            throw new MailTransportCompatibilityException("The final SMTP recipient list has " + envelopeRecipients.length
+                    + " entries, but the Email recipient list has " + emailRecipients.size()
+                    + ". Simple Java Mail cannot safely match the per-recipient notification settings. "
+                    + "Add recipients with withRecipients(...) instead of adding To/Cc/Bcc headers with withHeader(...), "
+                    + "or use withOverrideReceivers(...) to set a separate delivery list. No message was submitted.", envelopeRecipients);
+        }
+    }
+
+    private static List<DeliveryRecipient> bindNotificationPreferencesToEnvelope(final List<Recipient> emailRecipients,
+            final Address[] envelopeRecipients) {
+        final List<DeliveryRecipient> deliveryRecipients = new ArrayList<>();
+        for (int index = 0; index < emailRecipients.size(); index++) {
+            // Header parsing may normalize mailbox spelling. Bind the policy to the resulting envelope, not the earlier input string.
+            final Address address = envelopeRecipients[index];
+            deliveryRecipients.add(new DeliveryRecipient(address instanceof InternetAddress ? ((InternetAddress) address).getAddress() : address.toString(),
+                    emailRecipients.get(index).getDeliveryStatusNotificationNotifyOptions()));
+        }
+        return deliveryRecipients;
     }
 
     @NotNull
@@ -103,6 +172,7 @@ public class SessionBasedEmailToMimeMessageConverter {
                         .toArray(new Address[0]);
     }
 
+    @Nullable
     private static String resolveEnvelopeSender(@NotNull final Email email) {
         return email.getBounceToRecipient() == null
                 ? null

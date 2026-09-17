@@ -14,6 +14,7 @@ import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -147,7 +148,8 @@ public class TransportRunner {
 				? email.getRecipients() : email.getOverrideReceivers(), UTF_8).toArray(new Address[0]);
 		final MailTransportResult completeResult = transportResult.withEnvelopeRecipients(envelope);
 		return new MailSubmissionReceipt(email.getId(), transportResult.getSmtpResponse().orElse(null), Instant.now(),
-				completeResult.getStatus(), completeResult.getRecipientResults(), completeResult.getRetryDisposition());
+				completeResult.getStatus(), completeResult.getRecipientResults(), completeResult.getRetryDisposition(),
+				completeResult.getEnvelopeId());
 	}
 
 	@NotNull

@@ -5,10 +5,10 @@ import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.ParseException;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
+import org.eclipse.angus.mail.smtp.SMTPSSLTransport;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,17 +17,17 @@ import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.UUID;
 
 /** Angus Mail implementation of Simple Java Mail's provider adapter SPI. */
 public final class AngusMailTransportAdapter implements MailTransportAdapter {
@@ -35,6 +35,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     @Override
     public boolean supports(@NotNull final Transport transport) {
         return transport instanceof SMTPTransport;
+    }
+
+    /** @see MailTransportAdapter#supportsDeliveryEnvelope(DeliveryEnvelope) */
+    @Override
+    public boolean supportsDeliveryEnvelope(@NotNull final DeliveryEnvelope envelope) {
+        return true;
     }
 
     @Override
@@ -54,32 +60,103 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     public MailTransportResult sendMessage(@NotNull final Transport transport,
                                            @NotNull final PreparedMail preparedMail) {
         final SMTPTransport smtpTransport = (SMTPTransport) transport;
-        final MimeMessage message;
-        try {
-            message = resolveMessageForTransport(preparedMail);
-        } catch (final MessagingException preparationFailure) {
-            return MailTransportResult.failed(preparationFailure, null);
-        }
         // Use Angus's own monitor to keep reporting changes, sending and response capture atomic.
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (smtpTransport) {
-            return sendWithRecipientReporting(smtpTransport, message, preparedMail);
+            final Address[] expandedEnvelopeRecipients = AngusRecipientCommands.expandRecipients(preparedMail.getRecipients());
+            try {
+                final boolean supportsDsn = supportsUsableDsn(smtpTransport);
+                final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(smtpTransport, preparedMail, supportsDsn);
+                final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocolOf(smtpTransport));
+                final String envelopeId = resolveEnvelopeIdentifier(supportsDsn, preparedMail.getDeliveryEnvelope(), existingMailExtension,
+                        expandedEnvelopeRecipients);
+                final MimeMessage message = resolveMessageForTransport(preparedMail, existingMailExtension.value, envelopeId, recipientCommands);
+                final MailTransportResult result = sendWithRecipientReporting(smtpTransport, message, preparedMail, expandedEnvelopeRecipients);
+                return result.withEnvelopeId(message instanceof AngusSmtpMessage ? ((AngusSmtpMessage) message).getEnvelopeIdUsed() : null);
+            } catch (final MessagingException preparationFailure) {
+                // Nothing was submitted: do not reuse an earlier SMTP response or imply duplicate risk.
+                return MailTransportResult.failed(preparationFailure, null, null, expandedEnvelopeRecipients, null)
+                        .withEnvelopeRecipients(expandedEnvelopeRecipients);
+            }
+        }
+    }
+
+    @Nullable
+    private static String resolveEnvelopeIdentifier(final boolean supportsDsn, final DeliveryEnvelope deliveryEnvelope,
+            final ConfiguredMailExtension existingMailExtension, final Address[] recipients)
+            throws MessagingException {
+        final DeliveryStatusNotification notification = deliveryEnvelope.getDeliveryStatusNotification();
+        final String fixedIdentifier = notification == null ? null : notification.getEnvelopeId();
+        final boolean rawIdentifierPresent = containsEnvelopeIdentifier(existingMailExtension.value);
+        if (fixedIdentifier != null) {
+            if (!supportsDsn) {
+                throw new MailTransportCompatibilityException("This SMTP connection does not advertise usable DSN support, so the envelope identifier (ENVID) "
+                        + "you fixed cannot be sent. Remove fixingEnvelopeId(...) to allow sending without ENVID, "
+                        + "or use a DSN-capable SMTP server. No message was submitted.", recipients);
+            }
+            if (rawIdentifierPresent) {
+                throw new MailTransportCompatibilityException("An envelope identifier is configured twice: on this email and in "
+                        + existingMailExtension.sourceDescription + ". Remove the ENVID=... entry from that setting and keep fixingEnvelopeId(...). "
+                        + "Leave any other entries unchanged. No message was submitted.", recipients);
+            }
+            return fixedIdentifier;
+        }
+        // Older raw MAIL configuration remains caller-owned; do not append a second identifier or claim to have validated it.
+        return supportsDsn && !rawIdentifierPresent ? UUID.randomUUID().toString() : null;
+    }
+
+    /** RFC 3461 advertises DSN without EHLO parameters; reject parameterized variants instead of guessing at non-standard semantics. */
+    private static boolean supportsUsableDsn(final SMTPTransport transport) {
+        final String parameters = transport.getExtensionParameter("DSN");
+        return transport.supportsExtension("DSN") && (parameters == null || parameters.trim().isEmpty());
+    }
+
+    private static boolean containsEnvelopeIdentifier(@Nullable final String extension) {
+        if (extension != null) {
+            for (final String parameter : extension.split("\\s+")) {
+                if (parameter.equalsIgnoreCase("ENVID") || parameter.regionMatches(true, 0, "ENVID=", 0, 6)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @NotNull
+    private static ConfiguredMailExtension mailExtensionOf(final MimeMessage message, final String protocol) {
+        final String extension = message instanceof SMTPMessage ? ((SMTPMessage) message).getMailExtension() : null;
+        if (extension != null) {
+            return new ConfiguredMailExtension(extension, "SMTPMessage.setMailExtension(...)");
+        }
+        final String propertyName = "mail." + protocol + ".mailextension";
+        return new ConfiguredMailExtension(message.getSession() == null ? null : message.getSession().getProperty(propertyName),
+                "the Mailer property '" + propertyName + "'");
+    }
+
+    /** Keeps the selected value and its source together so a conflict points to the setting that actually supplied it. */
+    private static final class ConfiguredMailExtension {
+        @Nullable private final String value;
+        private final String sourceDescription;
+
+        private ConfiguredMailExtension(@Nullable final String value, final String sourceDescription) {
+            this.value = value;
+            this.sourceDescription = sourceDescription;
         }
     }
 
     @NotNull
     private static MailTransportResult sendWithRecipientReporting(@NotNull final SMTPTransport smtpTransport,
-            @NotNull final MimeMessage message, @NotNull final PreparedMail preparedMail) {
-        final Address[] envelope = resolveEnvelopeForReceipt(preparedMail.getRecipients());
+            @NotNull final MimeMessage message, @NotNull final PreparedMail preparedMail,
+            @NotNull final Address[] expandedEnvelopeRecipients) {
         final boolean originalReportSuccess = smtpTransport.getReportSuccess();
         final SmtpResponseSnapshot responseBeforeSend = captureResponseSnapshot(smtpTransport);
         smtpTransport.setReportSuccess(true);
         try {
             smtpTransport.sendMessage(message, preparedMail.getRecipients());
-            return MailTransportResult.accepted(envelope,
-                    captureNewResponse(smtpTransport, responseBeforeSend)).withEnvelopeRecipients(envelope);
+            return MailTransportResult.accepted(expandedEnvelopeRecipients,
+                    captureNewResponse(smtpTransport, responseBeforeSend)).withEnvelopeRecipients(expandedEnvelopeRecipients);
         } catch (final MessagingException failure) {
-            return AngusSubmissionResult.fromFailure(failure, envelope,
+            return AngusSubmissionResult.fromFailure(failure, expandedEnvelopeRecipients,
                     captureNewResponse(smtpTransport, responseBeforeSend),
                     smtpTransport instanceof ManagedAngusTransport ? (ManagedAngusTransport) smtpTransport : null);
         } finally {
@@ -88,34 +165,24 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         }
     }
 
-    /** Mirrors Angus group expansion for reporting only; the original addresses and MIME headers still go to the transport. */
     @NotNull
-    private static Address[] resolveEnvelopeForReceipt(final Address[] addresses) {
-        final List<Address> envelope = new ArrayList<>();
-        for (final Address address : addresses) {
-            if (address instanceof InternetAddress && ((InternetAddress) address).isGroup()) {
-                try {
-                    final InternetAddress[] members = ((InternetAddress) address).getGroup(true);
-                    if (members != null) {
-                        Collections.addAll(envelope, members);
-                        continue;
-                    }
-                } catch (final ParseException ignored) {
-                    // Angus also retains an unparseable group and lets the original send report any failure.
-                }
-            }
-            envelope.add(address);
-        }
-        return envelope.toArray(new Address[0]);
+    private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail,
+            @Nullable final String existingMailExtension, @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands)
+            throws MessagingException {
+        final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
+        return recipientCommands != null || envelopeId != null || envelope.hasProviderSpecificOptions()
+                || preparedMail.getContentRequirement() != ContentRequirement.NORMAL
+                ? new AngusSmtpMessage(preparedMail, existingMailExtension, envelopeId, recipientCommands)
+                : preparedMail.getMimeMessage();
     }
 
-    @NotNull
-    private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail) throws MessagingException {
-        final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-        return envelope.hasProviderSpecificOptions()
-                || preparedMail.getContentRequirement() != ContentRequirement.NORMAL
-                ? new AngusSmtpMessage(preparedMail)
-                : preparedMail.getMimeMessage();
+    private static String protocolOf(final SMTPTransport transport) {
+        final URLName url = transport.getURLName();
+        if (url != null && url.getProtocol() != null) {
+            return url.getProtocol();
+        }
+        // Directly constructed Angus transports may have no URL; use their standard protocol defaults.
+        return transport instanceof SMTPSSLTransport ? "smtps" : "smtp";
     }
 
     @NotNull
@@ -160,12 +227,20 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         private final MimeMessage delegate;
         private final ContentRequirement contentRequirement;
+        @Nullable private final AngusRecipientCommands recipientCommands;
+        @Nullable private final String selectedEnvelopeId;
+        @Nullable private String envelopeIdUsed;
 
-        AngusSmtpMessage(@NotNull final PreparedMail preparedMail) throws MessagingException {
+        AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @Nullable final String existingMailExtension,
+                @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands) throws MessagingException {
             super(sessionOf(preparedMail.getMimeMessage()));
             this.delegate = preparedMail.getMimeMessage();
             this.contentRequirement = preparedMail.getContentRequirement();
+            this.recipientCommands = recipientCommands;
+            this.selectedEnvelopeId = envelopeId;
             copyHeaders(delegate, this);
+            retainProviderOptions(delegate);
+            super.setMailExtension(envelopeId == null ? existingMailExtension : mailExtensionWithEnvelopeId(envelopeId, existingMailExtension));
 
             final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
             if (envelope.getEnvelopeFrom() != null) {
@@ -190,6 +265,41 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             while (headers.hasMoreElements()) {
                 final Header header = headers.nextElement();
                 targetMessage.addHeader(header.getName(), header.getValue());
+            }
+        }
+
+        @Nullable
+        AngusRecipientCommands getRecipientCommands() {
+            return recipientCommands;
+        }
+
+        /**
+         * Angus reads this extension immediately before issuing MAIL FROM, after its local sender/recipient checks.
+         * Record consumption here because ordinary caller-owned Angus transports have no managed command hook.
+         * The state belongs to this attempt's facade, never to the reusable Email or pooled transport.
+         */
+        @Override
+        @Nullable
+        public String getMailExtension() {
+            envelopeIdUsed = selectedEnvelopeId;
+            return super.getMailExtension();
+        }
+
+        @Nullable
+        String getEnvelopeIdUsed() {
+            return envelopeIdUsed;
+        }
+
+        /** Automatic ENVID may introduce this facade around an otherwise untouched provider message. Retain its caller-supplied options. */
+        private void retainProviderOptions(final MimeMessage message) {
+            if (message instanceof SMTPMessage) {
+                final SMTPMessage original = (SMTPMessage) message;
+                super.setEnvelopeFrom(original.getEnvelopeFrom());
+                super.setNotifyOptions(original.getNotifyOptions());
+                super.setReturnOption(original.getReturnOption());
+                super.setAllow8bitMIME(original.getAllow8bitMIME());
+                super.setSendPartial(original.getSendPartial());
+                super.setSubmitter(original.getSubmitter());
             }
         }
 
@@ -232,6 +342,28 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             return delegate.isMimeType(mimeType);
         }
 
+        // Angus may convert ordinary MIME to 8bit. Its reads and updates must reach the message that writeTo serializes.
+        @Override
+        public InputStream getInputStream() throws IOException, MessagingException {
+            return delegate.getInputStream();
+        }
+
+        @Override
+        public Object getContent() throws IOException, MessagingException {
+            return delegate.getContent();
+        }
+
+        @Override
+        public void setContent(final Object content, final String type) throws MessagingException {
+            delegate.setContent(content, type);
+        }
+
+        @Override
+        public void setHeader(final String name, final String value) throws MessagingException {
+            delegate.setHeader(name, value);
+            super.setHeader(name, value);
+        }
+
         @Override
         public void saveChanges() throws MessagingException {
             if (contentRequirement == ContentRequirement.NORMAL) {
@@ -252,6 +384,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             } else {
                 delegate.writeTo(outputStream, ignoreList);
             }
+        }
+
+        private static String mailExtensionWithEnvelopeId(final String envelopeId, @Nullable final String existingExtension) {
+            final String identifierParameter = "ENVID=" + ManagedAngusTransport.encodeXtext(envelopeId);
+            return existingExtension == null || existingExtension.isEmpty()
+                    ? identifierParameter : existingExtension + " " + identifierParameter;
         }
     }
 }

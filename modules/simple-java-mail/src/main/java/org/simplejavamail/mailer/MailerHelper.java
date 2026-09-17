@@ -205,8 +205,12 @@ public class MailerHelper {
 	 *     <li>disposition-notification-to recipient name and address, if provided</li>
 	 *     <li>return-receipt-to recipient name and address, if provided</li>
 	 * </ol>
+	 * Fixed DSN envelope identifiers (ENVID) have separate injection protection: their immutable configuration rejects control characters and
+	 * non-ASCII input, and the bundled Angus adapter encodes spaces, plus signs and equals signs before adding the identifier to an SMTP command.
+	 * This method does not repeat that validation. Making client-validation findings non-blocking does not disable ENVID validation or encoding.
 	 *
 	 * @see #scanForInjectionAttack
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#fixingEnvelopeId(String)
 	 */
 	public static void scanForInjectionAttacks(final @NotNull Email email) {
 		// check for illegal values

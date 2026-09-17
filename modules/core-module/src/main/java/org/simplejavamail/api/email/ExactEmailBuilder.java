@@ -1,7 +1,10 @@
 package org.simplejavamail.api.email;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
@@ -43,6 +46,14 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder withEnvelopeRecipients(@NotNull Collection<String> recipientAddresses);
 
 	/**
+	 * Appends recipients, retaining their per-recipient NOTIFY preferences. Each address must be one valid mailbox. Names, recipient types and
+	 * S/MIME certificates do not change the exact MIME bytes. Duplicate addresses retain their individual preferences and argument order.
+	 * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Cli.ExcludeApi(reason = "Recipient-specific policies use the Java recipient builders; the CLI supports the shared Email NOTIFY preference")
+	ExactEmailBuilder withEnvelopeRecipients(@NotNull Recipient @NotNull ... recipients);
+
+	/**
 	 * Sets the optional SMTP-envelope sender, which must contain exactly one valid mailbox. Calling this method again replaces the previous value.
 	 *
 	 * @param senderAddress Mailbox address to use as the SMTP envelope sender.
@@ -52,39 +63,56 @@ public interface ExactEmailBuilder {
 
 	/**
 	 * Sets the SMTP Delivery Status Notification (DSN) options for this exact email. These transport-level options do not change the authoritative EML
-	 * bytes and only take effect when the receiving SMTP server supports DSN. Calling this method again replaces the complete previous DSN value.
+	 * bytes. Shared NOTIFY/RET-only requests are best-effort; a fixed envelope identifier or explicit recipient NOTIFY requires DSN support
+	 * on the actual send connection. Recipient preferences supplied through {@link #withEnvelopeRecipients(Recipient...)} win over shared NOTIFY.
+	 * Calling this method again replaces the complete previous DSN value.
 	 *
 	 * @param deliveryStatusNotification Delivery-status notification options for SMTP submission.
 	 * @return This builder.
 	 *
 	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
-	@Cli.ExcludeApi(reason = "The String overloads are used by the CLI")
+	@Cli.ExcludeApi(reason = "The typed NOTIFY and return-option methods expose these settings to the CLI")
 	ExactEmailBuilder withDeliveryStatusNotification(@NotNull DeliveryStatusNotification deliveryStatusNotification);
 
 	/**
-	 * Sets the SMTP DSN notification events for this exact email, leaving any already configured return option untouched.
+	 * Chooses which delivery notifications to request, replacing the previous shared preference while retaining the return option and envelope identifier.
+	 * Explicit recipient preferences still win. This does not change the exact EML bytes or guarantee that a notification will arrive.
+	 * {@link NotifyOption#NEVER} requests no notifications and cannot be combined with other events. An empty array removes the shared preference;
+	 * at least one DSN option or fixed envelope identifier must remain when building the Email.
 	 *
-	 * @param notifyOptions String representation of one or more DSN notification events, for example {@code "FAILURE,DELAY"}.
+	 * @param notifyOptions Requested events: {@code SUCCESS}, {@code FAILURE}, or {@code DELAY}, or {@code NEVER} alone.
+	 *                      The CLI accepts comma/semicolon-separated names, ignoring case.
 	 * @return This builder.
-	 *
-	 * @see DeliveryStatusNotification#parseNotifyOptions(String)
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(String)
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
 	 */
 	@Cli.OptionNameOverride("withEnvelopeDsnNotifyOptions")
-	ExactEmailBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull String notifyOptions);
+	ExactEmailBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ...notifyOptions);
 
 	/**
-	 * Sets the SMTP DSN return option for this exact email, leaving any already configured notification events untouched.
+	 * Chooses how much of the original email a delivery-failure notification may return, retaining notification events and the envelope identifier.
+	 * This does not change the exact EML bytes. The request is best-effort and depends on server support.
 	 *
-	 * @param returnOption String representation of the DSN return option.
+	 * @param returnOption {@link ReturnOption#FULL_MESSAGE} for the complete email or {@link ReturnOption#HEADERS_ONLY} for headers without content.
+	 *                     The CLI also accepts {@code FULL} and {@code HDRS}, ignoring case.
 	 * @return This builder.
-	 *
-	 * @see DeliveryStatusNotification#parseReturnOption(String)
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(String)
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(ReturnOption)
 	 */
 	@Cli.OptionNameOverride("withEnvelopeDsnReturnOption")
-	ExactEmailBuilder withDeliveryStatusNotificationReturnOption(@NotNull String returnOption);
+	ExactEmailBuilder withDeliveryStatusNotificationReturnOption(@NotNull ReturnOption returnOption);
+
+	/**
+	 * Fixes the unencoded SMTP transaction identifier (ENVID) without changing the exact EML bytes or other DSN options.
+	 * The value follows the validation, correlation and required-server-support contract of
+	 * {@link EmailPopulatingBuilder#fixingEnvelopeId(String)}.
+	 * A supplied identifier is validated when {@link #buildEmail()} creates the Email; {@code null} resumes automatic generation on each send.
+	 *
+	 * @param envelopeId A fixed printable ASCII identifier, at most 94 characters after SMTP encoding (100 including {@code ENVID=}), or {@code null}.
+	 * @return This builder.
+	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 */
+	@Cli.OptionNameOverride("fixingExactEnvelopeId")
+	ExactEmailBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
 
 	/**
 	 * Builds an {@link Email} whose existing getters expose the parsed EML fields while the original bytes remain authoritative for conversion,

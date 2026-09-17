@@ -21,6 +21,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailTransportResultTest {
 
 	@Test
+	void envelopeIdentifierSurvivesRecipientEnrichmentWithoutMutatingOtherResults() throws Exception {
+		final Address[] envelope = {new InternetAddress("recipient@example.org")};
+		final MessagingException failure = new MessagingException("connection lost");
+		final MailTransportResult original = MailTransportResult.failed(failure, null);
+		final MailTransportResult identified = original.withEnvelopeId("attempt-1");
+		final MailTransportResult ordered = identified.withEnvelopeRecipients(envelope);
+		assertThat(original.getEnvelopeId()).isNull();
+		assertThat(ordered.getEnvelopeId()).isEqualTo("attempt-1");
+		assertThat(ordered.getFailure()).containsSame(failure);
+		assertThat(ordered.withRecipientResults(ordered.getRecipientResults(), ordered.getRetryDisposition()).getEnvelopeId()).isEqualTo("attempt-1");
+		assertThat(ordered.withEnvelopeId(null).getEnvelopeId()).isNull();
+		assertThat(ordered.getEnvelopeId()).isEqualTo("attempt-1");
+	}
+
+	@Test
 	void basicResultsCaptureRecipientFactsBeforeTheFirstGetterCall() throws Exception {
 		final InternetAddress address = new InternetAddress("Before <before@example.org>");
 		final MailTransportResult result = MailTransportResult.accepted(new Address[]{address}, null);

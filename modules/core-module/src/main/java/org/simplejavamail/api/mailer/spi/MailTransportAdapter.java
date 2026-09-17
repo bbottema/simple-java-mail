@@ -31,6 +31,27 @@ public interface MailTransportAdapter {
         return contentRequirement == ContentRequirement.NORMAL;
     }
 
+    /**
+     * Indicates whether this adapter understands the supplied SMTP envelope options. The default preserves existing adapters' behavior for
+     * envelope sender and shared NOTIFY/RET, but refuses a fixed ENVID or recipient-specific NOTIFY until an adapter explicitly supports them.
+     * Simple Java Mail checks this before dispatch.
+     * <p>
+     * Returning {@code true} does not establish server support. For a fixed ENVID the adapter must also check DSN on the actual connected transport and fail
+     * before MAIL FROM when unavailable; silently omitting the identifier is not allowed.
+     * Without a fixed identifier, adapters may generate one for each DSN-capable submission and otherwise send normally without it.
+     * Report the effective unencoded identifier through {@link MailTransportResult#withEnvelopeId(String)}, including failed submissions that used it.
+     * Recipient-specific preferences must likewise be rejected before MAIL FROM when the transport or connection cannot honor them.
+     * Preserve their occurrence order, apply each complete preference instead of merging with shared NOTIFY, and leave MIME bytes unchanged.
+     * Automatic ORCPT is optional for adapters, must match the actual envelope recipient at initial submission, and does not enable NOTIFY.
+     *
+     * @param envelope Options for this submission, kept separate from MIME content.
+     * @return Whether the adapter can honor these options, subject to the actual server's capabilities.
+     */
+    default boolean supportsDeliveryEnvelope(@NotNull final DeliveryEnvelope envelope) {
+        return !envelope.hasRecipientNotifyOptions()
+                && (envelope.getDeliveryStatusNotification() == null || envelope.getDeliveryStatusNotification().getEnvelopeId() == null);
+    }
+
     @NotNull
     MailTransportResult sendMessage(@NotNull Transport transport, @NotNull PreparedMail preparedMail);
 }

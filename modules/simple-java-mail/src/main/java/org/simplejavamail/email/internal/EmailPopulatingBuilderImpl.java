@@ -20,6 +20,7 @@ import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.DeliveryStatusNotificationBuilder;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
@@ -740,43 +741,46 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
 	 */
 	@Override
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(
 			@NotNull final DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
-		return withDeliveryStatusNotification(DeliveryStatusNotification.of(
-				deliveryStatusNotification != null ? deliveryStatusNotification.getReturnOption() : null,
-				notifyOptions));
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(String)
-	 */
-	@Override
-	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final String notifyOptions) {
-		final Set<DeliveryStatusNotification.NotifyOption> parsedNotifyOptions = DeliveryStatusNotification.parseNotifyOptions(notifyOptions);
-		return withDeliveryStatusNotificationNotifyOptions(parsedNotifyOptions.toArray(new DeliveryStatusNotification.NotifyOption[parsedNotifyOptions.size()]));
+		return withDeliveryStatusNotification(deliveryStatusNotificationBuilder().notifyOptions(notifyOptions).build());
 	}
 
 	/**
 	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
 	 */
 	@Override
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable final DeliveryStatusNotification.ReturnOption returnOption) {
-		if (returnOption == null && (deliveryStatusNotification == null || deliveryStatusNotification.getNotifyOptions().isEmpty())) {
+		if (returnOption == null && hasNoNotificationEventsOrEnvelopeIdentifier()) {
 			deliveryStatusNotification = null;
 			return this;
 		}
-		return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption,
-				deliveryStatusNotification != null ? deliveryStatusNotification.getNotifyOptions() : emptySet()));
+		return withDeliveryStatusNotification(deliveryStatusNotificationBuilder().returnOption(returnOption).build());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(String)
+	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
 	 */
 	@Override
-	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@NotNull final String returnOption) {
-		return withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.parseReturnOption(returnOption));
+	public EmailPopulatingBuilder fixingEnvelopeId(@Nullable final String envelopeId) {
+		if (envelopeId == null && hasNoReturnOptionOrNotificationEvents()) {
+			return clearDeliveryStatusNotification();
+		}
+		return withDeliveryStatusNotification(deliveryStatusNotificationBuilder().envelopeId(envelopeId).build());
+	}
+
+	private boolean hasNoNotificationEventsOrEnvelopeIdentifier() {
+		return deliveryStatusNotification == null
+				|| deliveryStatusNotification.getNotifyOptions().isEmpty() && deliveryStatusNotification.getEnvelopeId() == null;
+	}
+
+	private boolean hasNoReturnOptionOrNotificationEvents() {
+		return deliveryStatusNotification == null
+				|| deliveryStatusNotification.getReturnOption() == null && deliveryStatusNotification.getNotifyOptions().isEmpty();
+	}
+
+	private DeliveryStatusNotificationBuilder deliveryStatusNotificationBuilder() {
+		return deliveryStatusNotification != null ? deliveryStatusNotification.toBuilder() : DeliveryStatusNotification.builder();
 	}
 
 	/**
@@ -1048,8 +1052,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public InternalEmailPopulatingBuilder withRecipients(@NotNull final Collection<Recipient> recipients) {
-		for (Recipient recipient : recipients) {
-			this.recipients.add(new Recipient(recipient.getName(), recipient.getAddress(), recipient.getType(), recipient.getSmimeCertificate()));
+		for (final Recipient recipient : recipients) {
+			this.recipients.add(requireNonNull(recipient, "recipient"));
 		}
 		return this;
 	}

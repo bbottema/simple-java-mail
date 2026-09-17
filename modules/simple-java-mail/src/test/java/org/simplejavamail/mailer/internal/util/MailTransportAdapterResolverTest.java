@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal.util;
 
+import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
+import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -21,12 +24,44 @@ import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailTransportAdapterResolverTest {
+
+    @Test
+    void olderAdapterCannotSilentlyIgnoreAnEnvelopeIdentifier() throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true);
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null,
+                DeliveryStatusNotification.builder().envelopeId("attempt-42").build()));
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter)))
+                .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("cannot send the requested SMTP envelope options")
+                .hasMessageContaining("remove the unsupported options").hasMessageContaining("ENVID")
+                .satisfies(failure -> {
+                    final SendFailedException unsent = (SendFailedException) failure;
+                    assertThat(unsent.getValidUnsentAddresses()).containsExactly(preparedMail.getRecipients());
+                    assertThat(unsent.getValidSentAddresses()).isNull();
+                    assertThat(MailTransportResult.failed(unsent, null).getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+                });
+        assertThat(adapter.preparedMail).isNull();
+    }
+
+    @Test
+    void adapterOptingIntoEnvelopeSupportReceivesTheExactUnencodedValue() throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true) {
+            @Override
+            public boolean supportsDeliveryEnvelope(final DeliveryEnvelope envelope) {
+                return true;
+            }
+        };
+        final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("attempt+42").build();
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, notification));
+        MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter));
+        assertThat(adapter.preparedMail.getDeliveryEnvelope().getDeliveryStatusNotification()).isSameAs(notification);
+    }
 
     @Test
     void unknownProviderUsesGenericFallbackForOrdinaryMail() throws Exception {
@@ -38,9 +73,22 @@ class MailTransportAdapterResolverTest {
 
         assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
         assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getEnvelopeId()).isNull();
         assertThat(result.getAcceptedRecipients()).containsExactly(preparedMail.getRecipients());
         assertThat(transport.sentMessage).isSameAs(preparedMail.getMimeMessage());
         assertThat(transport.sentRecipients).containsExactly(preparedMail.getRecipients());
+    }
+
+    @Test
+    void olderAdapterKeepsOrdinarySendingWithoutInventingAnEnvelopeIdentifier() throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true);
+        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+
+        final MailTransportResult result = MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter));
+
+        assertThat(result.getEnvelopeId()).isNull();
+        assertThat(adapter.preparedMail).isSameAs(preparedMail);
+        assertThat(preparedMail.getDeliveryEnvelope().getDeliveryStatusNotification()).isNull();
     }
 
     @Test
@@ -130,6 +178,20 @@ class MailTransportAdapterResolverTest {
                 transport, preparedMail, Arrays.<MailTransportAdapter>asList(new ZAdapter(), new AAdapter())))
                 .isInstanceOf(MessagingException.class)
                 .hasMessageContaining(AAdapter.class.getName() + ", " + ZAdapter.class.getName());
+    }
+
+    @Test
+    void recipientPreferencesCannotBeSilentlyDroppedByUnknownOrOlderAdapters() throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, Collections.singletonList(
+                new DeliveryRecipient("receiver@example.com", Collections.singleton(DeliveryStatusNotification.NotifyOption.NEVER)))));
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, mail, Collections.emptyList()))
+                .isInstanceOf(MailTransportCompatibilityException.class);
+        final RecordingAdapter olderAdapter = new RecordingAdapter(true);
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, mail, Collections.singletonList(olderAdapter)))
+                .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("recipient-specific NOTIFY");
+        assertThat(olderAdapter.preparedMail).isNull();
+        assertThat(transport.sentMessage).isNull();
     }
 
     private static PreparedMail preparedMail(final DeliveryEnvelope envelope) throws MessagingException {

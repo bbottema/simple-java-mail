@@ -35,6 +35,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailSubmissionReceiptTest {
 
 	@Test
+	void preservesEffectiveEnvelopeIdentifierThroughSerialization() throws Exception {
+		final MailSubmissionReceipt receipt = new MailSubmissionReceipt("<message>", null, Instant.now(), MailSubmissionStatus.UNKNOWN,
+				List.of(), MailRetryDisposition.DUPLICATE_RISK, "submission-1");
+		assertThat(receipt.getEnvelopeId()).isEqualTo("submission-1");
+		assertThat(roundTrip(receipt).getEnvelopeId()).isEqualTo("submission-1");
+		assertThat(new MailSubmissionReceipt("<message>", null, Instant.now()).getEnvelopeId()).isNull();
+	}
+
+	@Test
 	void receiptReturningMethodsRequireAnExplicitMailerImplementation() throws Exception {
 		assertThat(Mailer.Sync.class.getMethod("sendMail", Email.class).isDefault()).isFalse();
 		assertThat(Mailer.Async.class.getMethod("sendMail", Email.class).isDefault()).isFalse();
@@ -46,6 +55,7 @@ class MailSubmissionReceiptTest {
 			final MailRetryDisposition retryDisposition) throws Exception {
 		final MailSubmissionReceipt restored = readFixture(fixture);
 		assertThat(restored.getEmailId()).isEqualTo("<legacy-response>");
+		assertThat(restored.getEnvelopeId()).isNull();
 		assertThat(restored.getSubmittedAt()).isEqualTo(Instant.parse("2026-09-08T12:00:00Z"));
 		assertThat(restored.getStatus()).isEqualTo(status);
 		assertThat(restored.getRetryDisposition()).isEqualTo(retryDisposition);

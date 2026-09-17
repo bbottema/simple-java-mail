@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
@@ -97,7 +98,7 @@ final class MailTransportAdapterResolver {
             return sendUsingAdapter(supportingAdapters.get(0), transport, preparedMail);
         }
         requireProviderNeutralContent(transport, preparedMail.getContentRequirement());
-        requireProviderNeutralEnvelope(transport, preparedMail.getDeliveryEnvelope());
+        requireProviderNeutralEnvelope(transport, preparedMail);
         return sendUsingGenericTransport(transport, preparedMail);
     }
 
@@ -130,6 +131,11 @@ final class MailTransportAdapterResolver {
                                                         @NotNull final PreparedMail preparedMail)
             throws MessagingException {
         requireSupportedContent(adapter, transport, preparedMail.getContentRequirement());
+        if (!adapter.supportsDeliveryEnvelope(preparedMail.getDeliveryEnvelope())) {
+            throw new MailTransportCompatibilityException(adapter.getClass().getName()
+                    + " cannot send the requested SMTP envelope options. Use a matching provider adapter that supports them, "
+                    + "or remove the unsupported options (such as a fixed ENVID or recipient-specific NOTIFY preferences).", preparedMail.getRecipients());
+        }
         return requireNonNull(adapter.sendMessage(transport, preparedMail), "MailTransportAdapter result");
     }
 
@@ -153,12 +159,13 @@ final class MailTransportAdapterResolver {
     }
 
     private static void requireProviderNeutralEnvelope(@NotNull final Transport transport,
-                                                       @NotNull final DeliveryEnvelope deliveryEnvelope)
+                                                       @NotNull final PreparedMail preparedMail)
             throws MailTransportCompatibilityException {
+        final DeliveryEnvelope deliveryEnvelope = preparedMail.getDeliveryEnvelope();
         if (deliveryEnvelope.hasProviderSpecificOptions()) {
             throw new MailTransportCompatibilityException("No mail transport adapter for " + transport.getClass().getName()
                     + " supports the requested envelope sender or delivery-status notification options. "
-                    + "Install a matching MailTransportAdapter or remove those provider-specific options");
+                    + "Install a matching MailTransportAdapter or remove those provider-specific options", preparedMail.getRecipients());
         }
     }
 

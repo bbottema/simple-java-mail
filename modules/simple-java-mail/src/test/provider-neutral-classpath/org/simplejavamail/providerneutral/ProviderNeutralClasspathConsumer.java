@@ -12,7 +12,11 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
+import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.RecipientsBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
@@ -37,6 +41,7 @@ import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
+import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
@@ -103,11 +108,62 @@ public final class ProviderNeutralClasspathConsumer {
 		assertRecipientReplyApiIsAvailable();
 		assertConnectionProbeApiIsAvailable();
 		assertExecutionViewsApiIsAvailable();
+		assertEnvelopeIdentifierApiIsAvailable(simpleJavaMail);
+		assertSigningTemplateApiIsAvailable(simpleJavaMail);
+		assertRecipientDsnApiIsAvailable(simpleJavaMail);
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** Recipient policies and their ordered SPI representation must not load Angus. */
+	private static void assertRecipientDsnApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final Recipient recipient = new RecipientBuilder().withAddress("recipient@example.org").withType(Message.RecipientType.TO)
+				.withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption.NEVER).build();
+		final Email email = simpleJavaMail.emailBuilder().startingBlank()
+				.withRecipients(new RecipientsBuilder().withDefaultDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption.FAILURE)
+						.withRecipient(recipient).buildRecipients()).buildEmail();
+		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null,
+				List.of(new DeliveryRecipient(recipient.getAddress(), recipient.getDeliveryStatusNotificationNotifyOptions())));
+		if (!email.getRecipients().get(0).equals(recipient) || !envelope.hasRecipientNotifyOptions()
+				|| !envelope.getRecipientOptions().get(0).getNotifyOptions().contains(DeliveryStatusNotification.NotifyOption.NEVER)) {
+			throw new AssertionError("Provider-neutral recipient NOTIFY preferences are unavailable");
+		}
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, Recipient[], ExactEmailBuilder> exactRecipients =
+				ExactEmailBuilder::withEnvelopeRecipients;
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, DeliveryStatusNotification.NotifyOption[], ExactEmailBuilder> exactNotificationOptions =
+				ExactEmailBuilder::withDeliveryStatusNotificationNotifyOptions;
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, DeliveryStatusNotification.ReturnOption, ExactEmailBuilder> exactReturnOption =
+				ExactEmailBuilder::withDeliveryStatusNotificationReturnOption;
+	}
+
+	/** Constructing and sharing signing policy must not load a signing module or SMTP provider. */
+	private static void assertSigningTemplateApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final DkimConfig signing = DkimConfig.builder().dkimPrivateKeyData("key").dkimSigningDomain("example.org").dkimSelector("selector").build();
+		final Email template = simpleJavaMail.emailBuilder().startingBlank().signWithDomainKey(signing).buildEmail();
+		final Email configuredTemplate = simpleJavaMail.mailerBuilder().withEmailDefaults(template).getEmailDefaults();
+		if (configuredTemplate != template || template.getFromRecipient() != null || template.getDkimConfig() != signing) {
+			throw new AssertionError("Provider-neutral signing templates are unavailable");
+		}
+	}
+
+	/** ENVID remains ordinary immutable Email data even when no SMTP implementation is installed. */
+	private static void assertEnvelopeIdentifierApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("consumer+42").build();
+		final Email email = simpleJavaMail.emailBuilder().startingBlank().withDeliveryStatusNotification(notification)
+				.withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY).buildEmail();
+		if (!"consumer+42".equals(email.getDeliveryStatusNotification().getEnvelopeId())
+				|| !notification.equals(notification.toBuilder().build())) {
+			throw new AssertionError("Provider-neutral ENVID model is unavailable");
+		}
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, String, ExactEmailBuilder> exactIdentifier =
+				ExactEmailBuilder::fixingEnvelopeId;
+		@SuppressWarnings("unused") final Function<MailSubmissionReceipt, String> effectiveEnvelopeId = MailSubmissionReceipt::getEnvelopeId;
+		@SuppressWarnings("unused") final BiFunction<MailTransportResult, String, MailTransportResult> reportedEnvelopeId = MailTransportResult::withEnvelopeId;
+		@SuppressWarnings("unused") final BiFunction<MailTransportAdapter, DeliveryEnvelope, Boolean> envelopeSupport =
+				MailTransportAdapter::supportsDeliveryEnvelope;
 	}
 
 	/** Both views and receipt-bearing sends must compile without pulling provider types into the public API. */

@@ -30,6 +30,7 @@ public final class MailTransportResult {
 
 	@NotNull private final MailSubmissionStatus status;
 	@Nullable private final SmtpServerResponse smtpResponse;
+	@Nullable private final String envelopeId;
 	@NotNull private final Address[] acceptedRecipients;
 	@NotNull private final Address[] validUnsentRecipients;
 	@NotNull private final Address[] invalidRecipients;
@@ -51,7 +52,7 @@ public final class MailTransportResult {
 		appendRecipients(recipients, validUnsentRecipients, MailRecipientDisposition.VALID_UNSENT);
 		appendRecipients(recipients, invalidRecipients, MailRecipientDisposition.INVALID);
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients, failure,
-				recipients, basicRetryDisposition(status, failure), false);
+				recipients, basicRetryDisposition(status, failure), false, null);
 	}
 
 	@NotNull
@@ -67,9 +68,10 @@ public final class MailTransportResult {
 			@Nullable final Address[] acceptedRecipients, @Nullable final Address[] validUnsentRecipients,
 			@Nullable final Address[] invalidRecipients, @Nullable final MessagingException failure,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
-			final boolean envelopeRecipientsResolved) {
+			final boolean envelopeRecipientsResolved, @Nullable final String envelopeId) {
 		this.status = requireNonNull(status, "status");
 		this.smtpResponse = smtpResponse;
+		this.envelopeId = envelopeId;
 		this.acceptedRecipients = copy(acceptedRecipients);
 		this.validUnsentRecipients = copy(validUnsentRecipients);
 		this.invalidRecipients = copy(invalidRecipients);
@@ -88,7 +90,26 @@ public final class MailTransportResult {
 	public MailTransportResult withRecipientResults(@NotNull final List<MailRecipientResult> recipients,
 			@NotNull final MailRetryDisposition retryDisposition) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, requireNonNull(recipients, "recipients"), retryDisposition, true);
+				failure, requireNonNull(recipients, "recipients"), retryDisposition, true, envelopeId);
+	}
+
+	/**
+	 * Records the unencoded ENVID used for this transport submission. Leave it absent when no identifier was supplied to the transport,
+	 * including unsupported DSN, preparation failure and unreported raw MAIL extensions. This does not assert server acceptance or later delivery.
+	 *
+	 * @param envelopeId The effective unencoded identifier, or {@code null} when absent.
+	 * @return An immutable copy retaining all submission and recipient facts, with the supplied identifier.
+	 */
+	@NotNull
+	public MailTransportResult withEnvelopeId(@Nullable final String envelopeId) {
+		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId);
+	}
+
+	/** @return The unencoded identifier used for this submission, or {@code null} when none was used or reported. */
+	@Nullable
+	public String getEnvelopeId() {
+		return envelopeId;
 	}
 
 	/**
