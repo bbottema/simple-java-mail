@@ -2,7 +2,7 @@
 
 This is a developer's map of the cooperating state machines behind mail sending. Start here when a cancellation request, blocked worker, callback, or shutdown behaves differently from what you expected. The diagrams explain who owns each transition, which locks protect it, and what has to finish before the next step can happen.
 
-The first collection covers the Phase 2 execution-control implementation on `codex/10.0.0`, including the working-tree changes reviewed on 2026-09-10. It describes implementation behavior, not a released-version guarantee or a proof that every possible interleaving is safe. Read it alongside the [project mechanisms catalogue](../../PROJECT_MECHANISMS_CATALOGUE.md), [coding guide](../../CODING_STYLE_GUIDE.md), and [improvement plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/README.md).
+The first collection covers the Phase 2 execution-control implementation on `codex/10.0.0`, including the working-tree changes reviewed on 2026-09-10 and subsequent documented integration boundaries. It describes implementation behavior, not a released-version guarantee or a proof that every possible interleaving is safe. Read it alongside the [architecture decisions and topic index](../adr/README.md), [coding guide](../../CODING_STYLE_GUIDE.md), and [improvement plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/README.md).
 
 ## Start with the overview
 
@@ -11,6 +11,8 @@ The first collection covers the Phase 2 execution-control implementation on `cod
 The infographic shows the pooled asynchronous path with managed Angus transport. It maps responsibilities, not monitor nesting or every possible send path. Outcome reporting follows the email across those layers; it is not another transport layer. Open the image for the full-size view, then use the pages below for transitions and locking rules.
 
 The [infographic source and maintenance notes](inside-a-mail-send.md) record its scope, the shared asset, and the review checkpoint for each remaining improvement phase.
+
+Recipient DSN policies and automatic ORCPT use the same layers and ownership. The adapter prepares immutable per-attempt command options; the managed transport reads them under its existing send monitor and clears them in `finally`. No new lock or state machine is introduced. Pre-MAIL capability failures return a healthy lease; SMTP failures keep the existing invalidation path. The overview infographic remains accurate.
 
 ## Start with the question you have
 
@@ -24,6 +26,14 @@ The [infographic source and maintenance notes](inside-a-mail-send.md) record its
 | Who owns a connection while waiting for a pool claim, using it, and returning it? | [06 — Pool claims and leases](06-pool-claims-and-leases.md) |
 | How can cancellation unblock Angus without waiting for its SMTP lock? What if SMTP already accepted the email? | [07 — Angus transport abort](07-angus-transport-abort.md) |
 | How do the machines fit together, including observers, batches, and future completion? | [08 — Cross-machine contracts](08-cross-machine-contracts.md) |
+
+## Entry points and adjacent mechanisms
+
+`Mailer.sync()` and `Mailer.async()` are cached immutable views of one Mailer. They add no workers, pools, locks, or shutdown ownership. Single-email sends return a receipt or `MailSend<MailSubmissionReceipt>`; simple batches return void or `MailSend<Void>` and remain lazy and first-failure-stopping. Async closures acquire proxy/transport resources after worker execution begins. CLI send/connect commands use the synchronous view; daemon request concurrency is owned by the daemon. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) records the API decision.
+
+Connection tests and capability probes have separate helper paths. A probe opens a dedicated connection without an Email, send-pool lease, observer outcome, or total send deadline. It reuses proxy accounting and holds the Mailer monitor through synchronous cleanup; the async wrapper uses the Mailer's executor. Admission/shutdown failures produce exceptional futures, while connection/cleanup failures are diagnostic reports. See [ADR 0020](../adr/0020-dedicated-smtp-connection-diagnostics.md) for authentication, provider limitations, and future-cancellation semantics.
+
+The authenticated SOCKS bridge's listener and accepted forwarding sockets have distinct lifetimes, described in [ADR 0010](../adr/0010-authenticated-socks-bridge.md). Its request counter participates in send/probe cleanup, while existing pooled sockets can outlive a listener stop. The CLI daemon's retained Mailers and request ledger have their own ownership rules in [ADR 0019](../adr/0019-local-cli-daemon.md).
 
 ## The cooperating machines
 

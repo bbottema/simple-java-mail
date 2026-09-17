@@ -263,7 +263,7 @@ Simple Java Mail handles the higher-level work involved in outbound email while 
 | Choose an optional artifact | [Modules](https://www.simplejavamail.org/modules.html) |
 | Compare Java mail libraries | [Comparison](https://www.simplejavamail.org/feature-matrix.html) |
 | Upgrade existing code | [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) |
-| Understand the replaceable provider boundary in 10.0 | [10.0 migration guide](MIGRATION-10.0.md) |
+| Understand the replaceable provider boundary in 10.0.0 | [10.0.0 migration guide](MIGRATION-10.0.md) |
 | Ask a question or contribute | [Help and contribute](https://www.simplejavamail.org/contact.html) |
 
 ## Current release
@@ -280,7 +280,7 @@ Simple Java Mail is open source under the Apache License 2.0. It was first publi
 
 - Use the [issue tracker](https://github.com/bbottema/simple-java-mail/issues) for reproducible bugs and concrete feature ideas.
 - Read [DEVELOPMENT.md](DEVELOPMENT.md) for the supported JDKs and local build setup.
-- Read the [project mechanisms catalogue](PROJECT_MECHANISMS_CATALOGUE.md) before changing module loading, CLI metadata, MIME selection, proxy bridging, concurrency, or non-null instrumentation.
+- Read the [architecture decisions and topic index](docs/adr/README.md) before changing module loading, CLI metadata, MIME selection, proxy bridging, concurrency, or non-null instrumentation. Use [Developer Environment Setup](DEVELOPMENT.md) for builds and generated metadata, and the [concurrency documentation](docs/concurrency/README.md) for send-state and resource-ownership details.
 - Follow the [API expansion workflow](API_EXPANSION_WORKFLOW.md) when adding a public field or builder method.
 - Use [Help and contribute](https://www.simplejavamail.org/contact.html) to choose the right public channel or arrange private follow-up for a sensitive report.
 

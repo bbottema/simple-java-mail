@@ -18,6 +18,10 @@ The normal `ThreadPoolExecutor.execute` path attempts admission first. SJM's han
 
 This policy belongs to SJM's executor. A caller-provided executor retains its own scheduling, rejection and ownership rules, including any caller-runs policy it supplies.
 
+`MailerGenericBuilderImpl` constructs the Mailer-local executor. With `batch-module` present it uses the configured worker count and keep-alive; without it, it retains one worker with no idle expiry. Its workers are non-daemon even when created by a daemon request thread. The optional module controls connection pooling, not executor ownership.
+
+Queue defaults belong to `MailerGenericBuilder`; its implementation resolves `simplejavamail.defaults.async.queue.*` and Java overrides into an immutable `AsyncQueueConfig`, then supplies it to `OperationalConfigImpl`. The configuration getter does not resolve defaults. Non-default built-in queue settings cannot be combined with a caller executor; `resetAsyncQueue()` clears them. The separate `BatchTransportExecutor` still uses `NonJvmBlockingThreadPoolExecutor` by default and does not inherit this queue policy.
+
 ## Queue shapes and conceptual states
 
 | Configured capacity | Concrete queue | Meaning |

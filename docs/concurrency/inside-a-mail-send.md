@@ -4,7 +4,7 @@ This is the maintenance source for the [architecture infographic](assets/inside-
 
 ## Scope
 
-- Version shown: Simple Java Mail 10.0 development line.
+- Version shown: Simple Java Mail 10.0.0 development line.
 - Path shown: an ordinary pooled asynchronous send with managed Angus transport.
 - Last reviewed: 2026-09-10, against the Phase 2 working-tree implementation under review.
 - Not a release-status graphic, a lock-order graph, or an exhaustive map of every send path.
@@ -34,7 +34,7 @@ Preserve the five-layer cutaway onion, numbered callouts, readable class names, 
 
 Title: **Inside a mail send**
 
-Subtitle: **Simple Java Mail 10.0 · layers, responsibilities and control**
+Subtitle: **Simple Java Mail 10.0.0 · layers, responsibilities and control**
 
 Path caption: **Illustrated path: pooled async send with managed Angus transport**
 

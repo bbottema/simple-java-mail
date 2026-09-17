@@ -8,6 +8,8 @@ This machinery lets one send stop waiting for, or using, a connection without ta
 
 An ordinary send follows `TransportRunner.sendUsingConnectionPool()` → `BatchTransportEngine.claim()` → the upstream SMTP/cluster/generic pools. After the claim returns, `LifecycleDelegatingTransportImpl` owns the lease until the send either returns it healthy or invalidates it. This page describes that path, not a new public send API.
 
+The [BatchModule contract](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java) handles registration, acquisition, and pool closure; it does not schedule async work. [BatchSupport.registerToCluster](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) registers the Session with `SmtpConnectionPoolClustered`, overlaying the matching immutable `simplejavamail.defaults.connectionpool.clusters.*` defaults on the general pool settings. Without the optional module, `TransportRunner` uses a directly owned `Session.getTransport()` connection. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) explains that separation and the first-configuration boundary for a shared cluster key.
+
 There are two different controls, with a deliberate handoff between them:
 
 | Ownership period | Stop action | What it may affect |
