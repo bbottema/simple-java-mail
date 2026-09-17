@@ -14,6 +14,7 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
@@ -24,8 +25,45 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Not
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.FULL_MESSAGE;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.internal.config.EmailProperty.DELIVERY_STATUS_NOTIFICATION;
+import static org.simplejavamail.internal.config.EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
 
 public class EmailGovernanceImplTest {
+
+	@Test
+	void requireTlsUsesTheExistingDefaultsOverridesAndSuppressionRules() {
+		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(Map.of(DEFAULT_REQUIRE_TLS, true)));
+		final Email defaulted = factory.emailBuilder().startingBlank().buildEmail();
+		final Email cleared = factory.emailBuilder().startingBlank()
+				.withTlsRequiredForOnwardDelivery()
+				.clearTlsRequiredForOnwardDelivery()
+				.buildEmail();
+		final Email suppressed = factory.emailBuilder().startingBlank()
+				.dontApplyDefaultValueFor(TLS_REQUIRED_FOR_ONWARD_DELIVERY)
+				.buildEmail();
+		final Email overrides = factory.emailBuilder().startingBlank().withTlsRequiredForOnwardDelivery().buildEmail();
+		final EmailGovernanceImpl defaultGovernance = new EmailGovernanceImpl(factory.getConfig(), factory.emailBuilder(), null, null, null, null);
+		final EmailGovernanceImpl overrideGovernance = new EmailGovernanceImpl(null, null, overrides, null);
+
+		assertThat(defaultGovernance.produceEmailApplyingDefaultsAndOverrides(defaulted).isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(defaultGovernance.produceEmailApplyingDefaultsAndOverrides(cleared).isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(defaultGovernance.produceEmailApplyingDefaultsAndOverrides(suppressed).isTlsRequiredForOnwardDelivery()).isFalse();
+		assertThat(overrideGovernance.produceEmailApplyingDefaultsAndOverrides(defaulted).isTlsRequiredForOnwardDelivery()).isTrue();
+	}
+
+	@Test
+	void requireTlsPropertyRemainsIsolatedPerFactorySnapshot() {
+		final SimpleJavaMail requiredFactory = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(Map.of(DEFAULT_REQUIRE_TLS, true)));
+		final SimpleJavaMail ordinaryFactory = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(Map.of(DEFAULT_REQUIRE_TLS, false)));
+		final Email email = requiredFactory.emailBuilder().startingBlank().buildEmail();
+		final EmailGovernanceImpl requiredGovernance = new EmailGovernanceImpl(requiredFactory.getConfig(),
+				requiredFactory.emailBuilder(), null, null, null, null);
+		final EmailGovernanceImpl ordinaryGovernance = new EmailGovernanceImpl(ordinaryFactory.getConfig(),
+				ordinaryFactory.emailBuilder(), null, null, null, null);
+
+		assertThat(requiredGovernance.produceEmailApplyingDefaultsAndOverrides(email).isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(ordinaryGovernance.produceEmailApplyingDefaultsAndOverrides(email).isTlsRequiredForOnwardDelivery()).isFalse();
+	}
 
 	@Test
 	public void governanceOptOutsAreConfiguredAfterStartingAnEmail() {

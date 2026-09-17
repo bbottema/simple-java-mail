@@ -150,18 +150,22 @@ public final class ProviderNeutralConsumer {
 		}
 	}
 
-	/** ENVID remains ordinary immutable Email data even when no SMTP implementation is installed. */
+	/** SMTP envelope requirements remain ordinary immutable Email data even when no SMTP implementation is installed. */
 	private static void assertEnvelopeIdentifierApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
 		final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("consumer+42").build();
 		final Email email = simpleJavaMail.emailBuilder().startingBlank().withDeliveryStatusNotification(notification)
-				.withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY).buildEmail();
+				.withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY)
+				.withTlsRequiredForOnwardDelivery().buildEmail();
 		if (!"consumer+42".equals(email.getDeliveryStatusNotification().getEnvelopeId())
-				|| !notification.equals(notification.toBuilder().build())) {
-			throw new AssertionError("Provider-neutral ENVID model is unavailable");
+				|| !notification.equals(notification.toBuilder().build()) || !email.isTlsRequiredForOnwardDelivery()) {
+			throw new AssertionError("Provider-neutral SMTP envelope model is unavailable");
 		}
 		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, String, ExactEmailBuilder> exactIdentifier =
 				ExactEmailBuilder::fixingEnvelopeId;
+		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> exactRequireTls =
+				ExactEmailBuilder::withTlsRequiredForOnwardDelivery;
 		@SuppressWarnings("unused") final Function<MailSubmissionReceipt, String> effectiveEnvelopeId = MailSubmissionReceipt::getEnvelopeId;
+		@SuppressWarnings("unused") final Function<MailSubmissionReceipt, Boolean> requireTlsUsed = MailSubmissionReceipt::isRequireTlsUsed;
 		@SuppressWarnings("unused") final BiFunction<MailTransportResult, String, MailTransportResult> reportedEnvelopeId = MailTransportResult::withEnvelopeId;
 		@SuppressWarnings("unused") final BiFunction<MailTransportAdapter, DeliveryEnvelope, Boolean> envelopeSupport =
 				MailTransportAdapter::supportsDeliveryEnvelope;
@@ -324,8 +328,8 @@ public final class ProviderNeutralConsumer {
 				null, new Address[]{new InternetAddress("recipient@example.org")}, null)
 				.withRecipientResults(List.of(recipient), MailRetryDisposition.SAFE_TO_RETRY_ALL);
 		final MailSubmissionReceipt receipt = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.REJECTED,
-				result.getRecipientResults(), result.getRetryDisposition());
-		if (receipt.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
+				result.getRecipientResults(), result.getRetryDisposition(), null, true);
+		if (!receipt.isRequireTlsUsed() || receipt.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
 				|| !recipient.getRcptAttempted().orElse(false)
 				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))
 				|| receipt.getRetryableRecipients().size() != 1 || receipt.getValidUnsentRecipients().size() != 1) {

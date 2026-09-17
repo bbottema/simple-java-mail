@@ -48,6 +48,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).isEqualTo("base64"); // from normal simplejavamail.properties
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)).isEqualTo("FAILURE,DELAY"); // from normal simplejavamail.properties
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)).isEqualTo("HEADERS_ONLY"); // from Spring application.properties
+		assertThat(config.getBooleanProperty(ConfigLoader.Property.DEFAULT_REQUIRE_TLS)).isTrue(); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo("STDERR"); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.spring.example.com"); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties

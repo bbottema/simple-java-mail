@@ -36,6 +36,19 @@ class MailTransportResultTest {
 	}
 
 	@Test
+	void requireTlsFactSurvivesEveryImmutableEnrichmentStep() throws Exception {
+		final Address[] envelope = {new InternetAddress("recipient@example.org")};
+		final MailTransportResult original = MailTransportResult.accepted(envelope, null);
+		final MailTransportResult used = original.withRequireTlsUsed(true);
+
+		assertThat(original.isRequireTlsUsed()).isFalse();
+		assertThat(used.withEnvelopeId("attempt").isRequireTlsUsed()).isTrue();
+		assertThat(used.withEnvelopeRecipients(envelope).isRequireTlsUsed()).isTrue();
+		assertThat(used.withRecipientResults(used.getRecipientResults(), used.getRetryDisposition()).isRequireTlsUsed()).isTrue();
+		assertThat(used.withRequireTlsUsed(false).isRequireTlsUsed()).isFalse();
+	}
+
+	@Test
 	void basicResultsCaptureRecipientFactsBeforeTheFirstGetterCall() throws Exception {
 		final InternetAddress address = new InternetAddress("Before <before@example.org>");
 		final MailTransportResult result = MailTransportResult.accepted(new Address[]{address}, null);

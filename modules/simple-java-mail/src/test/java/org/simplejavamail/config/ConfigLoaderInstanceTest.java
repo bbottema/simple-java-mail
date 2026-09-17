@@ -33,6 +33,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTION
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_HEADER_CANONICALIZATION;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
@@ -53,6 +54,7 @@ class ConfigLoaderInstanceTest {
 		lowPriority.setProperty("simplejavamail.defaults.subject", "true");
 		lowPriority.setProperty("simplejavamail.javaxmail.debug", "yes");
 		lowPriority.setProperty("simplejavamail.transportstrategy", "SMTP_TLS");
+		lowPriority.setProperty(DEFAULT_REQUIRE_TLS.key(), "yes");
 
 		final Properties highPriority = new Properties();
 		highPriority.setProperty("simplejavamail.smtp.host", "high.example.test");
@@ -68,6 +70,7 @@ class ConfigLoaderInstanceTest {
 		assertThat(config.getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("true");
 		assertThat(config.getBooleanProperty(JAVAXMAIL_DEBUG)).isTrue();
 		assertThat(config.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_TLS);
+		assertThat(config.getBooleanProperty(DEFAULT_REQUIRE_TLS)).isTrue();
 	}
 
 	@Test

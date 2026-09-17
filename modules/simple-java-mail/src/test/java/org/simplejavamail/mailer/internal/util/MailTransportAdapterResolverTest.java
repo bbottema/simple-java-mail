@@ -49,6 +49,24 @@ class MailTransportAdapterResolverTest {
         assertThat(adapter.preparedMail).isNull();
     }
 
+	@Test
+	void olderAndUnknownProvidersCannotSilentlyIgnoreRequireTls() throws Exception {
+		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, List.of(), true);
+		final PreparedMail preparedMail = preparedMail(envelope);
+		final RecordingTransport transport = new RecordingTransport();
+		final RecordingAdapter olderAdapter = new RecordingAdapter(true);
+
+		assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, preparedMail, List.of(olderAdapter)))
+				.isInstanceOf(MailTransportCompatibilityException.class)
+				.hasMessageContaining("REQUIRETLS");
+		assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, preparedMail, List.of()))
+				.isInstanceOf(MailTransportCompatibilityException.class)
+				.hasMessageContaining("REQUIRETLS")
+				.hasMessageContaining("matching MailTransportAdapter");
+		assertThat(olderAdapter.preparedMail).isNull();
+		assertThat(transport.sentMessage).isNull();
+	}
+
     @Test
     void adapterOptingIntoEnvelopeSupportReceivesTheExactUnencodedValue() throws Exception {
         final RecordingAdapter adapter = new RecordingAdapter(true) {
@@ -122,7 +140,7 @@ class MailTransportAdapterResolverTest {
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList()))
                 .isInstanceOf(MessagingException.class)
                 .hasMessageContaining(RecordingTransport.class.getName())
-                .hasMessageContaining("envelope sender or delivery-status notification")
+                .hasMessageContaining("envelope sender or delivery-status notifications")
                 .hasMessageContaining("matching MailTransportAdapter");
         assertThat(transport.sentMessage).isNull();
     }

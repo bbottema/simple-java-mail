@@ -26,6 +26,7 @@ import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
+import javax.net.SocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ class AngusMailTransportAdapterTest {
     @CsvSource({"plain-id, plain-id", "order +42=, order+20+2B42+3D", "id RET=FULL, id+20RET+3DFULL", "+20, +2B20"})
     void envelopeIdentifiersUseAngusXtextWithoutChangingTheReportedValue(final String identifier, final String encodedIdentifier) throws Exception {
         final AngusMailTransportAdapter.AngusSmtpMessage facade = new AngusMailTransportAdapter.AngusSmtpMessage(
-                preparedMail(), "XTEST=keep", identifier, null);
+                preparedMail(), "XTEST=keep", identifier, null, false);
 
         assertThat(facade.getMailExtension()).isEqualTo("XTEST=keep ENVID=" + encodedIdentifier);
         assertThat(facade.getEnvelopeIdUsed()).isEqualTo(identifier);
@@ -115,6 +116,194 @@ class AngusMailTransportAdapterTest {
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
             assertThat(result.getEnvelopeId()).isNull();
             assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void requireTlsIsReportedOnlyAfterAngusBuildsTheMailFromCommand() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult attempted = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(attempted.getFailure()).containsSame(transport.writeFailure);
+            assertThat(attempted.isRequireTlsUsed()).isTrue();
+            assertThat(transport.commands).singleElement().asString().contains(" REQUIRETLS");
+
+            final MailTransportResult notAttempted = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, new Address[0], requireTlsEnvelope(), ContentRequirement.NORMAL));
+            assertThat(notAttempted.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
+            assertThat(notAttempted.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).hasSize(1);
+        }
+    }
+
+    @Test
+    void requireTlsComposesWithDsnMailFromParameters() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder()
+                .returnOption(HEADERS_ONLY)
+                .envelopeId("correlation-id")
+                .build();
+        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, dsn, List.of(), true);
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), envelope, ContentRequirement.NORMAL));
+
+            assertThat(result.getEnvelopeId()).isEqualTo("correlation-id");
+            assertThat(result.isRequireTlsUsed()).isTrue();
+            assertThat(transport.commands).singleElement().asString()
+                    .contains(" RET=HDRS", " ENVID=correlation-id", " REQUIRETLS");
+        }
+    }
+
+    @Test
+    void requireTlsDoesNotLeakToTheNextMessageOnTheSameTransport() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+            final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();
+
+            final MailTransportResult required = adapter.sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+            final MailTransportResult ordinary = adapter.sendMessage(transport,
+                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+
+            assertThat(required.isRequireTlsUsed()).isTrue();
+            assertThat(ordinary.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).hasSize(2);
+            assertThat(transport.commands.get(0)).contains(" REQUIRETLS");
+            assertThat(transport.commands.get(1)).doesNotContain(" REQUIRETLS");
+        }
+    }
+
+    @Test
+    void missingRequireTlsCapabilityFailsBeforeMailFrom() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), false)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("does not advertise usable REQUIRETLS")
+                    .hasMessageContaining("clear the requirement for this email")
+                    .hasMessageContaining("No message was submitted"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void plaintextConnectionFailsBeforeMailFrom() throws Exception {
+        final MimeMessage message = message("body");
+        message.getSession().getProperties().setProperty("mail.smtp.ssl.checkserveridentity", "true");
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("SMTP connection is not using TLS")
+                    .hasMessageContaining("opportunistic SMTP successfully negotiates STARTTLS")
+                    .hasMessageContaining("No message was submitted"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void disabledIdentityVerificationFailsBeforeMailFrom() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        message.getSession().getProperties().setProperty("mail.smtps.ssl.checkserveridentity", "false");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("server identity verification is disabled")
+                    .hasMessageContaining("verifyingServerIdentity(true)"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"*", " * "})
+    void trustAllConfigurationFailsBeforeMailFrom(final String trustedHosts) throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        message.getSession().getProperties().setProperty("mail.smtps.ssl.trust", trustedHosts);
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("trust every TLS certificate")
+                    .hasMessageContaining("Remove trustingAllHosts(true)"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void opaqueTlsSocketFactoryFailsBeforeMailFrom() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        message.getSession().getProperties().put("mail.smtps.ssl.socketFactory", SocketFactory.getDefault());
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("custom socket factory owns TLS certificate handling")
+                    .hasMessageContaining("clear the email's REQUIRETLS requirement"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void typedRequirementRejectsParameterizedRawRequireTlsBeforeMailFrom() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        message.getSession().getProperties().setProperty("mail.smtps.mailextension", "XTRACE=1 REQUIRETLS=invalid");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("invalid REQUIRETLS=... parameter")
+                    .hasMessageContaining("Simple Java Mail will add the valid REQUIRETLS flag")
+                    .hasMessageContaining("No message was submitted"));
+            assertThat(result.isRequireTlsUsed()).isFalse();
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
+    @Test
+    void rawRequireTlsIsPreservedAndReportedWithoutClaimingTypedPolicyValidation() throws Exception {
+        final MimeMessage message = tlsMessage("body");
+        message.getSession().getProperties().setProperty("mail.smtps.mailextension", "XTRACE=1 REQUIRETLS");
+        try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
+            transport.connect("localhost", 465, null, null);
+
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+
+            assertThat(result.isRequireTlsUsed()).isTrue();
+            assertThat(transport.commands).singleElement().asString().contains("XTRACE=1 REQUIRETLS");
         }
     }
 
@@ -262,7 +451,7 @@ class AngusMailTransportAdapterTest {
         final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(new ManagedAngusTransport(message.getSession(), null), preparedMail, true);
 
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, "protected+42", recipientCommands);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, "protected+42", recipientCommands, false);
 
         assertThat(facade.getEnvelopeFrom()).isEqualTo("bounce@example.com");
         assertThat(facade.getNotifyOptions()).isEqualTo(SMTPMessage.NOTIFY_FAILURE | SMTPMessage.NOTIFY_DELAY);
@@ -278,7 +467,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null, false);
         final byte[] before = bytes(facade);
 
         facade.saveChanges();
@@ -301,7 +490,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null, false);
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         facade.writeTo(output, new String[] {"Bcc", "Content-Length"});
@@ -407,6 +596,16 @@ class AngusMailTransportAdapterTest {
         return new Address[]{new InternetAddress("receiver@example.com")};
     }
 
+    private static MimeMessage tlsMessage(final String body) throws Exception {
+        final MimeMessage message = message(body);
+        message.getSession().getProperties().setProperty("mail.smtps.ssl.checkserveridentity", "true");
+        return message;
+    }
+
+    private static DeliveryEnvelope requireTlsEnvelope() {
+        return new DeliveryEnvelope(null, null, List.of(), true);
+    }
+
     private static SMTPTransport transportRejectingSubmission(final Session session, final String protocol) {
         return new SMTPTransport(session, new URLName(protocol, null, -1, null, null, null)) {
             @Override
@@ -462,6 +661,39 @@ class AngusMailTransportAdapterTest {
         @Override
         public boolean supportsExtension(final String extension) {
             return "DSN".equals(extension);
+        }
+
+        @Override
+        protected void sendCommand(final String command) throws MessagingException {
+            commands.add(command);
+            throw writeFailure;
+        }
+    }
+
+    /** Runs Angus's implicit-TLS MAIL FROM construction without opening a socket. */
+    private static final class CommandRecordingTlsTransport extends SMTPSSLTransport {
+        private final List<String> commands = new ArrayList<>();
+        private final MessagingException writeFailure = new MessagingException("Synthetic command-write failure");
+        private final boolean requireTlsSupported;
+
+        private CommandRecordingTlsTransport(final Session session, final boolean requireTlsSupported) {
+            super(session, new URLName("smtps", null, -1, null, null, null));
+            this.requireTlsSupported = requireTlsSupported;
+        }
+
+        @Override
+        protected boolean protocolConnect(final String host, final int port, final String user, final String password) {
+            return true;
+        }
+
+        @Override
+        public synchronized boolean isSSL() {
+            return true;
+        }
+
+        @Override
+        public boolean supportsExtension(final String extension) {
+            return "DSN".equals(extension) || requireTlsSupported && "REQUIRETLS".equals(extension);
         }
 
         @Override

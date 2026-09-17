@@ -98,6 +98,7 @@ class EmailSerializationTest {
 				.withPlainText("Main message")
 				.withHTMLText("<p>Main message</p><img src=\"cid:logo-cid\">")
 				.withHeader("X-Round-Trip", "preserved")
+				.withTlsRequiredForOnwardDelivery()
 				.withAttachment("report.txt", "attachment data".getBytes(UTF_8), "text/plain", "report", BIT7)
 				.withPreEncodedAttachment("encoded.txt", alreadyBase64Encoded, "text/plain", "already encoded", BASE_64)
 				.withEmbeddedImage("logo.png", "image data".getBytes(UTF_8), "image/png")
@@ -116,6 +117,7 @@ class EmailSerializationTest {
 		assertThat(restored.getPlainText()).isEqualTo("Main message");
 		assertThat(restored.getHTMLText()).isEqualTo("<p>Main message</p><img src=\"cid:logo-cid\">");
 		assertThat(restored.getHeaders()).isEqualTo(original.getHeaders());
+		assertThat(restored.isTlsRequiredForOnwardDelivery()).isTrue();
 		assertAttachment(restored.getAttachments().get(0), "report.txt", "report", BIT7, null, "attachment data".getBytes(UTF_8));
 		assertAttachment(restored.getAttachments().get(1), "encoded.txt", "already encoded", null, BASE_64, alreadyBase64Encoded);
 		assertAttachment(restored.getEmbeddedImages().get(0), "logo.png", null, null, null, "image data".getBytes(UTF_8));

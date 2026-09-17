@@ -76,6 +76,21 @@ class ExactEmailBuilderTest {
 	}
 
 	@Test
+	void requireTlsIsExactEnvelopeMetadataAndCanBeCleared() {
+		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("recipient@example.org")
+				.withTlsRequiredForOnwardDelivery();
+
+		final Email required = builder.buildEmail();
+		assertThat(required.isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(EmailConverter.emailToEMLByteArray(required)).containsExactly(EXACT_EML);
+
+		final Email cleared = builder.clearTlsRequiredForOnwardDelivery().buildEmail();
+		assertThat(cleared.isTlsRequiredForOnwardDelivery()).isFalse();
+		assertThat(EmailConverter.emailToEMLByteArray(cleared)).containsExactly(EXACT_EML);
+	}
+
+	@Test
 	void inputStreamIsConsumedImmediatelyWithoutBeingClosed() {
 		final OwnershipTrackingInputStream input = new OwnershipTrackingInputStream(EXACT_EML);
 		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder()
@@ -214,10 +229,14 @@ class ExactEmailBuilderTest {
 
 	@Test
 	void copyingAnExactEmailIntentionallyCreatesAComposedEmail() {
-		final Email exactEmail = exactEmail(EXACT_EML);
+		final Email exactEmail = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("first@example.org", "second@example.org")
+				.withTlsRequiredForOnwardDelivery()
+				.buildEmail();
 		final Email copiedEmail = simpleJavaMail.emailBuilder().copying(exactEmail).buildEmail();
 
 		assertThat(((InternalEmail) copiedEmail).isExactEml()).isFalse();
+		assertThat(copiedEmail.isTlsRequiredForOnwardDelivery()).isTrue();
 		assertThat(EmailConverter.emailToEMLByteArray(copiedEmail)).isNotEqualTo(EXACT_EML);
 	}
 

@@ -15,9 +15,11 @@ import static org.simplejavamail.config.ConfigDiagnosticGroup.DIAGNOSTICS_AND_VA
 import static org.simplejavamail.config.ConfigDiagnosticGroup.EMAIL_DEFAULTS;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.JAKARTA_MAIL_PROPERTIES;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.SMTP_CONNECTION;
+import static org.simplejavamail.config.ConfigDiagnosticGroup.TRANSPORT_SECURITY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.JAVAXMAIL_DEBUG;
@@ -39,17 +41,19 @@ class ConfigDiagnosticsTest {
 		properties.setProperty(SMTP_HOST.key(), "smtp.example.test");
 		properties.setProperty(JAVAXMAIL_DEBUG.key(), "yes");
 		properties.setProperty(DEFAULT_CONTENT_TRANSFER_ENCODING.key(), "quoted-printable");
+		properties.setProperty(DEFAULT_REQUIRE_TLS.key(), "yes");
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties("application properties", properties).load();
 
 		final ConfigDiagnostics diagnostics = config.getDiagnostics();
 
-		assertThat(diagnostics.getGroups()).containsExactly(SMTP_CONNECTION, DIAGNOSTICS_AND_VALIDATION, EMAIL_DEFAULTS);
+		assertThat(diagnostics.getGroups()).containsExactly(SMTP_CONNECTION, TRANSPORT_SECURITY, DIAGNOSTICS_AND_VALIDATION, EMAIL_DEFAULTS);
 		assertThat(diagnostics.getProperties(SMTP_CONNECTION))
 				.extracting(ConfigPropertyDiagnostic::getPropertyName)
 				.containsExactly(SMTP_HOST.key(), SMTP_PORT.key());
 		assertThat(diagnostic(diagnostics, SMTP_PORT.key()).getDisplayValue()).isEqualTo("2525");
 		assertThat(diagnostic(diagnostics, JAVAXMAIL_DEBUG.key()).getDisplayValue()).isEqualTo("true");
 		assertThat(diagnostic(diagnostics, DEFAULT_CONTENT_TRANSFER_ENCODING.key()).getDisplayValue()).isEqualTo("quoted-printable");
+		assertThat(diagnostic(diagnostics, DEFAULT_REQUIRE_TLS.key()).getDisplayValue()).isEqualTo("true");
 		assertThat(diagnostic(diagnostics, SMTP_HOST.key()).getSourceName()).isEqualTo("application properties");
 		assertThat(diagnostics.toString())
 				.contains("SMTP connection:")
