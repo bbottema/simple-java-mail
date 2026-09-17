@@ -12,6 +12,7 @@ import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
@@ -26,6 +27,8 @@ import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX50
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToDurationFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToDsnNotifyOptionsFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToDsnReturnOptionFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToLoadBalancingStrategyFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToRecipientTypeFunction;
@@ -84,6 +87,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(String.class, "TEXT");
 		put(Duration.class, "DURATION");
 		put(String[].class, "TEXT");
+		put(NotifyOption[].class, "EVENTS");
 		put(Object.class, "TEXT");
 		put(TransportStrategy.class, "NAME");
 		put(Message.RecipientType.class, "NAME");
@@ -106,6 +110,8 @@ public final class BuilderApiToPicocliCommandsMapper {
 	static {
 		ValueConversionHelper.registerValueConverter(new StringToFileFunction());
 		ValueConversionHelper.registerValueConverter(new StringToDurationFunction());
+		ValueConversionHelper.registerValueConverter(new StringToDsnNotifyOptionsFunction());
+		ValueConversionHelper.registerValueConverter(new StringToDsnReturnOptionFunction());
 		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
@@ -214,6 +220,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		for (int parameterIndex = 0; parameterIndex < parameterTypes.length; parameterIndex++) {
 			final Class<?> parameterType = parameterTypes[parameterIndex];
 			final boolean supportedScalarArray = parameterType == String[].class
+					|| parameterType == NotifyOption[].class
 					|| (parameterType == byte[].class
 							&& containsAnnotation(asList(parameterAnnotations[parameterIndex]), Cli.BinaryFile.class));
 			if ((parameterType.isArray() && !supportedScalarArray)

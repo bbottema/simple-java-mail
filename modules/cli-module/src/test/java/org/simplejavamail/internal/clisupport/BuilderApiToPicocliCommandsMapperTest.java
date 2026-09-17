@@ -2,11 +2,16 @@ package org.simplejavamail.internal.clisupport;
 
 import jakarta.mail.Message;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
@@ -18,13 +23,9 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +33,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executor;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,14 +42,6 @@ import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommands
 
 public class BuilderApiToPicocliCommandsMapperTest {
 
-	private static final List<String> BUILDER_API_SOURCE_FILES = Arrays.asList(
-			"org/simplejavamail/api/email/EmailStartingBuilder.java",
-			"org/simplejavamail/api/email/ExactEmailBuilder.java",
-			"org/simplejavamail/api/email/EmailPopulatingBuilder.java",
-			"org/simplejavamail/api/mailer/MailerGenericBuilder.java",
-			"org/simplejavamail/api/mailer/MailerRegularBuilder.java",
-			"org/simplejavamail/api/mailer/MailerFromSessionBuilder.java");
-	
 	@Test
 	public void testColorizeDescriptions() {
 		assertThat(colorizeDescriptions(singletonList("nothing to colorize"))).containsExactly("nothing to colorize");
@@ -108,12 +100,56 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
-	public void deliveryStatusNotificationBuilderApiKeepsOnlyStringMethodsCliCompatible() throws Exception {
-		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", String.class)).isCompatible()).isTrue();
-		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", String.class)).isCompatible()).isTrue();
-		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", DeliveryStatusNotification.NotifyOption[].class)).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", DeliveryStatusNotification.ReturnOption.class)).isCompatible()).isFalse();
+	public void deliveryStatusNotificationBuilderApiUsesTypedCliConversions() throws Exception {
+		for (final Class<?> builderType : new Class<?>[]{EmailPopulatingBuilder.class, ExactEmailBuilder.class}) {
+			final Method notify = builderType.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+			final Method returnOption = builderType.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class);
+			assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
+			assertThat(methodIsCliCompatible(returnOption).isCompatible()).isTrue();
+			assertThat(getArgumentsForCliOption(notify)).extracting("helpLabel").containsExactly("EVENTS");
+			assertThat(getArgumentsForCliOption(returnOption)).extracting("helpLabel").containsExactly("NAME");
+			assertThat(getArgumentsForCliOption(notify)).extracting("required").containsExactly(true);
+			assertThat(getArgumentsForCliOption(returnOption)).extracting("required").containsExactly(true);
+			assertThat(methodIsCliCompatible(builderType.getMethod("withDeliveryStatusNotification", DeliveryStatusNotification.class)).isCompatible()).isFalse();
+			assertThatThrownBy(() -> builderType.getMethod("withDeliveryStatusNotificationNotifyOptions", String.class))
+					.isInstanceOf(NoSuchMethodException.class);
+			assertThatThrownBy(() -> builderType.getMethod("withDeliveryStatusNotificationReturnOption", String.class))
+					.isInstanceOf(NoSuchMethodException.class);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"failure,delay", "FAILURE;DELAY", "notify_failure, notify_delay", "failure,delay,failure"})
+	void notificationArrayConverterPreservesTextAliasesAndRemovesDuplicates(final String value) throws Exception {
+		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
+		final List<Object> converted = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), notify);
+		assertThat((NotifyOption[]) converted.get(0)).containsExactly(NotifyOption.FAILURE, NotifyOption.DELAY);
+	}
+
+	@ParameterizedTest
+	@CsvSource({"HDRS, HEADERS_ONLY", "headers only, HEADERS_ONLY", "RETURN_HDRS, HEADERS_ONLY", "FULL, FULL_MESSAGE", "full_message, FULL_MESSAGE"})
+	void returnOptionConverterPreservesTextAliases(final String value, final ReturnOption expected) throws Exception {
+		final Method returnOption = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class);
+		assertThat(methodIsCliCompatible(returnOption).isCompatible()).isTrue();
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), returnOption)).containsExactly(expected);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"", "unknown", "NEVER,FAILURE"})
+	void notificationArrayConverterRejectsInvalidPreferences(final String value) throws Exception {
+		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
+		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), notify))
+				.isInstanceOf(CliExecutionException.class);
+	}
+
+	@Test
+	void notificationArrayConverterRetainsExplicitNever() throws Exception {
+		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
+		final List<Object> converted = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("never")), notify);
+		assertThat((NotifyOption[]) converted.get(0)).containsExactly(NotifyOption.NEVER);
 	}
 
 	@Test
@@ -250,19 +286,19 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
-	public void nullableParametersOnBuilderApisDeclareCliOptional() throws IOException {
-		List<String> violations = new ArrayList<>();
-		for (String builderApiSourceFile : BUILDER_API_SOURCE_FILES) {
-			List<String> sourceLines = Files.readAllLines(resolveCoreModuleSource(builderApiSourceFile), UTF_8);
-			for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
-				String sourceLine = sourceLines.get(lineNumber);
-				if (hasNullableParameterWithoutCliOptional(sourceLine)) {
-					violations.add(builderApiSourceFile + ":" + (lineNumber + 1) + ": " + sourceLine.trim());
-				}
+	public void generatedArgumentsFollowExplicitCliOptionality() {
+		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] {EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+		assertThat(options).isNotEmpty();
+		for (final CliDeclaredOptionSpec option : options) {
+			final Method method = option.getSourceMethod();
+			assertThat(option.getPossibleOptionValues()).hasSize(method.getParameterCount());
+			for (int parameterIndex = 0; parameterIndex < method.getParameterCount(); parameterIndex++) {
+				assertThat(option.getPossibleOptionValues().get(parameterIndex).isRequired())
+						.as("%s parameter %s", option.getName(), parameterIndex)
+						.isEqualTo(!hasCliOptionalParameter(method, parameterIndex));
 			}
 		}
-
-		assertThat(violations).isEmpty();
 	}
 
 	private static boolean hasCliOptionalParameter(Method method, int parameterIndex) {
@@ -274,24 +310,4 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		return false;
 	}
 
-	private static boolean hasNullableParameterWithoutCliOptional(String sourceLine) {
-		int nullableIndex = sourceLine.indexOf("@Nullable");
-		while (nullableIndex >= 0) {
-			int openParenIndex = sourceLine.lastIndexOf('(', nullableIndex);
-			int commaIndex = sourceLine.lastIndexOf(',', nullableIndex);
-			if (Math.max(openParenIndex, commaIndex) >= 0 && !sourceLine.substring(nullableIndex).startsWith("@Nullable @Cli.Optional")) {
-				return true;
-			}
-			nullableIndex = sourceLine.indexOf("@Nullable", nullableIndex + 1);
-		}
-		return false;
-	}
-
-	private static Path resolveCoreModuleSource(String builderApiSourceFile) {
-		Path sourceFile = Paths.get("..", "core-module", "src", "main", "java").resolve(builderApiSourceFile);
-		if (!Files.exists(sourceFile)) {
-			sourceFile = Paths.get("modules", "core-module", "src", "main", "java").resolve(builderApiSourceFile);
-		}
-		return sourceFile;
-	}
 }
