@@ -53,11 +53,7 @@ Full non-live library compatibility validation, including Javadocs, on JDK 11:
 mvn -pl '!modules/cli-module' clean verify -DexcludeLiveServerTests=true
 ```
 
-Regenerate and exercise the committed CLI metadata on JDK 17+:
-
-```powershell
-mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests clean package
-```
+When changing builder signatures or CLI help, also follow [Generated CLI Metadata](#generated-cli-metadata).
 
 Record repeatable local one-shot and warm-daemon process timings without adding a CI timing threshold:
 
@@ -74,6 +70,30 @@ mvn com.mycila:license-maven-plugin:3.0:remove
 ```
 
 ---
+
+## Generated CLI Metadata
+
+The CLI is generated from builder interfaces and their Javadocs; the [API expansion workflow](API_EXPANSION_WORKFLOW.md#2-api-interface-expansion-core-module) defines the rules for exposing a new method.
+
+The build/runtime path is:
+
+1. Therapi's annotation processor makes selected API Javadocs available at runtime.
+2. [CliSupport](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java) supplies the roots `EmailStartingBuilder`, `MailerRegularBuilder`, and `MailerFromSessionBuilder`.
+3. [BuilderApiToPicocliCommandsMapper](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java) walks public methods on `@Cli.BuilderApiNode` types, skips bean accessors and excluded/incompatible methods, and builds Picocli options with registered string converters.
+4. [TherapiJavadocHelper](modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/therapijavadoc/TherapiJavadocHelper.java) resolves method/parameter documentation; `JavadocForCliFormatter` formats it for terminal help.
+5. Kryo serializes the option model to `modules/cli-module/src/main/resources/cli.data`; resolved Javadoc lookups are cached in `modules/cli-module/src/main/resources/therapi.data`.
+
+Regenerate both committed files on JDK 17 or the current release JDK:
+
+```powershell
+mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests clean package
+```
+
+The `publish-cli` profile deliberately ignores existing caches. It runs `demo.CliListAllSupportedOptionsDemoApp`, which calls `CliSupport.listUsagesForAllOptions()` and then persists the Therapi cache. The command above generates artifacts; follow it with the applicable tests and normal verification before treating a feature as checked.
+
+Regenerate before asserting changed help text: the source-API fingerprint detects signature/annotation changes, not Javadoc prose alone. Incomplete `@param` documentation can cause an assertion in `TherapiJavadocHelper.getParamDescriptions(...)`; ambiguous overloads, bridge/synthetic methods, or unsupported parameter conversion need inspection at the mapper. Each CLI-exposed parameter needs its own documented contract.
+
+Runtime Javadoc entries use a `ConcurrentHashMap`, including after loading a valid serialized cache, because concurrent daemon requests can repopulate absent entries after invalidation. Persistence takes a sorted `TreeMap` copy for deterministic output. Include the existing cold-cache and daemon-concurrency regressions when changing generation or loading; do not solve a cache issue by editing the generated binary manually.
 
 ## Known Build Constraints
 

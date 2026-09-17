@@ -66,6 +66,10 @@ Before sending, `mailer.sync().testConnection()` checks the SMTP path. For a str
 
 The CLI exposes the same report through `sjm probe`, optionally with `--authenticate`, for both one-shot and daemon execution. Failed and unsupported reports remain on stdout with exit code 3; successful probes return 0. See the [CLI probe examples](https://www.simplejavamail.org/cli.html#section-probe).
 
+To match a later delivery-status notification to a particular send, retain `receipt.getEnvelopeId()`. The bundled Angus adapter generates a fresh UUID on each DSN-capable send; otherwise the value is `null` and sending continues normally. Use `.fixingEnvelopeId("order-42-attempt-1")` to supply a fixed value instead; that explicit request fails before submission if DSN is unsupported. ENVID is separate from Message-ID and leaves MIME bytes unchanged. Simple Java Mail does not read later notifications for you. See the [ENVID usage and sample report](https://www.simplejavamail.org/features.html#section-dsn-envelope-id).
+
+Recipients can choose their own DSN notifications with `.withDeliveryStatusNotificationNotifyOptions(...)`; groups provide default/fixed/clear policies using the same pattern as S/MIME certificates. Explicit recipient preferences beat the Email fallback and require provider/DSN support. The managed Angus transport also adds ORCPT from actual envelope recipients when supported, without changing MIME content or requesting extra notifications. See [recipient DSN examples and provider boundaries](https://www.simplejavamail.org/features.html#section-dsn-recipients).
+
 Choose message preflight by what your code needs back:
 
 | Need | Call |
@@ -142,7 +146,7 @@ Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end
 | Job | Support |
 | --- | --- |
 | [Messages and MIME](https://www.simplejavamail.org/features.html#section-basic-usage) | Plain text and HTML alternatives, embedded images, attachments, calendar content, headers, encodings, and the corresponding multipart structure. |
-| [Shared message rules](https://www.simplejavamail.org/configuration.html#section-config-mailer) | Recipient builders, address validation, defaults, enforced overrides, bounce addresses, receipts, and maximum message size. |
+| [Shared message rules](https://www.simplejavamail.org/configuration.html#section-config-mailer) | Recipient builders, address validation, defaults, overrides, bounce addresses, receipts, and maximum message size. |
 | [Security](https://www.simplejavamail.org/security.html) | TLS and SMTPS, server identity and certificate checks, fixed or refresh-aware OAuth2 tokens, header-injection protection, DKIM, and S/MIME. |
 | [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, terminal mail-send observation, provider-neutral submission outcomes and partial failures, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
 | [Diagnostics](https://www.simplejavamail.org/debugging.html) | Connection tests, message validation and rehearsal, configuration inspection, Jakarta Mail debug routing, logging integrations, and SMTP submission receipts. |
@@ -155,6 +159,20 @@ A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validatio
 `SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.
+
+Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:
+
+```java
+Email defaults = mail.emailBuilder().startingBlank()
+    .signWithDomainKey(dkimConfig)
+    .buildEmail(); // a policy template does not need a sender or recipients
+
+Mailer mailer = mail.mailerBuilder()
+    .withEmailDefaults(defaults)
+    .buildMailer();
+```
+
+This template replaces the factory's property-derived message defaults. To retain those defaults, first materialize them with `buildEmailCompletedWithDefaultsAndOverrides()` and edit a copy. See the [defaults and overrides guide](https://www.simplejavamail.org/configuration.html#section-config-mailer) for precedence, clearing, and per-email opt-outs. Actual sends still require a sender and recipients after defaults have been applied.
 
 ### Spring Boot
 

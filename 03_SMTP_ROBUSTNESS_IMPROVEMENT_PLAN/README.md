@@ -1,15 +1,17 @@
 # SMTP robustness improvement plan
 
-> **Implementation status:** Phases 1, 2 and 3 are complete and accepted. Phase 3's SMTP capability-probe story (#733) was accepted on 15 September 2026: Java and CLI entry points, immutable reports, a dedicated Angus connection, optional authentication, local SMTP/TLS tests, a separately packaged non-Angus adapter fixture, a demo and website guidance. Step 5's construction-time STARTTLS guard and documentation (#735) were accepted the same day, completing Phase 3. Holistic review found no further blocking defects; Java 11 and Java 21 non-live verification passed. The Angus safety gate was resolved through supported socket/provider hooks; the original negative characterization remains in the tests. These are unreleased 10.0.0 changes. Later phases remain proposals. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1, 2 and 3 are complete and accepted. Phase 4's DSN work is also complete and accepted as of 17 September 2026: ENVID correlation (#736), shared DKIM/S/MIME Email configuration (#737), and recipient NOTIFY with automatic ORCPT (#738). Six of the ten original steps are complete; the execution-view and configuration refinements are additional children, not extra original steps. These are unreleased 10.0.0 changes. REQUIRETLS, explicit SMTPUTF8/8BITMIME requirements, finalized SIZE handling, and the conformance suite remain proposals. Phase 4 and the parent plan are not complete. Benchmarking is not part of this work.
 
 - Status: Phases 1, 2 and 3 complete and accepted; unreleased
+- Step 6 completion: [#736](https://github.com/bbottema/simple-java-mail/issues/736) and [#738](https://github.com/bbottema/simple-java-mail/issues/738) are accepted for 10.0.0. The [ENVID implementation](phase-4-modern-esmtp/06b-envid-implementation.md) and [recipient follow-up](phase-4-modern-esmtp/06c-homogeneous-email-configuration.md) complete the DSN step without merging their separate issue scopes.
+- Configuration follow-up: [#737](https://github.com/bbottema/simple-java-mail/issues/737) is accepted for 10.0.0. DKIM/S/MIME reuse Email templates and the established defaults/overrides rules recorded in ADRs 0001 and 0002. This is an additional refinement, not another original roadmap step.
 - Step 5 completion: [Authentication/TLS characterization](phase-3-diagnostics-and-security/05a-authentication-tls-characterization.md) led to the [construction-time guardrail](phase-3-diagnostics-and-security/05b-mandatory-starttls-configuration-guardrail.md), implemented, verified and accepted under [#735](https://github.com/bbottema/simple-java-mail/issues/735). The opportunistic default is retained, including with credentials; conflicting mandatory STARTTLS overrides are rejected. No public signature changed.
 - Resumption after the pool fix: The supporting-library patches and Simple Java Mail 9.3.4 are released. This 10.0.0 checkout now adopts SMTP Connection Pool 4.1.0 and retains all eight mixed-failure waiter-recovery regression cases from the patch. Integration verification is recorded in [step 2](phase-2-execution-control/02-bound-asynchronous-submission-and-expose-backpressure.md). See the [dependency finding](phase-1-transaction-truth/01-preserve-recipient-replies-and-derive-retry-guidance.md#separate-dependency-finding).
 - Plan order: 03 of 03
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
 - GitHub parent issue: [#722](https://github.com/bbottema/simple-java-mail/issues/722)
 - Execution-view migration: [#734](https://github.com/bbottema/simple-java-mail/issues/734), accepted on 13 September 2026; see the [plan and probe-review bookmark](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md). The probe implementation remains separate under #733.
-- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe) and [#735](https://github.com/bbottema/simple-java-mail/issues/735) (phase 3 STARTTLS configuration); later children not created
+- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe), [#735](https://github.com/bbottema/simple-java-mail/issues/735) (phase 3 STARTTLS configuration), [#736](https://github.com/bbottema/simple-java-mail/issues/736) (phase 4 ENVID), [#737](https://github.com/bbottema/simple-java-mail/issues/737) (shared message-security configuration), and [#738](https://github.com/bbottema/simple-java-mail/issues/738) (recipient NOTIFY and automatic ORCPT); later children not created
 - Release train: 10.x; assign an exact release milestone to each child only when scheduled
 - Working branch for planning: `codex/10.0.0`
 - Baseline inspected: 7 September 2026
@@ -60,7 +62,9 @@ The parent issue should maintain this release-oriented table:
 | 4 | [#733](https://github.com/bbottema/simple-java-mail/issues/733) | Major feature | 10.0.0 | - | Safe SMTP capability diagnostics |
 | 4a | [#734](https://github.com/bbottema/simple-java-mail/issues/734) | Enhancement | 10.0.0 | - | Explicit sync/async views and unified receipt-returning sends |
 | 5 | [#735](https://github.com/bbottema/simple-java-mail/issues/735) | Security + enhancement | 10.0.0 | - | Reject contradictory mandatory STARTTLS settings; retain the opportunistic default (complete; unreleased) |
-| 6 | Not created | Enhancement | Unscheduled | - | Complete DSN identifiers and recipient metadata |
+| 6 | [#736](https://github.com/bbottema/simple-java-mail/issues/736) | Enhancement | 10.0.0 | - | ENVID send correlation (complete; unreleased) |
+| 6a | [#737](https://github.com/bbottema/simple-java-mail/issues/737) | Enhancement | 10.0.0 | - | Shared DKIM/S/MIME Email configuration and defaults/overrides (complete; unreleased) |
+| 6b | [#738](https://github.com/bbottema/simple-java-mail/issues/738) | Enhancement | 10.0.0 | - | Recipient NOTIFY preferences and automatic ORCPT (complete; unreleased) |
 | 7 | Not created | Enhancement | Unscheduled | - | Per-message REQUIRETLS |
 | 8 | Not created | Enhancement | Unscheduled | - | Explicit SMTPUTF8 and 8BITMIME requirements |
 | 9 | Not created | Enhancement | Unscheduled | - | Exact SIZE capability handling |
@@ -125,7 +129,7 @@ Step 3's [supporting-library cancellation plan](phase-2-execution-control/suppor
 
 ### Phase 4: Model modern ESMTP requirements
 
-- [ ] [6. Complete the DSN envelope model](phase-4-modern-esmtp/06-complete-dsn-envelope-model.md)
+- [x] [6. Complete the DSN envelope model](phase-4-modern-esmtp/06-complete-dsn-envelope-model.md) - #736 and #738, implemented, verified and accepted on 17 September 2026; related Email configuration cleanup accepted under #737
 - [ ] [7. Add per-message REQUIRETLS](phase-4-modern-esmtp/07-add-per-message-requiretls.md)
 - [ ] [8. Make SMTPUTF8 and 8BITMIME requirements explicit](phase-4-modern-esmtp/08-make-smtputf8-and-8bitmime-requirements-explicit.md)
 - [ ] [9. Enforce SIZE against finalized transmitted bytes](phase-4-modern-esmtp/09-enforce-size-against-finalized-transmitted-bytes.md)

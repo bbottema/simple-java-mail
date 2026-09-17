@@ -1,10 +1,10 @@
-# Migrating to Simple Java Mail 10.0
+# Migrating to Simple Java Mail 10.0.0
 
-Simple Java Mail 10 replaces process-wide mutable configuration with immutable configuration snapshots. It also separates MIME processing from the Jakarta Mail implementation that performs SMTP submission. Angus remains the default sending implementation, but provider-specific SMTP behavior now lives behind a replaceable adapter at the final transport boundary.
+Simple Java Mail 10.0.0 replaces process-wide mutable configuration with immutable configuration snapshots. It also separates MIME processing from the Jakarta Mail implementation that performs SMTP submission. Angus remains the default sending implementation, but provider-specific SMTP behavior now lives behind a replaceable adapter at the final transport boundary.
 
 ## The libraries now require Java 11
 
-Simple Java Mail 10 no longer runs on Java 8. All library modules require Java 11 or newer. Applications that must stay on Java 8 should remain on the 9.x release line.
+Simple Java Mail 10.0.0 no longer runs on Java 8. All library modules require Java 11 or newer. Applications that must stay on Java 8 should remain on the 9.x release line.
 
 The `cli-module` artifact and standalone `sjm` command require Java 17 or newer.
 
@@ -58,7 +58,7 @@ Mailer mailer = MailerBuilder
         .buildMailer();
 ```
 
-In 10.0:
+In 10.0.0:
 
 ```java
 SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
@@ -77,11 +77,50 @@ Every old `EmailBuilder` starter has the same name on `mail.emailBuilder()`, inc
 
 Keep the `SimpleJavaMail` instance in application scope. It owns no network resources and returns a fresh builder for each construction flow. Keep and close each built `Mailer` according to your application lifecycle.
 
+## DKIM defaults use Email templates
+
+The dedicated Mailer methods `withDefaultDkimSigning(...)`, `clearDefaultDkimSigning()`, `getDefaultDkimSigningConfig()`, and `isDefaultDkimSigningConfigured()` have been removed in 10.0.0. Configure DKIM on an Email template, just like S/MIME signing and other message defaults. Recompile integrations that used the removed methods.
+
+```java
+SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
+Email defaults = mail.emailBuilder().startingBlank()
+    .signWithDomainKey(dkimConfig)
+    .buildEmail();
+mailerBuilder.withEmailDefaults(defaults);
+```
+
+Both previous signing overloads have equivalents on the Email builder. A signing template may omit the sender and recipients: validation happens when the selected Mailer prepares a message. The prepared message still needs both. DKIM is message-wide, not a per-recipient setting.
+
+A supplied defaults template replaces the property-derived template in full; repeated `withEmailDefaults(...)` calls replace the previous reference. That behavior is unchanged. To keep unrelated property defaults while changing DKIM, materialize those defaults first:
+
+```java
+Email configuredDefaults = mail.emailBuilder().startingBlank()
+    .buildEmailCompletedWithDefaultsAndOverrides();
+Email defaultsWithSigning = mail.emailBuilder().copying(configuredDefaults)
+    .signWithDomainKey(dkimConfig)
+    .buildEmail();
+mailerBuilder.withEmailDefaults(defaultsWithSigning);
+
+// Omit only the default signature; keep other configured message defaults.
+Email unsignedDefaults = mail.emailBuilder().copying(configuredDefaults)
+    .clearDkim()
+    .buildEmail();
+mailerBuilder.withEmailDefaults(unsignedDefaults);
+```
+
+Materializing configured defaults reads configured key files and decodes inline key data too, even if you clear DKIM afterwards. A replacement template built with ordinary `buildEmail()` skips property-derived message defaults entirely. Unlike the removed dedicated DKIM clear flag, editing a materialized template cannot bypass an unreadable key file or malformed Base64 setting before it is loaded.
+
+For one submitted Email, `clearDkim()` removes its local choice and permits defaults again. To prevent a default signature for that Email, use `dontApplyDefaultValueFor(EmailProperty.DKIM_SIGNING_CONFIG)`; to ignore an override, use `dontApplyOverrideValueFor(...)` separately. DKIM follows the ordinary whole-value precedence: override, submitted Email, then default, subject to these opt-outs.
+
+`clearEmailDefaults()` restores property-derived defaults; it does not disable them. An empty explicit template omits all default message settings. Inspect an explicit template through `mailerBuilder.getEmailDefaults()` or the resolved policy through `mailer.getEmailGovernance()`. There is no separate DKIM configured flag.
+
+DKIM property keys and Spring configuration remain unchanged. CLI signing configuration continues to use `simplejavamail.dkim.signing.*` properties; Java signing objects are not CLI values. The generated `--mailer:clearDefaultDkimSigning` option is removed too. Omit the DKIM default from the configuration used by that CLI invocation, or use `--email:ignoringDefaultsYesNo true` if you want to skip all message defaults and supply the required message values yourself. `--email:clearDkim` clears only the local choice, not incoming defaults. These changes do not alter exact-EML submission, which bypasses message governance.
+
 ## Mailer validation now rehearses the effective message
 
 In 9.x, `mailer.validate(email)` only ran the ordinary checks against the supplied `Email`. It did not apply that Mailer's defaults or overrides, build MIME, run signing or encryption, or enforce the encoded-size limit.
 
-In 10.0, validation follows the Mailer's preparation rules. It applies defaults and overrides, checks the resulting email, builds the MIME message, runs configured S/MIME, OpenPGP, and DKIM processing, and checks the final encoded size. It does not open an SMTP connection and it does not change the supplied `Email`.
+In 10.0.0, validation follows the Mailer's preparation rules. It applies defaults and overrides, checks the resulting email, builds the MIME message, runs configured S/MIME, OpenPGP, and DKIM processing, and checks the final encoded size. It does not open an SMTP connection and it does not change the supplied `Email`.
 
 Choose between validation and rehearsal by what the caller needs back, not by validation depth or cost:
 
@@ -223,7 +262,7 @@ ConfigLoader.loadProperties(baseProperties, false);
 ConfigLoader.loadProperties(overrideProperties, true);
 ```
 
-In 10.0, express the order directly:
+In 10.0.0, express the order directly:
 
 ```java
 SimpleJavaMailConfig config = ConfigLoader.builder()
@@ -324,7 +363,7 @@ This is still a narrow compatibility escape hatch. It only controls the optional
 
 Authenticated SOCKS proxies still use a small loopback-only bridge between Jakarta Mail and the remote proxy. In 9.x that bridge used port `1081` by default, so applications with more than one authenticated-proxy Mailer had to assign a different bridge port to each one.
 
-In 10.0 the default is `0`, which asks the operating system for an available loopback port whenever the bridge starts. Separate Mailers can therefore use authenticated proxies at the same time without coordinating ports. Simple Java Mail writes the selected port to the effective Session before opening the SMTP connection. If the bridge stops and later starts on another port, the Session is updated again.
+In 10.0.0 the default is `0`, which asks the operating system for an available loopback port whenever the bridge starts. Separate Mailers can therefore use authenticated proxies at the same time without coordinating ports. Simple Java Mail writes the selected port to the effective Session before opening the SMTP connection. If the bridge stops and later starts on another port, the Session is updated again.
 
 Existing positive values remain fixed. Keep a setting like this only when your application really needs a predictable local port:
 
@@ -512,7 +551,7 @@ With asynchronous sending, the future completes exceptionally with `MailSubmissi
 
 ## MIME finalization and signing order
 
-10.0 finalizes headers, Message-ID, transfer encodings, and multipart boundaries before content protection. The supported order is:
+10.0.0 finalizes headers, Message-ID, transfer encodings, and multipart boundaries before content protection. The supported order is:
 
 1. Build and finalize the ordinary MIME entity.
 2. Apply S/MIME or OpenPGP/MIME signing, then encryption when configured.
@@ -575,11 +614,40 @@ Email received = EmailConverter.emlToEmailWithOpenPgp(emlInputStream, receive);
 OriginalOpenPgpDetails result = received.getOriginalOpenPgpDetails();
 ```
 
-The result separates cryptographic signature validity from application trust. A valid signature does not establish that a key belongs to the claimed sender. Initial 10.0 support deliberately leaves WKD, keyserver lookup, key discovery, and trust policy to the application.
+The result separates cryptographic signature validity from application trust. A valid signature does not establish that a key belongs to the claimed sender. Initial 10.0.0 support deliberately leaves WKD, keyserver lookup, key discovery, and trust policy to the application.
 
 OpenPGP secret material and passphrases are redacted from `toString()` and excluded from Java serialization. Supply the sending configuration again after deserializing an `Email`.
 
 Incoming OpenPGP processing follows at most two nested protection wrappers. That covers the normal sign-then-encrypt shape and bounds work on recursively protected input. A third wrapper is left unprocessed, the status records the nesting failure, and the exact outer protected EML remains available.
+
+## Replace String DSN arguments with enum values
+
+The `EmailPopulatingBuilder` String overloads of `withDeliveryStatusNotificationNotifyOptions` and `withDeliveryStatusNotificationReturnOption`,
+available since 9.0.0, are removed in 10.0.0. Replace Java string arguments with the existing enum overloads and recompile:
+
+```java
+// Before
+.withDeliveryStatusNotificationNotifyOptions("FAILURE,DELAY")
+.withDeliveryStatusNotificationReturnOption("HDRS")
+
+// After
+.withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)
+.withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY)
+```
+
+Property and Spring values keep their existing spelling. CLI option names and text values also stay the same, including comma/semicolon-separated
+notification events and the `FULL`/`HDRS` return aliases. No configuration or CLI migration is needed for this change.
+
+## Allow for additional SMTP envelope parameters
+
+The bundled Angus adapter now adds a fresh UUID as `ENVID` on each DSN-capable send, even without a NOTIFY or RET setting. Existing raw ENVID
+configuration suppresses automatic generation. On managed Angus connections, recipient commands also include automatic `ORCPT` carrying the actual
+envelope recipient, including BCC and override receivers. Update SMTP fixtures that compare complete `MAIL FROM` or `RCPT TO` commands.
+
+Message-ID and MIME bytes are unchanged, and no round trips are added. Servers without DSN support receive neither automatic parameter.
+ORCPT is omitted when an address cannot be represented safely or exceeds the encoded parameter limit. Ordinary Angus transports obtained from
+caller-owned Sessions or custom socket factories do not gain automatic ORCPT; direct Jakarta Mail sends and `CustomMailer` keep their existing
+envelope handling. See the [provider boundaries](https://www.simplejavamail.org/features.html#section-dsn-recipients).
 
 ## Compatibility notes
 

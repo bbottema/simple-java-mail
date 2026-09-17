@@ -4,6 +4,15 @@ This document serves as a blueprint for developers and coding agents when adding
 
 For surrounding mechanisms such as optional module loading, CLI data generation, MIME structure selection, and build instrumentation, see [PROJECT_MECHANISMS_CATALOGUE.md](PROJECT_MECHANISMS_CATALOGUE.md).
 
+## Ownership and design gate
+
+Read [ADR 0001: Email configuration scopes and inheritance](docs/adr/0001-email-configuration-scopes-and-inheritance.md) for ownership and [ADR 0002: Email defaults and overrides](docs/adr/0002-email-defaults-and-overrides.md) for reusable policy and resolution. Their accepted architectural direction is separate from implementation status.
+
+- Put message configuration on Email. Mailer-wide message policy uses `withEmailDefaults(...)` / `withEmailOverrides(...)`; do not duplicate an Email feature with dedicated Mailer default/override methods or backing state. The dedicated DKIM route is being removed in the 10.0.0 migration, not retained as a precedent for new APIs.
+- Expose only recipient-specific settings on recipient/group builders. S/MIME encryption certificates and DSN NOTIFY preferences qualify; DKIM/S/MIME signing and transaction-wide DSN RET/ENVID do not. ORCPT is derived metadata for ordinary submissions, not another recipient setting.
+- Define the scope and meaning of defaults, explicit values, clearing, disabling, and forced overrides before selecting method signatures. Preserve the settled cross-scope rule: explicit recipient values beat the governance-resolved Email fallback, including Email overrides. Group-fixed values apply when constructing that group's recipients; they are not a global enforcement layer.
+- Keep settings that own SMTP connections or execution resources on Mailer. Follow section 7 for those rather than routing them through Email governance.
+
 ---
 
 ## 1. Core Model Expansion (`core-module`)
@@ -21,12 +30,15 @@ The foundation of any new feature usually starts with updating the core model ob
 New fields must be accessible through the fluent Builder API.
 
 - **Update Builder Interfaces**: Add new methods to the public builder interfaces (e.g., `EmailPopulatingBuilder`, `IRecipientsBuilder`, `IRecipientBuilder`).
+- **Discoverable Java Choices**: Use enums or cohesive typed values for a closed set of choices; do not make Java callers discover protocol tokens such as `"SUCCESS"`, `"NEVER"`, or `"HDRS"`. Explain enum values in user terms and use typed values in Java examples. Parse text at configuration/CLI boundaries. Do not add or retain String builder overloads just for CLI conversion: register a converter for the typed parameter instead. Any retained text-input overload needs an independent compatibility or Java-use justification.
 - **Javadoc Source of Truth**: Put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics.
 - **CLI Compatibility Rules**:
-  - **Parameter Types**: Use simple types (`String`, `boolean`, `int`, `long`) or types that have an existing `ValueInterpreter` in the `cli-module` (e.g., `X509Certificate`, `File`, `URL`, `Date`).
+  - **Parameter Types**: For CLI-exposed methods, use supported scalars, enums, or types with a `ValueInterpreter` in the `cli-module` (e.g., `X509Certificate`, `File`, `URL`, `Date`). CLI conversion must not dictate an untyped Java API; use a converter or an explicitly documented text-input boundary where necessary.
   - **Avoid Collections**: Picocli mapping works best with individual values or arrays. Avoid `Collection` or `Map` in signatures intended for CLI use. Provide overloads if necessary.
   - **Javadoc**: Provide complete Javadoc for all new methods and parameters. The CLI module uses this to generate help text.
   - **Annotations**: Use `@Cli.ExcludeApi` for methods that should not be exposed to the CLI (e.g., those taking complex Java-only objects). Use `@Cli.OptionNameOverride` if the method name isn't ideal for a CLI flag. Use `@Cli.Optional` on parameters that may be omitted from the CLI; keep JetBrains `@Nullable` for Java/API nullability only.
+  - **Converters and Exclusions**: Register a value converter in `BuilderApiToPicocliCommandsMapper` for a newly supported string-convertible type. Exclude ambiguous overloads, unsupported object/collection parameters, and redundant subset APIs with an explanatory `@Cli.ExcludeApi(reason = "...")`; use option-name overrides when distinct operations would otherwise collide.
+  - **Typed Array Input**: For a value such as `NotifyOption[]`, register a `ValueFunction` that converts one CLI argument into the typed array, add its help label, and explicitly allow that array in the mapper. Reuse the canonical parser for aliases and validation; do not enable unrelated array/collection types. Keep existing CLI option names when moving an option from a String overload to its typed method.
 - **Java 11 Convenience Overloads**:
   - Add `Path`, `Instant`, or another modern type only at the entry points where it removes recurring caller-side conversion. Do not mirror every existing overload combination mechanically.
   - Delegate to one existing parser, builder, or value-storage path so the modern overload cannot develop separate behavior.
@@ -40,14 +52,16 @@ Implement the new API methods and ensure data propagation.
 
 - **Update Builder Implementations**: Update `EmailPopulatingBuilderImpl`, `RecipientsBuilder`, `RecipientBuilder`, etc.
 - **CRITICAL: Data Propagation**:
+  - For recipient-capable fields, retain metadata through fixed-type groups, Email copies/governance, override receivers, exact-EML envelopes and serialization. Preserve duplicate recipient occurrences and the provider's TO/CC/BCC ordering; never map preferences solely by address. Recipient NOTIFY is an example of a complete preference set, while RET/ENVID remain transaction-wide.
   - Ensure that "copy" methods (e.g., `withRecipient(Recipient)`) and delegation methods correctly copy the new field.
   - Failure to do this will result in data being lost when `simpleJavaMail.emailBuilder().copying(email)` is used or when builders delegate to each other.
 - **Update Email Constructor**: Ensure the `Email` constructor copies the new field from the builder.
 - **Utility Classes**: Update `MiscUtil` if it contains helper methods for object creation or parsing (e.g., `interpretRecipient`).
+- **Send Results**: Runtime facts belong to the send result, not the reusable Email. Preserve added fields through result enrichment, receipt construction, and serialization/read-resolution. Keep existing constructors usable, and test that older serialized receipts receive an appropriate absent value.
 
 ## 4. Message Conversion & Processing (`simple-java-mail`)
 
-The new field must eventually affect the produced `MimeMessage`.
+Route the new field according to its ownership. Message-content fields affect the produced `MimeMessage`; SMTP-envelope fields belong to `DeliveryEnvelope` and the provider adapter, not MIME headers. Do not change exact or protected MIME bytes to carry transport metadata.
 
 - **MimeMessageHelper**: Update this class if the new field translates directly to a standard MimeMessage header or property (e.g., a new recipient type or a standard header).
 - **SpecializedMimeMessageProducer**: Update the `populateMimeMessage` method if the new field requires logic to decide how the `MimeMessage` is constructed or if it triggers module-specific processing (like S/MIME or DKIM).
@@ -85,7 +99,8 @@ Only skip defaults/overrides integration when the value cannot sensibly be repre
   - If the new field influences downstream processing (e.g., per-recipient S/MIME), make sure SpecializedMimeMessageProducer considers the presence of the field when deciding to trigger the corresponding module.
   - Ensure the corresponding module implementation tolerates null global config if the trigger is a per-item value.
 - Per-recipient fields
-  - Do not try to default/override sub-fields inside Recipient via governance. Instead, set them when building recipients (through IRecipientsBuilder / RecipientsBuilder) and let module logic act on their presence.
+  - Resolve recipient/group choices through IRecipientsBuilder / RecipientsBuilder, preserving the resulting metadata on each Recipient. Email governance can supply the email-wide fallback for a recipient-capable setting; it must not create a second hierarchy by rewriting recipient sub-fields behind the builder API.
+- Follow ADR 0001's scope rules and ADR 0002's resolution conventions. Distinguish an absent recipient preference from explicit disabling, and define how forced overrides interact across scopes. Treat policy sets such as DSN NOTIFY as complete values rather than blindly merging events with defaults.
 
 ## 7. Mailer Configuration API Expansion
 
@@ -120,7 +135,10 @@ Always verify the following areas:
 - **Builder Chain**: Verify the field is preserved across multiple builder calls.
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.
 - **CLI Help**: Run the CLI with `--help` for the relevant command to ensure the new option is documented and has the correct parameter labels.
-- **End-to-End**: Verify the field actually affects the final `MimeMessage` (e.g., by inspecting the produced EML or using a dummy SMTP server).
+- **CLI Metadata**: Follow [Generated CLI Metadata](DEVELOPMENT.md#generated-cli-metadata) to regenerate both `cli.data` and `therapi.data` before asserting changed help text, then run normal verification with tests enabled. Include the cold-cache concurrency regression and daemon send/probe tests: an API change can invalidate the prepared caches while concurrent requests are using the CLI.
+- **Migration Notes**: Document only broken backwards compatibility or changed behavior for existing callers. Compare against released versions, not intermediate APIs introduced during the current unreleased work. Put additive features and their usage examples in feature documentation and release notes instead.
+- **End-to-End**: Verify the field at its actual boundary: inspect the final MIME for content fields, or use a dummy SMTP server for envelope fields. For transport metadata, also verify receipt/observer propagation, unsupported-provider behavior, and isolation across reused or concurrent sends.
+- **Exact and Protected Content**: Preserve authoritative bytes when adding envelope metadata. Keep exact-message envelope recipients separate from parsed headers in tests, and correlate both byte content and ordered recipient occurrences for concurrent pooled attempts. Provider capability rejection must happen before submission without treating an otherwise healthy lease as broken.
 - **Architecture Documentation**: If the addition changes send execution, transport/provider responsibilities, cancellation, or observation, review the [concurrency catalogue and shared infographic](docs/concurrency/inside-a-mail-send.md#phase-completion-check). Update the affected diagrams and distribution copies, or record why the overview remains unchanged.
 
 There are junit tests available to verify the above or provide a blueprint for new tests.

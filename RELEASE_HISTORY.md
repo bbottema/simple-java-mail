@@ -16,6 +16,9 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Enhancements
 
+- [#737](https://github.com/bbottema/simple-java-mail/issues/737): unified DKIM defaults with Email templates and ordinary message governance; removed the dedicated Mailer DKIM defaults API. Incomplete signing templates are allowed, while prepared messages still require a sender. See the [10.0.0 migration notes](MIGRATION-10.0.md#dkim-defaults-use-email-templates) for property-default preservation and suppression.
+- [#738](https://github.com/bbottema/simple-java-mail/issues/738): added recipient/group DSN NOTIFY preferences, with default/fixed/clear policies and Email fallback. Managed Angus adds ORCPT from actual envelope-recipient occurrences when supported, without changing exact or protected MIME bytes. Explicit recipient preferences fail before submission if unsupported; capability mismatches leave healthy pooled connections reusable.
+- [#736](https://github.com/bbottema/simple-java-mail/issues/736): added automatic per-send DSN envelope identifiers (ENVID), exposed on submission receipts for correlating later notifications. `fixingEnvelopeId(...)` supplies a fixed value through Java or CLI, for composed or exact emails. Automatic generation is best-effort; fixed identifiers require DSN support. MIME bytes remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#735](https://github.com/bbottema/simple-java-mail/issues/735): reject extra properties that disable mandatory STARTTLS for `SMTP_TLS` or `SMTP_OAUTH2` during Mailer construction, with actionable configuration errors. The opportunistic SMTP default, caller-owned Sessions and `CustomMailer` remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#734](https://github.com/bbottema/simple-java-mail/issues/734), following [#711](https://github.com/bbottema/simple-java-mail/issues/711): made execution explicit through cached `Mailer.sync()` / `Mailer.async()` views. Single-email sends return submission receipts; simple batches stay streaming and completion-only. Removed the builder async default and old flat/boolean send methods; integrations must migrate and recompile. CLI send/connect wait synchronously, and `--mailer:async` is rejected. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
@@ -28,6 +31,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Maintenance
 
+- [#736](https://github.com/bbottema/simple-java-mail/issues/736): made the CLI's runtime Javadoc cache safe to repopulate from concurrent daemon requests after an API change invalidates generated metadata.
 - Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.
 
 ## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.3/)
