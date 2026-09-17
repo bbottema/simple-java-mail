@@ -94,7 +94,7 @@ The coding-guide audit covered the changed public contracts, builder/config remo
 
 The pool-size-one observer regression now runs with either a sync or async outer send and re-enters through the sync view, proving reuse of the same released transport and exact receipt identity. The daemon concurrency fixture gates recipient submission, not connection allocation: existing pool allocation callbacks are intentionally serialized.
 
-Local logs are under `tmp/execution-views-*.log`. No SpotBugs, benchmarks or live-email demos were run. Both copies of the approved infographic retain SHA-256 `6678f77dd10760e193af9c88ebc17c31ea3483c7d9e8c8da58eed9ab0621f7c9`; the catalogue records why the existing layers remain accurate.
+No SpotBugs, benchmarks or live-email demos were run. Both copies of the approved infographic retain SHA-256 `6678f77dd10760e193af9c88ebc17c31ea3483c7d9e8c8da58eed9ab0621f7c9`; the catalogue records why the existing layers remain accurate.
 
 Four untouched test files already contain license headers in HEAD (`DkimWireSignerTest`, `OpenPgpDetailsTest`, `OpenSslSmimeInteroperabilityTest`, `SmimeGlobalStateIsolationTest`). They are outside the license plugin's production-source include and were not changed by this migration.
 
@@ -104,4 +104,4 @@ Review was accepted under #734 on 13 September 2026. Resume the probe at `SmtpCa
 
 The migration was separated into an isolated candidate based on the previous committed branch tip, without the uncommitted probe classes, entry points, tests or website sections. Both full non-live Maven verification lanes passed against that candidate: Java 11 libraries with classpath/JPMS consumers, and Java 21 including CLI/daemon tests, Javadocs and standalone packaging. The three Spring combinations also passed independently: Boot 2.7.18 / Spring 5.3.39 on Java 11, Boot 3.0.13 / Spring 6.0.14 on Java 17, and Boot 3.5.16 / Spring 6.2.19 on Java 21.
 
-The isolated website check and clean build passed. Internal-link verification found only the same five existing Journal links, outside the migration. CLI metadata regenerated from the standalone candidate matches the reviewed files. License cleanup ran after the builds; unrelated research and Journal staging was preserved. Local delivery logs are under `tmp/execution-views-delivery-58f023f0/`.
+The isolated website check and clean build passed. Internal-link verification found only the same five existing Journal links, outside the migration. CLI metadata regenerated from the standalone candidate matches the reviewed files. License cleanup ran after the builds; unrelated research and Journal staging was preserved.

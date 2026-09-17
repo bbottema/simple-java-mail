@@ -9,3 +9,4 @@
 .atlasarc/
 /build-coverage.sh
 /.maintainer-env.ps1
+/tmp/

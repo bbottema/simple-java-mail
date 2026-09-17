@@ -72,7 +72,7 @@ Recommended next slice: ENVID first. This is a scope recommendation, not an impl
 
 The peer reuses the existing `Conversation` fixture and asserts exact commands. All sockets are loopback-only and ephemeral; messages contain synthetic data. Socket reads, accept, futures, server shutdown and message/NOOP loops are bounded. No live SMTP, benchmarks or SpotBugs run.
 
-The new suite passed on Java 11. The focused set, including existing DSN model/conversion, authentication/TLS and probe coverage, then passed **132 tests on Java 11 and 132 on Java 21**, with no failures, errors or skips. Logs: `tmp/phase4-dsn-characterization-java11.log`, `tmp/phase4-dsn-focused-java11.log`, and `tmp/phase4-dsn-focused-java21.log`.
+The new suite passed on Java 11. The focused set, including existing DSN model/conversion, authentication/TLS and probe coverage, then passed **132 tests on Java 11 and 132 on Java 21**, with no failures, errors or skips.
 
 The new Java class was audited against `CODING_STYLE_GUIDE.md`. `mvn license:remove` completed successfully; the test remains header-free. Whitespace checks and the changed Markdown files' relative-link checks passed.
 
