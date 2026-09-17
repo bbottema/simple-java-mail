@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
@@ -45,7 +46,8 @@ public final class TherapiJavadocHelper {
 	private static final Logger LOGGER = getLogger(TherapiJavadocHelper.class);
 	private static final String REGENERATE_METADATA_PROPERTY = "simplejavamail.cli.metadata.regenerate";
 
-	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache();
+	// An API change can invalidate therapi.data; concurrent daemon requests may then populate missing descriptions.
+	private static final Map<String, MethodJavadoc> THERAPI_CACHE = new ConcurrentHashMap<>(loadTherapiCache());
 
 	private static Map<String, MethodJavadoc> loadTherapiCache() {
 		try {
