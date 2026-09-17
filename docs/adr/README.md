@@ -28,6 +28,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0020](0020-dedicated-smtp-connection-diagnostics.md) | Inspect capabilities on a dedicated connection with safe partial reports. | Accepted, retrospective | Java, CLI and external-adapter fixture implemented for unreleased 10.0.0. |
 | [0021](0021-mandatory-starttls-configuration-consistency.md) | Reject extra properties that contradict a mandatory STARTTLS strategy. | Accepted, retrospective | Implemented for unreleased 10.0.0. |
 | [0022](0022-dsn-identifiers-belong-to-send-attempts.md) | Generate ENVID per send attempt and report it outside MIME content. | Accepted, 2026-09-17 | Accepted for unreleased 10.0.0. |
+| [0023](0023-per-message-requiretls.md) | Keep onward REQUIRETLS on Email, separate from connection TLS, and reject sends that cannot honor it. | Accepted, 2026-09-17 | Implemented and accepted for unreleased 10.0.0 under #741. |
 
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
@@ -52,6 +53,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | CLI generation from builder Javadocs | [0018](0018-cli-from-builder-contracts.md), with explicit optionality in [0009](0009-nullability-and-cli-optionality.md) and the [generation procedure](../../DEVELOPMENT.md#generated-cli-metadata). |
 | Optional local CLI daemon | [0019](0019-local-cli-daemon.md) and [process-mode checks](../../DEVELOPMENT.md#exercising-cli-process-modes). |
 | Mandatory STARTTLS configuration consistency | [0021](0021-mandatory-starttls-configuration-consistency.md). |
+| Per-message onward REQUIRETLS | [0023](0023-per-message-requiretls.md), applying Email scope and governance from [0001](0001-email-configuration-scopes-and-inheritance.md) and [0002](0002-email-defaults-and-overrides.md). |
 | Dedicated SMTP connection diagnostics | [0020](0020-dedicated-smtp-connection-diagnostics.md). |
 | Async send and batch connection pooling | [0015](0015-execution-views-and-transport-pooling.md) and [0016](0016-bounded-async-admission-and-shutdown.md); [executor admission](../concurrency/03-executor-admission.md) and [pool claims/leases](../concurrency/06-pool-claims-and-leases.md) describe current state machines. |
 | Total deadlines and physical abort | [0017](0017-deadlines-and-physical-cancellation.md), with outcome and callback boundaries in [0011](0011-transport-neutral-submission-outcomes.md) and [0012](0012-terminal-send-observation.md); see the [concurrency collection](../concurrency/README.md) for transitions and races. |

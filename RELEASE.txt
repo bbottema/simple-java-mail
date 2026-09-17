@@ -20,6 +20,7 @@ Major Features:
 
 Enhancements:
 
+- #741: added per-email RFC 8689 REQUIRETLS through the ordinary Email defaults/overrides system, including exact EML and CLI support. The Angus adapter verifies authenticated first-hop TLS and post-TLS server capability before MAIL FROM; receipts report only when the parameter was actually issued. Part of #722.
 - #738: added recipient/group DSN NOTIFY preferences with default/fixed/clear policies and Email fallback. The managed Angus transport derives ORCPT from each envelope-recipient occurrence when supported, including exact EML, without changing MIME bytes. Explicit recipient preferences require usable provider/DSN support; pre-submission capability failures retain healthy pooled connections.
 
 - #737: unified DKIM defaults with Email templates and ordinary message governance; removed the dedicated Mailer DKIM defaults API. Incomplete signing templates are allowed, while prepared messages still require a sender. See the 10.0.0 migration notes for property-default preservation and suppression.
