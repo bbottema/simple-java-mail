@@ -98,7 +98,7 @@ Implementation checklist:
 - Put the complete construction-failure contract on the regular builder API, with implementation references. Keep Jakarta Mail key knowledge localized; do not expand the user-facing API just to expose a validation helper.
 - Update the website's raw-property warning to explain the actual rejection and how to resolve it.
 - Add a 10.0.0 migration note for formerly accepted contradictory configurations. Explain that the default is unchanged and show removing the override versus choosing `SMTP` for opportunistic password authentication.
-- Add a concise enhancement entry to both release-note files and describe the construction boundary in the mechanisms catalogue.
+- Add a concise enhancement entry to both release-note files and describe the construction boundary in [ADR 0021](../../docs/adr/0021-mandatory-starttls-configuration-consistency.md).
 - Regenerate CLI metadata when builder Javadocs change. No new Spring property or Email governance field is needed.
 - Recheck the concurrency catalogue and approved infographic. This adds a construction-time validation step, not a new send owner, lock, state machine or layer.
 - Run website checks, a clean build and internal-link verification, preserving all unrelated Journal edits.

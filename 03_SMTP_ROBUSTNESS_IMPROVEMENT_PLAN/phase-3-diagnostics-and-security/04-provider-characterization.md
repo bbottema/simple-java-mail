@@ -92,7 +92,7 @@ The real `Mailer` API is covered separately by [SmtpConnectionProbeTest](../../m
 - pool-size-one probing while the ordinary pool lease is held, plus snapshots remaining unchanged across later probes;
 - public API classpath/JPMS linking without Angus, and managed-Angus SPI discovery on the module path.
 
-The [manual demo](../../modules/simple-java-mail/src/test/java/demo/SmtpConnectionProbeDemoApp.java) runs against its own loopback peer by default. README, Diagnostics website examples, release entries and the mechanisms catalogue now describe the Java API. The shared send infographic was reviewed and remains unchanged: this dedicated diagnostic connection is outside email sending, pooling, observation and send control.
+The [manual demo](../../modules/simple-java-mail/src/test/java/demo/SmtpConnectionProbeDemoApp.java) runs against its own loopback peer by default. README, Diagnostics website examples, release entries and [ADR 0020](../../docs/adr/0020-dedicated-smtp-connection-diagnostics.md) describe the Java API and its boundaries. The shared send infographic was reviewed and remains unchanged: this dedicated diagnostic connection is outside email sending, pooling, observation and send control.
 
 Remaining before feature completion: CLI command/report integration and one-shot/daemon checks, a third-party partial-detail adapter runtime fixture, and the production-diff/holistic review. The current custom-provider test proves explicit unsupported behavior, not compatibility with every provider. The authentication-policy step remains separate.
 

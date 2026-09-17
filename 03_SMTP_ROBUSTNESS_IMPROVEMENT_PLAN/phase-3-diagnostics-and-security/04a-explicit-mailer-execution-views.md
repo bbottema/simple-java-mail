@@ -67,7 +67,7 @@ Simple batches retain lazy iteration, sequential sending over a shared connectio
 ## Documentation and delivery
 
 - Add a 10.0.0 migration section covering every operation mapping, removed builder mode, receipt-bearing sends, streaming batches, failure contracts, application-owned runtime mode selection, and integration recompilation.
-- Migrate current 10.0.0 README/website sending, diagnostics, configuration, and CLI examples, release notes, and mechanisms catalogue. Explain that receipts describe SMTP submission, not final delivery, and are optional to inspect.
+- Migrate current 10.0.0 README/website sending, diagnostics, configuration, and CLI examples, release notes, and architecture documentation. Keep the decision in [ADR 0015](../../docs/adr/0015-execution-views-and-transport-pooling.md) and the implementation map in the [concurrency collection](../../docs/concurrency/README.md). Explain that receipts describe SMTP submission, not final delivery, and are optional to inspect.
 - Preserve historical documentation, unrelated staged research, and all unrelated Journal work.
 - Update concurrency catalogue entry-point references. The approved infographic's implementation layers and resource ownership remain accurate; record the review, without regenerating it.
 - Production review was accepted on 13 September 2026. Commit the migration separately, push both repositories, then close #734 and mark its project item Done. Keep #733 open and do not mark Phase 3 complete.

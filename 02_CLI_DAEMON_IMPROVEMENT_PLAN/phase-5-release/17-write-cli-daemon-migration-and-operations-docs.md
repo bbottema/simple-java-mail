@@ -80,7 +80,7 @@ Provide separate, tested sections for:
 2. Document metadata regeneration on JDK 17/current JDK.
 3. Document protocol-version changes, state compatibility, and the rule against Java/Kryo serialization over IPC.
 4. Document OS package prerequisites, signing/notarization, service test VMs, checksums, and artifact collection.
-5. Add daemon lifecycle and Mailer registry ownership to `PROJECT_MECHANISMS_CATALOGUE.md`.
+5. Keep daemon lifecycle and Mailer registry ownership in [ADR 0019](../../docs/adr/0019-local-cli-daemon.md), with build and process-mode checks in [DEVELOPMENT.md](../../DEVELOPMENT.md#exercising-cli-process-modes).
 6. Cross-link and reconcile the CLI gates in `01_INSTANCE_CONFIGURATION_IMPROVEMENT_PLAN` before implementation of this plan begins.
 7. Record how to run every forked process, transport, security, performance, and platform gate.
 

@@ -41,7 +41,7 @@ Do not list internal constructor changes, moved private helpers, test cleanup, o
 6. Document custom sources and clarify that source decryption belongs outside Simple Java Mail.
 7. Explain Spring's config, configured factory, and default Mailer beans. Builders always come from the injected factory.
 8. Update CLI property-file wording while keeping its simple `etc/simplejavamail.properties` route.
-9. Update `API_EXPANSION_WORKFLOW.md` and `PROJECT_MECHANISMS_CATALOGUE.md` so future properties use the schema and snapshot pipeline.
+9. Update [API_EXPANSION_WORKFLOW.md](../../API_EXPANSION_WORKFLOW.md) and the [configuration decision](../../docs/adr/0003-immutable-configuration-snapshots.md) so future properties use the schema and snapshot pipeline.
 10. Strengthen Javadocs for thread-safety, snapshot timing, stream ownership, secrets, and lifecycle.
 
 ## Copy rules
@@ -75,5 +75,5 @@ Do not list internal constructor changes, moved private helpers, test cleanup, o
 ## Completion evidence
 
 - `MIGRATION-10.0.md` covers only public breaks and non-obvious behavior, including every builder entry, static loader use, Spring bean change, snapshot timing, SMTP-only opportunistic TLS, and the embedded URL/classpath correction.
-- Root README, workflow, mechanism catalogue, and the website configuration, features, security, CLI, debugging, download, migration, pooling, and rationale pages describe the current API directly.
+- Root README, workflow, architecture documentation, and the website configuration, features, security, CLI, debugging, download, migration, pooling, and rationale pages describe the current API directly. The former catalog's configuration material now lives in [ADRs 0003–0005](../../docs/adr/README.md).
 - Website `npm run build`, `npm run check`, and `npm run verifyLinks:internal` passed: 24 pages, 23 indexed, and 1,998 internal links checked.
