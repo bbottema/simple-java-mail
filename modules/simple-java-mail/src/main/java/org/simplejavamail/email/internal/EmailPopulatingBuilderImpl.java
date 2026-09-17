@@ -373,7 +373,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
-		validateDkim();
 		validateProtectionFamilies();
 		resolveDynamicEmbeddedImageDataSources();
 		//noinspection deprecation
@@ -384,7 +383,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		final boolean smimeConfigured = smimeSigningConfig != null || smimeEncryptionConfig != null;
 		final boolean openPgpConfigured = openPgpSigningConfig != null || openPgpEncryptionConfig != null;
 		if (smimeConfigured && openPgpConfigured) {
-			throw new IllegalArgumentException("S/MIME and OpenPGP/MIME cannot be configured on the same email");
+			throw new IllegalArgumentException("S/MIME and OpenPGP/MIME are both configured for this email. "
+					+ "Simple Java Mail supports either format, but not wrapping one inside the other. "
+					+ "Choose the format your recipients support and remove the other configuration with clearSmime() or clearOpenPgp() before buildEmail(). "
+					+ "If defaults or overrides supply it, adjust those templates or suppress that setting on the email being sent.");
 		}
 	}
 
@@ -438,12 +440,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance) {
 		return emailGovernance.produceEmailApplyingDefaultsAndOverrides(buildEmail());
-	}
-
-	private void validateDkim() {
-		if (getDkimConfig() != null) {
-			checkNonEmptyArgument(getFromRecipient(), "fromRecipient required when signing DKIM");
-		}
 	}
 
 	private void resolveDynamicEmbeddedImageDataSources() {

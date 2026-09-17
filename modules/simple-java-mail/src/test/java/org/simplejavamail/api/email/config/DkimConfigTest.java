@@ -35,12 +35,6 @@ public class DkimConfigTest {
                 .signWithDomainKey("key".getBytes(), "example.com", "selector", Collections.singleton(" FROM ")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must include the From header");
-
-        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().mailerBuilder()
-                .withSMTPServer("host", 25, null, null)
-                .withDefaultDkimSigning("key".getBytes(), "example.com", "selector", Collections.singleton("fRoM")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("must include the From header");
     }
 
     @Test

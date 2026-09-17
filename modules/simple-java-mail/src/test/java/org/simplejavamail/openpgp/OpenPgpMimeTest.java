@@ -521,7 +521,43 @@ class OpenPgpMimeTest {
                         .secretKeyRing(new byte[]{1}).passphrase(new char[0]).build())
                 .buildEmail())
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("S/MIME and OpenPGP/MIME");
+                .hasMessageContaining("S/MIME and OpenPGP/MIME are both configured")
+                .hasMessageContaining("not wrapping one inside the other")
+                .hasMessageContaining("Choose the format your recipients support")
+                .hasMessageContaining("clearSmime() or clearOpenPgp() before buildEmail()")
+                .hasMessageContaining("If defaults or overrides supply it, adjust those templates or suppress that setting on the email being sent");
+    }
+
+    @Test
+    void clearingSmimeResolvesConflictAndKeepsOpenPgp() {
+        final OpenPgpSigningConfig openPgpConfig = OpenPgpSigningConfig.builder()
+                .secretKeyRing(new byte[]{1}).passphrase(new char[0]).build();
+
+        final Email email = basicEmail("body")
+                .signWithSmime(org.mockito.Mockito.mock(SmimeSigningConfig.class))
+                .signWithOpenPgp(openPgpConfig)
+                .clearSmime()
+                .buildEmail();
+
+        assertThat(email.getSmimeSigningConfig()).isNull();
+        assertThat(email.getSmimeEncryptionConfig()).isNull();
+        assertThat(email.getOpenPgpSigningConfig()).isSameAs(openPgpConfig);
+    }
+
+    @Test
+    void clearingOpenPgpResolvesConflictAndKeepsSmime() {
+        final SmimeSigningConfig smimeConfig = org.mockito.Mockito.mock(SmimeSigningConfig.class);
+
+        final Email email = basicEmail("body")
+                .signWithSmime(smimeConfig)
+                .signWithOpenPgp(OpenPgpSigningConfig.builder()
+                        .secretKeyRing(new byte[]{1}).passphrase(new char[0]).build())
+                .clearOpenPgp()
+                .buildEmail();
+
+        assertThat(email.getOpenPgpSigningConfig()).isNull();
+        assertThat(email.getOpenPgpEncryptionConfig()).isNull();
+        assertThat(email.getSmimeSigningConfig()).isSameAs(smimeConfig);
     }
 
     @Test

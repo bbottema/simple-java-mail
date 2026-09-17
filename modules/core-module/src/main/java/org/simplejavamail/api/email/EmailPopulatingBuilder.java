@@ -52,8 +52,10 @@ public interface EmailPopulatingBuilder {
 	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
 
 	/**
-	 * Validated DKIM values and then delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument. This results in an Email instance with
-	 * just the values set on this builder by the user. <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
+	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument. This results in an Email instance with
+	 * just the values set on this builder by the user. An Email can be an incomplete defaults/overrides template, including a signing configuration without
+	 * a sender. Mailer preparation checks the completed message before sending; building a template does not validate its completeness.
+	 * <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
 	 * <p>
 	 * If you don't have a Mailer instance, or you just want to call helper methods that only accept an {@link EmailWithDefaultsAndOverridesApplied}, there are two ways
 	 * to complete this Email with defaults and overrides that you may have configured as (system) properties (files):
@@ -63,6 +65,9 @@ public interface EmailPopulatingBuilder {
 	 * </ol>
 	 * It depends on whether you like fine-grained control over email governance (validation, max email size, defaults, overrides, etc.) or not.
 	 *
+	 * @throws IllegalArgumentException If email-level S/MIME and OpenPGP/MIME are both configured. Simple Java Mail does not support wrapping one
+	 *                                 protection format inside the other; choose one and remove the other configuration with {@link #clearSmime()}
+	 *                                 or {@link #clearOpenPgp()}. Defaults and overrides must respect the same restriction when applied.
 	 * @see #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)
 	 */
 	@SuppressWarnings("JavadocDeclaration")
@@ -1427,7 +1432,9 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Resets all dkim properties to empty.
 	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
+	 * This clears only the current Email's choice, so governance can still supply signing defaults or overrides. To suppress those on a submitted email,
+	 * use {@link #dontApplyDefaultValueFor} and/or {@link #dontApplyOverrideValueFor} with {@link EmailProperty#DKIM_SIGNING_CONFIG}.
+	 * Clearing DKIM on a copied defaults template omits signing from that template without changing its other fields.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearDkim();

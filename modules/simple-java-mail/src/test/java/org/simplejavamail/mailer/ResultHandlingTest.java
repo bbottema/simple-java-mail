@@ -82,7 +82,8 @@ public class ResultHandlingTest {
 
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
                 .withSMTPServer("localhost", 0)
-				.withDefaultDkimSigning(defaultDkimConfig)
+				.withEmailDefaults(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+						.signWithDomainKey(defaultDkimConfig).buildEmail())
                 .withCustomMailer(mimeMessageExtractingMailer)
                 .buildMailer()) {
 

@@ -13,16 +13,16 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
-import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmail;
@@ -102,7 +102,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	// for internal convenience in junit tests
 	public static EmailGovernance NO_GOVERNANCE() {
-		return new EmailGovernanceImpl(EMPTY_CONFIG, new EmailStartingBuilderImpl(EMPTY_CONFIG), null, null, null, null, null, false);
+		return new EmailGovernanceImpl(EMPTY_CONFIG, new EmailStartingBuilderImpl(EMPTY_CONFIG), null, null, null, null);
 	}
 
 	/**
@@ -111,7 +111,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()
 	 */
 	public static EmailGovernance withConfig(@NotNull final SimpleJavaMailConfig config) {
-		return new EmailGovernanceImpl(config, new EmailStartingBuilderImpl(config), null, null, null, null, null, false);
+		return new EmailGovernanceImpl(config, new EmailStartingBuilderImpl(config), null, null, null, null);
 	}
 
 	/**
@@ -122,16 +122,14 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@Nullable private final EmailValidator emailValidator;
 
 	/**
-	 * Reference email used for defaults if no fields are not filled in the email but are on this instance.
-	 * Can be <code>null</code> if no defaults should be used.
+	 * Supplied defaults template, or the snapshot-derived template when none was supplied.
 	 * @see MailerGenericBuilder#withEmailDefaults(Email)
 	 */
 	@Getter(AccessLevel.NONE)
 	@NotNull private final Email emailDefaults;
 
 	/**
-	 * Reference email used for overrides. Values from this email will trump the incoming email.
-	 * Can be <code>null</code> if no overrides should be used.
+	 * Supplied overrides template, or an empty template when none was supplied.
 	 * @see MailerGenericBuilder#withEmailOverrides(Email)
 	 */
 	@Getter(AccessLevel.NONE)
@@ -143,24 +141,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	 */
 	@Nullable private final Integer maximumEmailSize;
 
-	/**
-	 * @see MailerGenericBuilder#withDefaultDkimSigning(DkimConfig)
-	 */
-	@Nullable private final DkimConfig defaultDkimSigningConfig;
-
-	/**
-	 * @see MailerGenericBuilder#clearDefaultDkimSigning()
-	 */
-	private final boolean defaultDkimSigningConfigured;
-
 	public EmailGovernanceImpl(@Nullable EmailValidator emailValidator, @Nullable Email emailDefaults, @Nullable Email emailOverrides, @Nullable Integer maximumEmailSize) {
-		this(EMPTY_CONFIG, new EmailStartingBuilderImpl(EMPTY_CONFIG), emailValidator, emailDefaults, emailOverrides, maximumEmailSize, null, false);
-	}
-
-	public EmailGovernanceImpl(@Nullable EmailValidator emailValidator, @Nullable Email emailDefaults, @Nullable Email emailOverrides, @Nullable Integer maximumEmailSize,
-			@Nullable DkimConfig defaultDkimSigningConfig, boolean defaultDkimSigningConfigured) {
-		this(EMPTY_CONFIG, new EmailStartingBuilderImpl(EMPTY_CONFIG), emailValidator, emailDefaults, emailOverrides, maximumEmailSize,
-				defaultDkimSigningConfig, defaultDkimSigningConfigured);
+		this(EMPTY_CONFIG, new EmailStartingBuilderImpl(EMPTY_CONFIG), emailValidator, emailDefaults, emailOverrides, maximumEmailSize);
 	}
 
 	EmailGovernanceImpl(@NotNull final SimpleJavaMailConfig config,
@@ -168,22 +150,18 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			@Nullable final EmailValidator emailValidator,
 			@Nullable final Email emailDefaults,
 			@Nullable final Email emailOverrides,
-			@Nullable final Integer maximumEmailSize,
-			@Nullable final DkimConfig defaultDkimSigningConfig,
-			final boolean defaultDkimSigningConfigured) {
+			@Nullable final Integer maximumEmailSize) {
 		this.config = requireNonNull(config, "config");
 		this.emailBuilder = requireNonNull(emailBuilder, "emailBuilder");
 		this.emailValidator = emailValidator;
-		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults(defaultDkimSigningConfigured);
+		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults();
 		this.emailOverrides = emailOverrides != null ? emailOverrides : emailBuilder.startingBlank().buildEmail();
 		this.maximumEmailSize = maximumEmailSize;
-		this.defaultDkimSigningConfig = defaultDkimSigningConfig;
-		this.defaultDkimSigningConfigured = defaultDkimSigningConfigured;
 	}
 
 	// FIXME default notificationTo is missing
 	// The name is a bit cryptic, but succinct (and it's only used internally)
-	private Email newDefaultsEmailWithDefaultDefaults(final boolean suppressDkimSigningDefault) {
+	private Email newDefaultsEmailWithDefaultDefaults() {
 		final EmailPopulatingBuilder allDefaults = emailBuilder.startingBlank();
 		final CliEmailRecipientBuilder recipientDefaults = (CliEmailRecipientBuilder) allDefaults;
 
@@ -197,7 +175,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			allDefaults.withBounceTo(configuredString(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(configuredString(DEFAULT_BOUNCETO_ADDRESS)));
 		}
 		if (hasConfiguredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
-			allDefaults.withDeliveryStatusNotificationNotifyOptions(verifyNonnullOrEmpty(configuredString(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)));
+			allDefaults.withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.parseNotifyOptions(
+					verifyNonnullOrEmpty(configuredString(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY))).toArray(new DeliveryStatusNotification.NotifyOption[0]));
 		}
 		if (hasConfiguredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
 			allDefaults.withDeliveryStatusNotificationReturnOption(verifyNonnullOrEmpty(
@@ -258,15 +237,17 @@ public class EmailGovernanceImpl implements EmailGovernance {
 					.cipherAlgorithm(hasConfiguredProperty(SMIME_ENCRYPTION_CIPHER) ? configuredString(SMIME_ENCRYPTION_CIPHER) : null)
 					.build());
 		}
-		if (!suppressDkimSigningDefault && allDefaults.getDkimConfig() == null && hasConfiguredProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
+		if (allDefaults.getDkimConfig() == null && hasConfiguredProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
 			val dkimConfigBuilder = DkimConfig.builder()
 					.dkimSelector(verifyNonnullOrEmpty(configuredString(DKIM_SELECTOR)))
 					.dkimSigningDomain(verifyNonnullOrEmpty(configuredString(DKIM_SIGNING_DOMAIN)))
 					.useLengthParam(hasConfiguredProperty(DKIM_SIGNING_USE_LENGTH_PARAM) ? configuredBoolean(DKIM_SIGNING_USE_LENGTH_PARAM) : null)
-					.excludedHeadersFromDkimDefaultSigningList(verifyNonnullOrEmpty(configuredString(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)))
 					.headerCanonicalization(hasConfiguredProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) ? configuredProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) : null)
 					.bodyCanonicalization(hasConfiguredProperty(DKIM_SIGNING_BODY_CANONICALIZATION) ? configuredProperty(DKIM_SIGNING_BODY_CANONICALIZATION) : null)
 					.signingAlgorithm(hasConfiguredProperty(DKIM_SIGNING_ALGORITHM) ? configuredString(DKIM_SIGNING_ALGORITHM) : null);
+			if (hasConfiguredProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)) {
+				dkimConfigBuilder.excludedHeadersFromDkimDefaultSigningList(configuredString(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST));
+			}
 			val dkimPrivateKeyFileOrData = verifyNonnullOrEmpty(configuredString(DKIM_PRIVATE_KEY_FILE_OR_DATA));
 			dkimConfigBuilder.dkimPrivateKeyData(DkimPrivateKeyPropertyResolver.resolve(dkimPrivateKeyFileOrData));
 			allDefaults.signWithDomainKey(dkimConfigBuilder.build());
@@ -275,6 +256,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		return allDefaults.buildEmail();
 	}
 
+	/**
+	 * @see EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)
+	 */
+	@Override
 	@NotNull
 	public Email produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided) {
 		val builder = (provided == null || provided.getEmailToForward() == null)
@@ -343,7 +328,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			ofNullable(provided.getOpenPgpSigningConfig()).ifPresent(builder::signWithOpenPgp);
 			ofNullable(provided.getOpenPgpEncryptionConfig()).ifPresent(builder::encryptWithOpenPgp);
 		}
-		ofNullable(resolveDkimConfig(provided)).ifPresent(builder::signWithDomainKey);
+		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
 		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(builder::withDeliveryStatusNotification);
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
@@ -365,32 +350,6 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@Nullable
 	private <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideOrProvideOrDefaultProperty(email, emailDefaults, emailOverrides, emailProperty);
-	}
-
-	@Nullable
-	private DkimConfig resolveDkimConfig(@Nullable Email email) {
-		if (overrideAllowedForDkim(email) && emailOverrides.getDkimConfig() != null) {
-			return emailOverrides.getDkimConfig();
-		}
-		if (email != null && email.getDkimConfig() != null) {
-			return email.getDkimConfig();
-		}
-		if (defaultAllowedForDkim(email)) {
-			return defaultDkimSigningConfigured ? defaultDkimSigningConfig : emailDefaults.getDkimConfig();
-		}
-		return null;
-	}
-
-	private static boolean defaultAllowedForDkim(@Nullable Email email) {
-		return email == null || !email.isIgnoreDefaults() &&
-				(email.getPropertiesNotToApplyDefaultValueFor() == null ||
-						!email.getPropertiesNotToApplyDefaultValueFor().contains(EmailProperty.DKIM_SIGNING_CONFIG));
-	}
-
-	private static boolean overrideAllowedForDkim(@Nullable Email email) {
-		return email == null || !email.isIgnoreOverrides() &&
-				(email.getPropertiesNotToApplyOverrideValueFor() == null ||
-						!email.getPropertiesNotToApplyOverrideValueFor().contains(EmailProperty.DKIM_SIGNING_CONFIG));
 	}
 
 	@NotNull

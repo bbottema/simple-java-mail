@@ -188,7 +188,7 @@ public class MailerImplTest {
 	}
 
 	@Test
-	public void testDefaultDkimSigning_WithConfigObjectPreservesConfigDefaults() throws Exception {
+	public void testDkimTemplatePreservesMaterializedConfigDefaults() throws Exception {
 		final Properties properties = new Properties();
 		properties.setProperty(DEFAULT_FROM_ADDRESS.key(), "default@domain.com");
 		properties.setProperty(DEFAULT_SUBJECT.key(), "default subject");
@@ -197,7 +197,8 @@ public class MailerImplTest {
 		final DkimConfig dkimConfig = dkimConfig("java-default.com", "java-default");
 		final Mailer mailer = configuredMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withDefaultDkimSigning(dkimConfig)
+				.withEmailDefaults(configuredMail.emailBuilder().startingBlank().signWithDomainKey(dkimConfig)
+						.buildEmailCompletedWithDefaultsAndOverrides())
 				.buildMailer();
 
 		final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(configuredMail.emailBuilder().startingBlank().buildEmail());
@@ -208,13 +209,14 @@ public class MailerImplTest {
 	}
 
 	@Test
-	public void testDefaultDkimSigning_UserEmailTakesPrecedence() {
+	public void testDkimTemplate_UserEmailTakesPrecedence() {
 
 		final DkimConfig defaultDkimConfig = dkimConfig("java-default.com", "java-default");
 		final DkimConfig userDkimConfig = dkimConfig("user.com", "user");
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withDefaultDkimSigning(defaultDkimConfig)
+				.withEmailDefaults(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+						.signWithDomainKey(defaultDkimConfig).buildEmail())
 				.buildMailer();
 		final Email userEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("from@user.com")
@@ -227,11 +229,12 @@ public class MailerImplTest {
 	}
 
 	@Test
-	public void testDefaultDkimSigning_WithInlineArguments() {
+	public void testDkimTemplate_WithInlineArguments() {
 
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withDefaultDkimSigning("key".getBytes(), "inline-default.com", "inline-default", Collections.singleton("Reply-To"))
+				.withEmailDefaults(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+						.signWithDomainKey("key".getBytes(), "inline-default.com", "inline-default", Collections.singleton("Reply-To")).buildEmail())
 				.buildMailer();
 		final Email userEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("from@inline-default.com")
@@ -248,7 +251,7 @@ public class MailerImplTest {
 	}
 
 	@Test
-	public void testClearDefaultDkimSigning_SuppressesPropertyDefaultOnly() throws Exception {
+	public void testUnsignedTemplate_SuppressesPropertyDefaultOnly() throws Exception {
 		final Properties properties = new Properties();
 		properties.setProperty(DEFAULT_FROM_ADDRESS.key(), "default@domain.com");
 		properties.setProperty(DEFAULT_SUBJECT.key(), "default subject");
@@ -258,9 +261,10 @@ public class MailerImplTest {
 		properties.setProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST.key(), "Reply-To");
 
 		final SimpleJavaMail configuredMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
+		final Email propertyDefaults = configuredMail.emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides();
 		final Mailer mailer = configuredMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.clearDefaultDkimSigning()
+				.withEmailDefaults(configuredMail.emailBuilder().copying(propertyDefaults).clearDkim().buildEmail())
 				.buildMailer();
 		final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(configuredMail.emailBuilder().startingBlank().buildEmail());
 
