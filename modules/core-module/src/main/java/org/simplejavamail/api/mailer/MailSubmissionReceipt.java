@@ -33,6 +33,7 @@ public final class MailSubmissionReceipt implements Serializable {
 
 	@Nullable private final String emailId;
 	@Nullable private final String envelopeId;
+	private final boolean requireTlsUsed;
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@NotNull private final Instant submittedAt;
 	@NotNull private final MailSubmissionStatus status;
@@ -95,8 +96,29 @@ public final class MailSubmissionReceipt implements Serializable {
 			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
 			@Nullable final String envelopeId) {
+		this(emailId, smtpResponse, submittedAt, status, recipientResults, retryDisposition, envelopeId, false);
+	}
+
+	/**
+	 * Creates a receipt retaining SMTP envelope facts reported by the transport adapter.
+	 *
+	 * @param emailId The effective Message-ID, if one was produced.
+	 * @param smtpResponse The response exposed by the selected provider, if any.
+	 * @param submittedAt The time captured after the attempt completed or failed.
+	 * @param status The provider-neutral acceptance status for this attempt.
+	 * @param recipientResults One immutable result per envelope recipient, in original envelope order.
+	 * @param retryDisposition Conservative retry guidance derived from the same transport attempt.
+	 * @param envelopeId Unencoded ENVID used for the submission, or {@code null} when none was used or reported.
+	 * @param requireTlsUsed Whether RFC 8689 REQUIRETLS was actually supplied to MAIL FROM.
+	 * @see #isRequireTlsUsed()
+	 */
+	public MailSubmissionReceipt(@Nullable final String emailId, @Nullable final SmtpServerResponse smtpResponse,
+			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
+			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
+			@Nullable final String envelopeId, final boolean requireTlsUsed) {
 		this.emailId = emailId;
 		this.envelopeId = envelopeId;
+		this.requireTlsUsed = requireTlsUsed;
 		this.smtpResponse = smtpResponse;
 		this.submittedAt = requireNonNull(submittedAt, "submittedAt");
 		this.status = requireNonNull(status, "status");
@@ -174,7 +196,7 @@ public final class MailSubmissionReceipt implements Serializable {
 					validUnsentRecipients == null ? Collections.emptyList() : validUnsentRecipients,
 					invalidRecipients == null ? Collections.emptyList() : invalidRecipients);
 			return new MailSubmissionReceipt(emailId, smtpResponse, submittedAt, restoredStatus, restoredRecipients,
-					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition, envelopeId);
+					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition, envelopeId, requireTlsUsed);
 		} catch (final RuntimeException failure) {
 			final InvalidObjectException invalidReceipt = new InvalidObjectException("Invalid serialized mail submission receipt");
 			invalidReceipt.initCause(failure);
@@ -231,6 +253,20 @@ public final class MailSubmissionReceipt implements Serializable {
 	@Nullable
 	public String getEnvelopeId() {
 		return envelopeId;
+	}
+
+	/**
+	 * Reports whether this attempt actually supplied RFC 8689 REQUIRETLS to the first server's MAIL FROM command. A failed MAIL FROM
+	 * can therefore still return {@code true}. A {@code false} value means the send path could not confirm use, including logging-only,
+	 * CustomMailer, older adapters and local failures before MAIL FROM.
+	 * <p>
+	 * This is not proof of server acceptance, later-relay compliance or final delivery.
+	 *
+	 * @return Whether REQUIRETLS was issued for this first-hop submission attempt.
+	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery()
+	 */
+	public boolean isRequireTlsUsed() {
+		return requireTlsUsed;
 	}
 
 	/**

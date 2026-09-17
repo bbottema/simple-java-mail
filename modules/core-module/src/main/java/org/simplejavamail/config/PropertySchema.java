@@ -88,6 +88,7 @@ final class PropertySchema {
 				Property.DISABLE_ALL_CLIENTVALIDATION,
 				Property.DEFAULT_TRUST_ALL_HOSTS,
 				Property.DEFAULT_VERIFY_SERVER_IDENTITY,
+				Property.DEFAULT_REQUIRE_TLS,
 				Property.TRANSPORT_MODE_LOGGING_ONLY,
 				Property.OPPORTUNISTIC_TLS,
 				Property.DKIM_SIGNING_USE_LENGTH_PARAM,
@@ -152,6 +153,7 @@ final class PropertySchema {
 				Property.DEFAULT_TRUST_ALL_HOSTS,
 				Property.DEFAULT_TRUSTED_HOSTS,
 				Property.DEFAULT_VERIFY_SERVER_IDENTITY,
+				Property.DEFAULT_REQUIRE_TLS,
 				Property.OPPORTUNISTIC_TLS);
 		setDiagnostics(PROXY, SensitivityPolicy.VISIBLE,
 				Property.PROXY_HOST,

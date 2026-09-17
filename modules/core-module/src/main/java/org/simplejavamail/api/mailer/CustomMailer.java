@@ -28,6 +28,9 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * Recipient-specific NOTIFY preferences remain on each {@link org.simplejavamail.api.email.Recipient}, including override receivers.
  * A custom implementation owns their mapping too: preserve occurrence order, prefer explicit recipient preferences over the shared Email fallback,
  * and reject explicit preferences if the destination cannot honor them. Automatic ORCPT is not added by Simple Java Mail on this path.
+ * An onward-delivery TLS requirement is available through {@link Email#isTlsRequiredForOnwardDelivery()}. CustomMailer owns the external
+ * submission and must reject the send if it cannot honor that requirement. Simple Java Mail reports {@code isRequireTlsUsed() == false}
+ * because it cannot observe the external service's SMTP MAIL FROM command.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  * @see <a href="https://simplejavamail.org/features.html#section-custom-mailer">Plug your own sending logic with a Custom Mailer</a>

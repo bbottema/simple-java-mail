@@ -105,7 +105,8 @@ public class SessionBasedEmailToMimeMessageConverter {
     private static PreparedMail prepareMail(final Email email, final MimeMessage mimeMessage) throws MessagingException {
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         return new PreparedMail(mimeMessage, recipients,
-                new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification(), resolveDeliveryRecipients(email, recipients)),
+                new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification(), resolveDeliveryRecipients(email, recipients),
+                        email.isTlsRequiredForOnwardDelivery()),
                 InternalEmail.requireInternalEmail(email).determineContentRequirement());
     }
 

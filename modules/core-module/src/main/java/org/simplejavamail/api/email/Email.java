@@ -223,6 +223,7 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	private final DeliveryStatusNotification deliveryStatusNotification;
+	private final boolean tlsRequiredForOnwardDelivery;
 
 	/**
 	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
@@ -333,6 +334,7 @@ public class Email implements Serializable {
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
 		deliveryStatusNotification = builder.getDeliveryStatusNotification();
+		tlsRequiredForOnwardDelivery = builder.isTlsRequiredForOnwardDelivery();
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -459,6 +461,9 @@ public class Email implements Serializable {
 		}
 		if (!MiscUtil.valueNullOrEmpty(deliveryStatusNotification)) {
 			s += ",\n\tdeliveryStatusNotification=" + deliveryStatusNotification;
+		}
+		if (tlsRequiredForOnwardDelivery) {
+			s += ",\n\ttlsRequiredForOnwardDelivery=true";
 		}
 		if (!overrideReceivers.isEmpty()) {
 			s += ",\n\toverrideReceivers=" + true +
@@ -641,6 +646,14 @@ public class Email implements Serializable {
 	@Nullable
 	public DeliveryStatusNotification getDeliveryStatusNotification() {
 		return deliveryStatusNotification;
+	}
+
+	/**
+	 * @return Whether this email requires RFC 8689 REQUIRETLS for onward SMTP delivery.
+	 * @see EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery()
+	 */
+	public boolean isTlsRequiredForOnwardDelivery() {
+		return tlsRequiredForOnwardDelivery;
 	}
 	
 	/**

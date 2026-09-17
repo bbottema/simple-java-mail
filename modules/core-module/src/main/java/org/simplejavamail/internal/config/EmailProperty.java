@@ -31,6 +31,7 @@ public enum EmailProperty {
     USE_RETURN_RECEIPT_TO(Email::getUseReturnReceiptTo, false),
     USE_DISPOSITION_NOTIFICATION_TO (Email::getUseDispositionNotificationTo, false),
     DELIVERY_STATUS_NOTIFICATION(Email::getDeliveryStatusNotification, false),
+    TLS_REQUIRED_FOR_ONWARD_DELIVERY(email -> email.isTlsRequiredForOnwardDelivery() ? Boolean.TRUE : null, false),
     CONTENT_TRANSFER_ENCODING(Email::getContentTransferEncoding, false),
     PLAIN_TEXT_CONTENT_TRANSFER_ENCODING(Email::getPlainTextContentTransferEncoding, false),
     HTML_TEXT_CONTENT_TRANSFER_ENCODING(Email::getHTMLTextContentTransferEncoding, false),

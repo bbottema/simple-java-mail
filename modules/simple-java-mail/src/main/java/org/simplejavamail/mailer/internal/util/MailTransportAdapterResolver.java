@@ -134,7 +134,8 @@ final class MailTransportAdapterResolver {
         if (!adapter.supportsDeliveryEnvelope(preparedMail.getDeliveryEnvelope())) {
             throw new MailTransportCompatibilityException(adapter.getClass().getName()
                     + " cannot send the requested SMTP envelope options. Use a matching provider adapter that supports them, "
-                    + "or remove the unsupported options (such as a fixed ENVID or recipient-specific NOTIFY preferences).", preparedMail.getRecipients());
+                    + "or remove the unsupported options (such as REQUIRETLS, a fixed ENVID or recipient-specific NOTIFY preferences).",
+                    preparedMail.getRecipients());
         }
         return requireNonNull(adapter.sendMessage(transport, preparedMail), "MailTransportAdapter result");
     }
@@ -164,7 +165,7 @@ final class MailTransportAdapterResolver {
         final DeliveryEnvelope deliveryEnvelope = preparedMail.getDeliveryEnvelope();
         if (deliveryEnvelope.hasProviderSpecificOptions()) {
             throw new MailTransportCompatibilityException("No mail transport adapter for " + transport.getClass().getName()
-                    + " supports the requested envelope sender or delivery-status notification options. "
+                    + " supports the requested SMTP envelope options, such as REQUIRETLS, an envelope sender or delivery-status notifications. "
                     + "Install a matching MailTransportAdapter or remove those provider-specific options", preparedMail.getRecipients());
         }
     }

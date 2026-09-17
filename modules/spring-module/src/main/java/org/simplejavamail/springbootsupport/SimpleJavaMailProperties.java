@@ -93,6 +93,8 @@ public class SimpleJavaMailProperties {
         private Recipient replyto;
         private Recipient bounceto;
         private Delivery delivery;
+        /** Whether Email defaults require RFC 8689 REQUIRETLS for onward delivery. */
+        private String requiretls;
         private Recipient to;
         private Recipient cc;
         private Recipient bcc;

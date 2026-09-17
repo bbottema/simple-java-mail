@@ -10,6 +10,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPMessage;
 import org.eclipse.angus.mail.smtp.SMTPSSLTransport;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
+import org.eclipse.angus.mail.util.PropUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
@@ -67,18 +68,122 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             try {
                 final boolean supportsDsn = supportsUsableDsn(smtpTransport);
                 final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(smtpTransport, preparedMail, supportsDsn);
-                final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocolOf(smtpTransport));
+                final String protocol = protocolOf(smtpTransport);
+                final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocol);
+                final boolean requireTlsSelected = resolveRequireTls(smtpTransport, preparedMail, protocol, existingMailExtension,
+                        expandedEnvelopeRecipients);
                 final String envelopeId = resolveEnvelopeIdentifier(supportsDsn, preparedMail.getDeliveryEnvelope(), existingMailExtension,
                         expandedEnvelopeRecipients);
-                final MimeMessage message = resolveMessageForTransport(preparedMail, existingMailExtension.value, envelopeId, recipientCommands);
+                final MimeMessage message = resolveMessageForTransport(preparedMail,
+                        mailExtensionWithRequireTls(existingMailExtension.value, requireTlsSelected), envelopeId, recipientCommands,
+                        requireTlsSelected);
                 final MailTransportResult result = sendWithRecipientReporting(smtpTransport, message, preparedMail, expandedEnvelopeRecipients);
-                return result.withEnvelopeId(message instanceof AngusSmtpMessage ? ((AngusSmtpMessage) message).getEnvelopeIdUsed() : null);
+                if (!(message instanceof AngusSmtpMessage)) {
+                    return result;
+                }
+                final AngusSmtpMessage angusMessage = (AngusSmtpMessage) message;
+                return result.withEnvelopeId(angusMessage.getEnvelopeIdUsed())
+                        .withRequireTlsUsed(angusMessage.isRequireTlsUsed());
             } catch (final MessagingException preparationFailure) {
                 // Nothing was submitted: do not reuse an earlier SMTP response or imply duplicate risk.
                 return MailTransportResult.failed(preparationFailure, null, null, expandedEnvelopeRecipients, null)
                         .withEnvelopeRecipients(expandedEnvelopeRecipients);
             }
         }
+    }
+
+    private static boolean resolveRequireTls(@NotNull final SMTPTransport smtpTransport, @NotNull final PreparedMail preparedMail,
+            @NotNull final String protocol, @NotNull final ConfiguredMailExtension existingMailExtension,
+            @NotNull final Address[] recipients) throws MessagingException {
+        final boolean requiredByEmail = preparedMail.getDeliveryEnvelope().isTlsRequiredForOnwardDelivery();
+        final boolean rawRequireTlsPresent = containsBareRequireTls(existingMailExtension.value);
+        if (!requiredByEmail) {
+            return rawRequireTlsPresent;
+        }
+        if (containsParameterizedRequireTls(existingMailExtension.value)) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but " + existingMailExtension.sourceDescription
+                    + " also contains an invalid REQUIRETLS=... parameter. Remove that raw parameter; Simple Java Mail will add the valid "
+                    + "REQUIRETLS flag for this email. No message was submitted.", recipients);
+        }
+        verifyRequireTlsConnection(smtpTransport, preparedMail.getMimeMessage().getSession(), protocol, recipients);
+        return true;
+    }
+
+    private static void verifyRequireTlsConnection(@NotNull final SMTPTransport transport, @Nullable final Session session,
+            @NotNull final String protocol, @NotNull final Address[] recipients) throws MailTransportCompatibilityException {
+        if (!transport.isSSL()) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but the SMTP connection is not using TLS. "
+                    + "Use SMTP_TLS or SMTPS, or make sure opportunistic SMTP successfully negotiates STARTTLS. No message was submitted.", recipients);
+        }
+        final Properties properties = session == null ? new Properties() : session.getProperties();
+        final String prefix = "mail." + protocol;
+        if (!PropUtil.getBooleanProperty(properties, prefix + ".ssl.checkserveridentity", false)) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but server identity verification is disabled. "
+                    + "Enable verifyingServerIdentity(true), or set '" + prefix
+                    + ".ssl.checkserveridentity=true'. No message was submitted.", recipients);
+        }
+        if (trustsEveryCertificate(properties, prefix)) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but the Mailer is configured to trust every TLS certificate. "
+                    + "Remove trustingAllHosts(true) and use the JVM trust store or a specific trusted host. No message was submitted.", recipients);
+        }
+        if (hasOpaqueSocketFactory(properties, prefix)) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but a custom socket factory owns TLS certificate handling, "
+                    + "so Simple Java Mail cannot confirm that the server certificate was trusted. Use the default TLS setup, or clear the email's "
+                    + "REQUIRETLS requirement. No message was submitted.", recipients);
+        }
+        if (!supportsUsableRequireTls(transport)) {
+            throw new MailTransportCompatibilityException("This email requires REQUIRETLS, but the SMTP server does not advertise usable REQUIRETLS "
+                    + "support after TLS negotiation. Use a server that supports RFC 8689, or clear the requirement for this email. "
+                    + "No message was submitted.", recipients);
+        }
+    }
+
+    private static boolean hasOpaqueSocketFactory(final Properties properties, final String prefix) {
+        final Object socketFactory = properties.get(prefix + ".socketFactory");
+        return (socketFactory != null && !(socketFactory instanceof AngusSocketFactory))
+                || properties.getProperty(prefix + ".socketFactory.class") != null
+                || properties.get(prefix + ".ssl.socketFactory") != null
+                || properties.getProperty(prefix + ".ssl.socketFactory.class") != null;
+    }
+
+    private static boolean trustsEveryCertificate(final Properties properties, final String prefix) {
+        final String trustedHosts = properties.getProperty(prefix + ".ssl.trust");
+        return trustedHosts != null && "*".equals(trustedHosts.trim());
+    }
+
+    /** RFC 8689 advertises REQUIRETLS without EHLO parameters; reject parameterized variants instead of guessing. */
+    private static boolean supportsUsableRequireTls(final SMTPTransport transport) {
+        final String parameters = transport.getExtensionParameter("REQUIRETLS");
+        return transport.supportsExtension("REQUIRETLS") && (parameters == null || parameters.trim().isEmpty());
+    }
+
+    @Nullable
+    private static String mailExtensionWithRequireTls(@Nullable final String existingExtension, final boolean requireTlsSelected) {
+        if (!requireTlsSelected || containsBareRequireTls(existingExtension)) {
+            return existingExtension;
+        }
+        return existingExtension == null || existingExtension.trim().isEmpty()
+                ? "REQUIRETLS" : existingExtension + " REQUIRETLS";
+    }
+
+    private static boolean containsBareRequireTls(@Nullable final String extension) {
+        return containsMailExtension(extension, "REQUIRETLS", false);
+    }
+
+    private static boolean containsParameterizedRequireTls(@Nullable final String extension) {
+        return containsMailExtension(extension, "REQUIRETLS", true);
+    }
+
+    private static boolean containsMailExtension(@Nullable final String extension, final String name, final boolean parameterized) {
+        if (extension != null) {
+            for (final String parameter : extension.trim().split("\\s+")) {
+                if (parameterized ? parameter.regionMatches(true, 0, name + "=", 0, name.length() + 1)
+                        : parameter.equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Nullable
@@ -167,12 +272,13 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
     @NotNull
     private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail,
-            @Nullable final String existingMailExtension, @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands)
+            @Nullable final String existingMailExtension, @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
+            final boolean requireTlsSelected)
             throws MessagingException {
         final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-        return recipientCommands != null || envelopeId != null || envelope.hasProviderSpecificOptions()
+        return recipientCommands != null || envelopeId != null || requireTlsSelected || envelope.hasProviderSpecificOptions()
                 || preparedMail.getContentRequirement() != ContentRequirement.NORMAL
-                ? new AngusSmtpMessage(preparedMail, existingMailExtension, envelopeId, recipientCommands)
+                ? new AngusSmtpMessage(preparedMail, existingMailExtension, envelopeId, recipientCommands, requireTlsSelected)
                 : preparedMail.getMimeMessage();
     }
 
@@ -230,14 +336,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Nullable private final AngusRecipientCommands recipientCommands;
         @Nullable private final String selectedEnvelopeId;
         @Nullable private String envelopeIdUsed;
+        private final boolean requireTlsSelected;
+        private boolean requireTlsUsed;
 
         AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @Nullable final String existingMailExtension,
-                @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands) throws MessagingException {
+                @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
+                final boolean requireTlsSelected) throws MessagingException {
             super(sessionOf(preparedMail.getMimeMessage()));
             this.delegate = preparedMail.getMimeMessage();
             this.contentRequirement = preparedMail.getContentRequirement();
             this.recipientCommands = recipientCommands;
             this.selectedEnvelopeId = envelopeId;
+            this.requireTlsSelected = requireTlsSelected;
             copyHeaders(delegate, this);
             retainProviderOptions(delegate);
             super.setMailExtension(envelopeId == null ? existingMailExtension : mailExtensionWithEnvelopeId(envelopeId, existingMailExtension));
@@ -282,12 +392,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Nullable
         public String getMailExtension() {
             envelopeIdUsed = selectedEnvelopeId;
-            return super.getMailExtension();
+            final String mailExtension = super.getMailExtension();
+            requireTlsUsed = requireTlsSelected && containsBareRequireTls(mailExtension);
+            return mailExtension;
         }
 
         @Nullable
         String getEnvelopeIdUsed() {
             return envelopeIdUsed;
+        }
+
+        boolean isRequireTlsUsed() {
+            return requireTlsUsed;
         }
 
         /** Automatic ENVID may introduce this facade around an otherwise untouched provider message. Retain its caller-supplied options. */

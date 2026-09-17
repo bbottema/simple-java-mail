@@ -40,6 +40,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	private Recipient envelopeSender;
 	private boolean notificationOptionsConfigured;
 	private boolean envelopeIdentifierFixed;
+	private boolean tlsRequiredForOnwardDelivery;
 
 	public ExactEmailBuilderImpl(@NotNull final SimpleJavaMailConfig config, final byte @NotNull [] emlBytes) {
 		this.config = requireNonNull(config, "config");
@@ -129,6 +130,20 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
+	/** @see ExactEmailBuilder#withTlsRequiredForOnwardDelivery() */
+	@Override
+	public ExactEmailBuilder withTlsRequiredForOnwardDelivery() {
+		tlsRequiredForOnwardDelivery = true;
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#clearTlsRequiredForOnwardDelivery() */
+	@Override
+	public ExactEmailBuilder clearTlsRequiredForOnwardDelivery() {
+		tlsRequiredForOnwardDelivery = false;
+		return this;
+	}
+
 	/**
 	 * @see ExactEmailBuilder#buildEmail()
 	 */
@@ -143,6 +158,9 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		}
 		if (notificationOptionsConfigured || envelopeIdentifierFixed) {
 			parsedEmailBuilder.withDeliveryStatusNotification(notificationBuilder.build());
+		}
+		if (tlsRequiredForOnwardDelivery) {
+			parsedEmailBuilder.withTlsRequiredForOnwardDelivery();
 		}
 		return new InternalEmail(parsedEmailBuilder, emlBytes);
 	}

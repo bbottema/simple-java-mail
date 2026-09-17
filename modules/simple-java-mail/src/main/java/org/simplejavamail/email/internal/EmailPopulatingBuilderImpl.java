@@ -134,6 +134,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Nullable
 	private DeliveryStatusNotification deliveryStatusNotification;
+	private boolean tlsRequiredForOnwardDelivery;
 
 	/**
 	 * @see #withSubject(String)
@@ -767,6 +768,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			return clearDeliveryStatusNotification();
 		}
 		return withDeliveryStatusNotification(deliveryStatusNotificationBuilder().envelopeId(envelopeId).build());
+	}
+
+	/** @see EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery() */
+	@Override
+	public EmailPopulatingBuilder withTlsRequiredForOnwardDelivery() {
+		tlsRequiredForOnwardDelivery = true;
+		return this;
 	}
 
 	private boolean hasNoNotificationEventsOrEnvelopeIdentifier() {
@@ -1805,6 +1813,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#clearTlsRequiredForOnwardDelivery() */
+	@Override
+	public EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery() {
+		tlsRequiredForOnwardDelivery = false;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearPlainText()
 	 */
@@ -2092,6 +2107,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public DeliveryStatusNotification getDeliveryStatusNotification() {
 		return deliveryStatusNotification;
+	}
+
+	/** @see EmailPopulatingBuilder#isTlsRequiredForOnwardDelivery() */
+	@Override
+	public boolean isTlsRequiredForOnwardDelivery() {
+		return tlsRequiredForOnwardDelivery;
 	}
 
 	/**

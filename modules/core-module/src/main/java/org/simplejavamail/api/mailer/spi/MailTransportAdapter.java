@@ -43,12 +43,16 @@ public interface MailTransportAdapter {
      * Recipient-specific preferences must likewise be rejected before MAIL FROM when the transport or connection cannot honor them.
      * Preserve their occurrence order, apply each complete preference instead of merging with shared NOTIFY, and leave MIME bytes unchanged.
      * Automatic ORCPT is optional for adapters, must match the actual envelope recipient at initial submission, and does not enable NOTIFY.
+     * An RFC 8689 REQUIRETLS request must be rejected before MAIL FROM unless the actual connection uses authenticated TLS and advertises
+     * usable REQUIRETLS after TLS negotiation. When the adapter does issue that parameter, record it through
+     * {@link MailTransportResult#withRequireTlsUsed(boolean)}; selecting the option alone is not enough.
      *
      * @param envelope Options for this submission, kept separate from MIME content.
      * @return Whether the adapter can honor these options, subject to the actual server's capabilities.
      */
     default boolean supportsDeliveryEnvelope(@NotNull final DeliveryEnvelope envelope) {
-        return !envelope.hasRecipientNotifyOptions()
+        return !envelope.isTlsRequiredForOnwardDelivery()
+                && !envelope.hasRecipientNotifyOptions()
                 && (envelope.getDeliveryStatusNotification() == null || envelope.getDeliveryStatusNotification().getEnvelopeId() == null);
     }
 

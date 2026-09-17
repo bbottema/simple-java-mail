@@ -86,6 +86,7 @@ public final class ConfigLoader {
 		DEFAULT_BOUNCETO_ADDRESS("simplejavamail.defaults.bounceto.address"),
 		DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY("simplejavamail.defaults.delivery.status.notification.notify"),
 		DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION("simplejavamail.defaults.delivery.status.notification.return.option"),
+		DEFAULT_REQUIRE_TLS("simplejavamail.defaults.requiretls"),
 		DEFAULT_TO_NAME("simplejavamail.defaults.to.name"),
 		DEFAULT_TO_ADDRESS("simplejavamail.defaults.to.address"),
 		DEFAULT_CC_NAME("simplejavamail.defaults.cc.name"),

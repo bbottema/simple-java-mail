@@ -101,6 +101,11 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getDeliveryStatusNotification(), email2.getDeliveryStatusNotification(), "deliveryStatusNotification")) {
             return false;
         }
+        if (email1.isTlsRequiredForOnwardDelivery() != email2.isTlsRequiredForOnwardDelivery()) {
+            log.debug("Email unequal for tlsRequiredForOnwardDelivery: {} vs {}",
+                    email1.isTlsRequiredForOnwardDelivery(), email2.isTlsRequiredForOnwardDelivery());
+            return false;
+        }
         if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
             return false;
         }

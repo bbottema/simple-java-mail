@@ -219,6 +219,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getDeliveryStatusNotification() != null) {
 			builder.withDeliveryStatusNotification(email.getDeliveryStatusNotification());
 		}
+		if (email.isTlsRequiredForOnwardDelivery()) {
+			builder.withTlsRequiredForOnwardDelivery();
+		}
 		if (email.getPlainText() != null) {
 			builder.withPlainText(email.getPlainText());
 		}

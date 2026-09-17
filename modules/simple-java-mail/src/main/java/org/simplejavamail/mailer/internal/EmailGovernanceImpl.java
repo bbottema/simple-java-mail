@@ -49,6 +49,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
@@ -181,6 +182,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (hasConfiguredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
 			allDefaults.withDeliveryStatusNotificationReturnOption(verifyNonnullOrEmpty(
 					this.<DeliveryStatusNotification.ReturnOption>configuredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)));
+		}
+		if (hasConfiguredProperty(DEFAULT_REQUIRE_TLS) && configuredBoolean(DEFAULT_REQUIRE_TLS)) {
+			allDefaults.withTlsRequiredForOnwardDelivery();
 		}
 		if (hasConfiguredProperty(DEFAULT_TO_ADDRESS)) {
 			if (hasConfiguredProperty(DEFAULT_TO_NAME)) {
@@ -331,6 +335,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
 		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(builder::withDeliveryStatusNotification);
+		if (TRUE.equals(resolveEmailProperty(provided, EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY))) {
+			builder.withTlsRequiredForOnwardDelivery();
+		}
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 

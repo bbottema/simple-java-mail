@@ -387,6 +387,24 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
 
 	/**
+	 * Requires supporting mail servers to keep using TLS for this email's onward delivery. Normally, TLS protects only the connection from your
+	 * application to its SMTP server; onward delivery may still continue without TLS. With this requirement, a supporting server
+	 * must return the message as undeliverable rather than send it over an unencrypted connection.
+	 * <p>
+	 * The bundled Angus adapter applies the RFC 8689 {@code REQUIRETLS} option. It submits the email only when the current SMTP connection uses
+	 * authenticated TLS and the server confirms support; otherwise sending fails before the email is submitted. This protects transport between
+	 * cooperating mail servers, not message content stored on those servers, and cannot prove that every later server complied.
+	 * <p>
+	 * Email defaults and overrides may configure this value. Clearing removes a value set directly on this builder and resumes that fallback; use
+	 * {@link #dontApplyDefaultValueFor(EmailProperty...)} or
+	 * {@link #dontApplyOverrideValueFor(EmailProperty...)} with {@link EmailProperty#TLS_REQUIRED_FOR_ONWARD_DELIVERY} to opt out of a template.
+	 *
+	 * @return This builder.
+	 * @see org.simplejavamail.api.mailer.MailSubmissionReceipt#isRequireTlsUsed()
+	 */
+	EmailPopulatingBuilder withTlsRequiredForOnwardDelivery();
+
+	/**
 	 * Sets the optional subject of this email.
 	 *
 	 * @param subject Optional text to be used in the subject field of the email.
@@ -1354,6 +1372,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearDeliveryStatusNotification();
 
 	/**
+	 * Stops this builder from directly requiring TLS for this email's onward delivery. Configured Email defaults and overrides can still supply the
+	 * requirement; suppress the corresponding {@link EmailProperty#TLS_REQUIRED_FOR_ONWARD_DELIVERY} source to opt out of one of those templates.
+	 *
+	 * @return This builder.
+	 * @see #withTlsRequiredForOnwardDelivery()
+	 */
+	EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery();
+
+	/**
 	 * Resets <em>text</em> to empty.
 	 */
 	EmailPopulatingBuilder clearPlainText();
@@ -1549,6 +1576,12 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	DeliveryStatusNotification getDeliveryStatusNotification();
+
+	/**
+	 * @return Whether this builder requires RFC 8689 REQUIRETLS for onward delivery.
+	 * @see #withTlsRequiredForOnwardDelivery()
+	 */
+	boolean isTlsRequiredForOnwardDelivery();
 
 	/**
 	 * @see #withPlainText(String)

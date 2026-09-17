@@ -31,6 +31,7 @@ public final class MailTransportResult {
 	@NotNull private final MailSubmissionStatus status;
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@Nullable private final String envelopeId;
+	private final boolean requireTlsUsed;
 	@NotNull private final Address[] acceptedRecipients;
 	@NotNull private final Address[] validUnsentRecipients;
 	@NotNull private final Address[] invalidRecipients;
@@ -52,7 +53,7 @@ public final class MailTransportResult {
 		appendRecipients(recipients, validUnsentRecipients, MailRecipientDisposition.VALID_UNSENT);
 		appendRecipients(recipients, invalidRecipients, MailRecipientDisposition.INVALID);
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients, failure,
-				recipients, basicRetryDisposition(status, failure), false, null);
+				recipients, basicRetryDisposition(status, failure), false, null, false);
 	}
 
 	@NotNull
@@ -68,10 +69,11 @@ public final class MailTransportResult {
 			@Nullable final Address[] acceptedRecipients, @Nullable final Address[] validUnsentRecipients,
 			@Nullable final Address[] invalidRecipients, @Nullable final MessagingException failure,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
-			final boolean envelopeRecipientsResolved, @Nullable final String envelopeId) {
+			final boolean envelopeRecipientsResolved, @Nullable final String envelopeId, final boolean requireTlsUsed) {
 		this.status = requireNonNull(status, "status");
 		this.smtpResponse = smtpResponse;
 		this.envelopeId = envelopeId;
+		this.requireTlsUsed = requireTlsUsed;
 		this.acceptedRecipients = copy(acceptedRecipients);
 		this.validUnsentRecipients = copy(validUnsentRecipients);
 		this.invalidRecipients = copy(invalidRecipients);
@@ -90,7 +92,7 @@ public final class MailTransportResult {
 	public MailTransportResult withRecipientResults(@NotNull final List<MailRecipientResult> recipients,
 			@NotNull final MailRetryDisposition retryDisposition) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, requireNonNull(recipients, "recipients"), retryDisposition, true, envelopeId);
+				failure, requireNonNull(recipients, "recipients"), retryDisposition, true, envelopeId, requireTlsUsed);
 	}
 
 	/**
@@ -103,7 +105,25 @@ public final class MailTransportResult {
 	@NotNull
 	public MailTransportResult withEnvelopeId(@Nullable final String envelopeId) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId);
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed);
+	}
+
+	/**
+	 * Records whether this submission actually supplied RFC 8689 REQUIRETLS to MAIL FROM. This is a first-hop transport fact,
+	 * not proof that the server accepted the message or that later relays complied.
+	 *
+	 * @param requireTlsUsed Whether the adapter issued MAIL FROM with REQUIRETLS.
+	 * @return An immutable copy retaining all other submission facts.
+	 */
+	@NotNull
+	public MailTransportResult withRequireTlsUsed(final boolean requireTlsUsed) {
+		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed);
+	}
+
+	/** @return Whether RFC 8689 REQUIRETLS was actually supplied to MAIL FROM. */
+	public boolean isRequireTlsUsed() {
+		return requireTlsUsed;
 	}
 
 	/** @return The unencoded identifier used for this submission, or {@code null} when none was used or reported. */

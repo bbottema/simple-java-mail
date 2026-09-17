@@ -115,6 +115,30 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
 
 	/**
+	 * Requires supporting mail servers to keep using TLS for this exact email's onward delivery, without changing its EML bytes. Normally, TLS protects
+	 * only the connection to your SMTP server; onward delivery may still continue without TLS. With this requirement, a supporting server
+	 * must return the message as undeliverable rather than send it over an unencrypted connection.
+	 * <p>
+	 * The bundled Angus adapter applies RFC 8689 {@code REQUIRETLS} and refuses the send before submission unless the current SMTP connection uses
+	 * authenticated TLS and the server confirms support. This protects transport between cooperating mail servers, not stored message content, and
+	 * cannot prove that every later server complied.
+	 *
+	 * @return This builder.
+	 * @see EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery()
+	 */
+	@Cli.OptionNameOverride("withExactTlsRequiredForOnwardDelivery")
+	ExactEmailBuilder withTlsRequiredForOnwardDelivery();
+
+	/**
+	 * Stops this builder from requiring TLS for this exact email's onward delivery. Exact emails bypass configured Email defaults and overrides.
+	 *
+	 * @return This builder.
+	 * @see #withTlsRequiredForOnwardDelivery()
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no REQUIRETLS value to clear")
+	ExactEmailBuilder clearTlsRequiredForOnwardDelivery();
+
+	/**
 	 * Builds an {@link Email} whose existing getters expose the parsed EML fields while the original bytes remain authoritative for conversion,
 	 * rehearsal, and sending. At least one explicit envelope recipient is required.
 	 *
