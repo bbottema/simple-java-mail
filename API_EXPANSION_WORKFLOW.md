@@ -2,7 +2,7 @@
 
 This document serves as a blueprint for developers and coding agents when adding new fields or features to the Simple Java Mail API. Following these steps ensures that the new functionality is correctly integrated across all modules, including CLI support, message conversion, and module-specific processing.
 
-For surrounding mechanisms such as optional module loading, CLI data generation, MIME structure selection, and build instrumentation, see [PROJECT_MECHANISMS_CATALOGUE.md](PROJECT_MECHANISMS_CATALOGUE.md).
+For architectural decisions and source anchors, see the [architecture topic index](docs/adr/README.md#find-documentation-by-topic). Use [DEVELOPMENT.md](DEVELOPMENT.md) for build and CLI metadata procedures and the [concurrency documentation](docs/concurrency/README.md) for send-state and resource-ownership contracts.
 
 ## Ownership and design gate
 
@@ -65,10 +65,17 @@ Route the new field according to its ownership. Message-content fields affect th
 
 - **MimeMessageHelper**: Update this class if the new field translates directly to a standard MimeMessage header or property (e.g., a new recipient type or a standard header).
 - **SpecializedMimeMessageProducer**: Update the `populateMimeMessage` method if the new field requires logic to decide how the `MimeMessage` is constructed or if it triggers module-specific processing (like S/MIME or DKIM).
+- **MIME Structure**: For a new body-part concept, revisit the mixed/related/alternative selector and each affected producer. [ADR 0008](docs/adr/0008-minimal-mime-structures-and-protection-order.md#mime-producer-selection) contains the producer matrix and protection-order contract; retain custom Message-ID behavior across wrappers.
 
 ## 5. Module-Specific Integration
 
 If the feature relates to a specific module, update that module.
+
+For a new optional feature module, follow [ADR 0006](docs/adr/0006-optional-modules.md):
+
+1. Put its contract and shared types in `core-module`, with implementation classes in the optional module. Main-module code must depend on that contract rather than import the optional implementation.
+2. Add a `ModuleLoader.loadXxxModule()` entry using the implementation class name and, where needed, a classpath-availability check. Cached module instances can be shared concurrently; availability recheck/force-disable hooks are for tests, not hot-plugging.
+3. Keep the dependency optional in `modules/simple-java-mail/pom.xml`. Add it to the CLI assembly when the CLI distribution should include that runtime feature, and verify both module-present and module-absent paths.
 
 - **S/MIME (`smime-module`)**:
   - Update `SMIMEModule` interface in `core-module`.
@@ -125,6 +132,7 @@ Only skip property configuration when the value cannot be expressed safely or cl
 - **Property Identifier**: Add a new entry to `ConfigLoader.Property` using the canonical public key.
 - **Typed Resolution and Diagnostics**: Register the property's type, functional diagnostic group, and sensitivity in `PropertySchema`, then read it from the injected `SimpleJavaMailConfig` snapshot in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied. Do not add a static read or a second parser. The exhaustive diagnostics test deliberately fails when any `ConfigLoader.Property` has no group.
 - **Factory Propagation**: Prove that builders from `SimpleJavaMail.withConfig(config)` retain the snapshot through copy, reply, conversion, Session creation, governance, and any applicable optional-module route.
+- **Snapshot Isolation**: Include two factories with conflicting values. Mutate source collections after `load()`, build objects through both factories, and verify there is no cross-talk. For wildcard Session or connection-pool properties, also verify that returned maps are immutable.
 - **Spring Mapping**: If the property belongs to the public configuration surface, add its IDE-hint shape to `SimpleJavaMailProperties` and verify `SpringModulePackagingTest`. `SpringEnvironmentConfigSource` already exposes every scalar `ConfigLoader.Property` through the context-local snapshot while retaining Spring's precedence and placeholder resolution.
 - **Dynamic Property Collections**: For collection-style namespaces such as `simplejavamail.defaults.connectionpool.clusters.*`, keep parsing, validation, and per-child diagnostic provenance centralized in `ConfigLoader`. Spring support should forward the whole namespace into `ConfigLoader` and Spring Boot metadata should describe the nested shape, rather than duplicating alias/key resolution.
 

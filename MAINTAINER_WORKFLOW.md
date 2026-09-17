@@ -9,8 +9,9 @@ It is intentionally one workflow with switches, so prompts like these can all fo
 - "Fix up that last issue and prepare for a minor release."
 
 For API additions, read [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md) as part of the implementation phase.
-For cross-cutting mechanisms such as CLI metadata, optional modules, MIME resources, and instrumentation, read
-[PROJECT_MECHANISMS_CATALOGUE.md](PROJECT_MECHANISMS_CATALOGUE.md).
+For architectural constraints and source anchors, read the [architecture decisions and topic index](docs/adr/README.md).
+Use [DEVELOPMENT.md](DEVELOPMENT.md) for build/generated-metadata procedures and the
+[concurrency documentation](docs/concurrency/README.md) for send-state and resource ownership.
 
 ---
 
