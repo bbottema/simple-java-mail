@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
@@ -388,11 +389,17 @@ class SmtpCapabilityProbeCharacterizationTest {
     }
 
     static final class Conversation implements AutoCloseable {
+        private final Charset charset;
         private Socket socket;
         private BufferedReader reader;
         private PrintWriter writer;
 
         Conversation(final Socket socket) throws IOException {
+            this(socket, StandardCharsets.US_ASCII);
+        }
+
+        Conversation(final Socket socket, final Charset charset) throws IOException {
+            this.charset = charset;
             this.socket = socket;
             socket.setSoTimeout(10000);
             useCurrentSocketStreams();
@@ -458,8 +465,8 @@ class SmtpCapabilityProbeCharacterizationTest {
         }
 
         private void useCurrentSocketStreams() throws IOException {
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.US_ASCII));
-            writer = new PrintWriter(socket.getOutputStream(), false, StandardCharsets.US_ASCII);
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
+            writer = new PrintWriter(socket.getOutputStream(), false, charset);
         }
 
         @Override

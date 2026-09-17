@@ -318,7 +318,11 @@ class SmtpConnectionProbeTest {
             assertThat(report.isAuthenticated()).isTrue();
             assertThat(report.getAuthenticationMechanism()).contains("LOGIN");
             assertThat(requested).hasValue(cached ? 0 : 1);
-            assertThat(report.toString()).doesNotContain("probe-user", "probe-secret", "334", "235");
+            // Match the authentication exchange, not digits that can also occur in the random port or elapsed time.
+            assertThat(report.toString()).doesNotContain("probe-user", "probe-secret",
+                    Base64.getEncoder().encodeToString("probe-user".getBytes(StandardCharsets.UTF_8)),
+                    Base64.getEncoder().encodeToString("probe-secret".getBytes(StandardCharsets.UTF_8)),
+                    "334 VXNlcm5hbWU6", "334 UGFzc3dvcmQ6", "235 authenticated");
         }
     }
 
@@ -370,7 +374,8 @@ class SmtpConnectionProbeTest {
             assertThat(report.getAuthenticationMechanism()).contains("XOAUTH2");
             assertThat(mailer.getTransportStrategy()).isEqualTo(TransportStrategy.SMTP_OAUTH2);
             assertThat(tokenRequests).hasValue(1);
-            assertThat(report.toString()).doesNotContain("probe-user", "secret-oauth-token", initialResponse, "235",
+            // Match the authentication reply, not digits that can also occur in the random port or elapsed time.
+            assertThat(report.toString()).doesNotContain("probe-user", "secret-oauth-token", initialResponse, "235 authenticated",
                     "Configured strategy:", "SMTP_OAUTH2");
         }
     }
@@ -491,7 +496,7 @@ class SmtpConnectionProbeTest {
             assertThat(report.isSuccessful()).isFalse();
             assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.AUTHENTICATION);
             assertThat(report.getBeforeTls()).isPresent();
-            assertThat(report.toString()).doesNotContain("probe-secret", "probe-user", "bearer-token", "535");
+            assertThat(report.toString()).doesNotContain("probe-secret", "probe-user", "bearer-token", "535 refused");
         }
     }
 

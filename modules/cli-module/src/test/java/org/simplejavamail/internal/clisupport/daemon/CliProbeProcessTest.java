@@ -58,7 +58,9 @@ class CliProbeProcessTest {
 							"Endpoint: 127.0.0.1:" + smtp.getLocalPort(), "SIZE=[4096]", "DSN", "Elapsed:");
 					assertThat(result.stdout()).contains(!authenticate ? "Authentication: not requested"
 							: accepted ? "Authentication: succeeded (PLAIN)" : "Failure at AUTHENTICATION");
-					assertThat(result.stdout() + result.stderr()).doesNotContain(USER, PASSWORD, AUTH_RESPONSE, "235", "535");
+					// Match the authentication replies, not digits that can also occur in the random port or elapsed time.
+					assertThat(result.stdout() + result.stderr()).doesNotContain(USER, PASSWORD, AUTH_RESPONSE,
+							"235 authenticated", "535 authentication rejected for");
 				}
 				if (daemon) {
 					final Invocation status = invoke("daemon", "status", "--daemon-instance=probe");
