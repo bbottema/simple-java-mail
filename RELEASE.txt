@@ -3,11 +3,14 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.4</version>
+    <version>9.3.5</version>
 </dependency>
 
-v9.3.0 - v9.3.4
+v9.3.0 - v9.3.5
 
+- **v9.3.5:** #743: added optional creation-age retirement for pooled SMTP connections across Mailer, standalone batch, property, Spring, and CLI configuration. It remains disabled unless a positive duration is supplied; per-cluster settings can inherit or override it, and only available connections become eligible for asynchronous retirement.
+- **v9.3.5:** Updated smtp-connection-pool to 4.2.0, clustered-object-pool to 4.1.1, and generic-object-pool to 2.5.1. Failed connection preparation now closes the transport, preserves a secondary close failure for diagnostics, and never reuses the failed transport.
+- **v9.3.5:** Updated JMail to 2.2.2 (#729), Lombok to 1.18.48 (#730), and SLF4J API to 2.0.19 (#732), retaining Java 8 compatibility.
 - **v9.3.4:** #724: restored progress for pooled sends already waiting when another attempt fails and invalidates its connection. Updated smtp-connection-pool to 4.0.2, clustered-object-pool to 4.0.4, and generic-object-pool to 2.4.3; no API or configuration changes are needed.
 - **v9.3.3:** #720: made optional-module initialization thread-safe so concurrent first use reuses one module instance.
 - **v9.3.3:** Updated JMail to 2.2.1 (#719) and SpotBugs annotations to 4.10.4 (#717), retaining Java 8 compatibility and Simple Java Mail's validation when no general address validator is supplied.
