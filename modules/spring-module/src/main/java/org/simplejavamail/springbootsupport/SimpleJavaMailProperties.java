@@ -178,6 +178,7 @@ public class SimpleJavaMailProperties {
             private String maxsize;
             private Claimtimeout claimtimeout;
             private Expireafter expireafter;
+            private Expireaftercreation expireaftercreation;
             private Loadbalancing loadbalancing;
             private Map<String, Cluster> clusters;
 
@@ -192,6 +193,7 @@ public class SimpleJavaMailProperties {
                 private String maxsize;
                 private Claimtimeout claimtimeout;
                 private Expireafter expireafter;
+                private Expireaftercreation expireaftercreation;
                 private Loadbalancing loadbalancing;
             }
 
@@ -219,6 +221,15 @@ public class SimpleJavaMailProperties {
             @Getter
             @Setter
             public static class Expireafter {
+                private String millis;
+            }
+
+            /**
+             * @deprecated See {@link SimpleJavaMailProperties}
+             */
+            @Getter
+            @Setter
+            public static class Expireaftercreation {
                 private String millis;
             }
 

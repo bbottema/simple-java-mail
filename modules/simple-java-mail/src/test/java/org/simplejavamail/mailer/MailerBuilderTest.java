@@ -2,10 +2,12 @@ package org.simplejavamail.mailer;
 
 import com.sanctionco.jmail.EmailValidator;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_MAX_SIZE;
@@ -69,5 +71,27 @@ public class MailerBuilderTest {
 
 		assertThat(builder.getConnectionPoolClaimTimeoutMillis()).isEqualTo(1_000);
 		assertThat(builder.getConnectionPoolExpireAfterMillis()).isEqualTo(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
+	}
+
+	@Test
+	public void creationAgeExpiryCanBeConfiguredAndClearedIndependently() throws Exception {
+		ConfigLoaderTestHelper.clearConfigProperties();
+		final MailerRegularBuilderImpl builder = MailerBuilder.withSMTPServer("moo", 0);
+		assertThat(builder.getConnectionPoolExpireAfterCreationMillis()).isNull();
+		builder.withConnectionPoolExpireAfterMillis(60_000)
+				.withConnectionPoolExpireAfterCreationMillis(900_000);
+
+		assertThat(builder.getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
+		Mailer mailer = builder.buildMailer();
+		try {
+			assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
+		} finally {
+			mailer.close();
+		}
+		assertThat(builder.clearConnectionPoolExpireAfterCreationMillis()
+				.getConnectionPoolExpireAfterCreationMillis()).isNull();
+		assertThat(builder.getConnectionPoolExpireAfterMillis()).isEqualTo(60_000);
+		assertThatThrownBy(() -> builder.withConnectionPoolExpireAfterCreationMillis(0))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 }

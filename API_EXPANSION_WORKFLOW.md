@@ -27,6 +27,12 @@ New fields must be accessible through the fluent Builder API.
   - **Javadoc**: Provide complete Javadoc for all new methods and parameters. The CLI module uses this to generate help text.
   - **Annotations**: Use `@Cli.ExcludeApi` for methods that should not be exposed to the CLI (e.g., those taking complex Java-only objects). Use `@Cli.OptionNameOverride` if the method name isn't ideal for a CLI flag. Use `@Cli.Optional` on parameters that may be omitted from the CLI; keep JetBrains `@Nullable` for Java/API nullability only.
 
+### Builder API Ownership and Compatibility
+
+All Simple Java Mail builder interfaces, public or internal, are library-owned API contracts, not extension SPIs. This includes the Mailer builders, Email builders, recipient builders, and other fluent builder interfaces. They separate the clean fluent API from Simple Java Mail's implementation classes and, where applicable, give reflection-based consumers such as the generated CLI a clean API target. Applications may use public builder interfaces as types, but implementations outside Simple Java Mail are unsupported.
+
+Adding an abstract method to a builder interface does not require a compatibility default for external custom implementations. Do not add default methods solely to preserve such implementations; implement the new method in Simple Java Mail's own builder classes and verify its Java behavior plus generated CLI behavior where applicable. Compatibility review for builder interfaces should focus on existing callers and the library's implementations, not external implementors.
+
 ## 3. Core Implementation (`simple-java-mail`)
 
 Implement the new API methods and ensure data propagation.

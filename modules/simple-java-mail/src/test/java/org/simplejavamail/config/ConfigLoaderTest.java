@@ -32,6 +32,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_ADDRESS
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CC_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
@@ -346,11 +347,13 @@ public class ConfigLoaderTest {
 		UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000101");
 		UUID bulkCluster = UUID.fromString("00000000-0000-0000-0000-000000000202");
 		Properties source = new Properties();
+		source.put("simplejavamail.defaults.connectionpool.expireaftercreation.millis", "450000");
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid", ordersCluster.toString());
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.coresize", "0");
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.maxsize", "2");
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.claimtimeout.millis", "30000");
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.expireafter.millis", "600000");
+		source.put("simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis", "900000");
 		source.put("simplejavamail.defaults.connectionpool.clusters.orders.loadbalancing.strategy", "ROUND_ROBIN");
 		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".maxsize", "8");
 		source.put("simplejavamail.defaults.connectionpool.clusters." + bulkCluster + ".loadbalancing.strategy", "RANDOM_ACCESS");
@@ -358,15 +361,45 @@ public class ConfigLoaderTest {
 		ConfigLoader.loadProperties(source, false);
 
 		Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(ConfigLoader.<Integer>getProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
 		assertThat(clusterConfigs).containsOnlyKeys(ordersCluster, bulkCluster);
 		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
 		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(2);
 		assertThat(clusterConfigs.get(ordersCluster).getClaimTimeoutMillis()).isEqualTo(30000);
 		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterMillis()).isEqualTo(600000);
+		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterCreationMillis()).isEqualTo(900000);
 		assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
 		assertThat(clusterConfigs.get(bulkCluster).getCoreSize()).isNull();
 		assertThat(clusterConfigs.get(bulkCluster).getMaxSize()).isEqualTo(8);
+		assertThat(clusterConfigs.get(bulkCluster).getExpireAfterCreationMillis()).isNull();
 		assertThat(clusterConfigs.get(bulkCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
+	}
+
+	@Test
+	public void rejectsNonPositiveConnectionCreationAgeExpiration() {
+		Properties global = new Properties();
+		global.put("simplejavamail.defaults.connectionpool.expireaftercreation.millis", "0");
+		assertThatThrownBy(() -> ConfigLoader.loadProperties(global, false))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("simplejavamail.defaults.connectionpool.expireaftercreation.millis");
+
+		Properties cluster = new Properties();
+		cluster.put("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid",
+				"00000000-0000-0000-0000-000000000101");
+		cluster.put("simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis", "-1");
+		assertThatThrownBy(() -> ConfigLoader.loadProperties(cluster, false))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis");
+	}
+
+	@Test
+	public void parsesOneAsConnectionCreationAgeExpiration() {
+		Properties source = new Properties();
+		source.put("simplejavamail.defaults.connectionpool.expireaftercreation.millis", "1");
+
+		ConfigLoader.loadProperties(source, false);
+
+		assertThat(ConfigLoader.<Integer>getProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isOne();
 	}
 
 	@Test

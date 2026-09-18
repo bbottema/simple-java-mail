@@ -129,6 +129,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withConnectionPoolCoreSize(Integer)
 	 * @see #withConnectionPoolMaxSize(Integer)
 	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 * @see #withConnectionPoolExpireAfterCreationMillis(Integer)
 	 */
 	T async();
 
@@ -534,6 +535,29 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolExpireAfterMillis(@NotNull Integer connectionPoolExpireAfterMillis);
 
 	/**
+	 * Configures the age after which an available pooled connection becomes eligible for retirement, measured from the
+	 * connection's creation time. Creation-age expiration is disabled when no value is configured.
+	 * <p>
+	 * This threshold is independent of {@link #withConnectionPoolExpireAfterMillis(Integer) idle expiration}. When both
+	 * thresholds are enabled, either can retire an available connection. Claiming or releasing a connection does not reset
+	 * its creation age.
+	 * <p>
+	 * Expiration is checked asynchronously while a connection is available. Active connections are not interrupted and
+	 * rapid reuse can postpone retirement, so this setting is not a strict maximum connection lifetime or a guarantee that
+	 * a connection will be retired before a server-side timeout.
+	 * <p>
+	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that
+	 * cluster.
+	 * <p>
+	 * <strong>Note:</strong> this is only used in combination with the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @param connectionPoolExpireAfterCreationMillis A positive duration in milliseconds.
+	 * @see #clearConnectionPoolExpireAfterCreationMillis()
+	 */
+	T withConnectionPoolExpireAfterCreationMillis(@NotNull Integer connectionPoolExpireAfterCreationMillis);
+
+	/**
 	 * Defines the various types of load balancing modes supported by the connection pool ion the
 	 * <a href="https://www.simplejavamail.org/configuration.html#section-batch-and-clustering">batch-module</a>.
 	 * <p>
@@ -764,6 +788,16 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withConnectionPoolExpireAfterMillis(Integer)
 	 */
 	T resetConnectionPoolExpireAfterMillis();
+
+	/**
+	 * Disables connection pool creation-age expiration by removing the configured duration.
+	 * <p>
+	 * <strong>Note:</strong> this is only used in combination with the
+	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 *
+	 * @see #withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	T clearConnectionPoolExpireAfterCreationMillis();
 
 	/**
 	 * Resets connection pool load balancing strategy to its default ({@value #DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY}).
@@ -1023,6 +1057,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@NotNull
 	Integer getConnectionPoolExpireAfterMillis();
+
+	/**
+	 * @see #withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	@Nullable
+	Integer getConnectionPoolExpireAfterCreationMillis();
 
 	/**
 	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)

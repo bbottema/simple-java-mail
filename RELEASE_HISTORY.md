@@ -2,8 +2,10 @@
 
 Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
-## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [v9.3.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.4) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.4/)
+## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [v9.3.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.4) - [v9.3.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.5/)
 
+- **v9.3.5:** [#743](https://github.com/bbottema/simple-java-mail/issues/743): **Connection creation-age retirement:** added optional creation-age expiration across Mailer, standalone batch, property, Spring, and CLI configuration. It remains disabled unless a positive duration is supplied; per-cluster settings can inherit or override it, and only available connections become eligible for asynchronous retirement.
+- **v9.3.5:** **Java 8-compatible dependency maintenance:** updated JMail to 2.2.2 ([#729](https://github.com/bbottema/simple-java-mail/pull/729)), Lombok to 1.18.48 ([#730](https://github.com/bbottema/simple-java-mail/pull/730)), and SLF4J API to 2.0.19 ([#732](https://github.com/bbottema/simple-java-mail/pull/732)).
 - **v9.3.4:** [#724](https://github.com/bbottema/simple-java-mail/issues/724): **Pooled send recovery:** attempts already waiting for a connection now resume after another attempt fails and invalidates its connection.
 - **v9.3.3:** [#720](https://github.com/bbottema/simple-java-mail/issues/720): **Thread-safe optional-module loading:** concurrent first use now initializes and reuses one module instance.
 - **v9.3.3:** **Java 8-compatible dependency maintenance:** updated JMail to 2.2.1 ([#719](https://github.com/bbottema/simple-java-mail/pull/719)) and SpotBugs annotations to 4.10.4 ([#717](https://github.com/bbottema/simple-java-mail/pull/717)), while retaining Simple Java Mail's validation when no general address validator is supplied.
@@ -13,6 +15,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Supporting Libraries
 
+- **v9.3.5 — smtp-connection-pool 4.2.0:** pulls in clustered-object-pool 4.1.1 and generic-object-pool 2.5.1, adds creation-age expiration, and ensures failed connection preparation closes the transport, preserves a secondary close failure for diagnostics, and never reuses the failed transport.
 - **v9.3.4 — smtp-connection-pool 4.0.2:** consumes the waiting-claim recovery fix through clustered-object-pool 4.0.4 and generic-object-pool 2.4.3. No API or configuration changes are needed.
 - **v9.3.0 — smtp-connection-pool 4.0.1:** adopted the explicit `SmtpTransportLease` contract used by both the standalone facade and the existing Simple Java Mail `Mailer` integration. The complete generic, clustered, SMTP, and batch dependency chain now publishes stable JPMS automatic module names. The Jakarta `smtppool` provider remains a parallel choice and must not be nested beneath the batch-owned pool.
 
