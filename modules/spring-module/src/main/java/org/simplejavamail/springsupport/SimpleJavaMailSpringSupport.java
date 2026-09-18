@@ -76,12 +76,14 @@ import java.util.Properties;
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.expireaftercreation.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.clusterkey.uuid</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.expireaftercreation.millis</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.defaults.trustallhosts</li>
@@ -205,6 +207,7 @@ public class SimpleJavaMailSpringSupport {
 				@Nullable @Value("${simplejavamail.defaults.connectionpool.maxsize:#{null}}") final String defaultConnectionPoolMaxSize,
 				@Nullable @Value("${simplejavamail.defaults.connectionpool.claimtimeout.millis:#{null}}") final String defaultConnectionPoolClaimTimeoutMillis,
 				@Nullable @Value("${simplejavamail.defaults.connectionpool.expireafter.millis:#{null}}") final String defaultConnectionPoolExpireAfterMillis,
+				@Nullable @Value("${simplejavamail.defaults.connectionpool.expireaftercreation.millis:#{null}}") final String defaultConnectionPoolExpireAfterCreationMillis,
 				@Nullable @Value("${simplejavamail.defaults.connectionpool.loadbalancing.strategy:#{null}}") final String defaultConnectionPoolLoadBalancingStrategy,
 				@Nullable @Value("${simplejavamail.defaults.sessiontimeoutmillis:#{null}}") final String defaultSessionTimeoutMillis,
 				@Nullable @Value("${simplejavamail.defaults.trustallhosts:#{null}}") final String defaultTrustAllHosts,
@@ -300,6 +303,7 @@ public class SimpleJavaMailSpringSupport {
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE.key(), defaultConnectionPoolMaxSize);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS.key(), defaultConnectionPoolClaimTimeoutMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS.key(), defaultConnectionPoolExpireAfterMillis);
+		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), defaultConnectionPoolExpireAfterCreationMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY.key(), defaultConnectionPoolLoadBalancingStrategy);
 		setNullableProperty(emailProperties, Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key(), defaultSessionTimeoutMillis);
 		setNullableProperty(emailProperties, Property.DEFAULT_TRUST_ALL_HOSTS.key(), defaultTrustAllHosts);

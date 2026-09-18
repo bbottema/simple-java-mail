@@ -80,12 +80,14 @@ import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
  * <li>simplejavamail.defaults.connectionpool.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.expireaftercreation.millis</li>
  * <li>simplejavamail.defaults.connectionpool.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.clusterkey.uuid</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.coresize</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.maxsize</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.claimtimeout.millis</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.expireafter.millis</li>
+ * <li>simplejavamail.defaults.connectionpool.clusters.*.expireaftercreation.millis</li>
  * <li>simplejavamail.defaults.connectionpool.clusters.*.loadbalancing.strategy</li>
  * <li>simplejavamail.defaults.sessiontimeoutmillis</li>
  * <li>simplejavamail.defaults.trustallhosts</li>
@@ -135,7 +137,7 @@ public final class ConfigLoader {
 	 */
 	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
 	private static final Pattern CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN = compile(
-			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|loadbalancing\\.strategy)$");
+			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|expireaftercreation\\.millis|loadbalancing\\.strategy)$");
 
 	/**
 	 * Initially try to load properties from "{@value #DEFAULT_CONFIG_FILENAME}".
@@ -200,6 +202,7 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
 		DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS("simplejavamail.defaults.connectionpool.claimtimeout.millis"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
+		DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS("simplejavamail.defaults.connectionpool.expireaftercreation.millis"),
 		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS("simplejavamail.defaults.connectionpool.clusters.*"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
@@ -417,22 +420,18 @@ public final class ConfigLoader {
 
 			if (!valueNullOrEmpty(systemValue)) {
 				LOGGER.debug("{}: {}", prop.key, systemValue);
-				final Object parsedValue = parsePropertyValue(systemValue);
+				final Object parsedValue = parseConfiguredPropertyValue(prop, systemValue);
 				resolvedProps.put(prop, parsedValue);
 				filePropertiesLeft.remove(prop.key);
 			} else if (!valueNullOrEmpty(envValue)) {
 				LOGGER.debug("{}: {}", prop.key, envValue);
-				final Object parsedValue = parsePropertyValue(envValue);
+				final Object parsedValue = parseConfiguredPropertyValue(prop, envValue);
 				resolvedProps.put(prop, parsedValue);
 				filePropertiesLeft.remove(prop.key);
 			} else {
 				final Object rawValue = filePropertiesLeft.remove(prop.key);
 				if (rawValue != null) {
-					if (rawValue instanceof String) {
-						resolvedProps.put(prop, parsePropertyValue((String) rawValue));
-					} else {
-						resolvedProps.put(prop, rawValue);
-					}
+					resolvedProps.put(prop, parseConfiguredPropertyValue(prop, rawValue));
 				}
 			}
 		}
@@ -534,6 +533,9 @@ public final class ConfigLoader {
 				case "expireafter.millis":
 					builder.expireAfterMillis(parseInteger(propertyName, propertyValue));
 					break;
+				case "expireaftercreation.millis":
+					builder.expireAfterCreationMillis(parsePositiveInteger(propertyName, propertyValue));
+					break;
 				case "loadbalancing.strategy":
 					builder.loadBalancingStrategy(parseLoadBalancingStrategy(propertyName, propertyValue));
 					break;
@@ -573,6 +575,23 @@ public final class ConfigLoader {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be an integer", e);
 		}
+	}
+
+	@Nullable
+	private static Integer parsePositiveInteger(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		final Integer parsedValue = parseInteger(propertyName, propertyValue);
+		if (parsedValue != null && parsedValue < 1) {
+			throw new IllegalArgumentException("Connection pool property " + propertyName + " should be a positive integer");
+		}
+		return parsedValue;
+	}
+
+	@Nullable
+	private static Object parseConfiguredPropertyValue(@NotNull final Property property, @Nullable final Object rawValue) {
+		if (property == Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS) {
+			return parsePositiveInteger(property.key(), rawValue);
+		}
+		return rawValue instanceof String ? parsePropertyValue((String) rawValue) : rawValue;
 	}
 
 	@Nullable

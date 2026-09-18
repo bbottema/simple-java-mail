@@ -26,7 +26,9 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -97,6 +99,40 @@ class BatchTransportExecutorTest {
 			executor.close();
 		}
 		verify(testSession.allocatedTransports.get(0), timeout(2000).atLeastOnce()).close();
+	}
+
+	@Test
+	void closesTransportWhenConnectionPreparationFailsAndDoesNotReuseIt() throws Exception {
+		Session session = mock(Session.class);
+		when(session.getProperties()).thenReturn(new Properties());
+		Transport probe = transport("smtp");
+		Transport failed = transport("smtp");
+		Transport healthy = transport("smtp");
+		MessagingException connectFailure = new MessagingException("connect failed");
+		MessagingException closeFailure = new MessagingException("close failed");
+		doThrow(connectFailure).when(failed).connect();
+		doThrow(closeFailure).when(failed).close();
+		when(session.getTransport()).thenReturn(probe, failed, healthy);
+
+		BatchTransportExecutor<String> executor = executorBuilder().build();
+		try {
+			executor.registerSession("cluster", session);
+
+			Throwable claimFailure = catchThrowable(() -> executor.execute("cluster", (selected, transport) -> transport));
+			assertThat(claimFailure).isInstanceOf(BatchTransportException.class)
+					.hasMessageContaining("Unable to claim an SMTP transport");
+			Throwable preparationFailure = claimFailure.getCause();
+			assertThat(preparationFailure.getClass().getSimpleName()).isEqualTo("TransportHandlingException");
+			assertThat(preparationFailure).hasCause(connectFailure);
+			assertThat(preparationFailure.getSuppressed()).containsExactly(closeFailure);
+
+			Transport replacement = executor.execute("cluster", (selected, transport) -> transport);
+			assertThat(replacement).isSameAs(healthy);
+			verify(failed).close();
+			verify(healthy).connect();
+		} finally {
+			executor.close();
+		}
 	}
 
 	@Test
@@ -328,6 +364,18 @@ class BatchTransportExecutorTest {
 				.withExpireAfterMillis(0)
 				.build();
 		noExpiry.close();
+		assertThat(BatchTransportPoolConfiguration.builder().build().getExpireAfterCreationMillis()).isNull();
+		BatchTransportPoolConfiguration configured = BatchTransportPoolConfiguration.builder()
+				.withExpireAfterCreationMillis(900_000)
+				.build();
+		assertThat(configured.getExpireAfterCreationMillis()).isEqualTo(900_000);
+		assertThat(BatchTransportPoolConfiguration.builder(configured).build()).isEqualTo(configured);
+		assertThat(BatchTransportPoolConfiguration.builder(configured)
+				.clearExpireAfterCreationMillis().build().getExpireAfterCreationMillis()).isNull();
+		assertThat(configured.toString()).contains("expireAfterCreationMillis=900000");
+		assertThatThrownBy(() -> BatchTransportPoolConfiguration.builder()
+				.withExpireAfterCreationMillis(0)
+				.build()).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> BatchTransportExecutor.<String>builder()
 				.withThreadPoolSize(0)
 				.build()).isInstanceOf(IllegalArgumentException.class);
@@ -389,7 +437,8 @@ class BatchTransportExecutorTest {
 			if (worker != null && worker.getState() == Thread.State.TIMED_WAITING) {
 				for (StackTraceElement frame : worker.getStackTrace()) {
 					if (frame.getClassName().equals("org.bbottema.genericobjectpool.GenericObjectPool")
-							&& frame.getMethodName().equals("waitForAvailableObjectOrTimeout")) {
+							&& (frame.getMethodName().equals("waitForAvailableObjectOrTimeout")
+							|| frame.getMethodName().equals("waitForAvailability"))) {
 						return;
 					}
 				}
