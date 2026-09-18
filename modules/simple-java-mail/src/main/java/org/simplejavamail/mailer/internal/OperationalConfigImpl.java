@@ -100,6 +100,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int connectionPoolExpireAfterMillis;
 
 	/**
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	@Nullable
+	private final Integer connectionPoolExpireAfterCreationMillis;
+
+	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
 	@NotNull

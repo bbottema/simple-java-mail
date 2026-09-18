@@ -207,6 +207,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private Integer connectionPoolExpireAfterMillis;
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	@Nullable
+	private Integer connectionPoolExpireAfterCreationMillis;
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy loadBalancingStrategy)
 	 */
 	@NotNull
@@ -293,6 +299,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.connectionPoolMaxSize 					= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
 		this.connectionPoolClaimTimeoutMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
 		this.connectionPoolExpireAfterMillis 		= verifyNonnullOrEmpty(valueOrPropertyAsInteger(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
+		this.connectionPoolExpireAfterCreationMillis = validateConnectionPoolExpireAfterCreationMillis(valueOrPropertyAsInteger(null,
+				Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, null));
 		this.connectionPoolLoadBalancingStrategy	= verifyNonnullOrEmpty(valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
 		this.connectionPoolClusterConfigs			= valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, Collections.emptyMap());
 		this.transportModeLoggingOnly 				= verifyNonnullOrEmpty(valueOrPropertyAsBoolean(null, Property.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
@@ -360,6 +368,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getConnectionPoolMaxSize(),
 				getConnectionPoolClaimTimeoutMillis(),
 				getConnectionPoolExpireAfterMillis(),
+				getConnectionPoolExpireAfterCreationMillis(),
 				getConnectionPoolLoadBalancingStrategy(),
 				connectionPoolClusterConfigs,
 				isTransportModeLoggingOnly(),
@@ -654,6 +663,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	@Override
+	public T withConnectionPoolExpireAfterCreationMillis(@NotNull final Integer connectionPoolExpireAfterCreationMillis) {
+		this.connectionPoolExpireAfterCreationMillis = validateConnectionPoolExpireAfterCreationMillis(connectionPoolExpireAfterCreationMillis);
+		return (T) this;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
 	@Override
@@ -866,6 +884,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T resetConnectionPoolExpireAfterMillis() {
 		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
+	}
+
+	/**
+	 * @see MailerGenericBuilder#clearConnectionPoolExpireAfterCreationMillis()
+	 */
+	@Override
+	public T clearConnectionPoolExpireAfterCreationMillis() {
+		this.connectionPoolExpireAfterCreationMillis = null;
+		return (T) this;
 	}
 
 	/**
@@ -1217,6 +1244,23 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@NotNull
 	public Integer getConnectionPoolExpireAfterMillis() {
 		return connectionPoolExpireAfterMillis;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterCreationMillis()
+	 */
+	@Override
+	@Nullable
+	public Integer getConnectionPoolExpireAfterCreationMillis() {
+		return connectionPoolExpireAfterCreationMillis;
+	}
+
+	@Nullable
+	private static Integer validateConnectionPoolExpireAfterCreationMillis(@Nullable final Integer value) {
+		if (value != null && value < 1) {
+			throw new IllegalArgumentException("connectionPoolExpireAfterCreationMillis must be positive");
+		}
+		return value;
 	}
 
 	/**
