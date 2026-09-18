@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 
 public abstract class SimpleJavaMailSpringSupportTest {
@@ -28,12 +29,14 @@ public abstract class SimpleJavaMailSpringSupportTest {
         assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties
         assertThat(ConfigLoader.<Integer>getProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
         assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isEqualTo(null); // not set in any properties
+        assertThat(ConfigLoader.<Integer>getProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(900000);
 
         UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000301");
         Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = ConfigLoader.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
         assertThat(clusterConfigs).containsKey(ordersCluster);
         assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
         assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(3);
+		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterCreationMillis()).isNull();
         assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
 
         Map<String, String> loaded = ConfigLoader.getProperty(EXTRA_PROPERTIES);

@@ -81,6 +81,14 @@ public interface OperationalConfig {
 	int getConnectionPoolExpireAfterMillis();
 
 	/**
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 */
+	@Nullable
+	default Integer getConnectionPoolExpireAfterCreationMillis() {
+		return null;
+	}
+
+	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
 	@NotNull
