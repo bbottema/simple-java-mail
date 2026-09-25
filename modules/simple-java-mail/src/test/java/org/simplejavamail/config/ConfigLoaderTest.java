@@ -1,6 +1,8 @@
 package org.simplejavamail.config;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -17,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
@@ -126,21 +129,59 @@ class ConfigLoaderTest {
 		final UUID bulkKey = UUID.fromString("00000000-0000-0000-0000-000000000202");
 		final Properties source = new Properties();
 		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.clusterkey.uuid", ordersKey.toString());
+		source.setProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), "450000");
+		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis", "900000");
 		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.coresize", "0");
 		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.maxsize", "2");
 		source.setProperty("simplejavamail.defaults.connectionpool.clusters.orders.loadbalancing.strategy", "ROUND_ROBIN");
 		source.setProperty("simplejavamail.defaults.connectionpool.clusters." + bulkKey + ".maxsize", "8");
 
-		final Map<UUID, ConnectionPoolClusterConfig> clusters = ConfigLoader.builder()
+		final SimpleJavaMailConfig config = ConfigLoader.builder()
 				.withProperties(source)
-				.load()
-				.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+				.load();
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 
+		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
 		assertThat(clusters).containsOnlyKeys(ordersKey, bulkKey);
 		assertThat(clusters.get(ordersKey).getCoreSize()).isEqualTo(0);
 		assertThat(clusters.get(ordersKey).getMaxSize()).isEqualTo(2);
+		assertThat(clusters.get(ordersKey).getExpireAfterCreationMillis()).isEqualTo(900000);
 		assertThat(clusters.get(ordersKey).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
 		assertThat(clusters.get(bulkKey).getMaxSize()).isEqualTo(8);
+		assertThat(clusters.get(bulkKey).getExpireAfterCreationMillis()).isNull();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"0", "-1", "false", "2147483648"})
+	void rejectsInvalidConnectionCreationAgeExpirationWhileLoading(final String value) {
+		final String globalProperty = DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key();
+		assertThatThrownBy(() -> ConfigLoader.builder().withMap("application properties", singleton(globalProperty, value)).load())
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(globalProperty)
+				.hasMessageContaining("application properties")
+				.hasMessageContaining("positive integer");
+
+		final String clusterProperty = "simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis";
+		assertThatThrownBy(() -> ConfigLoader.builder().withMap(singleton(clusterProperty, value)).load())
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(clusterProperty)
+				.hasMessageContaining("positive integer");
+	}
+
+	@Test
+	void resolvesPositiveCreationAgeExpirationWithoutMutatingEarlierSnapshots() {
+		final String property = DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key();
+		final Properties source = new Properties();
+		source.setProperty(property, "1");
+		final SimpleJavaMailConfig first = ConfigLoader.builder().withProperties("first", source).load();
+		source.setProperty(property, "2");
+		final SimpleJavaMailConfig second = ConfigLoader.builder().withConfig(first).withProperties("second", source).load();
+		final SimpleJavaMailConfig blankOverride = ConfigLoader.builder().withConfig(second).withMap(singleton(property, " ")).load();
+
+		assertThat(first.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isOne();
+		assertThat(second.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(2);
+		assertThat(blankOverride.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(2);
+		assertThat(ConfigLoader.builder().load().getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isNull();
 	}
 
 	@Test

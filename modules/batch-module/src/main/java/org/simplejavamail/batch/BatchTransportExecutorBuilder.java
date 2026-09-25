@@ -83,6 +83,30 @@ public final class BatchTransportExecutorBuilder<K> {
 	}
 
 	/**
+	 * Sets the default creation-age retirement threshold for available pooled connections.
+	 * <p>
+	 * Expiration is asynchronous and does not interrupt active leases, so this is an eligibility threshold rather than a
+	 * strict maximum connection lifetime.
+	 *
+	 * @param expireAfterCreationMillis a positive duration in milliseconds
+	 * @return this builder
+	 */
+	public BatchTransportExecutorBuilder<K> withExpireAfterCreationMillis(final int expireAfterCreationMillis) {
+		defaultPoolConfiguration.withExpireAfterCreationMillis(expireAfterCreationMillis);
+		return this;
+	}
+
+	/**
+	 * Removes the default creation-age retirement threshold.
+	 *
+	 * @return this builder
+	 */
+	public BatchTransportExecutorBuilder<K> clearExpireAfterCreationMillis() {
+		defaultPoolConfiguration.clearExpireAfterCreationMillis();
+		return this;
+	}
+
+	/**
 	 * Sets the default Session-pool selection strategy.
 	 *
 	 * @param loadBalancingStrategy selection strategy

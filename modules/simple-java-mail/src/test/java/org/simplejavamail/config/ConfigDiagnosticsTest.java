@@ -13,10 +13,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.EMAIL_DEFAULTS;
+import static org.simplejavamail.config.ConfigDiagnosticGroup.EXECUTION_AND_POOLING;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.JAKARTA_MAIL_PROPERTIES;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.SMTP_CONNECTION;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.TRANSPORT_SECURITY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TRANSFER_ENCODING;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
@@ -174,9 +176,12 @@ class ConfigDiagnosticsTest {
 		lowPriority.put(extra("mail.smtp.connectiontimeout"), "500");
 		lowPriority.put(cluster("orders", "clusterkey.uuid"), clusterKey.toString());
 		lowPriority.put(cluster("orders", "coresize"), "1");
+		lowPriority.put(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), "0450000");
+		lowPriority.put(cluster("orders", "expireaftercreation.millis"), "600000");
 		final Map<String, Object> highPriority = new LinkedHashMap<>();
 		highPriority.put(extra("mail.smtp.timeout"), "2000");
 		highPriority.put(cluster("orders", "maxsize"), "3");
+		highPriority.put(cluster("orders", "expireaftercreation.millis"), "0900000");
 
 		final SimpleJavaMailConfig config = ConfigLoader.builder()
 				.withMap("low priority", lowPriority)
@@ -193,6 +198,16 @@ class ConfigDiagnosticsTest {
 		assertThat(diagnostic(diagnostics, cluster("orders", "maxsize")).getSourceName()).isEqualTo("high priority");
 		assertThat(config.getPropertySource(EXTRA_PROPERTIES)).isEqualTo("high priority");
 		assertThat(config.getPropertySource(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isEqualTo("high priority");
+		final ConfigPropertyDiagnostic globalCreationAge = diagnostic(diagnostics, DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key());
+		assertThat(globalCreationAge.getDisplayValue()).isEqualTo("450000");
+		assertThat(globalCreationAge.getGroup()).isEqualTo(EXECUTION_AND_POOLING);
+		assertThat(globalCreationAge.getSourceName()).isEqualTo("low priority");
+		assertThat(globalCreationAge.isRedacted()).isFalse();
+		final ConfigPropertyDiagnostic clusterCreationAge = diagnostic(diagnostics, cluster("orders", "expireaftercreation.millis"));
+		assertThat(clusterCreationAge.getDisplayValue()).isEqualTo("900000");
+		assertThat(clusterCreationAge.getGroup()).isEqualTo(EXECUTION_AND_POOLING);
+		assertThat(clusterCreationAge.getSourceName()).isEqualTo("high priority");
+		assertThat(clusterCreationAge.isRedacted()).isFalse();
 	}
 
 	@Test

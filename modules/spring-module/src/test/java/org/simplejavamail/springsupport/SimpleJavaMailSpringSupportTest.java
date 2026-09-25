@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 
 public abstract class SimpleJavaMailSpringSupportTest {
@@ -57,6 +58,8 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
 		assertThat(config.<Duration>getProperty(ConfigLoader.Property.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
 		assertThat(defaultMailer.getOperationalConfig().getMailSendTimeout()).isEqualTo(Duration.ofSeconds(30));
+		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(900000);
+		assertThat(defaultMailer.getOperationalConfig().getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900000);
 		assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isNull(); // not set in any properties
 	}
 
@@ -66,6 +69,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(clusterConfigs).containsKey(ordersCluster);
 		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
 		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(3);
+		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterCreationMillis()).isNull();
 		assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
 	}
 

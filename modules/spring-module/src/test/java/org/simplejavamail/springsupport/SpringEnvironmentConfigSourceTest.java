@@ -7,18 +7,63 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+	@Test
+	void resolvesCreationAgeExpirationThroughSpringWithoutLosingClusterSources() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		final UUID clusterKey = UUID.fromString("00000000-0000-0000-0000-000000000301");
+		final String clusterPrefix = "simplejavamail.defaults.connectionpool.clusters.orders.";
+		final String clusterAgeProperty = clusterPrefix + "expireaftercreation.millis";
+		environment.getPropertySources().addFirst(new MapPropertySource("pool defaults", Map.of(
+				DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), "0450000",
+				clusterPrefix + "clusterkey.uuid", clusterKey.toString(),
+				clusterAgeProperty, "600000")));
+		environment.getPropertySources().addFirst(source("deployment values", "pool.creationAge", "0900000"));
+		environment.getPropertySources().addFirst(source("profile override", clusterAgeProperty, "${pool.creationAge}"));
+		ConfigurationPropertySources.attach(environment);
+
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+
+		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
+		assertThat(clusters.get(clusterKey).getExpireAfterCreationMillis()).isEqualTo(900000);
+		assertThat(diagnostic(config.getDiagnostics(), DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key()).getSourceName())
+				.isEqualTo("pool defaults");
+		final ConfigPropertyDiagnostic clusterDiagnostic = diagnostic(config.getDiagnostics(), clusterAgeProperty);
+		assertThat(clusterDiagnostic.getDisplayValue()).isEqualTo("900000");
+		assertThat(clusterDiagnostic.getSourceName()).isEqualTo("profile override");
+		assertThat(clusterDiagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.EXECUTION_AND_POOLING);
+		assertThat(clusterDiagnostic.isRedacted()).isFalse();
+	}
+
+	@Test
+	void rejectsNonPositiveCreationAgeExpirationFromSpring() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("invalid deployment", DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), "0"));
+
+		assertThatThrownBy(() -> loadConfig(environment))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key())
+				.hasMessageContaining("invalid deployment")
+				.hasMessageContaining("positive integer");
+	}
+
 	@Test
 	void resolvesLegacyContentPermissionWithSpringPrecedenceAndVisibleTypedDiagnostics() {
 		final StandardEnvironment environment = new StandardEnvironment();

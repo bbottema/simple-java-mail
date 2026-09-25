@@ -5,10 +5,14 @@ import org.simplejavamail.api.SimpleJavaMail;
 
 import com.sanctionco.jmail.EmailValidator;
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
+import org.simplejavamail.config.ConfigLoader;
 import testutil.ConfigLoaderTestHelper;
 
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTIONPOOL_MAX_SIZE;
@@ -67,5 +71,35 @@ public class MailerBuilderTest {
 
 		assertThat(builder.getConnectionPoolClaimTimeoutMillis()).isEqualTo(1_000);
 		assertThat(builder.getConnectionPoolExpireAfterMillis()).isEqualTo(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
+	}
+
+	@Test
+	public void creationAgeExpiryCanBeConfiguredAndClearedIndependently() throws Exception {
+		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0);
+		assertThat(builder.getConnectionPoolExpireAfterCreationMillis()).isNull();
+		builder.withConnectionPoolExpireAfterMillis(60_000)
+				.withConnectionPoolExpireAfterCreationMillis(900_000);
+
+		assertThat(builder.getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
+		try (final Mailer mailer = builder.buildMailer()) {
+			assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
+		}
+		assertThat(builder.clearConnectionPoolExpireAfterCreationMillis()
+				.getConnectionPoolExpireAfterCreationMillis()).isNull();
+		assertThat(builder.getConnectionPoolExpireAfterMillis()).isEqualTo(60_000);
+		assertThatThrownBy(() -> builder.withConnectionPoolExpireAfterCreationMillis(0))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	public void creationAgeExpiryOverridesRemainLocalToTheBuilder() {
+		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(
+				singletonMap(ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, 900_000)));
+		final MailerRegularBuilder<?> builder = mail.mailerBuilder();
+
+		assertThat(builder.getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
+		assertThat(builder.withConnectionPoolExpireAfterCreationMillis(600_000).getConnectionPoolExpireAfterCreationMillis()).isEqualTo(600_000);
+		assertThat(builder.clearConnectionPoolExpireAfterCreationMillis().getConnectionPoolExpireAfterCreationMillis()).isNull();
+		assertThat(mail.mailerBuilder().getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900_000);
 	}
 }

@@ -82,9 +82,9 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: maven
-      - name: Test the Java 11 library reactor without cli-module
+      - name: Test the Java 11 libraries without CLI and its coverage aggregator
         run: >-
-          mvn -pl '!modules/cli-module' verify
+          mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' verify
           -DexcludeLiveServerTests=true
           -Dmaven.javadoc.skip=true
           -Djacoco.skip=true

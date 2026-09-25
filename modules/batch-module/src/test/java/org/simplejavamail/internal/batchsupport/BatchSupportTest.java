@@ -161,6 +161,7 @@ class BatchSupportTest {
 		when(operationalConfig.getConnectionPoolMaxSize()).thenReturn(maxPoolSize);
 		when(operationalConfig.getConnectionPoolClaimTimeoutMillis()).thenReturn(claimTimeoutMillis);
 		when(operationalConfig.getConnectionPoolExpireAfterMillis()).thenReturn(expireAfterMillis);
+		when(operationalConfig.getConnectionPoolExpireAfterCreationMillis()).thenReturn(null);
 		when(operationalConfig.getConnectionPoolLoadBalancingStrategy()).thenReturn(loadBalancingStrategy);
 		when(operationalConfig.getConnectionPoolClusterConfigs()).thenReturn(connectionPoolClusterConfigs);
 		return operationalConfig;

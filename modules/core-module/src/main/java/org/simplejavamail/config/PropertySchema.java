@@ -32,6 +32,7 @@ final class PropertySchema {
 		STRING,
 		BOOLEAN,
 		INTEGER,
+		POSITIVE_INTEGER,
 		DURATION,
 		TRANSPORT_STRATEGY,
 		SESSION_DEBUG_OUTPUT,
@@ -117,6 +118,7 @@ final class PropertySchema {
 				Property.DEFAULT_SESSION_TIMEOUT_MILLIS);
 
 		set(ValueType.TRANSPORT_STRATEGY, Property.TRANSPORT_STRATEGY);
+		set(ValueType.POSITIVE_INTEGER, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS);
 		set(ValueType.DURATION, Property.DEFAULT_MAIL_SEND_TIMEOUT);
 		set(ValueType.SESSION_DEBUG_OUTPUT, Property.JAVAXMAIL_DEBUG_OUTPUT);
 		set(ValueType.CONTENT_TRANSFER_ENCODING,
@@ -196,6 +198,7 @@ final class PropertySchema {
 				Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS,
 				Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS,
 				Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
+				Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS,
 				Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS,
 				Property.DEFAULT_POOL_KEEP_ALIVE_TIME);
 		setDiagnostics(MESSAGE_SECURITY, SensitivityPolicy.VISIBLE,
@@ -249,6 +252,8 @@ final class PropertySchema {
 					return parseBoolean(rawValue);
 				case INTEGER:
 					return parseInteger(rawValue);
+				case POSITIVE_INTEGER:
+					return parsePositiveInteger(rawValue);
 				case DURATION:
 					return rawValue instanceof Duration ? rawValue : Duration.parse(requireType(rawValue, String.class));
 				case TRANSPORT_STRATEGY:
@@ -373,9 +378,17 @@ final class PropertySchema {
 		throw new IllegalArgumentException("Not a supported boolean");
 	}
 
-	private static Object parseInteger(final Object value) {
+	static Integer parsePositiveInteger(final Object value) {
+		final Integer parsedValue = parseInteger(value);
+		if (parsedValue < 1) {
+			throw new IllegalArgumentException("Expected a positive integer");
+		}
+		return parsedValue;
+	}
+
+	private static Integer parseInteger(final Object value) {
 		if (value instanceof Integer) {
-			return value;
+			return (Integer) value;
 		}
 		return Integer.valueOf(requireType(value, String.class));
 	}
@@ -400,6 +413,8 @@ final class PropertySchema {
 				return "a boolean";
 			case INTEGER:
 				return "an integer";
+			case POSITIVE_INTEGER:
+				return "a positive integer";
 			case STRING:
 				return "text";
 			default:

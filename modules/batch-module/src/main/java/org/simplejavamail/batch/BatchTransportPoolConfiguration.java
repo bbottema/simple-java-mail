@@ -1,5 +1,7 @@
 package org.simplejavamail.batch;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -26,6 +28,8 @@ public final class BatchTransportPoolConfiguration {
 	private final int maxPoolSize;
 	private final int claimTimeoutMillis;
 	private final int expireAfterMillis;
+	@Nullable
+	private final Integer expireAfterCreationMillis;
 	private final BatchLoadBalancingStrategy loadBalancingStrategy;
 
 	private BatchTransportPoolConfiguration(final Builder builder) {
@@ -33,6 +37,7 @@ public final class BatchTransportPoolConfiguration {
 		this.maxPoolSize = builder.maxPoolSize;
 		this.claimTimeoutMillis = builder.claimTimeoutMillis;
 		this.expireAfterMillis = builder.expireAfterMillis;
+		this.expireAfterCreationMillis = builder.expireAfterCreationMillis;
 		this.loadBalancingStrategy = builder.loadBalancingStrategy;
 	}
 
@@ -75,6 +80,14 @@ public final class BatchTransportPoolConfiguration {
 		return expireAfterMillis;
 	}
 
+	/**
+	 * @return the creation-age retirement eligibility threshold in milliseconds, or {@code null} when not configured
+	 */
+	@Nullable
+	public Integer getExpireAfterCreationMillis() {
+		return expireAfterCreationMillis;
+	}
+
 	/** @return the Session-pool selection strategy used within a cluster */
 	public BatchLoadBalancingStrategy getLoadBalancingStrategy() {
 		return loadBalancingStrategy;
@@ -93,12 +106,14 @@ public final class BatchTransportPoolConfiguration {
 				&& maxPoolSize == that.maxPoolSize
 				&& claimTimeoutMillis == that.claimTimeoutMillis
 				&& expireAfterMillis == that.expireAfterMillis
+				&& Objects.equals(expireAfterCreationMillis, that.expireAfterCreationMillis)
 				&& loadBalancingStrategy == that.loadBalancingStrategy;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis, loadBalancingStrategy);
+		return Objects.hash(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis,
+				expireAfterCreationMillis, loadBalancingStrategy);
 	}
 
 	@Override
@@ -108,6 +123,7 @@ public final class BatchTransportPoolConfiguration {
 				", maxPoolSize=" + maxPoolSize +
 				", claimTimeoutMillis=" + claimTimeoutMillis +
 				", expireAfterMillis=" + expireAfterMillis +
+				", expireAfterCreationMillis=" + expireAfterCreationMillis +
 				", loadBalancingStrategy=" + loadBalancingStrategy +
 				'}';
 	}
@@ -120,6 +136,8 @@ public final class BatchTransportPoolConfiguration {
 		private int maxPoolSize = DEFAULT_MAX_POOL_SIZE;
 		private int claimTimeoutMillis = DEFAULT_CLAIM_TIMEOUT_MILLIS;
 		private int expireAfterMillis = DEFAULT_EXPIRE_AFTER_MILLIS;
+		@Nullable
+		private Integer expireAfterCreationMillis;
 		private BatchLoadBalancingStrategy loadBalancingStrategy = DEFAULT_LOAD_BALANCING_STRATEGY;
 
 		private Builder() {
@@ -130,6 +148,7 @@ public final class BatchTransportPoolConfiguration {
 			this.maxPoolSize = configuration.maxPoolSize;
 			this.claimTimeoutMillis = configuration.claimTimeoutMillis;
 			this.expireAfterMillis = configuration.expireAfterMillis;
+			this.expireAfterCreationMillis = configuration.expireAfterCreationMillis;
 			this.loadBalancingStrategy = configuration.loadBalancingStrategy;
 		}
 
@@ -178,6 +197,30 @@ public final class BatchTransportPoolConfiguration {
 		}
 
 		/**
+		 * Sets the creation age after which an available pooled connection becomes eligible for retirement.
+		 * <p>
+		 * The pool checks asynchronously and does not interrupt active leases. Rapid reuse can delay retirement, so this
+		 * is not a strict maximum connection lifetime. Claiming or releasing a connection does not reset its creation age.
+		 *
+		 * @param expireAfterCreationMillis a positive duration in milliseconds
+		 * @return this builder
+		 */
+		public Builder withExpireAfterCreationMillis(final int expireAfterCreationMillis) {
+			this.expireAfterCreationMillis = expireAfterCreationMillis;
+			return this;
+		}
+
+		/**
+		 * Removes the creation-age retirement threshold.
+		 *
+		 * @return this builder
+		 */
+		public Builder clearExpireAfterCreationMillis() {
+			this.expireAfterCreationMillis = null;
+			return this;
+		}
+
+		/**
 		 * Sets how registered Session pools are selected within a cluster.
 		 *
 		 * @param loadBalancingStrategy selection strategy
@@ -209,6 +252,9 @@ public final class BatchTransportPoolConfiguration {
 			}
 			if (expireAfterMillis < 0) {
 				throw new IllegalArgumentException("expireAfterMillis must not be negative");
+			}
+			if (expireAfterCreationMillis != null && expireAfterCreationMillis < 1) {
+				throw new IllegalArgumentException("expireAfterCreationMillis must be positive");
 			}
 			Objects.requireNonNull(loadBalancingStrategy, "loadBalancingStrategy");
 			return new BatchTransportPoolConfiguration(this);

@@ -492,6 +492,8 @@ class MailSubmissionPoolingTest {
 		final Properties properties = new Properties();
 		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "localhost");
+		// Generating Message-IDs must not depend on the test machine's hostname lookup.
+		properties.setProperty("mail.from", "sender@example.com");
 		properties.put(TRANSPORT_STATE_KEY, state);
 		final Session session = Session.getInstance(properties);
 		final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", PooledTestTransport.class.getName(),
@@ -504,6 +506,8 @@ class MailSubmissionPoolingTest {
 	private static Session genericSession(final GenericTransportState state) throws MessagingException {
 		final Properties properties = new Properties();
 		properties.setProperty("mail.transport.protocol", "generic-test");
+		// Generating Message-IDs must not depend on the test machine's hostname lookup.
+		properties.setProperty("mail.from", "sender@example.com");
 		properties.put(GENERIC_TRANSPORT_STATE_KEY, state);
 		final Session session = Session.getInstance(properties);
 		final Provider provider = new Provider(Provider.Type.TRANSPORT, "generic-test", GenericPooledTransport.class.getName(),

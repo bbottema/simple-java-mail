@@ -167,9 +167,9 @@ public class EmailHelper {
 				/*19*/trustAllSSLHost,
 				/*20*/verifyServerIdentity,
 				/*21*/newSingleThreadExecutor(),
-					/*22*/false,
-					/*23*/null,
-					/*24*/null);
+				/*22*/false,
+				/*23*/null,
+				/*24*/null);
 	}
 
 	@NotNull
@@ -217,21 +217,22 @@ public class EmailHelper {
 					/*10*/connectionPoolMaxSize,
 					/*11*/connectionPoolClaimTimeoutMillis,
 					/*12*/connectionPoolExpireAfterMillis,
-					/*13*/connectionPoolLoadBalancingStrategy,
-					/*14*/connectionPoolClusterConfigs,
-					/*15*/transportModeLoggingOnly,
-					/*16*/debugLogging,
-					/*17*/debugPrinter,
-					/*18*/disableAllClientValidation,
-					/*19*/sslHostsToTrust,
-					/*20*/trustAllSSLHost,
-					/*21*/verifyingServerIdentity,
-					/*22*/executorService,
-					/*23*/isExecutorServiceUserProvided,
-					/*24*/customMailer,
-					/*25*/oauth2AccessTokenProvider,
-					/*26*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
-					/*27*/null);
+					/*13*/null,
+					/*14*/connectionPoolLoadBalancingStrategy,
+					/*15*/connectionPoolClusterConfigs,
+					/*16*/transportModeLoggingOnly,
+					/*17*/debugLogging,
+					/*18*/debugPrinter,
+					/*19*/disableAllClientValidation,
+					/*20*/sslHostsToTrust,
+					/*21*/trustAllSSLHost,
+					/*22*/verifyingServerIdentity,
+					/*23*/executorService,
+					/*24*/isExecutorServiceUserProvided,
+					/*25*/customMailer,
+					/*26*/oauth2AccessTokenProvider,
+					/*27*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
+					/*28*/null);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

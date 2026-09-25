@@ -52,8 +52,10 @@ mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true
 Full non-live library compatibility validation, including Javadocs, on JDK 11:
 
 ```powershell
-mvn -pl '!modules/cli-module' clean verify -DexcludeLiveServerTests=true
+mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' clean verify -DexcludeLiveServerTests=true
 ```
+
+The Java 11 lane also excludes the coverage aggregator because it depends on the Java 17 CLI artifact. The full modern-JDK build checks both.
 
 When changing builder signatures or CLI help, also follow [Generated CLI Metadata](#generated-cli-metadata).
 

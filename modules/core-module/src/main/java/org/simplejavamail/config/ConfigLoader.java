@@ -46,7 +46,8 @@ public final class ConfigLoader {
 	 */
 	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
 	private static final Pattern CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN = compile(
-			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|loadbalancing\\.strategy)$");
+			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>"
+					+ "clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|expireaftercreation\\.millis|loadbalancing\\.strategy)$");
 
 	private final List<ConfigSource> sources = new ArrayList<>();
 
@@ -104,6 +105,7 @@ public final class ConfigLoader {
 		DEFAULT_CONNECTIONPOOL_MAX_SIZE("simplejavamail.defaults.connectionpool.maxsize"),
 		DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS("simplejavamail.defaults.connectionpool.claimtimeout.millis"),
 		DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS("simplejavamail.defaults.connectionpool.expireafter.millis"),
+		DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS("simplejavamail.defaults.connectionpool.expireaftercreation.millis"),
 		DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY("simplejavamail.defaults.connectionpool.loadbalancing.strategy"),
 		DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS("simplejavamail.defaults.connectionpool.clusters.*"),
 		DEFAULT_POOL_KEEP_ALIVE_TIME("simplejavamail.defaults.poolsize.keepalivetime"),
@@ -567,6 +569,9 @@ public final class ConfigLoader {
 				case "expireafter.millis":
 					builder.expireAfterMillis((Integer) propertyValue);
 					break;
+				case "expireaftercreation.millis":
+					builder.expireAfterCreationMillis((Integer) propertyValue);
+					break;
 				case "loadbalancing.strategy":
 					builder.loadBalancingStrategy((LoadBalancingStrategy) propertyValue);
 					break;
@@ -610,6 +615,8 @@ public final class ConfigLoader {
 			case "claimtimeout.millis":
 			case "expireafter.millis":
 				return parseInteger(propertyName, propertyValue);
+			case "expireaftercreation.millis":
+				return parsePositiveInteger(propertyName, propertyValue);
 			case "loadbalancing.strategy":
 				return parseLoadBalancingStrategy(propertyName, propertyValue);
 			default:
@@ -622,6 +629,14 @@ public final class ConfigLoader {
 			return UUID.fromString(SimpleConversions.convertToString(propertyValue));
 		} catch (RuntimeException e) {
 			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a UUID", e);
+		}
+	}
+
+	private static Integer parsePositiveInteger(final String propertyName, final Object propertyValue) {
+		try {
+			return PropertySchema.parsePositiveInteger(propertyValue);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a positive integer", e);
 		}
 	}
 

@@ -286,6 +286,15 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
+	public void connectionCreationAgeExpirationApisAreGeneratedAsCliOptions() {
+		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
+				new Class<?>[] {MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+
+		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
+				.contains("--mailer:withConnectionPoolExpireAfterCreationMillis", "--mailer:clearConnectionPoolExpireAfterCreationMillis");
+	}
+
+	@Test
 	public void generatedArgumentsFollowExplicitCliOptionality() {
 		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
 				new Class<?>[] {EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class});
