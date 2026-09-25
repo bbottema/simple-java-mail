@@ -126,6 +126,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	private String smtpClientHostname;
 
+	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+	private boolean legacySmtpContentSupportEnabled;
+
 	/**
 	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
@@ -272,6 +275,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
+		this.legacySmtpContentSupportEnabled = config.valueOrProperty(null, Property.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
 		this.mailSendTimeout = config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
 		if (mailSendTimeout != null) {
 			MailSendControl.positiveTimeoutNanos(mailSendTimeout);
@@ -373,6 +377,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				getLocalBindAddress(),
 				getLocalBindPort(),
 				getSmtpClientHostname(),
+				isLegacySmtpContentSupportEnabled(),
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
 				getClusterKey(),
@@ -530,6 +535,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withSmtpClientHostname(@Nullable final String smtpClientHostname) {
 		this.smtpClientHostname = smtpClientHostname;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+	@Override
+	public T withLegacySmtpContentSupport(final boolean enabled) {
+		this.legacySmtpContentSupportEnabled = enabled;
 		return (T) this;
 	}
 
@@ -1149,6 +1161,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable
 	public String getSmtpClientHostname() {
 		return smtpClientHostname;
+	}
+
+	/** @see MailerGenericBuilder#isLegacySmtpContentSupportEnabled() */
+	@Override
+	public boolean isLegacySmtpContentSupportEnabled() {
+		return legacySmtpContentSupportEnabled;
 	}
 
 	/**

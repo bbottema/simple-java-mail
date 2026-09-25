@@ -59,6 +59,9 @@ public interface OperationalConfig {
 	@Nullable
 	String getSmtpClientHostname();
 
+	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+	boolean isLegacySmtpContentSupportEnabled();
+
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */

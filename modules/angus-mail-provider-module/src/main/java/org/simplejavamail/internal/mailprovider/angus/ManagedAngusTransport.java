@@ -39,6 +39,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
     @Nullable private SmtpServerResponse finalResponse;
     private final List<SmtpServerResponse> recipientResponses = new ArrayList<>();
     @Nullable private AngusRecipientCommands activeRecipientCommands;
+    @Nullable private AngusMailFromParameters activeMailFromParameters;
 
     public ManagedAngusTransport(final Session session, final URLName urlName) {
         super(session, urlName, urlName == null ? "smtp" : urlName.getProtocol(),
@@ -64,6 +65,11 @@ public final class ManagedAngusTransport extends SMTPTransport {
     /** Match Angus's constructor-time wire encoding flag and the current, possibly post-STARTTLS capability set. */
     boolean supportsUtf8RecipientCommands() {
         return allowUtf8 && supportsExtension("SMTPUTF8");
+    }
+
+    /** Command encoding is fixed at construction; legacy permission does not change this flag or imply an advertised capability. */
+    boolean isUtf8CommandEncodingEnabled() {
+        return allowUtf8;
     }
 
     @Override
@@ -142,12 +148,15 @@ public final class ManagedAngusTransport extends SMTPTransport {
         recipientResponses.clear();
         activeRecipientCommands = message instanceof AngusMailTransportAdapter.AngusSmtpMessage
                 ? ((AngusMailTransportAdapter.AngusSmtpMessage) message).getRecipientCommands() : null;
+        activeMailFromParameters = message instanceof AngusMailTransportAdapter.AngusSmtpMessage
+                ? ((AngusMailTransportAdapter.AngusSmtpMessage) message).getMailFromParameters() : null;
         sending = true;
     }
 
     private void endSubmission() {
         sending = false;
         activeRecipientCommands = null;
+        activeMailFromParameters = null;
     }
 
     @Override
@@ -155,7 +164,8 @@ public final class ManagedAngusTransport extends SMTPTransport {
         if (sending) {
             trackOutgoingCommand(command);
         }
-        super.sendCommand(applyRecipientParameters(command));
+        final String mailCommand = activeMailFromParameters == null ? command : activeMailFromParameters.applyToCommand(command);
+        super.sendCommand(applyRecipientParameters(mailCommand));
     }
 
     private void trackOutgoingCommand(final String command) {

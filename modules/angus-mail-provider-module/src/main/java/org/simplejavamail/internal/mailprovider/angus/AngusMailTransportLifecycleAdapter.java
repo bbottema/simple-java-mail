@@ -23,12 +23,16 @@ public final class AngusMailTransportLifecycleAdapter implements MailTransportLi
     public void configureOwnedSession(@NotNull final Session session, @NotNull final String protocol) {
         final String prefix = "mail." + protocol;
         final Properties properties = session.getProperties();
-        if (hasCustomSocketFactory(properties, prefix)) {
-            return;
+        // Initialize once, before MIME or transports exist. Protocol handling does not require ownership of the application's socket factory.
+        // containsKey preserves explicit Boolean values; getProperty also sees inherited defaults.
+        if (!properties.containsKey("mail.mime.allowutf8") && properties.getProperty("mail.mime.allowutf8") == null) {
+            properties.setProperty("mail.mime.allowutf8", "true");
         }
-        properties.put(prefix + ".socketFactory", new AngusSocketFactory(properties, prefix));
-        // An aborted/failed connection must not cause SocketFetcher to retry with an untracked socket.
-        properties.setProperty(prefix + ".socketFactory.fallback", "false");
+        if (!hasCustomSocketFactory(properties, prefix)) {
+            properties.put(prefix + ".socketFactory", new AngusSocketFactory(properties, prefix));
+            // An aborted/failed connection must not cause SocketFetcher to retry with an untracked socket.
+            properties.setProperty(prefix + ".socketFactory.fallback", "false");
+        }
         final Provider provider = new Provider(Provider.Type.TRANSPORT, protocol,
                 ManagedAngusTransport.class.getName(), "Simple Java Mail", null);
         session.addProvider(provider);

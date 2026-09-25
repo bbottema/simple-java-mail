@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer.spi;
 import jakarta.mail.Address;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,15 +22,33 @@ public final class PreparedMail {
     @NotNull
     private final DeliveryEnvelope deliveryEnvelope;
     private final ContentRequirement contentRequirement;
+    private final boolean legacySmtpContentSupportEnabled;
 
     public PreparedMail(@NotNull final MimeMessage mimeMessage,
                         @NotNull final Address[] recipients,
                         @NotNull final DeliveryEnvelope deliveryEnvelope,
                         @NotNull final ContentRequirement contentRequirement) {
+        this(mimeMessage, recipients, deliveryEnvelope, contentRequirement, false);
+    }
+
+    /**
+     * Carries the selected server's compatibility permission without mutating its Session or the reusable Email.
+     * Existing constructors leave this permission disabled. It never changes the content-preservation contract.
+     *
+     * @param mimeMessage Prepared MIME content; providers must honor its preservation requirement.
+     * @param recipients Ordered SMTP envelope recipients; copied defensively.
+     * @param deliveryEnvelope Transport-only sender, DSN and onward TLS requirements.
+     * @param contentRequirement Which prepared bytes must remain unchanged.
+     * @param legacySmtpContentSupportEnabled Whether the application permits unadvertised UTF-8/8-bit support on the selected server.
+     * @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean)
+     */
+    public PreparedMail(@NotNull final MimeMessage mimeMessage, @NotNull final Address[] recipients, @NotNull final DeliveryEnvelope deliveryEnvelope,
+                        @NotNull final ContentRequirement contentRequirement, final boolean legacySmtpContentSupportEnabled) {
         this.mimeMessage = requireNonNull(mimeMessage, "mimeMessage");
         this.recipients = requireNonNull(recipients, "recipients").clone();
         this.deliveryEnvelope = requireNonNull(deliveryEnvelope, "deliveryEnvelope");
         this.contentRequirement = requireNonNull(contentRequirement, "contentRequirement");
+        this.legacySmtpContentSupportEnabled = legacySmtpContentSupportEnabled;
     }
 
     /**
@@ -66,6 +85,11 @@ public final class PreparedMail {
     @NotNull
     public ContentRequirement getContentRequirement() {
         return contentRequirement;
+    }
+
+    /** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+    public boolean isLegacySmtpContentSupportEnabled() {
+        return legacySmtpContentSupportEnabled;
     }
 
     /**

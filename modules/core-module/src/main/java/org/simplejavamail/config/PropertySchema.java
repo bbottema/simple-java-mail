@@ -84,6 +84,7 @@ final class PropertySchema {
 		}
 
 		set(ValueType.BOOLEAN,
+				Property.SMTP_LEGACY_CONTENT_SUPPORT,
 				Property.JAVAXMAIL_DEBUG,
 				Property.DISABLE_ALL_CLIENTVALIDATION,
 				Property.DEFAULT_TRUST_ALL_HOSTS,
@@ -143,6 +144,7 @@ final class PropertySchema {
 				Property.SMTP_PORT,
 				Property.SMTP_USERNAME,
 				Property.SMTP_CLIENT_HOSTNAME,
+				Property.SMTP_LEGACY_CONTENT_SUPPORT,
 				Property.SMTP_LOCAL_ADDRESS,
 				Property.SMTP_LOCAL_PORT,
 				Property.DEFAULT_SESSION_TIMEOUT_MILLIS,

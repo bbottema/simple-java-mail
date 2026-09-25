@@ -159,6 +159,15 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * Values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its configured
 	 * factory. Later configuration loads do not change the resulting Mailer.
 	 * <p>
+	 * When Simple Java Mail creates a Session with the standard Angus provider, UTF-8 encoding is on by default
+	 * ({@code mail.mime.allowutf8=true}). That lets you send addresses such as {@code josé@example.org} when the server supports them, without
+	 * making ordinary mail depend on SMTPUTF8. An address such as {@code José <jose@example.org>} still uses MIME encoding for the display name.
+	 * <p>
+	 * The managed transport checks what each email actually needs and won't send it if the server doesn't advertise support. If you've verified
+	 * that a legacy server and its onward delivery route can handle the unchanged email anyway, you can opt in with {@link #withLegacySmtpContentSupport(boolean)}.
+	 * <p>
+	 * If you want UTF-8 encoding disabled, use {@code withProperty("mail.mime.allowutf8", false)}. If you supply your own Session, we leave its settings alone.
+	 * <p>
 	 * For {@link TransportStrategy#SMTP_TLS} and {@link TransportStrategy#SMTP_OAUTH2}, an extra {@code mail.smtp.starttls.required} property
 	 * must be {@link Boolean#TRUE} or a case-insensitive {@code "true"} string, without surrounding whitespace. Omit it to use the strategy default.
 	 * Other values fail construction before proxy, pool or send-operation setup, including in logging-only mode. Remove the conflicting override

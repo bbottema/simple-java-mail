@@ -17,7 +17,8 @@ public interface MailTransportLifecycleAdapter {
     boolean supportsProvider(@NotNull Provider provider);
 
     /**
-     * Installs connection tracking before a library-owned Session is published or registered with a pool.
+     * Initializes provider-specific encoding, protocol hooks and optional connection tracking before a library-owned Session is published or pooled.
+     * This also runs for offline MIME preparation; configuring the Session must not connect or start network work.
      * Leave incompatible custom socket settings untouched; {@link #createAbortAction(Transport)} must then report no capability.
      * Never use this method to modify caller-owned Sessions or to store per-request state in Session properties.
      */

@@ -190,7 +190,7 @@ public class MailerImpl implements Mailer {
 		);
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
-		if (ownsSession && operationalConfig.getCustomMailer() == null && !operationalConfig.isTransportModeLoggingOnly()) {
+		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			try {
 				MailTransportLifecycleResolver.configureOwnedSession(session);
 			} catch (MessagingException failure) {

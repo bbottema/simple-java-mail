@@ -89,7 +89,7 @@ public class SessionBasedEmailToMimeMessageConverter {
         if (processSecurityAndValidateSize) {
             mimeMessageConverter.validateMaximumEmailSize(emlBytes.length);
         }
-        final PreparedMail preparedMail = prepareMail(email, mimeMessage);
+        final PreparedMail preparedMail = mimeMessageConverter.prepareMail(email, mimeMessage);
         return new MailRehearsal(email, emlBytes, mimeMessage.getMessageID(), preparedMail.getDeliveryEnvelope().getEnvelopeFrom(),
                 requireMailboxAddresses(preparedMail.getRecipients()), processSecurityAndValidateSize);
     }
@@ -97,17 +97,19 @@ public class SessionBasedEmailToMimeMessageConverter {
     @NotNull
     public static PreparedMail convertAndLogPreparedMail(Session session, final Email email) throws MessagingException {
         final MimeMessage mimeMessage = convertAndLogMimeMessage(session, email);
-        return prepareMail(email, mimeMessage);
+        final SessionBasedEmailToMimeMessageConverter converter =
+                (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
+        return converter.prepareMail(email, mimeMessage);
     }
 
     /** Rehearsal and sending share local envelope validation; only the provider can check negotiated server capabilities. */
     @NotNull
-    private static PreparedMail prepareMail(final Email email, final MimeMessage mimeMessage) throws MessagingException {
+    private PreparedMail prepareMail(final Email email, final MimeMessage mimeMessage) throws MessagingException {
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         return new PreparedMail(mimeMessage, recipients,
                 new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification(), resolveDeliveryRecipients(email, recipients),
                         email.isTlsRequiredForOnwardDelivery()),
-                InternalEmail.requireInternalEmail(email).determineContentRequirement());
+                InternalEmail.requireInternalEmail(email).determineContentRequirement(), operationalConfig.isLegacySmtpContentSupportEnabled());
     }
 
     /** Duplicate recipient occurrences remain distinct and follow the exact order used for SMTP RCPT commands. */

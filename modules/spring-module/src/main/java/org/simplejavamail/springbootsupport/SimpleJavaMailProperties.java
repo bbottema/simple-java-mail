@@ -2,6 +2,7 @@ package org.simplejavamail.springbootsupport;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
@@ -54,6 +55,8 @@ public class SimpleJavaMailProperties {
         private String username;
         private String password;
         private String clienthostname;
+        /** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+        private Boolean legacycontentsupport;
         private String localaddress;
         private String localport;
     }

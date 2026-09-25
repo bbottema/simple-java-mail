@@ -57,8 +57,8 @@ final class AngusRecipientCommands {
         final boolean recipientPreferences = mail.getDeliveryEnvelope().hasRecipientNotifyOptions();
         if (recipientPreferences && !(transport instanceof ManagedAngusTransport)) {
             throw new MailTransportCompatibilityException("This transport cannot apply recipient-specific delivery-notification settings. "
-                    + "They require Simple Java Mail's managed Angus transport; a caller-owned Session or custom socket factory can bypass it. "
-                    + "Create the Mailer with withSMTPServer(...), without supplying a Session or custom socket factory, "
+                    + "They require Simple Java Mail's managed Angus transport; a caller-owned Session can bypass it. "
+                    + "Create the Mailer with withSMTPServer(...) without supplying a Session, "
                     + "or remove the recipient-specific settings and use best-effort Email-level settings instead. No message was submitted.",
                     mail.getRecipients());
         }

@@ -94,6 +94,8 @@ final class SmtpConnectionProbe {
         final String protocol = provider.getProtocol();
         properties.setProperty("mail.transport.protocol", protocol);
         properties.setProperty("mail." + protocol + ".auth", Boolean.toString(authenticate));
+        // A probe sends no MIME or envelope addresses. Avoid Angus's irrelevant UTF-8 output notice on legacy servers.
+        properties.setProperty("mail.mime.allowutf8", "false");
         properties.setProperty("mail.debug", "false");
         properties.setProperty("mail.debug.auth", "false");
         properties.setProperty("mail.debug.auth.username", "false");

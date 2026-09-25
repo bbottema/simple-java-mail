@@ -64,6 +64,7 @@ public final class ConfigLoader {
 		SMTP_USERNAME("simplejavamail.smtp.username"),
 		SMTP_PASSWORD("simplejavamail.smtp.password"),
 		SMTP_CLIENT_HOSTNAME("simplejavamail.smtp.clienthostname"),
+		SMTP_LEGACY_CONTENT_SUPPORT("simplejavamail.smtp.legacycontentsupport"),
 		SMTP_LOCAL_ADDRESS("simplejavamail.smtp.localaddress"),
 		SMTP_LOCAL_PORT("simplejavamail.smtp.localport"),
 		DISABLE_ALL_CLIENTVALIDATION("simplejavamail.disable.all.clientvalidation"),

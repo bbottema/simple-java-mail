@@ -29,7 +29,10 @@ import org.simplejavamail.internal.util.NamedDataSource;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,7 +62,7 @@ public class MimeMessageHelper {
 	static void setFrom(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		val fromRecipient = email.getFromRecipient();
 		if (fromRecipient != null) {
-			message.setFrom(MiscUtil.asInternetAddress(fromRecipient, CHARACTER_ENCODING));
+			setAddressHeader(message, "From", new Address[]{MiscUtil.asInternetAddress(fromRecipient, CHARACTER_ENCODING)});
 		}
 	}
 	
@@ -67,13 +70,18 @@ public class MimeMessageHelper {
 	 * Fills the {@link Message} instance with recipients from the {@link Email}.
 	 *
 	 * @param email   The message in which the recipients are defined.
-	 * @param message The javax message that needs to be filled with recipients.
-	 * @throws MessagingException           See {@link Message#addRecipient(Message.RecipientType, Address)}
+	 * @param message The Jakarta Mail message that needs to be filled with recipients.
+	 * @throws MessagingException See {@link Message#setHeader(String, String)}
 	 */
 	static void setRecipients(final Email email, final Message message)
 			throws MessagingException {
+		final Map<Message.RecipientType, List<Address>> recipientsByType = new LinkedHashMap<>();
 		for (final Recipient recipient : email.getRecipients()) {
-			message.addRecipient(recipient.getType(), MiscUtil.asInternetAddress(recipient, CHARACTER_ENCODING));
+			recipientsByType.computeIfAbsent(recipient.getType(), ignored -> new ArrayList<>())
+					.add(MiscUtil.asInternetAddress(recipient, CHARACTER_ENCODING));
+		}
+		for (final Map.Entry<Message.RecipientType, List<Address>> recipients : recipientsByType.entrySet()) {
+			setAddressHeader(message, recipients.getKey().toString(), recipients.getValue().toArray(new Address[0]));
 		}
 	}
 
@@ -81,8 +89,8 @@ public class MimeMessageHelper {
 	 * Fills the {@link Message} instance with reply-to address(es).
 	 *
 	 * @param email   The message in which the recipients are defined.
-	 * @param message The javax message that needs to be filled with reply-to addresses.
-	 * @throws MessagingException           See {@link Message#setReplyTo(Address[])}
+	 * @param message The Jakarta Mail message that needs to be filled with reply-to addresses.
+	 * @throws MessagingException See {@link Message#setHeader(String, String)}
 	 */
 	static void setReplyTo(@NotNull final Email email, final Message message)
 			throws MessagingException {
@@ -92,7 +100,16 @@ public class MimeMessageHelper {
 			for (val replyToRecipient : email.getReplyToRecipients()) {
 				replyToAddresses[i++] = MiscUtil.asInternetAddress(replyToRecipient, CHARACTER_ENCODING);
 			}
-			message.setReplyTo(replyToAddresses);
+			setAddressHeader(message, "Reply-To", replyToAddresses);
+		}
+	}
+
+	/** Keep display names MIME-encoded even when UTF-8 is enabled for internationalized mailbox addresses. */
+	private static void setAddressHeader(final Message message, final String headerName, @Nullable final Address[] addresses)
+			throws MessagingException {
+		final String headerValue = InternetAddress.toString(addresses, headerName.length() + 2);
+		if (headerValue != null) {
+			message.setHeader(headerName, headerValue);
 		}
 	}
 

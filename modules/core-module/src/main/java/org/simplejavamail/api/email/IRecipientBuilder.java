@@ -96,7 +96,8 @@ public interface IRecipientBuilder {
      * For example, {@code withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)} requests failure and delay notifications.
      * <p>
      * Explicit recipient preferences require a supporting provider adapter and DSN on the actual connection; otherwise sending fails before MAIL FROM.
-     * The bundled managed Angus transport supports them; caller-owned Sessions and custom socket factories bypass its command hook.
+     * The bundled managed Angus transport supports them, including with custom socket factories on library-owned Sessions.
+     * Ordinary Angus transports from caller-owned Sessions bypass the managed command hook.
      * This does not guarantee that a DSN will arrive or change RET or ENVID.
      *
      * @see IRecipientsBuilder#withDefaultDeliveryStatusNotificationNotifyOptions(NotifyOption...)

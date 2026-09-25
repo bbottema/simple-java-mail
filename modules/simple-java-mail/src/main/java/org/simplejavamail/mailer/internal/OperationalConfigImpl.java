@@ -58,6 +58,9 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nullable
 	private final String smtpClientHostname;
 
+	/** @see OperationalConfig#isLegacySmtpContentSupportEnabled() */
+	private final boolean legacySmtpContentSupportEnabled;
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */

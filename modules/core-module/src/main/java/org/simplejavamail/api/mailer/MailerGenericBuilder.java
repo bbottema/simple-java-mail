@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
@@ -130,6 +131,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defaults to <code>{@value}</code>, sending mails rather than just only logging the mails.
 	 */
 	boolean DEFAULT_JAVAXMAIL_DEBUG = false;
+	/** Defaults to {@value}: require advertised support for internationalized addresses and raw 8-bit content. */
+	boolean DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT = false;
 	/**
 	 * Defaults to <code>{@value}</code>, validating emailaddresses (can be configured seperately, but this does override it) and CRLF injection detection (will arn instead).
 	 */
@@ -360,6 +363,43 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.localhost">mail.smtp.localhost</a>
 	 */
 	T withSmtpClientHostname(@Nullable @Cli.Optional String smtpClientHostname);
+
+	/**
+	 * Allows an unchanged send attempt through a known legacy SMTP server that does not announce support for the email's addresses or content.
+	 * <p>
+	 * For example, an accented display name is different from an accented mailbox address:
+	 * <ul>
+	 * <li>{@code José <jose@example.org>}: only the display name contains an accent. Simple Java Mail MIME-encodes the name, so it does not require
+	 * special support for internationalized addresses. Ordinary Unicode subjects and message text also use MIME encoding and do not need this setting.</li>
+	 * <li>{@code josé@example.org}: the accent is part of the actual mailbox address. MIME encoding cannot make that address ASCII; sending it normally
+	 * requires the server to announce {@code SMTPUTF8} support.</li>
+	 * </ul>
+	 * Simple Java Mail detects and uses advertised SMTPUTF8 support automatically; leave this setting disabled for those servers. If the server does
+	 * not announce that support, Simple Java Mail rejects a send requiring it before submitting the email. It does not assume the server can handle it.
+	 * <p>
+	 * Enable this only when you have verified that your server and its onward delivery route can handle the original address and content despite
+	 * not announcing support. For example, an older relay you control might correctly accept {@code josé@example.org} without announcing SMTPUTF8.
+	 * This option lets Simple Java Mail try that address unchanged; it does not turn {@code josé@example.org} into {@code jose@example.org}, or make
+	 * an incompatible server support internationalized addresses. Server acceptance still does not prove onward preservation or final delivery.
+	 * <p>
+	 * The same permission covers raw UTF-8 headers and raw 8-bit bodies, such as those already present in an exact EML file. Those are different from
+	 * the normally MIME-encoded subjects and bodies described above. Defaults to {@value #DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT}. The bundled Angus adapter
+	 * still uses advertised SMTPUTF8/8BITMIME extensions when available; otherwise it attempts the unchanged submission without automatically adding
+	 * unadvertised extension parameters. This operates outside negotiated SMTPUTF8/8BITMIME guarantees. Rejection is reported normally, without a retry
+	 * that changes the address or content.
+	 * <p>
+	 * This does not rewrite addresses or exact/signed content, bypass malformed/binary-content checks, weaken TLS or REQUIRETLS, or relax explicit DSN
+	 * requirements. It does not override explicitly disabled UTF-8 encoding. Repeated calls replace the choice; {@code false} disables the opt-in.
+	 * In a shared connection pool, the selected server's Mailer configuration applies. CustomMailer and third-party providers retain their own behavior.
+	 * Caller-owned ordinary Angus Sessions retain their Session-wide SMTPUTF8 declaration behavior. Library-owned stock Angus Sessions negotiate
+	 * per message, also with custom socket factories; the factories and their settings are preserved without adding physical-abort support.
+	 *
+	 * @param enabled Whether to try the original address and content even when this verified legacy server does not announce the required support.
+	 * @see OperationalConfig#isLegacySmtpContentSupportEnabled()
+	 * @see <a href="https://www.rfc-editor.org/rfc/rfc6531.html#section-3.2">SMTPUTF8 negotiation</a>
+	 * @see <a href="https://www.rfc-editor.org/rfc/rfc6152.html#section-3">8BITMIME negotiation</a>
+	 */
+	T withLegacySmtpContentSupport(boolean enabled);
 
 	/**
 	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
@@ -1003,6 +1043,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	String getSmtpClientHostname();
+
+	/** @see #withLegacySmtpContentSupport(boolean) */
+	boolean isLegacySmtpContentSupportEnabled();
 
 	/**
 	 * @see #withEmailValidator(EmailValidator)

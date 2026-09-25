@@ -74,9 +74,11 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                         expandedEnvelopeRecipients);
                 final String envelopeId = resolveEnvelopeIdentifier(supportsDsn, preparedMail.getDeliveryEnvelope(), existingMailExtension,
                         expandedEnvelopeRecipients);
-                final MimeMessage message = resolveMessageForTransport(preparedMail,
-                        mailExtensionWithRequireTls(existingMailExtension.value, requireTlsSelected), envelopeId, recipientCommands,
-                        requireTlsSelected);
+                final String mailExtensionWithRequireTls = mailExtensionWithRequireTls(existingMailExtension.value, requireTlsSelected);
+                final AngusMailFromParameters mailFromParameters = AngusContentNegotiation.resolveMailParameters(smtpTransport, preparedMail, protocol,
+                        mailExtensionWithRequireTls, existingMailExtension.sourceDescription, expandedEnvelopeRecipients);
+                final MimeMessage message = resolveMessageForTransport(preparedMail, mailFromParameters, envelopeId, recipientCommands,
+                        requireTlsSelected, smtpTransport instanceof ManagedAngusTransport);
                 final MailTransportResult result = sendWithRecipientReporting(smtpTransport, message, preparedMail, expandedEnvelopeRecipients);
                 if (!(message instanceof AngusSmtpMessage)) {
                     return result;
@@ -272,13 +274,14 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
     @NotNull
     private static MimeMessage resolveMessageForTransport(@NotNull final PreparedMail preparedMail,
-            @Nullable final String existingMailExtension, @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
-            final boolean requireTlsSelected)
+            @NotNull final AngusMailFromParameters mailFromParameters, @Nullable final String envelopeId,
+            @Nullable final AngusRecipientCommands recipientCommands, final boolean requireTlsSelected, final boolean managedTransport)
             throws MessagingException {
         final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-        return recipientCommands != null || envelopeId != null || requireTlsSelected || envelope.hasProviderSpecificOptions()
+        return managedTransport || recipientCommands != null || envelopeId != null || requireTlsSelected
+                || mailFromParameters.getMailExtension() != null || envelope.hasProviderSpecificOptions()
                 || preparedMail.getContentRequirement() != ContentRequirement.NORMAL
-                ? new AngusSmtpMessage(preparedMail, existingMailExtension, envelopeId, recipientCommands, requireTlsSelected)
+                ? new AngusSmtpMessage(preparedMail, mailFromParameters, envelopeId, recipientCommands, requireTlsSelected)
                 : preparedMail.getMimeMessage();
     }
 
@@ -333,24 +336,27 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         private final MimeMessage delegate;
         private final ContentRequirement contentRequirement;
+        private final AngusMailFromParameters mailFromParameters;
         @Nullable private final AngusRecipientCommands recipientCommands;
         @Nullable private final String selectedEnvelopeId;
         @Nullable private String envelopeIdUsed;
         private final boolean requireTlsSelected;
         private boolean requireTlsUsed;
 
-        AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @Nullable final String existingMailExtension,
+        AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @NotNull final AngusMailFromParameters mailFromParameters,
                 @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
                 final boolean requireTlsSelected) throws MessagingException {
             super(sessionOf(preparedMail.getMimeMessage()));
             this.delegate = preparedMail.getMimeMessage();
             this.contentRequirement = preparedMail.getContentRequirement();
+            this.mailFromParameters = mailFromParameters;
             this.recipientCommands = recipientCommands;
             this.selectedEnvelopeId = envelopeId;
             this.requireTlsSelected = requireTlsSelected;
             copyHeaders(delegate, this);
             retainProviderOptions(delegate);
-            super.setMailExtension(envelopeId == null ? existingMailExtension : mailExtensionWithEnvelopeId(envelopeId, existingMailExtension));
+            super.setMailExtension(envelopeId == null ? mailFromParameters.getMailExtension()
+                    : mailExtensionWithEnvelopeId(envelopeId, mailFromParameters.getMailExtension()));
 
             final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
             if (envelope.getEnvelopeFrom() != null) {
@@ -381,6 +387,10 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Nullable
         AngusRecipientCommands getRecipientCommands() {
             return recipientCommands;
+        }
+
+        AngusMailFromParameters getMailFromParameters() {
+            return mailFromParameters;
         }
 
         /**
