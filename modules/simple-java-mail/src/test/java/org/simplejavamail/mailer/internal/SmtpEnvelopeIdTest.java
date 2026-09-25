@@ -655,9 +655,9 @@ class SmtpEnvelopeIdTest {
         try (PeerServer server = new PeerServer(1, peer -> {
             peer.greet(supportsDsn ? "250-localhost\r\n250-DSN\r\n250 8BITMIME" : "250-localhost\r\n250 8BITMIME");
             if (supportsDsn) {
-                readGeneratedEnvelopeId(peer, MAIL_FROM);
+                readGeneratedEnvelopeId(peer, MAIL_FROM + " BODY=8BITMIME");
             } else {
-                expectCommand(peer, MAIL_FROM);
+                expectCommand(peer, MAIL_FROM + " BODY=8BITMIME");
             }
             final String content = acceptMessageAfterMailFrom(peer, "", RECIPIENT);
             assertThat(content).contains("Content-Transfer-Encoding: 8bit").doesNotContain("Content-Transfer-Encoding: quoted-printable");

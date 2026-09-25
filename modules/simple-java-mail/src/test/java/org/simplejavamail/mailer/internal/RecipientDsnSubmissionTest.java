@@ -112,9 +112,8 @@ class RecipientDsnSubmissionTest {
         }
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void unmanagedTransportRejectsRecipientPreferencesButRetainsSharedDsn(final boolean customSocketFactory) throws Exception {
+    @Test
+    void callerOwnedTransportRejectsRecipientPreferencesButRetainsSharedDsn() throws Exception {
         try (PeerServer server = new PeerServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
@@ -126,15 +125,30 @@ class RecipientDsnSubmissionTest {
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             properties.setProperty("mail.smtp.dsn.notify", "FAILURE");
-            final MailerGenericBuilder<?> mailerBuilder = customSocketFactory
-                    ? builder(server).withProperty("mail.smtp.socketFactory", SocketFactory.getDefault()).withProperty("mail.smtp.dsn.notify", "FAILURE")
-                    : mail.mailerBuilder(Session.getInstance(properties)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+            final MailerGenericBuilder<?> mailerBuilder = mail.mailerBuilder(Session.getInstance(properties))
+                    .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
             try (Mailer mailer = mailerBuilder.buildMailer()) {
                 final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(recipient(RecipientType.TO, NEVER))));
                 assertThat(failure).hasCauseInstanceOf(MailTransportCompatibilityException.class);
                 mailer.sync().sendMail(email(recipient(RecipientType.TO)));
                 assertThat(properties.getProperty("mail.smtp.dsn.notify")).isEqualTo("FAILURE");
             }
+        }
+    }
+
+    @Test
+    void customSocketFactoryRetainsManagedRecipientPoliciesWithoutReplacingTheFactory() throws Exception {
+        final SocketFactory socketFactory = SocketFactory.getDefault();
+        final Properties properties = new Properties();
+        properties.put("mail.smtp.socketFactory", socketFactory);
+        try (PeerServer server = new PeerServer(1, peer -> {
+            peer.greet(DSN);
+            readGeneratedEnvelopeId(peer, MAIL_FROM);
+            acceptRecipients(peer, command(ADDRESS, "NEVER"));
+            finishConnection(peer);
+        }); Mailer mailer = builder(server).withProperties(properties).buildMailer()) {
+            assertThat(mailer.sync().sendMail(email(recipient(RecipientType.TO, NEVER))).getStatus()).isEqualTo(ACCEPTED);
+            assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory")).isSameAs(socketFactory);
         }
     }
 
@@ -175,20 +189,29 @@ class RecipientDsnSubmissionTest {
     void simultaneousWorkersAndRepeatedAttemptsDoNotSharePoliciesOrResponses() throws Exception {
         final CountDownLatch connected = new CountDownLatch(2);
         final CyclicBarrier submissions = new CyclicBarrier(2);
+        final AtomicInteger submitted = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (PeerServer server = new PeerServer(2, peer -> {
             peer.greet(DSN);
             connected.countDown();
             assertThat(connected.await(10, SECONDS)).isTrue();
-            for (int index = 0; index < 3; index++) {
-                final String command = nextCommand(peer);
-                submissions.await(10, SECONDS);
+            boolean firstSubmission = true;
+            String command = nextCommand(peer);
+            while (!"QUIT".equals(command)) {
+                if (firstSubmission) {
+                    submissions.await(10, SECONDS);
+                    firstSubmission = false;
+                }
+                // Leases are not pinned to workers: either connection may handle more of the later rounds.
+                assertThat(submitted.incrementAndGet()).isLessThanOrEqualTo(6);
                 assertThat(command).startsWith(MAIL_FROM + " ENVID=");
                 final String preference = command.substring(command.lastIndexOf('=') + 1);
                 assertThat(preference).isIn("NEVER", "SUCCESS");
                 acceptRecipients(peer, command(ADDRESS, preference));
+                command = nextCommand(peer);
             }
-            finishConnection(peer);
+            peer.reply("221 bye");
+            peer.expectClosed();
         }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withMailSendObserver(outcomes::add).buildMailer()) {
             for (int round = 0; round < 3; round++) {
                 final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
@@ -203,6 +226,7 @@ class RecipientDsnSubmissionTest {
                 }
             }
             assertThat(outcomes).hasSize(6);
+            assertThat(submitted).hasValue(6);
         }
     }
 
@@ -305,7 +329,8 @@ class RecipientDsnSubmissionTest {
                 finishConnection(peer);
             }
         }); Mailer mailer = builder(server).withProperty("mail.smtp.sendpartial", "true").buildMailer()) {
-            final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(recipient(RecipientType.TO, SUCCESS), recipient(RecipientType.TO, NEVER))));
+            final Throwable failure = catchThrowable(() ->
+                    mailer.sync().sendMail(email(recipient(RecipientType.TO, SUCCESS), recipient(RecipientType.TO, NEVER))));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
             final MailSubmissionReceipt rejected = ((MailSubmissionException) failure).getSubmissionReceipt();
             assertThat(rejected.getStatus()).isEqualTo(PARTIALLY_ACCEPTED);
@@ -415,7 +440,8 @@ class RecipientDsnSubmissionTest {
         final Email email = mail.emailBuilder().copying(email(recipient(RecipientType.TO, NEVER)))
                 .withHeader("To", "additional@example.test").buildEmailCompletedWithDefaultsAndOverrides();
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolCoreSize(0).buildMailer()) {
-            final Throwable preparationFailure = catchThrowable(() -> SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), email));
+            final Throwable preparationFailure = catchThrowable(() ->
+                    SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), email));
             assertThat(preparationFailure).isInstanceOf(MailTransportCompatibilityException.class)
                     .hasMessageContaining("final SMTP recipient list has 2 entries")
                     .hasMessageContaining("Email recipient list has 1")
@@ -450,7 +476,9 @@ class RecipientDsnSubmissionTest {
     }
 
     private MailerRegularBuilder<?> builder(final PeerServer server) {
+        // Message-ID generation must not wait for machine-hostname lookup while a reusable lease can expire.
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
+                .withProperty("mail.from", "sender@example.test")
                 .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(10000);
     }
 

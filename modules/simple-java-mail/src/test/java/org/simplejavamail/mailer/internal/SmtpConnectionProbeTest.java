@@ -254,6 +254,7 @@ class SmtpConnectionProbeTest {
     void callerCanInspectSynchronouslyOrAsynchronouslyWithoutChangingSessionOrNotifyingObservers(final boolean async) throws Exception {
         final Session session = session(false);
         final AtomicInteger observations = new AtomicInteger();
+        session.getProperties().setProperty("mail.mime.allowutf8", "true");
         try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.quit(); });
              Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).withMailSendObserver(outcome -> observations.incrementAndGet()).buildMailer()) {
             final Properties before = (Properties) session.getProperties().clone();

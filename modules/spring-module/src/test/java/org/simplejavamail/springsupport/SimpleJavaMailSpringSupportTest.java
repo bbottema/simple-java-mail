@@ -51,6 +51,8 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(config.getBooleanProperty(ConfigLoader.Property.DEFAULT_REQUIRE_TLS)).isTrue(); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo("STDERR"); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.spring.example.com"); // from Spring application.properties
+		assertThat(config.getBooleanProperty(ConfigLoader.Property.SMTP_LEGACY_CONTENT_SUPPORT)).isTrue();
+		assertThat(defaultMailer.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isTrue();
 		assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties
 		assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
 		assertThat(config.<Duration>getProperty(ConfigLoader.Property.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));

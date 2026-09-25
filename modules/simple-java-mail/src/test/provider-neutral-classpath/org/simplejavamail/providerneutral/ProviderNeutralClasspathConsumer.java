@@ -102,6 +102,7 @@ public final class ProviderNeutralClasspathConsumer {
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertLegacyContentSupportApiIsAvailable(simpleJavaMail);
 		assertAsyncQueueApiIsAvailable(simpleJavaMail);
 		assertExecutionControlApiIsAvailable(simpleJavaMail, source);
 		assertUnknownTransportFailureApiIsAvailable();
@@ -116,6 +117,15 @@ public final class ProviderNeutralClasspathConsumer {
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** Server compatibility permission must be usable without depending on the bundled provider. */
+	private static void assertLegacyContentSupportApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		if (!simpleJavaMail.mailerBuilder().withLegacySmtpContentSupport(true).isLegacySmtpContentSupportEnabled()) {
+			throw new AssertionError("Legacy SMTP content support was not retained by the builder");
+		}
+		@SuppressWarnings("unused") final Function<Mailer, Boolean> configured = mailer -> mailer.getOperationalConfig().isLegacySmtpContentSupportEnabled();
+		@SuppressWarnings("unused") final Function<PreparedMail, Boolean> selected = PreparedMail::isLegacySmtpContentSupportEnabled;
 	}
 
 	/** Recipient policies and their ordered SPI representation must not load Angus. */

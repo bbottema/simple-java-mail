@@ -131,7 +131,7 @@ class AngusSubmissionResultTest {
 		reply.setNextException(new SMTPAddressSucceededException(second, "RCPT TO:<second@example.org>", 250, "250 second"));
 		final ProbeTransport transport = new ProbeTransport(session);
 		transport.checkedFailure = new SMTPSendFailedException(".", 250, "250 queued", reply, new Address[]{first, second}, null, null);
-		final PreparedMail mail = new PreparedMail(new MimeMessage(session),
+		final PreparedMail mail = new PreparedMail(messageWithBody(session),
 				new Address[]{new InternetAddress("Group: first@example.org, second@example.org;")}, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
 		final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, mail);
 		assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
@@ -157,7 +157,7 @@ class AngusSubmissionResultTest {
 	void reportingPreferenceIsRestoredAfterSuccessAndBothKindsOfFailure(final boolean originalPreference) throws Exception {
 		final Session session = Session.getInstance(new Properties());
 		final InternetAddress address = new InternetAddress("recipient@example.org");
-		final PreparedMail mail = new PreparedMail(new MimeMessage(session), new Address[]{address},
+		final PreparedMail mail = new PreparedMail(messageWithBody(session), new Address[]{address},
 				new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
 		final ProbeTransport transport = new ProbeTransport(session);
 		transport.setReportSuccess(originalPreference);
@@ -173,6 +173,13 @@ class AngusSubmissionResultTest {
 		assertThatThrownBy(() -> adapter.sendMessage(transport, mail)).isSameAs(transport.uncheckedFailure);
 		assertThat(transport.getReportSuccess()).isEqualTo(originalPreference);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.reportsuccess");
+	}
+
+	private static MimeMessage messageWithBody(final Session session) throws MessagingException {
+		final MimeMessage message = new MimeMessage(session);
+		message.setText("body");
+		message.saveChanges();
+		return message;
 	}
 
 	private static final class ProbeTransport extends SMTPTransport {

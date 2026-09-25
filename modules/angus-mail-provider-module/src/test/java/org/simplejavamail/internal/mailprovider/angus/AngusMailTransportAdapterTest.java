@@ -44,7 +44,7 @@ class AngusMailTransportAdapterTest {
     @CsvSource({"plain-id, plain-id", "order +42=, order+20+2B42+3D", "id RET=FULL, id+20RET+3DFULL", "+20, +2B20"})
     void envelopeIdentifiersUseAngusXtextWithoutChangingTheReportedValue(final String identifier, final String encodedIdentifier) throws Exception {
         final AngusMailTransportAdapter.AngusSmtpMessage facade = new AngusMailTransportAdapter.AngusSmtpMessage(
-                preparedMail(), "XTEST=keep", identifier, null, false);
+                preparedMail(), new AngusMailFromParameters(false, "XTEST=keep"), identifier, null, false);
 
         assertThat(facade.getMailExtension()).isEqualTo("XTEST=keep ENVID=" + encodedIdentifier);
         assertThat(facade.getEnvelopeIdUsed()).isEqualTo(identifier);
@@ -408,7 +408,10 @@ class AngusMailTransportAdapterTest {
             }
         };
         final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().envelopeId("direct-id").build();
-        final PreparedMail preparedMail = new PreparedMail(new MimeMessage(session), recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
+        final MimeMessage message = new MimeMessage(session);
+        message.setText("body");
+        message.saveChanges();
+        final PreparedMail preparedMail = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
 
         assertThat(new AngusMailTransportAdapter().sendMessage(transport, preparedMail).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
     }
@@ -419,6 +422,8 @@ class AngusMailTransportAdapterTest {
         properties.setProperty("mail.smtps.mailextension", "XTEST=secure");
         properties.setProperty("mail.smtp.mailextension", "ENVID=unused-protocol");
         final MimeMessage message = new MimeMessage(Session.getInstance(properties));
+        message.setText("body");
+        message.saveChanges();
         final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().envelopeId("smtps-id").build();
         final PreparedMail preparedMail = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
 
@@ -451,7 +456,8 @@ class AngusMailTransportAdapterTest {
         final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(new ManagedAngusTransport(message.getSession(), null), preparedMail, true);
 
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, "protected+42", recipientCommands, false);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail,
+                        new AngusMailFromParameters(false, null), "protected+42", recipientCommands, false);
 
         assertThat(facade.getEnvelopeFrom()).isEqualTo("bounce@example.com");
         assertThat(facade.getNotifyOptions()).isEqualTo(SMTPMessage.NOTIFY_FAILURE | SMTPMessage.NOTIFY_DELAY);
@@ -467,7 +473,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null, false);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final byte[] before = bytes(facade);
 
         facade.saveChanges();
@@ -490,7 +496,7 @@ class AngusMailTransportAdapterTest {
         final PreparedMail preparedMail = new PreparedMail(message, recipients(),
                 new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
-                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, null, null, null, false);
+                new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         facade.writeTo(output, new String[] {"Bcc", "Content-Length"});

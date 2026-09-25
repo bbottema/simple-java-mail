@@ -8,6 +8,7 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -48,6 +49,14 @@ class CliMailerProfileTest {
 
 		assertThat(first).isNotEqualTo(changed);
 		assertThat(changed.toString()).doesNotContain(keyFile.toString(), "replacement-key-material");
+	}
+
+	@Test
+	void legacyContentPermissionSeparatesDaemonMailerProfiles() {
+		final ConfigLoader.Property property = ConfigLoader.Property.SMTP_LEGACY_CONTENT_SUPPORT;
+		final CliMailerProfile strict = profile(ConfigLoader.builder().withMap(Map.of(property.key(), false)).load(), new byte[32]);
+		final CliMailerProfile legacy = profile(ConfigLoader.builder().withMap(Map.of(property.key(), true)).load(), new byte[32]);
+		assertThat(strict).isNotEqualTo(legacy);
 	}
 
 	private CliMailerProfile profile(final SimpleJavaMailConfig config, final byte[] daemonKey) {

@@ -2,6 +2,7 @@ package org.simplejavamail.springsupport;
 
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.config.ConfigDiagnostics;
+import org.simplejavamail.config.ConfigDiagnosticGroup;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
@@ -18,6 +19,21 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+	@Test
+	void resolvesLegacyContentPermissionWithSpringPrecedenceAndVisibleTypedDiagnostics() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		final ConfigLoader.Property property = ConfigLoader.Property.SMTP_LEGACY_CONTENT_SUPPORT;
+		environment.getPropertySources().addFirst(source("defaults", property.key(), "true"));
+		environment.getPropertySources().addFirst(source("production", property.key(), "false"));
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		assertThat(config.getBooleanProperty(property)).isFalse();
+		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), property.key());
+		assertThat(diagnostic.getDisplayValue()).isEqualTo("false");
+		assertThat(diagnostic.getSourceName()).isEqualTo("production");
+		assertThat(diagnostic.isRedacted()).isFalse();
+		assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.SMTP_CONNECTION);
+	}
+
 	@Test
 	void resolvesQueueSettingsWithSpringPrecedenceAndTypedDiagnostics() {
 		final StandardEnvironment environment = new StandardEnvironment();

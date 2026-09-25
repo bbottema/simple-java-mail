@@ -77,6 +77,14 @@ public class SpringModulePackagingTest {
 		}
 	}
 
+	@Test
+	void legacyContentPermissionHasBooleanIdeMetadata() throws IOException, URISyntaxException {
+		final String metadata = readUtf8(new File(productionRoot(), CONFIGURATION_METADATA));
+		final int propertyStart = metadata.indexOf("\"name\": \"simplejavamail.smtp.legacycontentsupport\"");
+		assertThat(propertyStart).isNotNegative();
+		assertThat(metadata.substring(propertyStart, metadata.indexOf('}', propertyStart))).contains("\"type\": \"java.lang.Boolean\"");
+	}
+
 	private static String readUtf8(final File file) throws IOException {
 		return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
 	}
