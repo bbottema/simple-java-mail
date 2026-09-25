@@ -214,6 +214,41 @@ sjm send --email:startingFromExactEml ready-to-send.eml --email:withEnvelopeReci
 Relative paths resolve against the invoking client's working directory. See the exact EML feature guide and
 `modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java` for a manually runnable Java example.
 
+## SMTP content compatibility is checked before submission
+
+Ordinary Unicode subjects, display names and bodies retain normal MIME encoding. Most applications need no change.
+
+Compared with released 9.x versions, the bundled Angus adapter now checks internationalized envelope addresses, raw UTF-8 headers and raw 8-bit body
+bytes against the actual connection's advertised capabilities before submission. A previously working send to a tolerant server that does not advertise
+SMTPUTF8 or 8BITMIME can therefore now fail with `MailSubmissionException` and a `MailTransportCompatibilityException` cause before `MAIL FROM`.
+
+Prefer a server that advertises the needed capabilities. If you have verified that the existing server and its onward delivery route preserve the
+original content without advertising them, explicitly retain that legacy behavior:
+
+```java
+mailerBuilder.withLegacySmtpContentSupport(true);
+```
+
+```properties
+simplejavamail.smtp.legacycontentsupport=true
+```
+
+This permission defaults to false and applies to the actual selected server's configuration, including shared clusters. It attempts unchanged content
+without automatically adding an unadvertised extension. It does not guarantee onward preservation or delivery, relax security requirements, replace
+mailbox characters, or retry rejected messages with changed content.
+
+Library-owned stock Angus Sessions now enable UTF-8 encoding before MIME and transport creation. The managed transport declares SMTPUTF8 per message,
+rather than whenever UTF-8 output is enabled. Explicit `mail.mime.allowutf8=false` and caller-owned Sessions retain their settings. If an existing
+internationalized send fails because UTF-8 output is disabled, remove that override or enable it before creating transports. Caller-owned ordinary Angus
+transports keep Angus's Session-wide declaration behavior.
+
+SMTP fixtures using Angus's `mail.smtp.allow8bitmime` or `mail.smtps.allow8bitmime` conversion should now expect `BODY=8BITMIME` when conversion can
+produce raw 8-bit body bytes and the server advertises support. A body labelled `8bit` but containing only ASCII does not itself require the extension.
+
+Malformed UTF-8 headers, binary transfer encoding, NUL body bytes and body lines exceeding 998 bytes (excluding CRLF) now fail locally. Regenerate
+invalid source headers and use Base64 or quoted-printable for unsuitable bodies before signing or loading final bytes. Legacy permission does not
+bypass these checks, and protected content is not rewritten.
+
 ## Configuration is now an immutable snapshot
 
 `ConfigLoader` no longer owns mutable static state. An instance loader resolves ordered sources into a detached `SimpleJavaMailConfig`, which you then give to a `SimpleJavaMail` factory.
@@ -646,7 +681,8 @@ envelope recipient, including BCC and override receivers. Update SMTP fixtures t
 
 Message-ID and MIME bytes are unchanged, and no round trips are added. Servers without DSN support receive neither automatic parameter.
 ORCPT is omitted when an address cannot be represented safely or exceeds the encoded parameter limit. Ordinary Angus transports obtained from
-caller-owned Sessions or custom socket factories do not gain automatic ORCPT; direct Jakarta Mail sends and `CustomMailer` keep their existing
+caller-owned Sessions do not gain automatic ORCPT; custom socket factories on library-owned stock Angus Sessions retain the managed hook.
+Direct Jakarta Mail sends and `CustomMailer` keep their existing
 envelope handling. See the [provider boundaries](https://www.simplejavamail.org/features.html#section-dsn-recipients).
 
 ## Compatibility notes

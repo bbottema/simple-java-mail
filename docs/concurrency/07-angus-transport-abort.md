@@ -27,7 +27,7 @@ This is provider integration, not behavior guaranteed by the Jakarta Mail API. T
 
 `ServiceLoader` discovers the lifecycle adapter through the module's [service registration](../../modules/angus-mail-provider-module/src/main/resources/META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter). The resolver rejects multiple matching lifecycle adapters; finding a capability must not connect or acquire a resource.
 
-For a newly created SJM-owned Session using the stock Angus SMTP/SMTPS provider, configuration installs `AngusSocketFactory` and selects `ManagedAngusTransport`. Socket-factory fallback is disabled so an aborted tracked socket cannot be silently replaced by an untracked fallback connection. An application-provided ordinary or SSL socket factory is left untouched and does not acquire this capability by assumption.
+For a newly created SJM-owned Session using the stock Angus SMTP/SMTPS provider, configuration selects `ManagedAngusTransport` for protocol handling. It also installs `AngusSocketFactory` when no application socket factory is configured. In that tracked-socket case, fallback is disabled so an aborted socket cannot be silently replaced by an untracked connection. Application-provided ordinary or SSL socket factories and their settings stay untouched: managed protocol hooks still apply, but physical-abort support remains unavailable.
 
 ## Physical connection state
 
@@ -97,7 +97,7 @@ This diagram is intentionally a summary: `AngusSubmissionResult` combines final 
 
 | Identity | Protected state or operation | Rules for callers |
 |---|---|---|
-| The actual `SMTPTransport` monitor | Angus protocol operations; SJM `commitPossible`, `readingFinalResponse`, `sending`, `pendingRecipient`, `finalResponse`, `recipientResponses`; temporary `reportSuccess` change and result capture | `AngusMailTransportAdapter` holds this monitor across sending, classification and restoration. Hook methods/getters rely on that caller-held monitor even where not declared `synchronized`. |
+| The actual `SMTPTransport` monitor | Angus protocol operations; SJM `commitPossible`, `readingFinalResponse`, `sending`, `pendingRecipientIndex`, `finalResponse`, `recipientResponses`, `activeRecipientCommands`, `activeMailFromParameters`; temporary `reportSuccess` change and result capture | `AngusMailTransportAdapter` holds this monitor across sending, classification and restoration. Hook methods/getters rely on that caller-held monitor even where not declared `synchronized`. Submission choices are cleared in `finally` before another borrower can use the transport. |
 | `AtomicReference<Socket> rawSocket` | Publication/read of the currently tracked physical socket handle | Abort reads it without waiting for SMTP state. Socket closure can race safely with connect/write/read. It does not protect Angus's response fields. |
 | `AtomicBoolean aborted` | Permanent abort latch | Set before reading/closing the socket. Socket publication checks it after storing the socket. |
 | Per-`AngusSocketFactory` `ThreadLocal<ManagedAngusTransport>` | Which transport is currently connecting on this thread | Set only around `protocolConnect()` and restored in `finally`; identifies ownership absent from `SocketFactory.createSocket()` arguments. It is not a per-email global map. |
@@ -156,7 +156,7 @@ sequenceDiagram
 - `MailTransportAdapter` provides submission facts; `MailTransportLifecycleAdapter` provides connection-abort capability. Supporting one does not imply supporting the other.
 - A different provider can implement the same SPI contract. The managed-Angus hooks and their detailed boundary observations are not automatically available when swapping providers.
 - Caller-owned Sessions are not rewritten. A timeout is allowed only if their selected transport genuinely exposes an abort action; a stock caller-created Angus Session does not automatically become managed.
-- An SJM-owned Session with custom socket factories is left untouched. Unsupported total-timeout configurations fail before connecting. Untimed cooperative sending remains possible.
+- An SJM-owned stock Angus Session with custom socket factories retains those factories and their settings. Managed protocol hooks still apply, but opaque factories do not gain physical-abort support. Unsupported total-timeout configurations fail before connecting. Untimed cooperative sending remains possible.
 - `CustomMailer` owns its transport: SJM cannot install physical abort in that callback, and a configured total timeout is rejected except in logging-only mode. It does not invalidate the callback's successful return solely because a request arrived late. `withOpenConnection` does not accept `CustomMailer` at all.
 - Simple batches hold one direct connection and control; open-connection scope uses separate opening/per-email controls. Their observers run per reached email before the shared connection is closed, unlike ordinary pooled-send completion.
 - `ACCEPTED` is SMTP acceptance, not final delivery. After possible commit with a missing final response, retrying may duplicate the email; no automatic retry is introduced here.
