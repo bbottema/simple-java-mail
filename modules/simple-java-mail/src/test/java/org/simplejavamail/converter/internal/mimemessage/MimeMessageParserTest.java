@@ -27,9 +27,6 @@ import testutil.EmailHelper;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Properties;
 
 import static jakarta.mail.Message.RecipientType.TO;
@@ -62,9 +59,7 @@ public class MimeMessageParserTest {
 		assertThat(mimeMessageParts.getReplyToAddresses().getPersonal()).isEqualTo(originalEmail.getFromRecipient().getName());
 		assertThat(mimeMessageParts.getReplyToAddresses().getAddress()).isEqualTo(originalEmail.getFromRecipient().getAddress());
 
-		GregorianCalendar receiveWindowStart = new GregorianCalendar();
-		receiveWindowStart.add(Calendar.SECOND, -5);
-		assertThat(mimeMessageParts.getSentDate()).isBetween(receiveWindowStart.getTime(), new Date());
+		assertThat(mimeMessageParts.getSentDate()).isNotNull().isEqualTo(mimeMessage.getSentDate());
 
 		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("<thumbsup>", "<fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
 		assertThat(mimeMessageParts.getAttachmentList()).extracting("name").containsOnly("dresscode.txt", "location.txt", "fixedNameWithoutFileExtensionForNamedAttachment.txt");

@@ -277,8 +277,10 @@ class SmtpRecipientRepliesTest {
 	}
 
 	private static MailerRegularBuilder<?> builder(final RecipientSmtpServer server) {
+		// Keep EHLO and Message-ID hostname lookup outside batch completion and pooled-attempt timing.
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.port())
+				.withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
 				.withSessionTimeout(1200)
 				.withConnectionPoolClaimTimeoutMillis(5000)
 				.withProperty("mail.smtp.connectiontimeout", 3000).withProperty("mail.smtp.timeout", 1200)

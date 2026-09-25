@@ -178,8 +178,10 @@ class SmtpDsnCharacterizationTest {
     }
 
     private static MailerRegularBuilder<?> mailerBuilder(final int port) {
+        // Message-ID hostname lookup must not consume the idle lease's lifetime between these pooled sends.
         return factory().mailerBuilder().withSMTPServer("localhost", port)
                 .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
+                .withProperty("mail.from", "sender@example.test")
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000);
     }
 

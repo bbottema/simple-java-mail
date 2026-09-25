@@ -42,6 +42,9 @@ class AngusCancellationBoundaryTest {
             final Properties properties = new Properties();
             properties.setProperty("mail.smtp.timeout", "5000");
             properties.setProperty("mail.smtp.connectiontimeout", "5000");
+            // Keep EHLO and Message-ID hostname lookup outside the cancellation test's timing budget.
+            properties.setProperty("mail.smtp.localhost", "probe.example.test");
+            properties.setProperty("mail.from", "sender@example.org");
             final Session session = Session.getInstance(properties);
             try (SMTPTransport transport = new SMTPTransport(session, null)) {
                 transport.connect(server.getInetAddress().getHostAddress(), server.getLocalPort(), null, null);

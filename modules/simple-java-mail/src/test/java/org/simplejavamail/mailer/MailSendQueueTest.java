@@ -311,8 +311,9 @@ class MailSendQueueTest {
     }
 
     private static MailerRegularBuilder<?> builder(final CustomMailer transport) {
+        // Keep Message-ID hostname lookup outside queue admission and completion timing.
         return SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder()
-                .withCustomMailer(transport).withThreadPoolSize(1);
+                .withProperty("mail.from", "sender@example.org").withCustomMailer(transport).withThreadPoolSize(1);
     }
 
     private static Email email(final String subject) {

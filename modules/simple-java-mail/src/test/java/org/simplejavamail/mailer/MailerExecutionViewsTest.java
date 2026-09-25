@@ -110,8 +110,10 @@ class MailerExecutionViewsTest {
 	}
 
 	private static MailerRegularBuilder<?> builder(final CustomMailer transport) {
+		// Keep Message-ID hostname lookup outside the latch budget for reaching the custom transport.
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", 25).withThreadPoolSize(1).withConnectionPoolCoreSize(0).withCustomMailer(transport);
+				.withSMTPServer("localhost", 25).withProperty("mail.from", "sender@example.org")
+				.withThreadPoolSize(1).withConnectionPoolCoreSize(0).withCustomMailer(transport);
 	}
 
 	private static Email email(final String subject) {

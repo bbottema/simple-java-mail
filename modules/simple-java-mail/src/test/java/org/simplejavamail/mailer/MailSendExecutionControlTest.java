@@ -196,16 +196,17 @@ class MailSendExecutionControlTest {
     void inlineObserversBetweenBatchEmailsDoNotConsumeTheBatchBudget() throws Exception {
         final AtomicInteger callbacks = new AtomicInteger();
         try (BlockedSmtpServer server = new BlockedSmtpServer("DELAY");
-             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofMillis(1500)).withMailSendObserver(outcome -> {
+             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(3)).withMailSendObserver(outcome -> {
                  if (callbacks.incrementAndGet() == 1) {
                      try {
-                         new CountDownLatch(1).await(1800, MILLISECONDS);
+                         // Still outlast the whole budget, with enough network-time headroom for parallel test forks.
+                         new CountDownLatch(1).await(3500, MILLISECONDS);
                      } catch (InterruptedException interrupted) {
                          Thread.currentThread().interrupt();
                      }
                  }
              }).buildMailer()) {
-            mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"))).getCompletion().get(5, SECONDS);
+            mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"))).getCompletion().get(10, SECONDS);
             assertThat(callbacks).hasValue(2);
         }
     }
@@ -247,7 +248,8 @@ class MailSendExecutionControlTest {
     @ValueSource(strings = {"GREETING", "EHLO", "AUTH", "MAIL FROM:", "RCPT TO:", "DATA", "."})
     void deadlineAbortsBlockedIoLongBeforeTheSocketTimeout(final String phase) throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer(phase);
-             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofMillis(500)).buildMailer()) {
+             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(2)).buildMailer()) {
+            // Reach the intended blocked I/O despite parallel fork startup; the socket's own timeout is still 30 seconds.
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("deadline"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             assertThat(failure(send)).isInstanceOf(MailSendTimeoutException.class);
@@ -346,9 +348,11 @@ class MailSendExecutionControlTest {
     }
 
     private static MailerRegularBuilder<?> builder(final BlockedSmtpServer server) {
+        // Keep Message-ID and EHLO hostname lookup out of tests that budget time for specific SMTP phases.
         final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
                 .withTransportStrategy(TransportStrategy.SMTP).withOpportunisticTLS(false)
                 .withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.listener.getLocalPort())
+                .withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
                 .withSessionTimeout(30000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
                 .withConnectionPoolClaimTimeoutMillis(5000);
         if (server.phase.equals("AUTH")) {

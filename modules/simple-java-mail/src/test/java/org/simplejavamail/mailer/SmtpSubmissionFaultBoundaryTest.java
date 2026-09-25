@@ -196,8 +196,10 @@ class SmtpSubmissionFaultBoundaryTest {
 			final boolean reportSuccess,
 			final String... recipients) throws Exception {
 		try (ScriptedSmtpServer smtpServer = new ScriptedSmtpServer(scenario, recipients.length)) {
+			// Machine-hostname lookup must not consume the scripted peer's SMTP fault-boundary budget.
 			final MailerRegularBuilder<?> mailerBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), smtpServer.getPort())
+					.withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
 					.withProperty("mail.smtp.connectiontimeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.timeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.writetimeout", IO_TIMEOUT_MILLIS)
