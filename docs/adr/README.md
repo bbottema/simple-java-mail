@@ -29,6 +29,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0021](0021-mandatory-starttls-configuration-consistency.md) | Reject extra properties that contradict a mandatory STARTTLS strategy. | Accepted, retrospective | Implemented for unreleased 10.0.0. |
 | [0022](0022-dsn-identifiers-belong-to-send-attempts.md) | Generate ENVID per send attempt and report it outside MIME content. | Accepted, 2026-09-17 | Accepted for unreleased 10.0.0. |
 | [0023](0023-per-message-requiretls.md) | Keep onward REQUIRETLS on Email, separate from connection TLS, and reject sends that cannot honor it. | Accepted, 2026-09-17 | Implemented and accepted for unreleased 10.0.0 under #741. |
+| [0024](0024-builder-interfaces-are-not-extension-spis.md) | Treat all builder interfaces as library-owned API contracts, not extension SPIs. | Accepted, 2026-09-18 | Existing architectural intent recorded as project policy. |
 
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
@@ -45,7 +46,8 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 
 | Topic | Architectural decisions and supporting documentation |
 | --- | --- |
-| API expansion | [0001](0001-email-configuration-scopes-and-inheritance.md), [0002](0002-email-defaults-and-overrides.md), [0003](0003-immutable-configuration-snapshots.md), [0005](0005-spring-integration-and-boot-compatibility.md), [0018](0018-cli-from-builder-contracts.md); implementation coverage belongs to the [workflow](../../API_EXPANSION_WORKFLOW.md). |
+| API expansion | [0001](0001-email-configuration-scopes-and-inheritance.md), [0002](0002-email-defaults-and-overrides.md), [0003](0003-immutable-configuration-snapshots.md), [0005](0005-spring-integration-and-boot-compatibility.md), [0018](0018-cli-from-builder-contracts.md), [0024](0024-builder-interfaces-are-not-extension-spis.md); implementation coverage belongs to the [workflow](../../API_EXPANSION_WORKFLOW.md). |
+| Builder interface ownership | [0024](0024-builder-interfaces-are-not-extension-spis.md), with generated CLI consequences in [0018](0018-cli-from-builder-contracts.md). |
 | Immutable configuration snapshots | [0003](0003-immutable-configuration-snapshots.md). |
 | Configuration provenance diagnostics | [0004](0004-configuration-provenance-diagnostics.md). |
 | Spring Boot auto-configuration | [0005](0005-spring-integration-and-boot-compatibility.md). |

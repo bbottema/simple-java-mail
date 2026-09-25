@@ -29,6 +29,7 @@ The foundation of any new feature usually starts with updating the core model ob
 
 New fields must be accessible through the fluent Builder API.
 
+- **Builder Interface Ownership**: Follow [ADR 0024](docs/adr/0024-builder-interfaces-are-not-extension-spis.md). All builder interfaces are library-owned API contracts, not extension SPIs. Update Simple Java Mail's implementations when adding abstract methods; do not add default methods solely to preserve unsupported external implementations.
 - **Update Builder Interfaces**: Add new methods to the public builder interfaces (e.g., `EmailPopulatingBuilder`, `IRecipientsBuilder`, `IRecipientBuilder`).
 - **Discoverable Java Choices**: Use enums or cohesive typed values for a closed set of choices; do not make Java callers discover protocol tokens such as `"SUCCESS"`, `"NEVER"`, or `"HDRS"`. Explain enum values in user terms and use typed values in Java examples. Parse text at configuration/CLI boundaries. Do not add or retain String builder overloads just for CLI conversion: register a converter for the typed parameter instead. Any retained text-input overload needs an independent compatibility or Java-use justification.
 - **Javadoc Source of Truth**: Put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics.
