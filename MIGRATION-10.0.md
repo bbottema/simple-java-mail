@@ -214,6 +214,12 @@ sjm send --email:startingFromExactEml ready-to-send.eml --email:withEnvelopeReci
 Relative paths resolve against the invoking client's working directory. See the exact EML feature guide and
 `modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java` for a manually runnable Java example.
 
+## Oversized messages can fail before SMTP submission
+
+On Simple Java Mail's managed Angus connections, 10.0.0 checks the prepared email against the connected server's reliable positive SIZE limit before `MAIL FROM`. Previously the provider could transmit the email and let the server reject it. If you relied on a server accepting mail above its own advertised limit, correct that server limit, reduce the email, or use a suitable server. The local failure has no SMTP response; inspect the `MailSubmissionException` receipt instead of expecting a server reply code.
+
+The client now adds `SIZE=<bytes>` when advertised. If advanced integration code supplies SIZE through `SMTPMessage.setMailExtension(...)` or `mail.smtp.mailextension` / `mail.smtps.mailextension`, remove that manual value to use automatic calculation. A single valid estimate is still preserved; malformed or duplicate declarations are rejected locally. Ordinary content and attachment DataSources must support stable repeated reads: counting adds a serialization pass before sending. Caller-owned ordinary Angus transports retain their behavior. Your local `withMaximumEmailSize(...)` guard and offline rehearsal are unchanged.
+
 ## SMTP content compatibility is checked before submission
 
 Ordinary Unicode subjects, display names and bodies retain normal MIME encoding. Most applications need no change.

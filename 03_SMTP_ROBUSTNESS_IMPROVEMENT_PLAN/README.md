@@ -1,8 +1,10 @@
 # SMTP robustness improvement plan
 
-> **Implementation status:** Phases 1, 2 and 3 are complete and accepted. Phase 4's DSN work is also complete and accepted as of 17 September 2026: ENVID correlation (#736), shared DKIM/S/MIME Email configuration (#737), and recipient NOTIFY with automatic ORCPT (#738). Per-message REQUIRETLS (#741) and per-message SMTPUTF8/8BITMIME negotiation with explicit legacy-server permission (#742) are complete and accepted as well, bringing eight of the ten original steps to completion; the execution-view and configuration refinements are additional children, not extra original steps. These are unreleased 10.0.0 changes. Finalized SIZE handling and the conformance suite remain proposals. Phase 4 and the parent plan are not complete. Benchmarking is not part of this work.
+> **Implementation status:** Phases 1 through 4 are complete and accepted. Finalized SIZE handling (#748), accepted on 28 September 2026, completes nine of the ten original steps. These are unreleased 10.0.0 changes. Phase 5's conformance suite (#747) remains planned. The newly approved synthetic performance audit (#749) is an additional child, not an eleventh original step; it will measure send-path costs before deciding whether opt-in or opt-out controls are warranted. The parent plan remains open.
 
-- Status: Phases 1, 2 and 3 complete and accepted; Phase 4 steps 6 through 8 complete and accepted; unreleased
+- Status: Phases 1 through 4 complete and accepted; nine of ten original steps complete; unreleased
+- Step 9 completion: [#748](https://github.com/bbottema/simple-java-mail/issues/748) checks finalized SMTP content against reliable server limits before submission and reports available size facts. The complete operational EHLO scan remains independent of the probe's diagnostic budget. Implementation and production diff review were accepted on 28 September 2026.
+- Performance follow-up: [#749](https://github.com/bbottema/simple-java-mail/issues/749) is Todo for 10.0.0, with `maintenance` and `needs-research` labels. Synthetic CPU/delay attribution and measured API trade-offs are separate from #748's completed correctness work and #747's conformance suite.
 - Step 8 completion: [#742](https://github.com/bbottema/simple-java-mail/issues/742) keeps ordinary MIME behavior unchanged and selects SMTPUTF8 per submission on reusable managed connections. Advertised support is required by default, with an explicit Mailer opt-in for verified tolerant legacy routes. The implementation and coding-guide pass were accepted on 25 September 2026.
 - Step 7 completion: [#741](https://github.com/bbottema/simple-java-mail/issues/741) delivers the accepted per-email REQUIRETLS contract for 10.0.0; [ADR 0023](../docs/adr/0023-per-message-requiretls.md) explains its scope and rationale. Enterprise enforcement stays separate under #740.
 - Step 6 completion: [#736](https://github.com/bbottema/simple-java-mail/issues/736) and [#738](https://github.com/bbottema/simple-java-mail/issues/738) are accepted for 10.0.0. The [ENVID implementation](phase-4-modern-esmtp/06b-envid-implementation.md) and [recipient follow-up](phase-4-modern-esmtp/06c-homogeneous-email-configuration.md) complete the DSN step without merging their separate issue scopes.
@@ -13,8 +15,8 @@
 - Preceded by: [02 - CLI daemon improvement plan](../02_CLI_DAEMON_IMPROVEMENT_PLAN/README.md) in planning order only
 - GitHub parent issue: [#722](https://github.com/bbottema/simple-java-mail/issues/722)
 - Execution-view migration: [#734](https://github.com/bbottema/simple-java-mail/issues/734), accepted on 13 September 2026; see the [plan and probe-review bookmark](phase-3-diagnostics-and-security/04a-explicit-mailer-execution-views.md). The probe implementation remains separate under #733.
-- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe), [#735](https://github.com/bbottema/simple-java-mail/issues/735) (phase 3 STARTTLS configuration), [#736](https://github.com/bbottema/simple-java-mail/issues/736) (phase 4 ENVID), [#737](https://github.com/bbottema/simple-java-mail/issues/737) (shared message-security configuration), [#738](https://github.com/bbottema/simple-java-mail/issues/738) (recipient NOTIFY and automatic ORCPT), [#741](https://github.com/bbottema/simple-java-mail/issues/741) (per-email REQUIRETLS), and [#742](https://github.com/bbottema/simple-java-mail/issues/742) (SMTPUTF8/8BITMIME compatibility hardening); Steps 9 and 10 do not have child issues yet
-- Release train: 10.x; assign an exact release milestone to each child only when scheduled
+- GitHub child issues: [#723](https://github.com/bbottema/simple-java-mail/issues/723) (phase 1), [#725](https://github.com/bbottema/simple-java-mail/issues/725) and [#726](https://github.com/bbottema/simple-java-mail/issues/726) (phase 2), [#733](https://github.com/bbottema/simple-java-mail/issues/733) (phase 3 capability probe), [#735](https://github.com/bbottema/simple-java-mail/issues/735) (phase 3 STARTTLS configuration), [#736](https://github.com/bbottema/simple-java-mail/issues/736) (phase 4 ENVID), [#737](https://github.com/bbottema/simple-java-mail/issues/737) (shared message-security configuration), [#738](https://github.com/bbottema/simple-java-mail/issues/738) (recipient NOTIFY and automatic ORCPT), [#741](https://github.com/bbottema/simple-java-mail/issues/741) (per-email REQUIRETLS), [#742](https://github.com/bbottema/simple-java-mail/issues/742) (SMTPUTF8/8BITMIME compatibility hardening), [#748](https://github.com/bbottema/simple-java-mail/issues/748) (finalized SIZE handling), [#747](https://github.com/bbottema/simple-java-mail/issues/747) (conformance), and [#749](https://github.com/bbottema/simple-java-mail/issues/749) (performance audit); Steps 1 through 9 are complete, while Step 10 and the performance follow-up remain Todo for 10.0.0
+- Target release: 10.0.0 for the entire plan, including the parent and every child issue
 - Working branch for planning: `codex/10.0.0`
 - Baseline inspected: 7 September 2026
 - Research source: `simple-java-mail-world-class-smtp-research.pdf`
@@ -44,14 +46,14 @@ Use one parent tracking issue and one child issue per step.
 
 The parent issue should explain the shared developer problem and retain the release narrative. Each child should contain its own API decision, tests, documentation, classification, exact-version milestone, project status, and closure comment. GitHub's native sub-issue relationship should be the structural source of truth. The parent body should also contain a compact linked table recording each child's intended and actual release so the narrative remains readable without opening every issue.
 
-This is preferable to one large issue because the steps differ substantially in risk and may ship in different releases. It also avoids declaring the entire project complete merely because one useful slice was delivered.
+This is preferable to one large issue because the steps differ substantially in risk and can be implemented and reviewed independently. All steps target 10.0.0. Completing one useful slice does not complete the entire project.
 
 ### Proposed parent issue
 
 - Working title: `Track SMTP submission robustness improvements`
 - Classification: `major feature`, never also `enhancement`
-- Milestone: leave unset while children can span releases; set it only if every remaining child is committed to the same exact release
-- Project board: optional umbrella card; child cards carry implementation status
+- Milestone: 10.0.0, matching every child issue
+- Project board: umbrella card In Progress; Step 9 Done, Step 10 and the separate performance follow-up Todo
 - Closure: close only when every child is complete or explicitly moved to a successor parent
 
 The parent issue should maintain this release-oriented table:
@@ -69,8 +71,9 @@ The parent issue should maintain this release-oriented table:
 | 6b | [#738](https://github.com/bbottema/simple-java-mail/issues/738) | Enhancement | 10.0.0 | - | Recipient NOTIFY preferences and automatic ORCPT (complete; unreleased) |
 | 7 | [#741](https://github.com/bbottema/simple-java-mail/issues/741) | Enhancement | 10.0.0 | - | Per-message REQUIRETLS (complete; unreleased) |
 | 8 | [#742](https://github.com/bbottema/simple-java-mail/issues/742) | Enhancement | 10.0.0 | - | Per-message SMTP content negotiation and explicit legacy-server permission (complete; unreleased) |
-| 9 | Not created | Enhancement | Unscheduled | - | Exact SIZE capability handling |
-| 10 | Not created | Maintenance | Unscheduled | - | Reproducible SMTP conformance evidence |
+| 9 | [#748](https://github.com/bbottema/simple-java-mail/issues/748) | Enhancement | 10.0.0 | - | Exact SIZE capability handling (complete; unreleased) |
+| 10 | [#747](https://github.com/bbottema/simple-java-mail/issues/747) | Maintenance | 10.0.0 | - | Reproducible SMTP conformance evidence |
+| Follow-up | [#749](https://github.com/bbottema/simple-java-mail/issues/749) | Maintenance + needs-research | 10.0.0 | - | Measured send-path costs and a decision on optional performance controls |
 
 `major feature` and `enhancement` remain mutually exclusive on every issue. Orthogonal labels such as `security` or `maintenance` may accompany the one appropriate functionality label. A test-only child does not need either functionality label.
 
