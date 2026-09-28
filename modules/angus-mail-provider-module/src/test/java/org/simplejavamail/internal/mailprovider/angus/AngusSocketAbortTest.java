@@ -160,6 +160,9 @@ class AngusSocketAbortTest {
         final String prefix = implicitTls ? "mail.smtps" : "mail.smtp";
         final Properties properties = new Properties();
         properties.setProperty("mail.transport.protocol", implicitTls ? "smtps" : "smtp");
+        // Keep local DNS out of the five-second phase latch; only protocol progress and abort responsiveness are under test.
+        properties.setProperty(prefix + ".localhost", "abort.example.test");
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty(prefix + ".connectiontimeout", "30000");
         properties.setProperty(prefix + ".timeout", "30000");
         return properties;

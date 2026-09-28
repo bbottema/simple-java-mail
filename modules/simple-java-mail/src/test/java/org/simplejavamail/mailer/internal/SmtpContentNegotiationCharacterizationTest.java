@@ -574,9 +574,11 @@ class SmtpContentNegotiationCharacterizationTest {
     }
 
     static MailerRegularBuilder<?> builder(final PeerServer server) {
+        // These scripts expect a fixed set of connections; idle expiry during caller-thread MIME preparation is a different concern.
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", server.port())
                 .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000);
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000)
+                .withConnectionPoolExpireAfterMillis(0);
     }
 
     private static Email eightBitCandidate() {
