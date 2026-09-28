@@ -34,6 +34,8 @@ public final class MailSubmissionReceipt implements Serializable {
 	@Nullable private final String emailId;
 	@Nullable private final String envelopeId;
 	private final boolean requireTlsUsed;
+	@Nullable private final Long messageSize;
+	@Nullable private final Long serverMaximumMessageSize;
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@NotNull private final Instant submittedAt;
 	@NotNull private final MailSubmissionStatus status;
@@ -116,9 +118,41 @@ public final class MailSubmissionReceipt implements Serializable {
 			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
 			@Nullable final String envelopeId, final boolean requireTlsUsed) {
+		this(emailId, smtpResponse, submittedAt, status, recipientResults, retryDisposition, envelopeId, requireTlsUsed, null, null);
+	}
+
+	/**
+	 * Creates a receipt retaining the content size and the connected server's advertised limit, when the adapter can report them reliably.
+	 * Existing constructors leave both values absent. These facts do not imply that content was transferred or accepted.
+	 *
+	 * @param emailId Effective Message-ID, or {@code null} when unavailable.
+	 * @param smtpResponse Response from this submission, or {@code null} when none was observed.
+	 * @param submittedAt Time at which this receipt was recorded.
+	 * @param status Known SMTP submission status, independent of final delivery.
+	 * @param recipientResults Immutable recipient facts in envelope order; defensively copied.
+	 * @param retryDisposition Conservative retry guidance for this attempt, not an automatic retry policy.
+	 * @param envelopeId Effective ENVID used by the submission, or {@code null} when unavailable.
+	 * @param requireTlsUsed Whether MAIL FROM actually supplied REQUIRETLS.
+	 * @param messageSize Complete prepared SMTP content size in bytes, or {@code null} when unavailable.
+	 * @param serverMaximumMessageSize Positive advertised maximum in bytes, or {@code null} when no reliable fixed maximum is known.
+	 * @throws IllegalArgumentException If a supplied message size is negative or a supplied server maximum is zero or negative.
+	 * @see #getMessageSize()
+	 * @see #getServerMaximumMessageSize()
+	 * @see #MailSubmissionReceipt(String, SmtpServerResponse, Instant, MailSubmissionStatus, List, MailRetryDisposition, String, boolean)
+	 */
+	public MailSubmissionReceipt(@Nullable final String emailId, @Nullable final SmtpServerResponse smtpResponse,
+			@NotNull final Instant submittedAt, @NotNull final MailSubmissionStatus status,
+			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
+			@Nullable final String envelopeId, final boolean requireTlsUsed,
+			@Nullable final Long messageSize, @Nullable final Long serverMaximumMessageSize) {
+		if ((messageSize != null && messageSize < 0) || (serverMaximumMessageSize != null && serverMaximumMessageSize <= 0)) {
+			throw new IllegalArgumentException("Message size must be non-negative and the server maximum must be positive; use null for unknown sizes.");
+		}
 		this.emailId = emailId;
 		this.envelopeId = envelopeId;
 		this.requireTlsUsed = requireTlsUsed;
+		this.messageSize = messageSize;
+		this.serverMaximumMessageSize = serverMaximumMessageSize;
 		this.smtpResponse = smtpResponse;
 		this.submittedAt = requireNonNull(submittedAt, "submittedAt");
 		this.status = requireNonNull(status, "status");
@@ -196,7 +230,8 @@ public final class MailSubmissionReceipt implements Serializable {
 					validUnsentRecipients == null ? Collections.emptyList() : validUnsentRecipients,
 					invalidRecipients == null ? Collections.emptyList() : invalidRecipients);
 			return new MailSubmissionReceipt(emailId, smtpResponse, submittedAt, restoredStatus, restoredRecipients,
-					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition, envelopeId, requireTlsUsed);
+					retryDisposition == null ? legacyRetryDisposition(restoredStatus) : retryDisposition, envelopeId, requireTlsUsed,
+					messageSize, serverMaximumMessageSize);
 		} catch (final RuntimeException failure) {
 			final InvalidObjectException invalidReceipt = new InvalidObjectException("Invalid serialized mail submission receipt");
 			invalidReceipt.initCause(failure);
@@ -267,6 +302,35 @@ public final class MailSubmissionReceipt implements Serializable {
 	 */
 	public boolean isRequireTlsUsed() {
 		return requireTlsUsed;
+	}
+
+	/**
+	 * Returns the complete SMTP content size prepared for this attempt, in bytes. This is not a count of bytes successfully transferred:
+	 * a locally rejected oversized email can still have a measured size. The count describes the content after any provider conversion,
+	 * including SMTP line endings but excluding dot-stuffing and the DATA terminator. Availability depends on the selected transport adapter.
+	 * <p>
+	 * This can differ from {@link MailRehearsal#getEncodedSize()}: rehearsal renders EML without a connected provider, while sending can omit
+	 * headers normally excluded from submission and apply negotiated conversion. It is unrelated to final delivery or the server's later storage usage.
+	 *
+	 * @return The measured size, or {@code null} when unavailable, including incomplete measurement, logging-only, CustomMailer, adapters that
+	 * do not report it and older receipts. No estimate or partial byte count is substituted.
+	 */
+	@Nullable
+	public Long getMessageSize() {
+		return messageSize;
+	}
+
+	/**
+	 * Returns the positive fixed maximum advertised by the actual SMTP connection used for this attempt, in bytes. Only that connection's
+	 * current advertisements apply, including any replacement after STARTTLS; a separate connection probe may describe a different server.
+	 * Being within this limit does not guarantee server acceptance or final delivery.
+	 *
+	 * @return The server maximum, or {@code null} when unavailable. Missing SIZE, no numeric limit, zero (no fixed maximum), malformed,
+	 * overflowing or contradictory advertisements do not establish a usable maximum. Also absent when the adapter cannot report this fact.
+	 */
+	@Nullable
+	public Long getServerMaximumMessageSize() {
+		return serverMaximumMessageSize;
 	}
 
 	/**

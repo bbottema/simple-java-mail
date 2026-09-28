@@ -26,9 +26,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 /** Angus Mail implementation of Simple Java Mail's provider adapter SPI. */
 public final class AngusMailTransportAdapter implements MailTransportAdapter {
@@ -65,11 +67,16 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (smtpTransport) {
             final Address[] expandedEnvelopeRecipients = AngusRecipientCommands.expandRecipients(preparedMail.getRecipients());
+            final Long serverMaximumMessageSize = smtpTransport instanceof ManagedAngusTransport
+                    ? ((ManagedAngusTransport) smtpTransport).getServerMaximumMessageSize() : null;
             try {
                 final boolean supportsDsn = supportsUsableDsn(smtpTransport);
                 final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(smtpTransport, preparedMail, supportsDsn);
                 final String protocol = protocolOf(smtpTransport);
                 final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocol);
+                if (smtpTransport instanceof ManagedAngusTransport) {
+                    AngusMessageSize.validateDeclaration(existingMailExtension.value, existingMailExtension.sourceDescription, expandedEnvelopeRecipients);
+                }
                 final boolean requireTlsSelected = resolveRequireTls(smtpTransport, preparedMail, protocol, existingMailExtension,
                         expandedEnvelopeRecipients);
                 final String envelopeId = resolveEnvelopeIdentifier(supportsDsn, preparedMail.getDeliveryEnvelope(), existingMailExtension,
@@ -85,11 +92,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                 }
                 final AngusSmtpMessage angusMessage = (AngusSmtpMessage) message;
                 return result.withEnvelopeId(angusMessage.getEnvelopeIdUsed())
-                        .withRequireTlsUsed(angusMessage.isRequireTlsUsed());
+                        .withRequireTlsUsed(angusMessage.isRequireTlsUsed())
+                        .withMessageSizeFacts(angusMessage.getMessageSize(), serverMaximumMessageSize);
             } catch (final MessagingException preparationFailure) {
                 // Nothing was submitted: do not reuse an earlier SMTP response or imply duplicate risk.
                 return MailTransportResult.failed(preparationFailure, null, null, expandedEnvelopeRecipients, null)
-                        .withEnvelopeRecipients(expandedEnvelopeRecipients);
+                        .withEnvelopeRecipients(expandedEnvelopeRecipients).withMessageSizeFacts(null, serverMaximumMessageSize);
             }
         }
     }
@@ -342,6 +350,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Nullable private String envelopeIdUsed;
         private final boolean requireTlsSelected;
         private boolean requireTlsUsed;
+        private final Address[] recipients;
+        @Nullable private Long messageSize;
 
         AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @NotNull final AngusMailFromParameters mailFromParameters,
                 @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
@@ -353,6 +363,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             this.recipientCommands = recipientCommands;
             this.selectedEnvelopeId = envelopeId;
             this.requireTlsSelected = requireTlsSelected;
+            this.recipients = preparedMail.getRecipients();
             copyHeaders(delegate, this);
             retainProviderOptions(delegate);
             super.setMailExtension(envelopeId == null ? mailFromParameters.getMailExtension()
@@ -391,6 +402,26 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
 
         AngusMailFromParameters getMailFromParameters() {
             return mailFromParameters;
+        }
+
+        /** Publish only a complete count. A rejection retains that count, but does not consume the selected submission options. */
+        void prepareMessageSize(@Nullable final Long serverMaximum, final boolean sizeAdvertised, final BooleanSupplier stopped)
+                throws MessagingException {
+            messageSize = AngusMessageSize.measure(this, stopped);
+            if (serverMaximum != null && messageSize > serverMaximum) {
+                throw new MailTransportCompatibilityException(String.format(Locale.ROOT,
+                        "This email is %,d bytes, but the SMTP server advertises a limit of %,d bytes. "
+                                + "Reduce its content or attachments, or use a server with a higher limit. No message was submitted.",
+                        messageSize, serverMaximum), AngusRecipientCommands.expandRecipients(recipients));
+            }
+            if (sizeAdvertised) {
+                super.setMailExtension(AngusMessageSize.withDeclaration(super.getMailExtension(), messageSize));
+            }
+        }
+
+        @Nullable
+        Long getMessageSize() {
+            return messageSize;
         }
 
         /**

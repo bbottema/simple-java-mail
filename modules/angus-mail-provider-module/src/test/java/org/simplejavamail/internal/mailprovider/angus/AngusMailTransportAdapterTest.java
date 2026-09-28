@@ -476,8 +476,11 @@ class AngusMailTransportAdapterTest {
                 new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final byte[] before = bytes(facade);
 
+        facade.prepareMessageSize(null, true, () -> false);
         facade.saveChanges();
 
+        // The stored body has no final newline; SMTP adds CRLF without modifying the protected representation.
+        assertThat(facade.getMessageSize()).isEqualTo((long) before.length + 2);
         assertThat(facade.getAllow8bitMIME()).isFalse();
         assertThat(facade.isMimeType("text/*")).isFalse();
         assertThat(facade.isMimeType("multipart/*")).isFalse();
@@ -499,8 +502,11 @@ class AngusMailTransportAdapterTest {
                 new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
+        facade.prepareMessageSize((long) exactEml.length, true, () -> false);
         facade.writeTo(output, new String[] {"Bcc", "Content-Length"});
 
+        assertThat(facade.getMessageSize()).isEqualTo((long) exactEml.length);
+        assertThat(bytes(message)).containsExactly(exactEml);
         assertThat(output.toByteArray()).containsExactly(exactEml);
     }
 

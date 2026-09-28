@@ -21,6 +21,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailTransportResultTest {
 
 	@Test
+	void sizeFactsSurviveEveryImmutableCopyAndRemainAbsentFromTheOriginal() throws Exception {
+		final Address[] envelope = {new InternetAddress("recipient@example.org")};
+		final MailTransportResult original = MailTransportResult.failed(new MessagingException("not submitted"), null);
+		final MailTransportResult sized = original.withMessageSizeFacts(4_000_000_000L, 3_000_000_000L);
+		for (final MailTransportResult copy : List.of(sized, sized.withEnvelopeId("id"), sized.withRequireTlsUsed(true),
+				sized.withEnvelopeRecipients(envelope), sized.withRecipientResults(sized.getRecipientResults(), sized.getRetryDisposition()))) {
+			assertThat(copy.getMessageSize()).isEqualTo(4_000_000_000L);
+			assertThat(copy.getServerMaximumMessageSize()).isEqualTo(3_000_000_000L);
+			assertThat(copy.getFailure()).containsSame(original.getFailure().orElseThrow());
+		}
+		assertThat(original.getMessageSize()).isNull();
+		assertThat(original.getServerMaximumMessageSize()).isNull();
+		assertThat(sized.withMessageSizeFacts(null, null).getMessageSize()).isNull();
+		assertThatThrownBy(() -> original.withMessageSizeFacts(-1L, null)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> original.withMessageSizeFacts(null, 0L)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
 	void envelopeIdentifierSurvivesRecipientEnrichmentWithoutMutatingOtherResults() throws Exception {
 		final Address[] envelope = {new InternetAddress("recipient@example.org")};
 		final MessagingException failure = new MessagingException("connection lost");

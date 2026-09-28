@@ -35,6 +35,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailSubmissionReceiptTest {
 
 	@Test
+	void preservesKnownSizeFactsThroughSerializationAndAllowsUnknownFactsIndependently() throws Exception {
+		for (final Long size : java.util.Arrays.asList(null, 0L, 4_000_000_000L)) {
+			for (final Long maximum : java.util.Arrays.asList(null, 3_000_000_000L)) {
+				final MailSubmissionReceipt original = new MailSubmissionReceipt("<size>", null, Instant.now(), MailSubmissionStatus.REJECTED,
+						List.of(), MailRetryDisposition.CALLER_POLICY_REQUIRED, null, false, size, maximum);
+				final MailSubmissionReceipt restored = roundTrip(original);
+				assertThat(restored.getMessageSize()).isEqualTo(size);
+				assertThat(restored.getServerMaximumMessageSize()).isEqualTo(maximum);
+			}
+		}
+	}
+
+	@Test
 	void preservesEffectiveEnvelopeIdentifierThroughSerialization() throws Exception {
 		final MailSubmissionReceipt receipt = new MailSubmissionReceipt("<message>", null, Instant.now(), MailSubmissionStatus.UNKNOWN,
 				List.of(), MailRetryDisposition.DUPLICATE_RISK, "submission-1", true);
@@ -59,6 +72,8 @@ class MailSubmissionReceiptTest {
 		final MailSubmissionReceipt restored = readFixture(fixture);
 		assertThat(restored.getEmailId()).isEqualTo("<legacy-response>");
 		assertThat(restored.getEnvelopeId()).isNull();
+		assertThat(restored.getMessageSize()).isNull();
+		assertThat(restored.getServerMaximumMessageSize()).isNull();
 		assertThat(restored.isRequireTlsUsed()).isFalse();
 		assertThat(restored.getSubmittedAt()).isEqualTo(Instant.parse("2026-09-08T12:00:00Z"));
 		assertThat(restored.getStatus()).isEqualTo(status);

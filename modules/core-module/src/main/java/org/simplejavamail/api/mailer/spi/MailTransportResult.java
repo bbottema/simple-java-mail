@@ -32,6 +32,8 @@ public final class MailTransportResult {
 	@Nullable private final SmtpServerResponse smtpResponse;
 	@Nullable private final String envelopeId;
 	private final boolean requireTlsUsed;
+	@Nullable private final Long messageSize;
+	@Nullable private final Long serverMaximumMessageSize;
 	@NotNull private final Address[] acceptedRecipients;
 	@NotNull private final Address[] validUnsentRecipients;
 	@NotNull private final Address[] invalidRecipients;
@@ -53,7 +55,7 @@ public final class MailTransportResult {
 		appendRecipients(recipients, validUnsentRecipients, MailRecipientDisposition.VALID_UNSENT);
 		appendRecipients(recipients, invalidRecipients, MailRecipientDisposition.INVALID);
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients, failure,
-				recipients, basicRetryDisposition(status, failure), false, null, false);
+				recipients, basicRetryDisposition(status, failure), false, null, false, null, null);
 	}
 
 	@NotNull
@@ -69,11 +71,14 @@ public final class MailTransportResult {
 			@Nullable final Address[] acceptedRecipients, @Nullable final Address[] validUnsentRecipients,
 			@Nullable final Address[] invalidRecipients, @Nullable final MessagingException failure,
 			@NotNull final List<MailRecipientResult> recipientResults, @NotNull final MailRetryDisposition retryDisposition,
-			final boolean envelopeRecipientsResolved, @Nullable final String envelopeId, final boolean requireTlsUsed) {
+			final boolean envelopeRecipientsResolved, @Nullable final String envelopeId, final boolean requireTlsUsed,
+			@Nullable final Long messageSize, @Nullable final Long serverMaximumMessageSize) {
 		this.status = requireNonNull(status, "status");
 		this.smtpResponse = smtpResponse;
 		this.envelopeId = envelopeId;
 		this.requireTlsUsed = requireTlsUsed;
+		this.messageSize = messageSize;
+		this.serverMaximumMessageSize = serverMaximumMessageSize;
 		this.acceptedRecipients = copy(acceptedRecipients);
 		this.validUnsentRecipients = copy(validUnsentRecipients);
 		this.invalidRecipients = copy(invalidRecipients);
@@ -92,7 +97,7 @@ public final class MailTransportResult {
 	public MailTransportResult withRecipientResults(@NotNull final List<MailRecipientResult> recipients,
 			@NotNull final MailRetryDisposition retryDisposition) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, requireNonNull(recipients, "recipients"), retryDisposition, true, envelopeId, requireTlsUsed);
+				failure, requireNonNull(recipients, "recipients"), retryDisposition, true, envelopeId, requireTlsUsed, messageSize, serverMaximumMessageSize);
 	}
 
 	/**
@@ -105,7 +110,7 @@ public final class MailTransportResult {
 	@NotNull
 	public MailTransportResult withEnvelopeId(@Nullable final String envelopeId) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed);
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed, messageSize, serverMaximumMessageSize);
 	}
 
 	/**
@@ -118,7 +123,43 @@ public final class MailTransportResult {
 	@NotNull
 	public MailTransportResult withRequireTlsUsed(final boolean requireTlsUsed) {
 		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
-				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed);
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed, messageSize, serverMaximumMessageSize);
+	}
+
+	/**
+	 * Retains reliable size facts even when an attempt fails before submission. Do not substitute a rehearsal size, an estimate,
+	 * a partial count or a limit discovered on a different connection. This method does not assert that SIZE was declared or mail accepted.
+	 * <p>
+	 * Adapters must turn unusable server limits into {@code null} before calling this method. Missing, malformed, negative, zero,
+	 * overflowing or contradictory limits are unknown; an unusable advertisement alone must not fail the send. This method checks the
+	 * adapter's supplied facts, not raw server replies.
+	 *
+	 * @param messageSize Complete prepared SMTP content size in bytes, or {@code null} when unavailable.
+	 * @param serverMaximumMessageSize Positive advertised fixed maximum in bytes, or {@code null} when unavailable.
+	 * @return An immutable copy retaining all other transport and recipient facts.
+	 * @throws IllegalArgumentException If the adapter supplies a negative message size or a zero or negative server maximum instead of {@code null}.
+	 * @see org.simplejavamail.api.mailer.MailSubmissionReceipt#getMessageSize()
+	 * @see org.simplejavamail.api.mailer.MailSubmissionReceipt#getServerMaximumMessageSize()
+	 */
+	@NotNull
+	public MailTransportResult withMessageSizeFacts(@Nullable final Long messageSize, @Nullable final Long serverMaximumMessageSize) {
+		if ((messageSize != null && messageSize < 0) || (serverMaximumMessageSize != null && serverMaximumMessageSize <= 0)) {
+			throw new IllegalArgumentException("Message size must be non-negative and the server maximum must be positive; use null for unknown sizes.");
+		}
+		return new MailTransportResult(status, smtpResponse, acceptedRecipients, validUnsentRecipients, invalidRecipients,
+				failure, recipientResults, retryDisposition, envelopeRecipientsResolved, envelopeId, requireTlsUsed, messageSize, serverMaximumMessageSize);
+	}
+
+	/** @see org.simplejavamail.api.mailer.MailSubmissionReceipt#getMessageSize() */
+	@Nullable
+	public Long getMessageSize() {
+		return messageSize;
+	}
+
+	/** @see org.simplejavamail.api.mailer.MailSubmissionReceipt#getServerMaximumMessageSize() */
+	@Nullable
+	public Long getServerMaximumMessageSize() {
+		return serverMaximumMessageSize;
 	}
 
 	/** @return Whether RFC 8689 REQUIRETLS was actually supplied to MAIL FROM. */

@@ -336,9 +336,12 @@ public final class ProviderNeutralConsumer {
 				MailRecipientDisposition.VALID_UNSENT, true, new SmtpServerResponse(450, "450 4.2.0 busy"));
 		final MailTransportResult result = MailTransportResult.failed(new MessagingException("rejected"), null,
 				null, new Address[]{new InternetAddress("recipient@example.org")}, null)
-				.withRecipientResults(List.of(recipient), MailRetryDisposition.SAFE_TO_RETRY_ALL);
+				.withRecipientResults(List.of(recipient), MailRetryDisposition.SAFE_TO_RETRY_ALL).withMessageSizeFacts(1234L, 5000L);
 		final MailSubmissionReceipt receipt = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.REJECTED,
-				result.getRecipientResults(), result.getRetryDisposition(), null, true);
+				result.getRecipientResults(), result.getRetryDisposition(), null, true, result.getMessageSize(), result.getServerMaximumMessageSize());
+		if (!Long.valueOf(1234).equals(receipt.getMessageSize()) || !Long.valueOf(5000).equals(receipt.getServerMaximumMessageSize())) {
+			throw new AssertionError("Submission size facts are unavailable");
+		}
 		if (!receipt.isRequireTlsUsed() || receipt.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
 				|| !recipient.getRcptAttempted().orElse(false)
 				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))

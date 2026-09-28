@@ -49,6 +49,7 @@ import static org.simplejavamail.mailer.internal.SmtpContentNegotiationCharacter
 import static org.simplejavamail.mailer.internal.SmtpContentNegotiationCharacterizationTest.composedEmail;
 import static org.simplejavamail.mailer.internal.SmtpContentNegotiationCharacterizationTest.exactEmail;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.acceptMessage;
+import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.acceptMessageAfterMailFrom;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.expectCommand;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.finishConnection;
 
@@ -141,8 +142,12 @@ class LegacySmtpContentSupportTest {
         try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n" + (smtpUtf8 ? "250-SMTPUTF8\r\n" : "") + (eightBitMime ? "250-8BITMIME\r\n" : "") + "250 SIZE 100000");
             if (permitted) {
-                final String content = acceptMessage(peer, MAIL_FROM + (requiresUtf8 && smtpUtf8 ? " SMTPUTF8" : "")
-                        + (rawBody && eightBitMime ? " BODY=8BITMIME" : ""), "", recipient);
+                final String mailCommand = peer.readLine();
+                final String expectedPrefix = MAIL_FROM + (requiresUtf8 && smtpUtf8 ? " SMTPUTF8" : "")
+                        + (rawBody && eightBitMime ? " BODY=8BITMIME" : "");
+                assertThat(mailCommand).matches(java.util.regex.Pattern.quote(expectedPrefix) + " SIZE=[0-9]+");
+                final String content = acceptMessageAfterMailFrom(peer, "", recipient);
+                assertThat(mailCommand).endsWith(" SIZE=" + content.getBytes(UTF_8).length);
                 assertThat(content).contains("To: " + recipient);
                 if (rawHeaders) {
                     assertThat(content.getBytes(UTF_8)).containsExactly(rawHeaderBytes());

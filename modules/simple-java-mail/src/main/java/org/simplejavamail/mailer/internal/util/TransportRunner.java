@@ -149,7 +149,8 @@ public class TransportRunner {
 		final MailTransportResult completeResult = transportResult.withEnvelopeRecipients(envelope);
 		return new MailSubmissionReceipt(email.getId(), transportResult.getSmtpResponse().orElse(null), Instant.now(),
 				completeResult.getStatus(), completeResult.getRecipientResults(), completeResult.getRetryDisposition(),
-				completeResult.getEnvelopeId(), completeResult.isRequireTlsUsed());
+				completeResult.getEnvelopeId(), completeResult.isRequireTlsUsed(),
+				completeResult.getMessageSize(), completeResult.getServerMaximumMessageSize());
 	}
 
 	@NotNull

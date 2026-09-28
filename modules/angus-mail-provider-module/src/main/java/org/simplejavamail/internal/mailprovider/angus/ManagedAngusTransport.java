@@ -9,6 +9,7 @@ import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.eclipse.angus.mail.util.PropUtil;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.internal.util.SmtpSizeSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,8 @@ public final class ManagedAngusTransport extends SMTPTransport {
     private final List<SmtpServerResponse> recipientResponses = new ArrayList<>();
     @Nullable private AngusRecipientCommands activeRecipientCommands;
     @Nullable private AngusMailFromParameters activeMailFromParameters;
+    @Nullable private AngusMailTransportAdapter.AngusSmtpMessage activeMessage;
+    private SmtpSizeSupport currentSizeSupport = SmtpSizeSupport.unadvertised();
 
     public ManagedAngusTransport(final Session session, final URLName urlName) {
         super(session, urlName, urlName == null ? "smtp" : urlName.getProtocol(),
@@ -75,6 +78,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
     @Override
     protected synchronized boolean protocolConnect(final String host, final int port, final String user, final String password)
             throws MessagingException {
+        currentSizeSupport = SmtpSizeSupport.unadvertised();
         if (socketFactory == null) {
             return super.protocolConnect(host, port, user, password);
         }
@@ -91,6 +95,28 @@ public final class ManagedAngusTransport extends SMTPTransport {
         } finally {
             socketFactory.restore(previous);
         }
+    }
+
+    @Override
+    protected boolean ehlo(final String domain) throws MessagingException {
+        // In particular, a failed post-STARTTLS EHLO must not leave the pre-TLS SIZE limit active.
+        currentSizeSupport = SmtpSizeSupport.unadvertised();
+        final boolean succeeded = super.ehlo(domain);
+        if (succeeded) {
+            currentSizeSupport = AngusSmtpCapabilities.parseSizeSupport(getLastServerResponse());
+        }
+        return succeeded;
+    }
+
+    @Override
+    protected void helo(final String domain) throws MessagingException {
+        currentSizeSupport = SmtpSizeSupport.unadvertised();
+        super.helo(domain);
+    }
+
+    @Nullable
+    Long getServerMaximumMessageSize() {
+        return currentSizeSupport.getMaximumMessageSize();
     }
 
     void trackSocket(final Socket socket) throws IOException {
@@ -127,6 +153,8 @@ public final class ManagedAngusTransport extends SMTPTransport {
                 throw failure;
             }
             LOGGER.debug("Closed SMTP transport after its socket was aborted", failure);
+        } finally {
+            currentSizeSupport = SmtpSizeSupport.unadvertised();
         }
     }
 
@@ -146,10 +174,9 @@ public final class ManagedAngusTransport extends SMTPTransport {
         pendingRecipientIndex = -1;
         finalResponse = null;
         recipientResponses.clear();
-        activeRecipientCommands = message instanceof AngusMailTransportAdapter.AngusSmtpMessage
-                ? ((AngusMailTransportAdapter.AngusSmtpMessage) message).getRecipientCommands() : null;
-        activeMailFromParameters = message instanceof AngusMailTransportAdapter.AngusSmtpMessage
-                ? ((AngusMailTransportAdapter.AngusSmtpMessage) message).getMailFromParameters() : null;
+        activeMessage = message instanceof AngusMailTransportAdapter.AngusSmtpMessage ? (AngusMailTransportAdapter.AngusSmtpMessage) message : null;
+        activeRecipientCommands = activeMessage == null ? null : activeMessage.getRecipientCommands();
+        activeMailFromParameters = activeMessage == null ? null : activeMessage.getMailFromParameters();
         sending = true;
     }
 
@@ -157,6 +184,17 @@ public final class ManagedAngusTransport extends SMTPTransport {
         sending = false;
         activeRecipientCommands = null;
         activeMailFromParameters = null;
+        activeMessage = null;
+    }
+
+    @Override
+    protected void mailFrom() throws MessagingException {
+        if (activeMessage != null) {
+            // Angus has finished its optional 8-bit conversion here, but has not sent MAIL FROM or consumed ENVID/REQUIRETLS yet.
+            activeMessage.prepareMessageSize(getServerMaximumMessageSize(), currentSizeSupport.isAdvertised(),
+                    aborted::get);
+        }
+        super.mailFrom();
     }
 
     @Override
