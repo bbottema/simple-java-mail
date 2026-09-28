@@ -19,8 +19,6 @@ import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +38,8 @@ final class AngusContentNegotiation {
     private static final String BODY_EIGHT_BIT_MIME = "BODY=8BITMIME";
     // SMTP DATA allows 1000 octets per line, including CRLF but excluding any transparency dot added by the transport.
     private static final int MAX_BODY_LINE_BYTES = 998;
+    // Match the BufferedInputStream buffer this replaces, but inspect blocks instead of invoking read() once per byte.
+    private static final int BODY_READ_BUFFER_BYTES = 8192;
     private static final String[] OMITTED_TRANSPORT_HEADERS = {"Bcc", "Content-Length"};
 
     private AngusContentNegotiation() {
@@ -284,23 +284,23 @@ final class AngusContentNegotiation {
 
     @NotNull
     private static SubmittedContent inspectFinalizedContent(final PreparedMail preparedMail) throws MessagingException, IOException {
-        final byte[] messageBytes = serializeForSubmission(preparedMail);
+        final SubmissionBuffer serializedMessage = serializeForSubmission(preparedMail);
         final String[] omittedHeaders = preparedMail.getContentRequirement() == ContentRequirement.PRESERVE_ALL_BYTES
                 ? null : OMITTED_TRANSPORT_HEADERS;
         // Even an ASCII-only body may declare binary encoding. Inspect MIME structure too, without scanning decoded body bytes.
         final SubmittedContent mimeContent = inspectMimePart(preparedMail.getMimeMessage(), false, omittedHeaders);
-        return SubmittedContent.inspectSerializedContent(messageBytes, mimeContent);
+        return serializedMessage.inspect(mimeContent);
     }
 
     @NotNull
-    private static byte[] serializeForSubmission(final PreparedMail preparedMail) throws MessagingException, IOException {
-        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+    private static SubmissionBuffer serializeForSubmission(final PreparedMail preparedMail) throws MessagingException, IOException {
+        final SubmissionBuffer output = new SubmissionBuffer();
         if (preparedMail.getContentRequirement() == ContentRequirement.PRESERVE_ALL_BYTES) {
             preparedMail.getMimeMessage().writeTo(output);
         } else {
             preparedMail.getMimeMessage().writeTo(output, OMITTED_TRANSPORT_HEADERS);
         }
-        return output.toByteArray();
+        return output;
     }
 
     @NotNull
@@ -349,7 +349,7 @@ final class AngusContentNegotiation {
     @NotNull
     private static SubmittedContent inspectUnencodedBody(final MimePart part) throws MessagingException, IOException {
         // A declared 8bit body may still be entirely ASCII. Only scan unencoded bodies, so encoded attachments stay streaming.
-        try (final InputStream body = new BufferedInputStream(part.getInputStream())) {
+        try (final InputStream body = part.getInputStream()) {
             return SubmittedContent.inspectBody(body);
         }
     }
@@ -377,6 +377,46 @@ final class AngusContentNegotiation {
                 .build();
     }
 
+    /** Keeps the serialization buffer private to this inspection, avoiding a second whole-message copy via toByteArray(). */
+    private static final class SubmissionBuffer extends ByteArrayOutputStream {
+        @NotNull
+        private SubmittedContent inspect(final SubmittedContent mimeContent) {
+            // Only count written bytes: unused capacity contains zeros, which would otherwise look like invalid body content.
+            return SubmittedContent.inspectSerializedContent(buf, count, mimeContent);
+        }
+    }
+
+    /** Carries line length across read boundaries; each body gets its own accumulator. */
+    private static final class BodyInspection {
+        private int lineLength;
+        private boolean eightBit;
+        @Nullable private String unsupportedReason;
+
+        private void inspect(final byte[] bytes, final int start, final int end) {
+            for (int index = start; index < end && isSupported(); index++) {
+                final int nextByte = bytes[index] & 0xff;
+                eightBit |= nextByte > 0x7f;
+                if (nextByte == 0) {
+                    unsupportedReason = "contains an unencoded zero byte";
+                } else if (nextByte == '\r' || nextByte == '\n') {
+                    // Angus normalizes each form of line break to CRLF when writing SMTP DATA.
+                    lineLength = 0;
+                } else if (++lineLength > MAX_BODY_LINE_BYTES) {
+                    unsupportedReason = "contains a body line longer than the supported limit of " + MAX_BODY_LINE_BYTES + " bytes";
+                }
+            }
+        }
+
+        private boolean isSupported() {
+            return unsupportedReason == null;
+        }
+
+        @NotNull
+        private SubmittedContent toSubmittedContent() {
+            return SubmittedContent.builder().hasRawEightBitBodyBytes(eightBit).unsupportedBodyReason(unsupportedReason).build();
+        }
+    }
+
     @Builder
     private static final class SubmittedContent {
         private static final SubmittedContent EMPTY = SubmittedContent.builder().build();
@@ -399,12 +439,12 @@ final class AngusContentNegotiation {
         }
 
         @NotNull
-        private static SubmittedContent inspectSerializedContent(final byte[] messageBytes, final SubmittedContent mimeContent) throws IOException {
-            final int bodyOffset = findBodyOffset(messageBytes);
-            final int headerEnd = bodyOffset < 0 ? messageBytes.length : bodyOffset;
+        private static SubmittedContent inspectSerializedContent(final byte[] messageBytes, final int length, final SubmittedContent mimeContent) {
+            final int bodyOffset = findBodyOffset(messageBytes, length);
+            final int headerEnd = bodyOffset < 0 ? length : bodyOffset;
             final boolean hasRawNonAsciiHeaderBytes = containsEightBitByte(messageBytes, 0, headerEnd);
             final SubmittedContent body = bodyOffset < 0 ? EMPTY
-                    : inspectBody(new ByteArrayInputStream(messageBytes, bodyOffset, messageBytes.length - bodyOffset));
+                    : inspectBody(messageBytes, bodyOffset, length);
             // MIME-part headers live among the outer body's bytes, but still require SMTPUTF8 rather than only 8BITMIME.
             return builder()
                     .hasRawNonAsciiHeaderBytes(hasRawNonAsciiHeaderBytes || mimeContent.hasRawNonAsciiHeaderBytes)
@@ -416,8 +456,8 @@ final class AngusContentNegotiation {
                     .build();
         }
 
-        private static int findBodyOffset(final byte[] bytes) {
-            for (int index = 0; index <= bytes.length - 4; index++) {
+        private static int findBodyOffset(final byte[] bytes, final int length) {
+            for (int index = 0; index <= length - 4; index++) {
                 if (bytes[index] == '\r' && bytes[index + 1] == '\n' && bytes[index + 2] == '\r' && bytes[index + 3] == '\n') {
                     return index + 4;
                 }
@@ -431,23 +471,20 @@ final class AngusContentNegotiation {
 
         @NotNull
         private static SubmittedContent inspectBody(final InputStream body) throws IOException {
-            int lineLength = 0;
-            boolean eightBit = false;
-            int nextByte;
-            while ((nextByte = body.read()) != -1) {
-                eightBit |= nextByte > 0x7f;
-                if (nextByte == 0) {
-                    return builder().hasRawEightBitBodyBytes(eightBit).unsupportedBodyReason("contains an unencoded zero byte").build();
-                }
-                // Angus normalizes each form of line break to CRLF when writing SMTP DATA.
-                if (nextByte == '\r' || nextByte == '\n') {
-                    lineLength = 0;
-                } else if (++lineLength > MAX_BODY_LINE_BYTES) {
-                    return builder().hasRawEightBitBodyBytes(eightBit)
-                            .unsupportedBodyReason("contains a body line longer than the supported limit of " + MAX_BODY_LINE_BYTES + " bytes").build();
-                }
+            final BodyInspection inspection = new BodyInspection();
+            final byte[] buffer = new byte[BODY_READ_BUFFER_BYTES];
+            int count;
+            while (inspection.isSupported() && (count = body.read(buffer)) != -1) {
+                inspection.inspect(buffer, 0, count);
             }
-            return builder().hasRawEightBitBodyBytes(eightBit).build();
+            return inspection.toSubmittedContent();
+        }
+
+        @NotNull
+        private static SubmittedContent inspectBody(final byte[] bytes, final int start, final int end) {
+            final BodyInspection inspection = new BodyInspection();
+            inspection.inspect(bytes, start, end);
+            return inspection.toSubmittedContent();
         }
 
         private static boolean isValidUtf8(final byte[] bytes, final int end) {
