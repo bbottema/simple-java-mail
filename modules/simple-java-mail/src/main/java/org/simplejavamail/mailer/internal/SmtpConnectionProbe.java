@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.SmtpConnectionPhase;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
+import org.simplejavamail.internal.util.MailProviderDiscovery;
 import org.simplejavamail.internal.util.SmtpProbeReports;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 
@@ -20,7 +21,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.ServiceLoader;
 import java.util.ServiceConfigurationError;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -74,7 +74,7 @@ final class SmtpConnectionProbe {
     @Nullable
     private static SmtpConnectionProbeAdapter selectAdapter(final Provider provider) {
         SmtpConnectionProbeAdapter selected = null;
-        for (final SmtpConnectionProbeAdapter candidate : ServiceLoader.load(SmtpConnectionProbeAdapter.class)) {
+        for (final SmtpConnectionProbeAdapter candidate : MailProviderDiscovery.newProviders(SmtpConnectionProbeAdapter.class)) {
             if (candidate.supportsProvider(provider)) {
                 if (selected != null) {
                     throw new IllegalStateException("More than one SMTP connection-probe adapter matches the selected provider.");

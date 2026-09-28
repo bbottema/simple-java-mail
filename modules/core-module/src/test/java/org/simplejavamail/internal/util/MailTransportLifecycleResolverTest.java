@@ -13,7 +13,6 @@ import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -43,7 +42,7 @@ class MailTransportLifecycleResolverTest {
         when(second.supportsProvider(provider)).thenReturn(true);
 
         final Throwable failure = catchThrowable(() -> {
-            try (MockedStatic<ServiceLoader> ignored = useAdapters(first, second)) {
+            try (MockedStatic<MailProviderDiscovery> ignored = useAdapters(first, second)) {
                 MailTransportLifecycleResolver.configureOwnedSession(session);
             }
         });
@@ -67,7 +66,7 @@ class MailTransportLifecycleResolverTest {
         when(second.createAbortAction(transport)).thenReturn(Optional.of(secondAbort));
 
         final Throwable failure = catchThrowable(() -> {
-            try (MockedStatic<ServiceLoader> ignored = useAdapters(first, second)) {
+            try (MockedStatic<MailProviderDiscovery> ignored = useAdapters(first, second)) {
                 MailTransportLifecycleResolver.findAbortAction(transport);
             }
         });
@@ -89,7 +88,7 @@ class MailTransportLifecycleResolverTest {
         when(supported.createAbortAction(transport)).thenReturn(Optional.of(abort));
 
         final Optional<Runnable> selected;
-        try (MockedStatic<ServiceLoader> ignored = useAdapters(unsupported, supported)) {
+        try (MockedStatic<MailProviderDiscovery> ignored = useAdapters(unsupported, supported)) {
             selected = MailTransportLifecycleResolver.findAbortAction(transport);
         }
         assertThat(selected).containsSame(abort);
@@ -104,12 +103,12 @@ class MailTransportLifecycleResolverTest {
         when(session.getTransport()).thenReturn(transport);
         try (MailSendControl control = new MailSendControl(Duration.ofMinutes(1), watcher)) {
             final Throwable validationFailure = catchThrowable(() -> {
-                try (MockedStatic<ServiceLoader> ignored = useAdapters()) {
+                try (MockedStatic<MailProviderDiscovery> ignored = useAdapters()) {
                     MailTransportLifecycleResolver.requireAbortSupport(session);
                 }
             });
             final Throwable registrationFailure = catchThrowable(() -> {
-                try (MockedStatic<ServiceLoader> ignored = useAdapters()) {
+                try (MockedStatic<MailProviderDiscovery> ignored = useAdapters()) {
                     MailTransportLifecycleResolver.registerAbort(transport, control);
                 }
             });
@@ -150,7 +149,7 @@ class MailTransportLifecycleResolverTest {
         doThrow(failure).when(transport).close();
 
         final Throwable reported = catchThrowable(() -> {
-            try (MockedStatic<ServiceLoader> ignored = useAdapters(adapter)) {
+            try (MockedStatic<MailProviderDiscovery> ignored = useAdapters(adapter)) {
                 MailTransportLifecycleResolver.requireAbortSupport(session);
             }
         });
@@ -158,12 +157,9 @@ class MailTransportLifecycleResolverTest {
                 .hasMessageContaining("Couldn't create or close the Session's transport");
     }
 
-    @SuppressWarnings("unchecked")
-    private static MockedStatic<ServiceLoader> useAdapters(final MailTransportLifecycleAdapter... adapters) {
-        final ServiceLoader<MailTransportLifecycleAdapter> loader = mock(ServiceLoader.class);
-        when(loader.iterator()).thenAnswer(ignored -> Arrays.asList(adapters).iterator());
-        final MockedStatic<ServiceLoader> services = mockStatic(ServiceLoader.class);
-        services.when(() -> ServiceLoader.load(MailTransportLifecycleAdapter.class)).thenReturn(loader);
+    private static MockedStatic<MailProviderDiscovery> useAdapters(final MailTransportLifecycleAdapter... adapters) {
+        final MockedStatic<MailProviderDiscovery> services = mockStatic(MailProviderDiscovery.class);
+        services.when(() -> MailProviderDiscovery.newProviders(MailTransportLifecycleAdapter.class)).thenReturn(Arrays.asList(adapters));
         return services;
     }
 

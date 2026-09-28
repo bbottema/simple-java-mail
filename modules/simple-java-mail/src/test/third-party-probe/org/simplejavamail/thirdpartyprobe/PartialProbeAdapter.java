@@ -12,9 +12,19 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Proves a separately compiled adapter can report limited provider facts using only the public SPI, without Angus or internal helpers. */
 public final class PartialProbeAdapter implements SmtpConnectionProbeAdapter {
+    static final AtomicInteger FACTORY_CALLS = new AtomicInteger();
+    private boolean used;
+
+    /** JPMS calls this factory; the classpath registration continues to use the public constructor. */
+    public static PartialProbeAdapter provider() {
+        FACTORY_CALLS.incrementAndGet();
+        return new PartialProbeAdapter();
+    }
+
     @Override
     public boolean supportsProvider(final Provider provider) {
         return provider.getType() == Provider.Type.TRANSPORT && "smtp".equals(provider.getProtocol())
@@ -23,6 +33,10 @@ public final class PartialProbeAdapter implements SmtpConnectionProbeAdapter {
 
     @Override
     public SmtpConnectionReport probe(final Session session, final boolean authenticate, final Connector connector) {
+        if (used) {
+            throw new AssertionError("Adapter instances must not be shared between probe operations");
+        }
+        used = true;
         if (Boolean.parseBoolean(session.getProperty("fixture.fail.adapter"))) {
             throw new IllegalStateException("Private adapter failure: " + FixtureTransport.PASSWORD);
         }

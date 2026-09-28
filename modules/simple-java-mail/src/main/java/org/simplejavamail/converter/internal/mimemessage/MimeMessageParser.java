@@ -16,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
-import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.internal.util.Preconditions;
 import org.slf4j.Logger;
 
@@ -56,7 +55,6 @@ public final class MimeMessageParser {
 	 * Extracts the content of a MimeMessage recursively.
 	 */
 	public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean fetchAttachmentData) {
-		JakartaMailImplementation.requireAvailable();
 		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
 		parsedComponents.messageId = parseMessageId(mimeMessage);
 		parsedComponents.sentDate = parseSentDate(mimeMessage);

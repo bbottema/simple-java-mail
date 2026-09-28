@@ -34,6 +34,8 @@ public final class ThirdPartyProbeConsumer {
             verifyFailuresAndRecovery(async);
             verifyUnsupportedProviderDoesNotConnect(async);
         }
+        check((PartialProbeAdapter.FACTORY_CALLS.get() > 0) == "jpms".equals(args[0]),
+                "Discovery must preserve JPMS provider methods and classpath constructors");
         System.out.println("Third-party SMTP probe fixture passed (" + args[0] + ")");
     }
 

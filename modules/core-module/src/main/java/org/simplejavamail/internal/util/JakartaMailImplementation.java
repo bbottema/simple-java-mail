@@ -1,10 +1,11 @@
 package org.simplejavamail.internal.util;
 
-import jakarta.mail.util.StreamProvider;
+import jakarta.mail.Session;
 
+import java.util.Properties;
 import java.util.ServiceConfigurationError;
 
-/** Verifies that the Jakarta Mail API has a runtime implementation before MIME work starts. */
+/** Creates conversion Sessions with an actionable diagnostic when Jakarta Mail cannot find its runtime implementation. */
 public final class JakartaMailImplementation {
 
 	private static final String MISSING_IMPLEMENTATION =
@@ -14,9 +15,10 @@ public final class JakartaMailImplementation {
 	private JakartaMailImplementation() {
 	}
 
-	public static void requireAvailable() {
+	public static Session createSession(final Properties properties) {
 		try {
-			StreamProvider.provider();
+			// Session already resolves and retains its StreamProvider. A separate availability lookup would repeat that discovery.
+			return Session.getInstance(properties);
 		} catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
 			throw new IllegalStateException(MISSING_IMPLEMENTATION, e);
 		}

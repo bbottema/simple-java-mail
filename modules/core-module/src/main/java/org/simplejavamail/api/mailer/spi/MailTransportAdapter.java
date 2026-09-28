@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
  * <p>Implementations are discovered through {@link java.util.ServiceLoader}. An adapter owns the actual
  * {@link Transport#sendMessage(jakarta.mail.Message, jakarta.mail.Address[])} call so it can apply envelope
  * options without leaking provider-specific message types into MIME construction.</p>
+ * <p>Service registrations are discovered once per thread-context class loader. Each submission invokes the registered constructor or provider factory
+ * again and matches the resulting adapter against the actual transport. Replacing the application class loader starts a new discovery scope.</p>
  * <p>Implementations capture checked Jakarta Mail submission failures in the returned {@link MailTransportResult}. This lets Simple Java Mail preserve
  * the original exception while translating provider recipient arrays into an immutable high-level result. When message data was transferred but the
  * final acceptance response was not observed, adapters should use

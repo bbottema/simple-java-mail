@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.internal.util.MailProviderDiscovery;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,7 @@ import static java.util.stream.Collectors.joining;
  * captures the final Angus SMTP response. Other {@code MailTransportAdapter} implementations in this repository are test doubles only.
  * <p>
  * Discovery uses the standard {@link ServiceLoader} mechanism. On the classpath, the Angus adapter JAR registers its implementation in
- * {@code META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportAdapter}. On the module path, {@code org.simplejavamail} declares {@code uses}
+ * {@code META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportAdapter}. On the module path, {@code org.simplejavamail.core} declares {@code uses}
  * and {@code org.simplejavamail.mailprovider.angus} declares the corresponding {@code provides ... with ...}. A third-party provider adapter is discovered
  * through either of those same registrations after implementing {@link MailTransportAdapter}.
  * <p>
@@ -60,8 +61,8 @@ final class MailTransportAdapterResolver {
     }
 
     /**
-     * Creates a {@link ServiceLoader} for this submission and delegates selection and submission to the explicit-candidates overload. With the standard
-     * {@code simple-java-mail} runtime dependencies, the discovered candidates include the Angus adapter described above.
+     * Reuses discovery for the current thread-context class loader, then constructs fresh adapters and selects against this submission's transport.
+     * With the standard runtime dependencies, the candidates include the Angus adapter described above. No adapter instance or match is cached.
      *
      * @param transport A transport that the caller has already acquired and connected.
      * @param preparedMail Finalized MIME content plus its SMTP-envelope and content-preservation requirements.
@@ -72,7 +73,7 @@ final class MailTransportAdapterResolver {
     static MailTransportResult sendMessage(@NotNull final Transport transport,
                                            @NotNull final PreparedMail preparedMail)
             throws MessagingException {
-        return sendMessage(transport, preparedMail, ServiceLoader.load(MailTransportAdapter.class));
+        return sendMessage(transport, preparedMail, MailProviderDiscovery.newProviders(MailTransportAdapter.class));
     }
 
     /**

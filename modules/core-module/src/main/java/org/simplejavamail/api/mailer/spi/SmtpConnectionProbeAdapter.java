@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.SmtpConnectionReport;
  * Separate from submission and abort adapters: inspecting a connection does not extend either send contract.
  * Register the implementation in {@code META-INF/services/org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter}
  * on the classpath, or with a {@code provides ... with ...} declaration in its module descriptor.
+ * Registrations are cached per thread-context class loader; each probe invokes the registered constructor or provider factory again.
  */
 public interface SmtpConnectionProbeAdapter {
     /** Match only providers whose connection semantics this adapter preserves, not arbitrary subclasses. */

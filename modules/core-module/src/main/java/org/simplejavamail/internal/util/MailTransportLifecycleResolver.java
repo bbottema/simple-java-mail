@@ -10,7 +10,6 @@ import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.Optional;
-import java.util.ServiceLoader;
 
 /** Selects the optional connection-abort integration shared by the Mailer and its pool module. Never connects a transport. */
 public final class MailTransportLifecycleResolver {
@@ -29,7 +28,7 @@ public final class MailTransportLifecycleResolver {
             return;
         }
         MailTransportLifecycleAdapter selected = null;
-        for (final MailTransportLifecycleAdapter candidate : ServiceLoader.load(MailTransportLifecycleAdapter.class)) {
+        for (final MailTransportLifecycleAdapter candidate : MailProviderDiscovery.newProviders(MailTransportLifecycleAdapter.class)) {
             if (candidate.supportsProvider(provider)) {
                 if (selected != null) {
                     throw conflictingAdapters(provider.getClassName(), selected, candidate);
@@ -47,7 +46,7 @@ public final class MailTransportLifecycleResolver {
     public static Optional<Runnable> findAbortAction(@NotNull final Transport transport) {
         Optional<Runnable> selected = Optional.empty();
         MailTransportLifecycleAdapter selectedAdapter = null;
-        for (final MailTransportLifecycleAdapter candidate : ServiceLoader.load(MailTransportLifecycleAdapter.class)) {
+        for (final MailTransportLifecycleAdapter candidate : MailProviderDiscovery.newProviders(MailTransportLifecycleAdapter.class)) {
             final Optional<Runnable> action = candidate.createAbortAction(transport);
             if (action.isPresent()) {
                 if (selectedAdapter != null) {

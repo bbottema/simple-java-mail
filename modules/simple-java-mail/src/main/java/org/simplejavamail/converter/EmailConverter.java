@@ -998,7 +998,6 @@ public final class EmailConverter {
 	 */
 	@NotNull
 	public static MimeMessage emlToMimeMessage(@NotNull final InputStream inputStream, @NotNull final Session session) {
-		JakartaMailImplementation.requireAvailable();
 		try {
 			return new MimeMessage(session, inputStream);
 		} catch (final MessagingException e) {
@@ -1019,7 +1018,6 @@ public final class EmailConverter {
 	public static MimeMessage emlToMimeMessage(@NotNull final String eml, @NotNull final Session session) {
 		checkNonEmptyArgument(session, "session");
 		checkNonEmptyArgument(eml, "eml");
-		JakartaMailImplementation.requireAvailable();
 		try {
 			return new MimeMessage(session, new ByteArrayInputStream(eml.getBytes(UTF_8)));
 		} catch (final MessagingException e) {
@@ -1234,8 +1232,7 @@ public final class EmailConverter {
 	}
 
 	static Session createDummySession() {
-		JakartaMailImplementation.requireAvailable();
-		return Session.getInstance(new Properties());
+		return JakartaMailImplementation.createSession(new Properties());
 	}
 
 }

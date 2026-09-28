@@ -10,6 +10,8 @@ import java.util.Optional;
 /**
  * Optional provider integration for stopping connection and SMTP I/O without waiting for the transport's send monitor.
  * Unlike {@link MailTransportAdapter}, this boundary is consulted before connecting. Implementations are discovered through ServiceLoader.
+ * Registrations are cached per thread-context class loader, but each lookup invokes the registered constructor or provider factory again.
+ * Abort actions are never cached between operations.
  */
 public interface MailTransportLifecycleAdapter {
 
