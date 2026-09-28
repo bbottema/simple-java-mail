@@ -67,6 +67,10 @@ mvn -pl modules/cli-module "-Dtest=CliDaemonPerformanceTest" "-Dsjm.runDaemonBen
 
 The raw samples and median/p95 summary are written to `modules/cli-module/target/cli-daemon-benchmark.csv`.
 
+For the separate mail-send/content audit, see [the manual performance harness](tools/performance/README.md).
+It uses a loopback SMTP sink, repeated JVM runs and separate JFR recordings. Its experimental
+classpath overlays are only for known-safe synthetic inputs, never production mail or CI timing gates.
+
 After any build that ran `license:format`, clean up auto-generated headers before committing:
 
 ```powershell

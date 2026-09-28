@@ -233,8 +233,10 @@ public class ResultHandlingTest {
 	public void synchronousViewShouldBlockUntilSendingFinishes() throws Exception {
 		final BlockingSendMailer blockingMailer = new BlockingSendMailer();
 		final ExecutorService caller = Executors.newSingleThreadExecutor();
+		// Message-ID hostname lookup must not delay reaching the send callback under test.
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
+				.withProperty("mail.from", "sender@example.org")
 				.withCustomMailer(blockingMailer)
 				.buildMailer()) {
 			try {
