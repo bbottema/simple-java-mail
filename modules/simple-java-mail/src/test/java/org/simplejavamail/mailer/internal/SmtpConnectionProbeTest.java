@@ -100,16 +100,23 @@ class SmtpConnectionProbeTest {
         assertThat(SmtpProbeReports.begin(session, false).completedAt(Instant.now()).build().getPort()).isEqualTo(25);
     }
 
-    @Test
-    void anOversizedExtensionLineMakesCapabilitiesUnavailable() throws Exception {
+    @ParameterizedTest
+    @ValueSource(ints = {4096, 70000})
+    void aLongExtensionIsOnlyOmittedWhenTheAggregateBudgetIsExceeded(final int parameterLength) throws Exception {
         try (Peer server = new Peer(false, peer -> {
-            peer.greet("250-localhost\r\n250-X-UNKNOWN " + "x".repeat(2048) + "\r\n250 DSN");
+            peer.greet("250-localhost\r\n250-X-UNKNOWN " + "x".repeat(parameterLength) + "\r\n250 DSN");
             peer.quit();
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session(false), server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isTrue();
-            assertThat(report.getEffectiveCapabilities()).isEmpty();
-            assertThat(report.getWarnings()).anySatisfy(warning -> assertThat(warning).contains("diagnostic limit"));
+            if (parameterLength == 4096) {
+                assertThat(report.getEffectiveCapabilities().orElseThrow().getExtensions().get("X-UNKNOWN"))
+                        .containsExactly("x".repeat(parameterLength));
+                assertThat(report.getWarnings()).isEmpty();
+            } else {
+                assertThat(report.getEffectiveCapabilities()).isEmpty();
+                assertThat(report.getWarnings()).singleElement().asString().contains("64 KiB");
+            }
         }
     }
 
@@ -408,20 +415,20 @@ class SmtpConnectionProbeTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {255, 256})
-    void diagnosticLineBoundAcceptsItsExactLimitAndDoesNotInventMissingCapabilities(final int sizeLines) throws Exception {
+    @ValueSource(ints = {400, 35000})
+    void diagnosticBudgetAcceptsManyShortLinesAndDoesNotInventMissingCapabilities(final int sizeLines) throws Exception {
         try (Peer server = new Peer(false, peer -> {
             peer.greet("250-localhost\r\n" + "250-SIZE 100\r\n".repeat(sizeLines) + "250 DSN");
             peer.quit();
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session(false), server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isTrue();
-            if (sizeLines == 255) {
+            if (sizeLines == 400) {
                 assertThat(report.getEffectiveCapabilities().orElseThrow().supports("DSN")).isTrue();
                 assertThat(report.getWarnings()).isEmpty();
             } else {
                 assertThat(report.getEffectiveCapabilities()).isEmpty();
-                assertThat(report.getWarnings()).anySatisfy(warning -> assertThat(warning).contains("more than 256"));
+                assertThat(report.getWarnings()).singleElement().asString().contains("64 KiB");
             }
         }
     }

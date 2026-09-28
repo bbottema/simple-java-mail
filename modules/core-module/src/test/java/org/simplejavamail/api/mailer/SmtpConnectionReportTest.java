@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +109,68 @@ class SmtpConnectionReportTest {
             final SmtpConnectionReport copy = (SmtpConnectionReport) input.readObject();
             assertThat(copy.toString()).isEqualTo(original.toString());
             assertThatThrownBy(() -> copy.getBeforeTls().orElseThrow().getExtensions().clear()).isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    @Test
+    void oversizedThirdPartySnapshotsAreOmittedWithoutTurningSuccessfulSetupIntoAFailure() throws Exception {
+        final SmtpCapabilities oversized = new SmtpCapabilities(Map.of("X-REMOTE", List.of("é".repeat(40000))));
+        final SmtpCapabilities small = new SmtpCapabilities(Map.of("SIZE", List.of("123")));
+        final SmtpConnectionReport report = report().connected(true).beforeTls(oversized).afterTls(small).tlsActive(true).build();
+        assertThat(report.isSuccessful()).isTrue();
+        assertThat(report.getBeforeTls()).isEmpty();
+        assertThat(report.getEffectiveCapabilities()).containsSame(small);
+        assertThat(report.getWarnings()).singleElement().asString().contains("Before TLS", "64 KiB");
+        final SmtpConnectionReport copy = (SmtpConnectionReport) roundTrip(report);
+        assertThat(copy.toString()).isEqualTo(report.toString());
+        assertThat(copy.toBuilder().build().getWarnings()).containsExactlyElementsOf(report.getWarnings());
+        assertThat(report().connected(true).beforeTls(oversized).afterTls(oversized).build().getWarnings()).hasSize(2);
+    }
+
+    @Test
+    void beforeAndAfterTlsHaveIndependentBudgets() {
+        final SmtpCapabilities capabilities = new SmtpCapabilities(Map.of("X", List.of("x".repeat(65530))));
+        final SmtpConnectionReport report = report().connected(true).tlsActive(true).beforeTls(capabilities).afterTls(capabilities).build();
+        assertThat(report.getBeforeTls()).containsSame(capabilities);
+        assertThat(report.getAfterTls()).containsSame(capabilities);
+        assertThat(report.getWarnings()).isEmpty();
+    }
+
+    @Test
+    void typedSizeAndCompleteEscapedParametersSurviveSerialization() throws Exception {
+        final String longNumber = "0".repeat(5000) + "123";
+        final SmtpCapabilities original = new SmtpCapabilities(Map.of("SIZE", List.of(longNumber), "X-TEXT", List.of("one\ntwo\u202e😀")));
+        final SmtpCapabilities copy = (SmtpCapabilities) roundTrip(original);
+        assertThat(copy.getMaximumMessageSize()).hasValue(123);
+        assertThat(copy.getExtensions()).isEqualTo(original.getExtensions());
+        assertThat(copy.getExtensions().get("SIZE")).containsExactly(longNumber);
+        assertThat(((SmtpCapabilities) roundTrip(copy)).toString()).isEqualTo(original.toString());
+        assertThatThrownBy(() -> copy.getExtensions().get("SIZE").clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void readsSnapshotsWrittenBeforeTypedSizeFactsWereStored() throws Exception {
+        // Written with the original serialVersionUID=1 class, whose only field was the escaped extensions map.
+        final String fixture = "rO0ABXNyAC5vcmcuc2ltcGxlamF2YW1haWwuYXBpLm1haWxlci5TbXRwQ2FwYWJpbGl0aWVzAAAAAAAAAAECAAFMAApleHRlbnNpb25z"
+                + "dAAPTGphdmEvdXRpbC9NYXA7eHBzcgAlamF2YS51dGlsLkNvbGxlY3Rpb25zJFVubW9kaWZpYWJsZU1hcPGlqP509QdCAgABTAABbXEAfgAB"
+                + "eHBzcgARamF2YS51dGlsLlRyZWVNYXAMwfY+LSVq5gMAAUwACmNvbXBhcmF0b3J0ABZMamF2YS91dGlsL0NvbXBhcmF0b3I7eHBwdwQAAAAC"
+                + "dAAEU0laRXNyABFqYXZhLnV0aWwuQ29sbFNlcleOq7Y6G6gRAwABSQADdGFneHAAAAABdwQAAAACdAAFMDAxMjN0AAMxMjN4dAAFWC1PTERz"
+                + "cQB+AAkAAAABdwQAAAABdAAIb25lXG50d294eA==";
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(fixture)))) {
+            final SmtpCapabilities capabilities = (SmtpCapabilities) input.readObject();
+            assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+            assertThat(capabilities.getExtensions().get("X-OLD")).containsExactly("one\\ntwo");
+            assertThatThrownBy(() -> capabilities.getExtensions().clear()).isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    private static Object roundTrip(final Object value) throws Exception {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+            output.writeObject(value);
+        }
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+            return input.readObject();
         }
     }
 

@@ -5,7 +5,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
-import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpCapabilities;
 import org.simplejavamail.api.mailer.SmtpConnectionPhase;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
@@ -14,19 +13,14 @@ import org.simplejavamail.internal.util.SmtpProbeReports;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Captures only greeting, EHLO and terminal AUTH facts through supported Angus hooks. One instance belongs to one
  * dedicated probe; it is never registered in a Session, leased from a pool, or used to submit a message.
  */
 final class AngusProbeTransport extends SMTPTransport {
-    private static final Pattern EXTENSION = Pattern.compile("([A-Za-z0-9][A-Za-z0-9-]*)(?:[ \\t]+(.*))?");
     private final SmtpConnectionReport.SmtpConnectionReportBuilder report;
     private final List<String> warnings = new ArrayList<>();
     private final AngusProbeTlsObserver tlsObserver;
@@ -138,7 +132,7 @@ final class AngusProbeTransport extends SMTPTransport {
         phase = SmtpConnectionPhase.EHLO;
         final boolean succeeded = super.ehlo(domain);
         if (succeeded) {
-            final SmtpCapabilities capabilities = parseCapabilities(getLastServerResponse());
+            final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse(getLastServerResponse(), warnings::add);
             if (isSSL()) {
                 report.afterTls(capabilities);
             } else {
@@ -200,31 +194,4 @@ final class AngusProbeTransport extends SMTPTransport {
         }
     }
 
-    @Nullable
-    private SmtpCapabilities parseCapabilities(final String response) {
-        final Map<String, List<String>> extensions = new LinkedHashMap<>();
-        final String[] lines = response.split("\\r?\\n", 259);
-        // Angus terminates its saved reply with a newline; that is framing, not an empty extension.
-        final int lineCount = lines[lines.length - 1].isEmpty() ? lines.length - 1 : lines.length;
-        if (lineCount > 257) {
-            warnings.add("EHLO contained more than 256 extension lines; capabilities are unavailable rather than a misleading partial snapshot.");
-            return null;
-        }
-        for (int index = 1; index < lineCount; index++) {
-            final String line = lines[index];
-            if (line.length() > 2048) {
-                warnings.add("An EHLO line exceeded the diagnostic limit; capabilities are unavailable rather than truncated names or parameters.");
-                return null;
-            }
-            final Matcher extension = EXTENSION.matcher(line.length() > 4 ? line.substring(4) : "");
-            if (!(line.startsWith("250-") || line.startsWith("250 ")) || !extension.matches()) {
-                warnings.add("An invalid EHLO extension line was ignored.");
-                continue;
-            }
-            final String name = extension.group(1).toUpperCase(Locale.ROOT);
-            final String value = extension.group(2) == null ? "" : extension.group(2).trim();
-            extensions.computeIfAbsent(name, unused -> new ArrayList<>()).add(value);
-        }
-        return new SmtpCapabilities(extensions);
-    }
 }

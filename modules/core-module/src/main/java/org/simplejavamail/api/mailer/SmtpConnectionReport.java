@@ -5,11 +5,13 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.util.SmtpCapabilityDiagnostics;
 import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ import static java.util.Objects.requireNonNull;
  * Immutable facts from a dedicated SMTP connection, including partial results when setup fails.
  * This is not a send receipt: no message was submitted, and no delivery or future send is guaranteed.
  * Text fields are escaped for single-line logging; no raw exception, AUTH exchange or provider object is retained.
+ * Each capability snapshot has a 64 KiB escaped UTF-8 budget. An oversized snapshot is omitted with a warning, not a setup failure.
  * The endpoint is the configured endpoint: a custom socket factory or proxy may route it elsewhere.
  * Read the configured transport strategy from {@link Mailer#getTransportStrategy()}; it is not a probe observation.
  *
@@ -75,13 +78,24 @@ public final class SmtpConnectionReport implements Serializable {
         this.startTlsCompleted = startTlsCompleted;
         this.tlsActive = tlsActive;
         this.greeting = greeting == null ? null : SmtpDiagnosticText.display(greeting);
-        this.beforeTls = beforeTls;
-        this.afterTls = afterTls;
+        final List<String> reportWarnings = new ArrayList<>(warnings);
+        this.beforeTls = retainCapabilitiesWithinBudget(beforeTls, "Before TLS", reportWarnings);
+        this.afterTls = retainCapabilitiesWithinBudget(afterTls, "After TLS", reportWarnings);
         this.tlsDetails = tlsDetails;
         this.authenticationMechanism = authenticationMechanism == null ? null : SmtpDiagnosticText.display(authenticationMechanism);
         this.failurePhase = failurePhase;
         this.failureDescription = failureDescription == null ? null : SmtpDiagnosticText.display(failureDescription);
-        this.warnings = warnings.stream().map(SmtpDiagnosticText::display).collect(Collectors.toUnmodifiableList());
+        this.warnings = reportWarnings.stream().map(SmtpDiagnosticText::display).collect(Collectors.toUnmodifiableList());
+    }
+
+    @Nullable
+    private static SmtpCapabilities retainCapabilitiesWithinBudget(@Nullable final SmtpCapabilities capabilities,
+            final String snapshotName, final List<String> warnings) {
+        if (capabilities != null && !SmtpCapabilityDiagnostics.fits(capabilities)) {
+            warnings.add(snapshotName + ": " + SmtpCapabilityDiagnostics.overflowWarning());
+            return null;
+        }
+        return capabilities;
     }
 
     /** Whether connection, requested authentication and cleanup completed without a recorded failure. */
@@ -91,9 +105,9 @@ public final class SmtpConnectionReport implements Serializable {
 
     /** The initial SMTP greeting, if it was read; never an AUTH response. */
     @NotNull public Optional<String> getGreeting() { return Optional.ofNullable(greeting); }
-    /** Empty for implicit TLS, rejected EHLO, disabled EHLO or failure before discovery. */
+    /** Empty for implicit TLS, rejected/disabled EHLO, failure before discovery or a snapshot exceeding the reporting budget. */
     @NotNull public Optional<SmtpCapabilities> getBeforeTls() { return Optional.ofNullable(beforeTls); }
-    /** Only a successful EHLO on the encrypted connection; never a reused pre-TLS map. */
+    /** Only a successful EHLO on the encrypted connection that fits the reporting budget; never a reused pre-TLS map. */
     @NotNull public Optional<SmtpCapabilities> getAfterTls() { return Optional.ofNullable(afterTls); }
     /** Metadata, not a trust verdict; empty when the provider/configuration could not safely expose it. */
     @NotNull public Optional<SmtpTlsDetails> getTlsDetails() { return Optional.ofNullable(tlsDetails); }
