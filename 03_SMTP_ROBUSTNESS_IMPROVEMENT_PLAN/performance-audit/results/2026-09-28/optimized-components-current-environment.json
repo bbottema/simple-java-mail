@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "classpathFile": "target/mail-send-performance/optimized-runtime-749/baseline-classpath.txt",
+  "payloads": "small|memory|exact|dkim",
+  "operations": "content-inspection|size-measurement",
+  "inspectionSourceSha256": "53AA30EBDE7208D5CE7C95795103EF1F3A1156A6240547933FB1D2731E8FB274",
+  "java": "java version \"21\" 2023-09-19 LTS\r\nJava(TM) SE Runtime Environment (build 21+35-LTS-2513)\r\nJava HotSpot(TM) 64-Bit Server VM (build 21+35-LTS-2513, mixed mode, sharing)",
+  "forks": 3,
+  "samples": 3,
+  "warmupMillis": 300,
+  "sampleMillis": 500,
+  "attachmentBytes": 262144,
+  "heap": "-Xms512m -Xmx512m -XX:+UseG1GC",
+  "preparedMimeReused": true
+}

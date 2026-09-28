@@ -1,0 +1,5 @@
+"scenario","variant","batches","median_ms_per_email","min_ms_per_email","max_ms_per_email","median_sender_cpu_ms_per_email","median_fixture_cpu_ms_per_email","median_allocated_bytes_per_email","median_p95_ms","median_queue_ms","median_attachment_opens_per_email","median_attachment_read_bytes_per_email"
+"dkim-batch","baseline","6","18.1739025","17.872515","19.0223425","0.9765625","0.390625","6716219.2","19.61995","0","2","266240"
+"exact-batch","baseline","6","8.97932625","8.749925000000001","9.0602625","0.390625","0.9765625","1099305.2000000002","9.799700000000001","0","0","0"
+"memory-batch","baseline","6","10.10808625","9.268015","10.431284999999999","0.390625","0.390625","799849.8","11.01075","0","3","528384"
+"small-batch","baseline","6","1.74633385","1.3534104999999998","2.1546134","0.1171875","0.015625","384960.744","2.511","0.001001","0","0"

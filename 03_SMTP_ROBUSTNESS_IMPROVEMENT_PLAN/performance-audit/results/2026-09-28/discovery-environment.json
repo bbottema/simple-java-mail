@@ -1,0 +1,203 @@
+{
+  "sourceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "inspectionSourceSha256": "53AA30EBDE7208D5CE7C95795103EF1F3A1156A6240547933FB1D2731E8FB274",
+  "inspectionClassSha256": "02D9BB22ABB11431E373DC9FEAE4122A2DDC2E4205E40FEA0B97C60EE2DB8A7F",
+  "referenceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "packagedClasspath": true,
+  "runtimeClasspathFile": "modules/simple-java-mail/target/audit-runtime-classpath.txt",
+  "diagnosticStreamProviderClass": "",
+  "overlayInspectionHashes": {
+    "discovery-reference": [
+      {
+        "name": "AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      }
+    ],
+    "baseline": [
+      {
+        "name": "AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      }
+    ]
+  },
+  "overlayClassHashes": {
+    "discovery-reference": [
+      {
+        "name": "org\\simplejavamail\\converter\\EmailConverter.class",
+        "sha256": "FC2052EA03DF92C6CF094802C49FDFE453CA078B0064195D456C59FE5C42C299"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageParser.class",
+        "sha256": "7F175493EA6BD2C8562C21B3727BB9D279582927F78AB080B2F40BEA4EBE5F42"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageParser$ParsedMimeMessageComponents.class",
+        "sha256": "0BBA4813896AFFB84C4C0CEA8CB2DF152BF788CCFDABD3DE2FDFFCDDA455EBDF"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageProducerHelper.class",
+        "sha256": "5E0E58D864B48D562F9E9CEB7BC491429BE9221CD621CB7126F0BA04119A0823"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\util\\JakartaMailImplementation.class",
+        "sha256": "8D163521F3EFA41DAF35BF1C74C6C3B351F60EFB4DD4839315D58D96BB471DDF"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\util\\MailTransportLifecycleResolver.class",
+        "sha256": "CC26CC1A9FD992CA5C1CFA918294DE4544A1BC128B24DBC80F75095C2230CE5A"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe.class",
+        "sha256": "CFA056708961B49D052F527CC6CF0BF5B18C13FF9C6FA965661BE3D791506C38"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe$ProbeAuthenticator.class",
+        "sha256": "1688358511C2D2D40A692BD7A10698CCF5D034DBBE722E08D37771B8CA634C46"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe$ProbeClosure.class",
+        "sha256": "A318CE2CE290075EDF976FA26F843D1A07E086635692BCF4E130D851E200C601"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\util\\MailTransportAdapterResolver.class",
+        "sha256": "CB06331AEDC770F6B4055D562B2D80BDF4128D535CF57B70555B570E89DA4E22"
+      }
+    ],
+    "baseline": [
+      {
+        "name": "org\\simplejavamail\\converter\\EmailConverter.class",
+        "sha256": "808B7847B1AEE2ABE289C26FA8F96603647B9BF93428AD870307617C8BD077AE"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageParser.class",
+        "sha256": "0C99AE4BBB01A2F274BAEF8F01932169DF7B89A45E4F62B30B4D5F692F0B036D"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageParser$ParsedMimeMessageComponents.class",
+        "sha256": "26654D26D0D54534A3265A27192CFCD3D3D81AFF7A0ECA4ACC4738F43B539A54"
+      },
+      {
+        "name": "org\\simplejavamail\\converter\\internal\\mimemessage\\MimeMessageProducerHelper.class",
+        "sha256": "A28CE5255F85F1E48E361E3FA61BFB4D055F6FC0FB9359D721B33A842A37F953"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\mailprovider\\angus\\AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\util\\JakartaMailImplementation.class",
+        "sha256": "15E9861F5B4C7F6DADC758B941CC0F61D547906F8C79A621D3A6F155A9164F72"
+      },
+      {
+        "name": "org\\simplejavamail\\internal\\util\\MailTransportLifecycleResolver.class",
+        "sha256": "689875FF2EB04EB2D8FAE76FAC3C0BD06AE8BC939094DD620B3D7B6550DF2108"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe.class",
+        "sha256": "9F428B6759412B5CECA47FDC9308D7030A473D8777B6951D81DF060B2644DE50"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe$ProbeAuthenticator.class",
+        "sha256": "1688358511C2D2D40A692BD7A10698CCF5D034DBBE722E08D37771B8CA634C46"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\SmtpConnectionProbe$ProbeClosure.class",
+        "sha256": "A318CE2CE290075EDF976FA26F843D1A07E086635692BCF4E130D851E200C601"
+      },
+      {
+        "name": "org\\simplejavamail\\mailer\\internal\\util\\MailTransportAdapterResolver.class",
+        "sha256": "66A0B16F70A6C8C2AB3C2220A63F73C51E906EF38D2003800DF51A33E5BEC59E"
+      }
+    ]
+  },
+  "providerDiscoverySourceSha256": "30B75F11901D0F9BA1B277252F47F8ACA2A7EB5672D90BDEC78403A6448A76C0",
+  "providerDiscoveryClassSha256": "C0959FF17C36FAE488A7AB5434D02AE249B6D0ED20485F1445892E06EA4C4BED",
+  "java": "java version \"21\" 2023-09-19 LTS\r\nJava(TM) SE Runtime Environment (build 21+35-LTS-2513)\r\nJava HotSpot(TM) 64-Bit Server VM (build 21+35-LTS-2513, mixed mode, sharing)",
+  "os": "Microsoft Windows NT 10.0.22631.0",
+  "processors": {
+    "Name": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "NumberOfCores": 8,
+    "NumberOfLogicalProcessors": 16
+  },
+  "forks": 3,
+  "samples": 3,
+  "messages": 2000,
+  "largeMessages": 100,
+  "warmup": 100,
+  "attachmentBytes": 262144,
+  "scenarios": "small-batch|small-pooled|memory-batch|exact-batch|dkim-batch",
+  "variants": [
+    "discovery-reference",
+    "baseline"
+  ],
+  "profile": false,
+  "heap": "-Xms512m -Xmx512m -XX:+UseG1GC"
+}

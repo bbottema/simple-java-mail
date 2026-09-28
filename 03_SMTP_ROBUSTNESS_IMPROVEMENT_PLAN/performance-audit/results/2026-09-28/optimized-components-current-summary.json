@@ -1,0 +1,82 @@
+[
+  {
+    "payload": "dkim",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.358716903,
+    "min_wall_ms": 0.339056183,
+    "max_wall_ms": 0.38804591,
+    "median_cpu_ms": 0.204957562,
+    "median_allocated_bytes": 391928.0
+  },
+  {
+    "payload": "dkim",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.220875132,
+    "min_wall_ms": 0.204984273,
+    "max_wall_ms": 0.24142,
+    "median_cpu_ms": 0.16505281700000002,
+    "median_allocated_bytes": 6160.0
+  },
+  {
+    "payload": "exact",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.329255132,
+    "min_wall_ms": 0.315733333,
+    "max_wall_ms": 0.373272842,
+    "median_cpu_ms": 0.217013889,
+    "median_allocated_bytes": 380576.0
+  },
+  {
+    "payload": "exact",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.281995439,
+    "min_wall_ms": 0.210869295,
+    "max_wall_ms": 0.28806531,
+    "median_cpu_ms": 0.167159347,
+    "median_allocated_bytes": 72.0
+  },
+  {
+    "payload": "memory",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.008479276,
+    "min_wall_ms": 0.008066702,
+    "max_wall_ms": 0.008983039,
+    "median_cpu_ms": 0.005689718,
+    "median_allocated_bytes": 20600.0
+  },
+  {
+    "payload": "memory",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.903921071,
+    "min_wall_ms": 0.855890034,
+    "max_wall_ms": 1.0300229840000001,
+    "median_cpu_ms": 0.41852678600000004,
+    "median_allocated_bytes": 216264.0
+  },
+  {
+    "payload": "small",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.003245496,
+    "min_wall_ms": 0.0031558539999999996,
+    "max_wall_ms": 0.004049058,
+    "median_cpu_ms": 0.002173212,
+    "median_allocated_bytes": 9400.0
+  },
+  {
+    "payload": "small",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.206739309,
+    "min_wall_ms": 0.18175476000000002,
+    "max_wall_ms": 0.238730296,
+    "median_cpu_ms": 0.043726679,
+    "median_allocated_bytes": 84148.458
+  }
+]

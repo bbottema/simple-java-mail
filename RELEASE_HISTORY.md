@@ -34,6 +34,7 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 
 ### Maintenance
 
+- [#749](https://github.com/bbottema/simple-java-mail/issues/749): reduced content-inspection copying and per-byte stream overhead, cached mail-adapter discovery per application class loader, and removed redundant MIME-provider availability lookups. Content checks, SIZE preflight and per-operation adapter behavior remain enabled.
 - [#736](https://github.com/bbottema/simple-java-mail/issues/736): made the CLI's runtime Javadoc cache safe to repopulate from concurrent daemon requests after an API change invalidates generated metadata.
 - Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.
 

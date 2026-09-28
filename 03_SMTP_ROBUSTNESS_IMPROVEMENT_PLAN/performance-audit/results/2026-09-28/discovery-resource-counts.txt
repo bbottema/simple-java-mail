@@ -1,0 +1,12 @@
+StreamProvider.provider x 100 => {META-INF/services/jakarta.mail.util.StreamProvider=100}
+Session.getStreamProvider x 100 => {}
+uncached.adapterDiscovery x 100 => {META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportAdapter=100}
+uncached.lifecycleDiscovery x 100 => {META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter=100}
+uncached.probeDiscovery x 100 => {META-INF/services/org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter=100}
+SJM.adapterDiscovery x 100 => {}
+SJM.lifecycleDiscovery x 100 => {}
+SJM.probeDiscovery x 100 => {}
+MIME.encodeText x 100 => {META-INF/services/jakarta.mail.util.StreamProvider=100}
+SJM.emailToMimeMessage x 100 => {META-INF/services/jakarta.mail.util.StreamProvider=100}
+MIME.writeTo x 100 => {META-INF/services/jakarta.mail.util.StreamProvider=200}
+Temporary application loaders collected: 100/100

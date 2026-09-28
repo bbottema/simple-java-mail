@@ -1,0 +1,162 @@
+[
+  {
+    "payload": "dkim",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 6.144551042000001,
+    "median_cpu_ms": 3.580729167,
+    "median_allocated_bytes": 751984.0
+  },
+  {
+    "payload": "dkim",
+    "operation": "mime-output-to-counter",
+    "samples": 9,
+    "median_wall_ms": 0.0057107650000000005,
+    "median_cpu_ms": 0.00299451,
+    "median_allocated_bytes": 6104.0
+  },
+  {
+    "payload": "dkim",
+    "operation": "render-and-protect",
+    "samples": 9,
+    "median_wall_ms": 11.335697917,
+    "median_cpu_ms": 6.184895833,
+    "median_allocated_bytes": 6097091.333
+  },
+  {
+    "payload": "dkim",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.215840431,
+    "median_cpu_ms": 0.12536951,
+    "median_allocated_bytes": 6176.0
+  },
+  {
+    "payload": "exact",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 6.202852083,
+    "median_cpu_ms": 4.069010417,
+    "median_allocated_bytes": 740082.0
+  },
+  {
+    "payload": "exact",
+    "operation": "mime-output-to-counter",
+    "samples": 9,
+    "median_wall_ms": 7.775000000000001E-06,
+    "median_cpu_ms": 3.815E-06,
+    "median_allocated_bytes": 0.0
+  },
+  {
+    "payload": "exact",
+    "operation": "render-and-protect",
+    "samples": 9,
+    "median_wall_ms": 0.34133587,
+    "median_cpu_ms": 0.220514113,
+    "median_allocated_bytes": 412976.0
+  },
+  {
+    "payload": "exact",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.238525426,
+    "median_cpu_ms": 0.13241525399999998,
+    "median_allocated_bytes": 72.0
+  },
+  {
+    "payload": "file",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.008420638999999999,
+    "median_cpu_ms": 0.0053437070000000005,
+    "median_allocated_bytes": 20760.0
+  },
+  {
+    "payload": "file",
+    "operation": "mime-output-to-counter",
+    "samples": 9,
+    "median_wall_ms": 2.032779688,
+    "median_cpu_ms": 0.8544921879999999,
+    "median_allocated_bytes": 259616.0
+  },
+  {
+    "payload": "file",
+    "operation": "render-and-protect",
+    "samples": 9,
+    "median_wall_ms": 1.605071875,
+    "median_cpu_ms": 1.025390625,
+    "median_allocated_bytes": 275859.575
+  },
+  {
+    "payload": "file",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 2.279212054,
+    "median_cpu_ms": 0.9068080359999999,
+    "median_allocated_bytes": 259688.0
+  },
+  {
+    "payload": "memory",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.00844814,
+    "median_cpu_ms": 0.004500288,
+    "median_allocated_bytes": 20760.0
+  },
+  {
+    "payload": "memory",
+    "operation": "mime-output-to-counter",
+    "samples": 9,
+    "median_wall_ms": 1.719507566,
+    "median_cpu_ms": 0.925164474,
+    "median_allocated_bytes": 259439.921
+  },
+  {
+    "payload": "memory",
+    "operation": "render-and-protect",
+    "samples": 9,
+    "median_wall_ms": 1.737907639,
+    "median_cpu_ms": 0.770970395,
+    "median_allocated_bytes": 275387.35
+  },
+  {
+    "payload": "memory",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 2.1578658330000002,
+    "median_cpu_ms": 0.9014423079999999,
+    "median_allocated_bytes": 259640.467
+  },
+  {
+    "payload": "small",
+    "operation": "content-inspection",
+    "samples": 9,
+    "median_wall_ms": 0.0035949239999999998,
+    "median_cpu_ms": 0.002227052,
+    "median_allocated_bytes": 10616.0
+  },
+  {
+    "payload": "small",
+    "operation": "mime-output-to-counter",
+    "samples": 9,
+    "median_wall_ms": 0.630701103,
+    "median_cpu_ms": 0.29296875,
+    "median_allocated_bytes": 101360.069
+  },
+  {
+    "payload": "small",
+    "operation": "render-and-protect",
+    "samples": 9,
+    "median_wall_ms": 0.899301607,
+    "median_cpu_ms": 0.251116071,
+    "median_allocated_bytes": 114893.514
+  },
+  {
+    "payload": "small",
+    "operation": "size-measurement",
+    "samples": 9,
+    "median_wall_ms": 0.6620285159999999,
+    "median_cpu_ms": 0.38296568599999997,
+    "median_allocated_bytes": 101509.818
+  }
+]

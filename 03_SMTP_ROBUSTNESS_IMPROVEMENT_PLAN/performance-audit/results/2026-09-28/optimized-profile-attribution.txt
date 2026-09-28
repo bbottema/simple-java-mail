@@ -1,0 +1,254 @@
+Recording: C:\workstation\simple-java-mail\target\mail-send-performance\optimized-profile-749\fork-1-baseline\dkim-batch.jfr
+Execution samples (count):
+  201 fixture
+  118 protection
+  35 content-inspection
+  8 size
+  6 other
+  6 provider-discovery
+  4 mime-output
+Top sampled leaf methods (count; fixture excluded):
+  50 java.util.Arrays.copyOf
+  43 java.util.regex.Pattern$BmpCharPropertyGreedy.match
+  15 jakarta.mail.internet.MimeMultipart.parse
+  10 org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation$BodyInspection.inspect
+  8 org.eclipse.angus.mail.util.CRLFOutputStream.write
+  8 jakarta.mail.internet.MimeMultipart.readFully
+  7 org.eclipse.angus.mail.util.BASE64EncoderStream.encode
+  6 java.util.regex.Pattern$BitClass.is
+  4 org.eclipse.angus.mail.smtp.SMTPOutputStream.write
+  3 java.math.MutableBigInteger.mulsub
+  3 java.io.ByteArrayOutputStream.write
+  3 java.lang.AbstractStringBuilder.ensureCapacityInternal
+  2 java.math.BigInteger.materialize
+  1 java.lang.Character.isLetter
+  1 org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign
+  1 sun.nio.cs.UTF_8$Encoder.encodeBufferLoop
+  1 java.nio.CharBuffer.clear
+  1 java.util.GregorianCalendar.computeFields
+  1 java.lang.String.equalsIgnoreCase
+  1 jakarta.mail.internet.HeaderTokenizer.next
+Native sampled leaf methods (count; fixture excluded):
+  12 sun.nio.ch.Net.poll
+  4 sun.nio.ch.SocketDispatcher.write0
+  1 jdk.jfr.internal.JVM.getStackTraceId
+Sampled allocation weights (bytes; estimates):
+  2553563696 provider-discovery
+  2163354344 protection
+  193593480 content-inspection
+  10718648 other
+  8992936 fixture
+  7396952 mime-output
+  1503304 size
+  457336 pool-or-executor
+Top allocation stacks (bytes; sampled estimates, fixture excluded):
+  2116694912 java.util.jar.JarFile.entryFor <- java.util.jar.JavaUtilJarAccessImpl.entryFor <- java.util.zip.ZipFile.getZipEntry <- java.util.zip.ZipFile.getEntry <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry <- sun.net.www.protocol.jar.JarURLConnection.connect <- sun.net.www.protocol.jar.JarURLConnection.getInputStream
+  566536320 java.util.Arrays.copyOf <- java.io.ByteArrayOutputStream.ensureCapacity <- java.io.ByteArrayOutputStream.write <- java.io.OutputStream.write <- org.eclipse.angus.mail.util.BASE64EncoderStream.write <- jakarta.activation.DataHandler.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo
+  242826752 java.util.Arrays.copyOfRange <- java.lang.String.<init> <- java.lang.String.<init> <- java.lang.StringBuilder.toString <- java.util.regex.Matcher.replaceAll <- java.lang.String.replaceAll <- org.simplejavamail.internal.dkimsupport.DKIMSigner$Canonicalization.canonicalizeBody <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign
+  197825160 java.util.Arrays.copyOf <- java.io.ByteArrayOutputStream.toByteArray <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage
+  183120408 java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext <- java.util.ServiceLoader$3.hasNext
+  176162064 java.util.Arrays.copyOfRange <- java.lang.String.<init> <- java.lang.String.<init> <- org.simplejavamail.internal.dkimsupport.DKIMSigner$Canonicalization.canonicalizeBody <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage
+  165856840 java.lang.String.encodeUTF8 <- java.lang.String.encode <- java.lang.String.getBytes <- org.simplejavamail.internal.dkimsupport.DKIMSigner$Canonicalization.canonicalizeBody <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage
+  155076056 java.util.Arrays.copyOf <- java.io.ByteArrayOutputStream.ensureCapacity <- java.io.ByteArrayOutputStream.write <- org.simplejavamail.internal.util.FinalizedMimeMessage.writeWithoutHeaders <- org.simplejavamail.internal.util.FinalizedMimeMessage.writeTo <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.serializeForSubmission <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectFinalizedContent <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectSubmittedContent
+  144323264 java.io.ByteArrayOutputStream.<init> <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.email.internal.ComposedEmailSource.renderMimeMessage
+  130870512 java.lang.Object.clone <- org.simplejavamail.internal.util.FinalizedMimeMessage.getSerializedBytes <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.email.internal.ComposedEmailSource.renderMimeMessage
+  111053336 java.io.ByteArrayOutputStream.<init> <- org.simplejavamail.internal.dkimsupport.DKIMSigner.normalizeCrLf <- org.simplejavamail.internal.dkimsupport.DKIMSigner$WireSigner.sign <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage
+  87520856 java.lang.Object.clone <- org.simplejavamail.internal.util.FinalizedMimeMessage.fromMessageBytes <- org.simplejavamail.internal.dkimsupport.DKIMSigner.signMessageWithDKIM <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.applySecurity <- org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer.populateMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage <- org.simplejavamail.email.internal.ComposedEmailSource.renderMimeMessage
+Service discovery callers (allocation sample count, not byte share):
+  105 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeMessage.writeTo
+  94 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.decodeWord <- jakarta.mail.internet.MimeUtility.decodeText
+  57 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.InternetHeaders.load <- jakarta.mail.internet.InternetHeaders.<init>
+  34 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo
+  31 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.encode <- jakarta.mail.internet.MimeBodyPart.writeTo
+  29 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- org.simplejavamail.internal.util.JakartaMailImplementation.requireAvailable <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage
+  24 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.BodyPart.<init> <- jakarta.mail.internet.MimeBodyPart.<init>
+  16 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.Multipart.<init> <- jakarta.mail.internet.MimeMultipart.<init>
+  14 org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.findSupportingAdapters <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.TransportRunner.sendMessageOnTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.sendEmailsUsingSingleTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.executeClosure
+  10 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.doEncode <- jakarta.mail.internet.MimeUtility.encodeWord
+Recorded waits >=1ms (nanoseconds; overlapping thread totals):
+  7279577525 jdk.ThreadPark/pool-or-executor
+  5166579209 jdk.SocketRead/fixture
+  2129697971 jdk.SocketRead/other
+  5375147 jdk.JavaMonitorEnter/other
+Recording: C:\workstation\simple-java-mail\target\mail-send-performance\optimized-profile-749\fork-1-baseline\exact-batch.jfr
+Execution samples (count):
+  203 fixture
+  26 content-inspection
+  6 size
+  4 mime-output
+  1 provider-discovery
+Top sampled leaf methods (count; fixture excluded):
+  14 jakarta.mail.internet.MimeMultipart.parse
+  7 org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation$BodyInspection.inspect
+  4 org.eclipse.angus.mail.util.CRLFOutputStream.write
+  4 org.eclipse.angus.mail.smtp.SMTPOutputStream.write
+  2 jakarta.mail.internet.MimeMultipart.readFully
+  1 java.util.Arrays.copyOf
+  1 jakarta.activation.DataHandler.<init>
+  1 java.lang.Long.getChars
+  1 jdk.internal.loader.URLClassPath.getLoader
+  1 jdk.internal.util.ArraysSupport.mismatch
+  1 java.io.BufferedOutputStream.implWrite
+Native sampled leaf methods (count; fixture excluded):
+  12 sun.nio.ch.Net.poll
+  1 sun.nio.fs.WindowsNativeDispatcher.GetFileAttributesEx0
+Sampled allocation weights (bytes; estimates):
+  1688368840 other
+  317850784 content-inspection
+  89554472 provider-discovery
+  8506600 fixture
+  3851768 mime-output
+  1342808 pool-or-executor
+  671960 session-logging
+Top allocation stacks (bytes; sampled estimates, fixture excluded):
+  1663342384 java.lang.Object.clone <- org.simplejavamail.internal.util.FinalizedMimeMessage.fromExactMessageBytes <- org.simplejavamail.email.internal.ExactEmlSource.renderMimeMessage <- org.simplejavamail.email.internal.InternalEmail.renderMimeMessage <- org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter.convertMimeMessage <- org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter.convertMimeMessage <- org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage <- org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage
+  145482296 java.util.Arrays.copyOf <- java.io.ByteArrayOutputStream.ensureCapacity <- java.io.ByteArrayOutputStream.write <- java.io.OutputStream.write <- org.simplejavamail.internal.util.FinalizedMimeMessage.writeTo <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.serializeForSubmission <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectFinalizedContent <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectSubmittedContent
+  78704184 java.nio.HeapByteBuffer.<init> <- java.nio.ByteBuffer.allocate <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.forInputStreamReader <- java.io.InputStreamReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass
+  74166496 java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext <- java.util.ServiceLoader$3.hasNext
+  27089576 java.util.zip.InflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry
+  21996344 java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry <- sun.net.www.protocol.jar.JarURLConnection.connect <- sun.net.www.protocol.jar.JarURLConnection.getInputStream <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse
+  6195312 java.util.Arrays.copyOf <- java.lang.AbstractStringBuilder.ensureCapacityInternal <- java.lang.AbstractStringBuilder.append <- java.lang.StringBuilder.append <- org.eclipse.angus.mail.smtp.SMTPTransport.rcptTo <- org.eclipse.angus.mail.smtp.SMTPTransport.sendMessage <- org.simplejavamail.internal.mailprovider.angus.ManagedAngusTransport.sendMessage <- org.simplejavamail.internal.mailprovider.angus.AngusMailTransportAdapter.sendWithRecipientReporting
+  6126288 jdk.internal.misc.Unsafe.allocateUninitializedArray <- java.lang.StringConcatHelper.newArray <- java.lang.StringLatin1.replace <- java.lang.String.replace <- sun.net.www.protocol.file.Handler.openConnection <- sun.net.www.protocol.file.Handler.openConnection <- java.net.URL.openConnection <- sun.net.www.protocol.jar.JarURLConnection.<init>
+  4501784 java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry
+  4165888 java.util.Collections.newSetFromMap <- java.util.zip.ZipFile$CleanableResource.<init> <- java.util.zip.ZipFile.<init> <- java.util.zip.ZipFile.<init> <- java.util.jar.JarFile.<init> <- sun.net.www.protocol.jar.URLJarFile.<init> <- sun.net.www.protocol.jar.URLJarFile.getJarFile <- sun.net.www.protocol.jar.JarFileFactory.get
+  3851768 java.util.concurrent.ScheduledThreadPoolExecutor.schedule <- org.eclipse.angus.mail.util.TimeoutOutputStream.write <- org.eclipse.angus.mail.util.TraceOutputStream.write <- java.io.BufferedOutputStream.flushBuffer <- java.io.BufferedOutputStream.implWrite <- java.io.BufferedOutputStream.write <- org.eclipse.angus.mail.util.CRLFOutputStream.write <- org.eclipse.angus.mail.smtp.SMTPOutputStream.write
+  3430328 java.lang.StringLatin1.toChars <- java.lang.String.toCharArray <- sun.nio.fs.WindowsNativeDispatcher.asNativeBuffer <- sun.nio.fs.WindowsNativeDispatcher.GetFileAttributesEx <- sun.nio.fs.WindowsFileAttributes.get <- sun.nio.fs.WindowsFileAttributeViews$Basic.readAttributes <- sun.nio.fs.WindowsFileAttributeViews$Basic.readAttributes <- sun.nio.fs.WindowsFileSystemProvider.readAttributes
+Service discovery callers (allocation sample count, not byte share):
+  181 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.InternetHeaders.load <- jakarta.mail.internet.InternetHeaders.<init>
+  125 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.BodyPart.<init> <- jakarta.mail.internet.MimeBodyPart.<init>
+  88 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.Multipart.<init> <- jakarta.mail.internet.MimeMultipart.<init>
+  69 org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.findSupportingAdapters <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.TransportRunner.sendMessageOnTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.sendEmailsUsingSingleTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.executeClosure
+  49 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.decodeWord <- jakarta.mail.internet.MimeUtility.decodeText
+Recorded waits >=1ms (nanoseconds; overlapping thread totals):
+  6273700846 jdk.ThreadPark/other
+  3204820260 jdk.ThreadPark/pool-or-executor
+  2156964532 jdk.SocketRead/other
+  1068825997 jdk.SocketRead/fixture
+  5349036 jdk.JavaMonitorEnter/other
+Recording: C:\workstation\simple-java-mail\target\mail-send-performance\optimized-profile-749\fork-1-baseline\memory-batch.jfr
+Execution samples (count):
+  197 fixture
+  8 size
+  8 mime-output
+  3 provider-discovery
+  2 other
+Top sampled leaf methods (count; fixture excluded):
+  7 org.eclipse.angus.mail.util.CRLFOutputStream.write
+  6 org.eclipse.angus.mail.util.BASE64EncoderStream.encode
+  1 jakarta.mail.internet.InternetHeaders.setHeader
+  1 java.nio.HeapCharBuffer.<init>
+  1 org.eclipse.angus.mail.util.BASE64EncoderStream.write
+  1 jdk.internal.ref.PhantomCleanable.insert
+  1 java.lang.String.hashCode
+  1 jakarta.mail.internet.MimeUtility.getEncoding
+  1 java.util.concurrent.locks.AbstractQueuedSynchronizer.signalNext
+  1 java.util.concurrent.atomic.LongAdder.add
+Native sampled leaf methods (count; fixture excluded):
+  7 sun.nio.ch.Net.poll
+  3 sun.nio.ch.SocketDispatcher.write0
+  1 sun.nio.fs.WindowsNativeDispatcher.GetFileAttributesEx0
+Sampled allocation weights (bytes; estimates):
+  1500296672 provider-discovery
+  81274912 size
+  41400304 other
+  14087616 content-inspection
+  8460864 fixture
+  746816 mime-output
+  238272 pool-or-executor
+Top allocation stacks (bytes; sampled estimates, fixture excluded):
+  1363891680 java.nio.HeapByteBuffer.<init> <- java.nio.ByteBuffer.allocate <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.forInputStreamReader <- java.io.InputStreamReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass
+  48424552 java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext <- java.util.ServiceLoader$3.hasNext
+  36175144 java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry <- sun.net.www.protocol.jar.JarURLConnection.connect <- sun.net.www.protocol.jar.JarURLConnection.getInputStream <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse
+  19953512 java.util.zip.ZipFile$ZipFileInputStream.initDataOffset <- java.util.zip.ZipFile$ZipFileInputStream.read <- java.util.zip.ZipFile$ZipFileInflaterInputStream.fill <- java.util.zip.InflaterInputStream.read <- java.io.InputStream.readNBytes <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease
+  17892744 java.util.zip.InflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry
+  13671256 jdk.internal.misc.InternalLock.newLockOr <- java.io.Reader.<init> <- java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext
+  9406920 java.nio.CharBuffer.wrap <- sun.nio.cs.StreamDecoder.implRead <- sun.nio.cs.StreamDecoder.lockedRead <- sun.nio.cs.StreamDecoder.read <- java.io.InputStreamReader.read <- java.io.BufferedReader.fill <- java.io.BufferedReader.implReadLine <- java.io.BufferedReader.readLine
+  6316136 jakarta.activation.DataHandler.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeMultipart.writeTo <- org.eclipse.angus.mail.handlers.multipart_mixed.writeTo <- jakarta.activation.ObjectDataContentHandler.writeTo <- jakarta.activation.DataHandler.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo
+  4664080 java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getInputStream <- sun.net.www.protocol.jar.JarURLConnection.getInputStream <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext
+  3680144 java.util.Arrays.copyOfRangeByte <- java.util.Arrays.copyOfRange <- java.lang.StringLatin1.newString <- java.lang.String.substring <- java.lang.String.substring <- jakarta.mail.internet.InternetHeaders$InternetHeader.getValue <- jakarta.mail.internet.InternetHeaders.getHeader <- jakarta.mail.internet.MimeBodyPart.getHeader
+  3223968 java.util.jar.JarFile.entryFor <- java.util.jar.JavaUtilJarAccessImpl.entryFor <- java.util.zip.ZipFile.getZipEntry <- java.util.zip.ZipFile.getEntry <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry <- sun.net.www.protocol.jar.JarURLConnection.connect <- sun.net.www.protocol.jar.JarURLConnection.getInputStream
+  3185224 java.nio.HeapByteBuffer.<init> <- java.nio.ByteBuffer.allocate <- java.nio.charset.CharsetEncoder.encode <- java.nio.charset.CharsetEncoder.canEncode <- java.nio.charset.CharsetEncoder.canEncode <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectMimeHeaders <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectMimePart <- org.simplejavamail.internal.mailprovider.angus.AngusContentNegotiation.inspectMultipartBody
+Service discovery callers (allocation sample count, not byte share):
+  136 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.encode <- jakarta.mail.internet.MimeBodyPart.writeTo
+  126 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeBodyPart.writeTo
+  66 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeMessage.writeTo
+  58 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.decodeWord <- jakarta.mail.internet.MimeUtility.decodeText
+  55 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.BodyPart.<init> <- jakarta.mail.internet.MimeBodyPart.<init>
+  50 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- org.simplejavamail.internal.util.JakartaMailImplementation.requireAvailable <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage
+  38 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.doEncode <- jakarta.mail.internet.MimeUtility.encodeWord
+  22 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.Multipart.<init> <- jakarta.mail.internet.MimeMultipart.<init>
+  4 org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.findSupportingAdapters <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.TransportRunner.sendMessageOnTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.sendEmailsUsingSingleTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.executeClosure
+Recorded waits >=1ms (nanoseconds; overlapping thread totals):
+  2902249556 jdk.ThreadPark/pool-or-executor
+  2862215715 jdk.ThreadPark/other
+  1846238965 jdk.SocketRead/other
+  1059988110 jdk.SocketRead/fixture
+  7066199 jdk.JavaMonitorEnter/other
+Recording: C:\workstation\simple-java-mail\target\mail-send-performance\optimized-profile-749\fork-1-baseline\small-batch.jfr
+Execution samples (count):
+  7 other
+  6 provider-discovery
+  2 fixture
+  1 size
+  1 content-inspection
+Top sampled leaf methods (count; fixture excluded):
+  2 java.lang.AbstractStringBuilder.ensureCapacityInternal
+  1 java.util.stream.AbstractPipeline.sourceSpliterator
+  1 com.sanctionco.jmail.JMail.validateInternal
+  1 jakarta.mail.internet.MimeMessage.<init>
+  1 java.util.stream.ReferencePipeline.forEachWithCancel
+  1 java.nio.charset.CharsetDecoder.flush
+  1 jakarta.mail.internet.HeaderTokenizer.next
+  1 jdk.internal.ref.PhantomCleanable.insert
+  1 java.lang.String.hashCode
+  1 java.lang.invoke.DirectMethodHandle$Holder.invokeStatic
+  1 java.net.URL.set
+  1 java.lang.StringLatin1.indexOf
+  1 jdk.jfr.internal.periodic.EventTask.fetchPeriod
+  1 java.util.Formatter$FormatSpecifier.print
+Native sampled leaf methods (count; fixture excluded):
+  9 jdk.jfr.internal.JVM.emitEvent
+  4 sun.nio.fs.WindowsNativeDispatcher.GetFileAttributesEx0
+  3 sun.nio.ch.SocketDispatcher.write0
+  2 sun.nio.ch.Net.poll
+  1 java.util.zip.Inflater.inflateBytesBytes
+  1 java.util.zip.Inflater.end
+  1 java.lang.Class.forName0
+  1 java.io.RandomAccessFile.seek0
+  1 sun.nio.ch.SocketDispatcher.read0
+Sampled allocation weights (bytes; estimates):
+  714324560 provider-discovery
+  306561360 size
+  255755504 other
+  65497896 fixture
+  19947000 content-inspection
+  4761168 mime-output
+  523712 session-logging
+  156664 pool-or-executor
+Top allocation stacks (bytes; sampled estimates, fixture excluded):
+  210879416 java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext <- java.util.ServiceLoader$3.hasNext
+  159357304 jdk.internal.org.objectweb.asm.SymbolTable.addConstantNameAndType <- jdk.internal.org.objectweb.asm.SymbolTable.addConstantMemberReference <- jdk.internal.org.objectweb.asm.SymbolTable.addConstantMethodref <- jdk.internal.org.objectweb.asm.MethodWriter.visitMethodInsn <- jdk.internal.org.objectweb.asm.tree.MethodInsnNode.accept <- jdk.internal.org.objectweb.asm.tree.InsnList.accept <- jdk.internal.org.objectweb.asm.tree.MethodNode.accept <- jdk.internal.org.objectweb.asm.tree.MethodNode.accept
+  138076168 java.nio.HeapByteBuffer.<init> <- java.nio.ByteBuffer.allocate <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.<init> <- sun.nio.cs.StreamDecoder.forInputStreamReader <- java.io.InputStreamReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass
+  113132616 java.nio.CharBuffer.wrap <- sun.nio.cs.StreamDecoder.implRead <- sun.nio.cs.StreamDecoder.lockedRead <- sun.nio.cs.StreamDecoder.read <- java.io.InputStreamReader.read <- java.io.BufferedReader.fill <- java.io.BufferedReader.implReadLine <- java.io.BufferedReader.readLine
+  58335440 jdk.internal.misc.InternalLock.newLockOr <- java.io.Reader.<init> <- java.io.BufferedReader.<init> <- java.io.BufferedReader.<init> <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext
+  44583392 java.util.zip.InflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry
+  34786352 sun.net.www.protocol.file.Handler.openConnection <- sun.net.www.protocol.file.Handler.openConnection <- java.net.URL.openConnection <- sun.net.www.protocol.jar.JarURLConnection.<init> <- sun.net.www.protocol.jar.Handler.openConnection <- java.net.URL.openConnection <- java.util.ServiceLoader$LazyClassPathLookupIterator.parse <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass
+  33136984 java.nio.HeapByteBuffer.<init> <- java.nio.ByteBuffer.allocate <- sun.net.www.ParseUtil.decode <- sun.net.www.protocol.file.Handler.openConnection <- sun.net.www.protocol.file.Handler.openConnection <- java.net.URL.openConnection <- sun.net.www.protocol.jar.JarURLConnection.<init> <- sun.net.www.protocol.jar.Handler.openConnection
+  31885408 jakarta.mail.internet.ParameterList.<init> <- jakarta.mail.internet.ParameterList.<init> <- jakarta.mail.internet.ContentType.<init> <- jakarta.mail.internet.MimeBodyPart.restrictEncoding <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeMessage.writeTo <- org.simplejavamail.internal.mailprovider.angus.AngusMailTransportAdapter$AngusSmtpMessage.writeTo <- org.simplejavamail.internal.mailprovider.angus.AngusMessageSize.measure
+  29643168 java.lang.ClassLoader.getResources <- java.util.ServiceLoader$LazyClassPathLookupIterator.nextProviderClass <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNextService <- java.util.ServiceLoader$LazyClassPathLookupIterator.hasNext <- java.util.ServiceLoader$2.hasNext <- java.util.ServiceLoader$3.hasNext <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.findSupportingAdapters <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage
+  27957752 java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile$ZipFileInflaterInputStream.<init> <- java.util.zip.ZipFile.getInputStream <- java.util.jar.JarFile.getBytes <- java.util.jar.JarFile.checkForSpecialAttributes <- java.util.jar.JarFile.isMultiRelease <- java.util.jar.JarFile.getEntry <- sun.net.www.protocol.jar.URLJarFile.getEntry
+  26769920 java.nio.file.attribute.FileTime.from <- sun.nio.fs.WindowsFileAttributes.toFileTime <- sun.nio.fs.WindowsFileAttributes.lastModifiedTime <- java.util.zip.ZipFile$Source$Key.equals <- java.util.HashMap.getNode <- java.util.HashMap.get <- java.util.zip.ZipFile$Source.get <- java.util.zip.ZipFile$CleanableResource.<init>
+Service discovery callers (allocation sample count, not byte share):
+  329 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeBodyPart.writeTo <- jakarta.mail.internet.MimeMessage.writeTo
+  287 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.encode <- jakarta.mail.internet.MimeBodyPart.writeTo
+  183 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.doEncode <- jakarta.mail.internet.MimeUtility.encodeWord
+  143 org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.findSupportingAdapters <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.MailTransportAdapterResolver.sendMessage <- org.simplejavamail.mailer.internal.util.TransportRunner.sendMessageOnTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.sendEmailsUsingSingleTransport <- org.simplejavamail.mailer.internal.SendMailsInSimpleBatchClosure.executeClosure
+  136 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- jakarta.mail.internet.MimeUtility.decodeWord <- jakarta.mail.internet.MimeUtility.decodeText
+  122 jakarta.mail.util.FactoryFinder.factoryFromServiceLoader <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.FactoryFinder.find <- jakarta.mail.util.StreamProvider.provider <- org.simplejavamail.internal.util.JakartaMailImplementation.requireAvailable <- org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper.produceMimeMessage
+Recorded waits >=1ms (nanoseconds; overlapping thread totals):
+  2966558809 jdk.ThreadPark/other
+  2134923319 jdk.ThreadPark/pool-or-executor
+  1940429289 jdk.SocketRead/fixture
+  9910183 jdk.SocketRead/other
+  7154904 jdk.JavaMonitorEnter/other
+  2420764 jdk.SocketWrite/other

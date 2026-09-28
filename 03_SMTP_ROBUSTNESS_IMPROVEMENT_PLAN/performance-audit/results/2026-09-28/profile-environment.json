@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "java": "java version \"21\" 2023-09-19 LTS\r\nJava(TM) SE Runtime Environment (build 21+35-LTS-2513)\r\nJava HotSpot(TM) 64-Bit Server VM (build 21+35-LTS-2513, mixed mode, sharing)",
+  "os": "Microsoft Windows NT 10.0.22631.0",
+  "processors": {
+    "Name": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "NumberOfCores": 8,
+    "NumberOfLogicalProcessors": 16
+  },
+  "forks": 1,
+  "samples": 2,
+  "messages": 2000,
+  "largeMessages": 100,
+  "warmup": 100,
+  "attachmentBytes": 262144,
+  "scenarios": "small-batch|memory-batch|exact-batch|dkim-batch",
+  "variants": [
+    "baseline"
+  ],
+  "profile": true,
+  "heap": "-Xms512m -Xmx512m -XX:+UseG1GC"
+}

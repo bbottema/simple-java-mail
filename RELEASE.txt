@@ -39,6 +39,7 @@ Supporting Libraries:
 
 Maintenance:
 
+- #749: reduced content-inspection copying and per-byte stream overhead, cached mail-adapter discovery per application class loader, and removed redundant MIME-provider availability lookups. Content checks, SIZE preflight and per-operation adapter behavior remain enabled.
 - #736: made the CLI's runtime Javadoc cache safe to repopulate from concurrent daemon requests after an API change invalidates generated metadata.
 - Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.
 

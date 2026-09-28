@@ -1,0 +1,75 @@
+{
+  "sourceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "inspectionSourceSha256": "53AA30EBDE7208D5CE7C95795103EF1F3A1156A6240547933FB1D2731E8FB274",
+  "inspectionClassSha256": "02D9BB22ABB11431E373DC9FEAE4122A2DDC2E4205E40FEA0B97C60EE2DB8A7F",
+  "referenceCommit": "0d100a2051fe4e35c83a66e8c90d8354801adbe5",
+  "packagedClasspath": true,
+  "runtimeClasspathFile": "modules/simple-java-mail/target/audit-runtime-classpath.txt",
+  "diagnosticStreamProviderClass": "org.eclipse.angus.mail.util.MailStreamProvider",
+  "overlayInspectionHashes": {
+    "baseline": [
+      {
+        "name": "AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      }
+    ],
+    "no-size": [
+      {
+        "name": "AngusContentNegotiation.class",
+        "sha256": "17ED1B68023D4A6F2790CF097DE68CF31C741521F96A02C1909F68BA6F4221AA"
+      },
+      {
+        "name": "AngusContentNegotiation$BodyInspection.class",
+        "sha256": "5DFCC09D77E6E71B0473715C7BC0B8C50DF47E175C7A8B2AECDF5092B48ABBFF"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmissionBuffer.class",
+        "sha256": "40B67187A73663BFE1E7673506E4B993B75CE3F2C68C3C01ED50015DC3DE825F"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent.class",
+        "sha256": "D17C77B15363EE4B5C40E99A20FE4A6AD4F25F0967DEF5C4140C7390752AD0D4"
+      },
+      {
+        "name": "AngusContentNegotiation$SubmittedContent$SubmittedContentBuilder.class",
+        "sha256": "0DC6938040EDFF53DB9EBA08545E886A33D883D3E5DF7F12C6D4F9CDAF9F7B3D"
+      }
+    ]
+  },
+  "java": "java version \"21\" 2023-09-19 LTS\r\nJava(TM) SE Runtime Environment (build 21+35-LTS-2513)\r\nJava HotSpot(TM) 64-Bit Server VM (build 21+35-LTS-2513, mixed mode, sharing)",
+  "os": "Microsoft Windows NT 10.0.22631.0",
+  "processors": {
+    "Name": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "NumberOfCores": 8,
+    "NumberOfLogicalProcessors": 16
+  },
+  "forks": 3,
+  "samples": 2,
+  "messages": 1000,
+  "largeMessages": 40,
+  "warmup": 40,
+  "attachmentBytes": 262144,
+  "scenarios": "small-batch|memory-batch|exact-batch|dkim-batch",
+  "variants": [
+    "baseline",
+    "no-size"
+  ],
+  "profile": false,
+  "heap": "-Xms512m -Xmx512m -XX:+UseG1GC"
+}
