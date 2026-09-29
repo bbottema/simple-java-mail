@@ -15,6 +15,7 @@ python tools/smtp-conformance/run.py --mode all
 
 `embedded` needs no Docker or external account. It runs the Wiser/SOCKS tests and the selected scripted, queue, pool, deadline and observer regressions.
 These JUnit tests also run in ordinary Maven verification. `real` builds the pinned fixtures and invokes the explicit Maven `smtp-conformance` Failsafe profile.
+The runner limits Maven to two test JVMs for the two-core CI machine. Each scenario still exercises its own concurrency; socket and assertion timeouts are unchanged.
 It requires Docker Engine 28+ with Linux containers and Compose v2+. CI uses a Linux amd64 VM and JDK 21; Windows Docker Desktop is also supported.
 Published library compatibility remains checked separately on JDK 11.
 

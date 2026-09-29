@@ -280,7 +280,7 @@ class ConformanceRun:
         report_directory = self.directory / ("real-results" if real_servers else "embedded-results")
         command = [self.maven, "-B", "-pl", "modules/simple-java-mail", "-am", "verify" if real_servers else "test",
                    "-Dlicense.skip=true", "-Djacoco.skip=true", "-Dmaven.javadoc.skip=true", "-Dspotbugs.skip=true",
-                   "-Dsurefire.failIfNoSpecifiedTests=false"]
+                   "-Dsurefire.failIfNoSpecifiedTests=false", "-Dtest.forkCount=2"]
         if real_servers:
             command += ["-Psmtp-conformance", "-Dtest=SmtpProtocolConformanceTest", f"-Dsmtp.conformance.reportsDirectory={report_directory}"]
         else:
