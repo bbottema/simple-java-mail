@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
+import stat
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,6 +15,18 @@ from run import AssertionFailure, ConformanceRun, InfrastructureFailure, read_te
 
 
 class RunnerTest(unittest.TestCase):
+    def test_capture_is_readable_by_the_host_runner_with_a_restrictive_mta_umask(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory)
+            previous_mask = os.umask(0o077)
+            try:
+                capture_delivery("fixture", "queue", "sender@conformance.test", "recipient@conformance.test",
+                                 b"Message-ID: <permissions@conformance.test>\r\n\r\nFixture\r\n", destination)
+            finally:
+                os.umask(previous_mask)
+            for capture in destination.iterdir():
+                self.assertTrue(capture.stat().st_mode & stat.S_IROTH, capture.name)
+
     def test_capture_keeps_raw_content_and_marks_each_recipient_delivery_separately(self):
         content = b"Message-ID: <test@conformance.test>\r\nSubject: fixture\r\n\r\n.Body\r\n"
         with tempfile.TemporaryDirectory() as directory:

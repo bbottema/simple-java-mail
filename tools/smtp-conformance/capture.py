@@ -23,13 +23,17 @@ def capture_delivery(server, queue_id, sender, recipient, content, destination, 
         "file": capture_id + ".eml",
         "sha256": hashlib.sha256(content).hexdigest(),
     }
-    (destination / metadata["file"]).write_bytes(content)
+    captured_message = destination / metadata["file"]
+    captured_message.write_bytes(content)
+    # The MTA and host JVM use different users. Only these synthetic captures are shared; fixture private keys stay separate.
+    captured_message.chmod(0o644)
     pending = destination / (capture_id + ".pending")
     properties = XML.Element("properties")
     for key, value in metadata.items():
         XML.SubElement(properties, "entry", key=key).text = str(value or "")
     document = b'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">\n'
     pending.write_bytes(document + XML.tostring(properties, encoding="utf-8"))
+    pending.chmod(0o644)
     # The manifest is the completion marker: readers never observe an unfinished EML file.
     pending.replace(destination / (capture_id + ".xml"))
 
