@@ -204,12 +204,10 @@ class SmtpMessageSizeLifecycleTest {
 
     private static byte[] protectedContent(final String protection) throws Exception {
         if (protection.equals("smime")) {
-            // The external fixture uses LF outside its signed part. Prepare its SMTP line endings before testing byte preservation.
-            final byte[] fixture = Base64.getMimeDecoder().decode(resource("smime/openssl-detached-signed.eml.b64"));
-            return new String(fixture, US_ASCII).replace("\r\n", "\n").replace("\n", "\r\n").getBytes(US_ASCII);
+            return smtpFixtureContent(Base64.getMimeDecoder().decode(resource("smime/openssl-detached-signed.eml.b64")));
         }
         if (protection.equals("openpgp")) {
-            return resource("openpgpjs/signed-mixed.eml");
+            return smtpFixtureContent(resource("openpgpjs/signed-mixed.eml"));
         }
         final KeyPairGenerator keys = KeyPairGenerator.getInstance("RSA");
         keys.initialize(2048);
@@ -220,6 +218,11 @@ class SmtpMessageSizeLifecycleTest {
                 .signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData(keys.generateKeyPair().getPrivate().getEncoded())
                         .dkimSigningDomain("supersecret-testing-domain.com").dkimSelector("test").build()).buildEmail();
         return EmailConverter.mimeMessageToEMLByteArray(EmailConverter.emailToMimeMessage(email));
+    }
+
+    private static byte[] smtpFixtureContent(final byte[] fixture) {
+        // Git checkouts can use LF. Start preservation checks with SMTP's CRLF representation and verify the signature before sending.
+        return new String(fixture, ISO_8859_1).replace("\r\n", "\n").replace("\n", "\r\n").getBytes(ISO_8859_1);
     }
 
     private static void verifyProtectedContent(final String protection, final byte[] received) throws Exception {

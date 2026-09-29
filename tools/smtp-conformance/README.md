@@ -84,7 +84,7 @@ An uncatchable process or machine termination can prevent cleanup; recover using
 Only the `evidence/` directory is suitable for CI publication:
 
 - `summary.json`: schema version, source commit/dirty flag/source-tree hash, configuration hashes, actual host/Maven/container versions and named outcomes;
-- `junit.xml`: sanitized scenario results without raw test output, environment properties or exception text;
+- `junit.xml`: sanitized scenario results and project stack-frame source locations, without raw test output, environment properties or exception messages;
 - `summary.md`: a short human-readable result table;
 - `runtime.properties`, probe reports and `content-verification.json`: the loaded JDK, Angus and crypto versions, capabilities and independent checks.
 

@@ -35,13 +35,17 @@ class RunnerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "raw.xml"
             source.write_text('<testsuite><properties><property name="password" value="secret"/></properties>'
-                              '<testcase classname="Fixture" name="failure" time="1.2"><failure>message-secret</failure>'
+                              '<testcase classname="Fixture" name="failure" time="1.2"><failure>message-secret\n'
+                              '\tat org.simplejavamail.Fixture.check(Fixture.java:42)\n'
+                              '\tat org.simplejavamail.Fixture.check(password-secret)\n</failure>'
                               '<system-out>AUTH secret</system-out></testcase></testsuite>', encoding="utf-8")
             results = read_test_results([source])
             destination = Path(directory) / "safe.xml"
             write_sanitized_junit(results, destination)
             self.assertNotIn("secret", destination.read_text())
             self.assertEqual("failed", results[0]["status"])
+            self.assertEqual(["org.simplejavamail.Fixture.check(Fixture.java:42)"], results[0]["failureLocations"])
+            self.assertIn("Fixture.java:42", destination.read_text())
             self.assertEqual("1", XML.parse(destination).getroot().get("failures"))
 
     def test_missing_scenarios_and_skips_cannot_pass(self):

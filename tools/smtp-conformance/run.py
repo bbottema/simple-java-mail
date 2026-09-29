@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import signal
 import socket
@@ -87,9 +88,25 @@ def read_test_results(paths):
             status = "failed" if case.find("failure") is not None or case.find("error") is not None else "passed"
             if case.find("skipped") is not None:
                 status = "skipped"
-            results.append({"class": case.get("classname"), "name": case.get("name"), "status": status,
-                            "seconds": float(case.get("time", "0"))})
+            result = {"class": case.get("classname"), "name": case.get("name"), "status": status,
+                      "seconds": float(case.get("time", "0"))}
+            if status == "failed":
+                result["failureLocations"] = failure_source_locations(case)
+            results.append(result)
     return results
+
+
+def failure_source_locations(case):
+    # Assertion messages can contain complete MIME or credentials. Only retain ordinary project stack-frame locations.
+    locations = []
+    for failure in (*case.findall("failure"), *case.findall("error")):
+        for line in (failure.text or "").splitlines():
+            match = re.fullmatch(r"\s*at ((?:org\.simplejavamail|testutil)\.[\w.$]+\([\w.$]+\.java:\d+\))\s*", line)
+            if match and match[1] not in locations:
+                locations.append(match[1])
+                if len(locations) == 20:
+                    return locations
+    return locations
 
 
 def write_sanitized_junit(results, destination):
@@ -98,7 +115,8 @@ def write_sanitized_junit(results, destination):
     for result in results:
         case = XML.SubElement(suite, "testcase", classname=result["class"], name=result["name"], time=str(result["seconds"]))
         if result["status"] != "passed":
-            XML.SubElement(case, "failure", message=f"Scenario {result['status']}; inspect the local run log")
+            failure = XML.SubElement(case, "failure", message=f"Scenario {result['status']}; inspect the local run log")
+            failure.text = "\n".join(result.get("failureLocations", []))
     XML.ElementTree(suite).write(destination, encoding="utf-8", xml_declaration=True)
 
 
