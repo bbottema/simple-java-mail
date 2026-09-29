@@ -6,9 +6,9 @@ This is the maintenance source for the [architecture infographic](assets/inside-
 
 - Version shown: Simple Java Mail 10.0.0 development line.
 - Path shown: an ordinary pooled asynchronous send with managed Angus transport.
-- Last reviewed: 2026-09-10, against the Phase 2 working-tree implementation under review.
+- Last reviewed: 2026-09-29, at completion of the five SMTP robustness phases; see the review ledger below.
 - Not a release-status graphic, a lock-order graph, or an exhaustive map of every send path.
-- Later phases remain proposals until implemented. Do not add them to the picture ahead of the code.
+- Proposed changes stay out of the picture until implemented. Do not add them ahead of the code.
 
 The outer layers group responsibilities rather than literal object containment. The reporting bracket spans the send attempt; observation does not start only after the socket finishes. Synchronous sends, simple batches, open connections, custom mailers, and caller-owned Sessions have their own paths and contracts in the catalogue and user documentation.
 
@@ -115,5 +115,5 @@ Add a dated row for each completed step. Record the change, or explicitly say wh
 | Phase 4, step 9 SIZE preflight, 2026-09-26 | Reviewed unchanged for the local #748 implementation. Counting and the connected limit check run under the existing Angus transport monitor after provider conversion, before MAIL FROM. Abort uses the existing flag; only complete counts enter the per-attempt facade/result/receipt. Local compatibility rejection keeps a healthy pooled lease reusable. No new worker, lock, buffer owner or resource lifetime is introduced. The existing image and website copy remain accurate; user review is still pending. |
 | Phase 4 completion, 2026-09-28 | #748 and its diagnostic-budget correction are accepted. The overview remains accurate: the complete operational SIZE scan, per-attempt measurement, cleanup and outcome propagation use the existing transport owner and monitor. No new ownership or resource boundary was added. The earlier review-pending checkpoints are historical. |
 | Performance follow-up, 2026-09-28 | Reviewed unchanged for accepted #749. Body inspection remains attempt-local. Provider factory metadata is cached per application class loader; initialization synchronization stays outside adapter construction/calls and owns no send state or transport resources. Send workers, leases, cancellation and outcome ordering retain their existing boundaries. SIZE behavior and all content/security checks are unchanged; no performance-control API is added. The master, website copy and #722 embed remain accurate. |
-| Phase 5 — conformance | Pending. Compare the illustrated boundaries with the conformance scenarios; do not add an unqualified safety or delivery claim. |
+| Phase 5 completion, 2026-09-29 | #747 is accepted after the [hosted conformance run](../research/smtp-conformance-verification.md). The [scenario matrix](../../tools/smtp-conformance/README.md#what-each-layer-proves) exercises existing preparation, provider, lease, cancellation and observer boundaries. Shared peers and real-MTA delivery captures are test infrastructure, not new production owners or locks. The overview remains accurate, and the master, website copy and #722 embed use the same approved image. All five robustness phases are complete; this is not a release. |
 | 10.0.0 release | Pending. Reconcile the final implementation, catalogue, website image, and umbrella issue before publication. |

@@ -100,4 +100,5 @@ The machine-executor job runs alongside the ordinary build on `master`. Both are
 On a development branch, start a pipeline with `run-smtp-conformance: true`; this enables the test-only workflow, not deployment.
 CI stores only sanitized evidence, including failed-run evidence. See [the maintainer workflow](../../docs/MAINTAINER_WORKFLOW.md#6-verify).
 
-Changing CI configuration locally is not proof that the CircleCI job ran. Before closing #747, run the branch job after the separately approved push and record its result.
+Changing CI configuration locally is not proof that the CircleCI job ran. Record the tested commit and hosted result whenever using this suite as release evidence.
+The [29 September 2026 verification report](../../docs/research/smtp-conformance-verification.md) records the first successful hosted run and the fixture corrections it required.

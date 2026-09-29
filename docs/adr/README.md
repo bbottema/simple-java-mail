@@ -59,6 +59,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | Exact EML submission | [0013](0013-exact-eml-submission.md). |
 | DSN envelope identifiers | [0022](0022-dsn-identifiers-belong-to-send-attempts.md); broader target scopes remain in [0001](0001-email-configuration-scopes-and-inheritance.md), with the dated [provider characterization](../research/smtp-dsn-provider-characterization.md). |
 | Content inspection and provider-discovery performance | [Initial audit](../research/smtp-performance/initial-audit-results.md), [inspection optimization](../research/smtp-performance/inspection-optimization-results.md), and [discovery results and final decision](../research/smtp-performance/provider-discovery-results.md), with retained measurements and the [manual harness](../../tools/performance/README.md). |
+| SMTP conformance and fault injection | [Runner, scenario matrix and evidence format](../../tools/smtp-conformance/README.md), with the dated [verification report](../research/smtp-conformance-verification.md). The [maintainer workflow](../MAINTAINER_WORKFLOW.md#6-verify) defines the release gate. |
 | Authenticated SOCKS proxy bridge | [0010](0010-authenticated-socks-bridge.md). |
 | Smart MIME structure selection and protection | [0008](0008-minimal-mime-structures-and-protection-order.md), with the finalized-content boundary in [0007](0007-provider-neutral-mime-boundary.md). |
 | Send-time validation and rehearsal | [0014](0014-send-time-rehearsal.md). |

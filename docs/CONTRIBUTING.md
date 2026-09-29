@@ -19,6 +19,7 @@ For a first code change, start with the development and coding guides, then read
 
 ## Active work and evidence
 
-- [Active plans](plans/) describe ongoing implementation and review, including the [SMTP conformance plan](plans/smtp-conformance.md) for [#747](https://github.com/bbottema/simple-java-mail/issues/747), within [#722](https://github.com/bbottema/simple-java-mail/issues/722).
+- [GitHub issues](https://github.com/bbottema/simple-java-mail/issues) track ongoing work. Active implementation plans belong under `docs/plans/` while that work is being implemented or reviewed.
+- The [SMTP conformance runner](../tools/smtp-conformance/README.md) documents the repeatable checks delivered under [#747](https://github.com/bbottema/simple-java-mail/issues/747), within [#722](https://github.com/bbottema/simple-java-mail/issues/722). Its first hosted run is recorded in the [verification report](research/smtp-conformance-verification.md).
 - [Research reports](research/) retain investigations and measurements. Read each report's date and scope alongside the maintained guides and ADRs.
 - Follow the [documentation ownership and plan lifecycle instructions](MAINTAINER_WORKFLOW.md#7-update-documentation-and-release-notes) when moving documentation or completing a plan.
