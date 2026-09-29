@@ -237,14 +237,19 @@ mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests package
 Before merging to `master` for a release, run the library reactor on a real JDK 11:
 
 ```powershell
-mvn -pl '!modules/cli-module' clean verify -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true
+mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' clean verify -Dmaven.javadoc.skip=true
 ```
 
 Then run the full reactor, including CLI publication metadata, on JDK 17 or newer:
 
 ```powershell
-mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true
+mvn clean verify -Ppublish-cli
 ```
+
+The separate [SMTP conformance job](../tools/smtp-conformance/README.md) and the normal build must both pass before any release approval.
+On a development branch, run the CircleCI pipeline with `run-smtp-conformance: true`; that workflow has no deployment job.
+Keep the sanitized evidence with the tested commit's CI artifacts. Do not copy raw EML captures, fixture private keys or raw SMTP logs into release attachments.
+An assertion failure, missing test, infrastructure error or cleanup failure blocks the gate; it is not an allowed skip.
 
 If Norton or local certificate interception breaks Maven, retry with:
 

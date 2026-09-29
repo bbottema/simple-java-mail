@@ -35,6 +35,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Maintenance
 
+- [#747](https://github.com/bbottema/simple-java-mail/issues/747): added a reproducible SMTP conformance runner with pinned Postfix/Exim fixtures, independent protected-content checks and sanitized CI evidence. Restored the embedded SMTP/SOCKS integration tests to ordinary verification. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#749](https://github.com/bbottema/simple-java-mail/issues/749): reduced content-inspection copying and per-byte stream overhead, cached mail-adapter discovery per application class loader, and removed redundant MIME-provider availability lookups. Content checks, SIZE preflight and per-operation adapter behavior remain enabled.
 - [#736](https://github.com/bbottema/simple-java-mail/issues/736): made the CLI's runtime Javadoc cache safe to repopulate from concurrent daemon requests after an API change invalidates generated metadata.
 - Fixed generated API Javadoc packaging for the multi-release source layout; Javadoc errors now fail the build.

@@ -48,13 +48,13 @@ mvn verify -DskipTests -Dmaven.javadoc.skip=true
 For full non-live verification, including generated Javadoc JARs, run on JDK 17+:
 
 ```powershell
-mvn clean verify -Ppublish-cli -DexcludeLiveServerTests=true
+mvn clean verify -Ppublish-cli
 ```
 
 Full non-live library compatibility validation, including Javadocs, on JDK 11:
 
 ```powershell
-mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' clean verify -DexcludeLiveServerTests=true
+mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' clean verify
 ```
 
 The Java 11 lane also excludes the coverage aggregator because it depends on the Java 17 CLI artifact. The full modern-JDK build checks both.
@@ -68,6 +68,21 @@ On JDK 17+, `mvn verify` runs the tests and generates the combined JaCoCo report
 for a fresh report. Keep tests and JaCoCo enabled: `-DskipTests` or `-Djacoco.skip=true` does not
 produce fresh coverage. No separate coverage script or machine-specific JDK path is required.
 
+### SMTP integration and conformance
+
+The Wiser SMTP and authenticated-SOCKS integration tests are local and run in ordinary verification. They use allocated ports and do not need an external mail account.
+The old `excludeLiveServerTests` profile has been removed; manually runnable demo apps are still not JUnit tests.
+
+The [SMTP conformance runner](../tools/smtp-conformance/README.md) adds pinned Postfix/Exim fixtures and independent protected-content checks:
+
+```powershell
+python tools/smtp-conformance/run.py --mode all
+```
+
+Use `--mode embedded` without Docker or `--mode real` for the explicit Failsafe server matrix. The runner records source/runtime provenance and sanitized evidence under `target/smtp-conformance`.
+
+### Optional performance checks
+
 Record repeatable local one-shot and warm-daemon process timings without adding a CI timing threshold:
 
 ```powershell
@@ -79,6 +94,8 @@ The raw samples and median/p95 summary are written to `modules/cli-module/target
 For the separate mail-send/content audit, see [the manual performance harness](../tools/performance/README.md).
 It uses a loopback SMTP sink, repeated JVM runs and separate JFR recordings. Its experimental
 classpath overlays are only for known-safe synthetic inputs, never production mail or CI timing gates.
+
+### Generated license headers
 
 After any build that ran `license:format`, clean up auto-generated headers before committing:
 
