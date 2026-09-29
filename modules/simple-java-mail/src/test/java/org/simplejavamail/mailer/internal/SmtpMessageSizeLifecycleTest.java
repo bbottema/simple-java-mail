@@ -26,7 +26,7 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.mailprovider.angus.AngusMailTransportAdapter;
 import org.simplejavamail.internal.mailprovider.angus.AngusMailTransportLifecycleAdapter;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.ScriptedSmtpServer;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ConfigLoaderTestHelper;
 
@@ -60,7 +60,7 @@ class SmtpMessageSizeLifecycleTest {
         final Session session = session();
         final AngusMailTransportLifecycleAdapter lifecycle = new AngusMailTransportLifecycleAdapter();
         lifecycle.configureOwnedSession(session, "smtp");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 99999");
             peer.expectClosed();
         }); Transport transport = session.getTransport("smtp")) {
@@ -94,7 +94,7 @@ class SmtpMessageSizeLifecycleTest {
     void localRecipientFailureNeverPretendsContentWasMeasured() throws Exception {
         final Session session = session();
         new AngusMailTransportLifecycleAdapter().configureOwnedSession(session, "smtp");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 99999");
             finishConnection(peer);
         }); Transport transport = session.getTransport("smtp")) {
@@ -115,7 +115,7 @@ class SmtpMessageSizeLifecycleTest {
         final Session session = session();
         new AngusMailTransportLifecycleAdapter().configureOwnedSession(session, "smtp");
         final AtomicInteger connections = new AtomicInteger();
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             if (connections.incrementAndGet() == 1) {
                 peer.greet("250-localhost\r\n250 SIZE 1");
             } else {
@@ -142,7 +142,7 @@ class SmtpMessageSizeLifecycleTest {
 
     @Test
     void callerOwnedOrdinaryAngusSessionKeepsItsBehaviorAndDoesNotInventSizes() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 1");
             acceptMessage(peer, "MAIL FROM:<sender@example.test>", "", "receiver@example.test");
             finishConnection(peer);
@@ -179,7 +179,7 @@ class SmtpMessageSizeLifecycleTest {
         final CompletableFuture<byte[]> received = new CompletableFuture<>();
         final Session session = session();
         new AngusMailTransportLifecycleAdapter().configureOwnedSession(session, "smtp");
-        try (PeerServer server = new PeerServer(1, ISO_8859_1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, ISO_8859_1, peer -> {
             peer.greet("250-localhost\r\n250-8BITMIME\r\n250-SMTPUTF8\r\n250 SIZE 999999");
             final String command = peer.readLine();
             assertThat(command).startsWith("MAIL FROM:<sender@example.test>");

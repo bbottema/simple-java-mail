@@ -21,14 +21,9 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
+import testutil.smtp.ScriptedSmtpServer;
 import testutil.ConfigLoaderTestHelper;
 
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Properties;
@@ -38,8 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -74,7 +67,7 @@ class SmtpEnvelopeIdTest {
         final String identifier = fixedIdentifier ? "fixed-attempt" : null;
         final List<String> wireIdentifiers = new CopyOnWriteArrayList<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             for (int index = 0; index < 2; index++) {
                 if (fixedIdentifier) {
@@ -122,7 +115,7 @@ class SmtpEnvelopeIdTest {
     void consecutivePooledSendsKeepTheirOwnIdentifiersAndObserverReceipts(final boolean asynchronous) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final AtomicReference<String> generatedIdentifier = new AtomicReference<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             final String content = acceptMessage(peer, MAIL_FROM + " RET=HDRS ENVID=order+20+2B42+3D", " NOTIFY=FAILURE,DELAY", RECIPIENT);
             assertThat(content).doesNotContain("ENVID=", "Original-Envelope-ID:", "NOTIFY=");
@@ -149,7 +142,7 @@ class SmtpEnvelopeIdTest {
     @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     void missingOrMalformedDsnRejectsBeforeMailFrom(final boolean malformed, final boolean asynchronous) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(malformed ? "250-localhost\r\n250 DSN unsupported-parameters" : "250 localhost");
             finishConnection(peer); // A pre-submission capability mismatch leaves the lease healthy.
         }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
@@ -175,7 +168,7 @@ class SmtpEnvelopeIdTest {
 
     @Test
     void openConnectionCanContinueAfterMissingDsnWithoutLeakingThePreviousReply() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
@@ -202,7 +195,7 @@ class SmtpEnvelopeIdTest {
                 + "Content-Type: text/plain\r\n\r\nExact content.\r\n").getBytes(US_ASCII);
         final Email original = exact ? mail.emailBuilder().startingFromExactEml(eml).withEnvelopeRecipients(RECIPIENT).buildEmail()
                 : mail.emailBuilder().copying(email(null)).fixingMessageId("<same-message@example.test>").buildEmail();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             for (int index = 0; index < 2; index++) {
                 identifiers.add(readGeneratedEnvelopeId(peer, MAIL_FROM));
@@ -230,7 +223,7 @@ class SmtpEnvelopeIdTest {
         final List<String> identifiers = new CopyOnWriteArrayList<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final Email original = email(null);
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             for (int index = 0; index < 2; index++) {
                 identifiers.add(readGeneratedEnvelopeId(peer, MAIL_FROM));
@@ -253,7 +246,7 @@ class SmtpEnvelopeIdTest {
     @ParameterizedTest
     @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     void automaticIdentifierDoesNotRequireDsn(final boolean malformed, final boolean asynchronous) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(malformed ? "250-localhost\r\n250 DSN invalid" : "250 localhost");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             finishConnection(peer);
@@ -270,7 +263,7 @@ class SmtpEnvelopeIdTest {
         final List<String> identifiers = new CopyOnWriteArrayList<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final Email original = email(null);
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             for (int index = 0; index < 2; index++) {
                 identifiers.add(readGeneratedEnvelopeId(peer, MAIL_FROM));
@@ -297,7 +290,7 @@ class SmtpEnvelopeIdTest {
         final AtomicReference<String> failedIdentifier = new AtomicReference<>();
         final AtomicReference<String> nextIdentifier = new AtomicReference<>();
         final Email original = email(null);
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             final boolean first = attempts.incrementAndGet() == 1;
             peer.greet(first || replacementSupportsDsn ? DSN : "250 localhost");
             if (first) {
@@ -330,7 +323,7 @@ class SmtpEnvelopeIdTest {
     void missingFinalReplyRetainsTheAttemptIdentifierWithoutClaimingAcceptance(final boolean asynchronous) throws Exception {
         final AtomicReference<String> identifier = new AtomicReference<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             identifier.set(readGeneratedEnvelopeId(peer, MAIL_FROM));
             peer.reply("250 sender accepted");
@@ -359,7 +352,7 @@ class SmtpEnvelopeIdTest {
     @ValueSource(booleans = {false, true})
     void simpleBatchUsesOneIdentifierPerEmailAndDoesNotAccumulateReceipts(final boolean asynchronous) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             acceptMessage(peer, MAIL_FROM + " ENVID=batch-1", "", RECIPIENT);
             acceptMessage(peer, MAIL_FROM + " ENVID=batch-2", "", RECIPIENT);
@@ -393,7 +386,7 @@ class SmtpEnvelopeIdTest {
                 return email(index == 1 ? null : "unsupported-batch-id");
             }
         };
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             finishConnection(peer);
@@ -419,7 +412,7 @@ class SmtpEnvelopeIdTest {
         final AtomicReference<Mailer> owner = new AtomicReference<>();
         final AtomicReference<MailSubmissionReceipt> nestedReceipt = new AtomicReference<>();
         final AtomicInteger observed = new AtomicInteger();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             for (final String identifier : List.of("outer-id", "nested-id")) {
                 if (fixed) {
@@ -450,7 +443,7 @@ class SmtpEnvelopeIdTest {
     void simultaneousPooledSendsKeepIdentifiersOnTheirOwnConnections(final boolean fixed) throws Exception {
         final Set<String> observedCommands = ConcurrentHashMap.newKeySet();
         final CountDownLatch connected = new CountDownLatch(2);
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             peer.greet(DSN);
             connected.countDown();
             assertThat(connected.await(10, SECONDS)).isTrue();
@@ -494,7 +487,7 @@ class SmtpEnvelopeIdTest {
     @Test
     void failedLeaseIsInvalidatedAndTheNextSendHasANewIdentifier() throws Exception {
         final AtomicInteger attempts = new AtomicInteger();
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             peer.greet(DSN);
             if (attempts.incrementAndGet() == 1) {
                 expectCommand(peer, MAIL_FROM + " ENVID=rejected");
@@ -521,7 +514,7 @@ class SmtpEnvelopeIdTest {
         final byte[] eml = ("From: author@example.test\r\nTo: visible@example.test\r\nBcc: retain@example.test\r\n"
                 + "Message-ID: <unchanged@example.test>\r\nDate: Tue, 15 Sep 2026 12:00:00 +0000\r\n"
                 + "Content-Type: text/plain; charset=us-ascii\r\n\r\nKeep these exact bytes.\r\n").getBytes(US_ASCII);
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             assertThat(acceptMessage(peer, MAIL_FROM + " ENVID=exact+2B42", "", RECIPIENT, RECIPIENT).getBytes(US_ASCII))
                     .containsExactly(eml);
@@ -535,7 +528,7 @@ class SmtpEnvelopeIdTest {
 
     @Test
     void unrelatedSessionMailExtensionsArePreservedAndNoIdentifierIsWrittenBack() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250-XTEST\r\n250 DSN");
             acceptMessage(peer, MAIL_FROM + " XTEST=keep ENVID=one", "", RECIPIENT);
             readGeneratedEnvelopeId(peer, MAIL_FROM + " XTEST=keep");
@@ -550,7 +543,7 @@ class SmtpEnvelopeIdTest {
     @ParameterizedTest
     @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     void capabilityCheckUsesTheAuthenticatedPostTlsConnection(final boolean supportedAfterTls, final boolean fixed) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(supportedAfterTls ? "250-localhost\r\n250 STARTTLS" : "250-localhost\r\n250-DSN\r\n250 STARTTLS");
             peer.expect("STARTTLS");
             peer.reply("220 start TLS");
@@ -594,7 +587,7 @@ class SmtpEnvelopeIdTest {
 
     @Test
     void callerOwnedSessionKeepsItsRawExtensionAndRemainsUnchanged() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             acceptMessage(peer, MAIL_FROM + " XTEST=caller ENVID=caller-id", "", RECIPIENT);
             finishConnection(peer);
@@ -615,7 +608,7 @@ class SmtpEnvelopeIdTest {
     @ParameterizedTest
     @ValueSource(strings = {"ENVID=old", "XTEST=keep envid=old", "ENVID"})
     void conflictingRawIdentifierIsRejectedBeforeSubmission(final String rawExtension) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.smtp.mailextension", rawExtension).buildMailer()) {
@@ -633,7 +626,7 @@ class SmtpEnvelopeIdTest {
     @ValueSource(booleans = {false, true})
     void rawIdentifierRemainsCallerOwnedAndDoesNotAcquireAnAutomaticDuplicate(final boolean supportsDsn) throws Exception {
         final String rawExtension = "XTEST=keep envid=caller+2B42";
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(supportsDsn ? DSN : "250 probe.example.test");
             acceptMessage(peer, MAIL_FROM + " " + rawExtension, "", RECIPIENT);
             acceptMessage(peer, MAIL_FROM + " " + rawExtension, "", RECIPIENT);
@@ -652,7 +645,7 @@ class SmtpEnvelopeIdTest {
     @ParameterizedTest
     @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     void automaticIdentifierPreservesTheExistingAngusEightBitConversion(final boolean supportsDsn, final boolean multipart) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(supportsDsn ? "250-localhost\r\n250-DSN\r\n250 8BITMIME" : "250-localhost\r\n250 8BITMIME");
             if (supportsDsn) {
                 readGeneratedEnvelopeId(peer, MAIL_FROM + " BODY=8BITMIME");
@@ -671,7 +664,7 @@ class SmtpEnvelopeIdTest {
         }
     }
 
-    private MailerRegularBuilder<?> builder(final PeerServer server) {
+    private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
                 .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(10000);
     }
@@ -687,57 +680,5 @@ class SmtpEnvelopeIdTest {
         return asynchronous ? mailer.async().sendMail(email).getCompletion().get(10, SECONDS) : mailer.sync().sendMail(email);
     }
 
-    @FunctionalInterface
-    interface PeerScript {
-        void run(Conversation peer) throws Exception;
-    }
 
-    static final class PeerServer implements AutoCloseable {
-        private final ServerSocket server;
-        private final ExecutorService workers;
-        private final CompletableFuture<Void> serving;
-
-        PeerServer(final int connections, final PeerScript script) throws Exception {
-            this(connections, US_ASCII, script);
-        }
-
-        PeerServer(final int connections, final Charset charset, final PeerScript script) throws Exception {
-            server = new ServerSocket(0, connections, InetAddress.getByName("localhost"));
-            server.setSoTimeout(15000);
-            workers = Executors.newFixedThreadPool(connections + 1);
-            serving = CompletableFuture.runAsync(() -> {
-                final List<CompletableFuture<Void>> peers = new ArrayList<>();
-                try {
-                    for (int index = 0; index < connections; index++) {
-                        final Socket socket = server.accept();
-                        peers.add(CompletableFuture.runAsync(() -> {
-                            try (Conversation peer = new Conversation(socket, charset)) {
-                                script.run(peer);
-                            } catch (Exception failure) {
-                                throw new AssertionError("ENVID peer failed", failure);
-                            }
-                        }, workers));
-                    }
-                    CompletableFuture.allOf(peers.toArray(new CompletableFuture<?>[0])).get(20, SECONDS);
-                } catch (Exception failure) {
-                    throw new AssertionError("ENVID server failed", failure);
-                }
-            }, workers);
-        }
-
-        int port() {
-            return server.getLocalPort();
-        }
-
-        @Override
-        public void close() throws Exception {
-            try {
-                serving.get(25, SECONDS);
-            } finally {
-                server.close();
-                workers.shutdownNow();
-                assertThat(workers.awaitTermination(5, SECONDS)).isTrue();
-            }
-        }
-    }
 }

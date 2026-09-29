@@ -16,7 +16,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.ScriptedSmtpServer;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ConfigLoaderTestHelper;
 
@@ -46,7 +46,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void enabledUtf8DoesNotDeclareSmtpUtf8ForAsciiMail() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             finishConnection(peer);
@@ -58,7 +58,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void defaultUtf8SendsAnInternationalizedRecipientWhenSmtpUtf8IsAvailable() throws Exception {
         final String internationalizedRecipient = "müller@example.test";
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             final String content = acceptMessage(peer, MAIL_FROM + " SMTPUTF8", "", internationalizedRecipient);
             assertThat(content).contains("To: " + internationalizedRecipient);
@@ -71,7 +71,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void defaultUtf8RejectsAnInternationalizedRecipientWithoutNegotiatedSupport() throws Exception {
         final String internationalizedRecipient = "müller@example.test";
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -84,7 +84,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void defaultUtf8RejectsAnInternationalizedSenderWithoutNegotiatedSupport() throws Exception {
         final String internationalizedSender = "séndér@example.test";
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -97,7 +97,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void disabledUtf8RejectsAnInternationalizedRecipientEvenWhenTheServerSupportsIt() throws Exception {
         final String internationalizedRecipient = "müller@example.test";
-        try (PeerServer server = new PeerServer(1, ISO_8859_1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, ISO_8859_1, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.mime.allowutf8", false).buildMailer()) {
@@ -112,7 +112,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("séndér@example.test").withReplyTo("réply@example.test")
                 .withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null)).withPlainText("ASCII body").buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             final String content = acceptMessage(peer, "MAIL FROM:<séndér@example.test> SMTPUTF8", "", RECIPIENT);
             assertThat(content).contains("From: séndér@example.test", "Reply-To: réply@example.test");
@@ -127,7 +127,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("Séndér", "sender@example.test").withRecipients(new Recipient("José", RECIPIENT, Message.RecipientType.TO, null))
                 .withReplyTo("Réply", "reply@example.test").withPlainText("ASCII body").buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content).contains("From: =?UTF-8?", "To: =?UTF-8?", "Reply-To: =?UTF-8?")
@@ -149,7 +149,7 @@ class SmtpContentNegotiationCharacterizationTest {
         if (enabled) {
             properties.setProperty("mail.mime.allowutf8", "true");
         }
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             if (enabled) {
                 acceptMessage(peer, MAIL_FROM + " SMTPUTF8", "", internationalizedRecipient);
@@ -174,7 +174,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void ordinaryComposedMailStaysSevenBitByDefaultWhenEightBitMimeIsAvailable() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content).contains("Content-Transfer-Encoding: quoted-printable")
@@ -188,7 +188,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void ordinaryUnicodeHeadersRemainAsciiEncodedWithoutSmtpUtf8() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content).contains("Subject: =?UTF-8?").doesNotContain("Subject: Café rendez-vous");
@@ -204,7 +204,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("ASCII subject").withPlainText("ASCII body")
                 .withHeader("X-Internationalized", "Café rendez-vous").buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content).contains("X-Internationalized: =?UTF-8?").doesNotContain("X-Internationalized: Café rendez-vous");
@@ -216,7 +216,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void enabledEightBitMimeConvertsEligibleTextAndDeclaresTheBodyParameter() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
             assertThat(content).contains("Content-Transfer-Encoding: 8bit")
@@ -230,7 +230,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void enabledEightBitMimeKeepsSevenBitTransferEncodingWhenTheServerDoesNotAdvertiseSupport() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content).contains("Content-Transfer-Encoding: quoted-printable")
@@ -248,7 +248,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("8BITMIME declaration").withPlainText(EIGHT_BIT_TEXT)
                 .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
             assertThat(content).contains("Content-Transfer-Encoding: 8bit").contains(EIGHT_BIT_TEXT);
@@ -263,7 +263,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withPlainText(EIGHT_BIT_TEXT).withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -280,7 +280,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("Binary transport is unavailable").withPlainText("ASCII bytes with an unsafe transfer declaration")
                 .withPlainTextContentTransferEncoding(ContentTransferEncoding.BINARY).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-8BITMIME\r\n250 BINARYMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -300,7 +300,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null)).withPlainText(body)
                 .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8)
                 .withHTMLText(multipart ? "<p>Safe alternative</p>" : null).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -319,7 +319,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withPlainText(boundaryLine + lineBreak + boundaryLine)
                 .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
             assertThat(content).contains(boundaryLine + "\r\n" + boundaryLine);
@@ -336,7 +336,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final byte[] exactEml = ("From: sender@example.test\r\nTo: receiver@example.test\r\n"
                 + (multipart ? "Content-Type: multipart/mixed; boundary=parts\r\n\r\n--parts\r\n" + binaryPart + "--parts--\r\n"
                 : binaryPart)).getBytes(US_ASCII);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-8BITMIME\r\n250 BINARYMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -346,7 +346,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void pooledUtf8RejectionDoesNotPreventTheNextAsciiSend() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             finishConnection(peer);
@@ -361,7 +361,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void concurrentDefaultUtf8SendsKeepEnvelopeAndHeaderAddressesAligned() throws Exception {
         final CountDownLatch connectionsReady = new CountDownLatch(2);
-        try (PeerServer server = new PeerServer(2, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             connectionsReady.countDown();
             assertThat(connectionsReady.await(5, SECONDS)).isTrue();
@@ -392,7 +392,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 + "Message-ID: <exact-eight-bit@example.test>\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n"
                 + "Synthetic caf=C3=A9 content.\r\n").getBytes(US_ASCII);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             assertThat(content.getBytes(US_ASCII)).containsExactly(exactEml);
@@ -406,7 +406,7 @@ class SmtpContentNegotiationCharacterizationTest {
     void exactEmlWithRawUtf8HeaderIsRejectedWithoutSmtpUtf8Support() throws Exception {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\nSubject: Café rendez-vous\r\n"
                 + "Content-Type: text/plain; charset=us-ascii\r\n\r\nASCII body.\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -419,7 +419,7 @@ class SmtpContentNegotiationCharacterizationTest {
     void exactEmlWithRawUtf8HeaderUsesSmtpUtf8WithoutChangingItsBytes() throws Exception {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\nSubject: Café rendez-vous\r\n"
                 + "Content-Type: text/plain; charset=us-ascii\r\n\r\nASCII body.\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             final String content = acceptMessage(peer, MAIL_FROM + " SMTPUTF8", "", RECIPIENT);
             assertThat(content.getBytes(UTF_8)).containsExactly(exactEml);
@@ -433,7 +433,7 @@ class SmtpContentNegotiationCharacterizationTest {
     void exactEmlRejectsNonAsciiHeaderBytesThatAreNotUtf8() throws Exception {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\nSubject: Café rendez-vous\r\n"
                 + "Content-Type: text/plain; charset=us-ascii\r\n\r\nASCII body.\r\n").getBytes(ISO_8859_1);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -446,7 +446,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
                 + EIGHT_BIT_TEXT + "\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -462,7 +462,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
                 + EIGHT_BIT_TEXT + "\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
             assertThat(content.getBytes(UTF_8)).containsExactly(exactEml);
@@ -480,7 +480,7 @@ class SmtpContentNegotiationCharacterizationTest {
         exactEml[prefix.length] = 0;
         exactEml[prefix.length + 1] = '\r';
         exactEml[prefix.length + 2] = '\n';
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -496,7 +496,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
                 + "é" + "x".repeat(998) + "\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
@@ -511,7 +511,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final byte[] exactEml = ("From: author@example.test\r\nTo: visible@example.test\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
                 + EIGHT_BIT_TEXT + "\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.smtp.mailextension", "XTRACE=keep BODY=7BIT").buildMailer()) {
@@ -525,7 +525,7 @@ class SmtpContentNegotiationCharacterizationTest {
 
     @Test
     void negotiationUsesOnlyCapabilitiesAdvertisedAfterStartTls() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-SMTPUTF8\r\n250-8BITMIME\r\n250 STARTTLS");
             peer.expect("STARTTLS");
             peer.reply("220 begin TLS");
@@ -546,7 +546,7 @@ class SmtpContentNegotiationCharacterizationTest {
     @Test
     void capabilitiesFromAClosedPooledConnectionDoNotAffectItsReplacement() throws Exception {
         final AtomicInteger connections = new AtomicInteger();
-        try (PeerServer server = new PeerServer(2, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, UTF_8, peer -> {
             if (connections.getAndIncrement() == 0) {
                 peer.greet("250-localhost\r\n250-SMTPUTF8\r\n250 8BITMIME");
                 final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
@@ -573,7 +573,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 .hasMessageContaining("No message was submitted");
     }
 
-    static MailerRegularBuilder<?> builder(final PeerServer server) {
+    static MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // These scripts expect a fixed set of connections; idle expiry during caller-thread MIME preparation is a different concern.
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", server.port())
                 .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)

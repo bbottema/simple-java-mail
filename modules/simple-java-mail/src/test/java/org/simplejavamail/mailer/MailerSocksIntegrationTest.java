@@ -7,6 +7,7 @@ import org.bbottema.javasocksproxyserver.SyncSocksServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -40,9 +41,10 @@ import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
-public class MailerSOCKSLiveTest {
+/** Checks local proxy routing independently of the SMTP server's implementation. */
+@Timeout(30)
+public class MailerSocksIntegrationTest {
 	private static final char[] TLS_KEYSTORE_PASSWORD = "changeit".toCharArray();
 
 	private final SyncSocksServer socksServer = new SyncSocksServer();
@@ -282,11 +284,7 @@ public class MailerSOCKSLiveTest {
 		if (!async) {
 			mailer.sync().sendMail(originalEmail);
 		} else {
-			if (async) {
-				mailer.async().sendMail(originalEmail).getCompletion().get();
-			} else {
-				mailer.sync().sendMail(originalEmail);
-			}
+			mailer.async().sendMail(originalEmail).getCompletion().get(20, TimeUnit.SECONDS);
 		}
 		assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		assertThat(smtpServer.getMessages()).hasSize(1);
@@ -295,7 +293,7 @@ public class MailerSOCKSLiveTest {
 
 	private static SSLContext createServerSslContext() throws Exception {
 		final KeyStore serverKeyStore = KeyStore.getInstance("JKS");
-		try (InputStream keyStoreStream = requireNonNull(MailerSOCKSLiveTest.class.getResourceAsStream("/smtp_test_server.jks"))) {
+		try (InputStream keyStoreStream = requireNonNull(MailerSocksIntegrationTest.class.getResourceAsStream("/smtp_test_server.jks"))) {
 			serverKeyStore.load(keyStoreStream, TLS_KEYSTORE_PASSWORD);
 		}
 

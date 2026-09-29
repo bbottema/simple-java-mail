@@ -26,10 +26,8 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class EmailSerializationSmtpTest {
 
-	private static final int SMTP_PORT = 253;
-
 	@RegisterExtension
-	static final SmtpServerExtension SMTP_SERVER = new SmtpServerExtension(SMTP_PORT, null, null);
+	static final SmtpServerExtension SMTP_SERVER = new SmtpServerExtension(0, null, null);
 
 	@BeforeEach
 	void clearDefaults() {
@@ -58,7 +56,8 @@ class EmailSerializationSmtpTest {
 				.buildEmail();
 		final Email restored = roundTrip(email);
 
-		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", SMTP_PORT).buildMailer();
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", SMTP_SERVER.getPort()).buildMailer();
 		try {
 			mailer.sync().sendMail(restored);
 		} finally {

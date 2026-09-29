@@ -5,8 +5,10 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -67,13 +69,12 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.EmailHelper.readOutlookMessage;
+import static testutil.testrules.ReceivedMailAssertions.assertEnvelopeMatches;
 
-/*
- * This class name is referrenced in pom as an exclusion for a profile that is only active during
- * remote builds (so excluded from tests in CircleCI).
- */
+/** Exercises received MIME against an embedded server; no external mail account or privileged port is needed. */
 @SuppressWarnings("unused")
-public class MailerLiveTest {
+@Timeout(45)
+public class MailerSmtpIntegrationTest {
 
 	private static final String RESOURCES = determineResourceFolder("simple-java-mail") + "/test/resources";
 
@@ -81,13 +82,11 @@ public class MailerLiveTest {
 
 	private static final String RESOURCES_PKCS = RESOURCES + "/pkcs12";
 
-	private static final Integer SERVER_PORT = 251;
-	
 	private static final String USERNAME = "usey";
 	private static final String PASSWORD = "passy";
 
 	@RegisterExtension
-	static SmtpServerExtension smtpServerExtension = new SmtpServerExtension(SERVER_PORT, "usey", "passy");
+	static final SmtpServerExtension smtpServerExtension = new SmtpServerExtension(0, USERNAME, PASSWORD);
 
 
 	private Mailer mailer;
@@ -106,12 +105,20 @@ public class MailerLiveTest {
 
 	@BeforeEach
 	public void setup() {
-		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
+				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
 				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
 				.buildMailer();
 	}
-	
+
+	@AfterEach
+	void closeMailer() throws Exception {
+		if (mailer != null) {
+			mailer.close();
+		}
+	}
+
 	@Test
 	public void createMailSession_EmptySubjectAndBody()
 			throws MessagingException, ExecutionException, InterruptedException {
@@ -143,7 +150,7 @@ public class MailerLiveTest {
 			throws MessagingException, ExecutionException, InterruptedException {
 		assertSendingEmail(EmailHelper.createDummyEmailBuilder(true, false, false, true, true, true), true, false, false, false, true);
 	}
-	
+
 	@Test
 	public void createMailSession_StandardDummyMail_IncludingCustomHeaders()
 			throws MessagingException, ExecutionException, InterruptedException {
@@ -248,10 +255,11 @@ public class MailerLiveTest {
 
 	@Test
 	public void createMailSession_OutlookMessageIgnoresDefaultSmimeSigningTest()
-			throws IOException, MessagingException, ExecutionException, InterruptedException {
+			throws Exception {
 		// override the default from the @BeforeEach test
+		mailer.close();
 		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS()
 						.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null)
 						.buildEmail())
@@ -356,7 +364,7 @@ public class MailerLiveTest {
 				.smimeName("smime.p7m")
 				.build());
 	}
-	
+
 	@Test
 	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
@@ -370,7 +378,7 @@ public class MailerLiveTest {
 
 		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-		
+
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
@@ -387,7 +395,7 @@ public class MailerLiveTest {
 				.smimeSignedBy("Benny Bottema")
 				.build());
 	}
-	
+
 	@Test
 	public void testEncryptSendAndReceiveDecrypt()
 			throws MessagingException, ExecutionException, InterruptedException {
@@ -395,12 +403,12 @@ public class MailerLiveTest {
 				.encryptWithSmime(SmimeEncryptionConfig.builder()
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.build());
-		
+
 		Email email = assertSendingEmail(builder, false, true, false, false, false);
 
 		//noinspection deprecation
 		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-		
+
 		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.ENCRYPTED)
 				.smimeMime("application/pkcs7-mime")
@@ -536,19 +544,7 @@ public class MailerLiveTest {
 			verifyNonnullOrEmpty(mailer.async().sendMail(originalEmail).getCompletion()).get();
 		}
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
-		assertThat(receivedMimeMessage.getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
-
-		if (!originalEmail.getOverrideReceivers().isEmpty()) {
-			assertThat(receivedMimeMessage.getEnvelopeReceiver()).isEqualTo(originalEmail.getOverrideReceivers().get(0).getAddress());
-		} else {
-			assertThat(receivedMimeMessage.getEnvelopeReceiver()).isEqualTo(originalEmail.getRecipients().get(0).getAddress());
-		}
-
-		if (originalEmail.getBounceToRecipient() != null) {
-			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getBounceToRecipient().getAddress());
-		} else {
-			assertThat(receivedMimeMessage.getEnvelopeSender()).isEqualTo(originalEmail.getFromRecipient().getAddress());
-		}
+		assertEnvelopeMatches(receivedMimeMessage, originalEmail);
 
 		Email receivedEmail = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage(), loadPkcs12KeyStore()).buildEmail();
 
@@ -655,21 +651,21 @@ public class MailerLiveTest {
 		mailer.sync().sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
-		
+
 		// send reply to initial mail
 		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
-		
+
 		// test received reply to initial mail
 		mailer.sync().sendMail(reply);
 		MimeMessage receivedMimeMessageReply1 = smtpServerExtension.getMessage("lo.pop.replyto@somemail.com");
 		MimeMessage receivedMimeMessageReply2 = smtpServerExtension.getMessage("benny.bottema@aegon.nl");
 		Email receivedReply1 = mimeMessageToEmail(receivedMimeMessageReply1);
 		Email receivedReply2 = mimeMessageToEmail(receivedMimeMessageReply2);
-		
+
 		assertThat(receivedReply1).isEqualTo(receivedReply2);
 		EmailAssert.assertThat(receivedReply1).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply1).hasOnlyRecipients(
@@ -680,7 +676,7 @@ public class MailerLiveTest {
 		assertThat(receivedReply1.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
 		assertThat(receivedReply1.getHeaders()).contains(entry("References", singletonList(receivedEmailPopulatingBuilder.getId())));
 	}
-	
+
 	@Test
 	public void createMailSession_ReplyToMessage_NotAll_AndCustomReferences()
 			throws MessagingException, ExecutionException, InterruptedException {
@@ -688,19 +684,19 @@ public class MailerLiveTest {
 		mailer.sync().sendMail(readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg").buildEmail());
 		MimeMessageAndEnvelope receivedMimeMessage = smtpServerExtension.getOnlyMessage();
 		EmailPopulatingBuilder receivedEmailPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessage.getMimeMessage());
-		
+
 		// send reply to initial mail
 		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
 				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
-		
+
 		// test received reply to initial mail
 		mailer.sync().sendMail(reply);
 		MimeMessage receivedMimeMessageReply = smtpServerExtension.getOnlyMessage("lo.pop.replyto@somemail.com");
 		Email receivedReply = mimeMessageToEmail(receivedMimeMessageReply);
-		
+
 		EmailAssert.assertThat(receivedReply).hasSubject("Re: hey");
 		EmailAssert.assertThat(receivedReply).hasOnlyRecipients(new Recipient("lollypop-replyto", "lo.pop.replyto@somemail.com", TO, null));
 		assertThat(receivedReply.getHeaders()).contains(entry("In-Reply-To", singletonList(receivedEmailPopulatingBuilder.getId())));
@@ -726,16 +722,16 @@ public class MailerLiveTest {
 		val references = format("%s %s", receivedEmailPopulatingBuilder.getId(), receivedEmailReplyPopulatingBuilder.getId());
 		assertThat(receivedReplyToReply.getHeaders()).contains(entry("References", singletonList(references)));
 	}
-	
+
 	private void assertAttachmentMetadata(AttachmentResource attachment, String mimeType, String filename) {
 		assertThat(attachment.getDataSource().getContentType()).isEqualTo(mimeType);
 		assertThat(attachment.getName()).isEqualTo(filename);
 	}
 
 	@Test
-	public void testMaximumEmailSize() {
+	public void testMaximumEmailSize() throws Exception {
 		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", SERVER_PORT, USERNAME, PASSWORD)
+				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
 				.withMaximumEmailSize(4)
 				.buildMailer();
 
@@ -743,7 +739,7 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testMaximumEmailSize_CustomMailer() {
+	public void testMaximumEmailSize_CustomMailer() throws Exception {
 		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withCustomMailer(new CustomMailer() {
 					@Override
@@ -763,7 +759,7 @@ public class MailerLiveTest {
 	}
 
 	@Test
-	public void testMaximumEmailSize_DontSendOnlyLog() {
+	public void testMaximumEmailSize_DontSendOnlyLog() throws Exception {
 		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withTransportModeLoggingOnly(true)
 				.withMaximumEmailSize(4)
@@ -772,7 +768,7 @@ public class MailerLiveTest {
 		sendAndVerifyEmailTooBigException(mailer);
 	}
 
-	private static void sendAndVerifyEmailTooBigException(Mailer mailer) {
+	private static void sendAndVerifyEmailTooBigException(Mailer mailer) throws Exception {
 		val email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.withPlainText("non empty text")
 				.withSubject("email size test")
@@ -780,11 +776,13 @@ public class MailerLiveTest {
 				.withRecipients(new Recipient(null, "a@b.com", TO, null))
 				.buildEmail();
 
-		assertThatThrownBy(() -> mailer.sync().sendMail(email))
-				.hasMessageStartingWith("Failed to send email [ID:")
-				.getCause()
-				.isInstanceOf(EmailTooBigException.class)
-				.hasMessageContaining("bytes exceeds maximum allowed size of 4 bytes");
+		try (Mailer ownedMailer = mailer) {
+			assertThatThrownBy(() -> ownedMailer.sync().sendMail(email))
+					.hasMessageStartingWith("Failed to send email [ID:")
+					.getCause()
+					.isInstanceOf(EmailTooBigException.class)
+					.hasMessageContaining("bytes exceeds maximum allowed size of 4 bytes");
+		}
 	}
 
 	@Test

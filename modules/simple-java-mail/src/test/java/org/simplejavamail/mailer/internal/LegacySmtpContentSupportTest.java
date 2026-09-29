@@ -22,7 +22,7 @@ import org.simplejavamail.config.ConfigDiagnosticGroup;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.ScriptedSmtpServer;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.net.SocketFactory;
@@ -68,7 +68,7 @@ class LegacySmtpContentSupportTest {
         final Properties properties = new Properties();
         properties.put("mail.smtp.socketFactory", socketFactory);
         properties.setProperty("mail.smtp.socketFactory.fallback", "true");
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet(advertised ? "250-localhost\r\n250 SMTPUTF8" : "250 localhost");
             acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
             acceptMessage(peer, MAIL_FROM + (advertised ? " SMTPUTF8" : ""), "", INTERNATIONAL_RECIPIENT);
@@ -84,7 +84,7 @@ class LegacySmtpContentSupportTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void internationalizedProviderSubmitterKeepsItsDeclarationAndCannotBeSilentlyDropped(final boolean advertised) throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n" + (advertised ? "250-SMTPUTF8\r\n" : "") + "250 AUTH PLAIN");
             if (advertised) {
                 acceptMessage(peer, MAIL_FROM + " SMTPUTF8 AUTH=caf+C3+A9", "", ASCII_RECIPIENT);
@@ -104,7 +104,7 @@ class LegacySmtpContentSupportTest {
         final CountDownLatch mailCommandReceived = new CountDownLatch(1);
         final AtomicInteger connections = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(2, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             if (connections.incrementAndGet() == 1) {
                 expectCommand(peer, MAIL_FROM + " SMTPUTF8");
@@ -139,7 +139,7 @@ class LegacySmtpContentSupportTest {
         final String recipient = internationalAddress ? INTERNATIONAL_RECIPIENT : ASCII_RECIPIENT;
         final Email email = contentForCombination(contentKind, recipient);
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n" + (smtpUtf8 ? "250-SMTPUTF8\r\n" : "") + (eightBitMime ? "250-8BITMIME\r\n" : "") + "250 SIZE 100000");
             if (permitted) {
                 final String mailCommand = peer.readLine();
@@ -207,7 +207,7 @@ class LegacySmtpContentSupportTest {
     void alternatingAsciiAndInternationalMailDoesNotReconnectOrLeakDeclarations(final String mode) throws Exception {
         final AtomicInteger connections = new AtomicInteger();
         final List<Email> emails = List.of(message(ASCII_RECIPIENT), message(INTERNATIONAL_RECIPIENT), message(ASCII_RECIPIENT));
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             connections.incrementAndGet();
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
@@ -236,7 +236,7 @@ class LegacySmtpContentSupportTest {
                 + "Subject: " + (contentKind.equals("body") ? "ASCII" : "Café") + "\r\n"
                 + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
                 + (contentKind.equals("headers") ? "ASCII" : "Café") + "\r\n").getBytes(UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             assertThat(acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT).getBytes(UTF_8)).containsExactly(original);
             finishConnection(peer);
@@ -249,7 +249,7 @@ class LegacySmtpContentSupportTest {
     void asciiBodyLabelledEightBitNeedsNoAdvertisedCapability() throws Exception {
         final Email email = factory().emailBuilder().copying(message(ASCII_RECIPIENT))
                 .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             assertThat(acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT)).contains("Content-Transfer-Encoding: 8bit");
             finishConnection(peer);
@@ -262,7 +262,7 @@ class LegacySmtpContentSupportTest {
     void rejectedLegacyAttemptIsNotRetriedAndCannotContaminateTheReplacement() throws Exception {
         final AtomicInteger connections = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(2, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, UTF_8, peer -> {
             final boolean first = connections.incrementAndGet() == 1;
             peer.greet("250 localhost");
             if (first) {
@@ -296,10 +296,10 @@ class LegacySmtpContentSupportTest {
     @Test
     void legacyPermissionBelongsToTheSelectedServerNotTheEntryMailer() throws Exception {
         final UUID cluster = UUID.randomUUID();
-        try (PeerServer strictServer = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer strictServer = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer); // Local compatibility rejection must not issue MAIL FROM or break the lease.
-        }); PeerServer legacyServer = new PeerServer(1, UTF_8, peer -> {
+        }); ScriptedSmtpServer legacyServer = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", INTERNATIONAL_RECIPIENT);
             finishConnection(peer);
@@ -350,7 +350,7 @@ class LegacySmtpContentSupportTest {
 
     @Test
     void legacyPermissionDoesNotOverrideExplicitlyDisabledUtf8OrSecurityRequirements() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withProperty("mail.mime.allowutf8", false).buildMailer()) {
@@ -368,7 +368,7 @@ class LegacySmtpContentSupportTest {
                 + "Content-Transfer-Encoding: " + (kind.equals("binary") ? "binary" : "8bit") + "\r\n\r\n";
         final String body = kind.equals("nul") ? "zero\0byte" : kind.equals("long") ? "x".repeat(999) : "Café";
         final byte[] original = (headers + body + "\r\n").getBytes(kind.equals("invalid-header") ? ISO_8859_1 : UTF_8);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true)
@@ -381,7 +381,7 @@ class LegacySmtpContentSupportTest {
     void legacyAddressesDoNotImplyInternationalizedOrcptSupport() throws Exception {
         final Email email = factory().emailBuilder().copying(message(INTERNATIONAL_RECIPIENT))
                 .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE).buildEmail();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 DSN");
             SmtpDsnCharacterizationTest.readGeneratedEnvelopeId(peer, MAIL_FROM);
             SmtpDsnCharacterizationTest.acceptMessageAfterMailFrom(peer, " NOTIFY=FAILURE", INTERNATIONAL_RECIPIENT);
@@ -393,7 +393,7 @@ class LegacySmtpContentSupportTest {
 
     @Test
     void callerOwnedAngusRetainsSessionWideDeclarationsEvenForAsciiMail() throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SMTPUTF8");
             acceptMessage(peer, MAIL_FROM + " SMTPUTF8", "", ASCII_RECIPIENT);
             finishConnection(peer);
@@ -418,7 +418,7 @@ class LegacySmtpContentSupportTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void explicitMailExtensionRemainsDeliberateAndDoesNotGetDuplicated(final boolean advertised) throws Exception {
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet(advertised ? "250-localhost\r\n250 SMTPUTF8" : "250 localhost");
             acceptMessage(peer, MAIL_FROM + " SMTPUTF8 XTRACE=SMTPUTF8", "", ASCII_RECIPIENT);
             finishConnection(peer);

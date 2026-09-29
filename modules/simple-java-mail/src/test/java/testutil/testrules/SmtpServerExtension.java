@@ -69,7 +69,14 @@ public class SmtpServerExtension implements BeforeEachCallback, AfterEachCallbac
 
 	@Override
 	public void afterEach(ExtensionContext context) {
-		this.wiser.stop();
+		if (wiser != null) {
+			wiser.stop();
+			wiser = null;
+		}
+	}
+
+	public int getPort() {
+		return getWiser().getServer().getPortAllocated();
 	}
 
 	@NotNull

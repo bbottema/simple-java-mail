@@ -21,9 +21,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
-import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.ScriptedSmtpServer;
 import testutil.ConfigLoaderTestHelper;
 
 import java.nio.charset.StandardCharsets;
@@ -60,7 +58,7 @@ class SmtpRequireTlsTest {
                         .withEnvelopeRecipients(RECIPIENT).withTlsRequiredForOnwardDelivery().buildEmail()
                 : email(true);
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls(REQUIRE_TLS);
             final String content = acceptMessage(peer, MAIL_FROM + " REQUIRETLS", "", RECIPIENT);
             if (exact) {
@@ -81,7 +79,7 @@ class SmtpRequireTlsTest {
     @ValueSource(booleans = {false, true})
     void missingPostTlsCapabilityRejectsBeforeMailFrom(final boolean asynchronous) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls("250 localhost");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
@@ -104,7 +102,7 @@ class SmtpRequireTlsTest {
 
     @Test
     void rejectedMailFromStillReportsThatRequireTlsWasIssued() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls(REQUIRE_TLS);
             peer.expect(MAIL_FROM + " REQUIRETLS");
             peer.reply("550 5.7.1 REQUIRETLS rejected by test server");
@@ -125,7 +123,7 @@ class SmtpRequireTlsTest {
 
     @Test
     void missingFinalReplyKeepsRequireTlsSeparateFromUnknownAcceptance() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls(REQUIRE_TLS);
             peer.expect(MAIL_FROM + " REQUIRETLS");
             peer.reply("250 sender accepted");
@@ -147,7 +145,7 @@ class SmtpRequireTlsTest {
 
     @Test
     void openConnectionDoesNotLeakRequireTlsToTheNextEmail() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls(REQUIRE_TLS);
             acceptMessage(peer, MAIL_FROM + " REQUIRETLS", "", RECIPIENT);
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
@@ -185,7 +183,7 @@ class SmtpRequireTlsTest {
         }
     }
 
-    private MailerRegularBuilder<?> builder(final PeerServer server) {
+    private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withSmtpClientHostname("probe.example.test").trustingSSLHosts("localhost")
                 .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)

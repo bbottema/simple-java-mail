@@ -16,8 +16,8 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.SmtpConversation;
+import testutil.smtp.ScriptedSmtpServer;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ConfigLoaderTestHelper;
 
@@ -55,7 +55,7 @@ class SmtpMessageSizeTest {
     void exactLimitIsAllowedAndObserverReceivesTheSameSizedReceipt(final boolean asynchronous) throws Exception {
         final byte[] content = eml(".first\r\n..second\r\nlast\r\n");
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 SIZE " + content.length);
             assertThat(acceptSizedMessage(peer, (long) content.length).getBytes(UTF_8)).containsExactly(content);
             finishConnection(peer);
@@ -75,7 +75,7 @@ class SmtpMessageSizeTest {
         final byte[] small = eml("small\r\n");
         final byte[] large = eml("too large".repeat(40) + "\r\n");
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n" + (oversizedDiagnostics ? "250-X-LONG " + "x".repeat(70000) + "\r\n" : "")
                     + "250 SIZE " + small.length);
             acceptSizedMessage(peer, (long) small.length);
@@ -113,7 +113,7 @@ class SmtpMessageSizeTest {
     void unknownLimitsDoNotRejectAndMissingSizeDoesNotGetADeclaration(final String advertisedValue) throws Exception {
         final byte[] content = eml("unknown limit\r\n");
         final boolean advertised = !advertisedValue.equals("missing");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n" + (advertised ? "250-SIZE " + advertisedValue + "\r\n" : "") + "250 HELP");
             acceptSizedMessage(peer, advertised ? (long) content.length : null);
             finishConnection(peer);
@@ -128,7 +128,7 @@ class SmtpMessageSizeTest {
     @ValueSource(strings = {"99999", "invalid", "0", ""})
     void laterSizeDisagreementBeyondTheDiagnosticBudgetDoesNotRejectLegacySubmissions(final String laterValue) throws Exception {
         final byte[] content = eml("The first advertised limit is unusable once the later SIZE value is read.\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250-SIZE 1\r\n250-X-LONG " + "x".repeat(70000) + "\r\n250 SIZE " + laterValue);
             acceptSizedMessage(peer, (long) content.length);
             finishConnection(peer);
@@ -143,7 +143,7 @@ class SmtpMessageSizeTest {
     @Test
     void explicitlyDisabledEhloDoesNotInventSizeSupport() throws Exception {
         final byte[] content = eml("Old-style SMTP.\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.reply("220 old.example SMTP");
             peer.expect("HELO probe.example.test");
             peer.reply("250 hello");
@@ -157,7 +157,7 @@ class SmtpMessageSizeTest {
     @Test
     void countsAfterEightBitConversionAndOmitsBccAndContentLengthForOrdinaryMessages() throws Exception {
         final CompletableFuture<String> captured = new CompletableFuture<>();
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-8BITMIME\r\n250 SIZE 99999");
             captured.complete(acceptConvertedEightBitMessage(peer));
             finishConnection(peer);
@@ -177,7 +177,7 @@ class SmtpMessageSizeTest {
     @ValueSource(booleans = {false, true})
     void usesPostTlsCapabilitiesInsteadOfTheEarlierLimit(final boolean sizeAfterTls) throws Exception {
         final byte[] content = eml("after TLS\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250-SIZE 1\r\n250 STARTTLS");
             peer.expect("STARTTLS");
             peer.reply("220 begin TLS");
@@ -196,7 +196,7 @@ class SmtpMessageSizeTest {
     @Test
     void preservesAdvancedEstimateAndUnrelatedParametersButReportsMeasuredSize() throws Exception {
         final byte[] content = eml("custom estimate\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 99999");
             assertThat(readCommand(peer)).isEqualTo(MAIL_FROM + " X-TEST=value size=42");
             acceptMessageAfterMailFrom(peer, "", RECIPIENT);
@@ -208,7 +208,7 @@ class SmtpMessageSizeTest {
 
     @Test
     void malformedAdvancedDeclarationFailsBeforeSubmissionAndRetainsOnlyTheKnownLimit() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 99999");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.smtp.mailextension", "SIZE=1 size=2").buildMailer()) {
@@ -231,7 +231,7 @@ class SmtpMessageSizeTest {
             public boolean hasNext() { return visited.get() < 3; }
             public Email next() { return exactEmail(visited.incrementAndGet() == 2 ? large : small); }
         };
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE " + small.length);
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
@@ -253,7 +253,7 @@ class SmtpMessageSizeTest {
     @Test
     void openConnectionCanContinueAfterSizeRejection() throws Exception {
         final byte[] small = eml("small\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE " + small.length);
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
@@ -271,7 +271,7 @@ class SmtpMessageSizeTest {
         final CountDownLatch connected = new CountDownLatch(2);
         final AtomicInteger connections = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             peer.greet("250-localhost\r\n" + (connections.getAndIncrement() == 0 ? "250-X-LONG " + "x".repeat(70000) + "\r\n" : "")
                     + "250 SIZE 500");
             connected.countDown();
@@ -322,10 +322,10 @@ class SmtpMessageSizeTest {
     void clusterChecksTheActuallySelectedServerRatherThanTheCallingMailerEndpoint() throws Exception {
         final UUID cluster = UUID.randomUUID();
         final byte[] content = eml("cluster limit\r\n");
-        try (PeerServer smallServer = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer smallServer = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 1");
             finishConnection(peer);
-        }); PeerServer largeServer = new PeerServer(1, peer -> {
+        }); ScriptedSmtpServer largeServer = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250-X-LONG " + "x".repeat(70000) + "\r\n250 SIZE 99999");
             acceptSizedMessage(peer, (long) content.length);
             finishConnection(peer);
@@ -349,7 +349,7 @@ class SmtpMessageSizeTest {
     @Test
     void failedEhloAfterTlsDoesNotReuseThePreTlsSizeLimit() throws Exception {
         final byte[] content = eml("TLS retry\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250-SIZE 1\r\n250 STARTTLS");
             peer.expect("STARTTLS");
             peer.reply("220 begin TLS");
@@ -369,7 +369,7 @@ class SmtpMessageSizeTest {
     @Test
     void oversizeCheckDoesNotReportSelectedEnvidOrRequireTlsAsUsed() throws Exception {
         final byte[] content = eml("too large\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls("250-localhost\r\n250-SIZE 1\r\n250-DSN\r\n250 REQUIRETLS");
             finishConnection(peer);
         }); Mailer mailer = builder(server).withTransportStrategy(TransportStrategy.SMTP_TLS)
@@ -388,7 +388,7 @@ class SmtpMessageSizeTest {
     @Test
     void realServerRejectionRetainsSizeFactsAndDoesNotRetry() throws Exception {
         final byte[] content = eml("server still decides\r\n");
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250-localhost\r\n250 SIZE 99999");
             assertThat(readCommand(peer)).isEqualTo(MAIL_FROM + " SIZE=" + content.length);
             peer.reply("552 5.3.4 actual policy limit");
@@ -410,13 +410,13 @@ class SmtpMessageSizeTest {
                 + "Message-ID: <size@example.test>\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body).getBytes(UTF_8);
     }
 
-    private static String acceptSizedMessage(final Conversation peer, final Long declaration) throws IOException {
+    private static String acceptSizedMessage(final SmtpConversation peer, final Long declaration) throws IOException {
         final String command = readCommand(peer);
         assertThat(command).isEqualTo(MAIL_FROM + (declaration == null ? "" : " SIZE=" + declaration));
         return acceptMessageAfterMailFrom(peer, "", RECIPIENT);
     }
 
-    private static String acceptConvertedEightBitMessage(final Conversation peer) throws IOException {
+    private static String acceptConvertedEightBitMessage(final SmtpConversation peer) throws IOException {
         final String command = readCommand(peer);
         assertThat(command).matches("MAIL FROM:<sender@example.test> BODY=8BITMIME SIZE=[0-9]+");
         final String content = acceptMessageAfterMailFrom(peer, "", RECIPIENT);
@@ -424,7 +424,7 @@ class SmtpMessageSizeTest {
         return content;
     }
 
-    private static String readCommand(final Conversation peer) throws IOException {
+    private static String readCommand(final SmtpConversation peer) throws IOException {
         String command = peer.readLine();
         while ("NOOP".equals(command)) {
             peer.reply("250 still connected");

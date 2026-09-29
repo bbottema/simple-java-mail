@@ -18,7 +18,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
+import testutil.smtp.SmtpConversation;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -560,7 +560,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         return wrongHostname;
     }
 
-    private static void establishTls(final Conversation peer, final TransportStrategy strategy, final String encryptedEhlo) throws Exception {
+    private static void establishTls(final SmtpConversation peer, final TransportStrategy strategy, final String encryptedEhlo) throws Exception {
         if (strategy == SMTPS) {
             peer.upgradeToTls();
             peer.greet(encryptedEhlo);
@@ -572,19 +572,19 @@ class SmtpAuthenticationTlsCharacterizationTest {
         }
     }
 
-    private static void beginStartTls(final Conversation peer) throws IOException {
+    private static void beginStartTls(final SmtpConversation peer) throws IOException {
         peer.greet(STARTTLS);
         peer.expect("STARTTLS");
         peer.reply("220 begin TLS");
     }
 
-    private static void beginStartTlsRefusal(final Conversation peer) throws IOException {
+    private static void beginStartTlsRefusal(final SmtpConversation peer) throws IOException {
         peer.greet(STARTTLS);
         peer.expect("STARTTLS");
         peer.reply("454 TLS temporarily unavailable");
     }
 
-    private static void authenticate(final Conversation peer, final String mechanism, final String secret) throws IOException {
+    private static void authenticate(final SmtpConversation peer, final String mechanism, final String secret) throws IOException {
         if ("LOGIN".equals(mechanism)) {
             peer.expect("AUTH LOGIN");
             peer.reply("334 VXNlcm5hbWU6");
@@ -606,14 +606,14 @@ class SmtpAuthenticationTlsCharacterizationTest {
         return new String(Base64.getDecoder().decode(payload), UTF_8);
     }
 
-    private static void acceptMessageAndQuit(final Conversation peer) throws IOException {
+    private static void acceptMessageAndQuit(final SmtpConversation peer) throws IOException {
         acceptMessage(peer);
         expectCommand(peer, "QUIT");
         peer.reply("221 bye");
         peer.expectClosed();
     }
 
-    private static void acceptMessage(final Conversation peer) throws IOException {
+    private static void acceptMessage(final SmtpConversation peer) throws IOException {
         expectCommand(peer, "MAIL FROM:<sender@example.test>");
         peer.reply("250 sender accepted");
         peer.expect("RCPT TO:<recipient@example.test>");
@@ -631,7 +631,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         peer.reply("250 2.0.0 accepted synthetic message");
     }
 
-    private static void expectCommand(final Conversation peer, final String expected) throws IOException {
+    private static void expectCommand(final SmtpConversation peer, final String expected) throws IOException {
         String command = peer.readLine();
         // Ordinary pooled sends may check a connection before borrowing it or closing it.
         while ("NOOP".equals(command)) {
@@ -643,7 +643,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
 
     @FunctionalInterface
     private interface Script {
-        void run(Conversation peer) throws Exception;
+        void run(SmtpConversation peer) throws Exception;
     }
 
     private static final class Peer implements AutoCloseable {
@@ -661,7 +661,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             serving = CompletableFuture.runAsync(() -> {
                 try {
                     for (int connection = 0; connection < connections; connection++) {
-                        try (Conversation peer = new Conversation(server.accept())) {
+                        try (SmtpConversation peer = new SmtpConversation(server.accept())) {
                             script.run(peer);
                         }
                     }

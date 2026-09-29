@@ -26,8 +26,8 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
-import org.simplejavamail.mailer.internal.SmtpEnvelopeIdTest.PeerServer;
+import testutil.smtp.SmtpConversation;
+import testutil.smtp.ScriptedSmtpServer;
 import org.simplejavamail.recipient.RecipientBuilder;
 import testutil.ConfigLoaderTestHelper;
 
@@ -68,7 +68,7 @@ class RecipientDsnSubmissionTest {
     @ValueSource(booleans = {false, true})
     void mixedTypesDuplicateAddressesAndMailerOverridesKeepTheirCorrectPreference(final boolean async) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             final String content = acceptRecipients(peer, command(ADDRESS, "NEVER"), command(ADDRESS, "SUCCESS"), command(ADDRESS, "DELAY"));
@@ -94,7 +94,7 @@ class RecipientDsnSubmissionTest {
     @ParameterizedTest
     @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     void missingOrMalformedDsnRejectsBeforeMailAndReturnsAHealthyLease(final boolean malformed, final boolean async) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(malformed ? "250-localhost\r\n250 DSN invalid" : "250 localhost");
             expectCommand(peer, MAIL_FROM);
             acceptRecipients(peer, "RCPT TO:<" + ADDRESS + ">"); // No second connection; no unsupported DSN parameters.
@@ -114,7 +114,7 @@ class RecipientDsnSubmissionTest {
 
     @Test
     void callerOwnedTransportRejectsRecipientPreferencesButRetainsSharedDsn() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, "RCPT TO:<" + ADDRESS + "> NOTIFY=FAILURE"); // Caller transport: no managed ORCPT hook.
@@ -141,7 +141,7 @@ class RecipientDsnSubmissionTest {
         final SocketFactory socketFactory = SocketFactory.getDefault();
         final Properties properties = new Properties();
         properties.put("mail.smtp.socketFactory", socketFactory);
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "NEVER"));
@@ -156,7 +156,7 @@ class RecipientDsnSubmissionTest {
     void exactEnvelopeRecipientsHavePoliciesWithoutRewritingHeadersOrBytes() throws Exception {
         final byte[] eml = ("From: sender@example.test\r\nTo: visible@example.test\r\nMessage-ID: <exact@example.test>\r\n"
                 + "X-Spacing:   keep\r\n\r\nExact payload.\r\n").getBytes(US_ASCII);
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM + " RET=HDRS");
             assertThat(acceptRecipients(peer, command(ADDRESS, "NEVER"), command(ADDRESS, "SUCCESS")).getBytes(US_ASCII)).containsExactly(eml);
@@ -173,7 +173,7 @@ class RecipientDsnSubmissionTest {
     @Test
     void automaticOrcptUsesTheOverriddenEnvelopeAndDoesNotEnableNotify() throws Exception {
         final String address = "test+tag=42@example.test";
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             final String content = acceptRecipients(peer, "RCPT TO:<" + address + "> ORCPT=rfc822;test+2Btag+3D42@example.test");
@@ -191,7 +191,7 @@ class RecipientDsnSubmissionTest {
         final CyclicBarrier submissions = new CyclicBarrier(2);
         final AtomicInteger submitted = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             peer.greet(DSN);
             connected.countDown();
             assertThat(connected.await(10, SECONDS)).isTrue();
@@ -250,7 +250,7 @@ class RecipientDsnSubmissionTest {
                 return delegate.next();
             }
         };
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet("250 localhost");
             expectCommand(peer, MAIL_FROM);
             acceptRecipients(peer, "RCPT TO:<" + ADDRESS + ">");
@@ -273,7 +273,7 @@ class RecipientDsnSubmissionTest {
 
     @Test
     void openConnectionAndSessionFallbackDoNotRetainPreviousRecipientOverrides() throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "NEVER"));
@@ -310,7 +310,7 @@ class RecipientDsnSubmissionTest {
     @Test
     void partialFailureInvalidatesItsLeaseWithoutLeakingPoliciesOrRecipientFactsToTheReplacement() throws Exception {
         final AtomicInteger connections = new AtomicInteger();
-        try (PeerServer server = new PeerServer(2, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(2, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             if (connections.getAndIncrement() == 0) {
@@ -352,7 +352,7 @@ class RecipientDsnSubmissionTest {
         final AtomicInteger completed = new AtomicInteger();
         final List<Throwable> failures = new CopyOnWriteArrayList<>();
         final Mailer[] holder = new Mailer[1];
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(DSN);
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "NEVER"));
@@ -377,7 +377,7 @@ class RecipientDsnSubmissionTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void recipientPreferencesUsePostTlsCapabilitiesNotTheEarlierGreeting(final boolean supportedAfterTls) throws Exception {
-        try (PeerServer server = new PeerServer(1, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(supportedAfterTls ? "250-localhost\r\n250 STARTTLS" : "250-localhost\r\n250-DSN\r\n250 STARTTLS");
             peer.expect("STARTTLS");
             peer.reply("220 start TLS");
@@ -407,7 +407,7 @@ class RecipientDsnSubmissionTest {
     void negotiatedInternationalizedRecipientUsesUtf8OrcptOnTheWire() throws Exception {
         final String address = "müller+tag@example.test";
         final byte[] eml = "From: sender@example.test\r\nTo: visible@example.test\r\n\r\nExact content.\r\n".getBytes(US_ASCII);
-        try (PeerServer server = new PeerServer(1, UTF_8, peer -> {
+        try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-DSN\r\n250 SMTPUTF8");
             readGeneratedEnvelopeId(peer, MAIL_FROM + " SMTPUTF8");
             assertThat(acceptRecipients(peer, "RCPT TO:<" + address + "> NOTIFY=FAILURE ORCPT=utf-8;müller\\x{2B}tag@example.test")
@@ -475,7 +475,7 @@ class RecipientDsnSubmissionTest {
         }
     }
 
-    private MailerRegularBuilder<?> builder(final PeerServer server) {
+    private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // Message-ID generation must not wait for machine-hostname lookup while a reusable lease can expire.
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
                 .withProperty("mail.from", "sender@example.test")
@@ -495,7 +495,7 @@ class RecipientDsnSubmissionTest {
         return "RCPT TO:<" + address + "> NOTIFY=" + notify + " ORCPT=rfc822;" + address;
     }
 
-    private static String acceptRecipients(final Conversation peer, final String... recipients) throws Exception {
+    private static String acceptRecipients(final SmtpConversation peer, final String... recipients) throws Exception {
         peer.reply("250 sender accepted");
         for (final String recipient : recipients) {
             peer.expect(recipient);
@@ -508,7 +508,7 @@ class RecipientDsnSubmissionTest {
         return content;
     }
 
-    private static String nextCommand(final Conversation peer) throws Exception {
+    private static String nextCommand(final SmtpConversation peer) throws Exception {
         String command = peer.readLine();
         while ("NOOP".equals(command)) {
             peer.reply("250 alive");

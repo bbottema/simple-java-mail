@@ -22,7 +22,7 @@ import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.SmtpProbeReports;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
+import testutil.smtp.SmtpConversation;
 import org.subethamail.wiser.Wiser;
 import testutil.ConfigLoaderTestHelper;
 
@@ -583,7 +583,7 @@ class SmtpConnectionProbeTest {
     void aStalledGreetingReturnsATimeoutReportAndCloses() throws Exception {
         final Session session = session(false);
         session.getProperties().setProperty("mail.smtp.timeout", "500");
-        try (Peer server = new Peer(false, Conversation::expectClosed);
+        try (Peer server = new Peer(false, SmtpConversation::expectClosed);
              Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.GREETING);
@@ -741,7 +741,7 @@ class SmtpConnectionProbeTest {
     }
 
     @FunctionalInterface
-    private interface Script { void run(Conversation peer) throws Exception; }
+    private interface Script { void run(SmtpConversation peer) throws Exception; }
 
     private static final class Peer implements AutoCloseable {
         private final ServerSocket server;
@@ -752,7 +752,7 @@ class SmtpConnectionProbeTest {
             server = new ServerSocket(0, 1, InetAddress.getByName("localhost"));
             server.setSoTimeout(10000);
             serving = CompletableFuture.runAsync(() -> {
-                try (Conversation peer = new Conversation(server.accept())) {
+                try (SmtpConversation peer = new SmtpConversation(server.accept())) {
                     if (implicitTls) { peer.upgradeToTls(); }
                     script.run(peer);
                 } catch (Exception failure) {

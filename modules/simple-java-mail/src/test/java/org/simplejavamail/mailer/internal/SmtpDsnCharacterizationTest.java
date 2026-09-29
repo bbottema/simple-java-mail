@@ -20,7 +20,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.MailRecipientResult;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
-import org.simplejavamail.mailer.internal.SmtpCapabilityProbeCharacterizationTest.Conversation;
+import testutil.smtp.SmtpConversation;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.IOException;
@@ -219,13 +219,13 @@ class SmtpDsnCharacterizationTest {
         return message;
     }
 
-    static String acceptMessage(final Conversation peer, final String senderCommand, final String recipientParameters,
+    static String acceptMessage(final SmtpConversation peer, final String senderCommand, final String recipientParameters,
                                         final String... recipients) throws IOException {
         expectCommand(peer, senderCommand);
         return acceptMessageAfterMailFrom(peer, recipientParameters, recipients);
     }
 
-    static String readGeneratedEnvelopeId(final Conversation peer, final String senderCommand) throws IOException {
+    static String readGeneratedEnvelopeId(final SmtpConversation peer, final String senderCommand) throws IOException {
         final String command = readCommand(peer);
         final String prefix = senderCommand + " ENVID=";
         assertThat(command).startsWith(prefix);
@@ -234,7 +234,7 @@ class SmtpDsnCharacterizationTest {
         return identifier;
     }
 
-    static String acceptMessageAfterMailFrom(final Conversation peer, final String recipientParameters, final String... recipients) throws IOException {
+    static String acceptMessageAfterMailFrom(final SmtpConversation peer, final String recipientParameters, final String... recipients) throws IOException {
         peer.reply("250 sender accepted");
         for (final String recipient : recipients) {
             final String expected = "RCPT TO:<" + recipient + ">" + recipientParameters;
@@ -249,7 +249,7 @@ class SmtpDsnCharacterizationTest {
         return content;
     }
 
-    static String readMessage(final Conversation peer) throws IOException {
+    static String readMessage(final SmtpConversation peer) throws IOException {
         final StringBuilder content = new StringBuilder();
         String line = peer.readLine();
         int lines = 0;
@@ -263,17 +263,17 @@ class SmtpDsnCharacterizationTest {
         return content.toString();
     }
 
-    static void finishConnection(final Conversation peer) throws IOException {
+    static void finishConnection(final SmtpConversation peer) throws IOException {
         expectCommand(peer, "QUIT");
         peer.reply("221 bye");
         peer.expectClosed();
     }
 
-    static void expectCommand(final Conversation peer, final String expected) throws IOException {
+    static void expectCommand(final SmtpConversation peer, final String expected) throws IOException {
         assertThat(readCommand(peer)).isEqualTo(expected);
     }
 
-    private static String readCommand(final Conversation peer) throws IOException {
+    private static String readCommand(final SmtpConversation peer) throws IOException {
         String command = peer.readLine();
         int checks = 0;
         // Pool leasing and disposal can validate this same physical connection between messages and before QUIT.
@@ -287,7 +287,7 @@ class SmtpDsnCharacterizationTest {
 
     @FunctionalInterface
     private interface ServerScript {
-        void run(Conversation peer) throws Exception;
+        void run(SmtpConversation peer) throws Exception;
     }
 
     private static final class ScriptedPeer implements AutoCloseable {
@@ -299,7 +299,7 @@ class SmtpDsnCharacterizationTest {
             server = new ServerSocket(0, 1, InetAddress.getByName("localhost"));
             server.setSoTimeout(10000);
             serving = CompletableFuture.runAsync(() -> {
-                try (Conversation peer = new Conversation(server.accept())) {
+                try (SmtpConversation peer = new SmtpConversation(server.accept())) {
                     script.run(peer);
                 } catch (Exception failure) {
                     throw new AssertionError("Scripted DSN peer failed", failure);

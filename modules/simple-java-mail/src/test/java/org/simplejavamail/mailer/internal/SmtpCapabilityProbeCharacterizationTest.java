@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import testutil.smtp.SmtpConversation;
+import static testutil.smtp.SmtpTestTls.testKeyStore;
+
 import jakarta.mail.Authenticator;
 import jakarta.mail.MessagingException;
 import jakarta.mail.PasswordAuthentication;
@@ -12,21 +15,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +30,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -289,22 +281,8 @@ class SmtpCapabilityProbeCharacterizationTest {
         return Session.getInstance(properties);
     }
 
-    private static KeyStore testKeyStore() throws Exception {
-        final KeyStore keyStore = KeyStore.getInstance("JKS");
-        try (InputStream source = requireNonNull(SmtpCapabilityProbeCharacterizationTest.class.getResourceAsStream("/smtp_test_server.jks"))) {
-            keyStore.load(source, "changeit".toCharArray());
-        }
-        return keyStore;
-    }
-
     static SSLContext tlsContext(final KeyStore trustStore) throws Exception {
-        final KeyManagerFactory keys = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keys.init(testKeyStore(), "changeit".toCharArray());
-        final TrustManagerFactory trust = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trust.init(trustStore);
-        final SSLContext context = SSLContext.getInstance("TLS");
-        context.init(keys.getKeyManagers(), trust.getTrustManagers(), null);
-        return context;
+        return testutil.smtp.SmtpTestTls.tlsContext(trustStore);
     }
 
     private static void withPeer(final Session session, final boolean implicitTls, final ServerScript script,
@@ -313,7 +291,7 @@ class SmtpCapabilityProbeCharacterizationTest {
         try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getByName("localhost"))) {
             server.setSoTimeout(10000);
             final CompletableFuture<Void> serving = CompletableFuture.runAsync(() -> {
-                try (Conversation peer = new Conversation(server.accept())) {
+                try (SmtpConversation peer = new SmtpConversation(server.accept())) {
                     if (implicitTls) {
                         peer.upgradeToTls();
                     }
@@ -341,7 +319,7 @@ class SmtpCapabilityProbeCharacterizationTest {
 
     @FunctionalInterface
     private interface ServerScript {
-        void run(Conversation peer) throws Exception;
+        void run(SmtpConversation peer) throws Exception;
     }
 
     @FunctionalInterface
@@ -388,90 +366,5 @@ class SmtpCapabilityProbeCharacterizationTest {
         }
     }
 
-    static final class Conversation implements AutoCloseable {
-        private final Charset charset;
-        private Socket socket;
-        private BufferedReader reader;
-        private PrintWriter writer;
 
-        Conversation(final Socket socket) throws IOException {
-            this(socket, StandardCharsets.US_ASCII);
-        }
-
-        Conversation(final Socket socket, final Charset charset) throws IOException {
-            this.charset = charset;
-            this.socket = socket;
-            socket.setSoTimeout(10000);
-            useCurrentSocketStreams();
-        }
-
-        void greet(final String ehloReply) throws IOException {
-            reply(GREETING);
-            expect("EHLO probe.example.test");
-            reply(ehloReply);
-        }
-
-        void startTls(final String ehloReply) throws Exception {
-            greet(PLAIN_EHLO);
-            expect("STARTTLS");
-            reply("220 begin TLS");
-            upgradeToTls();
-            expect("EHLO probe.example.test");
-            reply(ehloReply);
-        }
-
-        void upgradeToTls() throws Exception {
-            final SSLSocket encrypted = (SSLSocket) tlsContext(testKeyStore()).getSocketFactory()
-                    .createSocket(socket, "localhost", socket.getPort(), true);
-            socket = encrypted;
-            encrypted.setUseClientMode(false);
-            // TLS 1.2 makes rejection visible during this fixture's handshake instead of a later application read.
-            encrypted.setEnabledProtocols(new String[]{"TLSv1.2"});
-            encrypted.startHandshake();
-            useCurrentSocketStreams();
-        }
-
-        void authenticate() throws IOException {
-            expect("AUTH LOGIN");
-            reply("334 VXNlcm5hbWU6");
-            assertThat(reader.readLine()).isNotBlank();
-            reply("334 UGFzc3dvcmQ6");
-            assertThat(reader.readLine()).isNotBlank();
-            reply("235 authenticated");
-        }
-
-        void quit() throws IOException {
-            expect("QUIT");
-            reply("221 bye");
-            expectClosed();
-        }
-
-        void expect(final String command) throws IOException {
-            assertThat(reader.readLine()).isEqualTo(command);
-        }
-
-        String readLine() throws IOException {
-            return reader.readLine();
-        }
-
-        void expectClosed() throws IOException {
-            assertThat(reader.readLine()).as("peer must close without sending mail").isNull();
-        }
-
-        void reply(final String response) {
-            writer.print(response + "\r\n");
-            writer.flush();
-            assertThat(writer.checkError()).as("SMTP response written").isFalse();
-        }
-
-        private void useCurrentSocketStreams() throws IOException {
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
-            writer = new PrintWriter(socket.getOutputStream(), false, charset);
-        }
-
-        @Override
-        public void close() throws IOException {
-            socket.close();
-        }
-    }
 }
