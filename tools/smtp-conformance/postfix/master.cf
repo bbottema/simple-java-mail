@@ -1,0 +1,30 @@
+2525 inet n - n - - smtpd
+2526 inet n - n - - smtpd
+  -o smtpd_tls_security_level=none
+  -o smtpd_sasl_auth_enable=no
+  -o smtpd_discard_ehlo_keywords=8bitmime,smtputf8,dsn,size,starttls
+  -o smtpd_recipient_restrictions=check_recipient_access,regexp:/etc/postfix/recipients,reject_unauth_destination
+2465 inet n - n - - smtpd
+  -o smtpd_tls_wrappermode=yes
+pickup unix n - n 60 1 pickup
+cleanup unix n - n - 0 cleanup
+qmgr unix n - n 300 1 qmgr
+tlsmgr unix - - n 1000? 1 tlsmgr
+rewrite unix - - n - - trivial-rewrite
+bounce unix - - n - 0 bounce
+defer unix - - n - 0 bounce
+trace unix - - n - 0 bounce
+verify unix - - n - 1 verify
+flush unix n - n 1000? 0 flush
+proxymap unix - - n - - proxymap
+proxywrite unix - - n - 1 proxymap
+retry unix - - n - - error
+error unix - - n - - error
+discard unix - - n - - discard
+local unix - n n - - local
+showq unix n - n - - showq
+anvil unix - - n - 1 anvil
+scache unix - - n - 1 scache
+postlog unix-dgram n - n - 1 postlogd
+capture unix - n n - - pipe
+  flags= user=nobody null_sender= eol=\r\n argv=/usr/bin/python3 /opt/conformance/capture.py postfix ${queue_id} ${sender} ${recipient} ${client_address} ${client_port}

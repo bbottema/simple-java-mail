@@ -1,0 +1,57 @@
+services:
+  test-jvm:
+    profiles: [container-jvm]
+    image: ${SJM_CONFORMANCE_JAVA_IMAGE:-eclipse-temurin@sha256:9d8dcf999b0bce2453e913823595a5ff2a4e8e9e5d5241b45280d0ff069818ec}
+    platform: linux/amd64
+    networks: [smtp]
+    working_dir: /checkout/modules/simple-java-mail
+    environment:
+      SJM_CONFORMANCE_RUN: /run
+    volumes:
+      - ${SJM_CONFORMANCE_ROOT:?}:/checkout:ro
+      - ${SJM_CONFORMANCE_RUN:?}:/run
+  verifier:
+    build:
+      context: .
+      target: tools
+    platform: linux/amd64
+    network_mode: none
+    volumes:
+      - ${SJM_CONFORMANCE_RUN:?}/private:/fixture
+      - ${SJM_CONFORMANCE_RUN:?}/captures:/captures
+      - ${SJM_CONFORMANCE_RUN:?}/evidence:/evidence
+      - ${SJM_CONFORMANCE_ROOT:?}/modules/simple-java-mail/src/test/resources/openpgpjs:/openpgp:ro
+  postfix:
+    build:
+      context: .
+      target: postfix
+    platform: linux/amd64
+    networks: [smtp]
+    ports:
+      - "127.0.0.1::2525"
+      - "127.0.0.1::2526"
+      - "127.0.0.1::2465"
+    volumes:
+      - ${SJM_CONFORMANCE_RUN:?}/private:/fixture:ro
+      - ${SJM_CONFORMANCE_RUN:?}/captures/postfix:/captures
+    stop_grace_period: 5s
+  exim:
+    build:
+      context: .
+      target: exim
+    platform: linux/amd64
+    networks: [smtp]
+    ports:
+      - "127.0.0.1::2525"
+      - "127.0.0.1::2526"
+      - "127.0.0.1::2465"
+    volumes:
+      - ${SJM_CONFORMANCE_RUN:?}/private:/fixture:ro
+      - ${SJM_CONFORMANCE_RUN:?}/captures/exim:/captures
+    stop_grace_period: 5s
+networks:
+  smtp:
+    # Docker does not publish ports from an internal-only bridge on every supported engine.
+    # Bind listeners to host loopback; disable outbound masquerading and all external MTA routes instead.
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"

@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  run-smtp-conformance:
+    type: boolean
+    default: false
+
 orbs:
   github-maven-deploy: github-maven-deploy/github-maven-deploy@1.3.2
 
@@ -9,7 +14,7 @@ executors:
       - image: cimg/openjdk:21.0
 
 mvn-build-test-command: &mvn-build-test-command
-  mvn-build-test-command: mvn verify -Ppublish-cli -DexcludeLiveServerTests=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
+  mvn-build-test-command: mvn verify -Ppublish-cli -Dmaven.javadoc.skip=true -Djacoco.skip=true -Dlicense.skip=true
 
 mvn-collect-artifacts-command: &mvn-collect-artifacts-command
   mvn-collect-artifacts-command: |
@@ -22,9 +27,55 @@ mvn-deploy-command: &mvn-deploy-command
     mvn com.mycila:license-maven-plugin:3.0:remove
   context: RELEASE_PROFILE_BBOTTEMA
 
+jobs:
+  smtp-conformance:
+    machine:
+      image: ubuntu-2204:2026.05.1
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Prepare Java 21 conformance runtime
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y openjdk-21-jdk-headless maven python3
+            echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> "$BASH_ENV"
+            echo 'export PATH=/usr/lib/jvm/java-21-openjdk-amd64/bin:$PATH' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - smtp-conformance-v1-{{ checksum "pom.xml" }}-{{ checksum "modules/simple-java-mail/pom.xml" }}
+      - run:
+          name: Check runner and capture failure handling
+          command: python3 -m unittest discover -s tools/smtp-conformance -p 'test_*.py'
+      - run:
+          name: Run embedded and real-server conformance
+          command: python3 tools/smtp-conformance/run.py --mode all
+          no_output_timeout: 40m
+      - run:
+          name: Collect sanitized evidence only
+          when: always
+          command: |
+            mkdir -p artifacts/smtp-conformance
+            for evidence in target/smtp-conformance/*/evidence; do
+              if [ -d "$evidence" ]; then
+                cp -R "$evidence" "artifacts/smtp-conformance/$(basename "$(dirname "$evidence")")"
+              fi
+            done
+      - store_test_results:
+          path: artifacts/smtp-conformance
+      - store_artifacts:
+          path: artifacts/smtp-conformance
+      - save_cache:
+          key: smtp-conformance-v1-{{ checksum "pom.xml" }}-{{ checksum "modules/simple-java-mail/pom.xml" }}
+          paths:
+            - ~/.m2/repository
+
 workflows:
   workflow:
+    when:
+      equal: [master, << pipeline.git.branch >>]
     jobs:
+      - smtp-conformance
       - github-maven-deploy/build-and-test:
           <<: *mvn-build-test-command
           <<: *mvn-collect-artifacts-command
@@ -36,18 +87,22 @@ workflows:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - smtp-conformance
       - github-maven-deploy/approve-deploy-minor-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - smtp-conformance
       - github-maven-deploy/approve-deploy-major-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - smtp-conformance
       - github-maven-deploy/approve-deploy-as-is-version:
           type: approval
           requires:
             - github-maven-deploy/build-and-test
+            - smtp-conformance
 
       - github-maven-deploy/deploy-patch-version:
           executor: java21-executor
@@ -69,3 +124,12 @@ workflows:
           requires:
             - github-maven-deploy/approve-deploy-as-is-version
           <<: *mvn-deploy-command
+
+  manual-smtp-conformance:
+    when:
+      and:
+        - << pipeline.parameters.run-smtp-conformance >>
+        - not:
+            equal: [master, << pipeline.git.branch >>]
+    jobs:
+      - smtp-conformance
