@@ -33,4 +33,4 @@ This decision keeps builder API expansion direct, but the library must update ev
 
 - [Mailer builder interfaces](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer), [Email builder interfaces](../../modules/core-module/src/main/java/org/simplejavamail/api/email)
 - [Mailer builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal), [Email builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal), [recipient builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/recipient)
-- [ADR 0018: Generate the CLI from builder contracts](0018-cli-from-builder-contracts.md), [API expansion workflow](../../API_EXPANSION_WORKFLOW.md)
+- [ADR 0018: Generate the CLI from builder contracts](0018-cli-from-builder-contracts.md), [API expansion workflow](../API_EXPANSION_WORKFLOW.md)

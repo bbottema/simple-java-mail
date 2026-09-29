@@ -9,9 +9,9 @@
 
 A later DSN needs an identifier for the submission that caused it. A reusable Email's MIME Message-ID does not distinguish retries or concurrent submissions, and rewriting it can damage exact or protected content. The current [#736 scope](https://github.com/bbottema/simple-java-mail/issues/736) explicitly selects automatic transaction identifiers, optional fixed values and receipt reporting while deferring ORCPT and recipient-specific NOTIFY.
 
-The [provider characterization](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06a-dsn-provider-characterization.md) establishes the architectural constraint: Angus 2.0.5 exposes a supported per-message MAIL extension hook for ENVID, but no corresponding per-recipient option API. The hook itself does not check DSN support or encode/validate the identifier. Replacing recipient-command processing would also take responsibility for partial results and replies, so that larger decision was deferred.
+The [provider characterization](../research/smtp-dsn-provider-characterization.md) establishes the architectural constraint: Angus 2.0.5 exposes a supported per-message MAIL extension hook for ENVID, but no corresponding per-recipient option API. The hook itself does not check DSN support or encode/validate the identifier. Replacing recipient-command processing would also take responsibility for partial results and replies, so that larger decision was deferred.
 
-The [approved implementation plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06b-envid-implementation.md) and local code are the implementation evidence. There is no implementing commit to cite yet. The broader [DSN scope ADR](0001-email-configuration-scopes-and-inheritance.md) is not evidence that all recipient-level DSN features are already implemented.
+The [approved implementation plan](https://github.com/bbottema/simple-java-mail/blob/2653e804838e14e4b10291bdb9863b2d9a1ff67c/03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06b-envid-implementation.md) and code cited below are the implementation evidence. The broader [DSN scope ADR](0001-email-configuration-scopes-and-inheritance.md) is not evidence that all recipient-level DSN features are already implemented.
 
 ## Decision
 
@@ -31,7 +31,7 @@ A globally configured identifier or a UUID generated while building Email would 
 
 An explicit-only ENVID API was an earlier local implementation stage; the plan records the later automatic/fixed revision. Document that final direction rather than treating the earlier characterization as the finished design. A generic requirement-policy enum, recipient-command rewriting and a bounce-processing service are outside this approved slice.
 
-No configuration property or Spring metadata default is added for a per-send identifier. Java and Spring applications use Email APIs; generated CLI options expose the composed and exact paths. Existing pool, deadline, observer and shutdown ownership remain unchanged. DSN receiving/correlation stays application-owned. The separately approved [homogeneous configuration slices](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06c-homogeneous-email-configuration.md) now implement recipient NOTIFY and automatic ORCPT locally, using the managed command hook and the support boundaries in ADR 0001; they do not redefine #736's narrower delivery scope.
+No configuration property or Spring metadata default is added for a per-send identifier. Java and Spring applications use Email APIs; generated CLI options expose the composed and exact paths. Existing pool, deadline, observer and shutdown ownership remain unchanged. DSN receiving/correlation stays application-owned. The separately approved [homogeneous configuration slices](https://github.com/bbottema/simple-java-mail/blob/2653e804838e14e4b10291bdb9863b2d9a1ff67c/03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06c-homogeneous-email-configuration.md) now implement recipient NOTIFY and automatic ORCPT locally, using the managed command hook and the support boundaries in ADR 0001; they do not redefine #736's narrower delivery scope.
 
 ## Implementation evidence and limits
 

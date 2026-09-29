@@ -3,7 +3,7 @@
 - Status: Accepted and implemented for unreleased 10.0.0
 - Decision date: 2026-09-17
 - Applies to: Planned 10.0.0 work in [#741](https://github.com/bbottema/simple-java-mail/issues/741), step 7 of [#722](https://github.com/bbottema/simple-java-mail/issues/722)
-- Implementation plan: [Per-message REQUIRETLS](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/07-add-per-message-requiretls.md)
+- Implementation: [Per-message REQUIRETLS, #741](https://github.com/bbottema/simple-java-mail/issues/741)
 
 ## Context
 
@@ -46,4 +46,4 @@ Enterprise-wide enforcement is deliberately deferred to [#740](https://github.co
 
 ## Verification required before delivery
 
-The linked step plan covers provider characterization, wire assertions, configuration presence and precedence, exact-byte preservation, DSN interactions, result accuracy, pooled isolation and all existing send paths. Follow the root [API expansion workflow](../../API_EXPANSION_WORKFLOW.md) and coding guide. The implementation remains unreleased; this accepted decision is not by itself evidence that the feature shipped.
+The linked step plan covers provider characterization, wire assertions, configuration presence and precedence, exact-byte preservation, DSN interactions, result accuracy, pooled isolation and all existing send paths. Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). The implementation remains unreleased; this accepted decision is not by itself evidence that the feature shipped.

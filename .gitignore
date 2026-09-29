@@ -7,6 +7,5 @@
 *.log
 /modules/simple-java-mail/src/test/resources/secure-testdata/secure-testdata/
 .atlasarc/
-/build-coverage.sh
 /.maintainer-env.ps1
 /tmp/

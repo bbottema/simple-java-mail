@@ -31,7 +31,7 @@ Putting all logic in the starter would require existing `spring-module` users to
 
 Direct `spring-module` use in a Boot application can now activate auto-configuration. Applications can override the three layers independently or retain explicit plain-Spring setup. The existing lowest-priority Spring `localhost` default remains; automatic discovery does not change SMTP policy or imply that a server exists there.
 
-The metadata-only `SimpleJavaMailProperties` model supplies IDE hints; it is not a parallel runtime configuration binder. New scalar properties flow through the canonical schema and Environment adapter, with packaging tests checking metadata coverage. See [ADR 0003](0003-immutable-configuration-snapshots.md) and the [API expansion workflow](../../API_EXPANSION_WORKFLOW.md).
+The metadata-only `SimpleJavaMailProperties` model supplies IDE hints; it is not a parallel runtime configuration binder. New scalar properties flow through the canonical schema and Environment adapter, with packaging tests checking metadata coverage. See [ADR 0003](0003-immutable-configuration-snapshots.md) and the [API expansion workflow](../API_EXPANSION_WORKFLOW.md).
 
 ## Implementation evidence
 

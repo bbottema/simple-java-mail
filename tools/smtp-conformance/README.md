@@ -21,7 +21,7 @@ Published library compatibility remains checked separately on JDK 11.
 
 The first real-server run downloads a pinned Debian base and signed packages from the dated Debian snapshot. Maven may download dependencies too.
 The tests do not use a live mail account, public DNS key, external SMTP service, Docker-in-Docker or host-wide Docker cleanup.
-If a local TLS-inspection product intercepts Maven downloads, use the normal trust-store setup in [DEVELOPMENT.md](../../DEVELOPMENT.md); do not disable certificate validation.
+If a local TLS-inspection product intercepts Maven downloads, use the normal trust-store setup in [DEVELOPMENT.md](../../docs/DEVELOPMENT.md); do not disable certificate validation.
 
 If endpoint security replaces the loopback SMTPS certificate, the certificate-pinned tests should fail, not trust the replacement.
 An optional container JVM runs the **same compiled tests** on the fixtures' Docker network, without changing TLS verification:
@@ -98,6 +98,6 @@ Dirty-tree evidence identifies the local source hash; release evidence should co
 
 The machine-executor job runs alongside the ordinary build on `master`. Both are required by every release approval.
 On a development branch, start a pipeline with `run-smtp-conformance: true`; this enables the test-only workflow, not deployment.
-CI stores only sanitized evidence, including failed-run evidence. See [the maintainer workflow](../../MAINTAINER_WORKFLOW.md#6-verify).
+CI stores only sanitized evidence, including failed-run evidence. See [the maintainer workflow](../../docs/MAINTAINER_WORKFLOW.md#6-verify).
 
 Changing CI configuration locally is not proof that the CircleCI job ran. Before closing #747, run the branch job after the separately approved push and record its result.

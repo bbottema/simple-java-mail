@@ -29,7 +29,7 @@ The issue explicitly considered retaining a static compatibility facade and pass
 
 Continuing to patch global timing rules would leave tenants, tests and application contexts coupled. Reading mutable sources on every operation would permit an existing Mailer to change behavior without being replaced. Snapshots avoid those effects at the cost of an intentional 10.0.0 migration and no automatic live reload. Static inbound conversion still uses the conventional factory; callers requiring another snapshot use that factory's converter.
 
-The shared property schema and builder contracts are also the architectural basis for the [API expansion workflow](../../API_EXPANSION_WORKFLOW.md). Adding a property means defining its type, propagation, diagnostic policy and applicable Spring/CLI surface once and checking their integration. The checklist itself is a maintenance process, not a separate runtime architecture decision. Message-policy scope and merging remain the separate decisions in [ADR 0001](0001-email-configuration-scopes-and-inheritance.md) and [ADR 0002](0002-email-defaults-and-overrides.md).
+The shared property schema and builder contracts are also the architectural basis for the [API expansion workflow](../API_EXPANSION_WORKFLOW.md). Adding a property means defining its type, propagation, diagnostic policy and applicable Spring/CLI surface once and checking their integration. The checklist itself is a maintenance process, not a separate runtime architecture decision. Message-policy scope and merging remain the separate decisions in [ADR 0001](0001-email-configuration-scopes-and-inheritance.md) and [ADR 0002](0002-email-defaults-and-overrides.md).
 
 ## Implementation evidence
 

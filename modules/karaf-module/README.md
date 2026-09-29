@@ -1,6 +1,6 @@
 Compiles simplejavamail into an Apache Karaf feature. 
 
-For optional module boundaries, see [ADR 0006](../../docs/adr/0006-optional-modules.md). For project builds and generated CLI metadata, see [Developer Environment Setup](../../DEVELOPMENT.md).
+For optional module boundaries, see [ADR 0006](../../docs/adr/0006-optional-modules.md). For project builds and generated CLI metadata, see [Developer Environment Setup](../../docs/DEVELOPMENT.md).
 
 Add the feature repository and install the feature:
 

@@ -174,4 +174,4 @@ This documentation pass inspected the test sources; rendering these diagrams doe
 
 ## When changing this contract
 
-Recheck all three send shapes, both observer modes, queued versus running stop, admission rejection, and shutdown. In particular, moving result publication before an inline observer or moving lease return after it is a contract change, not an internal cleanup. Update the relevant public Javadocs and the [API expansion workflow](../../API_EXPANSION_WORKFLOW.md) checks when public behavior changes.
+Recheck all three send shapes, both observer modes, queued versus running stop, admission rejection, and shutdown. In particular, moving result publication before an inline observer or moving lease return after it is a contract change, not an internal cleanup. Update the relevant public Javadocs and the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) checks when public behavior changes.

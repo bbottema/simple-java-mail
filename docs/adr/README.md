@@ -1,6 +1,8 @@
 # Architecture decision records
 
-These records explain API and architecture decisions that should survive individual features and refactors. Read the relevant accepted decision before changing the public API. Each record links its implementation and evidence; the [topic index below](#find-documentation-by-topic) also directs you to build procedures, feature checklists, and current concurrency details.
+For project setup and contributor or maintainer workflows, start with [Developing and maintaining Simple Java Mail](../CONTRIBUTING.md).
+
+These records explain API and architecture decisions that should survive individual features and refactors. Read the relevant accepted decision before changing the public API. Each record links its implementation and evidence; the [topic index below](#find-documentation-by-topic) connects architectural decisions with their supporting guides and concurrency details.
 
 An accepted decision is not a claim that its implementation is complete. Each record distinguishes the chosen design from existing behavior and follow-up work. If the project changes direction, add a superseding decision and link the records rather than rewriting the original rationale.
 
@@ -35,43 +37,39 @@ ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusa
 
 ## Find documentation by topic
 
-This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the working guides below. One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
-
-| Working guide | Use it for |
-| --- | --- |
-| [Developer Environment Setup](../../DEVELOPMENT.md) | JDK requirements, build/verification commands, generated CLI metadata, process-mode checks, and build constraints. |
-| [API Expansion Workflow](../../API_EXPANSION_WORKFLOW.md) | Propagating features through models, builders, MIME, optional modules, governance, configuration, Spring, and tests. |
-| [Concurrency and state-machine catalogue](../concurrency/README.md) | Current ownership, state transitions, locks, races, cleanup ordering, and regression evidence. |
-| [Maintainer Workflow](../../MAINTAINER_WORKFLOW.md) | Issue handling, dependency maintenance, and releases. |
+This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
 
 | Topic | Architectural decisions and supporting documentation |
 | --- | --- |
-| API expansion | [0001](0001-email-configuration-scopes-and-inheritance.md), [0002](0002-email-defaults-and-overrides.md), [0003](0003-immutable-configuration-snapshots.md), [0005](0005-spring-integration-and-boot-compatibility.md), [0018](0018-cli-from-builder-contracts.md), [0024](0024-builder-interfaces-are-not-extension-spis.md); implementation coverage belongs to the [workflow](../../API_EXPANSION_WORKFLOW.md). |
+| API expansion | [0001](0001-email-configuration-scopes-and-inheritance.md), [0002](0002-email-defaults-and-overrides.md), [0003](0003-immutable-configuration-snapshots.md), [0005](0005-spring-integration-and-boot-compatibility.md), [0018](0018-cli-from-builder-contracts.md), [0024](0024-builder-interfaces-are-not-extension-spis.md); implementation coverage belongs to the [workflow](../API_EXPANSION_WORKFLOW.md). |
 | Builder interface ownership | [0024](0024-builder-interfaces-are-not-extension-spis.md), with generated CLI consequences in [0018](0018-cli-from-builder-contracts.md). |
 | Immutable configuration snapshots | [0003](0003-immutable-configuration-snapshots.md). |
 | Configuration provenance diagnostics | [0004](0004-configuration-provenance-diagnostics.md). |
 | Spring Boot auto-configuration | [0005](0005-spring-integration-and-boot-compatibility.md). |
 | Dynamic module loading | [0006](0006-optional-modules.md); provider discovery and MIME separation in [0007](0007-provider-neutral-mime-boundary.md). |
-| CLI generation from builder Javadocs | [0018](0018-cli-from-builder-contracts.md), with explicit optionality in [0009](0009-nullability-and-cli-optionality.md) and the [generation procedure](../../DEVELOPMENT.md#generated-cli-metadata). |
-| Optional local CLI daemon | [0019](0019-local-cli-daemon.md) and [process-mode checks](../../DEVELOPMENT.md#exercising-cli-process-modes). |
-| Mandatory STARTTLS configuration consistency | [0021](0021-mandatory-starttls-configuration-consistency.md). |
+| CLI generation from builder Javadocs | [0018](0018-cli-from-builder-contracts.md), with explicit optionality in [0009](0009-nullability-and-cli-optionality.md) and the [generation procedure](../DEVELOPMENT.md#generated-cli-metadata). |
+| Optional local CLI daemon | [0019](0019-local-cli-daemon.md) and [process-mode checks](../DEVELOPMENT.md#exercising-cli-process-modes). |
+| Mandatory STARTTLS configuration consistency | [0021](0021-mandatory-starttls-configuration-consistency.md), with the dated [authentication/TLS characterization](../research/smtp-authentication-tls-characterization.md). |
 | Per-message onward REQUIRETLS | [0023](0023-per-message-requiretls.md), applying Email scope and governance from [0001](0001-email-configuration-scopes-and-inheritance.md) and [0002](0002-email-defaults-and-overrides.md). |
-| Dedicated SMTP connection diagnostics | [0020](0020-dedicated-smtp-connection-diagnostics.md). |
+| Dedicated SMTP connection diagnostics | [0020](0020-dedicated-smtp-connection-diagnostics.md), with the dated [probe-provider characterization](../research/smtp-probe-provider-characterization.md). |
 | Async send and batch connection pooling | [0015](0015-execution-views-and-transport-pooling.md) and [0016](0016-bounded-async-admission-and-shutdown.md); [executor admission](../concurrency/03-executor-admission.md) and [pool claims/leases](../concurrency/06-pool-claims-and-leases.md) describe current state machines. |
 | Total deadlines and physical abort | [0017](0017-deadlines-and-physical-cancellation.md), with outcome and callback boundaries in [0011](0011-transport-neutral-submission-outcomes.md) and [0012](0012-terminal-send-observation.md); see the [concurrency collection](../concurrency/README.md) for transitions and races. |
 | Transport-neutral submission outcomes | [0011](0011-transport-neutral-submission-outcomes.md), supported by [0007](0007-provider-neutral-mime-boundary.md). |
 | Per-Mailer terminal send observation | [0012](0012-terminal-send-observation.md). |
 | Exact EML submission | [0013](0013-exact-eml-submission.md). |
-| DSN envelope identifiers | [0022](0022-dsn-identifiers-belong-to-send-attempts.md); broader target scopes remain in [0001](0001-email-configuration-scopes-and-inheritance.md). |
+| DSN envelope identifiers | [0022](0022-dsn-identifiers-belong-to-send-attempts.md); broader target scopes remain in [0001](0001-email-configuration-scopes-and-inheritance.md), with the dated [provider characterization](../research/smtp-dsn-provider-characterization.md). |
+| Content inspection and provider-discovery performance | [Initial audit](../research/smtp-performance/initial-audit-results.md), [inspection optimization](../research/smtp-performance/inspection-optimization-results.md), and [discovery results and final decision](../research/smtp-performance/provider-discovery-results.md), with retained measurements and the [manual harness](../../tools/performance/README.md). |
 | Authenticated SOCKS proxy bridge | [0010](0010-authenticated-socks-bridge.md). |
 | Smart MIME structure selection and protection | [0008](0008-minimal-mime-structures-and-protection-order.md), with the finalized-content boundary in [0007](0007-provider-neutral-mime-boundary.md). |
 | Send-time validation and rehearsal | [0014](0014-send-time-rehearsal.md). |
 | Runtime non-null instrumentation | [0009](0009-nullability-and-cli-optionality.md), including why current default builds disable it. |
 | Related: config defaults/overrides and Spring property mapping | [0001](0001-email-configuration-scopes-and-inheritance.md)–[0005](0005-spring-integration-and-boot-compatibility.md). |
-| Related: Outlook/EML conversion, resource naming and parse-side classification | [0006](0006-optional-modules.md), [0008](0008-minimal-mime-structures-and-protection-order.md) and [0013](0013-exact-eml-submission.md); the detailed naming history remains in the existing [MIME resource report](../../MIME_RESOURCE_NAMING_REPORT.md). |
+| Related: Outlook/EML conversion, resource naming and parse-side classification | [0006](0006-optional-modules.md), [0008](0008-minimal-mime-structures-and-protection-order.md) and [0013](0013-exact-eml-submission.md); the detailed naming history remains in the existing [MIME resource report](../research/MIME_RESOURCE_NAMING_REPORT.md). |
 | Related: transport strategy properties | [0007](0007-provider-neutral-mime-boundary.md) and [0021](0021-mandatory-starttls-configuration-consistency.md), including Session ownership and TLS-policy boundaries. |
 
 ## Evidence and status conventions
+
+Active implementation plans live under `docs/plans/` and are retired after their useful decisions, procedures and research have been incorporated into these maintained resources. GitHub issues and Git history retain implementation history; historical plan citations use fixed commits rather than an archive folder. CLI package publication remains separate under [#708](https://github.com/bbottema/simple-java-mail/issues/708).
 
 The extraction was recorded on 16 September 2026 against `codex/10.0.0` at `a4eda9e6557b1a2fb61a7ced60163b80075bc00b`, including the visible uncommitted ENVID work. It covers unreleased mechanisms as requested; being implemented on this branch does not mean being released.
 

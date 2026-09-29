@@ -33,4 +33,4 @@ This is a construction-time consistency guarantee. It does not protect against s
 
 - [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), especially `validateMandatoryStartTls(...)` and its constructor call before resource setup.
 - [SmtpTlsConfigurationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpTlsConfigurationTest.java), [Spring TLS configuration tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringTlsConfigurationTest.java) and [CLI TLS configuration tests](../../modules/cli-module/src/test/java/org/simplejavamail/internal/clisupport/CliTlsConfigurationTest.java).
-- [10.0.0 migration guidance](../../MIGRATION-10.0.md#conflicting-mandatory-starttls-overrides-now-fail-construction). Existing test sources were inspected; no runtime behavior was changed or new test run claimed here.
+- [10.0.0 migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#mandatory-starttls). Existing test sources were inspected; no runtime behavior was changed or new test run claimed here.

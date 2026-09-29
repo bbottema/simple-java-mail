@@ -145,7 +145,7 @@ Method references: [JFR configurations](https://docs.oracle.com/en/java/javase/2
 [thread CPU counters](https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html),
 [allocation counters](https://docs.oracle.com/en/java/javase/17/docs/api/jdk.management/com/sun/management/ThreadMXBean.html).
 
-See the [investigation plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/performance-audit/11-profile-mail-send-overhead.md)
+See the [investigation results and final decision](../../docs/research/smtp-performance/provider-discovery-results.md#final-sizeapi-decision)
 for the completed investigation and decision. The internal optimizations were accepted;
 current SIZE behavior is retained without a performance-control API. The harness remains
 available to investigate a concrete workload, not as an ongoing benchmark gate.

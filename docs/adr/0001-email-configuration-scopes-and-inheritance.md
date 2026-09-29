@@ -4,7 +4,7 @@
 - Decision date: 2026-09-16
 - Applies to: The 10.0.0 API and subsequent API additions
 - Implementation status: DKIM consolidation, recipient NOTIFY and automatic ORCPT are complete and accepted on 17 September 2026 for 10.0.0; verification and review are recorded in the linked implementation slices. Not yet released.
-- Related work: [SMTP robustness plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/README.md), [DSN envelope model](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06-complete-dsn-envelope-model.md), [#736](https://github.com/bbottema/simple-java-mail/issues/736)
+- Related work: [SMTP robustness plan](https://github.com/bbottema/simple-java-mail/issues/722), [DSN envelope model](https://github.com/bbottema/simple-java-mail/blob/2653e804838e14e4b10291bdb9863b2d9a1ff67c/03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06-complete-dsn-envelope-model.md), [#736](https://github.com/bbottema/simple-java-mail/issues/736)
 - Security API consolidation: [#737](https://github.com/bbottema/simple-java-mail/issues/737) tracks the shared DKIM/S/MIME configuration contract and DKIM migration, separately from ENVID and recipient NOTIFY/ORCPT.
 - Recipient DSN follow-up: [#738](https://github.com/bbottema/simple-java-mail/issues/738) tracks recipient/group NOTIFY preferences and automatic ORCPT, separately from #736 and #737.
 
@@ -92,7 +92,7 @@ ENVID and ORCPT support correlation. They do not decide which notifications to r
 - Send DSN parameters only when negotiated support permits them. Server DSN capability and application NOTIFY preferences are separate concerns; automatic ORCPT must not change those preferences.
 - ORCPT implementation can proceed independently of configurable per-recipient NOTIFY. Neither becomes complete merely because the other is implemented.
 
-The [provider characterization](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/phase-4-modern-esmtp/06a-dsn-provider-characterization.md) remains relevant: Angus has no dedicated per-recipient parameter setter. The local implementation augments RCPT parameters through the existing managed command hook without replacing Angus's recipient loop, replies or partial-result handling. An immutable ordered `DeliveryRecipient` list carries recipient policy across the provider boundary; duplicate occurrences are never keyed or deduplicated by address.
+The [provider characterization](../research/smtp-dsn-provider-characterization.md) remains relevant: Angus has no dedicated per-recipient parameter setter. The local implementation augments RCPT parameters through the existing managed command hook without replacing Angus's recipient loop, replies or partial-result handling. An immutable ordered `DeliveryRecipient` list carries recipient policy across the provider boundary; duplicate occurrences are never keyed or deduplicated by address.
 
 Explicit recipient preferences require both managed-provider support and usable DSN on the actual connection after TLS/authentication. Reject unsupported requests before MAIL FROM; use the SPI's `MailTransportCompatibilityException` to keep healthy pooled transports reusable. Shared Email NOTIFY/RET remain best effort. Ordinary Angus transports obtained from caller-owned Sessions keep that older shared behavior and ENVID, but lack automatic ORCPT and cannot accept recipient preferences. Library-owned stock Angus Sessions retain managed protocol handling with custom socket factories, without replacing those factories or claiming physical-abort support. Third-party adapters must opt in; `CustomMailer` owns its mapping and rejection policy.
 
@@ -137,7 +137,7 @@ Rejected as the target. Different recipients can legitimately need different not
 
 ## Implementation and review gate
 
-Follow [API_EXPANSION_WORKFLOW.md](../../API_EXPANSION_WORKFLOW.md) and [CODING_STYLE_GUIDE.md](../../CODING_STYLE_GUIDE.md). Before implementing an affected setting, record:
+Follow [API_EXPANSION_WORKFLOW.md](../API_EXPANSION_WORKFLOW.md) and [CODING_STYLE_GUIDE.md](../CODING_STYLE_GUIDE.md). Before implementing an affected setting, record:
 
 1. Its owner, supported configuration levels, and whether it is configured input, derived metadata, or a runtime result.
 2. Its fallback, clear, disable, and forced-override behavior, including cross-scope conflicts and existing suppression controls.

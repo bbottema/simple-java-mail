@@ -2,7 +2,7 @@
 
 This is a developer's map of the cooperating state machines behind mail sending. Start here when a cancellation request, blocked worker, callback, or shutdown behaves differently from what you expected. The diagrams explain who owns each transition, which locks protect it, and what has to finish before the next step can happen.
 
-The first collection covers the Phase 2 execution-control implementation on `codex/10.0.0`, including the working-tree changes reviewed on 2026-09-10 and subsequent documented integration boundaries. It describes implementation behavior, not a released-version guarantee or a proof that every possible interleaving is safe. Read it alongside the [architecture decisions and topic index](../adr/README.md), [coding guide](../../CODING_STYLE_GUIDE.md), and [improvement plan](../../03_SMTP_ROBUSTNESS_IMPROVEMENT_PLAN/README.md).
+The first collection covers the Phase 2 execution-control implementation on `codex/10.0.0`, including the working-tree changes reviewed on 2026-09-10 and subsequent documented integration boundaries. It describes implementation behavior, not a released-version guarantee or a proof that every possible interleaving is safe. Read it alongside the [architecture decisions and topic index](../adr/README.md), [coding guide](../CODING_STYLE_GUIDE.md), and [SMTP robustness tracking issue](https://github.com/bbottema/simple-java-mail/issues/722).
 
 ## Start with the overview
 
