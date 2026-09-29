@@ -1,6 +1,6 @@
 # Release History
 
-Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
+Full Simple Java Mail release history. The [README](https://github.com/bbottema/simple-java-mail#current-release) links to the current release without duplicating these notes.
 
 ## v10.0.0 (unreleased)
 
@@ -13,13 +13,14 @@ Full Simple Java Mail release history. The [README](README.md#current-release) l
 - [#723](https://github.com/bbottema/simple-java-mail/issues/723): added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#712](https://github.com/bbottema/simple-java-mail/issues/712): added one configurable `MailSendObserver` per `Mailer`, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends.
 - [#714](https://github.com/bbottema/simple-java-mail/issues/714): added automatic, independently backing-off `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` beans for Spring Boot 2.7 and 3.x, plus a dependency-only `simple-java-mail-spring-boot-starter` and a permanent compatibility matrix.
+- [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
 ### Enhancements
 
 - [#748](https://github.com/bbottema/simple-java-mail/issues/748): check prepared SMTP content against the connected server's advertised SIZE limit before submission, and declare its measured size when supported. Receipts retain the measured size and reliable server limit on success or failure. Local size limits and rehearsal remain separate; caller-owned transports and other providers retain their behavior. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#742](https://github.com/bbottema/simple-java-mail/issues/742): negotiated SMTPUTF8 per message on managed Angus connections, so ordinary MIME-encoded mail does not acquire an unnecessary declaration. Added `withLegacySmtpContentSupport(true)` and `simplejavamail.smtp.legacycontentsupport` for explicitly verified tolerant servers; advertised support remains required by default. Actual raw 8-bit bodies declare `BODY=8BITMIME` when supported. Exact/protected bytes, addresses and security requirements remain unchanged; no reconnect or altered-content retry is introduced. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#741](https://github.com/bbottema/simple-java-mail/issues/741): added per-email RFC 8689 REQUIRETLS through the ordinary Email defaults/overrides system, including exact EML and CLI support. The Angus adapter verifies authenticated first-hop TLS and post-TLS server capability before MAIL FROM; receipts report only when the parameter was actually issued. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
-- [#737](https://github.com/bbottema/simple-java-mail/issues/737): unified DKIM defaults with Email templates and ordinary message governance; removed the dedicated Mailer DKIM defaults API. Incomplete signing templates are allowed, while prepared messages still require a sender. See the [10.0.0 migration notes](MIGRATION-10.0.md#dkim-defaults-use-email-templates) for property-default preservation and suppression.
+- [#737](https://github.com/bbottema/simple-java-mail/issues/737): unified DKIM defaults with Email templates and ordinary message governance; removed the dedicated Mailer DKIM defaults API. Incomplete signing templates are allowed, while prepared messages still require a sender. See the [10.0.0 migration notes](https://www.simplejavamail.org/migration-notes-10.0.0.html#dkim-defaults) for property-default preservation and suppression.
 - [#738](https://github.com/bbottema/simple-java-mail/issues/738): added recipient/group DSN NOTIFY preferences, with default/fixed/clear policies and Email fallback. Managed Angus adds ORCPT from actual envelope-recipient occurrences when supported, without changing exact or protected MIME bytes. Explicit recipient preferences fail before submission if unsupported; capability mismatches leave healthy pooled connections reusable.
 - [#736](https://github.com/bbottema/simple-java-mail/issues/736): added automatic per-send DSN envelope identifiers (ENVID), exposed on submission receipts for correlating later notifications. `fixingEnvelopeId(...)` supplies a fixed value through Java or CLI, for composed or exact emails. Automatic generation is best-effort; fixed identifiers require DSN support. MIME bytes remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#735](https://github.com/bbottema/simple-java-mail/issues/735): reject extra properties that disable mandatory STARTTLS for `SMTP_TLS` or `SMTP_OAUTH2` during Mailer construction, with actionable configuration errors. The opportunistic SMTP default, caller-owned Sessions and `CustomMailer` remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
@@ -476,7 +477,7 @@ v6.5.0 - [v6.5.4](https://search.maven.org/#artifactdetails%7Corg.simplejavamail
   **NOTE:** This add Kryo as extra dependency to the outlook-module (and is subsequently removed in 6.5.4)
 
 - v6.5.2 (15-April-2021): [#311](https://github.com/bbottema/simple-java-mail/issues/311) Bugfix: text/calendar as string -> ClassCastException (if calendar type is not Inputstream)
-- v6.5.1 (10-April-2021): [#307](https://github.com/bbottema/simple-java-mail/issues/307) / [#310](https://github.com/bbottema/simple-java-mail/issues/310) Bugfix: embedded image resource name got mangled
+- v6.5.1 (10-April-2021): [#307](https://github.com/bbottema/simple-java-mail/issues/307) / [#310](https://github.com/bbottema/simple-java-mail/issues/310) Bugfix: embedded image resource name got mangled when it included an extension
 - v6.5.0 (16-February-2021): [#298](https://github.com/bbottema/simple-java-mail/issues/298) Enhancement: Nested Outlook messages aren't discarded anymore, but parsed to serialized Email objects
 - v6.5.0 (16-February-2021): [#292](https://github.com/bbottema/simple-java-mail/issues/292) Bugfix: NullPointerException in SmimeUtilFixed when protocol is missing (which is valid)
 - v6.5.0 (16-February-2021): [#289](https://github.com/bbottema/simple-java-mail/issues/289) Bugfix: Support multiple headers with same key
@@ -899,7 +900,7 @@ Patch: streamlined convenience methods for adding recipients.
 
 [v1.9.1](https://search.maven.org/#artifactdetails%7Corg.codemonkey.simplejavamail%7Csimple-java-mail%7C1.9.1%7Cjar) (08-Aug-2011)
 
-  * updated for Maven support
+  * updated for Maven support (library unchanged; 1.9 was released incorrectly to Maven Central)
 
 
 v1.9 (6-Aug-2011)

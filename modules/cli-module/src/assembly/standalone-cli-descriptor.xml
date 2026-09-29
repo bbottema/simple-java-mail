@@ -53,7 +53,7 @@
 			<outputDirectory>./</outputDirectory>
 			<includes>
 				<include>LICENSE-2.0.txt</include>
-				<include>RELEASE.txt</include>
+				<include>RELEASE_HISTORY.md</include>
 			</includes>
 		</fileSet>
 	</fileSets>

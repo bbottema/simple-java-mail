@@ -353,7 +353,7 @@
                 <includes>
                     <include>LICENSE-2.0.txt</include>
                     <include>NOTICE.txt</include>
-                    <include>RELEASE.txt</include>
+                    <include>RELEASE_HISTORY.md</include>
                 </includes>
             </resource>
         </resources>
