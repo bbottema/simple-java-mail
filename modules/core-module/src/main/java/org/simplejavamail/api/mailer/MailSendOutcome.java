@@ -31,6 +31,7 @@ public final class MailSendOutcome implements Serializable {
 	private final boolean loggingOnly;
 	@Nullable private final MailSubmissionReceipt submissionReceipt;
 	@Nullable private final Throwable failure;
+	@Nullable private final MailSendDiagnostics diagnostics;
 
 	/**
 	 * Creates one immutable terminal outcome. Applications normally consume outcomes rather than construct them.
@@ -56,6 +57,28 @@ public final class MailSendOutcome implements Serializable {
 			final boolean loggingOnly,
 			@Nullable final MailSubmissionReceipt submissionReceipt,
 			@Nullable final Throwable failure) {
+		this(initialMessageId, effectiveMessageId, requestedAt, readyAt, startedAt, completedAt, successful, loggingOnly, submissionReceipt, failure, null);
+	}
+
+	/**
+	 * Creates an outcome with optional actual-send measurements. The other arguments have the same contract as the original constructor.
+	 *
+	 * @param initialMessageId Initial Message-ID, if known.
+	 * @param effectiveMessageId Effective Message-ID, if known.
+	 * @param requestedAt Attempt entry time.
+	 * @param readyAt Preparation completion time, if reached.
+	 * @param startedAt Execution start time, if reached.
+	 * @param completedAt Terminal snapshot time, before observer dispatch.
+	 * @param successful Whether the operation completed successfully.
+	 * @param loggingOnly Whether transport logging-only mode was configured.
+	 * @param submissionReceipt Captured submission facts, including facts retained across later cleanup failure.
+	 * @param failure Exact caller-facing failure, or null on success.
+	 * @param diagnostics Actual-send measurements, or null when none were recorded.
+	 */
+	public MailSendOutcome(@Nullable final String initialMessageId, @Nullable final String effectiveMessageId,
+			@NotNull final Instant requestedAt, @Nullable final Instant readyAt, @Nullable final Instant startedAt, @NotNull final Instant completedAt,
+			final boolean successful, final boolean loggingOnly, @Nullable final MailSubmissionReceipt submissionReceipt,
+			@Nullable final Throwable failure, @Nullable final MailSendDiagnostics diagnostics) {
 		this.initialMessageId = initialMessageId;
 		this.effectiveMessageId = effectiveMessageId;
 		this.requestedAt = requireNonNull(requestedAt, "requestedAt");
@@ -66,6 +89,7 @@ public final class MailSendOutcome implements Serializable {
 		this.loggingOnly = loggingOnly;
 		this.submissionReceipt = submissionReceipt;
 		this.failure = failure;
+		this.diagnostics = diagnostics;
 		validateTerminalState();
 	}
 
@@ -148,6 +172,7 @@ public final class MailSendOutcome implements Serializable {
 
 	/**
 	 * @return The transport-neutral receipt when this attempt reached a receipt-producing path. Preparation and scheduling failures have no receipt.
+	 * A later cleanup failure does not erase a captured receipt: inspect SMTP acceptance separately from {@link #isSuccessful()}.
 	 */
 	@NotNull
 	public Optional<MailSubmissionReceipt> getSubmissionReceipt() {
@@ -160,5 +185,14 @@ public final class MailSendOutcome implements Serializable {
 	@NotNull
 	public Optional<Throwable> getFailure() {
 		return Optional.ofNullable(failure);
+	}
+
+	/**
+	 * @return Actual-send timing and selected-endpoint diagnostics, captured automatically for observed attempts before observer dispatch.
+	 * Empty for older serialized outcomes or manually constructed outcomes without measurements. This is not a connection probe or proof of delivery.
+	 */
+	@NotNull
+	public Optional<MailSendDiagnostics> getDiagnostics() {
+		return Optional.ofNullable(diagnostics);
 	}
 }

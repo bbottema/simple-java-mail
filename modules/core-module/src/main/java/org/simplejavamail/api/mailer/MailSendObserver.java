@@ -12,6 +12,10 @@ import java.util.concurrent.Executor;
  * Keep implementations thread-safe; inline work delays completion, while executor-backed work follows that executor's dispatch policy.
  * <p>
  * A runtime exception thrown by an observer is logged and ignored. It never changes the send result or transport cleanup behavior.
+ * <p>
+ * Observed attempts automatically include {@link MailSendOutcome#getDiagnostics() actual-send measurements}. These end before observer dispatch;
+ * they explain preparation, scheduling, connection acquisition, MIME preparation, submission and cleanup without reading the message again.
+ * Measurements describe the particular send, unlike a separate connection probe. No extra diagnostics setting is needed.
  *
  * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
  * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
