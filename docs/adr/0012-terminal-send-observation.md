@@ -57,6 +57,16 @@ Inline reporting can delay call/future completion. Offloaded reporting can arriv
 
 The observer registration is Java behavior attached directly to the builder and Mailer; it does not belong in OperationalConfig, configuration files, Spring property binding, CLI generation or redacted configuration diagnostics. Validation, rehearsal, probes/connection tests, shutdown and standalone `BatchTransportExecutor` operations are not email attempts.
 
-Ordinary cleanup failures can produce whole-attempt failure even after useful SMTP work; an optional receipt is not guaranteed for every generic cleanup error. Do not infer rejection from `isSuccessful() == false` or from a missing receipt. Likewise, a successful logging-only/custom-mailer outcome need not establish SMTP acceptance.
+Ordinary cleanup failures can produce whole-attempt failure even after useful SMTP work. [ADR 0026](0026-actual-send-diagnostics.md) extends this boundary under #750:
+retain an already captured receipt even when a later generic release/close failure prevents its return. This does not manufacture a receipt for work that never
+produced one. Do not infer rejection from `isSuccessful() == false` or a missing receipt. A successful logging-only/custom-mailer outcome need not establish SMTP acceptance.
 
-Existing regression landmarks are [MailSendObserverTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendObserverTest.java) and [MailSendObserverDispatchTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendObserverDispatchTest.java). This ADR records current behavior; no Java tests were rerun for the documentation pass.
+ADR 0026 also adds explicit, monotonic measurements to the same terminal event without new lifecycle callbacks. Inline/application-executor dispatch, per-email
+scope and cleanup-before-notification ordering remain unchanged; observer time lies outside the reported attempt duration.
+
+Existing regression landmarks are [MailSendObserverTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendObserverTest.java)
+and [MailSendObserverDispatchTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendObserverDispatchTest.java).
+The #750 extension adds deterministic [recorder tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailSendDiagnosticsRecorderTest.java)
+and [transport/cleanup regressions](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailSendDiagnosticsTransportTest.java).
+The [development guide](../DEVELOPMENT.md) documents verification commands; [#750](https://github.com/bbottema/simple-java-mail/issues/750)
+records the accepted scope and completion. ADR 0026 retains the architectural decision after the implementation plan is retired.

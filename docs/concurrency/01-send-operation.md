@@ -135,6 +135,19 @@ The outcome's completion timestamp is captured **before** notification. On an or
 
 Cancellation is a request, not a final state or proof of non-delivery. This machine does not classify SMTP acceptance or retry safety. A late stop can coexist with an accepted receipt; classification belongs to the [cross-machine result contract](08-cross-machine-contracts.md).
 
+## Actual-send measurements
+
+[ADR 0026](../adr/0026-actual-send-diagnostics.md) adds an attempt-owned recorder passed explicitly through the existing paths.
+Caller preparation hands its state to the executing or retiring completion path through the operation's existing publication boundaries; no new lock,
+ThreadLocal or resource owner is introduced. The immutable report is frozen before observer dispatch, alongside the existing completion timestamp.
+Preparation, async scheduling, acquisition, MIME, submission and cleanup measurements use monotonic time and need not sum to total orchestration time.
+
+Ordinary acquisition includes local proxy startup and connected-lease/direct-connect work. Cleanup includes ordinary release/disposal/close and proxy teardown.
+Shared setup and teardown remain outside per-email batch/open-connection outcomes. A produced receipt is retained before cleanup, so a later generic cleanup
+exception does not erase acceptance from the observer. Suppressed cleanup failures cannot replace the earlier observed failure location.
+
+The shared infographic's resource layers and ownership remain accurate; #750 adds terminal data, not another execution layer or lifecycle event stream.
+
 ## Tests and limits of their evidence
 
 | Test source / method | What the assertions establish |

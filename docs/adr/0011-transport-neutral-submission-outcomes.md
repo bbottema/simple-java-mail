@@ -60,7 +60,11 @@ Angus success-reporting mode uses exceptions even after successful submission. I
 
 Missing provider replies remain absent. EOF or return code zero is not a real SMTP rejection, and a provider can lose its RCPT exception chain during an I/O failure. Do not reconstruct missing recipient replies from the connection's last transaction response. Custom mailers and logging-only mode can complete successfully with `UNKNOWN` because this library has not observed their SMTP acceptance. Third-party adapters can supply fewer facts than Angus.
 
-Cleanup is separate from SMTP knowledge. A failed submission normally invalidates the pooled transport; compatibility failure before submission can release a healthy connection. A cleanup failure is suppressed onto an existing primary failure. The direct-transport path also preserves observed acceptance when a stop request causes close failure. This is not a promise that every independent close/release failure carries an accepted receipt: a later cleanup error can still become a generic caller-facing failure. Absence of a receipt must never be interpreted as proof that no message was accepted. [ADR 0012](0012-terminal-send-observation.md) describes whole-attempt reporting.
+Cleanup is separate from SMTP knowledge. A failed submission normally invalidates the pooled transport; compatibility failure before submission can release a healthy connection.
+A cleanup failure is suppressed onto an existing primary failure. The direct-transport path also preserves observed acceptance when a stop request causes close failure.
+[ADR 0026](0026-actual-send-diagnostics.md) extends observed attempts under #750 to retain their already captured receipt across independent close/release failures.
+The caller-facing exception remains unchanged: a generic cleanup failure does not acquire a new public exception wrapper merely to carry a receipt.
+Absence of a receipt must never be interpreted as proof that no message was accepted. [ADR 0012](0012-terminal-send-observation.md) describes whole-attempt reporting.
 
 Recipients and raw server replies can contain personal information and untrusted text; they are not redacted configuration diagnostics. SMTP acceptance is not mailbox delivery. DSNs, bounces and application reconciliation remain separate concerns. Pending ENVID work adds correlation metadata but does not change these meanings.
 

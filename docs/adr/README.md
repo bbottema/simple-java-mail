@@ -32,6 +32,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0022](0022-dsn-identifiers-belong-to-send-attempts.md) | Generate ENVID per send attempt and report it outside MIME content. | Accepted, 2026-09-17 | Accepted for unreleased 10.0.0. |
 | [0023](0023-per-message-requiretls.md) | Keep onward REQUIRETLS on Email, separate from connection TLS, and reject sends that cannot honor it. | Accepted, 2026-09-17 | Implemented and accepted for unreleased 10.0.0 under #741. |
 | [0024](0024-builder-interfaces-are-not-extension-spis.md) | Treat all builder interfaces as library-owned API contracts, not extension SPIs. | Accepted, 2026-09-18 | Existing architectural intent recorded as project policy. |
+| [0026](0026-actual-send-diagnostics.md) | Explain actual sends through explicit terminal measurements without exposing transport lifecycle. | Accepted, 2026-09-29 | Implemented and accepted for unreleased 10.0.0 under #750. |
 
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
@@ -55,7 +56,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | Async send and batch connection pooling | [0015](0015-execution-views-and-transport-pooling.md) and [0016](0016-bounded-async-admission-and-shutdown.md); [executor admission](../concurrency/03-executor-admission.md) and [pool claims/leases](../concurrency/06-pool-claims-and-leases.md) describe current state machines. |
 | Total deadlines and physical abort | [0017](0017-deadlines-and-physical-cancellation.md), with outcome and callback boundaries in [0011](0011-transport-neutral-submission-outcomes.md) and [0012](0012-terminal-send-observation.md); see the [concurrency collection](../concurrency/README.md) for transitions and races. |
 | Transport-neutral submission outcomes | [0011](0011-transport-neutral-submission-outcomes.md), supported by [0007](0007-provider-neutral-mime-boundary.md). |
-| Per-Mailer terminal send observation | [0012](0012-terminal-send-observation.md). |
+| Per-Mailer terminal send observation and actual-send timings | [0012](0012-terminal-send-observation.md) and [0026](0026-actual-send-diagnostics.md). |
 | Exact EML submission | [0013](0013-exact-eml-submission.md). |
 | DSN envelope identifiers | [0022](0022-dsn-identifiers-belong-to-send-attempts.md); broader target scopes remain in [0001](0001-email-configuration-scopes-and-inheritance.md), with the dated [provider characterization](../research/smtp-dsn-provider-characterization.md). |
 | Content inspection and provider-discovery performance | [Initial audit](../research/smtp-performance/initial-audit-results.md), [inspection optimization](../research/smtp-performance/inspection-optimization-results.md), and [discovery results and final decision](../research/smtp-performance/provider-discovery-results.md), with retained measurements and the [manual harness](../../tools/performance/README.md). |
