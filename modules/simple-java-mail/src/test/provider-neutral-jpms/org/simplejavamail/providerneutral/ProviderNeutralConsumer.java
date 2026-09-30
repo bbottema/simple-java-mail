@@ -315,6 +315,17 @@ public final class ProviderNeutralConsumer {
 			outcome.isLoggingOnly();
 			outcome.getSubmissionReceipt();
 			outcome.getFailure();
+			outcome.getDiagnostics().ifPresent(report -> {
+				report.getElapsed();
+				report.getPreparation().getElapsed();
+				report.getScheduling().getUnavailableReason();
+				report.getConnectionAcquisition().getElapsed();
+				report.getMimePreparation().getElapsed();
+				report.getSubmission().isFailureObservedHere();
+				report.getCleanup().getElapsed();
+				report.getSmtpHost();
+				report.getSmtpPort();
+			});
 		};
 		simpleJavaMail.mailerBuilder()
 				.withSMTPServer("localhost", 25)

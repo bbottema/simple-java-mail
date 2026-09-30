@@ -225,6 +225,9 @@ class MailSendExecutionControlTest {
             assertThat(failure).isInstanceOf(MailSendCancelledException.class);
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
+            final boolean acquiring = Set.of("GREETING", "EHLO", "AUTH").contains(phase);
+            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getConnectionAcquisition().isFailureObservedHere()).isEqualTo(acquiring);
+            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isEqualTo(!acquiring);
             final MailSendCancelledException cancellation = (MailSendCancelledException) failure;
             if (phase.equals(".")) {
                 final MailSubmissionReceipt receipt = cancellation.getSubmissionReceipt().orElseThrow(AssertionError::new);
@@ -239,6 +242,7 @@ class MailSendExecutionControlTest {
             assertThat(next.getRecipientResults()).allSatisfy(recipient ->
                     assertThat(recipient.getEnvelopeAddress()).contains("fresh@example.org"));
             assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(next);
+            assertThat(outcomes.get(1).getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isFalse();
             send.requestCancellation();
             assertThat(mailer.sync().sendMail(email("after-late-request")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
         }

@@ -494,6 +494,7 @@ public class MailerImpl implements Mailer {
 	private MailSend<MailSubmissionReceipt> sendMailAsynchronously(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		attempt.diagnostics().useAsyncScheduling();
 		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
 			operation = beginEmailOperation(attempt);
@@ -555,7 +556,7 @@ public class MailerImpl implements Mailer {
 	private MailSubmissionReceipt sendPreparedEmail(@NotNull final PreparedMailSend preparedMailSend, final MailSendControl control) {
 		preparedMailSend.markStarted();
 		final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, preparedMailSend.getEmail(), proxyServer,
-				operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control);
+				operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control, preparedMailSend.diagnostics());
 		sendMailClosure.run();
 		return sendMailClosure.getReceipt();
 	}

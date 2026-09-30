@@ -24,6 +24,7 @@ final class MailSendAttempt {
 	@Nullable private final String initialMessageId;
 	@Nullable private final Instant requestedAt;
 	private final boolean loggingOnly;
+	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 	@Nullable private Instant readyAt;
 	@Nullable private Instant startedAt;
 	@Nullable private Email effectiveEmail;
@@ -39,6 +40,10 @@ final class MailSendAttempt {
 		this.requestedAt = requestedAt;
 		this.loggingOnly = loggingOnly;
 		this.control = control;
+		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved() : MailSendDiagnosticsRecorder.observed();
+		if (loggingOnly) {
+			diagnostics.useLoggingOnly();
+		}
 	}
 
 	@NotNull
@@ -60,6 +65,12 @@ final class MailSendAttempt {
 		}
 		effectiveEmail = email;
 		readyAt = Instant.now();
+		diagnostics.prepared();
+	}
+
+	@NotNull
+	MailSendDiagnosticsRecorder diagnostics() {
+		return diagnostics;
 	}
 
 	void attachControl(@NotNull final MailSendControl control) {
@@ -69,6 +80,7 @@ final class MailSendAttempt {
 	void started() {
 		if (notifier != null) {
 			startedAt = Instant.now();
+			diagnostics.started();
 		}
 	}
 
@@ -87,14 +99,15 @@ final class MailSendAttempt {
 	@Nullable
 	private MailSubmissionReceipt submissionReceiptFromStartedFailure(@NotNull final Throwable failure) {
 		if (startedAt != null && failure instanceof MailSendCancelledException) {
-			return ((MailSendCancelledException) failure).getSubmissionReceipt().orElse(null);
+			return ((MailSendCancelledException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
 		if (startedAt != null && failure instanceof MailSendTimeoutException) {
-			return ((MailSendTimeoutException) failure).getSubmissionReceipt().orElse(null);
+			return ((MailSendTimeoutException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
-		return startedAt != null && failure instanceof MailSubmissionException
-				? ((MailSubmissionException) failure).getSubmissionReceipt()
-				: null;
+		if (startedAt != null && failure instanceof MailSubmissionException) {
+			return ((MailSubmissionException) failure).getSubmissionReceipt();
+		}
+		return startedAt == null ? null : diagnostics.capturedReceipt();
 	}
 
 	private void complete(final boolean successful,
@@ -105,8 +118,9 @@ final class MailSendAttempt {
 		}
 		final MailSendOutcome outcome = new MailSendOutcome(initialMessageId, effectiveMessageId(submissionReceipt),
 				requireNonNull(requestedAt, "requestedAt"), readyAt, startedAt, Instant.now(), successful, loggingOnly,
-				submissionReceipt, failure);
+				submissionReceipt, failure, diagnostics.finish(successful));
 		effectiveEmail = null;
+		diagnostics.releaseReceipt();
 		try (MailSendControl.DeadlinePause ignored = control == null ? null : control.pauseDeadline()) {
 			notifier.notifyCompletion(outcome);
 		}

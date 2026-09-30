@@ -2,15 +2,15 @@ package demo;
 
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.MailSendDiagnostics;
+import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +21,8 @@ import static org.simplejavamail.recipient.RecipientBuilder.to;
  * <p>
  * Configure the SMTP credentials in {@link DemoAppBase} before running this class. For a demonstration that prints the emails without contacting an
  * SMTP server, temporarily enable the {@code LOGGING_MODE} flag in {@code DemoAppBase}.
+ * Timings describe the actual attempt and exclude this callback. Scheduling includes admission and worker waiting; submission includes provider work,
+ * not just network traffic. An unavailable measurement prints n/a (for example, submission in logging-only mode).
  * </p>
  */
 public class MailSendObserverDemoApp extends DemoAppBase {
@@ -79,14 +81,19 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 				failedCount.incrementAndGet();
 			}
 
-			System.out.printf("[%d/%d] %-9s id=%s queue=%s send=%s total=%s thread=%s%n",
+			final MailSendDiagnostics report = outcome.getDiagnostics().orElseThrow();
+			System.out.printf("[%d/%d] %-9s id=%s preparation=%s scheduling=%s connection=%s mime=%s submission=%s cleanup=%s total=%dms thread=%s%n",
 					completed,
 					EMAIL_COUNT,
 					status(outcome),
 					messageId(outcome),
-					duration(outcome.getReadyAt(), outcome.getStartedAt()),
-					duration(outcome.getStartedAt(), Optional.of(outcome.getCompletedAt())),
-					duration(Optional.of(outcome.getRequestedAt()), Optional.of(outcome.getCompletedAt())),
+					duration(report.getPreparation()),
+					duration(report.getScheduling()),
+					duration(report.getConnectionAcquisition()),
+					duration(report.getMimePreparation()),
+					duration(report.getSubmission()),
+					duration(report.getCleanup()),
+					report.getElapsed().toMillis(),
 					Thread.currentThread().getName());
 		}
 	}
@@ -111,10 +118,8 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 		return messageId.startsWith("<") ? messageId : '<' + messageId + '>';
 	}
 
-	private static String duration(final Optional<Instant> start, final Optional<Instant> end) {
-		if (!start.isPresent() || !end.isPresent()) {
-			return "-";
-		}
-		return Duration.between(start.get(), end.get()).toMillis() + "ms";
+	private static String duration(final MailSendMeasurement measurement) {
+		return measurement.getElapsed().map(Duration::toMillis).map(millis -> millis + "ms").orElse("n/a")
+				+ (measurement.isFailureObservedHere() ? " (failed)" : "");
 	}
 }

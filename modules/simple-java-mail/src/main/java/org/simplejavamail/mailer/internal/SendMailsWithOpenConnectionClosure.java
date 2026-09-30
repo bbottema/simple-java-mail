@@ -123,6 +123,9 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	public MailSubmissionReceipt sendMailAndGetReceipt(@NotNull final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		if (!transportModeLoggingOnly) {
+			mailSendAttempt.diagnostics().useSharedConnection();
+		}
 		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
 			operation = operations.begin(mailSendAttempt::completeSuccessfully, mailSendAttempt::completeWithFailure);
@@ -141,13 +144,15 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			mailSendAttempt.prepared(preparedEmail);
 			mailSendAttempt.started();
 			if (transportModeLoggingOnly) {
+				mailSendAttempt.diagnostics().startMimePreparation();
 				final MailSubmissionReceipt receipt = convertAndLogPreparedEmail(preparedEmail);
 				control.checkStopped();
+				mailSendAttempt.diagnostics().receiptProduced(receipt);
 				return receipt;
 			}
 			final Transport activeTransport = checkNonEmptyArgument(transport, "transport");
 			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control)) {
-				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control);
+				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control, mailSendAttempt.diagnostics());
 			}
 		} catch (final MessagingException failure) {
 			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR));

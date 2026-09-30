@@ -102,6 +102,10 @@ class MailSendObserverTest {
 		assertOpaqueRecipientFacts(submissionReceipt);
 		assertThat(outcome.getFailure()).isEmpty();
 		assertCompleteTiming(outcome);
+		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isEmpty();
+		assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getUnavailableReason()).get().asString().contains("CustomMailer");
+		assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isPresent();
+		assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getElapsed()).isPresent();
 	}
 
 	@Test
@@ -127,6 +131,7 @@ class MailSendObserverTest {
 			assertThat(completionOrder).containsExactly("observer", "future");
 			assertThat(observedOutcome.get().getSubmissionReceipt()).containsSame(submissionReceipt);
 			assertThat(observedOutcome.get().getStartedAt()).isPresent();
+			assertThat(observedOutcome.get().getDiagnostics().orElseThrow().getScheduling().getElapsed()).isPresent();
 			assertThat(customMailer.sendThread.get().getName()).isEqualTo("mail-send-observer-worker");
 		} finally {
 			customMailer.releaseSend();
@@ -173,6 +178,8 @@ class MailSendObserverTest {
 			assertThat(outcome.getReadyAt()).isPresent();
 			assertThat(outcome.getStartedAt()).isEmpty();
 			assertThat(outcome.getSubmissionReceipt()).isEmpty();
+			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().isFailureObservedHere()).isTrue();
+			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isEmpty();
 			assertThat(callbackThread).hasValue(callerThread);
 
 			outcomes.clear();
@@ -200,6 +207,9 @@ class MailSendObserverTest {
 		assertThat(outcomes).singleElement().satisfies(outcome -> {
 			assertThat(outcome.isSuccessful()).isTrue();
 			assertThat(outcome.isLoggingOnly()).isTrue();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getUnavailableReason()).get().asString().contains("Logging-only");
+			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).isEmpty();
 			assertThat(outcome.getSubmissionReceipt()).get()
 					.extracting(MailSubmissionReceipt::getStatus)
 					.isEqualTo(MailSubmissionStatus.UNKNOWN);
@@ -271,6 +281,8 @@ class MailSendObserverTest {
 	}
 
 	private static void assertPreparationFailure(final MailSendOutcome outcome, final Throwable failure) {
+		assertThat(outcome.getDiagnostics().orElseThrow().getPreparation().isFailureObservedHere()).isTrue();
+		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isEmpty();
 		assertThat(outcome.isSuccessful()).isFalse();
 		assertThat(outcome.getFailure()).containsSame(failure);
 		assertThat(outcome.getSubmissionReceipt()).isEmpty();

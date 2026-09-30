@@ -38,15 +38,25 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	private final boolean transportModeLoggingOnly;
 	@Nullable private MailSubmissionReceipt receipt;
 	@NotNull private final MailSendControl control;
+	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email, @Nullable AnonymousSocks5Server proxyServer,
-			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendControl control) {
-		super(smtpConnectionCounter, proxyServer, session);
+	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email,
+			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
+			@NotNull MailSendControl control, @NotNull MailSendDiagnosticsRecorder diagnostics) {
+		super(smtpConnectionCounter, proxyServer, session, diagnostics);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.email = email;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.control = control;
+		this.diagnostics = diagnostics;
+		if (transportModeLoggingOnly) {
+			diagnostics.useLoggingOnly();
+		} else if (operationalConfig.getCustomMailer() != null) {
+			diagnostics.useCustomMailer();
+		} else {
+			diagnostics.startConnectionAcquisition();
+		}
 	}
 
 	@Override
@@ -55,17 +65,22 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 		try {
 			control.checkStopped();
 			if (transportModeLoggingOnly) {
+				diagnostics.startMimePreparation();
 				SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				control.checkStopped();
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
 				receipt = TransportRunner.buildReceipt(email, null);
+				diagnostics.receiptProduced(receipt);
 			} else if (operationalConfig.getCustomMailer() != null) {
+				diagnostics.startMimePreparation();
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				control.checkStopped();
+				diagnostics.startSubmission();
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
+				diagnostics.receiptProduced(receipt);
 			} else {
-				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email, control);
+				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email, control, diagnostics);
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);

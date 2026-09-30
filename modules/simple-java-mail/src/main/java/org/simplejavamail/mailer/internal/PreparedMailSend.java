@@ -25,4 +25,9 @@ final class PreparedMailSend {
 		mailSendAttempt.started();
 	}
 
+	@NotNull
+	MailSendDiagnosticsRecorder diagnostics() {
+		return mailSendAttempt.diagnostics();
+	}
+
 }

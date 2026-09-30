@@ -25,17 +25,25 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 	@NotNull private final AtomicInteger smtpConnectionCounter;
 	@NotNull private final Session session;
 	@Nullable private final AnonymousSocks5Server proxyServer;
+	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 
 	AbstractProxyServerSyncingClosure(@NotNull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer,
 			@NotNull final Session session) {
+		this(smtpConnectionCounter, proxyServer, session, MailSendDiagnosticsRecorder.unobserved());
+	}
+
+	AbstractProxyServerSyncingClosure(@NotNull final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer,
+			@NotNull final Session session, @NotNull final MailSendDiagnosticsRecorder diagnostics) {
 		this.smtpConnectionCounter = smtpConnectionCounter;
 		this.proxyServer = proxyServer;
 		this.session = session;
+		this.diagnostics = diagnostics;
 
 		increaseSmtpConnectionCounter();
 	}
 
-	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Not sure why we needed this anymore, but it doesn't do any harm either")
+	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER",
+			justification = "Registration and last-send proxy shutdown share this monitor")
 	private void increaseSmtpConnectionCounter() {
 		synchronized (smtpConnectionCounter) {
 			smtpConnectionCounter.incrementAndGet();
@@ -47,8 +55,19 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 		try {
 			startProxyServerIfNeeded();
 			executeClosure();
+		} catch (RuntimeException | Error failure) {
+			diagnostics.failed();
+			throw failure;
 		} finally {
-			shutDownProxyServerIfRunningAndCurrentBatchCompleted();
+			diagnostics.startCleanup();
+			try {
+				shutDownProxyServerIfRunningAndCurrentBatchCompleted();
+			} catch (RuntimeException | Error failure) {
+				diagnostics.failed();
+				throw failure;
+			} finally {
+				diagnostics.cleanupCompleted();
+			}
 		}
 	}
 
@@ -73,7 +92,8 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 		}
 	}
 
-	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Not sure why we needed this anymore, but it doesn't do any harm either")
+	@SuppressFBWarnings(value = "JLM_JSR166_UTILCONCURRENT_MONITORENTER",
+			justification = "Registration and last-send proxy shutdown share this monitor")
 	private void shutDownProxyServerIfRunningAndCurrentBatchCompleted() {
 		synchronized (smtpConnectionCounter) {
 			if (smtpConnectionCounter.decrementAndGet() == 0) {

@@ -182,6 +182,12 @@ class MailSubmissionPoolingTest {
 		assertThat(unknownReceipt.getInvalidRecipients()).isEmpty();
 
 		assertThat(outcomes).hasSize(4);
+		assertThat(outcomes).allSatisfy(outcome -> {
+			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isEqualTo(!outcome.isSuccessful());
+		});
+		assertThat(outcomes).extracting(outcome -> outcome.getDiagnostics().orElseThrow()).doesNotHaveDuplicates();
 		assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(firstReceipt);
 		assertThat(outcomes.get(0).getFailure()).isEmpty();
 		assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(partialReceipt);
@@ -311,6 +317,10 @@ class MailSubmissionPoolingTest {
 		assertThat(secondReceipt.getSmtpResponse()).get().extracting(response -> response.getResponse())
 				.isEqualTo("250 queued concurrent two");
 		assertThat(outcomes).hasSize(2);
+		assertThat(outcomes).allSatisfy(outcome -> {
+			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isEqualTo(!outcome.isSuccessful());
+		});
 		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow())
 				.containsExactlyInAnyOrder(firstReceipt, secondReceipt);
 		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow().getAcceptedRecipients())
@@ -405,6 +415,7 @@ class MailSubmissionPoolingTest {
 				.containsExactly("outer-send@example.org", "nested-send@example.org");
 		assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(outerReceipt);
 		assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(nestedReceipt.get());
+		assertThat(outcomes).allSatisfy(outcome -> assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isPresent());
 	}
 
 	@Test
@@ -436,6 +447,10 @@ class MailSubmissionPoolingTest {
 		final PooledTransportState stateB = new PooledTransportState();
 		final Session sessionA = session(stateA);
 		final Session sessionB = session(stateB);
+		sessionA.getProperties().setProperty("mail.smtp.host", "cluster-a.example");
+		sessionB.getProperties().setProperty("mail.smtp.host", "cluster-b.example");
+		final List<MailSendOutcome> outcomesA = new CopyOnWriteArrayList<>();
+		final List<MailSendOutcome> outcomesB = new CopyOnWriteArrayList<>();
 		final List<CompletableFuture<MailSubmissionReceipt>> clusterAResults = new ArrayList<>();
 		final List<CompletableFuture<MailSubmissionReceipt>> clusterBResults = new ArrayList<>();
 		for (int index = 0; index < 4; index++) {
@@ -443,8 +458,8 @@ class MailSubmissionPoolingTest {
 			stateB.plan("cluster-b-" + index, Attempt.success(250, "250 cluster B " + index));
 		}
 
-		try (Mailer mailerA = pooledMailer(sessionA, UUID.randomUUID(), 2, 2);
-			 Mailer mailerB = pooledMailer(sessionB, UUID.randomUUID(), 2, 2)) {
+		try (Mailer mailerA = pooledMailer(sessionA, UUID.randomUUID(), 2, 2, outcomesA::add);
+			 Mailer mailerB = pooledMailer(sessionB, UUID.randomUUID(), 2, 2, outcomesB::add)) {
 			for (int index = 0; index < 4; index++) {
 				clusterAResults.add(mailerA.async().sendMail(
 						email("cluster-a-" + index, "a" + index + "@example.com")).getCompletion());
@@ -467,6 +482,10 @@ class MailSubmissionPoolingTest {
 		}
 		assertThat(stateA.submittedSubjects).allMatch(subject -> subject.startsWith("cluster-a-"));
 		assertThat(stateB.submittedSubjects).allMatch(subject -> subject.startsWith("cluster-b-"));
+		assertThat(outcomesA).hasSize(4).allSatisfy(outcome ->
+				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).contains("cluster-a.example"));
+		assertThat(outcomesB).hasSize(4).allSatisfy(outcome ->
+				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).contains("cluster-b.example"));
 	}
 
 	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize) {
