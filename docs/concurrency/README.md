@@ -26,6 +26,7 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 | Who owns a connection while waiting for a pool claim, using it, and returning it? | [06 — Pool claims and leases](06-pool-claims-and-leases.md) |
 | How can cancellation unblock Angus without waiting for its SMTP lock? What if SMTP already accepted the email? | [07 — Angus transport abort](07-angus-transport-abort.md) |
 | How do the machines fit together, including observers, batches, and future completion? | [08 — Cross-machine contracts](08-cross-machine-contracts.md) |
+| Why select a destination before borrowing? Who charges or releases sending allowance? | [09 — Sending limits](09-sending-limits.md) |
 
 ## Entry points and adjacent mechanisms
 
@@ -47,7 +48,10 @@ flowchart TD
     Operation --> Control["MailSendControl: stop reason and deadline"]
     Control --> Registration["Registration: callback and close fence"]
     Operation --> Send["Send closures and TransportRunner"]
-    Send --> Claim["Pool claim: wait and handoff"]
+    Send --> Selection["Select destination without borrowing"]
+    Selection --> Allowance["Selected configuration: reserve sending allowance"]
+    Allowance --> Claim["Pool claim: wait and handoff"]
+    Registration -. "wake rate waiter" .-> Allowance
     Claim --> Lease["SMTP lease: use, return or invalidate"]
     Send --> Direct["Direct or intentionally shared transport"]
     Registration -. "claim cancellation" .-> Claim

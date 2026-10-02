@@ -6,6 +6,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#751](https://github.com/bbottema/simple-java-mail/issues/751): added optional message and recipient sending limits, configurable as counts over rolling periods. Named groups share allowance within a factory, optional spreading avoids bursts, and actual-send diagnostics distinguish rate waiting from connection acquisition. Limits apply to ordinary sends, simple batches, open connections and CustomMailer callbacks; no implicit rate is imposed.
+  See the [sending-limit guide](https://www.simplejavamail.org/sending-and-execution.html#section-sending-limits) for Java, property, Spring and CLI examples.
+
 - [#733](https://github.com/bbottema/simple-java-mail/issues/733): added dedicated SMTP connection probes with immutable pre-/post-TLS capability snapshots, optional credential testing, TLS metadata where available, and safe partial failure reports. Available through the Java API and CLI `probe` command, with optional `--authenticate` and one-shot/daemon support. No email is sent or pooled transport borrowed. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): added `MailSend` completion handles with optional `requestCancellation()`, opt-in total send deadlines, protocol-aware Angus socket abort and fenced pooled-lease cleanup, plus application-executor observer dispatch. Inspect receipts after cancellation or timeout: a lost final reply can still mean duplicate risk. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#725](https://github.com/bbottema/simple-java-mail/issues/725): added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
@@ -32,7 +35,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Supporting Libraries
 
-- Updated [SMTP Connection Pool to 4.2.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.2.0), [Clustered Object Pool to 4.1.1](https://github.com/bbottema/clustered-object-pool/releases/tag/4.1.1) and [Generic Object Pool to 2.5.1](https://github.com/bbottema/generic-object-pool/releases/tag/2.5.1), retaining failed-lease waiter recovery and connection creation-age retirement. Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726).
+- Updated [SMTP Connection Pool to 4.3.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.3.0), [Clustered Object Pool to 4.2.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.2.0) and [Generic Object Pool to 2.5.1](https://github.com/bbottema/generic-object-pool/releases/tag/2.5.1), retaining failed-lease waiter recovery and connection creation-age retirement. Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751).
 
 ### Maintenance
 

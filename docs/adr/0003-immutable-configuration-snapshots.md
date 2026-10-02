@@ -21,6 +21,10 @@ Pass the snapshot to `SimpleJavaMail.withConfig(...)`. That factory supplies fre
 
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
+[ADR 0027](0027-factory-scoped-sending-limits.md) adds factory-local sending-limit history alongside, not inside, this immutable snapshot.
+Named groups can coordinate participating Mailers without sharing their executors or connections. Two factories built from the same
+snapshot still have independent histories; the snapshot and `OperationalConfig` contain settings, never mutable usage counters.
+
 Framework adapters supply sources rather than another global registry. Spring's `Environment` resolves its own profiles, placeholders and source ordering before contributing values; Simple Java Mail does not overlay raw environment/system properties a second time. See [ADR 0005](0005-spring-integration-and-boot-compatibility.md).
 
 ## Alternatives and consequences

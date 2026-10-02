@@ -74,6 +74,23 @@ For a message whose later SMTP hops must also use TLS, add `.withTlsRequiredForO
 
 Recipients can choose their own DSN notifications with `.withDeliveryStatusNotificationNotifyOptions(...)`; groups provide default/fixed/clear policies using the same pattern as S/MIME certificates. Explicit recipient preferences beat the Email fallback and require provider/DSN support. The managed Angus transport also adds ORCPT from actual envelope recipients when supported, without changing MIME content or requesting extra notifications. See [recipient DSN examples and provider boundaries](https://www.simplejavamail.org/features.html#section-dsn-recipients).
 
+For an SMTP service with sending limits, configure counts and periods instead of adding sleeps around your calls:
+
+```java
+Mailer mailer = mail.mailerBuilder()
+    .withSMTPServer("relay.example.org", 587, user, password)
+    .withTransportStrategy(TransportStrategy.SMTP_TLS)
+    .withMessageRateLimit(30, Duration.ofMinutes(1))
+    .withRecipientRateLimit(100, Duration.ofMinutes(1))
+    .withRateLimitGroup("company-account")
+    .withRateLimitBurstsAllowed(false)
+    .buildMailer();
+```
+
+These are example limits, not defaults: sending is unlimited unless you configure a rule. Both rules apply. Named groups share allowance between Mailers from the same factory; separate factories and processes remain independent. The limit counts attempted provider submissions, including rejections, not final delivery. BCC and delivery-list overrides count toward the recipient rule. An email larger than the entire recipient allowance fails instead of being split or waiting indefinitely.
+
+Ordinary sends wait before borrowing a connection; simple batches and open-connection scopes keep their shared connection during waits, so consider your server's idle timeout. Cancellation and total send deadlines include rate waiting. Observers can inspect `outcome.getDiagnostics().orElseThrow().getRateLimitWait()` separately from scheduling and connection acquisition. See [the sending-limit guide and property examples](https://www.simplejavamail.org/sending-and-execution.html#section-sending-limits).
+
 Choose message preflight by what your code needs back:
 
 | Need | Call |

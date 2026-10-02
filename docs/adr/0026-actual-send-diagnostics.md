@@ -62,6 +62,9 @@ Verify isolation, exact receipt/throwable identity, serialization and observed/u
 
 ## Related decisions
 
+- [ADR 0027](0027-factory-scoped-sending-limits.md): adds the explicit `getRateLimitWait()` measurement for intentional local rate waiting.
+  It is separate from scheduling and acquisition, follows the existing observation opt-in, and adds no provider timing hooks.
+
 - [ADR 0011](0011-transport-neutral-submission-outcomes.md): acceptance and receipt ownership; extends retention across later cleanup failure.
 - [ADR 0012](0012-terminal-send-observation.md): per-email scope and notification ordering remain authoritative.
 - [ADR 0015](0015-execution-views-and-transport-pooling.md): execution mode and connection ownership remain separate.
