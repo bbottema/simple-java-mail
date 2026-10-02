@@ -59,6 +59,29 @@ public class SimpleJavaMailProperties {
         private Boolean legacycontentsupport;
         private String localaddress;
         private String localport;
+        private Ratelimit ratelimit;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Ratelimit {
+            /** @see MailerGenericBuilder#withRateLimitGroup(String) */
+            private String group;
+            /** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
+            private Boolean allowbursts;
+            private Rule messages;
+            private Rule recipients;
+
+            /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+            @Getter
+            @Setter
+            public static class Rule {
+                /** Positive count in the rolling period; omitted means disabled. */
+                private Integer limit;
+                /** Positive ISO-8601 duration, for example PT1M. Required alongside limit. */
+                private String period;
+            }
+        }
     }
 
     /**

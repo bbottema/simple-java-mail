@@ -17,11 +17,13 @@ import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
+import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.io.PrintStream;
 import java.time.Duration;
@@ -58,6 +60,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	@NotNull
 	private final SimpleJavaMailConfig config;
+	/** Factory runtime state stays separate from the immutable property snapshot and built OperationalConfig. */
+	private final FactorySendingLimits sendingLimits;
+	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
+	@Nullable private SendingRateLimit messageRateLimit;
+	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
+	@Nullable private SendingRateLimit recipientRateLimit;
+	/** @see MailerGenericBuilder#withRateLimitGroup(String) */
+	@Nullable private String rateLimitGroup;
+	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
+	private boolean rateLimitBurstsAllowed;
 
 	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
@@ -279,8 +291,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable private Duration mailSendTimeout;
 
-	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
 		this.config = requireNonNull(config, "config");
+		this.sendingLimits = requireNonNull(sendingLimits, "sendingLimits");
+		this.messageRateLimit = resolveRateLimit(config, Property.SMTP_MESSAGE_RATE_LIMIT, Property.SMTP_MESSAGE_RATE_PERIOD);
+		this.recipientRateLimit = resolveRateLimit(config, Property.SMTP_RECIPIENT_RATE_LIMIT, Property.SMTP_RECIPIENT_RATE_PERIOD);
+		this.rateLimitGroup = config.getStringProperty(Property.SMTP_RATE_LIMIT_GROUP);
+		if (rateLimitGroup != null) {
+			withRateLimitGroup(rateLimitGroup);
+		}
+		this.rateLimitBurstsAllowed = config.valueOrProperty(null, Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
 		this.legacySmtpContentSupportEnabled = config.valueOrProperty(null, Property.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
 		this.mailSendTimeout = config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
 		if (mailSendTimeout != null) {
@@ -333,6 +353,109 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 			this.sslHostsToTrust = new ArrayList<>(Arrays.asList(trustedHosts.split(";")));
 		}
 		this.emailValidator = JMail.strictValidator();
+	}
+
+	@Nullable
+	private static SendingRateLimit resolveRateLimit(final SimpleJavaMailConfig config, final Property countProperty, final Property periodProperty) {
+		final Integer count = config.getIntegerProperty(countProperty);
+		final Duration period = config.getProperty(periodProperty);
+		if (count == null && period == null) {
+			return null;
+		}
+		if (count == null || period == null) {
+			throw new IllegalArgumentException("A sending limit needs both " + countProperty.key() + " and " + periodProperty.key()
+					+ ". Supply a positive count and an ISO-8601 period such as PT1M, or remove both to disable the rule.");
+		}
+		return new SendingRateLimit(count, period);
+	}
+
+	FactorySendingLimits getFactorySendingLimits() {
+		return sendingLimits;
+	}
+
+	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
+	@Override
+	public T withMessageRateLimit(final int count, @NotNull final Duration period) {
+		messageRateLimit = new SendingRateLimit(count, period);
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
+	@Override
+	public T withRecipientRateLimit(final int count, @NotNull final Duration period) {
+		recipientRateLimit = new SendingRateLimit(count, period);
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withRateLimitGroup(String) */
+	@Override
+	public T withRateLimitGroup(@NotNull final String group) {
+		if (requireNonNull(group, "group").isBlank()) {
+			throw new IllegalArgumentException("A rate-limit group needs a nonblank name; call resetRateLimitGroup() for private allowance.");
+		}
+		rateLimitGroup = group;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
+	@Override
+	public T withRateLimitBurstsAllowed(final boolean allowed) {
+		rateLimitBurstsAllowed = allowed;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetMessageRateLimit() */
+	@Override
+	public T resetMessageRateLimit() {
+		messageRateLimit = null;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetRecipientRateLimit() */
+	@Override
+	public T resetRecipientRateLimit() {
+		recipientRateLimit = null;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetRateLimitGroup() */
+	@Override
+	public T resetRateLimitGroup() {
+		rateLimitGroup = null;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetRateLimitBurstsAllowed() */
+	@Override
+	public T resetRateLimitBurstsAllowed() {
+		return withRateLimitBurstsAllowed(DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
+	}
+
+	/** @see MailerGenericBuilder#getMessageRateLimit() */
+	@Override
+	@Nullable
+	public SendingRateLimit getMessageRateLimit() {
+		return messageRateLimit;
+	}
+
+	/** @see MailerGenericBuilder#getRecipientRateLimit() */
+	@Override
+	@Nullable
+	public SendingRateLimit getRecipientRateLimit() {
+		return recipientRateLimit;
+	}
+
+	/** @see MailerGenericBuilder#getRateLimitGroup() */
+	@Override
+	@Nullable
+	public String getRateLimitGroup() {
+		return rateLimitGroup;
+	}
+
+	/** @see MailerGenericBuilder#isRateLimitBurstsAllowed() */
+	@Override
+	public boolean isRateLimitBurstsAllowed() {
+		return rateLimitBurstsAllowed;
 	}
 
 	/**
@@ -407,7 +530,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider(),
-				getAsyncQueueConfig(), getMailSendTimeout());
+				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed);
 	}
 
 	/**

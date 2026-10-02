@@ -7,6 +7,7 @@ import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Part;
+import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -102,6 +103,30 @@ public class MimeMessageHelper {
 			}
 			setAddressHeader(message, "Reply-To", replyToAddresses);
 		}
+	}
+
+	/**
+	 * Projects only recipient headers, using the same setters as full MIME construction. Sending-limit admission needs the intended
+	 * delivery count before acquiring a connection, without reading attachments, rendering bodies or generating a Message-ID.
+	 */
+	public static Address[] resolveRecipientHeaders(final Email email, final Session session) throws MessagingException {
+		final MimeMessage headers = new MimeMessage(session);
+		setRecipients(email, headers);
+		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
+			if (isRecipientHeader(header.getKey())) {
+				try {
+					setHeader(headers, header);
+				} catch (UnsupportedEncodingException invalidEncoding) {
+					throw new MessagingException("Unable to encode a recipient header", invalidEncoding);
+				}
+			}
+		}
+		final Address[] recipients = headers.getAllRecipients();
+		return recipients == null ? new Address[0] : recipients;
+	}
+
+	private static boolean isRecipientHeader(final String name) {
+		return "To".equalsIgnoreCase(name) || "Cc".equalsIgnoreCase(name) || "Bcc".equalsIgnoreCase(name) || "Newsgroups".equalsIgnoreCase(name);
 	}
 
 	/** Keep display names MIME-encoded even when UTF-8 is enabled for internationalized mailbox addresses. */

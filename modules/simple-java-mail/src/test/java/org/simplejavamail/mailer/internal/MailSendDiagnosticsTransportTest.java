@@ -15,12 +15,14 @@ import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
+import org.simplejavamail.mailer.internal.ratelimit.MailSendRateLimiter;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayOutputStream;
@@ -95,7 +97,11 @@ class MailSendDiagnosticsTransportTest {
 		final LifecycleDelegatingTransport lease = mock(LifecycleDelegatingTransport.class);
 		when(lease.getSessionUsedToObtainTransport()).thenReturn(selectedSession);
 		when(lease.getTransport()).thenReturn(transport);
-		when(batch.acquireTransport(any(), any(), anyBoolean(), any())).thenReturn(lease);
+		final SelectedPoolTransport selection = mock(SelectedPoolTransport.class);
+		when(selection.getSession()).thenReturn(selectedSession);
+		when(selection.getSendingAllowance()).thenReturn(new MailSendRateLimiter(null, null, true));
+		when(selection.acquireTransport(any())).thenReturn(lease);
+		when(batch.selectTransport(any(), any(), anyBoolean(), any())).thenReturn(selection);
 		when(batch.shutdownConnectionPools(any())).thenReturn(CompletableFuture.completedFuture(null));
 		final RuntimeException releaseFailure = new IllegalStateException("lease release failed");
 		doThrow(releaseFailure).when(lease).signalTransportUsed();

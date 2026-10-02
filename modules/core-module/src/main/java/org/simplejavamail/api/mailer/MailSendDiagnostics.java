@@ -25,10 +25,13 @@ import static java.util.Objects.requireNonNull;
 public final class MailSendDiagnostics implements Serializable {
 
 	private static final long serialVersionUID = 1L;
+	private static final MailSendMeasurement RATE_WAIT_NOT_RECORDED =
+			new MailSendMeasurement(null, "Sending-limit waiting was not recorded in this snapshot.", false);
 
 	@NotNull private final Duration elapsed;
 	@NotNull private final MailSendMeasurement preparation;
 	@NotNull private final MailSendMeasurement scheduling;
+	@Nullable private final MailSendMeasurement rateLimitWait;
 	@NotNull private final MailSendMeasurement connectionAcquisition;
 	@NotNull private final MailSendMeasurement mimePreparation;
 	@NotNull private final MailSendMeasurement submission;
@@ -53,9 +56,25 @@ public final class MailSendDiagnostics implements Serializable {
 			@NotNull final MailSendMeasurement scheduling, @NotNull final MailSendMeasurement connectionAcquisition,
 			@NotNull final MailSendMeasurement mimePreparation, @NotNull final MailSendMeasurement submission,
 			@NotNull final MailSendMeasurement cleanup, @Nullable final String smtpHost, @Nullable final Integer smtpPort) {
+		this(elapsed, preparation, scheduling, connectionAcquisition, mimePreparation, submission, cleanup, smtpHost, smtpPort, RATE_WAIT_NOT_RECORDED);
+	}
+
+	/**
+	 * Creates a snapshot including sending-limit waiting. Other parameters follow the original constructor's contract.
+	 *
+	 * @param rateLimitWait Time awaiting local sending allowance, or an absence explanation.
+	 * @see #MailSendDiagnostics(Duration, MailSendMeasurement, MailSendMeasurement, MailSendMeasurement, MailSendMeasurement,
+	 * MailSendMeasurement, MailSendMeasurement, String, Integer)
+	 */
+	public MailSendDiagnostics(@NotNull final Duration elapsed, @NotNull final MailSendMeasurement preparation,
+			@NotNull final MailSendMeasurement scheduling, @NotNull final MailSendMeasurement connectionAcquisition,
+			@NotNull final MailSendMeasurement mimePreparation, @NotNull final MailSendMeasurement submission,
+			@NotNull final MailSendMeasurement cleanup, @Nullable final String smtpHost, @Nullable final Integer smtpPort,
+			@NotNull final MailSendMeasurement rateLimitWait) {
 		this.elapsed = requireNonNull(elapsed, "elapsed");
 		this.preparation = requireNonNull(preparation, "preparation");
 		this.scheduling = requireNonNull(scheduling, "scheduling");
+		this.rateLimitWait = requireNonNull(rateLimitWait, "rateLimitWait");
 		this.connectionAcquisition = requireNonNull(connectionAcquisition, "connectionAcquisition");
 		this.mimePreparation = requireNonNull(mimePreparation, "mimePreparation");
 		this.submission = requireNonNull(submission, "submission");
@@ -63,7 +82,7 @@ public final class MailSendDiagnostics implements Serializable {
 		if (elapsed.isNegative()) {
 			throw new IllegalArgumentException("The total elapsed mail-send duration cannot be negative");
 		}
-		if (Stream.of(preparation, scheduling, connectionAcquisition, mimePreparation, submission, cleanup)
+		if (Stream.of(preparation, scheduling, rateLimitWait, connectionAcquisition, mimePreparation, submission, cleanup)
 				.filter(MailSendMeasurement::isFailureObservedHere).count() > 1) {
 			throw new IllegalArgumentException("Only one measurement can identify where the primary send failure was observed");
 		}
@@ -85,6 +104,13 @@ public final class MailSendDiagnostics implements Serializable {
 	 * Synchronous and already-running batch/open-connection email attempts have no separate scheduling measurement. This is not pure queue residence.
 	 */
 	@NotNull public MailSendMeasurement getScheduling() { return scheduling; }
+
+	/**
+	 * @return Time awaiting the selected configuration's local sending allowance. This is neither executor waiting nor connection acquisition.
+	 * The total send timeout includes this wait. Shared-connection sends retain their transport while waiting; ordinary sends do not borrow one yet.
+	 * Unavailable when limits are disabled, the gate was not reached or this is an older serialized snapshot.
+	 */
+	@NotNull public MailSendMeasurement getRateLimitWait() { return rateLimitWait == null ? RATE_WAIT_NOT_RECORDED : rateLimitWait; }
 
 	/**
 	 * @return Time obtaining a usable connection, including local proxy startup, direct connect or connected-pool acquisition/validation.
@@ -122,6 +148,7 @@ public final class MailSendDiagnostics implements Serializable {
 		return "Mail send timings:\n  Total: " + elapsed
 				+ "\n  Preparation: " + preparation
 				+ "\n  Scheduling: " + scheduling
+				+ "\n  Sending-limit wait: " + getRateLimitWait()
 				+ "\n  Connection acquisition: " + connectionAcquisition
 				+ "\n  MIME preparation: " + mimePreparation
 				+ "\n  Submission: " + submission

@@ -25,6 +25,18 @@ import java.util.concurrent.ExecutorService;
  * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
  */
 public interface OperationalConfig {
+	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
+	@Nullable SendingRateLimit getMessageRateLimit();
+
+	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
+	@Nullable SendingRateLimit getRecipientRateLimit();
+
+	/** @see MailerGenericBuilder#withRateLimitGroup(String) */
+	@Nullable String getRateLimitGroup();
+
+	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
+	boolean isRateLimitBurstsAllowed();
+
 	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
 	@NotNull
 	AsyncQueueConfig getAsyncQueueConfig();

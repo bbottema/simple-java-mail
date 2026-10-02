@@ -17,6 +17,27 @@ import static org.mockito.Mockito.when;
 
 class MailSendDiagnosticsRecorderTest {
 	@Test
+	void rateWaitingIsSeparateFromSelectionAndAcquisition() {
+		final AtomicLong clock = new AtomicLong();
+		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
+		recorder.prepared();
+		recorder.started();
+		recorder.startConnectionAcquisition();
+		clock.set(5);
+		recorder.startRateLimitWait();
+		clock.set(45);
+		recorder.rateLimitWaitCompleted();
+		clock.set(48);
+		recorder.startConnectionAcquisition();
+		clock.set(58);
+		recorder.connectionAcquired(transport("relay", 25));
+		final MailSendDiagnostics report = recorder.finish(true);
+		assertThat(report.getRateLimitWait().getElapsed()).contains(Duration.ofNanos(40));
+		assertThat(report.getConnectionAcquisition().getElapsed()).contains(Duration.ofNanos(15));
+		assertThat(report.getElapsed()).isEqualTo(Duration.ofNanos(58));
+	}
+
+	@Test
 	void usesMonotonicBoundariesWithOrchestrationGapsAndStopsBeforeNotification() {
 		final AtomicLong clock = new AtomicLong(7);
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
@@ -146,6 +167,9 @@ class MailSendDiagnosticsRecorderTest {
 		recorder.useSharedConnection();
 		recorder.useLoggingOnly();
 		recorder.useCustomMailer();
+		recorder.useUnlimitedSending();
+		recorder.startRateLimitWait();
+		recorder.rateLimitWaitCompleted();
 		recorder.prepared();
 		recorder.started();
 		recorder.startConnectionAcquisition();

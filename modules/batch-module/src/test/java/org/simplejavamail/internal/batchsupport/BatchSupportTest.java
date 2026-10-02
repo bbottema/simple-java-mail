@@ -5,6 +5,7 @@ import jakarta.mail.Transport;
 import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -40,7 +41,7 @@ class BatchSupportTest {
 		when(session.getProperties()).thenReturn(new Properties());
 
 		try {
-			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session);
+			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session, mock(SendingAllowance.class));
 
 			verify(session, never()).getTransport();
 		} finally {
@@ -66,7 +67,7 @@ class BatchSupportTest {
 		when(session.getTransport()).thenReturn(transport);
 
 		try {
-			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session);
+			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session, mock(SendingAllowance.class));
 			LifecycleDelegatingTransport pooledTransport = batchSupport.acquireTransport(cluster, session, true, null);
 
 			assertThat(properties.get(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
@@ -87,8 +88,8 @@ class BatchSupportTest {
 		Session sessionB = session();
 
 		try {
-			batchSupport.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), clusterA, sessionA);
-			batchSupport.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), clusterB, sessionB);
+			batchSupport.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), clusterA, sessionA, mock(SendingAllowance.class));
+			batchSupport.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), clusterB, sessionB, mock(SendingAllowance.class));
 
 			SmtpConnectionPoolClustered<UUID> smtpConnectionPool = smtpConnectionPool(batchSupport);
 			assertPoolConfig(smtpConnectionPool.getClusterConfig(clusterA), 0, 2, 100, "RoundRobinLoadBalancing");
@@ -107,8 +108,8 @@ class BatchSupportTest {
 		Session sessionB = session();
 
 		try {
-			batchSupport.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, sessionA);
-			batchSupport.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), cluster, sessionB);
+			batchSupport.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, sessionA, mock(SendingAllowance.class));
+			batchSupport.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), cluster, sessionB, mock(SendingAllowance.class));
 
 			SmtpConnectionPoolClustered<UUID> smtpConnectionPool = smtpConnectionPool(batchSupport);
 			assertPoolConfig(smtpConnectionPool.getClusterConfig(cluster), 0, 2, 100, "RoundRobinLoadBalancing");
@@ -136,8 +137,8 @@ class BatchSupportTest {
 
 		try {
 			OperationalConfig operationalConfig = operationalConfig(1, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN, configuredClusters);
-			batchSupport.registerToCluster(operationalConfig, configuredCluster, configuredSession);
-			batchSupport.registerToCluster(operationalConfig, fallbackCluster, fallbackSession);
+			batchSupport.registerToCluster(operationalConfig, configuredCluster, configuredSession, mock(SendingAllowance.class));
+			batchSupport.registerToCluster(operationalConfig, fallbackCluster, fallbackSession, mock(SendingAllowance.class));
 
 			SmtpConnectionPoolClustered<UUID> smtpConnectionPool = smtpConnectionPool(batchSupport);
 			assertPoolConfig(smtpConnectionPool.getClusterConfig(configuredCluster), 0, 9, 300, "RandomAccessLoadBalancing");

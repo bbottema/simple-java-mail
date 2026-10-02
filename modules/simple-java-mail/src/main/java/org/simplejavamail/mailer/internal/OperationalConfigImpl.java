@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.SendingRateLimit;
 
 import java.io.PrintStream;
 import java.time.Duration;
@@ -182,6 +183,18 @@ class OperationalConfigImpl implements OperationalConfig {
 
 	/** @see OperationalConfig#getMailSendTimeout() */
 	@Nullable private final Duration mailSendTimeout;
+
+	/** @see OperationalConfig#getMessageRateLimit() */
+	@Nullable private final SendingRateLimit messageRateLimit;
+
+	/** @see OperationalConfig#getRecipientRateLimit() */
+	@Nullable private final SendingRateLimit recipientRateLimit;
+
+	/** @see OperationalConfig#getRateLimitGroup() */
+	@Nullable private final String rateLimitGroup;
+
+	/** @see OperationalConfig#isRateLimitBurstsAllowed() */
+	private final boolean rateLimitBurstsAllowed;
 
 	@Override
 	@Nullable

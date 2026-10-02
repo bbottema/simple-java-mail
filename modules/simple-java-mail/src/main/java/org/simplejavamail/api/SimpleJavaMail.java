@@ -13,18 +13,20 @@ import org.simplejavamail.converter.ConfiguredEmailConverter;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
+import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import static java.util.Objects.requireNonNull;
 
 /**
- * Immutable entry point for creating email and Mailer builders that all use one configuration snapshot.
+ * Entry point for creating email and Mailer builders that all use one immutable configuration snapshot.
  * <p>
  * Keep one instance in application scope and request a fresh builder for each independent construction flow. The factory owns no Mailer resources and does
- * not reload configuration.
+ * not reload configuration. It retains factory-local sending-limit history so participating Mailers can share allowance without sharing executors or pools.
  */
 public final class SimpleJavaMail {
 
 	private final SimpleJavaMailConfig config;
+	private final FactorySendingLimits sendingLimits = new FactorySendingLimits();
 
 	private SimpleJavaMail(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
@@ -89,7 +91,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerRegularBuilder<?> mailerBuilder() {
-		return new MailerRegularBuilderImpl(config);
+		return new MailerRegularBuilderImpl(config, sendingLimits);
 	}
 
 	/**
@@ -99,7 +101,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerFromSessionBuilder<?> mailerBuilder(@NotNull final Session session) {
-		return new MailerFromSessionBuilderImpl(config).usingSession(session);
+		return new MailerFromSessionBuilderImpl(config, sendingLimits).usingSession(session);
 	}
 
 	private static final class DefaultsHolder {

@@ -331,6 +331,49 @@ class MailSendExecutionControlTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void totalDeadlineIncludesSendingLimitWaitWithoutTouchingTheIdlePooledConnection(final boolean asynchronous) throws Exception {
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
+             Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
+                     .withMailSendObserver(outcomes::add).buildMailer()) {
+            mailer.rehearse(email("warm-up"));
+            mailer.sync().sendMail(email("allowed"));
+            if (asynchronous) {
+                assertThat(failure(mailer.async().sendMail(email("rate-wait")))).isInstanceOf(MailSendTimeoutException.class);
+            } else {
+                assertThatThrownBy(() -> mailer.sync().sendMail(email("rate-wait"))).isInstanceOf(MailSendTimeoutException.class);
+            }
+            assertThat(outcomes).hasSize(2);
+            assertThat(outcomes.get(1).getSubmissionReceipt()).isEmpty();
+            assertThat(outcomes.get(1).getDiagnostics().orElseThrow().getRateLimitWait().isFailureObservedHere()).isTrue();
+            mailer.sync().testConnection(); // A timed-out rate waiter neither borrows nor invalidates this healthy idle connection.
+            assertThat(server.connections).hasValue(1);
+            assertThat(server.messages).hasValue(1);
+        }
+    }
+
+    @Test
+    void openConnectionDeadlineCanExpireWhileItsNextEmailWaitsForAllowance() throws Exception {
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
+             Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
+                     .withMailSendObserver(outcomes::add).buildMailer()) {
+            mailer.rehearse(email("warm-up"));
+            assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
+                sender.sendMail(email("allowed"));
+                sender.sendMail(email("rate-wait"));
+            })).isInstanceOf(MailSendTimeoutException.class);
+            assertThat(outcomes).hasSize(2);
+            assertThat(outcomes.get(0).isSuccessful()).isTrue();
+            assertThat(outcomes.get(1).getSubmissionReceipt()).isEmpty();
+            assertThat(outcomes.get(1).getDiagnostics().orElseThrow().getRateLimitWait().isFailureObservedHere()).isTrue();
+            assertThat(server.connections).hasValue(1);
+            assertThat(server.messages).hasValue(1);
+        }
+    }
+
     @Test
     void unknownCallerSessionRejectsATotalDeadlineWithoutOpeningASocket() throws Exception {
         try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {

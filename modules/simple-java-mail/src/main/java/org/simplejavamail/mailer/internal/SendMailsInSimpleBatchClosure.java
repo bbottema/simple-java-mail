@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -44,11 +45,12 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	@Nullable private Email currentEmail;
 	@Nullable private MailSendAttempt currentMailSendAttempt;
 	@NotNull private final MailSendControl control;
+	@NotNull private final SendingAllowance sendingAllowance;
 
 	SendMailsInSimpleBatchClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Iterable<Email> userProvidedEmails,
 			@NotNull Function<Email, Email> emailPreparer, @NotNull MailSendObserverNotifier mailSendObserverNotifier,
 			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
-			@NotNull MailSendControl control) {
+			@NotNull MailSendControl control, @NotNull SendingAllowance sendingAllowance) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
@@ -57,6 +59,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		this.mailSendObserverNotifier = mailSendObserverNotifier;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.control = control;
+		this.sendingAllowance = sendingAllowance;
 	}
 
 	@Override
@@ -104,11 +107,14 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		while (emailIterator.hasNext()) {
 			val email = prepareNextEmail(emailIterator);
 			markCurrentSendStarted();
-			currentDiagnostics().startMimePreparation();
-			final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
-			control.checkStopped();
-			currentDiagnostics().startSubmission();
-			customMailer.sendMessage(operationalConfig, session, email, message);
+			try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
+				currentDiagnostics().startMimePreparation();
+				final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				control.checkStopped();
+				currentDiagnostics().startSubmission();
+				allowance.commit(control);
+				customMailer.sendMessage(operationalConfig, session, email, message);
+			}
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
 		}
 	}
@@ -124,7 +130,10 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 					while (emailIterator.hasNext()) {
 						final Email email = prepareNextEmail(emailIterator);
 						markCurrentSendStarted();
-						completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(ownedTransport, session, email, control, currentDiagnostics()));
+						try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
+							completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(
+									ownedTransport, session, email, control, currentDiagnostics(), allowance));
+						}
 					}
 				} catch (Exception failure) {
 					throw reportFailure(failure);

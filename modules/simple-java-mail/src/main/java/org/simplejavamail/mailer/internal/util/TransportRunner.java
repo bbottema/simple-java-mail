@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
@@ -43,25 +45,28 @@ public class TransportRunner {
 
 	private static final Logger LOGGER = getLogger(TransportRunner.class);
 
-	/**
-	 * NOTE: only in case batch-module is *not* in use, the {@link Session} passed in here is guaranteed to be used to send this message.
-	 * Measurements follow whichever Session/transport the pool selects.
-	 *
-	 * @param clusterKey The cluster key to use for the connection pool, which was randomly generated in the Mailer builder if not provided.
-	 */
-	public static MailSubmissionReceipt sendMessage(@NotNull final UUID clusterKey, @NotNull final Session session, @NotNull final Email email,
-			@NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
+	/** Selects a registered destination without borrowing a connection; the Mailer can now apply that destination's sending limits. */
+	@Nullable
+	public static SelectedPoolTransport selectTransport(final UUID clusterKey, final Session session, final MailSendControl control) {
+		control.checkStopped();
+		return ModuleLoader.batchModuleAvailable() ? ModuleLoader.loadBatchModule().selectTransport(clusterKey, session, false, control) : null;
+	}
+
+	/** Acquires from the already selected registration; no second load-balancing decision can change the charged destination. */
+	public static MailSubmissionReceipt sendMessage(@NotNull final Session session, @NotNull final Email email,
+			@NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
+			@Nullable final SelectedPoolTransport selected, @NotNull final SendingAllowance.Reservation allowance) throws MessagingException {
 		diagnostics.startConnectionAcquisition();
 		control.checkStopped();
-		if (ModuleLoader.batchModuleAvailable()) {
-			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, false, control, diagnostics,
-					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics));
+		if (selected != null) {
+			return sendUsingLease(selected.acquireTransport(control), diagnostics,
+					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics, allowance));
 		}
-		return sendOnNewTransport(session, email, control, diagnostics);
+		return sendOnNewTransport(session, email, control, diagnostics, allowance);
 	}
 
 	private static MailSubmissionReceipt sendOnNewTransport(final Session session, final Email email, final MailSendControl control,
-			final MailSendDiagnosticsRecorder diagnostics)
+			final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance)
 			throws MessagingException {
 		final Transport transport = transportFor(session);
 		try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, control)) {
@@ -70,7 +75,7 @@ public class TransportRunner {
 			try {
 				control.checkStopped();
 				TransportConnectionHelper.connectTransport(transport, session);
-				receipt = sendMessageOnTransport(transport, session, email, control, diagnostics);
+				receipt = sendMessageOnTransport(transport, session, email, control, diagnostics, allowance);
 				return receipt;
 			} catch (MessagingException failure) {
 				diagnostics.failed();
@@ -110,7 +115,8 @@ public class TransportRunner {
 
 	/** The same per-email boundary is used for ordinary sends and deliberately shared connections. */
 	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed,
-			@NotNull final Email email, @NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics)
+			@NotNull final Email email, @NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
+			@NotNull final SendingAllowance.Reservation allowance)
 			throws MessagingException {
 		try {
 			diagnostics.connectionAcquired(transport);
@@ -119,7 +125,7 @@ public class TransportRunner {
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
 			control.checkStopped();
 			diagnostics.startSubmission();
-			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail)
+			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> allowance.commit(control))
 					.withEnvelopeRecipients(preparedMail.getRecipients());
 			if (!transportResult.isSuccessful()) {
 				throw buildSubmissionException(email, transportResult);
@@ -215,6 +221,11 @@ public class TransportRunner {
 			@NotNull final Session session, final boolean stickySession, @Nullable final MailSendControl control,
 			@NotNull final MailSendDiagnosticsRecorder diagnostics, @NotNull final TransportOperation<T> operation) throws MessagingException {
 		final LifecycleDelegatingTransport delegatingTransport = batchModule.acquireTransport(clusterKey, session, stickySession, control);
+		return sendUsingLease(delegatingTransport, diagnostics, operation);
+	}
+
+	private static <T> T sendUsingLease(final LifecycleDelegatingTransport delegatingTransport, final MailSendDiagnosticsRecorder diagnostics,
+			final TransportOperation<T> operation) throws MessagingException {
 		final T result;
 		try {
 			result = operation.run(delegatingTransport.getTransport(), delegatingTransport.getSessionUsedToObtainTransport());

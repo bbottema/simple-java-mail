@@ -71,10 +71,22 @@ class MailSendDiagnosticsTest {
 	}
 
 	@Test
-	void rendersTheSixExplicitMeasurementsInStableOrder() {
+	void rendersTheExplicitMeasurementsInStableOrder() {
 		assertThat(report(measured(), measured(), "private-relay.example", 587).toString()).isEqualTo(
-				"Mail send timings:\n  Total: PT1S\n  Preparation: PT0S\n  Scheduling: PT0S\n  Connection acquisition: PT0S"
+				"Mail send timings:\n  Total: PT1S\n  Preparation: PT0S\n  Scheduling: PT0S"
+						+ "\n  Sending-limit wait: not measured: Sending-limit waiting was not recorded in this snapshot.\n  Connection acquisition: PT0S"
 						+ "\n  MIME preparation: PT0S\n  Submission: PT0S\n  Cleanup: PT0S");
+	}
+
+	@Test
+	void rateWaitSurvivesSerializationAndParticipatesInTheSingleFailureInvariant() throws Exception {
+		final MailSendMeasurement failedWait = new MailSendMeasurement(Duration.ofMillis(20), null, true);
+		final MailSendDiagnostics report = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(), measured(),
+				measured(), null, null, failedWait);
+		assertThat(roundTrip(report).getRateLimitWait().getElapsed()).contains(Duration.ofMillis(20));
+		assertThat(roundTrip(report).getRateLimitWait().isFailureObservedHere()).isTrue();
+		assertThatThrownBy(() -> new MailSendDiagnostics(Duration.ofSeconds(1), failedWait, measured(), measured(), measured(), measured(),
+				measured(), null, null, failedWait)).isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test

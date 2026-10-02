@@ -15,6 +15,7 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
+import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import java.io.PrintStream;
@@ -37,6 +38,8 @@ import java.util.concurrent.ExecutorService;
 public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/** No total send deadline unless explicitly configured. */
 	@Nullable Duration DEFAULT_MAIL_SEND_TIMEOUT = null;
+	/** Available sending allowance may be used immediately unless spreading is explicitly requested. */
+	boolean DEFAULT_RATE_LIMIT_BURSTS_ALLOWED = true;
 	/**
 	 * {@value}
 	 *
@@ -304,6 +307,103 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withMailSendTimeout(Duration)
 	 */
 	@Nullable Duration getMailSendTimeout();
+
+	/**
+	 * Limits local submission attempts to the given count in any rolling period. For example, use {@code (30, Duration.ofMinutes(1))}
+	 * for a service that allows thirty messages per minute. There is no limit by default. Calling this again replaces the previous rule.
+	 * <p>
+	 * Sends wait on their existing caller or worker thread before borrowing a connection. Waiting counts against the total send timeout
+	 * and can be cancelled. Simple batches and open-connection scopes retain their shared connection while waiting between emails;
+	 * long waits can encounter the SMTP server's idle timeout. The connection is not silently replaced.
+	 * <p>
+	 * One provider invocation counts as an attempt, even if it rejects the email or fails. Connection and MIME-preparation failures before
+	 * invocation consume nothing. Validation, rehearsal, probing and logging-only mode do not count. CustomMailer callbacks count once;
+	 * their internal retries and additional sends are outside this limit. This is not a persistent or account-wide provider quota.
+	 * <p>
+	 * The selected SMTP configuration supplies the limit, including when a pool cluster chooses another Mailer's connection.
+	 * By default each registration has its own allowance; use {@link #withRateLimitGroup(String)} to share it within a factory.
+	 * Properties: {@code simplejavamail.smtp.ratelimit.messages.limit} and {@code simplejavamail.smtp.ratelimit.messages.period}.
+	 *
+	 * @param count Positive maximum number of attempted submissions.
+	 * @param period Positive rolling period representable in nanoseconds; CLI/property text uses ISO-8601, for example {@code PT1M}.
+	 * @see #withRecipientRateLimit(int, Duration)
+	 * @see #withRateLimitBurstsAllowed(boolean)
+	 */
+	T withMessageRateLimit(int count, @NotNull Duration period);
+
+	/**
+	 * Limits the number of intended envelope recipients in any rolling period, including BCC and delivery-list overrides. Duplicate
+	 * recipient occurrences count separately. For example, {@code (100, Duration.ofMinutes(1))} allows one hundred recipients per minute.
+	 * An email with more recipients than the whole allowance fails instead of waiting forever or being split into multiple messages.
+	 * <p>
+	 * Disabled by default; calling this again replaces the rule. When a message limit also exists, both must permit the submission.
+	 * Accounting, waiting and sharing follow {@link #withMessageRateLimit(int, Duration)}; rejected recipients are not refunded.
+	 * Properties: {@code simplejavamail.smtp.ratelimit.recipients.limit} and {@code simplejavamail.smtp.ratelimit.recipients.period}.
+	 *
+	 * @param count Positive maximum number of intended envelope-recipient occurrences.
+	 * @param period Positive rolling period representable in nanoseconds; CLI/property text uses ISO-8601, for example {@code PT1M}.
+	 */
+	T withRecipientRateLimit(int count, @NotNull Duration period);
+
+	/**
+	 * Shares sending allowance between configurations using this name within the same SimpleJavaMail factory. For example, two Mailers
+	 * using {@code company-account} and thirty messages per minute share thirty, not sixty. Their message/recipient rules and burst setting
+	 * must agree, or construction fails. Closing a participant does not reset the group's recent history.
+	 * <p>
+	 * A separate factory or process has independent allowance, even with the same group name. This name does not identify a connection-pool
+	 * cluster or discover an SMTP account. Without a name, each registered configuration has a private allowance. Naming a group alone
+	 * does not enable a rate limit. Property: {@code simplejavamail.smtp.ratelimit.group}.
+	 *
+	 * @param group Nonblank sharing name. A later call replaces it; reset to use private allowance again.
+	 */
+	T withRateLimitGroup(@NotNull String group);
+
+	/**
+	 * Allows available rolling-window allowance to be used immediately ({@code true}, the default), or additionally spreads submissions
+	 * ({@code false}). Thirty messages per minute then gives two seconds between local submission starts; this is an example, not a default.
+	 * A ten-recipient email at one hundred recipients per minute gives six seconds before the next start. Both configured rules still apply.
+	 * <p>
+	 * The first send can start immediately. Slow sends can overlap; there is no extra delay after completion or catch-up credit after idle
+	 * time. Waiting sends are served in arrival order at the gate, so a larger email can delay smaller ones behind it. This controls local
+	 * provider invocations, not network bandwidth, server-observed timing or final delivery. Setting only this preference enables no limit.
+	 * Property: {@code simplejavamail.smtp.ratelimit.allowbursts}.
+	 *
+	 * @param allowed Whether immediate bursts within the rolling ceiling are allowed. A later call replaces the setting.
+	 */
+	T withRateLimitBurstsAllowed(boolean allowed);
+
+	/** Removes the message rule, including a property-supplied rule, without changing the recipient rule. */
+	T resetMessageRateLimit();
+
+	/** Removes the recipient rule, including a property-supplied rule, without changing the message rule. */
+	T resetRecipientRateLimit();
+
+	/** Removes the group name, restoring private allowance without changing either rule. */
+	T resetRateLimitGroup();
+
+	/** Restores the default of allowing bursts; does not create a rate limit. */
+	T resetRateLimitBurstsAllowed();
+
+	/**
+	 * @return Configured message rule, or {@code null} when disabled.
+	 * @see #withMessageRateLimit(int, Duration)
+	 */
+	@Nullable SendingRateLimit getMessageRateLimit();
+
+	/**
+	 * @return Configured recipient rule, or {@code null} when disabled.
+	 * @see #withRecipientRateLimit(int, Duration)
+	 */
+	@Nullable SendingRateLimit getRecipientRateLimit();
+
+	/**
+	 * @return Sharing name, or {@code null} for private allowance.
+	 * @see #withRateLimitGroup(String)
+	 */
+	@Nullable String getRateLimitGroup();
+
+	/** @see #withRateLimitBurstsAllowed(boolean) */
+	boolean isRateLimitBurstsAllowed();
 
 	/**
 	 * Sets the local/source address without changing the already configured local/source port.

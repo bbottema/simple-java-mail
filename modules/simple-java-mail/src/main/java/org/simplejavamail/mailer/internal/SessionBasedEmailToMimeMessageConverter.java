@@ -65,7 +65,8 @@ public class SessionBasedEmailToMimeMessageConverter {
     private final EmailGovernance emailGovernance;
 
     public static void primeSession(Session session, OperationalConfig operationalConfig, EmailGovernance emailGovernance) {
-        session.getProperties().put(MIMEMESSAGE_CONVERTER_KEY, new SessionBasedEmailToMimeMessageConverter(session, operationalConfig, emailGovernance));
+        session.getProperties().put(MIMEMESSAGE_CONVERTER_KEY,
+                new SessionBasedEmailToMimeMessageConverter(session, operationalConfig, emailGovernance));
     }
 
     public static void unprimeSession(@NotNull Session session) {

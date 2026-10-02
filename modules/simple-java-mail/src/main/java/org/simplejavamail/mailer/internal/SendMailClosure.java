@@ -7,6 +7,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -19,6 +21,7 @@ import org.simplejavamail.mailer.internal.util.TransportRunner;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
 import static org.simplejavamail.mailer.internal.MailerException.MAILER_ERROR;
@@ -39,10 +42,13 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@Nullable private MailSubmissionReceipt receipt;
 	@NotNull private final MailSendControl control;
 	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
+	@Nullable private final SelectedPoolTransport selectedTransport;
+	@Nullable private final SendingAllowance.Reservation allowance;
 
 	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email,
 			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
-			@NotNull MailSendControl control, @NotNull MailSendDiagnosticsRecorder diagnostics) {
+			@NotNull MailSendControl control, @NotNull MailSendDiagnosticsRecorder diagnostics,
+			@Nullable SelectedPoolTransport selectedTransport, @Nullable SendingAllowance.Reservation allowance) {
 		super(smtpConnectionCounter, proxyServer, session, diagnostics);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
@@ -50,6 +56,8 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.control = control;
 		this.diagnostics = diagnostics;
+		this.selectedTransport = selectedTransport;
+		this.allowance = allowance;
 		if (transportModeLoggingOnly) {
 			diagnostics.useLoggingOnly();
 		} else if (operationalConfig.getCustomMailer() != null) {
@@ -76,11 +84,13 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				control.checkStopped();
 				diagnostics.startSubmission();
+				requireNonNull(allowance, "allowance").commit(control);
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
 				diagnostics.receiptProduced(receipt);
 			} else {
-				receipt = TransportRunner.sendMessage(operationalConfig.getClusterKey(), session, email, control, diagnostics);
+				receipt = TransportRunner.sendMessage(session, email, control, diagnostics, selectedTransport,
+						requireNonNull(allowance, "allowance"));
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);

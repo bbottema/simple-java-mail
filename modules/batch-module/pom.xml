@@ -18,6 +18,7 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.batch</automaticModuleName>
+        <smtp-connection-pool.version>4.3.0</smtp-connection-pool.version>
     </properties>
 
     <dependencies>
@@ -33,7 +34,7 @@
         <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>smtp-connection-pool</artifactId>
-            <version>4.2.0</version>
+            <version>${smtp-connection-pool.version}</version>
         </dependency>
 
 		<!-- Tests instantiate Jakarta Mail Sessions directly; production remains provider-neutral. -->

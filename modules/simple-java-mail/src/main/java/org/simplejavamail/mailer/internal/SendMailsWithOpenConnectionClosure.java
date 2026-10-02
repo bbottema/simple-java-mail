@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -44,11 +45,13 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	@Nullable private Transport transport;
 	@Nullable private Email currentEmail;
 	@NotNull private final MailSendOperations operations;
+	@NotNull private final SendingAllowance sendingAllowance;
 
 	SendMailsWithOpenConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session,
 			@NotNull OpenConnectionCallback<E> openConnectionCallback, @NotNull Function<Email, Email> emailPreparer,
 			@NotNull MailSendObserverNotifier mailSendObserverNotifier, @Nullable AnonymousSocks5Server proxyServer,
-			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendOperations operations) {
+			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendOperations operations,
+			@NotNull SendingAllowance sendingAllowance) {
 		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
@@ -57,6 +60,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		this.mailSendObserverNotifier = mailSendObserverNotifier;
 		this.transportModeLoggingOnly = transportModeLoggingOnly;
 		this.operations = operations;
+		this.sendingAllowance = sendingAllowance;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -125,6 +129,8 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		if (!transportModeLoggingOnly) {
 			mailSendAttempt.diagnostics().useSharedConnection();
+		} else {
+			mailSendAttempt.diagnostics().useLoggingOnly();
 		}
 		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
@@ -151,8 +157,10 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 				return receipt;
 			}
 			final Transport activeTransport = checkNonEmptyArgument(transport, "transport");
-			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control)) {
-				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control, mailSendAttempt.diagnostics());
+			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control);
+					SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(
+							sendingAllowance, session, preparedEmail, control, mailSendAttempt.diagnostics())) {
+				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control, mailSendAttempt.diagnostics(), allowance);
 			}
 		} catch (final MessagingException failure) {
 			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR));

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 /**
  * @see MailerFromSessionBuilder
@@ -19,7 +20,12 @@ public class MailerFromSessionBuilderImpl
 	private Session session;
 	
 	public MailerFromSessionBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
-		super(config);
+		this(config, new FactorySendingLimits());
+	}
+
+	/** Internal factory wiring; caller-owned Sessions participate in the same factory-local allowance model. */
+	public MailerFromSessionBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
+		super(config, sendingLimits);
 	}
 	
 	/**

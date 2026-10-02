@@ -25,6 +25,7 @@ public final class MailSendDiagnosticsRecorder {
 	private final long requestedAt;
 	private final Measurement preparation = new Measurement(NOT_REACHED);
 	private final Measurement scheduling = new Measurement("This email has no separate asynchronous scheduling step.");
+	private final Measurement rateLimitWait = new Measurement(NOT_REACHED);
 	private final Measurement connectionAcquisition = new Measurement(NOT_REACHED);
 	private final Measurement mimePreparation = new Measurement(NOT_REACHED);
 	private final Measurement submission = new Measurement(NOT_REACHED);
@@ -87,6 +88,7 @@ public final class MailSendDiagnosticsRecorder {
 
 	void useLoggingOnly() {
 		if (clock != null) {
+			rateLimitWait.unavailableReason = "Logging-only mode consumes no sending allowance.";
 			connectionAcquisition.unavailableReason = "Logging-only mode does not acquire an SMTP connection.";
 			submission.unavailableReason = "Logging-only mode does not submit the email.";
 			cleanup.unavailableReason = "Logging-only mode has no sending connection to release.";
@@ -131,6 +133,20 @@ public final class MailSendDiagnosticsRecorder {
 
 	public void startMimePreparation() {
 		start(mimePreparation);
+	}
+
+	void useUnlimitedSending() {
+		if (clock != null) {
+			rateLimitWait.unavailableReason = "No sending limit is configured for this destination.";
+		}
+	}
+
+	void startRateLimitWait() {
+		start(rateLimitWait);
+	}
+
+	void rateLimitWaitCompleted() {
+		finishActive();
 	}
 
 	public void startSubmission() {
@@ -184,7 +200,7 @@ public final class MailSendDiagnosticsRecorder {
 		final Measurement failurePoint = successful ? null : primaryFailure;
 		return new MailSendDiagnostics(Duration.ofNanos(completedAt - requestedAt), preparation.snapshot(failurePoint), scheduling.snapshot(failurePoint),
 				connectionAcquisition.snapshot(failurePoint), mimePreparation.snapshot(failurePoint), submission.snapshot(failurePoint),
-				cleanup.snapshot(failurePoint), smtpHost, smtpPort);
+				cleanup.snapshot(failurePoint), smtpHost, smtpPort, rateLimitWait.snapshot(failurePoint));
 	}
 
 	void releaseReceipt() {

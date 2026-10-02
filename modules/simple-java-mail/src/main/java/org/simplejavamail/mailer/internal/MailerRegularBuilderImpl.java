@@ -8,6 +8,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -74,7 +75,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	private boolean opportunisticTLS;
 
 	public MailerRegularBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
-		super(config);
+		this(config, new FactorySendingLimits());
+	}
+
+	/** Internal factory wiring; builders retain their factory's allowance registry, not a process-global registry. */
+	public MailerRegularBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
+		super(config, sendingLimits);
 		this.opportunisticTLS = config.valueOrProperty(null, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
 		this.host = config.getStringProperty(SMTP_HOST);
 		this.port = config.getIntegerProperty(SMTP_PORT);

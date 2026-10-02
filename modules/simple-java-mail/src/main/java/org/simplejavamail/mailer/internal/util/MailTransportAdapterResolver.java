@@ -73,7 +73,14 @@ final class MailTransportAdapterResolver {
     static MailTransportResult sendMessage(@NotNull final Transport transport,
                                            @NotNull final PreparedMail preparedMail)
             throws MessagingException {
-        return sendMessage(transport, preparedMail, MailProviderDiscovery.newProviders(MailTransportAdapter.class));
+        return sendMessage(transport, preparedMail, () -> { });
+    }
+
+    /** Charge an attempt only after local adapter selection/compatibility checks, immediately before the provider is invoked. */
+    @NotNull
+    static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail, final Runnable beforeInvocation)
+            throws MessagingException {
+        return sendMessage(transport, preparedMail, MailProviderDiscovery.newProviders(MailTransportAdapter.class), beforeInvocation);
     }
 
     /**
@@ -91,16 +98,22 @@ final class MailTransportAdapterResolver {
                                            @NotNull final PreparedMail preparedMail,
                                            @NotNull final Iterable<MailTransportAdapter> availableAdapters)
             throws MessagingException {
+        return sendMessage(transport, preparedMail, availableAdapters, () -> { });
+    }
+
+    @NotNull
+    static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail,
+            final Iterable<MailTransportAdapter> availableAdapters, final Runnable beforeInvocation) throws MessagingException {
         final List<MailTransportAdapter> supportingAdapters = findSupportingAdapters(transport, availableAdapters);
         if (supportingAdapters.size() > 1) {
             throw buildAmbiguousAdapterException(transport, supportingAdapters);
         }
         if (supportingAdapters.size() == 1) {
-            return sendUsingAdapter(supportingAdapters.get(0), transport, preparedMail);
+            return sendUsingAdapter(supportingAdapters.get(0), transport, preparedMail, beforeInvocation);
         }
         requireProviderNeutralContent(transport, preparedMail.getContentRequirement());
         requireProviderNeutralEnvelope(transport, preparedMail);
-        return sendUsingGenericTransport(transport, preparedMail);
+        return sendUsingGenericTransport(transport, preparedMail, beforeInvocation);
     }
 
     @NotNull
@@ -129,7 +142,7 @@ final class MailTransportAdapterResolver {
     @NotNull
     private static MailTransportResult sendUsingAdapter(@NotNull final MailTransportAdapter adapter,
                                                         @NotNull final Transport transport,
-                                                        @NotNull final PreparedMail preparedMail)
+                                                        @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation)
             throws MessagingException {
         requireSupportedContent(adapter, transport, preparedMail.getContentRequirement());
         if (!adapter.supportsDeliveryEnvelope(preparedMail.getDeliveryEnvelope())) {
@@ -138,6 +151,7 @@ final class MailTransportAdapterResolver {
                     + "or remove the unsupported options (such as REQUIRETLS, a fixed ENVID or recipient-specific NOTIFY preferences).",
                     preparedMail.getRecipients());
         }
+        beforeInvocation.run();
         return requireNonNull(adapter.sendMessage(transport, preparedMail), "MailTransportAdapter result");
     }
 
@@ -173,8 +187,9 @@ final class MailTransportAdapterResolver {
 
     @NotNull
     private static MailTransportResult sendUsingGenericTransport(@NotNull final Transport transport,
-                                                                  @NotNull final PreparedMail preparedMail) {
+                                                                  @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation) {
         try {
+            beforeInvocation.run();
             transport.sendMessage(preparedMail.getMimeMessage(), preparedMail.getRecipients());
             return MailTransportResult.accepted(preparedMail.getRecipients(), null);
         } catch (final MessagingException failure) {

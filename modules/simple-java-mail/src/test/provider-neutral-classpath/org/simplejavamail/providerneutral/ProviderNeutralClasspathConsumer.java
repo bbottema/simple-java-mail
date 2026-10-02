@@ -40,6 +40,7 @@ import org.simplejavamail.api.mailer.SmtpRecipientStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
@@ -103,6 +104,7 @@ public final class ProviderNeutralClasspathConsumer {
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
 		assertLegacyContentSupportApiIsAvailable(simpleJavaMail);
+		assertSendingLimitsApiIsAvailable(simpleJavaMail);
 		assertAsyncQueueApiIsAvailable(simpleJavaMail);
 		assertExecutionControlApiIsAvailable(simpleJavaMail, source);
 		assertUnknownTransportFailureApiIsAvailable();
@@ -117,6 +119,20 @@ public final class ProviderNeutralClasspathConsumer {
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** Rate configuration and diagnostics need no provider implementation. */
+	private static void assertSendingLimitsApiIsAvailable(final SimpleJavaMail factory) {
+		final SendingRateLimit rule = factory.mailerBuilder().withMessageRateLimit(30, Duration.ofMinutes(1))
+				.withRecipientRateLimit(100, Duration.ofMinutes(1)).withRateLimitGroup("account").withRateLimitBurstsAllowed(false).getMessageRateLimit();
+		if (rule.getCount() != 30 || !rule.getPeriod().equals(Duration.ofMinutes(1))) {
+			throw new AssertionError("Sending-limit API is unavailable");
+		}
+		if (factory.mailerBuilder().resetMessageRateLimit().resetRecipientRateLimit().resetRateLimitGroup().resetRateLimitBurstsAllowed()
+				.getRecipientRateLimit() != null) {
+			throw new AssertionError("Reset created an implicit sending limit");
+		}
+		@SuppressWarnings("unused") final Function<Mailer, SendingRateLimit> configured = mailer -> mailer.getOperationalConfig().getMessageRateLimit();
 	}
 
 	/** Server compatibility permission must be usable without depending on the bundled provider. */
@@ -318,6 +334,7 @@ public final class ProviderNeutralClasspathConsumer {
 				report.getElapsed();
 				report.getPreparation().getElapsed();
 				report.getScheduling().getUnavailableReason();
+				report.getRateLimitWait().getElapsed();
 				report.getConnectionAcquisition().getElapsed();
 				report.getMimePreparation().getElapsed();
 				report.getSubmission().isFailureObservedHere();

@@ -16,6 +16,7 @@ import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportLease;
+import org.simplejavamail.smtpconnectionpool.SmtpTransportSelection;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -134,8 +135,32 @@ public final class BatchTransportEngine<K> {
 	}
 
 	SmtpTransportLease claim(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
+		return claimRegistered(clusterKey, stickySession, control, null);
+	}
+
+	SmtpTransportLease claimSelected(final K clusterKey, final SmtpTransportSelection selected, @Nullable final MailSendControl control) {
+		return claimRegistered(clusterKey, selected.getSession(), control, selected);
+	}
+
+	/** Selection is delegated upstream; application admission runs after this returns and holds no borrowed transport. */
+	SmtpTransportSelection select(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
+		final int claimTimeoutMillis = validateClaim(clusterKey, stickySession, control);
+		final ClaimControl claimControl = new ClaimControl();
+		try (MailSendControl.Registration ignored = control == null ? null : control.onStop(claimControl::requestCancellation)) {
+			final ClaimOptions options = claimOptions(claimTimeoutMillis, control, claimControl);
+			return stickySession == null ? smtpConnectionPool.selectTransportFromCluster(clusterKey, options)
+					: smtpConnectionPool.selectTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession), options);
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new BatchTransportException("Interrupted while selecting an SMTP destination; no connection was borrowed", interrupted);
+		} catch (RuntimeException failure) {
+			final RuntimeException mapped = new BatchTransportException("Unable to select an SMTP destination; no connection was borrowed", failure);
+			throw control == null ? mapped : control.translateFailure(mapped);
+		}
+	}
+
+	private int validateClaim(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
 		requireNonNull(clusterKey, "clusterKey");
-		final int claimTimeoutMillis;
 		synchronized (lifecycleMonitor) {
 			ensureClaimsOpen("claim a transport");
 			if (!registeredSessions.containsKey(clusterKey)) {
@@ -148,22 +173,18 @@ public final class BatchTransportEngine<K> {
 				registeredSessions.get(clusterKey).forEach(BatchTransportEngine::requireDeadlineSupport);
 				deadlineClusters.add(clusterKey);
 			}
-			claimTimeoutMillis = clusterSettings.get(clusterKey).getClaimTimeoutMillis();
+			return clusterSettings.get(clusterKey).getClaimTimeoutMillis();
 		}
+	}
 
+	private SmtpTransportLease claimRegistered(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control,
+			@Nullable final SmtpTransportSelection selected) {
+		final int claimTimeoutMillis = validateClaim(clusterKey, stickySession, control);
 		final SmtpTransportLease lease;
 		final ClaimControl claimControl = new ClaimControl();
 		try (MailSendControl.Registration ignored = control == null ? null : control.onStop(claimControl::requestCancellation)) {
-			if (control == null) {
-				lease = stickySession == null ? smtpConnectionPool.claimTransportFromCluster(clusterKey)
-						: smtpConnectionPool.claimTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession));
-			} else {
-				control.checkStopped();
-				final ClaimOptions options = ClaimOptions.withTimeout(Math.min(control.remainingNanos(),
-						TimeUnit.MILLISECONDS.toNanos(claimTimeoutMillis)), TimeUnit.NANOSECONDS).withClaimControl(claimControl);
-				lease = stickySession == null ? smtpConnectionPool.claimTransportFromCluster(clusterKey, options)
-						: smtpConnectionPool.claimTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession), options);
-			}
+			final ClaimOptions options = control == null ? null : claimOptions(claimTimeoutMillis, control, claimControl);
+			lease = acquireLease(clusterKey, stickySession, selected, options);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			throw new BatchTransportException("Interrupted while waiting for an SMTP transport", interrupted);
@@ -180,6 +201,27 @@ public final class BatchTransportEngine<K> {
 			activeLeases.add(lease);
 		}
 		return lease;
+	}
+
+	private SmtpTransportLease acquireLease(final K clusterKey, @Nullable final Session stickySession,
+			@Nullable final SmtpTransportSelection selected, @Nullable final ClaimOptions options) throws InterruptedException {
+		if (selected != null) {
+			return options == null ? selected.claimTransport() : selected.claimTransport(options);
+		}
+		if (stickySession != null) {
+			final ResourceClusterAndPoolKey<K, Session> key = new ResourceClusterAndPoolKey<>(clusterKey, stickySession);
+			return options == null ? smtpConnectionPool.claimTransport(key) : smtpConnectionPool.claimTransport(key, options);
+		}
+		return options == null ? smtpConnectionPool.claimTransportFromCluster(clusterKey) : smtpConnectionPool.claimTransportFromCluster(clusterKey, options);
+	}
+
+	private static ClaimOptions claimOptions(final int claimTimeoutMillis, @Nullable final MailSendControl control, final ClaimControl claimControl) {
+		if (control == null) {
+			return ClaimOptions.withTimeout(claimTimeoutMillis, TimeUnit.MILLISECONDS);
+		}
+		control.checkStopped();
+		return ClaimOptions.withTimeout(Math.min(control.remainingNanos(), TimeUnit.MILLISECONDS.toNanos(claimTimeoutMillis)), TimeUnit.NANOSECONDS)
+				.withClaimControl(claimControl);
 	}
 
 	private static void requireDeadlineSupport(final Session session) {

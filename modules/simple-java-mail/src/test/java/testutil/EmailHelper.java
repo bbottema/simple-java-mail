@@ -41,6 +41,7 @@ import static java.util.Calendar.SEPTEMBER;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_RATE_LIMIT_BURSTS_ALLOWED;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilderWithOutlookData;
@@ -232,7 +233,11 @@ public class EmailHelper {
 					/*25*/customMailer,
 					/*26*/oauth2AccessTokenProvider,
 					/*27*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
-					/*28*/null);
+					/*28*/null,
+					/*29*/null,
+					/*30*/null,
+					/*31*/null,
+					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}
