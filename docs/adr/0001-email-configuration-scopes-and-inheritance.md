@@ -38,6 +38,8 @@ Do not add a second Mailer configuration route merely to repeat an Email feature
 
 Mailer-owned settings remain on Mailer: SMTP endpoints, authentication, TLS, proxies, pools, executors, timeouts, and observer registration. This decision does not move those into Email.
 
+[ADR 0025: Factory-scoped locked configuration](0025-factory-scoped-locked-configuration.md) adds opt-in restrictions at these same owners. It does not introduce another Email template or duplicate message setters on Mailer. Ordinary inheritance and suppression remain unchanged; locked values and required envelope recipients cannot be removed through those controls.
+
 ### Email, recipient group, and recipient
 
 The following table records the accepted scopes, now represented by the local implementation. Release status is separate from this architectural decision.

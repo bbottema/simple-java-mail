@@ -42,7 +42,7 @@ Keep this fact per attempt, preserving it through the existing result, exception
 - Best-effort fallback would weaken the caller's explicit requirement. Unsupported configurations need a concrete failure explaining what must change.
 - MIME headers cannot substitute for the REQUIRETLS envelope parameter. Keeping it outside MIME also preserves exact and protected content.
 
-Enterprise-wide enforcement is deliberately deferred to [#740](https://github.com/bbottema/simple-java-mail/issues/740). This ADR adds no enforcement switch, minimum-requirement framework, or change to suppression/override semantics.
+Factory-scoped restrictions are recorded separately in [ADR 0025](0025-factory-scoped-locked-configuration.md) and implemented under [#740](https://github.com/bbottema/simple-java-mail/issues/740). A locked `simplejavamail.locked.defaults.requiretls=true` cannot be suppressed within that factory and applies to compatible exact-message envelopes without changing their bytes. Ordinary defaults retain the suppression/override behavior described here. This is a local configuration restriction, not enterprise-wide enforcement or proof of downstream compliance.
 
 ## Verification required before delivery
 

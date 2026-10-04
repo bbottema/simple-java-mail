@@ -3,7 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-09-29
 - Target: 10.0.0
-- Implementation status: Planned, not implemented
+- Implementation status: Implemented for unreleased 10.0.0; verification recorded separately
 - Tracking: [#740](https://github.com/bbottema/simple-java-mail/issues/740)
 
 ## Context and decision drivers
@@ -64,7 +64,7 @@ simplejavamail:
         address: archive@company.com
 ```
 
-These examples describe the accepted target, not configuration syntax implemented at the time of this record.
+Both examples use the implemented configuration syntax.
 
 ### Keep locks on the factory's immutable snapshot
 
@@ -72,7 +72,7 @@ Locks belong to `SimpleJavaMailConfig`, alongside the resolved configuration cap
 
 Configuration-source resolution and subsequent customization are separate concerns. Keep the existing source precedence when resolving ordinary and locked entries into the snapshot. A lock is not a privileged configuration source or a trust ranking among property files, environment variables and application code. An ordinary property cannot displace its locked counterpart, regardless of where that ordinary value came from.
 
-For a locked scalar, the locked value supplies the effective configuration. Reject explicit customization that conflicts with it; allow the same parsed value. Ordinary, unlocked settings remain customizable as before. Detect conflicts at the appropriate builder or preparation boundary, before an incompatible operation reaches submission, rather than silently accepting a customization that will not take effect.
+For a locked single-value setting, the locked value supplies the effective configuration. Reject explicit customization that conflicts with it; allow the same parsed value. Ordinary, unlocked settings remain customizable as before. Detect conflicts at the appropriate builder or preparation boundary, before an incompatible operation reaches submission, rather than silently accepting a customization that will not take effect.
 
 ### Use the existing configuration owners
 
@@ -122,13 +122,13 @@ Rejected because that vocabulary would duplicate existing configuration concepts
 
 A suffix such as `simplejavamail.smtp.host.locked` puts the locked counterpart close to the ordinary property's name. A wrapper containing `value` and `locked` could express both parts explicitly.
 
-Rejected because a scalar `smtp.host` and a nested `smtp.host.locked` cannot occupy that same location naturally in nested YAML. Wrapped leaves would change the configuration shape for ordinary values and multiply metadata structures. Spring does not require that redesign: `SimpleJavaMailProperties` is an IDE-metadata model, while the shared loader reads values through `Environment`.
+Rejected because a single value at `smtp.host` and a nested `smtp.host.locked` cannot occupy that same location naturally in nested YAML. Wrapped leaves would change the configuration shape for ordinary values and multiply metadata structures. Spring does not require that redesign: `SimpleJavaMailProperties` is an IDE-metadata model, while the shared loader reads values through `Environment`.
 
 ### A separate `locked` namespace on the factory snapshot
 
 Selected because it accommodates message and operational settings without changing their ownership, keeps ordinary and locked values distinct in properties and YAML, and reuses existing types and parsing. Factory ownership gives all participating Mailers the same restrictions without introducing process-global state.
 
-The cost is explicit lock handling in the schema, diagnostics and customization paths. Reusing a property definition does not make its locking semantics automatic: scalar conflicts, additive collections, compound values and provider boundaries still need deliberate handling and tests.
+The cost is explicit lock handling in the schema, diagnostics and customization paths. Reusing a property definition does not make its locking semantics automatic: conflicts in single-value settings, additive collections, compound values and provider boundaries still need deliberate handling and tests.
 
 ## Consequences and tradeoffs
 
@@ -164,7 +164,7 @@ First-hop TLS and onward REQUIRETLS remain different settings. Locking either on
 
 ## Related decisions
 
-The following records retain their existing unlocked behavior. This ADR adds an opt-in restriction; it does not claim that those implementations already enforce locks.
+The following records retain their existing unlocked behavior. This ADR adds an opt-in restriction at their existing configuration owners.
 
 | Record | Relationship |
 | --- | --- |
@@ -178,14 +178,23 @@ The following records retain their existing unlocked behavior. This ADR adds an 
 
 ## Implementation status and verification obligations
 
-Implementation is planned under [#740](https://github.com/bbottema/simple-java-mail/issues/740), not delivered by this record. Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Before claiming support, cover:
+Implementation under [#740](https://github.com/bbottema/simple-java-mail/issues/740) targets unreleased 10.0.0. The [verification record](../research/740-locked-configuration-verification.md) retains evidence separately from this architectural decision. Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Maintain coverage for:
 
 - **Resolution and conflicts:** reuse schema parsing and validation, retain source precedence, allow equal parsed values, reject conflicting explicit customization, and keep unlocked behavior unchanged. Verify copying, clearing, builder reuse and replacement templates cannot accidentally lose a lock.
 - **Factory isolation:** all Mailers from one snapshot inherit its locks; separately configured factories and concurrent loads remain isolated. Do not introduce process-global lock state.
 - **Diagnostics:** retain the source of each locked value and distinguish it from an ordinary counterpart. Reuse redaction and safe display formatting; conflict messages and metadata must not expose secrets.
 - **Spring and metadata:** cover properties files, nested YAML, profiles, placeholders and existing aliases or wildcard entries where applicable. Verify IDE metadata coverage without turning the metadata model into a runtime binder.
-- **Message and envelope handling:** cover scalar, compound and additive collection settings through ordinary sends, batches, open connections, validation and rehearsal. Check the actual envelope after receiver overrides, including required archive recipients and relevant encryption-recipient handling.
+- **Message and envelope handling:** cover single-value, compound and additive collection settings through ordinary sends, batches, open connections, validation and rehearsal. Check the actual envelope after receiver overrides, including required archive recipients and relevant encryption-recipient handling.
 - **Exact and protected messages:** prove unchanged bytes for compatible operations and clear rejection for incompatible requirements. Do not silently exempt exact submission or apply ordinary composition templates to it.
 - **Ownership and providers:** characterize selected cluster configurations, caller-owned Sessions, CustomMailer and provider adapters. Keep checks with the responsible owner and reject unsupported combinations before submission rather than claiming a guarantee the chosen path cannot provide.
 
-These are implementation and test obligations, not results of this documentation change. The decision is accepted for 10.0.0; locked configuration remains planned and not implemented.
+These are continuing implementation and test obligations, not proof from the ADR itself. GitHub owns delivery status; the verification record identifies the checks actually performed.
+
+### Implementation boundaries
+
+- `ConfigLoader` resolves ordinary and locked namespaces separately, parses the winning effective values once, and retains concrete lock values and sources in `ConfigurationLocks`. Snapshot copies preserve locked names. No runtime tracker or process-global state is added.
+- Mailer builders check their final values before resource initialization. `LockedSmtpConfiguration`, retained with the existing Session conversion context, checks low-level properties and the actual selected cluster owner. A caller-owned Session cannot be rebound across locked Mailers. A locked SMTP username or password requires factory-owned authentication: matching visible Session properties cannot rule out cached credentials or an Authenticator selecting different credentials. Custom TLS ownership is rejected when it prevents checking applicable locks.
+- `LockedEmailConfiguration` reapplies message restrictions after ordinary governance. `LockedMessageProtection` checks individual key/certificate/algorithm fields rather than freezing unrelated configuration. Required recipients are included in the actual envelope, including override receivers, before recipient-rate accounting.
+- Exact EML uses the same immutable source bytes. Compatible envelope changes and matching readable headers are allowed. Duplicate Subject, From or Reply-To fields prevent confirming a lock on that header, even when the parsed getter matches; inspect original headers without copying or reading the body. One Reply-To field may still contain multiple addresses. A requirement needing content or signature changes is rejected. Operational `defaults.*` settings are not mistaken for message-content requirements.
+- Locked DSN is marked explicitly on the provider-neutral `DeliveryEnvelope`. The backwards-compatible adapter capability defaults to unsupported, so an older adapter that accepts generic envelope options cannot silently omit this requirement. Angus checks usable DSN and rejects contradictory raw return options before MAIL FROM. This does not promise that a notification arrives.
+- Spring enumerates both namespaces through `Environment`. The locked metadata root reuses ordinary nested property classes; no runtime wrapper model is introduced. The CLI loads the same snapshot, and its daemon profile identity includes the restrictions as well as effective values.

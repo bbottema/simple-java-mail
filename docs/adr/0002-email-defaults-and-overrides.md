@@ -99,6 +99,10 @@ This slice does not change recipient precedence, collection/header resolution, e
 
 ## Consequences and review requirements
 
+[ADR 0025](0025-factory-scoped-locked-configuration.md) adds opt-in factory-scoped restrictions after this ordinary template resolution.
+Suppression and template replacement still work as described for unlocked values. They cannot remove a locked setting; conflicting single-value settings fail,
+while required recipient occurrences remain in the actual envelope. This is not a third public Email template and does not turn ordinary overrides into locks.
+
 The public API stays focused: users configure a feature on Email and reuse it through one Mailer policy mechanism. The cost is explicit propagation work whenever Email grows, and careful documentation where "defaults" and "overrides" mean different things for different value shapes.
 
 Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md). Tests for an affected field must cover default-only, explicit-only, override, suppression, copying, and repeated use without configuration leakage. Collection and compound-value tests must assert their real merge/replacement rules, not merely that a value survives. Recipient-capable fields also need the scope cases in ADR 0001; exact EML must retain its separate contract.

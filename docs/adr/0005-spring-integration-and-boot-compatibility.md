@@ -35,6 +35,10 @@ The metadata-only `SimpleJavaMailProperties` model supplies IDE hints; it is not
 
 ## Implementation evidence
 
+[ADR 0025](0025-factory-scoped-locked-configuration.md) adds the `simplejavamail.locked.` namespace through the same Environment loader.
+`LockedSimpleJavaMailProperties` is a second metadata root reusing ordinary nested types, not another runtime binder or wrapped leaf model.
+The packaging test requires a locked counterpart for every canonical property, including metadata aliases and wildcard roots.
+
 - [SimpleJavaMailAutoConfiguration](../../modules/spring-module/src/main/java/org/simplejavamail/springsupport/SimpleJavaMailAutoConfiguration.java), [SimpleJavaMailSpringBeanFactory](../../modules/spring-module/src/main/java/org/simplejavamail/springsupport/SimpleJavaMailSpringBeanFactory.java) and [SpringEnvironmentConfigSource](../../modules/spring-module/src/main/java/org/simplejavamail/springsupport/SpringEnvironmentConfigSource.java).
 - [Spring module POM](../../modules/spring-module/pom.xml), [starter POM](../../modules/spring-boot-starter/pom.xml) and the [compatibility workflow](../../.github/workflows/spring-boot-compatibility.yml). At recording, its lanes are Boot 2.7.18/Java 11, Boot 3.0.13/Java 17 and Boot 3.5.16/Java 21; these are repository configuration, not a claim that CI was run during ADR extraction.
 - Existing [Boot discovery tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringSupportBootTest.java), [plain-Spring runtime isolation tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailPlainSpringRuntimeIsolationTest.java) and [metadata packaging tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SpringModulePackagingTest.java).

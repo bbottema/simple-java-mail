@@ -55,6 +55,10 @@ The caller gains byte-preserving submission but assumes responsibility for the a
 
 ## Implementation limits and verification landmarks
 
+[ADR 0025](0025-factory-scoped-locked-configuration.md) adds an explicit exception to the ordinary governance bypass: factory locks are still
+checked. Compatible envelope requirements and matching readable headers preserve the authoritative byte array. Content or signing requirements
+that cannot be established without rewriting are rejected, not silently ignored. Operational settings under `defaults.*` do not become content locks.
+
 [ExactEmailBuilderImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/ExactEmailBuilderImpl.java), [ExactEmlValidator](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/ExactEmlValidator.java) and [AngusMailTransportAdapter](../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusMailTransportAdapter.java) implement these boundaries. Rehearsal retains the original bytes in both modes; full rehearsal additionally checks their raw size. The CLI's byte-array argument uses its existing file converter, rather than introducing a second submission engine.
 
 Pending ENVID work in the working tree extends envelope metadata. It does not authorize MIME mutation or governance of exact input. This record does not claim broader DSN recipient support, automatic delivery correlation or support from adapters that have not opted into preservation.

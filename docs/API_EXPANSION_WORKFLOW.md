@@ -15,6 +15,14 @@ Read [ADR 0001: Email configuration scopes and inheritance](adr/0001-email-confi
 - Define the scope and meaning of defaults, explicit values, clearing, disabling, and forced overrides before selecting method signatures. Preserve the settled cross-scope rule: explicit recipient values beat the governance-resolved Email fallback, including Email overrides. Group-fixed values apply when constructing that group's recipients; they are not a global enforcement layer.
 - Keep settings that own SMTP connections or execution resources on Mailer. Follow section 7 for those rather than routing them through Email governance.
 
+### Public API versus internal cross-module types
+
+Java `public` visibility does not by itself make a type supported application API. Implementation types that need to cross module boundaries belong in a package containing an `internal` segment, such as `org.simplejavamail.internal.config.ConfigurationLocks`. Keep them package-private when cross-package access is unnecessary.
+
+Use `@ApiStatus.Internal` where appropriate, but do not use that annotation as a substitute for the internal package. Mark internal bridge accessors on public types with it as well. Genuine application-facing types and supported provider extension SPIs remain in their public API packages.
+
+Check package placement during review and verify cross-module classpath/JPMS consumers after a move. The Javadoc build excludes internal packages, so implementation types should not appear as ordinary user-facing API.
+
 ---
 
 ## 1. Core Model Expansion (`core-module`)
@@ -101,7 +109,7 @@ Only skip defaults/overrides integration when the value cannot sensibly be repre
   - If the field is on Email and needs default/override resolution, add a corresponding constant to org.simplejavamail.internal.config.EmailProperty.
   - Mark it as collection-based when the value is a collection so merging is applied instead of replacement.
 - Apply default values (simple-java-mail)
-  - In `EmailGovernanceImpl.newDefaultsEmailWithDefaultDefaults()`, derive a sensible default from the Mailer's `SimpleJavaMailConfig` snapshot if applicable and set it on the builder.
+  - In `EmailGovernanceImpl.createConfiguredDefaults(...)`, derive a sensible default from the Mailer's `SimpleJavaMailConfig` snapshot if applicable and set it on the builder.
 - Apply defaults/overrides to provided Email (simple-java-mail)
   - In EmailGovernanceImpl.produceEmailApplyingDefaultsAndOverrides(), resolve values using MiscUtil.overrideOrProvideOrDefaultProperty / overrideAndOrProvideAndOrDefaultCollection and apply them to the builder.
   - Ensure ignoringDefaults / ignoringOverrides and the per-property suppression sets are respected (this comes for free when using the MiscUtil helpers).
@@ -136,6 +144,7 @@ Only skip property configuration when the value cannot be expressed safely or cl
 - **Typed Resolution and Diagnostics**: Register the property's type, functional diagnostic group, and sensitivity in `PropertySchema`, then read it from the injected `SimpleJavaMailConfig` snapshot in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied. Do not add a static read or a second parser. The exhaustive diagnostics test deliberately fails when any `ConfigLoader.Property` has no group.
 - **Factory Propagation**: Prove that builders from `SimpleJavaMail.withConfig(config)` retain the snapshot through copy, reply, conversion, Session creation, governance, and any applicable optional-module route.
 - **Snapshot Isolation**: Include two factories with conflicting values. Mutate source collections after `load()`, build objects through both factories, and verify there is no cross-talk. For wildcard Session or connection-pool properties, also verify that returned maps are immutable.
+- **Locked Configuration**: Every property also has a `simplejavamail.locked.` counterpart using the same type, diagnostic group and redaction. Implement the restriction at its configuration owner, not just in the loader: allow equal parsed values, reject conflicting explicit customization, preserve additive envelope requirements, and cover resets, replacement templates and alternate send paths. Update `LockedSimpleJavaMailProperties` only for a new top-level metadata group; its nested types reuse the ordinary model. Run the exhaustive Spring metadata test and add behavior tests. See [ADR 0025](adr/0025-factory-scoped-locked-configuration.md) for exact-message and provider boundaries.
 - **Spring Mapping**: If the property belongs to the public configuration surface, add its IDE-hint shape to `SimpleJavaMailProperties` and verify `SpringModulePackagingTest`. `SpringEnvironmentConfigSource` already exposes every scalar `ConfigLoader.Property` through the context-local snapshot while retaining Spring's precedence and placeholder resolution.
 - **Dynamic Property Collections**: For collection-style namespaces such as `simplejavamail.defaults.connectionpool.clusters.*`, keep parsing, validation, and per-child diagnostic provenance centralized in `ConfigLoader`. Spring support should forward the whole namespace into `ConfigLoader` and Spring Boot metadata should describe the nested shape, rather than duplicating alias/key resolution.
 

@@ -32,7 +32,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0022](0022-dsn-identifiers-belong-to-send-attempts.md) | Generate ENVID per send attempt and report it outside MIME content. | Accepted, 2026-09-17 | Accepted for unreleased 10.0.0. |
 | [0023](0023-per-message-requiretls.md) | Keep onward REQUIRETLS on Email, separate from connection TLS, and reject sends that cannot honor it. | Accepted, 2026-09-17 | Implemented and accepted for unreleased 10.0.0 under #741. |
 | [0024](0024-builder-interfaces-are-not-extension-spis.md) | Treat all builder interfaces as library-owned API contracts, not extension SPIs. | Accepted, 2026-09-18 | Existing architectural intent recorded as project policy. |
-| [0025](0025-factory-scoped-locked-configuration.md) | Keep opt-in locked configuration on the factory snapshot and reject conflicting customization. | Accepted, 2026-09-29 | Planned for 10.0.0 under #740; not implemented. |
+| [0025](0025-factory-scoped-locked-configuration.md) | Keep opt-in locked configuration on the factory snapshot and reject conflicting customization. | Accepted, 2026-09-29 | Implemented for unreleased 10.0.0 under #740; separate verification record. |
 | [0026](0026-actual-send-diagnostics.md) | Explain actual sends through explicit terminal measurements without exposing transport lifecycle. | Accepted, 2026-09-29 | Implemented and accepted for unreleased 10.0.0 under #750. |
 | [0027](0027-factory-scoped-sending-limits.md) | Configure message and recipient sending limits with optional factory-scoped allowance sharing. | Accepted, 2026-09-30 | Implemented under #751 for 10.0.0; not released. |
 
@@ -46,11 +46,11 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | --- | --- |
 | API expansion | [0001](0001-email-configuration-scopes-and-inheritance.md), [0002](0002-email-defaults-and-overrides.md), [0003](0003-immutable-configuration-snapshots.md), [0005](0005-spring-integration-and-boot-compatibility.md), [0018](0018-cli-from-builder-contracts.md), [0024](0024-builder-interfaces-are-not-extension-spis.md), [0025](0025-factory-scoped-locked-configuration.md), [0027](0027-factory-scoped-sending-limits.md); implementation coverage belongs to the [workflow](../API_EXPANSION_WORKFLOW.md). |
 | Builder interface ownership | [0024](0024-builder-interfaces-are-not-extension-spis.md), with generated CLI consequences in [0018](0018-cli-from-builder-contracts.md). |
-| Immutable configuration snapshots | [0003](0003-immutable-configuration-snapshots.md), with planned factory-scoped locks in [0025](0025-factory-scoped-locked-configuration.md). |
-| Factory-scoped configuration locks | [0025](0025-factory-scoped-locked-configuration.md): accepted for 10.0.0 under #740; planned, not implemented. |
+| Immutable configuration snapshots | [0003](0003-immutable-configuration-snapshots.md), with factory-scoped locks in [0025](0025-factory-scoped-locked-configuration.md). |
+| Factory-scoped configuration locks | [0025](0025-factory-scoped-locked-configuration.md), with the [verification record](../research/740-locked-configuration-verification.md) for unreleased 10.0.0 under #740. |
 | Factory-scoped sending limits | [0027](0027-factory-scoped-sending-limits.md): configurable message/recipient rates, optional spreading and named allowance groups; the [sending-limit concurrency map](../concurrency/09-sending-limits.md) describes the local #751 implementation. Cross-application coordination remains separate research under [#753](https://github.com/bbottema/simple-java-mail/issues/753). |
 | Configuration provenance diagnostics | [0004](0004-configuration-provenance-diagnostics.md), with locked-value provenance obligations in [0025](0025-factory-scoped-locked-configuration.md). |
-| Spring Boot auto-configuration | [0005](0005-spring-integration-and-boot-compatibility.md), with planned locked-property loading and metadata in [0025](0025-factory-scoped-locked-configuration.md). |
+| Spring Boot auto-configuration | [0005](0005-spring-integration-and-boot-compatibility.md), with locked-property loading and metadata in [0025](0025-factory-scoped-locked-configuration.md). |
 | Dynamic module loading | [0006](0006-optional-modules.md); provider discovery and MIME separation in [0007](0007-provider-neutral-mime-boundary.md). |
 | CLI generation from builder Javadocs | [0018](0018-cli-from-builder-contracts.md), with explicit optionality in [0009](0009-nullability-and-cli-optionality.md) and the [generation procedure](../DEVELOPMENT.md#generated-cli-metadata). |
 | Optional local CLI daemon | [0019](0019-local-cli-daemon.md) and [process-mode checks](../DEVELOPMENT.md#exercising-cli-process-modes). |
@@ -69,7 +69,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | Smart MIME structure selection and protection | [0008](0008-minimal-mime-structures-and-protection-order.md), with the finalized-content boundary in [0007](0007-provider-neutral-mime-boundary.md). |
 | Send-time validation and rehearsal | [0014](0014-send-time-rehearsal.md). |
 | Runtime non-null instrumentation | [0009](0009-nullability-and-cli-optionality.md), including why current default builds disable it. |
-| Related: config defaults/overrides and Spring property mapping | [0001](0001-email-configuration-scopes-and-inheritance.md)–[0005](0005-spring-integration-and-boot-compatibility.md); planned opt-in restrictions in [0025](0025-factory-scoped-locked-configuration.md). |
+| Related: config defaults/overrides and Spring property mapping | [0001](0001-email-configuration-scopes-and-inheritance.md)–[0005](0005-spring-integration-and-boot-compatibility.md); opt-in restrictions in [0025](0025-factory-scoped-locked-configuration.md). |
 | Related: Outlook/EML conversion, resource naming and parse-side classification | [0006](0006-optional-modules.md), [0008](0008-minimal-mime-structures-and-protection-order.md) and [0013](0013-exact-eml-submission.md); the detailed naming history remains in the existing [MIME resource report](../research/MIME_RESOURCE_NAMING_REPORT.md). |
 | Related: transport strategy properties | [0007](0007-provider-neutral-mime-boundary.md) and [0021](0021-mandatory-starttls-configuration-consistency.md), including Session ownership and TLS-policy boundaries. |
 

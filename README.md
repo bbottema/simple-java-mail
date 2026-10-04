@@ -179,6 +179,8 @@ A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validatio
 
 `SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
 
+Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
+
 This leaves application code to describe each email while shared rules stay in one reusable place.
 
 Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:

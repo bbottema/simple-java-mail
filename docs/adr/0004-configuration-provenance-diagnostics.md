@@ -31,6 +31,10 @@ Extra-property redaction is a name-based policy in the current implementation, n
 
 ## Implementation evidence
 
+[ADR 0025](0025-factory-scoped-locked-configuration.md) extends this same report to winning locked declarations. Entries retain
+`simplejavamail.locked.` in the displayed key, their own source and the ordinary property's type/group/redaction policy. The corresponding
+raw getter returns the effective configured value. Rejected customization names the lock and source, never the competing values.
+
 - [ConfigLoader](../../modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java) creates entries from resolved winners.
 - [ConfigDiagnostics](../../modules/core-module/src/main/java/org/simplejavamail/config/ConfigDiagnostics.java), [ConfigPropertyDiagnostic](../../modules/core-module/src/main/java/org/simplejavamail/config/ConfigPropertyDiagnostic.java) and [PropertySchema](../../modules/core-module/src/main/java/org/simplejavamail/config/PropertySchema.java) define the report and redaction boundary.
 - [SpringEnvironmentConfigSource](../../modules/spring-module/src/main/java/org/simplejavamail/springsupport/SpringEnvironmentConfigSource.java) retains framework-source provenance.

@@ -204,6 +204,7 @@ Read the relevant code and tests before editing. Use TDD when the issue is repro
 For public API or config changes:
 
 - Follow [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md).
+- Check the [public/internal package boundary](API_EXPANSION_WORKFLOW.md#public-api-versus-internal-cross-module-types): a type made `public` only for cross-module implementation use still belongs in an `.internal` package, not among supported application APIs.
 - Keep Java API, property configuration, Spring support, defaults/overrides, CLI exposure, and website/README docs aligned where applicable.
 - Do not expose low-level Jakarta Mail terminology when Simple Java Mail can provide a higher-level concept.
 - Prefer builder APIs that hide underlying property names and transport-specific details.

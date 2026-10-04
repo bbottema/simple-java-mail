@@ -27,6 +27,10 @@ snapshot still have independent histories; the snapshot and `OperationalConfig` 
 
 Framework adapters supply sources rather than another global registry. Spring's `Environment` resolves its own profiles, placeholders and source ordering before contributing values; Simple Java Mail does not overlay raw environment/system properties a second time. See [ADR 0005](0005-spring-integration-and-boot-compatibility.md).
 
+[ADR 0025](0025-factory-scoped-locked-configuration.md) adds immutable restrictions under `simplejavamail.locked.`. Source precedence still applies
+within each namespace; a locked declaration supplies the effective ordinary value and survives snapshot copying. All Mailers from the factory inherit
+the restriction, without another template, global registry or mutable policy tracker.
+
 ## Alternatives and consequences
 
 The issue explicitly considered retaining a static compatibility facade and passing configuration directly to builders. The selected factory makes ownership visible at the common entry point and reduces the chance that a converter or secondary builder silently uses another configuration. This explanation of the tradeoff follows the implementation; the history does not contain a formal rejection memo for each alternative.

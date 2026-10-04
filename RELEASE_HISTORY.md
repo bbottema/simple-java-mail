@@ -6,6 +6,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration.
+
 - [#751](https://github.com/bbottema/simple-java-mail/issues/751): added optional message and recipient sending limits, configurable as counts over rolling periods. Named groups share allowance within a factory, optional spreading avoids bursts, and actual-send diagnostics distinguish rate waiting from connection acquisition. Limits apply to ordinary sends, simple batches, open connections and CustomMailer callbacks; no implicit rate is imposed.
   See the [sending-limit guide](https://www.simplejavamail.org/sending-and-execution.html#section-sending-limits) for Java, property, Spring and CLI examples.
 

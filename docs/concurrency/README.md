@@ -98,6 +98,11 @@ This is deliberately not yet a map of every synchronized mechanism in the reposi
 
 ## Maintaining the collection
 
+Factory-scoped [configuration locks](../adr/0025-factory-scoped-locked-configuration.md) add no monitor, wait, executor or mutable coordinator.
+Each attempt checks the selected Session's retained configuration and applies message locks before recipient-rate reservation. Shared batch/open scopes
+keep their existing resource ownership. The shared infographic's layers and cancellation/cleanup transitions remain unchanged by #740; the image does
+not need another measurement or policy layer. See `LockedConfigurationSendingTest` for concurrent archive-envelope and batch/open-scope regressions.
+
 Keep Mermaid source in these Markdown files so code review shows the diagram changes next to the implementation changes. GitHub can [render fenced Mermaid diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams). Use the [state-diagram](https://mermaid.js.org/syntax/stateDiagram.html) and [sequence-diagram](https://mermaid.js.org/syntax/sequenceDiagram.html) documentation for syntax; the [Mermaid editor](https://mermaid.live/) is useful for a quick layout check. Prefer the established syntax used here over renderer-specific extensions.
 
 When changing one of these mechanisms:
