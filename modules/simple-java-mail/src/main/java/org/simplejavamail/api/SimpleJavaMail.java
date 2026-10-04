@@ -22,6 +22,10 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * Keep one instance in application scope and request a fresh builder for each independent construction flow. The factory owns no Mailer resources and does
  * not reload configuration. It retains factory-local sending-limit history so participating Mailers can share allowance without sharing executors or pools.
+ * <p>
+ * A snapshot can also contain {@code simplejavamail.locked.} settings, for example a fixed company relay or archive BCC. Every Mailer created by this
+ * factory inherits those restrictions. Ordinary builder customization remains available; conflicting locked values are rejected and required recipients
+ * remain in the actual submission envelope. Creating a separate, independently configured factory remains possible.
  */
 public final class SimpleJavaMail {
 

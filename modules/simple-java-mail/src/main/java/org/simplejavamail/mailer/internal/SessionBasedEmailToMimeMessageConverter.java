@@ -63,10 +63,69 @@ public class SessionBasedEmailToMimeMessageConverter {
     private final Session session;
     private final OperationalConfig operationalConfig;
     private final EmailGovernance emailGovernance;
+    @Nullable
+    private final LockedSmtpConfiguration lockedSmtpConfiguration;
+
+    public SessionBasedEmailToMimeMessageConverter(final Session session, final OperationalConfig operationalConfig, final EmailGovernance emailGovernance) {
+        this(session, operationalConfig, emailGovernance, null);
+    }
 
     public static void primeSession(Session session, OperationalConfig operationalConfig, EmailGovernance emailGovernance) {
         session.getProperties().put(MIMEMESSAGE_CONVERTER_KEY,
                 new SessionBasedEmailToMimeMessageConverter(session, operationalConfig, emailGovernance));
+    }
+
+    static void primeSession(final Session session, final OperationalConfig operationalConfig, final EmailGovernance emailGovernance,
+            final LockedSmtpConfiguration lockedSmtpConfiguration) {
+        session.getProperties().put(MIMEMESSAGE_CONVERTER_KEY,
+                new SessionBasedEmailToMimeMessageConverter(session, operationalConfig, emailGovernance, lockedSmtpConfiguration));
+    }
+
+    /** A caller-owned Session must not silently replace the owner used to check another Mailer's locks. */
+    static void verifySessionCanBeConfigured(final Session session, final boolean incomingLocks) {
+        final SessionBasedEmailToMimeMessageConverter existing = context(session);
+        if (existing == null) {
+            return;
+        }
+        final boolean existingLocks = existing.lockedSmtpConfiguration != null && existing.lockedSmtpConfiguration.hasLocks();
+        if (incomingLocks || existingLocks) {
+            final String affectedMailer = incomingLocks && existingLocks ? "Both Mailers have locked configuration "
+                    : incomingLocks ? "The Mailer you are building has locked configuration " : "The existing Mailer has locked configuration ";
+            throw new IllegalArgumentException("You supplied a Session that is already used by another Mailer. " + affectedMailer
+                    + "(settings fixed by simplejavamail.locked.* properties). "
+                    + "Building another Mailer around the same Session would replace the retained configuration used to check those locks. "
+                    + "Simple Java Mail therefore cannot share this Session between these Mailers. Reuse the existing Mailer, "
+                    + "or call this factory's mailerBuilder() without a Session so the new Mailer gets a separate one.");
+        }
+    }
+
+    static void verifySelectedSession(final Session origin, final Session selected) {
+        final SessionBasedEmailToMimeMessageConverter owner = context(origin);
+        final SessionBasedEmailToMimeMessageConverter destination = context(selected);
+        if (destination != null && destination.lockedSmtpConfiguration != null) {
+            destination.lockedSmtpConfiguration.verifySelected(destination.lockedSmtpConfiguration, selected);
+        }
+        if (owner == null || owner.lockedSmtpConfiguration == null || !owner.lockedSmtpConfiguration.hasLocks()) {
+            return;
+        }
+        if (destination == null || destination.lockedSmtpConfiguration == null) {
+            throw new IllegalArgumentException("The Mailer you are sending through has locked settings "
+                    + "(values fixed by simplejavamail.locked.* properties), but the Session selected from its pool has no retained Mailer configuration. "
+                    + "Simple Java Mail cannot check that connection against this Mailer's locks. "
+                    + "Register the participating connections through Simple Java Mail Mailers, "
+                    + "or put independently managed connections in a separate pool cluster.");
+        }
+        owner.lockedSmtpConfiguration.verifySelected(destination.lockedSmtpConfiguration, selected);
+    }
+
+    static Email applySelectedMessageLocks(final Session selected, final Email email) {
+        final SessionBasedEmailToMimeMessageConverter destination = context(selected);
+        return destination != null && destination.emailGovernance instanceof EmailGovernanceImpl
+                ? ((EmailGovernanceImpl) destination.emailGovernance).applyLocksToPreparedEmail(email) : email;
+    }
+
+    private static SessionBasedEmailToMimeMessageConverter context(final Session session) {
+        return (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
     }
 
     public static void unprimeSession(@NotNull Session session) {
@@ -109,7 +168,7 @@ public class SessionBasedEmailToMimeMessageConverter {
         final Address[] recipients = resolveEnvelopeRecipients(email, mimeMessage);
         return new PreparedMail(mimeMessage, recipients,
                 new DeliveryEnvelope(resolveEnvelopeSender(email), email.getDeliveryStatusNotification(), resolveDeliveryRecipients(email, recipients),
-                        email.isTlsRequiredForOnwardDelivery()),
+                        email.isTlsRequiredForOnwardDelivery(), InternalEmail.requireInternalEmail(email).isDeliveryStatusNotificationRequired()),
                 InternalEmail.requireInternalEmail(email).determineContentRequirement(), operationalConfig.isLegacySmtpContentSupportEnabled());
     }
 

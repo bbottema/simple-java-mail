@@ -24,6 +24,11 @@ import java.util.Collection;
  * Mailer defaults, overrides, content validation, embedded-image resolution, MIME rebuilding, and DKIM/S/MIME/OpenPGP processing are bypassed because
  * any such transformation would contradict exact submission. A transport adapter must explicitly support full-byte preservation; the bundled Angus Mail
  * adapter does.
+ * <p>
+ * Factory-scoped locked configuration is not an ordinary template and is not bypassed. Compatible envelope requirements, such as an archive recipient,
+ * still apply. Matching original headers can satisfy readable-header locks, but duplicate Subject, From, or Reply-To fields prevent confirming a lock
+ * on that field. A single Reply-To field can still contain multiple addresses. Requirements that cannot be satisfied without changing preserved content
+ * are rejected instead of rewriting these bytes.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface ExactEmailBuilder {

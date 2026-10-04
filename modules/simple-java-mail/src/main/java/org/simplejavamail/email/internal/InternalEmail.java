@@ -2,6 +2,7 @@ package org.simplejavamail.email.internal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetHeaders;
 import jakarta.mail.internet.MimeMessage;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +21,7 @@ import java.io.UnsupportedEncodingException;
  * @deprecated for internal use only. This class hides some methods from the public API that are used internally to implement the builder API.
  */
 @Deprecated
-@EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied"})
+@EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied", "deliveryStatusNotificationRequired"})
 @SuppressWarnings("DeprecatedIsStillUsed")
 public class InternalEmail extends Email implements EmailWithDefaultsAndOverridesApplied {
 
@@ -29,6 +30,7 @@ public class InternalEmail extends Email implements EmailWithDefaultsAndOverride
     @Nullable
     private InternalEmail userProvidedEmail;
     private boolean defaultsAndOverridesApplied;
+    private boolean deliveryStatusNotificationRequired;
     @NotNull
     private EmailSource emailSource;
 
@@ -76,6 +78,33 @@ public class InternalEmail extends Email implements EmailWithDefaultsAndOverride
 
     public boolean isExactEml() {
         return emailSource instanceof ExactEmlSource;
+    }
+
+    /** Detached original headers for lock verification; stops before the body without copying or changing the preserved bytes. */
+    @NotNull
+    public InternetHeaders readExactHeaders() throws MessagingException {
+        if (!isExactEml()) {
+            throw new IllegalStateException("Only exact EML has preserved original headers to inspect");
+        }
+        return ((ExactEmlSource) emailSource).readHeaders();
+    }
+
+    /** Copies resolved envelope metadata without replacing the source that owns preserved MIME bytes. */
+    public InternalEmail copyPreservingSource(@NotNull final EmailPopulatingBuilder builder) {
+        final InternalEmail copy = new InternalEmail(builder, emailSource);
+        copy.deliveryStatusNotificationRequired = deliveryStatusNotificationRequired;
+        copy.userProvidedEmail = userProvidedEmail;
+        return copy;
+    }
+
+    /** Internal preparation fact; public Email preferences remain unchanged. */
+    public boolean isDeliveryStatusNotificationRequired() {
+        return deliveryStatusNotificationRequired;
+    }
+
+    /** Marks a governed attempt whose DSN request may not be silently omitted by an adapter. */
+    public void requireDeliveryStatusNotification() {
+        deliveryStatusNotificationRequired = true;
     }
 
     /**

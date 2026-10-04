@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -100,6 +101,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@NotNull private final SimpleJavaMailConfig config;
 	@Getter(AccessLevel.NONE)
 	@NotNull private final EmailStartingBuilder emailBuilder;
+	@Getter(AccessLevel.NONE)
+	@ToString.Exclude
+	private final LockedEmailConfiguration lockedEmailConfiguration;
 
 	// for internal convenience in junit tests
 	public static EmailGovernance NO_GOVERNANCE() {
@@ -155,75 +159,78 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		this.config = requireNonNull(config, "config");
 		this.emailBuilder = requireNonNull(emailBuilder, "emailBuilder");
 		this.emailValidator = emailValidator;
-		this.emailDefaults = emailDefaults != null ? emailDefaults : newDefaultsEmailWithDefaultDefaults();
+		// A replacement template skips ordinary property defaults, including their key-file reads. Only locked requirements remain applicable.
+		final Email configuredDefaults = emailDefaults == null ? createConfiguredDefaults(config::hasProperty)
+				: config.getLocks().isEmpty() ? emailDefaults : createConfiguredDefaults(config.getLocks()::contains);
+		this.emailDefaults = emailDefaults != null ? emailDefaults : configuredDefaults;
 		this.emailOverrides = emailOverrides != null ? emailOverrides : emailBuilder.startingBlank().buildEmail();
 		this.maximumEmailSize = maximumEmailSize;
+		this.lockedEmailConfiguration = new LockedEmailConfiguration(config, configuredDefaults);
 	}
 
 	// FIXME default notificationTo is missing
-	// The name is a bit cryptic, but succinct (and it's only used internally)
-	private Email newDefaultsEmailWithDefaultDefaults() {
+	private Email createConfiguredDefaults(final Predicate<Property> includeProperty) {
 		final EmailPopulatingBuilder allDefaults = emailBuilder.startingBlank();
 		final CliEmailRecipientBuilder recipientDefaults = (CliEmailRecipientBuilder) allDefaults;
 
-		if (hasConfiguredProperty(DEFAULT_FROM_ADDRESS)) {
+		if (includeProperty.test(DEFAULT_FROM_ADDRESS)) {
 			allDefaults.from(configuredString(DEFAULT_FROM_NAME), verifyNonnullOrEmpty(configuredString(DEFAULT_FROM_ADDRESS)));
 		}
-		if (hasConfiguredProperty(DEFAULT_REPLYTO_ADDRESS)) {
+		if (includeProperty.test(DEFAULT_REPLYTO_ADDRESS)) {
 			allDefaults.withReplyTo(configuredString(DEFAULT_REPLYTO_NAME), verifyNonnullOrEmpty(configuredString(DEFAULT_REPLYTO_ADDRESS)));
 		}
-		if (hasConfiguredProperty(DEFAULT_BOUNCETO_ADDRESS)) {
+		if (includeProperty.test(DEFAULT_BOUNCETO_ADDRESS)) {
 			allDefaults.withBounceTo(configuredString(DEFAULT_BOUNCETO_NAME), verifyNonnullOrEmpty(configuredString(DEFAULT_BOUNCETO_ADDRESS)));
 		}
-		if (hasConfiguredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
+		if (includeProperty.test(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
 			allDefaults.withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.parseNotifyOptions(
 					verifyNonnullOrEmpty(configuredString(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY))).toArray(new DeliveryStatusNotification.NotifyOption[0]));
 		}
-		if (hasConfiguredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
+		if (includeProperty.test(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
 			allDefaults.withDeliveryStatusNotificationReturnOption(verifyNonnullOrEmpty(
 					this.<DeliveryStatusNotification.ReturnOption>configuredProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)));
 		}
-		if (hasConfiguredProperty(DEFAULT_REQUIRE_TLS) && configuredBoolean(DEFAULT_REQUIRE_TLS)) {
+		if (includeProperty.test(DEFAULT_REQUIRE_TLS) && configuredBoolean(DEFAULT_REQUIRE_TLS)) {
 			allDefaults.withTlsRequiredForOnwardDelivery();
 		}
-		if (hasConfiguredProperty(DEFAULT_TO_ADDRESS)) {
-			if (hasConfiguredProperty(DEFAULT_TO_NAME)) {
+		if (includeProperty.test(DEFAULT_TO_ADDRESS)) {
+			if (includeProperty.test(DEFAULT_TO_NAME)) {
 				recipientDefaults.withRecipients(configuredString(DEFAULT_TO_NAME), true, TO, configuredString(DEFAULT_TO_ADDRESS));
 			} else {
 				recipientDefaults.withRecipients(null, false, TO, verifyNonnullOrEmpty(configuredString(DEFAULT_TO_ADDRESS)));
 			}
 		}
-		if (hasConfiguredProperty(DEFAULT_CC_ADDRESS)) {
-			if (hasConfiguredProperty(DEFAULT_CC_NAME)) {
+		if (includeProperty.test(DEFAULT_CC_ADDRESS)) {
+			if (includeProperty.test(DEFAULT_CC_NAME)) {
 				recipientDefaults.withRecipients(configuredString(DEFAULT_CC_NAME), true, CC, configuredString(DEFAULT_CC_ADDRESS));
 			} else {
 				recipientDefaults.withRecipients(null, false, CC, verifyNonnullOrEmpty(configuredString(DEFAULT_CC_ADDRESS)));
 			}
 		}
-		if (hasConfiguredProperty(DEFAULT_BCC_ADDRESS)) {
-			if (hasConfiguredProperty(DEFAULT_BCC_NAME)) {
+		if (includeProperty.test(DEFAULT_BCC_ADDRESS)) {
+			if (includeProperty.test(DEFAULT_BCC_NAME)) {
 				recipientDefaults.withRecipients(configuredString(DEFAULT_BCC_NAME), true, BCC, configuredString(DEFAULT_BCC_ADDRESS));
 			} else {
 				recipientDefaults.withRecipients(null, false, BCC, verifyNonnullOrEmpty(configuredString(DEFAULT_BCC_ADDRESS)));
 			}
 		}
-		if (hasConfiguredProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
+		if (includeProperty.test(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withContentTransferEncoding(verifyNonnullOrEmpty(configuredProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)));
 		}
-		if (hasConfiguredProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)) {
+		if (includeProperty.test(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withPlainTextContentTransferEncoding(verifyNonnullOrEmpty(configuredProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)));
 		}
-		if (hasConfiguredProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)) {
+		if (includeProperty.test(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withHTMLTextContentTransferEncoding(verifyNonnullOrEmpty(configuredProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)));
 		}
-		if (hasConfiguredProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)) {
+		if (includeProperty.test(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)) {
 			allDefaults.withCalendarTextContentTransferEncoding(verifyNonnullOrEmpty(configuredProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)));
 		}
-		if (hasConfiguredProperty(DEFAULT_SUBJECT)) {
+		if (includeProperty.test(DEFAULT_SUBJECT)) {
 			allDefaults.withSubject(configuredProperty(DEFAULT_SUBJECT));
 		}
 
-		if (allDefaults.getSmimeSignedEmail() == null && hasConfiguredProperty(SMIME_SIGNING_KEYSTORE)) {
+		if (allDefaults.getSmimeSignedEmail() == null && includeProperty.test(SMIME_SIGNING_KEYSTORE)) {
 			allDefaults.signWithSmime(SmimeSigningConfig.builder()
 					.pkcs12Config(Pkcs12Config.builder()
 							.pkcs12Store(verifyNonnullOrEmpty(configuredString(SMIME_SIGNING_KEYSTORE)))
@@ -231,25 +238,28 @@ public class EmailGovernanceImpl implements EmailGovernance {
 							.keyAlias(checkNonEmptyArgument(configuredString(SMIME_SIGNING_KEY_ALIAS), "Key alias property"))
 							.keyPassword(checkNonEmptyArgument(configuredString(SMIME_SIGNING_KEY_PASSWORD), "Key password property"))
 							.build())
-					.signatureAlgorithm(hasConfiguredProperty(SMIME_SIGNING_ALGORITHM) ? configuredString(SMIME_SIGNING_ALGORITHM) : null)
+					.signatureAlgorithm(includeProperty.test(SMIME_SIGNING_ALGORITHM) ? configuredString(SMIME_SIGNING_ALGORITHM) : null)
 					.build());
 		}
-		if (allDefaults.getSmimeEncryptionConfig() == null && hasConfiguredProperty(SMIME_ENCRYPTION_CERTIFICATE)) {
+		if (allDefaults.getSmimeEncryptionConfig() == null && includeProperty.test(SMIME_ENCRYPTION_CERTIFICATE)) {
 			allDefaults.encryptWithSmime(SmimeEncryptionConfig.builder()
 					.x509Certificate(verifyNonnullOrEmpty(configuredString(SMIME_ENCRYPTION_CERTIFICATE)))
-					.keyEncapsulationAlgorithm(hasConfiguredProperty(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM) ? configuredString(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM) : null)
-					.cipherAlgorithm(hasConfiguredProperty(SMIME_ENCRYPTION_CIPHER) ? configuredString(SMIME_ENCRYPTION_CIPHER) : null)
+					.keyEncapsulationAlgorithm(includeProperty.test(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM)
+							? configuredString(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM) : null)
+					.cipherAlgorithm(includeProperty.test(SMIME_ENCRYPTION_CIPHER) ? configuredString(SMIME_ENCRYPTION_CIPHER) : null)
 					.build());
 		}
-		if (allDefaults.getDkimConfig() == null && hasConfiguredProperty(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
+		if (allDefaults.getDkimConfig() == null && includeProperty.test(DKIM_PRIVATE_KEY_FILE_OR_DATA)) {
 			val dkimConfigBuilder = DkimConfig.builder()
 					.dkimSelector(verifyNonnullOrEmpty(configuredString(DKIM_SELECTOR)))
 					.dkimSigningDomain(verifyNonnullOrEmpty(configuredString(DKIM_SIGNING_DOMAIN)))
-					.useLengthParam(hasConfiguredProperty(DKIM_SIGNING_USE_LENGTH_PARAM) ? configuredBoolean(DKIM_SIGNING_USE_LENGTH_PARAM) : null)
-					.headerCanonicalization(hasConfiguredProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) ? configuredProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) : null)
-					.bodyCanonicalization(hasConfiguredProperty(DKIM_SIGNING_BODY_CANONICALIZATION) ? configuredProperty(DKIM_SIGNING_BODY_CANONICALIZATION) : null)
-					.signingAlgorithm(hasConfiguredProperty(DKIM_SIGNING_ALGORITHM) ? configuredString(DKIM_SIGNING_ALGORITHM) : null);
-			if (hasConfiguredProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)) {
+					.useLengthParam(includeProperty.test(DKIM_SIGNING_USE_LENGTH_PARAM) ? configuredBoolean(DKIM_SIGNING_USE_LENGTH_PARAM) : null)
+					.headerCanonicalization(includeProperty.test(DKIM_SIGNING_HEADER_CANONICALIZATION)
+							? configuredProperty(DKIM_SIGNING_HEADER_CANONICALIZATION) : null)
+					.bodyCanonicalization(includeProperty.test(DKIM_SIGNING_BODY_CANONICALIZATION)
+							? configuredProperty(DKIM_SIGNING_BODY_CANONICALIZATION) : null)
+					.signingAlgorithm(includeProperty.test(DKIM_SIGNING_ALGORITHM) ? configuredString(DKIM_SIGNING_ALGORITHM) : null);
+			if (includeProperty.test(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST)) {
 				dkimConfigBuilder.excludedHeadersFromDkimDefaultSigningList(configuredString(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST));
 			}
 			val dkimPrivateKeyFileOrData = verifyNonnullOrEmpty(configuredString(DKIM_PRIVATE_KEY_FILE_OR_DATA));
@@ -341,7 +351,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 
+		lockedEmailConfiguration.apply(builder, provided, emailDefaults, emailOverrides);
 		val email = builder.buildEmail();
+		retainSubmissionRestrictions(provided, email);
 
 		// we need to update the user's email instance with the generated ID when sending
 		if (provided != null) {
@@ -352,6 +364,62 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		//noinspection deprecation
 		((InternalEmail) email).markAsDefaultsAndOverridesApplied();
 		return email;
+	}
+
+	/** Only envelope-compatible locks apply here; ordinary templates never rewrite exact EML. */
+	public Email prepareExactEmail(final Email email) {
+		if (config.getLocks().isEmpty()) {
+			return email;
+		}
+		lockedEmailConfiguration.verifyExactCompatibility(email);
+		final EmailPopulatingBuilder builder = copyWithSubmissionEnvelope(email);
+		// Explicit receivers preserve the exact headers while allowing required envelope-only destinations to be added.
+		if (builder.getOverrideReceivers().isEmpty()) {
+			builder.withOverrideReceivers(email.getRecipients());
+		}
+		lockedEmailConfiguration.apply(builder, email);
+		// Required destinations live in the envelope, not in the getter view of exact, unchanged recipient headers.
+		builder.clearRecipients().withRecipients(email.getRecipients());
+		final Email result = InternalEmail.requireInternalEmail(email).copyPreservingSource(builder);
+		retainSubmissionRestrictions(email, result);
+		return result;
+	}
+
+	SimpleJavaMailConfig configuration() {
+		return config;
+	}
+
+	/** A selected cluster member contributes its locks, but does not reapply its ordinary templates to an already prepared email. */
+	Email applyLocksToPreparedEmail(final Email email) {
+		if (config.getLocks().isEmpty()) {
+			return email;
+		}
+		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
+			return prepareExactEmail(email);
+		}
+		final EmailPopulatingBuilder builder = copyWithSubmissionEnvelope(email);
+		lockedEmailConfiguration.apply(builder, email);
+		final Email result = builder.buildEmail();
+		InternalEmail.requireInternalEmail(result).setUserProvidedEmail(email);
+		InternalEmail.requireInternalEmail(result).markAsDefaultsAndOverridesApplied();
+		retainSubmissionRestrictions(email, result);
+		return result;
+	}
+
+	private EmailPopulatingBuilder copyWithSubmissionEnvelope(final Email email) {
+		final EmailPopulatingBuilder builder = emailBuilder.copying(email);
+		if (!email.getOverrideReceivers().isEmpty()) {
+			builder.withOverrideReceivers(email.getOverrideReceivers());
+		}
+		return builder;
+	}
+
+	private void retainSubmissionRestrictions(@Nullable final Email provided, final Email prepared) {
+		if (config.getLocks().contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)
+				|| config.getLocks().contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)
+				|| provided != null && InternalEmail.requireInternalEmail(provided).isDeliveryStatusNotificationRequired()) {
+			InternalEmail.requireInternalEmail(prepared).requireDeliveryStatusNotification();
+		}
 	}
 
 	@Nullable
@@ -367,10 +435,6 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@NotNull
 	private Map<String, Collection<String>> resolveEmailHeadersProperty(@Nullable Email email) {
 		return overrideAndOrProvideAndOrDefaultHeaders(email, emailDefaults, emailOverrides);
-	}
-
-	private boolean hasConfiguredProperty(final Property property) {
-		return config.hasProperty(property);
 	}
 
 	@Nullable

@@ -40,6 +40,23 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Ret
 
 class AngusMailTransportAdapterTest {
 
+    @Test
+    void rawReturnOptionsCannotReplaceALockedNotificationPreference() throws Exception {
+        final MimeMessage message = message("body");
+        message.getSession().getProperties().setProperty("mail.smtp.mailextension", "RET=HDRS");
+        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, DeliveryStatusNotification.of(FAILURE), List.of(), false, true);
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), envelope, ContentRequirement.NORMAL));
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                    .hasMessageContaining("requires its delivery-notification settings to be honored")
+                    .hasMessageContaining("mail.smtp.mailextension").hasMessageContaining("Remove the RET parameter")
+                    .hasMessageContaining("any corresponding simplejavamail.locked.* properties").hasMessageContaining("No message was submitted"));
+            assertThat(transport.commands).isEmpty();
+        }
+    }
+
     @ParameterizedTest
     @CsvSource({"plain-id, plain-id", "order +42=, order+20+2B42+3D", "id RET=FULL, id+20RET+3DFULL", "+20, +2B20"})
     void envelopeIdentifiersUseAngusXtextWithoutChangingTheReportedValue(final String identifier, final String encodedIdentifier) throws Exception {

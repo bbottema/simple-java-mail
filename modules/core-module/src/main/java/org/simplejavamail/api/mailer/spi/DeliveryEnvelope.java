@@ -26,6 +26,7 @@ public final class DeliveryEnvelope implements Serializable {
     @NotNull
     private final List<DeliveryRecipient> recipientOptions;
     private final boolean tlsRequiredForOnwardDelivery;
+    private final boolean deliveryStatusNotificationRequired;
 
     /**
      * Creates an envelope without recipient-specific notification preferences.
@@ -61,10 +62,26 @@ public final class DeliveryEnvelope implements Serializable {
      */
     public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
             @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery) {
+        this(envelopeFrom, deliveryStatusNotification, recipientOptions, tlsRequiredForOnwardDelivery, false);
+    }
+
+    /**
+     * Adds a mandatory DSN request, used for locked notification settings. The adapter must reject before MAIL FROM if the connected server cannot honor it.
+     * This requires the request to be applied, not that a delivery notification will actually arrive.
+     * Existing constructors retain their best-effort shared-DSN behavior.
+     */
+    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
+            @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery,
+            final boolean deliveryStatusNotificationRequired) {
+        if (deliveryStatusNotificationRequired && deliveryStatusNotification == null) {
+            throw new IllegalArgumentException("deliveryStatusNotificationRequired is true, but deliveryStatusNotification is null. "
+                    + "Supply a DeliveryStatusNotification request, or set deliveryStatusNotificationRequired to false when no mandatory request is needed.");
+        }
         this.envelopeFrom = envelopeFrom;
         this.deliveryStatusNotification = deliveryStatusNotification;
         this.recipientOptions = List.copyOf(recipientOptions);
         this.tlsRequiredForOnwardDelivery = tlsRequiredForOnwardDelivery;
+        this.deliveryStatusNotificationRequired = deliveryStatusNotificationRequired;
     }
 
     @Nullable
@@ -86,6 +103,11 @@ public final class DeliveryEnvelope implements Serializable {
         return tlsRequiredForOnwardDelivery;
     }
 
+    /** Whether the shared NOTIFY/RET request must be applied rather than omitted when DSN is unavailable. */
+    public boolean isDeliveryStatusNotificationRequired() {
+        return deliveryStatusNotificationRequired;
+    }
+
     /** Immutable ordered recipient policies; empty for older serialized envelopes and submissions without recipient policies. */
     @NotNull
     public List<DeliveryRecipient> getRecipientOptions() {
@@ -100,6 +122,6 @@ public final class DeliveryEnvelope implements Serializable {
     /** Normalize streams written before recipient policies were added, keeping the accessors as plain immutable data access. */
     private Object readResolve() {
         return new DeliveryEnvelope(envelopeFrom, deliveryStatusNotification, recipientOptions == null ? emptyList() : recipientOptions,
-                tlsRequiredForOnwardDelivery);
+                tlsRequiredForOnwardDelivery, deliveryStatusNotificationRequired);
     }
 }

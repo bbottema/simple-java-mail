@@ -14,6 +14,11 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
  * <p>
  * <strong>Note:</strong> SMTP server and transport properties are presumed to be present in the supplied {@link Session}. Proxy routing is the deliberate exception:
  * configuring a proxy through this builder overwrites the supported {@code mail.smtp.socks.host} and {@code mail.smtp.socks.port} properties.
+ * <p>
+ * Factory settings supplied through {@code simplejavamail.locked.} properties must also be honored. A locked SMTP username or password cannot be checked
+ * reliably on a caller-owned Session: its cached credentials or Authenticator may choose another account even when its visible properties match.
+ * Use the factory's {@code mailerBuilder()} without supplying a Session, or remove those credential locks from its configuration source. Other locks
+ * are checked against the supplied Session where possible; incompatible settings or opaque TLS handling are rejected before connecting.
  *
  * @see org.simplejavamail.api.mailer.config.TransportStrategy
  */

@@ -98,6 +98,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withOpportunisticTLS(final boolean opportunisticTLS) {
 		this.opportunisticTLS = opportunisticTLS;
+		customizedSessionSetting(OPPORTUNISTIC_TLS, opportunisticTLS);
 		return this;
 	}
 
@@ -111,6 +112,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withTransportStrategy(@NotNull final TransportStrategy transportStrategy) {
 		this.transportStrategy = transportStrategy;
+		customizedSessionSetting(TRANSPORT_STRATEGY, transportStrategy);
 		return this;
 	}
 
@@ -150,6 +152,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerHost(@Nullable final String host) {
 		this.host = host;
+		customizedSessionSetting(SMTP_HOST, host);
 		return this;
 	}
 	
@@ -159,6 +162,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerPort(@Nullable final Integer port) {
 		this.port = port;
+		customizedSessionSetting(SMTP_PORT, port);
 		return this;
 	}
 	
@@ -168,6 +172,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerUsername(@Nullable final String username) {
 		this.username = username;
+		customizedSessionSetting(SMTP_USERNAME, username);
 		return this;
 	}
 
@@ -186,6 +191,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withCustomSSLFactoryClass(@Nullable final String customSSLFactory) {
 		this.customSSLFactory = customSSLFactory;
+		customizedSessionSetting(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
 		return this;
 	}
 
@@ -203,7 +209,33 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public Mailer buildMailer() {
+		validateLockedConfiguration();
 		return new MailerImpl(this);
+	}
+
+	@Override
+	void validateLockedConfiguration() {
+		super.validateLockedConfiguration();
+		configuration().getLocks().verify(SMTP_HOST, host);
+		configuration().getLocks().verify(SMTP_PORT, port);
+		configuration().getLocks().verify(SMTP_USERNAME, username);
+		configuration().getLocks().verify(SMTP_PASSWORD, password);
+		configuration().getLocks().verify(TRANSPORT_STRATEGY, transportStrategy);
+		configuration().getLocks().verify(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
+		configuration().getLocks().verify(OPPORTUNISTIC_TLS, opportunisticTLS);
+		LockedSmtpConfiguration.verifyCustomSocketFactory(configuration().getLocks(), customSSLFactory != null || customSSLFactoryInstance != null
+				|| LockedSmtpConfiguration.hasCustomSocketFactory(getProperties(), transportStrategy));
+		if (customSSLFactoryInstance != null && configuration().getLocks().contains(CUSTOM_SSLFACTORY_CLASS)) {
+			throw configuration().getLocks().conflict(CUSTOM_SSLFACTORY_CLASS,
+					"withCustomSSLFactoryInstance(...) supplies a factory object, but this configuration locks the factory class to instantiate. "
+							+ "The supplied object would replace that locked class choice. Remove the builder call, "
+							+ "or remove the factory-class lock from the configuration source if your application should supply the instance.");
+		}
+	}
+
+	@Override
+	TransportStrategy transportStrategyForLocks() {
+		return transportStrategy;
 	}
 
 	/**

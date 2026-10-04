@@ -46,6 +46,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         return true;
     }
 
+    /** @see MailTransportAdapter#supportsRequiredDeliveryStatusNotification() */
+    @Override
+    public boolean supportsRequiredDeliveryStatusNotification() {
+        return true;
+    }
+
     @Override
     public boolean supportsContentRequirement(@NotNull final ContentRequirement contentRequirement) {
         switch (contentRequirement) {
@@ -71,9 +77,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                     ? ((ManagedAngusTransport) smtpTransport).getServerMaximumMessageSize() : null;
             try {
                 final boolean supportsDsn = supportsUsableDsn(smtpTransport);
+                if (preparedMail.getDeliveryEnvelope().isDeliveryStatusNotificationRequired() && !supportsDsn) {
+                    throw new MailTransportCompatibilityException("This send requires its delivery-notification settings to be honored, "
+                            + "but the connected SMTP server does not advertise DSN support. Simple Java Mail cannot submit the email with that requirement. "
+                            + "Use a server that advertises DSN, or remove the mandatory notification requirement, "
+                            + "including any notification settings fixed by simplejavamail.locked.* properties. "
+                            + "No message was submitted.",
+                            expandedEnvelopeRecipients);
+                }
                 final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(smtpTransport, preparedMail, supportsDsn);
                 final String protocol = protocolOf(smtpTransport);
                 final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocol);
+                verifyLockedNotificationExtension(preparedMail.getDeliveryEnvelope(), existingMailExtension, expandedEnvelopeRecipients);
                 if (smtpTransport instanceof ManagedAngusTransport) {
                     AngusMessageSize.validateDeclaration(existingMailExtension.value, existingMailExtension.sourceDescription, expandedEnvelopeRecipients);
                 }
@@ -99,6 +114,18 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                 return MailTransportResult.failed(preparationFailure, null, null, expandedEnvelopeRecipients, null)
                         .withEnvelopeRecipients(expandedEnvelopeRecipients).withMessageSizeFacts(null, serverMaximumMessageSize);
             }
+        }
+    }
+
+    private static void verifyLockedNotificationExtension(final DeliveryEnvelope envelope, final ConfiguredMailExtension extension,
+            final Address[] recipients) throws MailTransportCompatibilityException {
+        if (envelope.isDeliveryStatusNotificationRequired() && containsMailExtension(extension.value, "RET", true)) {
+            throw new MailTransportCompatibilityException("This send requires its delivery-notification settings to be honored, but "
+                    + extension.sourceDescription
+                    + " supplies a separate return-content preference (RET) that could replace them. "
+                    + "Remove the RET parameter from that advanced configuration and let Simple Java Mail apply the required notification preference, "
+                    + "or remove the mandatory notification requirement, including any corresponding simplejavamail.locked.* properties. "
+                    + "No message was submitted.", recipients);
         }
     }
 

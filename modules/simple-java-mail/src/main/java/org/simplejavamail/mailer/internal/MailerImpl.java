@@ -24,6 +24,8 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -182,6 +184,11 @@ public class MailerImpl implements Mailer {
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		final boolean ownsSession = session == null;
+		final SimpleJavaMailConfig factoryConfig = emailGovernance instanceof EmailGovernanceImpl
+				? ((EmailGovernanceImpl) emailGovernance).configuration() : ConfigLoader.builder().load();
+		if (!ownsSession) {
+			SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !factoryConfig.getLocks().isEmpty());
+		}
 		if (session == null) {
 			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
 		}
@@ -190,14 +197,25 @@ public class MailerImpl implements Mailer {
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
+		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
+		final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
+				operationalConfig, effectiveTransportStrategy);
+		lockedSmtpConfiguration.verifyAdditionalProperties(operationalConfig.getProperties());
+		if (!ownsSession) {
+			lockedSmtpConfiguration.verifyCallerOwnedSession(session);
+		}
 		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, observerExecutor, operationalConfig.isTransportModeLoggingOnly());
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
-		final TransportStrategy effectiveTransportStrategy = ofNullable(transportStrategy).orElse(findStrategyForSession(session));
 		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
 				session, operationalConfig.getProperties(), effectiveTransportStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		);
 		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
+		lockedSmtpConfiguration.applyLockedExtraProperties(session);
+		if (operationalConfig.getCustomMailer() == null) {
+			lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
+		}
+		SessionBasedEmailToMimeMessageConverter.primeSession(session, operationalConfig, emailGovernance, lockedSmtpConfiguration);
 		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			try {
 				MailTransportLifecycleResolver.configureOwnedSession(session);
@@ -455,14 +473,17 @@ public class MailerImpl implements Mailer {
 
 	/** @see Mailer.Sync#testConnection() */
 	private synchronized void testConnectionSynchronously() {
+		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
 	}
 
 	/** @see Mailer.Async#testConnection() */
 	private synchronized CompletableFuture<Void> testConnectionAsynchronously() {
 		try {
-			return executeMailOperationAsync("testSMTPConnection process", () ->
-					new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run());
+			return executeMailOperationAsync("testSMTPConnection process", () -> {
+				SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
+				new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
+			});
 		} catch (RuntimeException failure) {
 			return AsyncOperationHelper.failedFuture(failure);
 		}
@@ -474,6 +495,7 @@ public class MailerImpl implements Mailer {
 		if (shutdownFuture != null) {
 			throw new IllegalStateException("This Mailer is shutting down. Build a new Mailer before probing another connection.");
 		}
+		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		return SmtpConnectionProbe.probe(session, operationalConfig, authenticate, proxyServer, smtpConnectionCounter);
 	}
 
@@ -568,12 +590,15 @@ public class MailerImpl implements Mailer {
 		preparedMailSend.markStarted();
 		final SelectedPoolTransport selected = selectSendingDestination(control, preparedMailSend.diagnostics());
 		final Session selectedSession = selected == null ? session : selected.getSession();
+		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, selectedSession);
+		final Email selectedEmail = selectedSession == session ? preparedMailSend.getEmail()
+				: SessionBasedEmailToMimeMessageConverter.applySelectedMessageLocks(selectedSession, preparedMailSend.getEmail());
 		// Construct the closure only after admission: its constructor registers proxy use, and run() starts that proxy.
 		try (SendingAllowance.Reservation allowance = operationalConfig.isTransportModeLoggingOnly() ? null
 				: EmailSendingAllowance.reserve(selected == null ? sendingLimits : selected.getSendingAllowance(),
-						selectedSession, preparedMailSend.getEmail(), control, preparedMailSend.diagnostics())) {
+						selectedSession, selectedEmail, control, preparedMailSend.diagnostics())) {
 			control.checkStopped();
-			final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, preparedMailSend.getEmail(), proxyServer,
+			final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, selectedEmail, proxyServer,
 					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control, preparedMailSend.diagnostics(), selected, allowance);
 			sendMailClosure.run();
 			return sendMailClosure.getReceipt();
@@ -607,6 +632,7 @@ public class MailerImpl implements Mailer {
 		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
 		validateDeadlineSupport();
 		try (MailSendOperations.Scope ignored = mailSendOperations.openScope()) {
+			SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 			new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
 					mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, mailSendOperations, sendingLimits)
 					.runOpenConnectionCallback();
@@ -641,6 +667,7 @@ public class MailerImpl implements Mailer {
 
 	private void sendSimpleBatch(@NotNull final Iterable<Email> emails, final MailSendControl control) {
 		validateDeadlineSupport();
+		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
 				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control, sendingLimits)
 				.run();

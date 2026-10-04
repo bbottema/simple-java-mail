@@ -375,10 +375,25 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
+		validateLockedImageResolution();
 		validateProtectionFamilies();
 		resolveDynamicEmbeddedImageDataSources();
 		//noinspection deprecation
 		return new InternalEmail(this);
+	}
+
+	/** Check before resolution can read a file or URL; these locks govern this factory's resolver, not previously supplied attachments. */
+	private void validateLockedImageResolution() {
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, embeddedImageAutoResolutionForFiles);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, embeddedImageAutoResolutionForClassPathResources);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, embeddedImageAutoResolutionForURLs);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, embeddedImageBaseDir);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, embeddedImageBaseClassPath);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, embeddedImageBaseUrl == null ? null : embeddedImageBaseUrl.toExternalForm());
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR, allowEmbeddedImageOutsideBaseDir);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH, allowEmbeddedImageOutsideBaseClassPath);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL, allowEmbeddedImageOutsideBaseUrl);
+		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, embeddedImageAutoResolutionMustBeSuccesful);
 	}
 
 	private void validateProtectionFamilies() {

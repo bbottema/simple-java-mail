@@ -115,10 +115,19 @@ public final class ProviderNeutralClasspathConsumer {
 		assertSigningTemplateApiIsAvailable(simpleJavaMail);
 		assertRecipientDsnApiIsAvailable(simpleJavaMail);
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
+		assertLockedConfigurationApiIsAvailable();
 		assertExactEmailApiIsAvailable(simpleJavaMail);
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	private static void assertLockedConfigurationApiIsAvailable() {
+		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder()
+				.withMap(Map.of("simplejavamail.locked.defaults.subject", "Company mail")).load());
+		if (!"Company mail".equals(factory.emailBuilder().startingBlank().ignoringDefaults().buildEmailCompletedWithDefaultsAndOverrides().getSubject())) {
+			throw new AssertionError("Message locks need no transport provider");
+		}
 	}
 
 	/** Rate configuration and diagnostics need no provider implementation. */

@@ -39,6 +39,10 @@ import static java.util.regex.Pattern.compile;
  * Start with {@code SimpleJavaMail.emailBuilder()}. The resulting {@link EmailStartingBuilder} documents the available blank, copy, reply and forward
  * entry routes.
  * <p>
+ * Default/override suppression controls ordinary templates, not factory-scoped {@code simplejavamail.locked.} settings. Those restrictions are checked
+ * when governance prepares the email, even after completing it early or disabling ordinary validation. Required recipients remain additive; conflicting
+ * single-value settings are rejected. Locks on embedded-image resolution are checked before this builder reads files or URLs.
+ * <p>
  * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */

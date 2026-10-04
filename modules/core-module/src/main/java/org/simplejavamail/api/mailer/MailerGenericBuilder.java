@@ -522,6 +522,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * This replaces the previous template, including the automatically derived property defaults; it does not merge templates. To retain configured
 	 * property defaults, first materialize them with {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()}, then copy and edit
 	 * that Email before supplying it here. Clearing this reference restores the Mailer's snapshot-derived defaults.
+	 * Factory-scoped {@code simplejavamail.locked.} settings are separate restrictions: replacing or suppressing this template cannot remove them.
 	 *
 	 * @param emailDefaults The email to use as defaults.
 	 * @see #clearEmailDefaults()
@@ -535,6 +536,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * entire value collection wins. Explicit recipient fields, such as S/MIME certificates, still take precedence over the resolved Email fallback.
 	 * The submitted email can suppress overrides through {@link EmailPopulatingBuilder#ignoringOverrides()} or
 	 * {@link EmailPopulatingBuilder#dontApplyOverrideValueFor}. This replaces the previous override template.
+	 * A template cannot displace factory-scoped {@code simplejavamail.locked.} settings; conflicting values fail during email preparation.
 	 *
 	 * @param emailOverrides The email to use as overrides.
 	 * @see #clearEmailOverrides()

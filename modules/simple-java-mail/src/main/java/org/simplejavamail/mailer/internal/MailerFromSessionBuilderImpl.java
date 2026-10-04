@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 /**
@@ -43,6 +44,7 @@ public class MailerFromSessionBuilderImpl
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerImpl buildMailer() {
+		validateLockedConfiguration();
 		return new MailerImpl(this);
 	}
 	
@@ -52,5 +54,10 @@ public class MailerFromSessionBuilderImpl
 	@Override
 	public Session getSession() {
 		return session;
+	}
+
+	@Override
+	TransportStrategy transportStrategyForLocks() {
+		return TransportStrategy.findStrategyForSession(session);
 	}
 }

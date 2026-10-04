@@ -2,13 +2,16 @@ package org.simplejavamail.email.internal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetHeaders;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
+import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 final class ExactEmlSource implements EmailSource {
@@ -21,10 +24,15 @@ final class ExactEmlSource implements EmailSource {
 		this.emlBytes = emlBytes.clone();
 	}
 
+	@NotNull
+	InternetHeaders readHeaders() throws MessagingException {
+		return new InternetHeaders(new ByteArrayInputStream(emlBytes));
+	}
+
 	@Override
 	@NotNull
 	public Email prepareForConversion(@NotNull final Email email, @NotNull final EmailGovernance emailGovernance) {
-		return email;
+		return emailGovernance instanceof EmailGovernanceImpl ? ((EmailGovernanceImpl) emailGovernance).prepareExactEmail(email) : email;
 	}
 
 	@Override
@@ -32,8 +40,9 @@ final class ExactEmlSource implements EmailSource {
 	public Email prepareForSending(@NotNull final Email email,
 			@NotNull final EmailGovernance emailGovernance,
 			final boolean disableAllClientValidation) {
-		ExactEmlValidator.validateEnvelope(email);
-		return email;
+		final Email prepared = prepareForConversion(email, emailGovernance);
+		ExactEmlValidator.validateEnvelope(prepared);
+		return prepared;
 	}
 
 	@Override

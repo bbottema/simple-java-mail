@@ -60,4 +60,14 @@ public interface MailTransportAdapter {
 
     @NotNull
     MailTransportResult sendMessage(@NotNull Transport transport, @NotNull PreparedMail preparedMail);
+
+    /**
+     * Opts into mandatory shared DSN requests from locked configuration. When
+     * {@link DeliveryEnvelope#isDeliveryStatusNotificationRequired()} is true, check the actual connection's DSN capability and reject before MAIL FROM
+     * if unavailable; otherwise apply the configured NOTIFY/RET without silently weakening it. Existing adapters are not opted in by an older
+     * {@link #supportsDeliveryEnvelope(DeliveryEnvelope)} implementation returning true.
+     */
+    default boolean supportsRequiredDeliveryStatusNotification() {
+        return false;
+    }
 }

@@ -145,6 +145,13 @@ final class MailTransportAdapterResolver {
                                                         @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation)
             throws MessagingException {
         requireSupportedContent(adapter, transport, preparedMail.getContentRequirement());
+        if (preparedMail.getDeliveryEnvelope().isDeliveryStatusNotificationRequired() && !adapter.supportsRequiredDeliveryStatusNotification()) {
+            throw new MailTransportCompatibilityException("This send requires its delivery-notification settings to be honored, "
+                    + "but the selected provider adapter does not support mandatory DSN requests. "
+                    + "Use a provider adapter that supports this requirement, or remove the mandatory request, "
+                    + "including any notification settings fixed by simplejavamail.locked.* properties. No message was submitted.",
+                    preparedMail.getRecipients());
+        }
         if (!adapter.supportsDeliveryEnvelope(preparedMail.getDeliveryEnvelope())) {
             throw new MailTransportCompatibilityException(adapter.getClass().getName()
                     + " cannot send the requested SMTP envelope options. Use a matching provider adapter that supports them, "

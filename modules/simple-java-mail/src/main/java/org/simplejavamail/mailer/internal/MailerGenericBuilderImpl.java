@@ -18,9 +18,11 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
@@ -62,6 +64,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private final SimpleJavaMailConfig config;
 	/** Factory runtime state stays separate from the immutable property snapshot and built OperationalConfig. */
 	private final FactorySendingLimits sendingLimits;
+	private final Map<Property, Object> explicitSessionSettings = new LinkedHashMap<>();
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
 	@Nullable private SendingRateLimit messageRateLimit;
 	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
@@ -107,6 +110,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Nullable
 	private PrintStream debugPrinter;
+	@Nullable private SessionDebugOutput debugOutput;
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
@@ -325,7 +329,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.disableAllClientValidation = 			verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.debugLogging = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.debugPrinter = 						resolveDebugPrinter(config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT));
+		this.debugOutput = config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT);
+		this.debugPrinter = resolveDebugPrinter(debugOutput);
 		this.sessionTimeout = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
 		this.localBindAddress = 					config.getStringProperty(Property.SMTP_LOCAL_ADDRESS);
 		this.localBindPort = 						config.getIntegerProperty(Property.SMTP_LOCAL_PORT);
@@ -371,6 +376,156 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	FactorySendingLimits getFactorySendingLimits() {
 		return sendingLimits;
+	}
+
+	final SimpleJavaMailConfig configuration() {
+		return config;
+	}
+
+	final void customizedSessionSetting(final Property property, @Nullable final Object value) {
+		explicitSessionSettings.put(property, value);
+	}
+
+	abstract TransportStrategy transportStrategyForLocks();
+
+	/** Check the finished builder before executor, proxy or pool initialization can make a rejected build observable. */
+	void validateLockedConfiguration() {
+		final ConfigurationLocks locks = config.getLocks();
+		if (locks.isEmpty()) {
+			return;
+		}
+		validateLockedSendingSettings(locks);
+		validateLockedConnectionSettings(locks);
+		validateLockedExecutionSettings(locks);
+		validateLockedExtraProperties(locks);
+		validateLockedExecutorSettings(locks);
+		validateCustomMailerLocks(locks);
+		LockedSmtpConfiguration.verifyBuilderCustomizations(locks, explicitSessionSettings, transportStrategyForLocks());
+		validateLockedClusterDefaults(locks);
+		if (oauth2AccessTokenProvider != null && locks.contains(Property.SMTP_PASSWORD)) {
+			throw locks.conflict(Property.SMTP_PASSWORD, "withOAuth2AccessTokenProvider(...) supplies credentials at send time, "
+					+ "but this factory locks the SMTP credential. "
+					+ "Runtime tokens can replace that locked value, so these settings cannot be combined. Remove that builder call, "
+					+ "or remove the SMTP credential lock from the configuration source if credentials should be supplied dynamically.");
+		}
+	}
+
+	private void validateLockedSendingSettings(final ConfigurationLocks locks) {
+		locks.verify(Property.SMTP_RATE_LIMIT_GROUP, rateLimitGroup);
+		locks.verify(Property.SMTP_MESSAGE_RATE_LIMIT, messageRateLimit == null ? null : messageRateLimit.getCount());
+		locks.verify(Property.SMTP_MESSAGE_RATE_PERIOD, messageRateLimit == null ? null : messageRateLimit.getPeriod());
+		locks.verify(Property.SMTP_RECIPIENT_RATE_LIMIT, recipientRateLimit == null ? null : recipientRateLimit.getCount());
+		locks.verify(Property.SMTP_RECIPIENT_RATE_PERIOD, recipientRateLimit == null ? null : recipientRateLimit.getPeriod());
+		locks.verify(Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, rateLimitBurstsAllowed);
+		locks.verify(Property.SMTP_LEGACY_CONTENT_SUPPORT, legacySmtpContentSupportEnabled);
+		locks.verify(Property.DEFAULT_MAIL_SEND_TIMEOUT, mailSendTimeout);
+		locks.verify(Property.TRANSPORT_MODE_LOGGING_ONLY, transportModeLoggingOnly);
+	}
+
+	private void validateLockedExecutionSettings(final ConfigurationLocks locks) {
+		locks.verify(Property.DEFAULT_ASYNC_QUEUE_CAPACITY, asyncQueueConfig.getCapacity());
+		locks.verify(Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, asyncQueueConfig.getOverflowPolicy());
+		locks.verify(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, asyncQueueConfig.getWaitTimeoutMillis());
+		locks.verify(Property.DEFAULT_POOL_SIZE, threadPoolSize);
+		locks.verify(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, threadPoolKeepAliveTime);
+		if (locks.contains(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
+				&& !clusterKey.equals(UUID.fromString(config.getStringProperty(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))) {
+			throw locks.conflict(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY,
+					"withClusterKey(...) selects a different pool cluster from the one locked by this factory. "
+					+ "Remove that builder call, use the locked cluster identifier, or change this lock in its configuration source.");
+		}
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, connectionPoolCoreSize);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, connectionPoolMaxSize);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, connectionPoolClaimTimeoutMillis);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, connectionPoolExpireAfterMillis);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, connectionPoolExpireAfterCreationMillis);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, connectionPoolLoadBalancingStrategy);
+	}
+
+	private void validateLockedConnectionSettings(final ConfigurationLocks locks) {
+		locks.verify(Property.PROXY_HOST, proxyHost);
+		locks.verify(Property.PROXY_PORT, proxyPort);
+		locks.verify(Property.PROXY_USERNAME, proxyUsername);
+		locks.verify(Property.PROXY_PASSWORD, proxyPassword);
+		locks.verify(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
+		locks.verify(Property.JAVAXMAIL_DEBUG, debugLogging);
+		locks.verify(Property.JAVAXMAIL_DEBUG_OUTPUT, debugOutput);
+		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, disableAllClientValidation);
+		locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
+		locks.verify(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
+		locks.verify(Property.SMTP_LOCAL_PORT, localBindPort);
+		locks.verify(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
+		locks.verify(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
+		locks.verify(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
+		if (locks.contains(Property.DEFAULT_TRUSTED_HOSTS)
+				&& !Arrays.asList(config.getStringProperty(Property.DEFAULT_TRUSTED_HOSTS).split(";")).equals(sslHostsToTrust)) {
+			throw locks.conflict(Property.DEFAULT_TRUSTED_HOSTS, "trustingSSLHosts(...) supplies a different trusted-host list from the one locked by this factory. "
+					+ "Remove that builder call, use the locked list, or change this lock in its configuration source.");
+		}
+	}
+
+	private void validateLockedExtraProperties(final ConfigurationLocks locks) {
+		for (final String key : locks.getValues().keySet()) {
+			if (key.startsWith("simplejavamail.extraproperties.")) {
+				locks.verify(key, properties.get(key.substring("simplejavamail.extraproperties.".length())));
+			}
+		}
+	}
+
+	private void validateLockedClusterDefaults(final ConfigurationLocks locks) {
+		for (ConnectionPoolClusterConfig cluster : connectionPoolClusterConfigs.values()) {
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, cluster.getCoreSize());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, cluster.getMaxSize());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, cluster.getClaimTimeoutMillis());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, cluster.getExpireAfterMillis());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, cluster.getExpireAfterCreationMillis());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, cluster.getLoadBalancingStrategy());
+		}
+	}
+
+	private static void verifyClusterOverride(final ConfigurationLocks locks, final Property property, @Nullable final Object override) {
+		if (override != null) {
+			locks.verify(property, override, "A pool-cluster setting overrides this factory's locked connection-pool default. "
+					+ "Make the cluster's setting agree with the locked value or remove that cluster override, "
+					+ "or change the lock in its configuration source.");
+		}
+	}
+
+	private void validateCustomMailerLocks(final ConfigurationLocks locks) {
+		if (customMailer == null) {
+			return;
+		}
+		for (String key : locks.getValues().keySet()) {
+			final boolean smtpSetting = key.startsWith("simplejavamail.smtp.") && !key.startsWith("simplejavamail.smtp.ratelimit.");
+			final boolean envelopeSetting = key.equals(Property.DEFAULT_REQUIRE_TLS.key()) || key.equals(Property.DEFAULT_BOUNCETO_ADDRESS.key())
+					|| key.equals(Property.DEFAULT_TO_ADDRESS.key()) || key.equals(Property.DEFAULT_CC_ADDRESS.key())
+					|| key.equals(Property.DEFAULT_BCC_ADDRESS.key()) || key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key())
+					|| key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key());
+			if (smtpSetting || envelopeSetting || key.startsWith("simplejavamail.proxy.") || key.startsWith("simplejavamail.extraproperties.")
+					|| key.equals(Property.TRANSPORT_STRATEGY.key()) || key.equals(Property.CUSTOM_SSLFACTORY_CLASS.key())
+					|| key.equals(Property.DEFAULT_TRUST_ALL_HOSTS.key()) || key.equals(Property.DEFAULT_TRUSTED_HOSTS.key())
+					|| key.equals(Property.DEFAULT_VERIFY_SERVER_IDENTITY.key()) || key.equals(Property.OPPORTUNISTIC_TLS.key())
+					|| key.equals(Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key())) {
+				throw locks.conflict(key, "withCustomMailer(...) hands transport and delivery envelope handling to your callback, "
+						+ "but this factory locks a setting that must be applied there. Simple Java Mail cannot check what the callback does with it. "
+						+ "Remove withCustomMailer(...) to use this factory's SMTP transport, "
+						+ "or remove the corresponding locks from the configuration used for that callback.");
+			}
+		}
+	}
+
+	private void validateLockedExecutorSettings(final ConfigurationLocks locks) {
+		if (executorService != null) {
+			for (final Property property : new Property[]{Property.DEFAULT_POOL_SIZE, Property.DEFAULT_POOL_KEEP_ALIVE_TIME,
+					Property.DEFAULT_ASYNC_QUEUE_CAPACITY, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY,
+					Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS}) {
+				if (locks.contains(property)) {
+					throw locks.conflict(property, "withExecutorService(...) supplies an application-managed executor, but this factory locks worker or queue settings. "
+							+ "Simple Java Mail cannot configure or verify those settings on your executor. "
+							+ "Remove that builder call so the Mailer creates its executor, or remove the corresponding locks from the configuration source.");
+				}
+			}
+		}
 	}
 
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
@@ -612,6 +767,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T withDebugPrinter(@NotNull final PrintStream debugPrinter) {
+		if (this.debugPrinter != debugPrinter) {
+			this.debugOutput = debugPrinter == System.out ? SessionDebugOutput.STDOUT : debugPrinter == System.err ? SessionDebugOutput.STDERR : null;
+		}
 		this.debugPrinter = debugPrinter;
 		return (T) this;
 	}
@@ -621,7 +779,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	 */
 	@Override
 	public T withDebugOutput(@NotNull final SessionDebugOutput debugOutput) {
-		return withDebugPrinter(SessionDebugOutputResolver.resolve(debugOutput));
+		withDebugPrinter(SessionDebugOutputResolver.resolve(debugOutput));
+		this.debugOutput = debugOutput;
+		return (T) this;
 	}
 
 	/**
@@ -639,6 +799,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withSessionTimeout(@NotNull final Integer sessionTimeout) {
 		this.sessionTimeout = sessionTimeout;
+		customizedSessionSetting(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
 		return (T) this;
 	}
 
@@ -648,6 +809,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withLocalBindAddress(@Nullable final String localBindAddress) {
 		this.localBindAddress = localBindAddress;
+		customizedSessionSetting(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
 		return (T) this;
 	}
 
@@ -658,6 +820,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	public T withLocalBindAddress(@Nullable final String localBindAddress, @Nullable final Integer localBindPort) {
 		this.localBindAddress = localBindAddress;
 		this.localBindPort = localBindPort;
+		customizedSessionSetting(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
+		customizedSessionSetting(Property.SMTP_LOCAL_PORT, localBindPort);
 		return (T) this;
 	}
 
@@ -667,6 +831,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T withSmtpClientHostname(@Nullable final String smtpClientHostname) {
 		this.smtpClientHostname = smtpClientHostname;
+		customizedSessionSetting(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
 		return (T) this;
 	}
 
@@ -818,6 +983,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T trustingSSLHosts(String... sslHostsToTrust) {
 		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
+		customizedSessionSetting(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust));
 		return (T) this;
 	}
 
@@ -827,6 +993,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T trustingAllHosts(final boolean trustAllHosts) {
 		this.trustAllSSLHost = trustAllHosts;
+		customizedSessionSetting(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllHosts);
 		return (T) this;
 	}
 
@@ -836,6 +1003,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Override
 	public T verifyingServerIdentity(final boolean verifyingServerIdentity) {
 		this.verifyingServerIdentity = verifyingServerIdentity;
+		customizedSessionSetting(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
 		return (T) this;
 	}
 

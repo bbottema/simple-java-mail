@@ -33,6 +33,41 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailTransportAdapterResolverTest {
 
     @Test
+    void envelopeSupportAloneDoesNotOptAnExistingAdapterIntoMandatoryDsn() throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true) {
+            @Override
+            public boolean supportsDeliveryEnvelope(final DeliveryEnvelope envelope) {
+                return true;
+            }
+        };
+        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null,
+                DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE), List.of(), false, true));
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter)))
+                .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("mandatory DSN");
+        assertThat(adapter.preparedMail).isNull();
+    }
+
+    @Test
+    void mandatoryNotificationSurvivesSerializationWithoutChangingOldConstructorBehavior() throws Exception {
+        final DeliveryStatusNotification request = DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE);
+        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, request, List.of(), false, true);
+        final java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.io.ObjectOutputStream output = new java.io.ObjectOutputStream(bytes)) {
+            output.writeObject(envelope);
+        }
+        try (java.io.ObjectInputStream input = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes.toByteArray()))) {
+            final DeliveryEnvelope restored = (DeliveryEnvelope) input.readObject();
+            assertThat(restored.isDeliveryStatusNotificationRequired()).isTrue();
+            assertThat(restored.getDeliveryStatusNotification().getNotifyOptions()).containsExactly(DeliveryStatusNotification.NotifyOption.FAILURE);
+        }
+        assertThat(new DeliveryEnvelope(null, request).isDeliveryStatusNotificationRequired()).isFalse();
+        assertThatThrownBy(() -> new DeliveryEnvelope(null, null, List.of(), false, true)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deliveryStatusNotificationRequired is true, but deliveryStatusNotification is null")
+                .hasMessageContaining("Supply a DeliveryStatusNotification request")
+                .hasMessageContaining("set deliveryStatusNotificationRequired to false");
+    }
+
+    @Test
     void olderAdapterCannotSilentlyIgnoreAnEnvelopeIdentifier() throws Exception {
         final RecordingAdapter adapter = new RecordingAdapter(true);
         final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null,
