@@ -25,6 +25,22 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
 	@Test
+	void lockedNamespaceSupportsAliasesPlaceholdersAndUnderlyingSourceNames() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(new MapPropertySource("central deployment", Map.of(
+				"simplejavamail.locked.smtp.host", "${relay.host}", "relay.host", "relay.example.org",
+				"simplejavamail.locked.javaxmail.debug-out", "STDERR",
+				"simplejavamail.locked.extraproperties.mail.smtp.auth", "true")));
+		environment.getPropertySources().addFirst(source("application override", SMTP_HOST.key(), "ignored.example.org"));
+		ConfigurationPropertySources.attach(environment);
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("relay.example.org");
+		assertThat(config.getLocks().contains(SMTP_HOST)).isTrue();
+		assertThat(config.getDiagnostics().toString()).contains("simplejavamail.locked.smtp.host = relay.example.org (source: central deployment)",
+				"simplejavamail.locked.javaxmail.debug.out = STDERR", "simplejavamail.locked.extraproperties.mail.smtp.auth = true");
+	}
+
+	@Test
 	void resolvesCreationAgeExpirationThroughSpringWithoutLosingClusterSources() {
 		final StandardEnvironment environment = new StandardEnvironment();
 		final UUID clusterKey = UUID.fromString("00000000-0000-0000-0000-000000000301");

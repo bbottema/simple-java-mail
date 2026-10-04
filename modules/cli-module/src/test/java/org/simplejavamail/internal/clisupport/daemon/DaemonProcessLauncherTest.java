@@ -11,6 +11,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DaemonProcessLauncherTest {
 	@Test
+	void childProcessReceivesLockedScalarAndWildcardSettings() {
+		final Properties properties = new Properties();
+		properties.setProperty("simplejavamail.locked.smtp.password", "secret");
+		properties.setProperty("simplejavamail.locked.extraproperties.mail.smtp.timeout", "1000");
+		final Map<String, String> environment = new HashMap<>();
+		DaemonProcessLauncher.copyConfigurationSystemProperties(environment, properties);
+		assertThat(environment).containsEntry("SIMPLEJAVAMAIL_LOCKED_SMTP_PASSWORD", "secret")
+				.containsEntry("simplejavamail.locked.extraproperties.mail.smtp.timeout", "1000");
+	}
+
+	@Test
 	void detachedChildReceivesSimpleJavaMailSystemPropertyConfigurationWithoutCommandLineSecrets() {
 		final Properties properties = new Properties();
 		final String password = "password-" + UUID.randomUUID();

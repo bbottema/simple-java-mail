@@ -4,10 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.ConfigSource;
+import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,7 +39,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	public Map<String, ?> getProperties() {
 		final Map<String, Object> resolvedProperties = new LinkedHashMap<>();
 
-		addScalarPropertiesTo(resolvedProperties);
+		addSingleValuePropertiesTo(resolvedProperties);
 		addWildcardPropertiesTo(resolvedProperties);
 
 		return resolvedProperties;
@@ -47,19 +49,24 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	public String getPropertySourceName(final String propertyName) {
 		final String underlyingSourceName = isWildcardPropertyName(propertyName)
 				? findUnderlyingPropertySourceName(propertyName)
-				: findScalarPropertySourceName(propertyName);
+				: findSingleValuePropertySourceName(propertyName);
 		return underlyingSourceName != null ? underlyingSourceName : getName();
 	}
 
-	private void addScalarPropertiesTo(final Map<String, Object> resolvedProperties) {
+	private void addSingleValuePropertiesTo(final Map<String, Object> resolvedProperties) {
 		for (Property property : Property.values()) {
 			if (isWildcardProperty(property)) {
 				continue;
 			}
-			final String resolvedValue = resolveScalarProperty(property.key());
-			if (resolvedValue != null) {
-				resolvedProperties.put(property.key(), resolvedValue);
-			}
+			addSingleValuePropertyTo(property.key(), resolvedProperties);
+			addSingleValuePropertyTo(ConfigurationLocks.lockedName(property.key()), resolvedProperties);
+		}
+	}
+
+	private void addSingleValuePropertyTo(final String key, final Map<String, Object> resolvedProperties) {
+		final String resolvedValue = resolveSingleValueProperty(key);
+		if (resolvedValue != null) {
+			resolvedProperties.put(key, resolvedValue);
 		}
 	}
 
@@ -68,7 +75,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	}
 
 	@Nullable
-	private String resolveScalarProperty(final String canonicalKey) {
+	private String resolveSingleValueProperty(final String canonicalKey) {
 		for (String lookupName : lookupNamesFor(canonicalKey)) {
 			final String value = environment.getProperty(lookupName);
 			if (value != null) {
@@ -99,10 +106,15 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	}
 
 	private static boolean isWildcardPropertyName(final String propertyName) {
-		return propertyName.startsWith(EXTRA_PROPERTIES_PREFIX) || propertyName.startsWith(CONNECTIONPOOL_CLUSTERS_PREFIX);
+		final String ordinaryName = ConfigurationLocks.ordinaryName(propertyName);
+		return ordinaryName.startsWith(EXTRA_PROPERTIES_PREFIX) || ordinaryName.startsWith(CONNECTIONPOOL_CLUSTERS_PREFIX);
 	}
 
 	private static String[] aliasesFor(final String canonicalKey) {
+		if (ConfigurationLocks.isLockedName(canonicalKey)) {
+			return Arrays.stream(aliasesFor(ConfigurationLocks.ordinaryName(canonicalKey)))
+					.map(ConfigurationLocks::lockedName).toArray(String[]::new);
+		}
 		final String[] explicitAliases = COMPATIBILITY_ALIASES.get(canonicalKey);
 		if (explicitAliases != null) {
 			return explicitAliases;
@@ -122,7 +134,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	}
 
 	@Nullable
-	private String findScalarPropertySourceName(final String canonicalKey) {
+	private String findSingleValuePropertySourceName(final String canonicalKey) {
 		for (String lookupName : lookupNamesFor(canonicalKey)) {
 			final String sourceName = findUnderlyingPropertySourceName(lookupName);
 			if (sourceName != null) {

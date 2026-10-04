@@ -1,8 +1,9 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
-import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.config.ConfigurationLocks;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -104,18 +105,20 @@ final class DaemonProcessLauncher {
 	}
 
 	static void copyConfigurationSystemProperties(final Map<String, String> environment, final Properties properties) {
-		final Map<String, String> scalarEnvironmentNames = new HashMap<>();
+		final Map<String, String> propertyEnvironmentNames = new HashMap<>();
 		for (ConfigLoader.Property property : ConfigLoader.Property.values()) {
 			if (!property.key().contains("*")) {
-				scalarEnvironmentNames.put(property.key(), property.key().replace('.', '_').toUpperCase(Locale.ROOT));
+				propertyEnvironmentNames.put(property.key(), property.key().replace('.', '_').toUpperCase(Locale.ROOT));
+				final String lockedName = ConfigurationLocks.lockedName(property.key());
+				propertyEnvironmentNames.put(lockedName, lockedName.replace('.', '_').toUpperCase(Locale.ROOT));
 			}
 		}
 		for (String name : properties.stringPropertyNames()) {
-			final String environmentName = scalarEnvironmentNames.get(name);
+			final String environmentName = propertyEnvironmentNames.get(name);
 			if (environmentName != null) {
 				environment.put(environmentName, properties.getProperty(name));
-			} else if (name.startsWith("simplejavamail.extraproperties.")
-					|| name.startsWith("simplejavamail.defaults.connectionpool.clusters.")) {
+			} else if (ConfigurationLocks.ordinaryName(name).startsWith("simplejavamail.extraproperties.")
+					|| ConfigurationLocks.ordinaryName(name).startsWith("simplejavamail.defaults.connectionpool.clusters.")) {
 				environment.put(name, properties.getProperty(name));
 			}
 		}

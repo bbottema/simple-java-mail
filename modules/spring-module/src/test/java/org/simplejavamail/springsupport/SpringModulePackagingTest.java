@@ -61,6 +61,8 @@ public class SpringModulePackagingTest {
 			assertThat(configurationMetadata)
 					.as("Spring Boot metadata should describe %s", property.key())
 					.contains("\"name\": \"" + metadataNameFor(property) + "\"");
+			assertThat(configurationMetadata).as("Locked Spring metadata should describe %s", property.key())
+					.contains("\"name\": \"" + metadataNameFor(property).replace("simplejavamail.", "simplejavamail.locked.") + "\"");
 		}
 	}
 

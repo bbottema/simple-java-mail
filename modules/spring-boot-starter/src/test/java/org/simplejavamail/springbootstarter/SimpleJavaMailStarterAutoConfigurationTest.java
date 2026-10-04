@@ -38,6 +38,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleJavaMailStarterAutoConfigurationTest {
 
+	@Test
+	void factoryAndAutoConfiguredMailerRetainCentralLocks() {
+		try (ConfigurableApplicationContext context = applicationBuilder().run(
+				"--simplejavamail.smtp.host=ignored.example.org", "--simplejavamail.locked.smtp.host=relay.example.org",
+				"--simplejavamail.locked.defaults.subject=Company mail")) {
+			final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
+			assertThat(factory.getConfig()).isSameAs(context.getBean(SimpleJavaMailConfig.class));
+			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("relay.example.org");
+			assertThat(factory.emailBuilder().startingBlank().ignoringDefaults().buildEmailCompletedWithDefaultsAndOverrides().getSubject())
+					.isEqualTo("Company mail");
+			assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("another.example.org").buildMailer())
+					.hasMessageContaining("locked.smtp.host");
+			assertThat(factory.getConfig().getDiagnostics().toString())
+					.contains("simplejavamail.locked.smtp.host = relay.example.org (source: commandLineArgs)");
+		}
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = {"SMTP_TLS", "SMTP_OAUTH2"})
 	void contradictoryStartTlsCommandLinePropertyFailsStartup(final String strategy) {

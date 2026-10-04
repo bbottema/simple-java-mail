@@ -78,6 +78,9 @@ public final class CliMailerProfile {
 			config.asMap().entrySet().stream()
 					.sorted(Comparator.comparing(entry -> entry.getKey().name()))
 					.forEach(entry -> writeConfigEntry(output, entry, configurationWorkingDirectory));
+			// Equal effective values are not interchangeable when only one snapshot restricts later customization.
+			writeString(output, "configuration locks");
+			writeValue(output, config.getLocks().getValues());
 			for (final CliReceivedOptionData option : receivedOptions) {
 				if (option.determineTargetBuilderApi() == CliBuilderApiType.MAILER) {
 					writeString(output, option.getDeclaredOptionSpec().getSourceMethod().toGenericString());
