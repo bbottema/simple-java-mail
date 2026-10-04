@@ -5,9 +5,21 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.internal.util.StringUtil.StringFormatter.formatterForPattern;
+import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 import static org.simplejavamail.internal.util.StringUtil.replaceNestedTokens;
 
 public class StringUtilTest {
+
+	@Test
+	void escapesControlCharactersForDiagnosticLogs() {
+		assertThat(escapeControlCharacters("first\r\n\t\u0000\u001b\u007f\u0085last"))
+				.isEqualTo("first\\r\\n\\t\\u0000\\u001b\\u007f\\u0085last");
+	}
+
+	@Test
+	void preservesPrintableTextAndLiteralBackslashesInDiagnostics() {
+		assertThat(escapeControlCharacters("josé\\path \uD83D\uDE80")).isEqualTo("josé\\path \uD83D\uDE80");
+	}
 	
 	@Test
 	public void testReplaceNestedTokensAtDepth0() {

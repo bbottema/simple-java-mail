@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.simplejavamail.internal.util.SimpleConversions;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 
 import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
 /**
  * Ordered, instance-based configuration resolver. Add sources from lowest to highest priority and call {@link #load()} to create a detached immutable
@@ -279,7 +281,7 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Adds the current process environment. Scalar names use uppercase underscore notation; wildcard names retain their literal dotted form for compatibility.
+	 * Adds the current process environment. Non-wildcard property names use uppercase underscore notation; wildcard names retain their literal dotted form.
 	 */
 	public ConfigLoader withEnvironmentVariables() {
 		return withEnvironmentVariables(System.getenv());
@@ -303,9 +305,14 @@ public final class ConfigLoader {
 					if (value != null) {
 						normalized.put(property.key(), value);
 					}
+					final String lockedKey = ConfigurationLocks.lockedName(property.key());
+					final String lockedValue = environment.get(lockedKey.replace('.', '_').toUpperCase(Locale.ROOT));
+					if (lockedValue != null) {
+						normalized.put(lockedKey, lockedValue);
+					}
 				}
 				for (Map.Entry<String, String> entry : environment.entrySet()) {
-					if (isWildcardKey(entry.getKey())) {
+					if (isWildcardKey(ConfigurationLocks.ordinaryName(entry.getKey()))) {
 						normalized.put(entry.getKey(), entry.getValue());
 					}
 				}
@@ -338,7 +345,9 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Resolves the registered sources into a new detached immutable snapshot. Later non-blank values win and only each winning value is parsed.
+	 * Resolves the registered sources into a new detached immutable snapshot. Later non-blank values win within each namespace and only winning values
+	 * are parsed. A {@code simplejavamail.locked.<tail>} declaration supplies the effective value of {@code simplejavamail.<tail>} regardless of ordinary
+	 * source priority. Its restriction survives snapshot copying and later builder customization; blank entries do not remove it.
 	 */
 	public SimpleJavaMailConfig load() {
 		final Map<String, RawValue> winners = new LinkedHashMap<>();
@@ -353,13 +362,17 @@ public final class ConfigLoader {
 				final String key = entry.getKey();
 				if (!isRecognizedKey(key)) {
 					if (source.isStrict()) {
-						throw new IllegalStateException("Unknown Simple Java Mail property " + key + " from source " + sourceName);
+						throw new IllegalStateException("Unknown Simple Java Mail property " + escapeControlCharacters(key)
+								+ " from source " + escapeControlCharacters(sourceName) + ". Check the property name. "
+								+ (ConfigurationLocks.isLockedName(key) ? "A locked key uses simplejavamail.locked.<existing-property-tail> "
+										+ "to fix that setting for this factory's Mailers." : ""));
 					}
 					continue;
 				}
 				if (!isBlankValue(entry.getValue())) {
 					final String propertySourceName = requireSourceName(source.getPropertySourceName(key));
-					winners.put(key, new RawValue(entry.getValue(), sourceName, propertySourceName, sourceOrder));
+					winners.put(key, new RawValue(entry.getValue(), sourceName, propertySourceName, sourceOrder,
+							ConfigurationLocks.isLockedName(key)));
 				}
 			}
 			sourceOrder++;
@@ -368,18 +381,40 @@ public final class ConfigLoader {
 	}
 
 	private static SimpleJavaMailConfig resolve(final Map<String, RawValue> winners) {
+		final Map<String, RawValue> effective = new LinkedHashMap<>();
+		winners.forEach((key, value) -> {
+			if (!value.locked) {
+				effective.put(key, value);
+			}
+		});
+		winners.forEach((key, value) -> {
+			if (value.locked) {
+				effective.put(ConfigurationLocks.ordinaryName(key), value);
+			}
+		});
 		final Map<Property, Object> resolved = new EnumMap<>(Property.class);
 		final Map<Property, String> origins = new EnumMap<>(Property.class);
 		final Map<String, Object> resolvedSourceProperties = new LinkedHashMap<>();
 		final List<ConfigPropertyDiagnostic> diagnostics = new ArrayList<>();
 
-		resolveScalarProperties(winners, resolved, origins, resolvedSourceProperties, diagnostics);
-		resolveWildcardProperties(winners, resolved, origins, resolvedSourceProperties, diagnostics);
+		resolveSingleValueProperties(effective, resolved, origins, resolvedSourceProperties, diagnostics);
+		resolveWildcardProperties(effective, resolved, origins, resolvedSourceProperties, diagnostics);
+		final Map<String, Object> lockedValues = new LinkedHashMap<>();
+		final Map<String, String> lockedSources = new LinkedHashMap<>();
+		effective.forEach((key, value) -> {
+			if (value.locked) {
+				final Object parsed = resolvedSourceProperties.remove(key);
+				lockedValues.put(key, parsed);
+				lockedSources.put(key, value.propertySourceName);
+				resolvedSourceProperties.put(ConfigurationLocks.lockedName(key), parsed);
+			}
+		});
 
-		return new SimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics));
+		return new SimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics),
+				new ConfigurationLocks(lockedValues, lockedSources));
 	}
 
-	private static void resolveScalarProperties(final Map<String, RawValue> winners,
+	private static void resolveSingleValueProperties(final Map<String, RawValue> winners,
 			final Map<Property, Object> resolved,
 			final Map<Property, String> origins,
 			final Map<String, Object> resolvedSourceProperties,
@@ -390,11 +425,11 @@ public final class ConfigLoader {
 			}
 			final RawValue winner = winners.get(property.key());
 			if (winner != null) {
-				final Object parsedValue = PropertySchema.parse(property, winner.value, winner.propertySourceName);
+				final Object parsedValue = PropertySchema.parse(property, winner.value, winner.displayName(property.key()), winner.propertySourceName);
 				resolved.put(property, parsedValue);
 				origins.put(property, winner.propertySourceName);
 				resolvedSourceProperties.put(property.key(), parsedValue);
-				diagnostics.add(PropertySchema.diagnostic(property, property.key(), parsedValue, winner.propertySourceName));
+				diagnostics.add(PropertySchema.diagnostic(property, winner.displayName(property.key()), parsedValue, winner.propertySourceName));
 			}
 		}
 	}
@@ -417,18 +452,20 @@ public final class ConfigLoader {
 				extraProperties.put(extraPropertyMatcher.group("actualProperty"), (String) entry.getValue().value);
 				diagnostics.add(PropertySchema.diagnostic(
 						Property.EXTRA_PROPERTIES,
-						entry.getKey(),
+						entry.getValue().displayName(entry.getKey()),
 						entry.getValue().value,
 						entry.getValue().propertySourceName));
 				resolvedSourceProperties.put(entry.getKey(), entry.getValue().value);
 				latestExtra = later(latestExtra, entry.getValue());
 			} else if (CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(entry.getKey()).matches()) {
-				final Object parsedValue = parseConnectionPoolClusterProperty(entry.getKey(), entry.getValue().value);
+				final String propertyDescription = escapeControlCharacters(entry.getValue().displayName(entry.getKey()))
+						+ " from source " + escapeControlCharacters(entry.getValue().propertySourceName);
+				final Object parsedValue = parseConnectionPoolClusterProperty(entry.getKey(), entry.getValue().value, propertyDescription);
 				clusterProperties.put(entry.getKey(), parsedValue);
 				resolvedSourceProperties.put(entry.getKey(), parsedValue);
 				diagnostics.add(PropertySchema.diagnostic(
 						Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS,
-						entry.getKey(),
+						entry.getValue().displayName(entry.getKey()),
 						parsedValue,
 						entry.getValue().propertySourceName));
 				latestCluster = later(latestCluster, entry.getValue());
@@ -450,7 +487,9 @@ public final class ConfigLoader {
 	}
 
 	private static IllegalArgumentException invalidWildcardValue(final String key, final RawValue rawValue, final String expectedType) {
-		return new IllegalArgumentException("Invalid value for " + key + " from source " + rawValue.propertySourceName + "; expected " + expectedType);
+		return new IllegalArgumentException("Invalid value for " + escapeControlCharacters(rawValue.displayName(key))
+				+ " from source " + escapeControlCharacters(rawValue.propertySourceName) + "; expected " + expectedType
+				+ ". Correct this value in its configuration source.");
 	}
 
 	private static ConfigSource mapSource(final String sourceName, final Map<?, ?> properties, final boolean strict) {
@@ -512,14 +551,15 @@ public final class ConfigLoader {
 		if (key == null) {
 			return false;
 		}
+		final String ordinaryKey = ConfigurationLocks.ordinaryName(key);
 		for (Property property : Property.values()) {
 			if (property != Property.EXTRA_PROPERTIES
 					&& property != Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS
-					&& property.key().equals(key)) {
+					&& property.key().equals(ordinaryKey)) {
 				return true;
 			}
 		}
-		return isWildcardKey(key);
+		return isWildcardKey(ordinaryKey);
 	}
 
 	private static boolean isWildcardKey(final String key) {
@@ -535,12 +575,18 @@ public final class ConfigLoader {
 		private final String configSourceName;
 		private final String propertySourceName;
 		private final long sourceOrder;
+		private final boolean locked;
 
-		private RawValue(final Object value, final String configSourceName, final String propertySourceName, final long sourceOrder) {
+		private RawValue(final Object value, final String configSourceName, final String propertySourceName, final long sourceOrder, final boolean locked) {
 			this.value = value;
 			this.configSourceName = configSourceName;
 			this.propertySourceName = propertySourceName;
 			this.sourceOrder = sourceOrder;
+			this.locked = locked;
+		}
+
+		private String displayName(final String ordinaryName) {
+			return locked ? ConfigurationLocks.lockedName(ordinaryName) : ordinaryName;
 		}
 	}
 
@@ -608,25 +654,27 @@ public final class ConfigLoader {
 		}
 	}
 
-	private static Object parseConnectionPoolClusterProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+	private static Object parseConnectionPoolClusterProperty(@NotNull final String propertyName, @Nullable final Object propertyValue,
+			final String propertyDescription) {
 		final Matcher matcher = CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(propertyName);
 		if (!matcher.matches()) {
-			throw new IllegalArgumentException("Unknown connection pool cluster property " + propertyName);
+			throw new IllegalArgumentException("Unknown connection pool cluster property " + propertyDescription);
 		}
 		switch (matcher.group("clusterProperty")) {
 			case "clusterkey.uuid":
-				return parseUuid(propertyName, propertyValue);
+				return parseUuid(propertyDescription, propertyValue);
 			case "coresize":
 			case "maxsize":
 			case "claimtimeout.millis":
 			case "expireafter.millis":
-				return parseInteger(propertyName, propertyValue);
+				return parseInteger(propertyDescription, propertyValue);
 			case "expireaftercreation.millis":
-				return parsePositiveInteger(propertyName, propertyValue);
+				return parsePositiveInteger(propertyDescription, propertyValue);
 			case "loadbalancing.strategy":
-				return parseLoadBalancingStrategy(propertyName, propertyValue);
+				return parseLoadBalancingStrategy(propertyDescription, propertyValue);
 			default:
-				throw new IllegalStateException("Unhandled connection pool cluster property " + propertyName);
+				throw new IllegalStateException("Unhandled connection pool cluster property " + propertyDescription
+						+ ". This is a library error, not a configuration value you can fix; please report it.");
 		}
 	}
 

@@ -1,8 +1,10 @@
 package org.simplejavamail.config;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.internal.config.ConfigurationLocks;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -20,6 +22,10 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
  * <p>
  * The typed property getters and {@link #asMap()} return actual configured values and may therefore expose credentials. Use {@link #getDiagnostics()} for
  * structured output intended for diagnostic logs.
+ * <p>
+ * Properties under {@code simplejavamail.locked.} supply their ordinary counterpart's effective value and remain restrictions on later customization
+ * in every Mailer created from this snapshot's factory. Diagnostics retain the locked name and its source. An independently configured factory remains
+ * possible; these local restrictions are not a security sandbox.
  */
 public final class SimpleJavaMailConfig {
 
@@ -28,11 +34,19 @@ public final class SimpleJavaMailConfig {
 	// Retains concrete wildcard aliases because their aggregate values are keyed by the resolved cluster UUID instead.
 	private final Map<String, Object> resolvedSourceProperties;
 	private final ConfigDiagnostics diagnostics;
+	private final ConfigurationLocks locks;
 
 	SimpleJavaMailConfig(@NotNull final Map<ConfigLoader.Property, Object> values,
 			@NotNull final Map<ConfigLoader.Property, String> propertySources,
 			@NotNull final Map<String, Object> resolvedSourceProperties,
 			@NotNull final ConfigDiagnostics diagnostics) {
+		this(values, propertySources, resolvedSourceProperties, diagnostics, new ConfigurationLocks(Collections.emptyMap(), Collections.emptyMap()));
+	}
+
+	SimpleJavaMailConfig(@NotNull final Map<ConfigLoader.Property, Object> values,
+			@NotNull final Map<ConfigLoader.Property, String> propertySources,
+			@NotNull final Map<String, Object> resolvedSourceProperties,
+			@NotNull final ConfigDiagnostics diagnostics, @NotNull final ConfigurationLocks locks) {
 		final Map<ConfigLoader.Property, Object> detachedValues = new EnumMap<>(ConfigLoader.Property.class);
 		for (Map.Entry<ConfigLoader.Property, Object> entry : values.entrySet()) {
 			detachedValues.put(entry.getKey(), detach(entry.getKey(), entry.getValue()));
@@ -43,6 +57,14 @@ public final class SimpleJavaMailConfig {
 		this.propertySources = Collections.unmodifiableMap(detachedSources);
 		this.resolvedSourceProperties = Collections.unmodifiableMap(new LinkedHashMap<>(resolvedSourceProperties));
 		this.diagnostics = diagnostics;
+		this.locks = locks;
+	}
+
+	/** Internal propagation to builders and preparation; raw values remain subject to the same secrecy rules as {@link #asMap()}. */
+	@ApiStatus.Internal
+	@NotNull
+	public ConfigurationLocks getLocks() {
+		return locks;
 	}
 
 	/**

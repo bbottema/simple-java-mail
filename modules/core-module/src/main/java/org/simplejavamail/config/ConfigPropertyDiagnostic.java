@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
+import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
 /**
  * Safe diagnostic description of one resolved Simple Java Mail configuration property.
@@ -97,34 +98,5 @@ public final class ConfigPropertyDiagnostic {
 	@Override
 	public String toString() {
 		return propertyName + " = " + displayValue + " (source: " + sourceName + ")";
-	}
-
-	private static String escapeControlCharacters(final String value) {
-		final StringBuilder escaped = new StringBuilder(value.length());
-		for (int characterIndex = 0; characterIndex < value.length(); characterIndex++) {
-			final char character = value.charAt(characterIndex);
-			switch (character) {
-				case '\r':
-					escaped.append("\\r");
-					break;
-				case '\n':
-					escaped.append("\\n");
-					break;
-				case '\t':
-					escaped.append("\\t");
-					break;
-				default:
-					appendPrintableCharacter(escaped, character);
-			}
-		}
-		return escaped.toString();
-	}
-
-	private static void appendPrintableCharacter(final StringBuilder escaped, final char character) {
-		if (Character.isISOControl(character)) {
-			escaped.append(String.format("\\u%04x", (int) character));
-		} else {
-			escaped.append(character);
-		}
 	}
 }

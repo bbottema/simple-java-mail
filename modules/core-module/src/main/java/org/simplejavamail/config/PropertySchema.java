@@ -25,6 +25,7 @@ import static org.simplejavamail.config.ConfigDiagnosticGroup.PROXY;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.SMTP_CONNECTION;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.TRANSPORT_SECURITY;
 import static org.simplejavamail.config.ConfigPropertyDiagnostic.REDACTED_VALUE;
+import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
 final class PropertySchema {
 
@@ -247,10 +248,12 @@ final class PropertySchema {
 		}
 	}
 
-	static Object parse(final Property property, final Object rawValue, final String sourceName) {
+	/** Types come from the canonical schema; errors identify the declaration selected from the ordinary or locked namespace. */
+	static Object parse(final Property property, final Object rawValue, final String propertyName, final String sourceName) {
 		final ValueType type = TYPES.get(property);
 		if (type == ValueType.WILDCARD) {
-			throw new IllegalArgumentException("Wildcard property " + property.key() + " cannot be set as one scalar value");
+			throw new IllegalArgumentException("Wildcard property " + escapeControlCharacters(propertyName)
+					+ " cannot be set as a single value. Configure its individual child properties instead.");
 		}
 		try {
 			switch (type) {
@@ -286,8 +289,9 @@ final class PropertySchema {
 					throw new IllegalStateException("Unhandled property type " + type);
 			}
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Invalid value for " + property.key() + " from source " + sourceName
-					+ "; expected " + expectedType(type), e);
+			throw new IllegalArgumentException("Invalid value for " + escapeControlCharacters(propertyName)
+					+ " from source " + escapeControlCharacters(sourceName) + "; expected " + expectedType(type)
+					+ ". Correct this value in its configuration source.", e);
 		}
 	}
 
