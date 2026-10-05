@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
@@ -39,6 +40,78 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Not
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 
 class AngusMailTransportAdapterTest {
+
+    @ParameterizedTest
+    @CsvSource({"true, true", "true, false", "false, true", "false, false", ", true", ", false"})
+    void explicitChoiceOverridesMessageOptionsAndUnsetRetainsThem(final Boolean choice, final boolean originalChoice) throws Exception {
+        final SMTPMessage original = new SMTPMessage(message("body"));
+        original.setSendPartial(originalChoice);
+        final byte[] expected = bytes(original);
+        final PreparedMail prepared = new PreparedMail(original, recipients(),
+                new DeliveryEnvelope(null, null, List.of(), false, false, choice), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        final AngusMailTransportAdapter.AngusSmtpMessage facade = new AngusMailTransportAdapter.AngusSmtpMessage(prepared,
+                new AngusMailFromParameters(false, null), null, null, false);
+
+        assertThat(new AngusMailTransportAdapter().supportsSendingToAcceptedRecipients()).isTrue();
+        assertThat(facade.getSendPartial()).isEqualTo(choice == null ? originalChoice : choice);
+        assertThat(original.getSendPartial()).isEqualTo(originalChoice);
+        assertThat(bytes(facade)).containsExactly(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"smtp", "smtps"})
+    void stopChoiceRejectsTheSelectedProtocolsConnectionWidePartialSettingBeforeSubmission(final String protocol) throws Exception {
+        final MimeMessage message = message("body");
+        message.getSession().getProperties().setProperty("mail." + protocol + ".sendpartial", "true");
+        final SMTPTransport transport = transportRejectingSubmission(message.getSession(), protocol);
+        final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null, List.of(), false, false, false), ContentRequirement.NORMAL));
+
+        assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
+                .isInstanceOf(org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException.class)
+                .hasMessageContaining("withSendingToAcceptedRecipients(false)")
+                .hasMessageContaining("mail." + protocol + ".sendpartial=true")
+                .hasMessageContaining("simplejavamail.defaults.sendtoacceptedrecipients=true")
+                .hasMessageContaining("No message was submitted"));
+        assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+        assertThat(result.getSmtpResponse()).isEmpty();
+        assertThat(result.getEnvelopeId()).isNull();
+        assertThat(message.getSession().getProperty("mail." + protocol + ".sendpartial")).isEqualTo("true");
+    }
+
+    @Test
+    void managedTransportUsesItsOwnSessionInsteadOfTheMessagesSessionForTheConflictCheck() throws Exception {
+        final MimeMessage message = message("body");
+        final Properties transportProperties = new Properties();
+        transportProperties.setProperty("mail.smtp.sendpartial", "true");
+        try (ManagedAngusTransport transport = new ManagedAngusTransport(Session.getInstance(transportProperties), null)) {
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
+                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null, List.of(), false, false, false), ContentRequirement.NORMAL));
+            assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessageContaining("mail.smtp.sendpartial=true"));
+            assertThat(message.getSession().getProperty("mail.smtp.sendpartial")).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(ContentRequirement.class)
+    void rejectionChoiceDoesNotAddContentReadsOrSerialization(final ContentRequirement requirement) throws Exception {
+        final CountingMessage message = new CountingMessage(message("body"));
+        final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();
+        final PreparedMail ordinary = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), requirement);
+        final PreparedMail chosen = new PreparedMail(message, recipients(),
+                new DeliveryEnvelope(null, null, List.of(), false, false, true), requirement);
+        try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
+            transport.connect("localhost", 25, null, null);
+            adapter.sendMessage(transport, ordinary);
+            final int baselineSerializations = message.serializations;
+            final int baselineBodyReads = message.bodyReads;
+            message.serializations = 0;
+            message.bodyReads = 0;
+            adapter.sendMessage(transport, chosen);
+            assertThat(message.serializations).isEqualTo(baselineSerializations);
+            assertThat(message.bodyReads).isEqualTo(baselineBodyReads);
+        }
+    }
 
     @Test
     void rawReturnOptionsCannotReplaceALockedNotificationPreference() throws Exception {
@@ -671,6 +744,28 @@ class AngusMailTransportAdapterTest {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         message.writeTo(output);
         return output.toByteArray();
+    }
+
+    /** Count the existing inspection work so adding envelope metadata cannot introduce another content traversal. */
+    private static final class CountingMessage extends MimeMessage {
+        private int serializations;
+        private int bodyReads;
+
+        private CountingMessage(final MimeMessage source) throws MessagingException {
+            super(source);
+        }
+
+        @Override
+        public void writeTo(final java.io.OutputStream output) throws java.io.IOException, MessagingException {
+            serializations++;
+            super.writeTo(output);
+        }
+
+        @Override
+        public Object getContent() throws java.io.IOException, MessagingException {
+            bodyReads++;
+            return super.getContent();
+        }
     }
 
     /** Runs Angus's actual preflight and MAIL FROM construction, stopping at its command-write boundary without a socket. */

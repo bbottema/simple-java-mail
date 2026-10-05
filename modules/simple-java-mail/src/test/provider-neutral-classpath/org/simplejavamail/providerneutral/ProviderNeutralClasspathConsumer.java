@@ -112,6 +112,7 @@ public final class ProviderNeutralClasspathConsumer {
 		assertConnectionProbeApiIsAvailable();
 		assertExecutionViewsApiIsAvailable();
 		assertEnvelopeIdentifierApiIsAvailable(simpleJavaMail);
+		assertRecipientRejectionApiIsAvailable(simpleJavaMail);
 		assertSigningTemplateApiIsAvailable(simpleJavaMail);
 		assertRecipientDsnApiIsAvailable(simpleJavaMail);
 		assertConfigDiagnosticsApiIsAvailable(simpleJavaMail);
@@ -203,6 +204,25 @@ public final class ProviderNeutralClasspathConsumer {
 		@SuppressWarnings("unused") final BiFunction<MailTransportResult, String, MailTransportResult> reportedEnvelopeId = MailTransportResult::withEnvelopeId;
 		@SuppressWarnings("unused") final BiFunction<MailTransportAdapter, DeliveryEnvelope, Boolean> envelopeSupport =
 				MailTransportAdapter::supportsDeliveryEnvelope;
+	}
+
+	/** Recipient-rejection choices remain nullable Email data, not provider-specific types or Session properties. */
+	private static void assertRecipientRejectionApiIsAvailable(final SimpleJavaMail mail) {
+		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withSendingToAcceptedRecipients(false);
+		if (!Boolean.FALSE.equals(builder.getSendingToAcceptedRecipients())
+				|| !Boolean.FALSE.equals(builder.buildEmail().getSendingToAcceptedRecipients())
+				|| builder.clearSendingToAcceptedRecipients().buildEmail().getSendingToAcceptedRecipients() != null) {
+			throw new AssertionError("Provider-neutral recipient-rejection choice is unavailable");
+		}
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, Boolean, ExactEmailBuilder> exactChoice =
+				ExactEmailBuilder::withSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> clearExact = ExactEmailBuilder::clearSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final Function<ExactEmailBuilder, Boolean> getExact = ExactEmailBuilder::getSendingToAcceptedRecipients;
+		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, List.of(), false, false, false);
+		if (!Boolean.FALSE.equals(envelope.getSendingToAcceptedRecipients()) || !envelope.hasProviderSpecificOptions()
+				|| new FakeMailTransportAdapter().supportsSendingToAcceptedRecipients()) {
+			throw new AssertionError("Envelope requirement or backwards-compatible provider opt-in is unavailable");
+		}
 	}
 
 	/** Both views and receipt-bearing sends must compile without pulling provider types into the public API. */

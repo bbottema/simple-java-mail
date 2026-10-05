@@ -75,6 +75,11 @@ public final class ManagedAngusTransport extends SMTPTransport {
         return allowUtf8;
     }
 
+    /** Read the selected connection's own Session; another Mailer's advanced properties must not govern this submission. */
+    boolean isPartialSendingEnabled() {
+        return PropUtil.getBooleanProperty(session.getProperties(), propertyPrefix + ".sendpartial", false);
+    }
+
     @Override
     protected synchronized boolean protocolConnect(final String host, final int port, final String user, final String password)
             throws MessagingException {

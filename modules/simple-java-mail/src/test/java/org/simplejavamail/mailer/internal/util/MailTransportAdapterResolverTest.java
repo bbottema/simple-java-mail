@@ -13,6 +13,8 @@ import jakarta.mail.URLName;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
@@ -26,11 +28,62 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailTransportAdapterResolverTest {
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void genericEnvelopeSupportCannotSilentlyIgnoreRecipientRejectionHandling(final boolean choice) throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true) {
+            @Override
+            public boolean supportsDeliveryEnvelope(final DeliveryEnvelope envelope) {
+                return true;
+            }
+        };
+        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final AtomicInteger invocations = new AtomicInteger();
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter), invocations::incrementAndGet))
+                .isInstanceOf(MailTransportCompatibilityException.class)
+                .hasMessageContaining(choice ? "continue sending to accepted recipients" : "withhold content for everyone")
+                .hasMessageContaining("selected provider adapter does not support that choice")
+                .hasMessageContaining("No message was submitted");
+        assertThat(invocations).hasValue(0);
+        assertThat(adapter.preparedMail).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void genericFallbackRejectsExplicitRecipientRejectionHandlingBeforeInvocation(final boolean choice) throws Exception {
+        final RecordingTransport transport = new RecordingTransport();
+        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final AtomicInteger invocations = new AtomicInteger();
+        assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, mail, List.of(), invocations::incrementAndGet))
+                .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("no provider adapter is available to apply that choice");
+        assertThat(invocations).hasValue(0);
+        assertThat(transport.sentMessage).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void supportingThirdPartyAdapterReceivesTheExactChoice(final boolean choice) throws Exception {
+        final RecordingAdapter adapter = new RecordingAdapter(true) {
+            @Override
+            public boolean supportsSendingToAcceptedRecipients() {
+                return true;
+            }
+        };
+        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final AtomicInteger invocations = new AtomicInteger();
+        assertThat(MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter), invocations::incrementAndGet)
+                .getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        assertThat(adapter.preparedMail).isSameAs(mail);
+        assertThat(adapter.preparedMail.getDeliveryEnvelope().getSendingToAcceptedRecipients()).isEqualTo(choice);
+        assertThat(invocations).hasValue(1);
+    }
 
     @Test
     void envelopeSupportAloneDoesNotOptAnExistingAdapterIntoMandatoryDsn() throws Exception {

@@ -145,6 +145,7 @@ final class MailTransportAdapterResolver {
                                                         @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation)
             throws MessagingException {
         requireSupportedContent(adapter, transport, preparedMail.getContentRequirement());
+        requireRecipientRejectionSupport(adapter, preparedMail);
         if (preparedMail.getDeliveryEnvelope().isDeliveryStatusNotificationRequired() && !adapter.supportsRequiredDeliveryStatusNotification()) {
             throw new MailTransportCompatibilityException("This send requires its delivery-notification settings to be honored, "
                     + "but the selected provider adapter does not support mandatory DSN requests. "
@@ -172,6 +173,19 @@ final class MailTransportAdapterResolver {
         }
     }
 
+    private static void requireRecipientRejectionSupport(final MailTransportAdapter adapter, final PreparedMail preparedMail)
+            throws MailTransportCompatibilityException {
+        final Boolean choice = preparedMail.getDeliveryEnvelope().getSendingToAcceptedRecipients();
+        if (choice != null && !adapter.supportsSendingToAcceptedRecipients()) {
+            throw new MailTransportCompatibilityException("This email asks to "
+                    + (choice ? "continue sending to accepted recipients" : "withhold content for everyone")
+                    + " when another recipient is rejected, but the selected provider adapter does not support that choice. "
+                    + "Use an adapter that supports withSendingToAcceptedRecipients(...), or clear the choice and any Email defaults/overrides supplying it. "
+                    + "If it comes from simplejavamail.locked.defaults.sendtoacceptedrecipients, change or remove that locked property instead. "
+                    + "No message was submitted.", preparedMail.getRecipients());
+        }
+    }
+
     private static void requireProviderNeutralContent(@NotNull final Transport transport,
                                                       @NotNull final ContentRequirement contentRequirement)
             throws MailTransportCompatibilityException {
@@ -185,6 +199,15 @@ final class MailTransportAdapterResolver {
                                                        @NotNull final PreparedMail preparedMail)
             throws MailTransportCompatibilityException {
         final DeliveryEnvelope deliveryEnvelope = preparedMail.getDeliveryEnvelope();
+        if (deliveryEnvelope.getSendingToAcceptedRecipients() != null) {
+            throw new MailTransportCompatibilityException("This email asks to "
+                    + (deliveryEnvelope.getSendingToAcceptedRecipients() ? "continue sending to accepted recipients" : "withhold content for everyone")
+                    + " when another recipient is rejected, but no provider adapter is available to apply that choice. "
+                    + "Install an adapter that supports withSendingToAcceptedRecipients(...), "
+                    + "or clear the choice and any Email defaults/overrides supplying it. "
+                    + "If it comes from simplejavamail.locked.defaults.sendtoacceptedrecipients, change or remove that locked property instead. "
+                    + "No message was submitted.", preparedMail.getRecipients());
+        }
         if (deliveryEnvelope.hasProviderSpecificOptions()) {
             throw new MailTransportCompatibilityException("No mail transport adapter for " + transport.getClass().getName()
                     + " supports the requested SMTP envelope options, such as REQUIRETLS, an envelope sender or delivery-status notifications. "

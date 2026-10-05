@@ -46,6 +46,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         return true;
     }
 
+    /** @see MailTransportAdapter#supportsSendingToAcceptedRecipients() */
+    @Override
+    public boolean supportsSendingToAcceptedRecipients() {
+        return true;
+    }
+
     /** @see MailTransportAdapter#supportsRequiredDeliveryStatusNotification() */
     @Override
     public boolean supportsRequiredDeliveryStatusNotification() {
@@ -76,6 +82,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             final Long serverMaximumMessageSize = smtpTransport instanceof ManagedAngusTransport
                     ? ((ManagedAngusTransport) smtpTransport).getServerMaximumMessageSize() : null;
             try {
+                final String protocol = protocolOf(smtpTransport);
+                verifyRecipientRejectionChoice(smtpTransport, preparedMail, protocol, expandedEnvelopeRecipients);
                 final boolean supportsDsn = supportsUsableDsn(smtpTransport);
                 if (preparedMail.getDeliveryEnvelope().isDeliveryStatusNotificationRequired() && !supportsDsn) {
                     throw new MailTransportCompatibilityException("This send requires its delivery-notification settings to be honored, "
@@ -86,7 +94,6 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                             expandedEnvelopeRecipients);
                 }
                 final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(smtpTransport, preparedMail, supportsDsn);
-                final String protocol = protocolOf(smtpTransport);
                 final ConfiguredMailExtension existingMailExtension = mailExtensionOf(preparedMail.getMimeMessage(), protocol);
                 verifyLockedNotificationExtension(preparedMail.getDeliveryEnvelope(), existingMailExtension, expandedEnvelopeRecipients);
                 if (smtpTransport instanceof ManagedAngusTransport) {
@@ -114,6 +121,29 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                 return MailTransportResult.failed(preparationFailure, null, null, expandedEnvelopeRecipients, null)
                         .withEnvelopeRecipients(expandedEnvelopeRecipients).withMessageSizeFacts(null, serverMaximumMessageSize);
             }
+        }
+    }
+
+    private static void verifyRecipientRejectionChoice(final SMTPTransport transport, final PreparedMail preparedMail,
+            final String protocol, final Address[] recipients) throws MailTransportCompatibilityException {
+        if (!Boolean.FALSE.equals(preparedMail.getDeliveryEnvelope().getSendingToAcceptedRecipients())) {
+            return;
+        }
+        final String propertyName = "mail." + protocol + ".sendpartial";
+        // Composed and exact messages use the selected transport's Session, including caller-owned and clustered sends.
+        final Session selectedSession = preparedMail.getMimeMessage().getSession();
+        final boolean sessionAllowsPartialSending = transport instanceof ManagedAngusTransport
+                ? ((ManagedAngusTransport) transport).isPartialSendingEnabled()
+                : selectedSession != null && PropUtil.getBooleanProperty(selectedSession.getProperties(), propertyName, false);
+        // Angus treats a false message flag as "fall back to the Session", not as an override of Session-wide true.
+        if (sessionAllowsPartialSending) {
+            throw new MailTransportCompatibilityException("This email uses withSendingToAcceptedRecipients(false) "
+                    + "to stop sending when a recipient is rejected, "
+                    + "but the selected SMTP connection has '" + propertyName + "=true', which tells Angus to continue anyway. "
+                    + "Angus cannot override that connection-wide setting for one email. Remove '" + propertyName
+                    + "' and use an Email default with withSendingToAcceptedRecipients(true), or "
+                    + "'simplejavamail.defaults.sendtoacceptedrecipients=true', for emails that should continue. "
+                    + "Then this email's explicit false can stop sending. No message was submitted.", recipients);
         }
     }
 
@@ -397,6 +427,9 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                     : mailExtensionWithEnvelopeId(envelopeId, mailFromParameters.getMailExtension()));
 
             final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
+            if (envelope.getSendingToAcceptedRecipients() != null) {
+                super.setSendPartial(envelope.getSendingToAcceptedRecipients());
+            }
             if (envelope.getEnvelopeFrom() != null) {
                 super.setEnvelopeFrom(envelope.getEnvelopeFrom());
             }
