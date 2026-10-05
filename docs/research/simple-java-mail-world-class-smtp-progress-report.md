@@ -1,8 +1,9 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
 - Assessment date: 2026-10-04.
+- Implementation refresh: 2026-10-05, adding recipient-rejection handling under #754. Competitor findings retain their 2026-10-04 assessment; this update did not repeat competitor research.
 - Original research: [The World-Class SMTP Framework](simple-java-mail-world-class-smtp-research.pdf), dated 2026-08-29.
-- Implementation baseline: `codex/10.0.0` at [`9361e8fde73a81552edd8792491b67de73cfd591`](https://github.com/bbottema/simple-java-mail/commit/9361e8fde73a81552edd8792491b67de73cfd591).
+- Implementation baseline: `codex/10.0.0` at [`e9fe18ec3fbe11e22e97215fb1acaf36c58e3e96`](https://github.com/bbottema/simple-java-mail/commit/e9fe18ec3fbe11e22e97215fb1acaf36c58e3e96).
 - Release status: development of 10.0.0 continues. The assessed capabilities are present on the development branch, not in a published release. This does not describe the capabilities of the published 9.x libraries.
 - Method: repository and evidence review, supplemented by current official competitor documentation. No new cross-library benchmark or black-box comparison was run for this report.
 
@@ -25,6 +26,7 @@ The PDF described a broad and approachable library with important operational an
 | Area | Implemented progress | Tracking |
 | --- | --- | --- |
 | Submission results | Ordered recipient results, SMTP replies, enhanced status codes, explicit partial or unknown acceptance, and conservative retry guidance. Missing provider facts remain missing. | [#710](https://github.com/bbottema/simple-java-mail/issues/710), [#723](https://github.com/bbottema/simple-java-mail/issues/723) |
+| Recipient rejection handling | Per-email choice to continue for accepted recipients or withhold content after a known rejection, using defaults/overrides and locks. Partial acceptance still fails the operation and retains its receipt. | [#754](https://github.com/bbottema/simple-java-mail/issues/754) |
 | Execution and overload | Explicit `sync()`/`async()` views, optional bounded async admission, saturation diagnostics and graceful draining. | [#734](https://github.com/bbottema/simple-java-mail/issues/734), [#725](https://github.com/bbottema/simple-java-mail/issues/725) |
 | Cancellation and deadlines | Requests reach supported acquisition and transport paths, with fenced pooled leases and outcomes that retain uncertainty or already observed acceptance. | [#726](https://github.com/bbottema/simple-java-mail/issues/726) |
 | Capability negotiation | Dedicated probes, per-message SMTPUTF8/8BITMIME decisions, verified-legacy compatibility opt-in, and SIZE checks against reliable advertised maxima. | [#733](https://github.com/bbottema/simple-java-mail/issues/733), [#742](https://github.com/bbottema/simple-java-mail/issues/742), [#748](https://github.com/bbottema/simple-java-mail/issues/748) |
@@ -37,7 +39,7 @@ These capabilities work together. An application can configure and rehearse mail
 
 An advertised extension in a probe is not evidence that Simple Java Mail implements that sending mode. In particular, PIPELINING and CHUNKING must not be counted as delivered capabilities merely because a server advertises them.
 
-## What the three recent additions contribute
+## What the recent additions contribute
 
 ### Locked configuration
 
@@ -57,7 +59,22 @@ Users can express their service's restrictions as counts over periods instead of
 
 These count local attempted provider submissions. They do not establish account-wide quota compliance across processes, persistent history, server-observed arrival timing or final delivery. See [ADR 0027](../adr/0027-factory-scoped-sending-limits.md) and the [verification record](sending-limits-verification.md).
 
-Together, the three additions remove useful application plumbing while retaining a clear account of what the library can and cannot control.
+### Per-email recipient rejection handling
+
+Applications can now choose what a recipient rejection means for that email without finding a provider-specific property. If Alice and Bob are
+accepted at RCPT TO while Carol is rejected, `withSendingToAcceptedRecipients(true)` permits content submission to Alice and Bob;
+`false` withholds content for everyone. Both behaviors retain failed completion when a recipient is rejected. A `PARTIALLY_ACCEPTED` receipt
+means the server accepted the content for some recipients, not merely that their RCPT replies were positive.
+
+This joins the input choice to the existing result model: an application can permit useful partial progress and still inspect who was accepted
+before deciding whether to retry. Defaults, overrides and locks use the same Email setting; exact/protected content is not rewritten.
+An unset choice preserves existing behavior. Requiring all recipients is not atomic delivery and cannot prevent later bounces.
+
+Provider support remains explicit: a requested choice is honored or rejected before submission, and conflicting advanced Angus settings are
+reported rather than silently weakening it. This closes an API-convenience gap, not a protocol-breadth gap. See
+[ADR 0028](../adr/0028-per-email-recipient-rejection-handling.md) and the [verification record](754-recipient-rejection-verification.md).
+
+Together, these additions remove useful application plumbing while retaining a clear account of what the library can and cannot control.
 
 ## Position against the principal competitors
 
@@ -84,6 +101,9 @@ Message integrity is another strong position. Exact EML, rehearsal and cryptogra
 
 Configuration provenance, local locks, sending limits and actual-send diagnostics strengthen the experience after initial setup. They help applications answer which value won, why a customization was rejected, why a send waited, and whether cleanup failure occurred after SMTP acceptance. The integrated workflow is the differentiator, not a claim that no competitor has any individual feature.
 
+Recipient-rejection handling now connects that operational experience to application intent. The application chooses whether partial progress is
+allowed; receipts still explain what happened and prevent a successful subset from being mistaken for a successful whole operation.
+
 ## Remaining differences and limits
 
 1. **Protocol breadth and efficiency remain incomplete.** Negotiated PIPELINING and CHUNKING are unresolved under [#699](https://github.com/bbottema/simple-java-mail/issues/699), and BINARYMIME must not be presented as delivered. MailKit remains ahead on this axis. No gain from these extensions is included in this assessment.
@@ -99,6 +119,10 @@ SMTP acceptance remains different from final delivery. Message-ID, ENVID and ret
 The [SMTP conformance verification report](smtp-conformance-verification.md) records the hosted 2026-09-29 run: 481 embedded fault/concurrency cases, 24 Postfix/Exim interoperability cases and ten independent protected-content checks, with eight separate runner self-tests. The report links sanitized hosted evidence and identifies the tested commit and runtime. It is not evidence that every later branch addition ran in that same hosted job.
 
 The [conformance runner guide](../../tools/smtp-conformance/README.md) provides the maintained scenarios and repeatable procedure. The locked-configuration and sending-limit verification reports retain their separate implementation evidence.
+
+The [recipient-rejection verification record](754-recipient-rejection-verification.md) records separate local Java 11/modern-JDK verification,
+Spring/CLI integration, exact/protected-content checks and pooled concurrency coverage. Its final focused lane passed 176 tests across nine suites,
+including concurrent true/false/unset attempts with mixed rejections. These later additions are not claimed as part of the earlier hosted run.
 
 The [performance audit](smtp-performance/initial-audit-results.md), [inspection optimization](smtp-performance/inspection-optimization-results.md) and [provider-discovery follow-up](smtp-performance/provider-discovery-results.md) retain matched local measurements. They support internal improvements, not cross-library throughput leadership. The accepted decision retained content checks and SIZE handling without a speculative performance opt-out API.
 
