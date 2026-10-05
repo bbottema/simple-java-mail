@@ -1,0 +1,41 @@
+Generation method: built-in image_gen.imagegen tool.
+Final deliverable: anika-kestrel-shadowrun-v2.png
+Edit target: anika-kestrel-shadowrun.png
+Logo reference: RelayDesk Metallic Neon Logo.png
+
+FINAL PROMPT
+Use case: precise-object-edit / identity-preserve.
+Edit input image 1, the current 3:2 landscape Shadowrun Anika image. Keep its successful character, composition, cyberdeck, overall realism and lighting. Make a focused narrative update to Kestrel's business and the RelayDesk application.
+
+INPUT ROLES:
+Input 1 is the EDIT TARGET. Preserve the same recognizable adult Chinese human woman Anika: face, relaxed attentive expression, asymmetric violet/teal undercut, agile Street Samurai look, yellow-plated cybernetic arm, dark tactical vest, piercings, seated working pose, hands and overall placement. Preserve the exact SJM lettermark on her chest patch AND the white ceramic mug facing camera. Use ONLY SJM, with no "Simple Java Mail" words. Keep the SAME chrome Kestrel Outfitters plaque with BOTH birds, KESTREL and OUTFITTERS typography and proportions unchanged.
+Input 2 is the NEW, authoritative RelayDesk logo source. Replace the old blue/teal chat-bubble RelayDesk logo on the screen completely with this supplied metallic-neon logo: circular metallic communications-ring icon with cyan arcs, amber/gold nodes and central envelope, silver metallic "Relay" and cyan metallic "Desk". Preserve the artwork, exact lettering, colours and relative proportions. Fit it neatly in the application's upper header, with natural screen rendering. Never substitute typed plain-text letters for this supplied logo.
+
+UPDATED WORLD:
+Kestrel Outfitters now specializes in rigger drones, spider-bots, drone components and spare parts. It is no longer an outdoor-equipment business. Anika remains its administrator working at Kestrel, and is manually entering Kestrel's SMTP connection details INTO the external RelayDesk platform.
+
+ENVIRONMENT CHANGES:
+Replace the wall graffiti "BETTER GEAR FURTHER" with a modest, plausible three-line workshop stencil reading exactly:
+"DRONES"
+"SPIDER-BOTS"
+"SPARES"
+This is physical room signage, not a caption.
+Remove the outdoor/survival poster text "K.C. PEOPLE EQUIP SURVIVE" and any other outdoor-gear or wilderness-survival marketing. Remove the unrelated "DATA KEEPS PEOPLE MOVING" slogan from the foreground hardware case; use plain hardware surfaces or practical parts labels.
+Make the existing industrial equipment/storage area visibly belong to a drone and robotics supplier: a compact rigger drone chassis, ONE clearly recognizable small parked spider-bot with several articulated mechanical legs, and organized bins of spare servo joints, sensor modules and rotor parts. Integrate these into the existing background shelves/work cases, keeping them secondary to Anika and her screen. Replace prominent case and manual labels with restrained service/workshop wording such as "DRONE PARTS", "SERVO MODULES", "Drone Systems", "Spider-Bot Service", "Rigger Interfaces", "Parts Catalogue". Preserve practical technical equipment and cable runs.
+Retain the chrome Kestrel plaque, gritty internal operations-room atmosphere, rainy neon city through the window, warm task light and cool ambient light. No outdoor gear, camping, hunting or hiking references. Do not turn the scene into a battle or change Anika's character.
+
+UPDATED SOFTWARE:
+The screen now shows the external RelayDesk application itself, a neutral DARK-MODE CYBERPUNK COMMUNICATIONS PLATFORM connecting fixers, brokers and runners. Anika is configuring email/SMTP settings inside that platform; the screen must not suggest RelayDesk is her employer or is Kestrel's own mail-server admin product.
+Use a functional restrained charcoal dark UI, clear sans-serif type, modest cyan/grey accents and a small amber highlight tied to the new logo. The new supplied metallic RelayDesk logo is clearly visible at the top. A quiet compact navigation sidebar includes "Messages", "Contacts", "Connections", "Settings", with "Settings" selected. A small secondary connections grouping can show "Fixers", "Brokers", "Runners"; these are neutral contact categories, not factions or threat labels.
+The MAIN content panel is headed exactly "SMTP settings". Show a compact credible configuration form with these exact fields and example values, prioritizing readability:
+"SMTP host" : "smtp.kestrel.example"
+"Port" : "587"
+"Username" : "relaydesk@kestrel.example"
+"Password" : masking dots ONLY, "••••••••••••"
+"TLS" : "Required"
+Button: "Check connection"
+Use a compact host/port row so the form fits naturally on the original main monitor. These fictional .example values are illustrative; no real secrets, readable passwords, tokens or private keys. Make it clear this is configuration in RelayDesk for sending mail via Kestrel's SMTP infrastructure. Replace the OLD "Mail administration" / "RelayDesk integration" form and old logo, while retaining the article's SMTP, masked-credential, required-TLS and connection-check meaning.
+Screen text must be correct, legible and read in the normal direction. No code rain, hacking terminal, threat graphics, extra floating holograms, giant logos or meaningless decorative charts.
+
+INVARIANTS:
+Keep Anika, the SJM chest lettermark, SJM mug, Kestrel chrome emblem, existing medium-shot composition, cyberdeck hardware and photographic cyberpunk finish recognizably the same as input 1. Only the business-context props/signage and application interface/logo need revision. Maintain sensible perspective, anatomy, practical material texture and unobstructed face and branding. One finished 3:2 landscape image. No added people, captions, speech bubbles, watermark or collage.
