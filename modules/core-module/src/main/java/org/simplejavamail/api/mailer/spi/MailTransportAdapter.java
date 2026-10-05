@@ -36,7 +36,8 @@ public interface MailTransportAdapter {
     /**
      * Indicates whether this adapter understands the supplied SMTP envelope options. The default preserves existing adapters' behavior for
      * envelope sender and shared NOTIFY/RET, but refuses a fixed ENVID or recipient-specific NOTIFY until an adapter explicitly supports them.
-     * Simple Java Mail checks this before dispatch.
+     * Simple Java Mail checks this before dispatch. Recipient-rejection handling is checked separately through
+     * {@link #supportsSendingToAcceptedRecipients()}, so supporting that choice does not require accepting every other envelope option.
      * <p>
      * Returning {@code true} does not establish server support. For a fixed ENVID the adapter must also check DSN on the actual connected transport and fail
      * before MAIL FROM when unavailable; silently omitting the identifier is not allowed.
@@ -68,6 +69,19 @@ public interface MailTransportAdapter {
      * {@link #supportsDeliveryEnvelope(DeliveryEnvelope)} implementation returning true.
      */
     default boolean supportsRequiredDeliveryStatusNotification() {
+        return false;
+    }
+
+    /**
+     * Opts into honoring both explicit recipient-rejection choices on {@link DeliveryEnvelope#getSendingToAcceptedRecipients()}.
+     * {@code true} permits continuation for accepted recipients; {@code false} withholds content after a known rejection.
+     * Check incompatible provider configuration before submission rather than silently weakening the choice. Keep partial acceptance a failed result,
+     * with its accepted/unsent/rejected facts intact. An unset choice preserves existing behavior.
+     * <p>
+     * This separate opt-in prevents an older {@link #supportsDeliveryEnvelope(DeliveryEnvelope)} returning true from claiming support accidentally.
+     * @return Whether this adapter understands the choice, subject to its actual transport configuration.
+     */
+    default boolean supportsSendingToAcceptedRecipients() {
         return false;
     }
 }

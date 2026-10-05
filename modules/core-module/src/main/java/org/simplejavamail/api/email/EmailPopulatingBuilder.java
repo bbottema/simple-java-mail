@@ -409,6 +409,25 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withTlsRequiredForOnwardDelivery();
 
 	/**
+	 * Chooses what to do when the SMTP server rejects one of this email's recipients. For example, if Alice and Bob are accepted but Carol is
+	 * rejected, {@code true} allows the content to be submitted for Alice and Bob; {@code false} withholds the content for everyone.
+	 * <p>
+	 * Continuing does not make the whole send successful: partial acceptance still throws a
+	 * {@link org.simplejavamail.api.mailer.MailSubmissionException}, or completes the async send exceptionally, with its receipt identifying who
+	 * was accepted and who was not. Inspect that receipt before deciding what to retry. If every recipient is rejected, no content is submitted.
+	 * Stopping after a known rejection is not an atomic-delivery guarantee and cannot prevent later bounces.
+	 * This setting never changes visible recipient headers, splits messages, retries or weakens validation or security requirements.
+	 * <p>
+	 * Calling this method again replaces the value set on this builder. When no value is set here, configured Email defaults/overrides and existing
+	 * provider settings apply. {@link #clearSendingToAcceptedRecipients()} removes this builder's value so they can apply again. Template suppression uses
+	 * {@link EmailProperty#SENDING_TO_ACCEPTED_RECIPIENTS}; settings fixed by {@code simplejavamail.locked.*} properties cannot be suppressed.
+	 *
+	 * @param sendingToAcceptedRecipients {@code true} to continue for accepted recipients, or {@code false} to withhold content after a known rejection.
+	 * @return This builder.
+	 */
+	EmailPopulatingBuilder withSendingToAcceptedRecipients(boolean sendingToAcceptedRecipients);
+
+	/**
 	 * Sets the optional subject of this email.
 	 *
 	 * @param subject Optional text to be used in the subject field of the email.
@@ -1385,6 +1404,16 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery();
 
 	/**
+	 * Removes the value set by {@link #withSendingToAcceptedRecipients(boolean)}, allowing configured Email defaults/overrides and provider settings to apply.
+	 * This is not an explicit {@code false} and cannot remove a setting fixed by {@code simplejavamail.locked.*} properties.
+	 *
+	 * @return This builder.
+	 * @see #withSendingToAcceptedRecipients(boolean)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh CLI Email builder has no recipient-rejection choice to clear")
+	EmailPopulatingBuilder clearSendingToAcceptedRecipients();
+
+	/**
 	 * Resets <em>text</em> to empty.
 	 */
 	EmailPopulatingBuilder clearPlainText();
@@ -1586,6 +1615,13 @@ public interface EmailPopulatingBuilder {
 	 * @see #withTlsRequiredForOnwardDelivery()
 	 */
 	boolean isTlsRequiredForOnwardDelivery();
+
+	/**
+	 * @return The recipient-rejection setting on this builder, or {@code null} when unset; defaults and overrides are resolved during preparation.
+	 * @see #withSendingToAcceptedRecipients(boolean)
+	 */
+	@Nullable
+	Boolean getSendingToAcceptedRecipients();
 
 	/**
 	 * @see #withPlainText(String)

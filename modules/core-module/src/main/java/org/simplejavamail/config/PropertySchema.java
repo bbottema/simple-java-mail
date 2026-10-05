@@ -93,6 +93,7 @@ final class PropertySchema {
 				Property.DEFAULT_TRUST_ALL_HOSTS,
 				Property.DEFAULT_VERIFY_SERVER_IDENTITY,
 				Property.DEFAULT_REQUIRE_TLS,
+				Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS,
 				Property.TRANSPORT_MODE_LOGGING_ONLY,
 				Property.OPPORTUNISTIC_TLS,
 				Property.DKIM_SIGNING_USE_LENGTH_PARAM,
@@ -169,6 +170,7 @@ final class PropertySchema {
 				Property.PROXY_SOCKS5BRIDGE_PORT);
 		setDiagnostics(PROXY, SensitivityPolicy.REDACT, Property.PROXY_PASSWORD);
 		setDiagnostics(EMAIL_DEFAULTS, SensitivityPolicy.VISIBLE,
+				Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS,
 				Property.DEFAULT_SUBJECT,
 				Property.DEFAULT_CONTENT_TRANSFER_ENCODING,
 				Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING,

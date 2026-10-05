@@ -224,6 +224,9 @@ public class Email implements Serializable {
 	@Nullable
 	private final DeliveryStatusNotification deliveryStatusNotification;
 	private final boolean tlsRequiredForOnwardDelivery;
+	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	@Nullable
+	private final Boolean sendingToAcceptedRecipients;
 
 	/**
 	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
@@ -335,6 +338,7 @@ public class Email implements Serializable {
 		returnReceiptTo = builder.getReturnReceiptTo();
 		deliveryStatusNotification = builder.getDeliveryStatusNotification();
 		tlsRequiredForOnwardDelivery = builder.isTlsRequiredForOnwardDelivery();
+		sendingToAcceptedRecipients = builder.getSendingToAcceptedRecipients();
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -464,6 +468,9 @@ public class Email implements Serializable {
 		}
 		if (tlsRequiredForOnwardDelivery) {
 			s += ",\n\ttlsRequiredForOnwardDelivery=true";
+		}
+		if (sendingToAcceptedRecipients != null) {
+			s += ",\n\tsendingToAcceptedRecipients=" + sendingToAcceptedRecipients;
 		}
 		if (!overrideReceivers.isEmpty()) {
 			s += ",\n\toverrideReceivers=" + true +
@@ -654,6 +661,15 @@ public class Email implements Serializable {
 	 */
 	public boolean isTlsRequiredForOnwardDelivery() {
 		return tlsRequiredForOnwardDelivery;
+	}
+
+	/**
+	 * @return Whether this Email is set to continue for accepted recipients after a recipient rejection, or {@code null} when unset.
+	 * @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean)
+	 */
+	@Nullable
+	public Boolean getSendingToAcceptedRecipients() {
+		return sendingToAcceptedRecipients;
 	}
 	
 	/**

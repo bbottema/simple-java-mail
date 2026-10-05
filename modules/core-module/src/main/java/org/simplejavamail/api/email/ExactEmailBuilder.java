@@ -144,6 +144,38 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder clearTlsRequiredForOnwardDelivery();
 
 	/**
+	 * Chooses whether this exact email may still be submitted for accepted recipients when another envelope recipient is rejected.
+	 * For Alice and Bob accepted and Carol rejected, {@code true} permits submission for Alice and Bob; {@code false} withholds content for everyone.
+	 * Partial acceptance still fails the overall send and supplies its submission receipt. This changes envelope behavior only, never the EML bytes.
+	 * <p>
+	 * Calling this method again replaces the value set on this builder. Exact Emails bypass ordinary defaults/overrides, but applicable
+	 * {@code simplejavamail.locked.*} settings still apply.
+	 *
+	 * @param sendingToAcceptedRecipients {@code true} to continue for accepted recipients, or {@code false} to withhold content after a known rejection.
+	 * @return This builder.
+	 * @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean)
+	 */
+	@Cli.OptionNameOverride("withExactSendingToAcceptedRecipients")
+	ExactEmailBuilder withSendingToAcceptedRecipients(boolean sendingToAcceptedRecipients);
+
+	/**
+	 * Removes the value set by {@link #withSendingToAcceptedRecipients(boolean)}. Exact Emails bypass ordinary templates;
+	 * existing provider behavior and applicable locks still apply.
+	 * This is not an explicit {@code false}.
+	 * @return This builder.
+	 * @see #withSendingToAcceptedRecipients(boolean)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no recipient-rejection choice to clear")
+	ExactEmailBuilder clearSendingToAcceptedRecipients();
+
+	/**
+	 * @return The recipient-rejection setting on this builder, or {@code null} when unset.
+	 * @see #withSendingToAcceptedRecipients(boolean)
+	 */
+	@Nullable
+	Boolean getSendingToAcceptedRecipients();
+
+	/**
 	 * Builds an {@link Email} whose existing getters expose the parsed EML fields while the original bytes remain authoritative for conversion,
 	 * rehearsal, and sending. At least one explicit envelope recipient is required.
 	 *

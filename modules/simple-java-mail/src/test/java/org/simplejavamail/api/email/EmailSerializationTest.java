@@ -99,6 +99,7 @@ class EmailSerializationTest {
 				.withHTMLText("<p>Main message</p><img src=\"cid:logo-cid\">")
 				.withHeader("X-Round-Trip", "preserved")
 				.withTlsRequiredForOnwardDelivery()
+				.withSendingToAcceptedRecipients(false)
 				.withAttachment("report.txt", "attachment data".getBytes(UTF_8), "text/plain", "report", BIT7)
 				.withPreEncodedAttachment("encoded.txt", alreadyBase64Encoded, "text/plain", "already encoded", BASE_64)
 				.withEmbeddedImage("logo.png", "image data".getBytes(UTF_8), "image/png")
@@ -118,6 +119,7 @@ class EmailSerializationTest {
 		assertThat(restored.getHTMLText()).isEqualTo("<p>Main message</p><img src=\"cid:logo-cid\">");
 		assertThat(restored.getHeaders()).isEqualTo(original.getHeaders());
 		assertThat(restored.isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(restored.getSendingToAcceptedRecipients()).isFalse();
 		assertAttachment(restored.getAttachments().get(0), "report.txt", "report", BIT7, null, "attachment data".getBytes(UTF_8));
 		assertAttachment(restored.getAttachments().get(1), "encoded.txt", "already encoded", null, BASE_64, alreadyBase64Encoded);
 		assertAttachment(restored.getEmbeddedImages().get(0), "logo.png", null, null, null, "image data".getBytes(UTF_8));
@@ -158,6 +160,7 @@ class EmailSerializationTest {
 		final Email restored = deserialize(fixture, Email.class);
 
 		assertThat(restored.getSubject()).isEqualTo("9.1.7 serialized email");
+		assertThat(restored.getSendingToAcceptedRecipients()).isNull();
 		assertThat(restored.getPlainText()).isEqualTo("legacy body remains inspectable");
 		assertThat(restored.getHeaders()).containsEntry("X-Legacy-Fixture", singletonList("9.1.7"));
 		assertThat(restored.getFromRecipient().getAddress()).isEqualTo("legacy-sender@example.org");

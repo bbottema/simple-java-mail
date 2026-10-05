@@ -135,6 +135,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	private DeliveryStatusNotification deliveryStatusNotification;
 	private boolean tlsRequiredForOnwardDelivery;
+	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	@Nullable
+	private Boolean sendingToAcceptedRecipients;
 
 	/**
 	 * @see #withSubject(String)
@@ -789,6 +792,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = true;
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	@Override
+	public EmailPopulatingBuilder withSendingToAcceptedRecipients(final boolean sendingToAcceptedRecipients) {
+		this.sendingToAcceptedRecipients = sendingToAcceptedRecipients;
 		return this;
 	}
 
@@ -1835,6 +1845,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#clearSendingToAcceptedRecipients() */
+	@Override
+	public EmailPopulatingBuilder clearSendingToAcceptedRecipients() {
+		sendingToAcceptedRecipients = null;
+		return this;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#clearPlainText()
 	 */
@@ -2128,6 +2145,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public boolean isTlsRequiredForOnwardDelivery() {
 		return tlsRequiredForOnwardDelivery;
+	}
+
+	/** @see EmailPopulatingBuilder#getSendingToAcceptedRecipients() */
+	@Override
+	@Nullable
+	public Boolean getSendingToAcceptedRecipients() {
+		return sendingToAcceptedRecipients;
 	}
 
 	/**

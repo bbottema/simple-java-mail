@@ -497,7 +497,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 		for (String key : locks.getValues().keySet()) {
 			final boolean smtpSetting = key.startsWith("simplejavamail.smtp.") && !key.startsWith("simplejavamail.smtp.ratelimit.");
-			final boolean envelopeSetting = key.equals(Property.DEFAULT_REQUIRE_TLS.key()) || key.equals(Property.DEFAULT_BOUNCETO_ADDRESS.key())
+			final boolean envelopeSetting = key.equals(Property.DEFAULT_REQUIRE_TLS.key()) || key.equals(Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS.key())
+					|| key.equals(Property.DEFAULT_BOUNCETO_ADDRESS.key())
 					|| key.equals(Property.DEFAULT_TO_ADDRESS.key()) || key.equals(Property.DEFAULT_CC_ADDRESS.key())
 					|| key.equals(Property.DEFAULT_BCC_ADDRESS.key()) || key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key())
 					|| key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key());

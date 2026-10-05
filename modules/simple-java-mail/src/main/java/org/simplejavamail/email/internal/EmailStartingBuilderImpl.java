@@ -222,6 +222,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.isTlsRequiredForOnwardDelivery()) {
 			builder.withTlsRequiredForOnwardDelivery();
 		}
+		if (email.getSendingToAcceptedRecipients() != null) {
+			builder.withSendingToAcceptedRecipients(email.getSendingToAcceptedRecipients());
+		}
 		if (email.getPlainText() != null) {
 			builder.withPlainText(email.getPlainText());
 		}

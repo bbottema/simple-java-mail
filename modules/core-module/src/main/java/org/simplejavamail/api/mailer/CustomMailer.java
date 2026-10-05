@@ -31,6 +31,9 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * An onward-delivery TLS requirement is available through {@link Email#isTlsRequiredForOnwardDelivery()}. CustomMailer owns the external
  * submission and must reject the send if it cannot honor that requirement. Simple Java Mail reports {@code isRequireTlsUsed() == false}
  * because it cannot observe the external service's SMTP MAIL FROM command.
+ * A recipient-rejection choice is available through {@link Email#getSendingToAcceptedRecipients()}. Honor an explicit choice or reject it;
+ * {@code null} leaves your existing behavior unchanged. Simple Java Mail cannot inspect recipient acceptance inside this callback.
+ * Factory locks on this transport choice are incompatible with CustomMailer because their application cannot be checked.
  *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  * @see <a href="https://simplejavamail.org/features.html#section-custom-mailer">Plug your own sending logic with a Custom Mailer</a>

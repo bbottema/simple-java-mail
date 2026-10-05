@@ -12,8 +12,8 @@ import static java.util.Collections.emptyList;
 /**
  * Provider-neutral SMTP envelope options for one message submission.
  * <p>
- * These values are deliberately kept separate from the MIME message: an envelope sender, delivery-status notification request and
- * RFC 8689 REQUIRETLS requirement are SMTP commands, not message headers or body content.
+ * These values are deliberately kept separate from the MIME message: envelope sender, delivery notifications, onward TLS and recipient-rejection
+ * handling govern submission, not message headers or body content.
  */
 public final class DeliveryEnvelope implements Serializable {
 
@@ -27,6 +27,8 @@ public final class DeliveryEnvelope implements Serializable {
     private final List<DeliveryRecipient> recipientOptions;
     private final boolean tlsRequiredForOnwardDelivery;
     private final boolean deliveryStatusNotificationRequired;
+    @Nullable
+    private final Boolean sendingToAcceptedRecipients;
 
     /**
      * Creates an envelope without recipient-specific notification preferences.
@@ -73,6 +75,23 @@ public final class DeliveryEnvelope implements Serializable {
     public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
             @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery,
             final boolean deliveryStatusNotificationRequired) {
+        this(envelopeFrom, deliveryStatusNotification, recipientOptions, tlsRequiredForOnwardDelivery, deliveryStatusNotificationRequired, null);
+    }
+
+    /**
+     * Adds the submission-wide recipient-rejection choice without changing MIME content. Existing constructors leave it unset.
+     *
+     * @param envelopeFrom Optional SMTP envelope sender.
+     * @param deliveryStatusNotification Optional shared delivery-notification request.
+     * @param recipientOptions Ordered recipient policies, defensively copied.
+     * @param tlsRequiredForOnwardDelivery Whether REQUIRETLS is mandatory.
+     * @param deliveryStatusNotificationRequired Whether the shared DSN request must be honored.
+     * @param sendingToAcceptedRecipients Whether to continue for accepted recipients after a rejection, or {@code null} to retain provider behavior.
+     * @see org.simplejavamail.api.email.EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean)
+     */
+    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
+            @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery,
+            final boolean deliveryStatusNotificationRequired, @Nullable final Boolean sendingToAcceptedRecipients) {
         if (deliveryStatusNotificationRequired && deliveryStatusNotification == null) {
             throw new IllegalArgumentException("deliveryStatusNotificationRequired is true, but deliveryStatusNotification is null. "
                     + "Supply a DeliveryStatusNotification request, or set deliveryStatusNotificationRequired to false when no mandatory request is needed.");
@@ -82,6 +101,7 @@ public final class DeliveryEnvelope implements Serializable {
         this.recipientOptions = List.copyOf(recipientOptions);
         this.tlsRequiredForOnwardDelivery = tlsRequiredForOnwardDelivery;
         this.deliveryStatusNotificationRequired = deliveryStatusNotificationRequired;
+        this.sendingToAcceptedRecipients = sendingToAcceptedRecipients;
     }
 
     @Nullable
@@ -95,7 +115,14 @@ public final class DeliveryEnvelope implements Serializable {
     }
 
     public boolean hasProviderSpecificOptions() {
-        return envelopeFrom != null || deliveryStatusNotification != null || hasRecipientNotifyOptions() || tlsRequiredForOnwardDelivery;
+        return envelopeFrom != null || deliveryStatusNotification != null || hasRecipientNotifyOptions() || tlsRequiredForOnwardDelivery
+                || sendingToAcceptedRecipients != null;
+    }
+
+    /** @see org.simplejavamail.api.email.EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+    @Nullable
+    public Boolean getSendingToAcceptedRecipients() {
+        return sendingToAcceptedRecipients;
     }
 
     /** @return Whether RFC 8689 REQUIRETLS must be applied to MAIL FROM for this submission. */
@@ -122,6 +149,6 @@ public final class DeliveryEnvelope implements Serializable {
     /** Normalize streams written before recipient policies were added, keeping the accessors as plain immutable data access. */
     private Object readResolve() {
         return new DeliveryEnvelope(envelopeFrom, deliveryStatusNotification, recipientOptions == null ? emptyList() : recipientOptions,
-                tlsRequiredForOnwardDelivery, deliveryStatusNotificationRequired);
+                tlsRequiredForOnwardDelivery, deliveryStatusNotificationRequired, sendingToAcceptedRecipients);
     }
 }

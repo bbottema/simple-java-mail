@@ -51,6 +51,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONTENT_TR
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_FROM_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING;
@@ -192,6 +193,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		if (includeProperty.test(DEFAULT_REQUIRE_TLS) && configuredBoolean(DEFAULT_REQUIRE_TLS)) {
 			allDefaults.withTlsRequiredForOnwardDelivery();
+		}
+		if (includeProperty.test(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)) {
+			allDefaults.withSendingToAcceptedRecipients(configuredBoolean(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS));
 		}
 		if (includeProperty.test(DEFAULT_TO_ADDRESS)) {
 			if (includeProperty.test(DEFAULT_TO_NAME)) {
@@ -348,6 +352,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (TRUE.equals(resolveEmailProperty(provided, EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY))) {
 			builder.withTlsRequiredForOnwardDelivery();
 		}
+		ofNullable(this.<Boolean>resolveEmailProperty(provided, EmailProperty.SENDING_TO_ACCEPTED_RECIPIENTS))
+				.ifPresent(builder::withSendingToAcceptedRecipients);
 		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
 

@@ -37,6 +37,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_PLAIN_TEXT
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REPLYTO_NAME;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
+import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_ADDRESS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
@@ -52,7 +53,8 @@ final class LockedEmailConfiguration {
 			DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING, DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING, DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING,
 			DEFAULT_FROM_ADDRESS, DEFAULT_FROM_NAME, DEFAULT_REPLYTO_ADDRESS, DEFAULT_REPLYTO_NAME, DEFAULT_BOUNCETO_ADDRESS, DEFAULT_BOUNCETO_NAME,
 			DEFAULT_TO_ADDRESS, DEFAULT_TO_NAME, DEFAULT_CC_ADDRESS, DEFAULT_CC_NAME, DEFAULT_BCC_ADDRESS, DEFAULT_BCC_NAME,
-			DEFAULT_REQUIRE_TLS, DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY, DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
+			DEFAULT_REQUIRE_TLS, DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS, DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY,
+			DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
 
 	private static final List<Property> READABLE_EXACT_HEADER_PROPERTIES = List.of(DEFAULT_SUBJECT,
 			DEFAULT_FROM_ADDRESS, DEFAULT_FROM_NAME, DEFAULT_REPLYTO_ADDRESS, DEFAULT_REPLYTO_NAME);
@@ -85,6 +87,7 @@ final class LockedEmailConfiguration {
 	}
 
 	private void verifySingleValueSettings(final Email email) {
+		verifyIfPresent(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS, email.getSendingToAcceptedRecipients());
 		verifyIfPresent(DEFAULT_SUBJECT, email.getSubject());
 		verifyIfPresent(DEFAULT_CONTENT_TRANSFER_ENCODING, email.getContentTransferEncoding());
 		verifyIfPresent(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING, email.getPlainTextContentTransferEncoding());
@@ -173,6 +176,9 @@ final class LockedEmailConfiguration {
 	}
 
 	private void applySingleValueSettings(final EmailPopulatingBuilder target) {
+		if (locks.contains(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)) {
+			target.withSendingToAcceptedRecipients(config.getBooleanProperty(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS));
+		}
 		if (locks.contains(DEFAULT_SUBJECT)) {
 			target.withSubject(config.getStringProperty(DEFAULT_SUBJECT));
 		}
@@ -333,7 +339,8 @@ final class LockedEmailConfiguration {
 
 	private boolean isEnvelopeOnlyLock(final String key) {
 		return Arrays.asList(DEFAULT_TO_ADDRESS, DEFAULT_CC_ADDRESS, DEFAULT_BCC_ADDRESS, DEFAULT_BOUNCETO_ADDRESS, DEFAULT_BOUNCETO_NAME,
-				DEFAULT_REQUIRE_TLS, DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY, DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)
+				DEFAULT_REQUIRE_TLS, DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS, DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY,
+				DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)
 				.stream().anyMatch(property -> property.key().equals(key));
 	}
 }
