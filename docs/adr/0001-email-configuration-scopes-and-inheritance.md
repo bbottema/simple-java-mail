@@ -18,6 +18,9 @@ Closed Java choices use typed values, not protocol strings. Recipient/group noti
 
 For the three feature families discussed here, S/MIME and DSN have recipient-specific settings; DKIM has none. Within those families, individual fields still have different scopes.
 
+[ADR 0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) records a planned submission-wide Email
+choice under #754. Choosing whether to continue after a recipient rejection is not a recipient/group setting or another Mailer configuration route.
+
 ## Context and motivation
 
 An application should be able to configure an Email feature once for a Mailer or vary it per message using the same Email API. [ADR 0002: Email defaults and overrides](0002-email-defaults-and-overrides.md) records the reusable-policy mechanism, its historical motivation, and its resolution rules. This record covers the separate question of which message, transaction, or recipient scope a feature belongs to.

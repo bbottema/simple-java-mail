@@ -26,6 +26,10 @@ At the content boundary:
 
 Exactly one supporting adapter may handle a transport. Ambiguity fails before submission. The generic Jakarta Mail fallback is available only for ordinary content and envelope requirements it can honor. Unsupported preservation or provider-specific options fail explicitly rather than silently losing their meaning. These checks occur at dispatch on an already acquired/connected transport; “before submission” does not mean “before any network connection.”
 
+[ADR 0028](0028-per-email-recipient-rejection-handling.md) adds a planned per-email recipient-rejection choice under #754 at this existing
+transport-only boundary. Adapters must explicitly honor or reject a requested choice; it does not change MIME authority, adapter discovery
+or transport lifecycle ownership. No shared Session mutation or copied SMTP state machine is authorized.
+
 ### Provider discovery lifetime (#749)
 
 Discover submission, lifecycle and probe adapter factories once per thread-context class loader. Keep the factory list, not a shared `ServiceLoader` or adapter instance: every operation still constructs its own adapters and checks the actual transport or provider. Abort actions and send state remain operation-owned. Discovery failures are retried, and constructor failures do not poison the factory list. JPMS provider methods remain supported alongside classpath constructors.

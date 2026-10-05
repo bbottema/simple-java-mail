@@ -20,6 +20,9 @@ Make the input bytes the sole authority for MIME content. The parsed Email gette
 
 Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 
+[ADR 0028](0028-per-email-recipient-rejection-handling.md) plans an explicit recipient-rejection choice on ExactEmailBuilder under #754.
+It is envelope metadata only: ordinary templates remain bypassed, compatible factory locks still apply, and authoritative bytes are unchanged.
+
 Require explicit envelope recipients; do not infer them from parsed To/Cc/Bcc. Each configured value is one mailbox, repeated calls append and duplicate occurrences remain. The optional explicit sender is an envelope choice, not a request to rewrite From. When omitted, the provider derives its default; omission is not a separate guarantee of an SMTP null reverse path.
 
 ## Recorded rationale and evidence
