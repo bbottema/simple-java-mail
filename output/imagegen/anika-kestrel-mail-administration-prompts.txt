@@ -1,0 +1,51 @@
+Generation method: built-in image_gen.imagegen tool.
+Final deliverable: anika-kestrel-mail-administration.png
+The final image uses only the SJM lettermark on the cardigan and mug.
+
+INITIAL GENERATION PROMPT
+Use case: photorealistic-natural.
+Asset type: one editorial stock photograph for a fictional software-engineering case study.
+Create a NEW photograph, using the four input images as visual references and exact branding sources. Landscape 3:2 composition. A medium shot of a single original fictional adult Chinese woman, Anika, the mail administrator at Kestrel Outfitters, briefly interrupted while reviewing access settings for an external application, RelayDesk.
+
+INPUT IMAGE ROLES:
+1. "ChatGPT Image 2 Oct 2026, 16_25_36.png": Maya's photograph, STYLE AND PREMISES REFERENCE ONLY. Match its photographic realism, warm natural daylight, believable skin and materials, cream walls, some exposed brick and practical wooden furniture, establishing another office in the SAME Kestrel headquarters. Do not copy Maya's identity, bald hairstyle, pose, customer-support desk, composition or props.
+2. "relaydesk.png": EXACT RelayDesk blue-and-teal logo source, used ONLY inside the software on Anika's monitor. Preserve the interlocking chat-bubble icon and the RelayDesk lettering and proportions.
+3. "sjm-logo.png": EXACT Simple Java Mail / SJM logo source for her embroidered chest branding AND her white ceramic desk mug. Faithfully preserve the supplied blue S and dark-slate interlocking J and M letter shapes and proportions. Both physical objects must clearly show all three SJM letters, large and unmistakable, as in Maya's recurring merchandise. Use this supplied SJM lettermark, not typed replacement letters or a newly designed monogram.
+4. "Chrome Kestrel Outfitters Emblem.png": EXACT Kestrel Outfitters chrome emblem source for a metal plaque mounted beside the internal office door. Preserve BOTH distinctive birds, original KESTREL and OUTFITTERS lettering, and the complete emblem's proportions. Integrate the unchanged emblem naturally onto a real metal plaque, with plausible chrome reflections and perspective.
+
+SCENE:
+A separate, modest internal IT office within Kestrel headquarters, orderly but genuinely used. Cream walls, a modest section of exposed brick, practical wooden desk and furniture, warm daylight. Include an ordinary grey filing cabinet, a shelf holding modest equipment and service-documentation binders, visible surface-mounted cable trunking, and a SMALL CLOSED wall-mounted network cabinet. Place the supplied chrome Kestrel plaque beside a clearly recognizable office doorway. A window looks toward an ordinary commercial courtyard or loading yard. The background supports the internal mail-administration context, without becoming a server room. No returns boxes or customer-service noticeboard beside the desk. No fashionable startup interior, glass meeting rooms, giant decorative plants or dramatic lighting.
+
+ANIKA:
+An original fictional adult Chinese woman with a distinctive, natural face, straight dark hair in a practical shoulder-length bob, and understated contemporary styling. Natural skin texture, visible pores, subtle everyday imperfections, credible anatomy, no beauty-filter smoothness. Navy cardigan over a pale blue shirt. The cardigan's embroidered SJM logo is clearly visible on the chest facing the camera; preserve the reference lettermark, with realistic small stitch texture and fabric folds but NO distortion that changes the lettering.
+She is seated upright in a natural working position. ONE hand rests on the mouse; her OTHER hand rests on the desk beside an open notebook. Both hands are visible and anatomically plausible, with independent believable positions. She turns slightly toward the camera with a relaxed, attentive expression, as if interrupted briefly in ordinary work. No hand touching or propping her chin, no leaned-back posture, no staged heroic stance. Her torso, face, cardigan logo and hands should be comfortably framed.
+
+DESK AND SCREEN:
+A white ceramic mug stands on the desk with the reference SJM logo facing the camera, unobstructed and large enough to recognize at small display size. The blue S and dark-slate J/M shapes must match the embroidered chest mark and input image 3. Include the open notebook beside her resting hand and practical workstation essentials.
+Show a normal desktop monitor at a natural viewing angle whose screen remains readable enough to identify the required interface without dominating the image. A simple, restrained, plausible mail-administration interface headed EXACTLY "Mail administration". Within that interface a section labelled EXACTLY "RelayDesk integration", with the supplied RelayDesk logo beside the section title or within the section header. Show a credential field labelled "Credential", displaying ONLY masking dots like "••••••••••••". Include a TLS setting labelled "TLS" with value EXACTLY "Required", and a button labelled EXACTLY "Check connection". Quiet, light-neutral software styling, clear sans-serif typography, minimal extra content. The on-screen logo belongs to the EXTERNAL APPLICATION being granted mail access; Kestrel Outfitters is Anika's employer. No readable passwords, tokens, private keys or personal data. Do not display RelayDesk as her employer or put its logo on clothing or office signage.
+
+PHOTOGRAPHIC COMPOSITION AND FINISH:
+Landscape 3:2, realistic editorial stock photography, natural medium shot. Choose a distinct viewpoint and desk arrangement from Maya's photo, while retaining her warm photographic colour treatment. Face, chest embroidery, mug logo, and essential IT-office context must all be recognizable at small display size. Moderate depth of field: Anika is the focal point; the screen, both logos and contextual objects retain sufficient clarity. Natural perspective, believable material texture, subtle wear, wood grain, ceramic reflections and metal reflections. Warm ordinary daylight, restrained contrast, real camera realism. No cinematic teal-orange grading, plastic skin, illustration, CGI appearance, collage, captions, speech bubbles, watermarks, security-shield graphics, floating graphics or added headline. Produce one finished photograph.
+
+FINAL REFINEMENT PROMPT
+Use case: photorealistic-natural / identity-preserve.
+Refine the photograph in input image 1 into the final 3:2 landscape editorial photograph. The change is the camera viewpoint and spatial composition: create a clearly different composition from the prior support-desk portrait by positioning Anika toward the LEFT / centre-left and the monitor toward the RIGHT. Reconstruct this as a physically plausible new photograph from the other side of her workstation; do NOT merely flip or mirror the image or any text/logos.
+
+INPUTS:
+Image 1 is the photograph to refine: preserve THIS fictional Chinese adult woman Anika's recognizable face, natural skin, straight dark shoulder-length bob, navy cardigan and pale-blue shirt, relaxed attentive expression, warm daylight and photographic colour treatment. Keep her upright, working naturally, one hand on the mouse and the other beside an open notebook; no chin-resting hand, no leaned-back posture.
+Image 2 is the supplied RelayDesk logo; preserve its exact icon, lettering and proportions on screen.
+Image 3 is the SJM source; use ONLY THE SJM LETTERMARK PORTION, NEVER the words "Simple Java Mail". The prominent blue S and dark-slate interlocking J/M are the exact supplied shapes. Both cardigan chest embroidery and white ceramic mug MUST clearly display ALL THREE letters SJM, with original proportions, not newly typed or redesigned letters.
+Image 4 is the supplied chrome Kestrel Outfitters emblem; preserve its exact two birds, original KESTREL / OUTFITTERS lettering and complete proportions.
+
+COMPOSITION:
+A believable medium shot with Anika left / centre-left, a naturally angled monitor on the right, mug logo facing camera and chest embroidery unobstructed. Face, both SJM lettermarks and key workplace context remain recognizable at small display size. Hands visible and anatomically correct. A moderate depth of field keeps essential context understandable.
+The chrome Kestrel emblem appears unchanged on a metal plaque mounted ON THE CREAM WALL BESIDE the office doorway, clearly separate from the wooden door itself. Natural chrome reflections and perspective, no redesign.
+
+OFFICE:
+Separate modest internal IT office at the same Kestrel headquarters. Cream walls, some exposed brick, practical wooden desk, warm daylight. Include a grey filing cabinet; a real open shelf with modest equipment AND service-documentation binders; visible cable trunking; and a small CLOSED wall-mounted network cabinet. An ordinary window overlooks an unremarkable commercial courtyard or loading yard. No new slogans or exterior advertising signage. Orderly yet used. No returns boxes or customer-service noticeboard, startup interior, glass meeting rooms, giant decorative plants or dramatic server-room lighting. Remove the cute slogan sticky note from the original. Keep only ordinary work essentials.
+
+SCREEN:
+Preserve a clear restrained mail-administration interface on the repositioned monitor. Exact heading "Mail administration"; exact section "RelayDesk integration"; supplied RelayDesk logo inside that software section; "Credential" field containing ONLY masked dots; "TLS" setting with "Required"; button "Check connection". Render these exact words naturally on screen and ensure every logo/text reads in the correct direction. No readable passwords, tokens or private keys. RelayDesk is the external application, Kestrel is her employer.
+
+FINISH:
+One photorealistic editorial photograph, landscape 3:2. Natural daylight, believable pores, hair strands, textile texture and subtle embroidery, wood, ceramic and metal. Preserve Anika's unforced ordinary-working-moment expression. The two merchandise logos contain ONLY the SJM symbol, NO "Simple Java Mail" wording. No captions, speech bubbles, watermarks, graphics, shields, CGI appearance, plastic skin or collage.
