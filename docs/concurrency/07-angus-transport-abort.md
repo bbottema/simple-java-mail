@@ -93,6 +93,20 @@ This diagram is intentionally a summary: `AngusSubmissionResult` combines final 
 
 `TransportRunner` translates an actual send failure through `MailSendControl`, preserving the receipt where one exists. It does not turn a successfully returned receipt into cancellation simply because the stop flag changed afterwards. On the unpooled path, a stop-related cleanup failure after an accepted receipt is handled without discarding that receipt. Other cleanup failures are not universally suppressed.
 
+## Per-email recipient rejection handling
+
+[ADR 0028](../adr/0028-per-email-recipient-rejection-handling.md) adds one nullable choice to the attempt's `DeliveryEnvelope` and Angus message facade.
+The facade retains original provider options first, then applies an explicit true or false; an unset choice leaves them unchanged. The flag never lives
+on the pooled transport or gets written into a shared Session. Adapter dispatch checks its separate support opt-in before invoking the provider.
+
+Angus cannot let a false message flag override a true Session-wide `mail.smtp.sendpartial` (or `mail.smtps.sendpartial`). The adapter checks the
+**selected connection's** configuration under the existing SMTP monitor, before `MAIL FROM`, and returns a local compatibility failure for that clash.
+Such a local failure supplies no stale SMTP response and does not invalidate an otherwise healthy lease. Once sending starts, Angus still owns the
+recipient loop: stopping withholds DATA after a known rejection; continuation can produce partial acceptance, which remains a failed operation.
+
+No new lock, scheduler, cancellation transition or resource owner is added. Release/invalidation and observer/completion ordering remain unchanged.
+The [shared infographic](inside-a-mail-send.md) therefore remains accurate; this option changes behavior within its provider-submission layer.
+
 ## Lock, atomic and thread-local ownership
 
 | Identity | Protected state or operation | Rules for callers |

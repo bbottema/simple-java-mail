@@ -30,7 +30,7 @@ Derive conservative `MailRetryDisposition` guidance from structured replies and 
 
 Provider observations belong to one attempt. Copy mutable provider data before returning it, snapshot replies before releasing the transport, and do not attach an unchanged response from a previous pooled send. When the final DATA reply is lost, discard speculative unsent claims while retaining earlier recipient rejections that are actually known.
 
-[ADR 0028](0028-per-email-recipient-rejection-handling.md) records the planned input choice for continuing after a recipient rejection under #754.
+[ADR 0028](0028-per-email-recipient-rejection-handling.md) records the input choice for continuing after a recipient rejection under #754.
 It preserves this result contract: partial acceptance still produces failed completion with the existing receipt and retry guidance,
 even when the application permits submission to accepted recipients. It does not equate a positive RCPT reply with final content acceptance.
 

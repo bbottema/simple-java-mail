@@ -175,7 +175,7 @@ The following records retain their existing unlocked behavior. This ADR adds an 
 | [0005: Spring integration](0005-spring-integration-and-boot-compatibility.md) | Keep Environment-based construction and the separation between runtime loading and IDE metadata. |
 | [0013: Exact EML submission](0013-exact-eml-submission.md) | Preserve authoritative bytes and the ordinary template bypass. That bypass must not silently remove a lock; reject incompatible operations. |
 | [0023: Per-message REQUIRETLS](0023-per-message-requiretls.md) | Keep onward TLS separate from connection TLS. A locked REQUIRETLS value is non-suppressible within the factory, unlike the existing ordinary default. |
-| [0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) | Planned under #754: lock either Boolean choice at the existing Email owner, preserve exact bytes, and reject conflicting advanced settings or unsupported providers. |
+| [0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) | Implemented under #754: lock either Boolean choice at the existing Email owner, preserve exact bytes, and reject conflicting advanced settings or unsupported providers. |
 
 ## Implementation status and verification obligations
 

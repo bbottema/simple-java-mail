@@ -18,7 +18,7 @@ Closed Java choices use typed values, not protocol strings. Recipient/group noti
 
 For the three feature families discussed here, S/MIME and DSN have recipient-specific settings; DKIM has none. Within those families, individual fields still have different scopes.
 
-[ADR 0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) records a planned submission-wide Email
+[ADR 0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) records a submission-wide Email
 choice under #754. Choosing whether to continue after a recipient rejection is not a recipient/group setting or another Mailer configuration route.
 
 ## Context and motivation

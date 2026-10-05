@@ -3,7 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-10-05
 - Target: 10.0.0
-- Implementation: Planned, not implemented
+- Implementation: Implemented and accepted for unreleased 10.0.0 under #754
 - Tracking: [#754: Choose whether to continue sending after a recipient rejection](https://github.com/bbottema/simple-java-mail/issues/754)
 
 ## Context and decision drivers
@@ -32,7 +32,7 @@ identifies this particular facade opportunity. Its earlier enum proposal is not 
 
 ### Keep the choice on Email
 
-The planned composed and exact Email builder API is:
+The composed and exact Email builder API is:
 
 ```java
 .withSendingToAcceptedRecipients(true)
@@ -60,7 +60,7 @@ applying ordinary Email templates or rebuilding their authoritative bytes. Appli
 
 ### Support the normal configuration routes
 
-The planned ordinary property is:
+The ordinary property is:
 
 ```properties
 simplejavamail.defaults.sendtoacceptedrecipients=true
@@ -77,7 +77,7 @@ simplejavamail.locked.defaults.sendtoacceptedrecipients=false
 
 A lock supplies the effective value, permits an equal explicit value and rejects a conflicting one. Clearing, suppression and template
 replacement cannot remove it. Exact-message envelope choices can honor either value without changing content; incompatible provider
-or advanced configuration must be rejected rather than bypassing the lock. Neither property shown here is implemented yet.
+or advanced configuration must be rejected rather than bypassing the lock. There is no built-in property default; absent configuration remains unset.
 
 ### Preserve partial-failure completion
 
@@ -91,14 +91,15 @@ A broken connection is not made usable by this flag. Batch first-failure stoppin
 
 ### Illustrate the difference with three recipients
 
-The following is planned usage, not a compiling example of the current API. Assume `mail` is the application's configured factory and `mailer` is its Mailer:
+Assume `mail` is the application's configured factory and `mailer` is its Mailer:
 
 ```java
+import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 Email email = mail.emailBuilder().startingBlank()
     .from("sender@example.org")
-    .to("alice@example.org")
-    .to("bob@example.org")
-    .to("carol@example.org")
+    .withRecipients(to("Alice", "alice@example.org"), to("Bob", "bob@example.org"),
+        to("Carol", "carol@example.org"))
     .withSubject("Service notification")
     .withPlainText("The service window has changed.")
     .withSendingToAcceptedRecipients(true)
@@ -112,20 +113,20 @@ try {
 }
 ```
 
-Suppose Alice and Bob receive positive RCPT replies and Carol receives a permanent rejection. For the continuation example, assume
+Suppose Alice receives a positive RCPT reply, Bob receives a temporary rejection and Carol receives a permanent rejection. For the continuation example, assume
 the server also accepts the subsequently transmitted content:
 
 | Configured choice | Message content | Completion and receipt |
 | --- | --- | --- |
-| `false` | Not transmitted to any recipient. SMTP envelope commands may already have been issued. | Failure with `REJECTED`; Alice and Bob are unsent, and Carol is rejected. |
-| `true` | Submitted for Alice and Bob, without changing the message headers. | Failure with `PARTIALLY_ACCEPTED`; Alice and Bob are accepted for submission, and Carol is rejected. |
+| `false` | Not transmitted to any recipient. SMTP envelope commands may already have been issued. | Failure with `REJECTED`; Alice is unsent, Bob is temporarily rejected and Carol is permanently rejected. |
+| `true` | Submitted for Alice, without changing the message headers. | Failure with `PARTIALLY_ACCEPTED`; Alice is accepted for submission, Bob is temporarily rejected and Carol is permanently rejected. |
 
 An abbreviated illustration of the second receipt is:
 
 ```text
 status: PARTIALLY_ACCEPTED
 alice@example.org: accepted for submission
-bob@example.org: accepted for submission
+bob@example.org: temporarily rejected
 carol@example.org: permanently rejected
 operation: failed (MailSubmissionException)
 ```
@@ -144,7 +145,8 @@ The inspected Angus 2.0.5 `SMTPTransport.rcptTo()` first reads `SMTPMessage.getS
 `mail.<protocol>.sendpartial` property. Consequently, a per-message false value cannot turn off a Session-wide true value.
 The [SMTP property documentation](https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html)
 and [SMTPMessage API](https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/SMTPMessage.html#setSendPartial(boolean))
-describe the existing provider controls; the fallback limitation was verified by source inspection, not by running a new test in this documentation pass.
+describe the existing provider controls. Source inspection and the implementation's SMTP/SMTPS tests verify the fallback limitation.
+Loopback tests also verify rejection before MAIL FROM, selected-Session ownership and healthy pooled reuse after a local conflict.
 
 Reject an explicit or locked false choice that conflicts with Session-wide `mail.smtp.sendpartial=true` or `mail.smtps.sendpartial=true`
 before MAIL FROM. Explain that the advanced property would let Angus continue after a recipient rejection despite the Email's choice.
@@ -210,7 +212,7 @@ Related implementation foundations are [#710](https://github.com/bbottema/simple
 
 ## Implementation obligations and verification
 
-Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Future implementation must cover:
+Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Regression coverage must include:
 
 - Unset/true/false, repeated setters, clearing, defaults/overrides, suppression, builder reuse, copying and old/new serialization.
 - Locked true/false values, equal/conflicting customization, replacement templates, exact envelopes and selected configuration ownership.
@@ -222,6 +224,7 @@ Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding gu
 - Property precedence/isolation, diagnostics, Spring metadata, generated CLI/help and classpath/JPMS consumers.
 - Clear public Javadocs and current website examples for both behaviors. Keep the interface contract authoritative and implementation Javadocs linked to it.
 
-Record implementation verification separately. This pass records the accepted decision and checks documentation links and tracking only;
-it does not run runtime tests or implement any of the planned APIs. Add the eventual feature to release history under Enhancements.
+The [verification record](../research/754-recipient-rejection-verification.md) records the local runtime and documentation checks on 2026-10-05.
+The implementation, generated CLI metadata and documentation passed production-only and holistic review under #754.
+Release history lists this additive feature under Enhancements; it is implemented for 10.0.0, not released.
 Migration notes describe only genuine changed behavior against released versions, not this additive API or intermediate unreleased implementations.

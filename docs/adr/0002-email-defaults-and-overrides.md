@@ -60,7 +60,7 @@ For example, Email's `DeliveryStatusNotification` resolves as one value. Its NOT
 
 Existing APIs do not all express these distinctions consistently. Record those mismatches as migration work rather than redefining their runtime behavior through an ADR.
 
-[ADR 0028](0028-per-email-recipient-rejection-handling.md) applies this contract to the planned recipient-rejection choice under #754:
+[ADR 0028](0028-per-email-recipient-rejection-handling.md) applies this contract to the recipient-rejection choice under #754:
 `null` is unset, explicit `false` is a supplied value, and clearing permits fallback. It does not change template replacement,
 suppression or the ordinary exact-EML bypass.
 

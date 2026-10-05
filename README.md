@@ -123,6 +123,10 @@ try {
 
 `ACCEPTED` confirms SMTP submission for all envelope recipients, not final mailbox delivery. Failed and partial attempts throw `MailSubmissionException` while preserving the original Jakarta Mail exception and the same recipient facts. `UNKNOWN` means the transport cannot tell whether the server accepted anything; do not automatically retry that outcome unless duplicate submission is acceptable or prevented. The [submission receipt guide](https://www.simplejavamail.org/features.html#section-submission-receipts) covers asynchronous and open-connection use.
 
+Choose how an Email handles a recipient rejection with `.withSendingToAcceptedRecipients(true)` to continue for accepted recipients, or `false` to withhold content for everyone after a known rejection. Continuing still fails the overall send with a `PARTIALLY_ACCEPTED` receipt if the server accepts only some recipients. Clearing the choice allows defaults and existing provider behavior to apply again; it is not an explicit false.
+
+Use `simplejavamail.defaults.sendtoacceptedrecipients` for a default, or `simplejavamail.locked.defaults.sendtoacceptedrecipients` to keep the choice fixed within a factory. Exact emails carry the choice without changing their bytes. See the [three-recipient walkthrough](https://www.simplejavamail.org/analyzing-send-results.html#section-partial-send) for both choices, output and advanced-provider compatibility.
+
 For individual replies, inspect `receipt.getRecipientResults()`: each result retains the envelope address, its RCPT reply (including an optional enhanced status such as `4.2.0`), and its final submission disposition. A positive RCPT reply is not final message acceptance. `receipt.getRetryDisposition()` distinguishes known-safe retry candidates from permanent rejection, missing provider facts, and duplicate risk; `getRetryableRecipients()` returns candidates only for the safe-to-retry dispositions. These are inputs to your retry policy, not an automatic resend facility. The existing accepted/unsent/invalid lists remain available.
 
 For cross-cutting audit and metrics code, configure one terminal observer on the reusable `Mailer`:
