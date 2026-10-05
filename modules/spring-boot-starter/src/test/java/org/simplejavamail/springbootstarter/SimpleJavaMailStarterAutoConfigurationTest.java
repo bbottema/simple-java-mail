@@ -38,6 +38,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleJavaMailStarterAutoConfigurationTest {
 
+	@ParameterizedTest
+	@ValueSource(booleans = {true, false})
+	void factoryAndAutoConfiguredMailerApplyTheLockedRecipientRejectionChoice(final boolean choice) {
+		try (ConfigurableApplicationContext context = applicationBuilder().run(
+				"--simplejavamail.defaults.sendtoacceptedrecipients=" + !choice,
+				"--simplejavamail.locked.defaults.sendtoacceptedrecipients=" + choice)) {
+			final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
+			final org.simplejavamail.api.email.Email local = factory.emailBuilder().startingBlank().ignoringDefaults().buildEmail();
+			assertThat(local.getSendingToAcceptedRecipients()).isNull();
+			assertThat(context.getBean(Mailer.class).getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(local)
+					.getSendingToAcceptedRecipients()).isEqualTo(choice);
+			assertThat(factory.getConfig().getDiagnostics().toString()).contains(
+					"simplejavamail.locked.defaults.sendtoacceptedrecipients = " + choice + " (source: commandLineArgs)");
+		}
+	}
+
 	@Test
 	void factoryAndAutoConfiguredMailerRetainCentralLocks() {
 		try (ConfigurableApplicationContext context = applicationBuilder().run(

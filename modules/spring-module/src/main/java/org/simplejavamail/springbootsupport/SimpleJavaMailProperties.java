@@ -121,6 +121,8 @@ public class SimpleJavaMailProperties {
         private Delivery delivery;
         /** Whether Email defaults require RFC 8689 REQUIRETLS for onward delivery. */
         private String requiretls;
+        /** Whether a recipient rejection still permits submission for the accepted recipients; omitted leaves the choice unset. */
+        private Boolean sendtoacceptedrecipients;
         private Recipient to;
         private Recipient cc;
         private Recipient bcc;
