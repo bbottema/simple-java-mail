@@ -72,6 +72,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
@@ -156,6 +157,8 @@ public class MailerTest {
 		final Properties secondSettings = new Properties();
 		secondSettings.putAll(otherMailerOtherSession.getSession().getProperties());
 		assertThat(firstSettings.remove("mail.smtp.socketFactory")).isNotSameAs(secondSettings.remove("mail.smtp.socketFactory"));
+		assertThat(firstSettings.remove("mail.smtp.executor.writetimeout"))
+				.isNotSameAs(secondSettings.remove("mail.smtp.executor.writetimeout"));
 		assertThat(firstSettings).isEqualTo(secondSettings);
 	}
 
@@ -561,7 +564,7 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory", mockFactory));
+		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtp.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
 	}
 
@@ -578,7 +581,7 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtps.ssl.socketFactory", mockFactory));
+		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtps.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtps.ssl.socketFactory.class");
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory");
 	}
@@ -595,8 +598,17 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertThat(session.getProperties()).contains(new SimpleEntry<String, Object>("mail.smtp.ssl.socketFactory", mockFactory));
+		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtp.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
+	}
+
+	private static void assertConfiguredTlsFactoryDelegatesTo(final Session session, final String key, final SSLSocketFactory applicationFactory) {
+		final Object configured = session.getProperties().get(key);
+		assertThat(configured).isInstanceOf(SSLSocketFactory.class).isNotSameAs(applicationFactory);
+		final String[] ciphers = {"synthetic cipher selection"};
+		when(applicationFactory.getDefaultCipherSuites()).thenReturn(ciphers);
+		assertThat(((SSLSocketFactory) configured).getDefaultCipherSuites()).isSameAs(ciphers);
+		verify(applicationFactory).getDefaultCipherSuites();
 	}
 
 	@Test

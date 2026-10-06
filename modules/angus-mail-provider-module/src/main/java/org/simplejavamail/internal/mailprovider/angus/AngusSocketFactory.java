@@ -20,7 +20,7 @@ final class AngusSocketFactory extends SocketFactory {
 
     private final Properties properties;
     private final String prefix;
-    private final ThreadLocal<ManagedAngusTransport> connectingTransport = new ThreadLocal<>();
+    private final ThreadLocal<SocketTracker> connectingTransport = new ThreadLocal<>();
 
     AngusSocketFactory(final Properties properties, final String prefix) {
         this.properties = properties;
@@ -28,13 +28,13 @@ final class AngusSocketFactory extends SocketFactory {
     }
 
     @Nullable
-    ManagedAngusTransport bind(final ManagedAngusTransport transport) {
-        final ManagedAngusTransport previous = connectingTransport.get();
+    SocketTracker bind(final SocketTracker transport) {
+        final SocketTracker previous = connectingTransport.get();
         connectingTransport.set(transport);
         return previous;
     }
 
-    void restore(@Nullable final ManagedAngusTransport previous) {
+    void restore(@Nullable final SocketTracker previous) {
         if (previous == null) {
             connectingTransport.remove();
         } else {
@@ -45,9 +45,9 @@ final class AngusSocketFactory extends SocketFactory {
     @Override
     public Socket createSocket() throws IOException {
         final Socket socket = createUnconnectedSocket();
-        final ManagedAngusTransport transport = connectingTransport.get();
+        final SocketTracker transport = connectingTransport.get();
         if (transport != null) {
-            transport.trackSocket(socket);
+            transport.track(socket);
         }
         return socket;
     }
@@ -113,5 +113,11 @@ final class AngusSocketFactory extends SocketFactory {
             }
             throw failure;
         }
+    }
+
+    /** Both managed sends and dedicated probes must retain a socket before Angus finishes connection setup. */
+    @FunctionalInterface
+    interface SocketTracker {
+        void track(Socket socket) throws IOException;
     }
 }

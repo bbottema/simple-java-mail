@@ -28,6 +28,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Safety gate for the supported Angus socket-factory hook, before making any public cancellation promises.
@@ -90,6 +94,20 @@ class AngusSocketAbortTest {
             workers.shutdownNow();
             assertThat(workers.awaitTermination(7, TimeUnit.SECONDS)).isTrue();
         }
+    }
+
+    @Test
+    void fullDisposalRetriesTheSocketCloseIfRawAbortFailed() throws Exception {
+        final Session session = Session.getInstance(transportProperties(false));
+        MailTransportLifecycleResolver.configureOwnedSession(session);
+        final Socket socket = mock(Socket.class);
+        doThrow(new IOException("synthetic abort-close failure")).doNothing().when(socket).close();
+        try (ManagedAngusTransport transport = (ManagedAngusTransport) session.getTransport()) {
+            transport.trackSocket(socket);
+            transport.abortConnection();
+            verify(socket).close();
+        }
+        verify(socket, times(2)).close();
     }
 
     @Test

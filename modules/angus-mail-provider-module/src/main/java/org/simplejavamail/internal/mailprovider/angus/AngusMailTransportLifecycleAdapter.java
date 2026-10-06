@@ -10,15 +10,17 @@ import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import java.util.Optional;
 import java.util.Properties;
 
-/** Installs the managed Angus transport on SJM-owned Sessions without replacing application socket factories. */
+/** Installs owned Angus resources and protocol handling; application factories retain their TLS decisions. */
 public final class AngusMailTransportLifecycleAdapter implements MailTransportLifecycleAdapter {
 
+    /** @see MailTransportLifecycleAdapter#supportsProvider(Provider) */
     @Override
     public boolean supportsProvider(@NotNull final Provider provider) {
         return provider.getClassName().equals("org.eclipse.angus.mail.smtp.SMTPTransport")
                 || provider.getClassName().equals("org.eclipse.angus.mail.smtp.SMTPSSLTransport");
     }
 
+    /** @see MailTransportLifecycleAdapter#configureOwnedSession(Session, String) */
     @Override
     public void configureOwnedSession(@NotNull final Session session, @NotNull final String protocol) {
         final String prefix = "mail." + protocol;
@@ -28,11 +30,8 @@ public final class AngusMailTransportLifecycleAdapter implements MailTransportLi
         if (!properties.containsKey("mail.mime.allowutf8") && properties.getProperty("mail.mime.allowutf8") == null) {
             properties.setProperty("mail.mime.allowutf8", "true");
         }
-        if (!hasCustomSocketFactory(properties, prefix)) {
-            properties.put(prefix + ".socketFactory", new AngusSocketFactory(properties, prefix));
-            // An aborted/failed connection must not cause SocketFetcher to retry with an untracked socket.
-            properties.setProperty(prefix + ".socketFactory.fallback", "false");
-        }
+        AngusSocketFactories.configure(properties, prefix);
+        AngusWriteTimeoutScheduler.configure(properties, prefix);
         final Provider provider = new Provider(Provider.Type.TRANSPORT, protocol,
                 ManagedAngusTransport.class.getName(), "Simple Java Mail", null);
         session.addProvider(provider);
@@ -44,11 +43,7 @@ public final class AngusMailTransportLifecycleAdapter implements MailTransportLi
         }
     }
 
-    private static boolean hasCustomSocketFactory(final Properties properties, final String prefix) {
-        return properties.get(prefix + ".socketFactory") != null || properties.getProperty(prefix + ".socketFactory.class") != null
-                || properties.get(prefix + ".ssl.socketFactory") != null || properties.getProperty(prefix + ".ssl.socketFactory.class") != null;
-    }
-
+    /** @see MailTransportLifecycleAdapter#createAbortAction(Transport) */
     @Override
     @NotNull
     public Optional<Runnable> createAbortAction(@NotNull final Transport transport) {

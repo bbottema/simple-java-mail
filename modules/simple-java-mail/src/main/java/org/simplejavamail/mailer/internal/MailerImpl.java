@@ -219,6 +219,8 @@ public class MailerImpl implements Mailer {
 		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			try {
 				MailTransportLifecycleResolver.configureOwnedSession(session);
+				// Provider initialization must not silently replace a value supplied by a configuration lock.
+				lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
 			} catch (MessagingException failure) {
 				throw new MailerException("Couldn't set up the SMTP transport while building the Mailer. "
 						+ "Check the cause and your Jakarta Mail provider dependencies.", failure);

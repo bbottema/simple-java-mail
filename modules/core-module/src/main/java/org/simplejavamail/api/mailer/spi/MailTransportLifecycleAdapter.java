@@ -21,7 +21,10 @@ public interface MailTransportLifecycleAdapter {
     /**
      * Initializes provider-specific encoding, protocol hooks and optional connection tracking before a library-owned Session is published or pooled.
      * This also runs for offline MIME preparation; configuring the Session must not connect or start network work.
-     * Leave incompatible custom socket settings untouched; {@link #createAbortAction(Transport)} must then report no capability.
+     * Preserve custom factory selection and explicit settings. An adapter may supply fail-closed defaults and failure-cleanup decorators,
+     * but must not claim abort capability for opaque factories through {@link #createAbortAction(Transport)}.
+     * Stable connection-resource controllers may be installed here without starting workers; their lifetime follows physical connection disposal,
+     * not a borrowed lease or one invoking Mailer. Application-supplied executors remain application-owned.
      * Never use this method to modify caller-owned Sessions or to store per-request state in Session properties.
      */
     void configureOwnedSession(@NotNull Session session, @NotNull String protocol);

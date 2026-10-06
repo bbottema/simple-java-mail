@@ -5,11 +5,14 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpCapabilities;
 import org.simplejavamail.api.mailer.SmtpConnectionPhase;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.internal.util.SmtpProbeReports;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,6 +28,10 @@ final class AngusProbeTransport extends SMTPTransport {
     private final List<String> warnings = new ArrayList<>();
     private final AngusProbeTlsObserver tlsObserver;
     private final boolean authenticationRequested;
+    @Nullable private final AngusSocketFactory socketFactory;
+    @Nullable private final AngusWriteTimeoutScheduler writeTimeoutScheduler;
+    @Nullable private AngusWriteTimeoutScheduler.Lease writeTimeoutLease;
+    @Nullable private Socket rawSocket;
     private SmtpConnectionPhase phase;
     private SmtpConnectionPhase failurePhase;
     private boolean awaitingGreeting = true;
@@ -39,6 +46,9 @@ final class AngusProbeTransport extends SMTPTransport {
         phase = authenticate ? SmtpConnectionPhase.AUTHENTICATION : SmtpConnectionPhase.CONNECT;
         report = SmtpProbeReports.begin(session, authenticate).supported(true);
         tlsObserver = new AngusProbeTlsObserver(session, protocol);
+        final Object configuredFactory = session.getProperties().get("mail." + protocol + ".socketFactory");
+        socketFactory = configuredFactory instanceof AngusSocketFactory ? (AngusSocketFactory) configuredFactory : null;
+        writeTimeoutScheduler = AngusWriteTimeoutScheduler.find(session.getProperties(), protocol);
     }
 
     void recordConnected() {
@@ -68,6 +78,23 @@ final class AngusProbeTransport extends SMTPTransport {
         }
     }
 
+    @Override
+    public synchronized void close() throws MessagingException {
+        Throwable primaryFailure = null;
+        try {
+            super.close();
+        } catch (MessagingException | RuntimeException | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            if (primaryFailure == null) {
+                releaseConnectionResources();
+            } else {
+                releaseAfterFailure(primaryFailure);
+            }
+        }
+    }
+
     SmtpConnectionReport report() {
         final List<String> notes = new ArrayList<>(warnings);
         notes.addAll(tlsObserver.getWarnings());
@@ -86,11 +113,57 @@ final class AngusProbeTransport extends SMTPTransport {
             throws MessagingException {
         resetConnectionFacts();
         phase = SmtpConnectionPhase.CONNECT;
-        final boolean connected = super.protocolConnect(host, port, user, password);
-        if (!connected) {
-            phase = SmtpConnectionPhase.AUTHENTICATION;
+        if (writeTimeoutLease == null && writeTimeoutScheduler != null) {
+            writeTimeoutLease = writeTimeoutScheduler.retainConnection();
         }
-        return connected;
+        final AngusSocketFactory.SocketTracker previous = socketFactory == null ? null : socketFactory.bind(socket -> rawSocket = socket);
+        try {
+            final boolean connected = super.protocolConnect(host, port, user, password);
+            if (!connected) {
+                phase = SmtpConnectionPhase.AUTHENTICATION;
+                releaseConnectionResources();
+            }
+            return connected;
+        } catch (MessagingException | RuntimeException | Error failure) {
+            releaseAfterFailure(failure);
+            throw failure;
+        } finally {
+            if (socketFactory != null) {
+                socketFactory.restore(previous);
+            }
+        }
+    }
+
+    private void releaseConnectionResources() throws MessagingException {
+        try {
+            final Socket socket = rawSocket;
+            rawSocket = null;
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException failure) {
+            throw new MessagingException("Couldn't close the dedicated SMTP probe socket", failure);
+        } finally {
+            releaseWriteTimeoutLease();
+        }
+    }
+
+    private void releaseAfterFailure(final Throwable primaryFailure) {
+        try {
+            releaseConnectionResources();
+        } catch (MessagingException | RuntimeException | Error cleanupFailure) {
+            if (cleanupFailure != primaryFailure) {
+                primaryFailure.addSuppressed(cleanupFailure);
+            }
+        }
+    }
+
+    private void releaseWriteTimeoutLease() {
+        if (writeTimeoutLease != null) {
+            final AngusWriteTimeoutScheduler.Lease lease = writeTimeoutLease;
+            writeTimeoutLease = null;
+            lease.close();
+        }
     }
 
     private void resetConnectionFacts() {

@@ -31,6 +31,8 @@ public final class ManagedAngusTransport extends SMTPTransport {
     private final String propertyPrefix;
     private final boolean allowUtf8;
     @Nullable private final AngusSocketFactory socketFactory;
+    @Nullable private final AngusWriteTimeoutScheduler writeTimeoutScheduler;
+    @Nullable private AngusWriteTimeoutScheduler.Lease writeTimeoutLease;
     private final AtomicReference<Socket> rawSocket = new AtomicReference<>();
     private final AtomicBoolean aborted = new AtomicBoolean();
     private boolean commitPossible;
@@ -51,6 +53,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
         allowUtf8 = PropUtil.getBooleanProperty(session.getProperties(), "mail.mime.allowutf8", false);
         final Object configuredFactory = session.getProperties().get(propertyPrefix + ".socketFactory");
         socketFactory = configuredFactory instanceof AngusSocketFactory ? (AngusSocketFactory) configuredFactory : null;
+        writeTimeoutScheduler = AngusWriteTimeoutScheduler.find(session.getProperties(), urlName == null ? "smtp" : urlName.getProtocol());
     }
 
     /** Reuses Angus's SMTP xtext encoder for ENVID and ASCII ORCPT without creating or using a transport connection. */
@@ -84,21 +87,23 @@ public final class ManagedAngusTransport extends SMTPTransport {
     protected synchronized boolean protocolConnect(final String host, final int port, final String user, final String password)
             throws MessagingException {
         currentSizeSupport = SmtpSizeSupport.unadvertised();
-        if (socketFactory == null) {
-            return super.protocolConnect(host, port, user, password);
+        if (writeTimeoutLease == null && writeTimeoutScheduler != null) {
+            writeTimeoutLease = writeTimeoutScheduler.retainConnection();
         }
-        final ManagedAngusTransport previous = socketFactory.bind(this);
+        final AngusSocketFactory.SocketTracker previous = socketFactory == null ? null : socketFactory.bind(this::trackSocket);
         try {
             final boolean connected = super.protocolConnect(host, port, user, password);
             if (!connected) {
-                closeTrackedSocket();
+                releaseConnectionResources();
             }
             return connected;
         } catch (MessagingException | RuntimeException | Error failure) {
-            closeTrackedSocket();
+            releaseAfterFailure(failure);
             throw failure;
         } finally {
-            socketFactory.restore(previous);
+            if (socketFactory != null) {
+                socketFactory.restore(previous);
+            }
         }
     }
 
@@ -142,24 +147,61 @@ public final class ManagedAngusTransport extends SMTPTransport {
         if (socket != null) {
             try {
                 socket.close();
-            } catch (IOException failure) {
-                LOGGER.warn("Unable to close the aborted SMTP socket", failure);
+            } catch (IOException | RuntimeException failure) {
+                LOGGER.warn("Unable to close the managed SMTP socket", failure);
             }
         }
     }
 
     @Override
     public synchronized void close() throws MessagingException {
+        Throwable primaryFailure = null;
         try {
             super.close();
         } catch (MessagingException failure) {
             // Angus has already cleared its streams/connected state in finally; QUIT on our deliberately closed socket is expected.
             if (!aborted.get() || !(failure.getCause() instanceof SocketException)) {
+                primaryFailure = failure;
                 throw failure;
             }
             LOGGER.debug("Closed SMTP transport after its socket was aborted", failure);
+        } catch (RuntimeException | Error failure) {
+            primaryFailure = failure;
+            throw failure;
         } finally {
             currentSizeSupport = SmtpSizeSupport.unadvertised();
+            if (primaryFailure == null) {
+                releaseConnectionResources();
+            } else {
+                releaseAfterFailure(primaryFailure);
+            }
+        }
+    }
+
+    private void releaseConnectionResources() {
+        try {
+            closeTrackedSocket();
+        } finally {
+            rawSocket.set(null);
+            releaseWriteTimeoutLease();
+        }
+    }
+
+    private void releaseAfterFailure(final Throwable primaryFailure) {
+        try {
+            releaseConnectionResources();
+        } catch (RuntimeException | Error cleanupFailure) {
+            if (cleanupFailure != primaryFailure) {
+                primaryFailure.addSuppressed(cleanupFailure);
+            }
+        }
+    }
+
+    private void releaseWriteTimeoutLease() {
+        if (writeTimeoutLease != null) {
+            final AngusWriteTimeoutScheduler.Lease lease = writeTimeoutLease;
+            writeTimeoutLease = null;
+            lease.close();
         }
     }
 
