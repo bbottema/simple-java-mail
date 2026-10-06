@@ -44,6 +44,13 @@ A connection per email is still the supported no-batch path. A single permanentl
 
 The views add no workers, connections or locks. Asynchronous admission can nevertheless wait for capacity, and caller-side preparation can take time; `async()` is not a promise of immediate return. Connection reuse is not a promise of final delivery, and releasing a healthy lease is not physical socket disposal.
 
+Managed Angus write timeouts follow that physical boundary, not executor or Mailer ownership. One internal Session/protocol controller
+shares a lazy daemon scheduler across its live connections. The last connection disposal stops its generation; a later connection can
+create another. A healthy lease return and raw-socket abort do not release a connection's reference. Clustered sends retain the selected
+Session's controller, so closing an unrelated invoking Mailer cannot stop it. Supplied schedulers are never shut down by this mechanism.
+See the [resource verification record](../research/726-managed-angus-resource-verification.md) and
+[scheduler state and races](../concurrency/07-angus-transport-abort.md#write-timeout-resource-ownership).
+
 ## Implementation anchors
 
 - [Mailer](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/Mailer.java), [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [MailerGenericBuilderImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerGenericBuilderImpl.java)

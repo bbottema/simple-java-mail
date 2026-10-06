@@ -29,6 +29,13 @@ Using the diagnostic probe as proof of safety would inspect a different connecti
 
 This is a construction-time consistency guarantee. It does not protect against subsequent mutation of the exposed Session, override caller-owned providers/socket factories, or constitute a new independently verified trust verdict. Those limits are explicit in #735, not inferred exceptions added by this record.
 
+The [unreleased custom-factory correction](../research/726-managed-angus-resource-verification.md) complements, rather than expands, this TLS
+strategy check. An owned custom factory defaults to no fallback; explicitly configured true/false is preserved. Deliberate fallback can
+abandon that factory's trust or client identity, even though implicit-TLS fallback still uses TLS. It never becomes a STARTTLS plaintext
+retry. A thin SSL decorator closes the connected socket if wrapping fails before handoff, preserving the failure and suppressing close
+errors; Angus still owns TLS negotiation and trust. Public class-factory access respects JPMS exports, with an instance as the alternative.
+Locks are checked again after owned provider initialization so a locked value cannot silently be replaced by a provider safeguard.
+
 ## Implementation evidence
 
 - [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), especially `validateMandatoryStartTls(...)` and its constructor call before resource setup.

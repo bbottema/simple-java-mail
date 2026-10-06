@@ -119,14 +119,19 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withSMTPServerPassword(@Nullable @Cli.Optional String password);
 
 	/**
-	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
+	 * Uses your SSL socket factory class, for example to supply a client certificate or a private trust store.
 	 * <p>
-	 * <strong>Note 1:</strong> Is overridden by custom factory instance if set.
+	 * A supplied factory instance takes precedence. The class needs a public static {@code getDefault()} method returning an
+	 * {@link SSLSocketFactory}; initialization stays lazy until the factory is used. For a modular application using the managed Angus
+	 * provider, export its package to {@code org.simplejavamail.mailprovider.angus}, or supply an instance instead.
 	 * <p>
-	 * <strong>Note 2:</strong> Sets the transport-specific socket factory class property on the Session, such as
-	 * <code>mail.smtp.ssl.socketFactory.class</code> or <code>mail.smtps.ssl.socketFactory.class</code>.
-	 * <br>
-	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
+	 * On an owned Angus Session, a failure in your factory stops connection setup by default instead of retrying with the default factory.
+	 * An explicit {@code mail.smtp.socketFactory.fallback=true} (or the {@code mail.smtps} equivalent) retains that advanced behavior,
+	 * but can abandon your factory's client identity or trust decisions. Failed TLS wrapping closes its connected socket before cleanup or fallback.
+	 * This does not add physical cancellation support to a custom factory. Caller-owned Sessions keep their own settings.
+	 * <p>
+	 * Sets {@code mail.smtp.ssl.socketFactory.class} or {@code mail.smtps.ssl.socketFactory.class}. A custom factory can bypass the provider's
+	 * SOCKS socket creation, so check authenticated-proxy usage with your factory.
 	 *
 	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
 	 *
@@ -136,14 +141,17 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withCustomSSLFactoryClass(@Nullable @Cli.Optional String factoryClass);
 
 	/**
-	 * Configures the session with the right property to use your own factory for obtaining SSL connections.
+	 * Uses your SSL socket factory instance, for example to supply a client certificate or a private trust store.
 	 * <p>
-	 * <strong>Note 1:</strong> Overrides custom factory class if set.
+	 * Takes precedence over a configured factory class. No reflective module access to your implementation package is needed.
+	 * For an owned Angus Session, omitted fallback is disabled: failure in your factory stops connection setup rather than silently
+	 * trying the default factory. Explicit transport-specific {@code socketFactory.fallback=true} remains available for deliberate fallback.
+	 * Failed TLS wrapping closes the connected socket, retaining the factory failure and suppressing any secondary close failure.
+	 * The owned Session holds a cleanup decorator; keep your original reference for implementation-specific factory operations.
 	 * <p>
-	 * <strong>Note 2:</strong> Sets the transport-specific socket factory property on the Session, such as
-	 * <code>mail.smtp.ssl.socketFactory</code> or <code>mail.smtps.ssl.socketFactory</code>.
-	 * <br>
-	 * <strong>Note 3:</strong> This breaks your setup if you also use authenticated proxy.
+	 * Sets {@code mail.smtp.ssl.socketFactory} or {@code mail.smtps.ssl.socketFactory}. A custom factory can bypass the provider's SOCKS
+	 * socket creation, so check authenticated-proxy usage with your factory. This does not add physical cancellation support.
+	 * Caller-owned Sessions keep their own settings.
 	 *
 	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
 	 *

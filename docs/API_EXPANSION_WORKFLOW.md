@@ -133,6 +133,7 @@ Mailer configuration API changes are separate from Email model/defaults/override
 - **Spring Mapping**: If the property belongs to the public configuration surface, represent it in the metadata-only `SimpleJavaMailProperties` model. Runtime scalar discovery follows `ConfigLoader.Property` automatically; only compatibility aliases and new wildcard namespaces require changes in `SpringEnvironmentConfigSource`.
 - **Verification**: Test the Java builder path, property/config path, Spring mapping when applicable, and the final `Session` properties.
 - **Governance Boundary**: Do not wire Mailer connection/session settings into Email defaults/overrides. That mechanism applies to Email/message state and related model values.
+- **Internal Resource Ownership**: Provider resources such as write-timeout schedulers are not new configuration settings merely because they are stored on a Session. Resolve public settings in the builder, initialize owned provider resources without connecting or starting workers, and retire them at the physical connection's cleanup boundary. Preserve application-supplied executors and factories, caller-owned Sessions and selected clustered-Session ownership. Recheck locks after provider initialization if it supplies or adjusts defaults. See [ADR 0015](adr/0015-execution-views-and-transport-pooling.md) and [the Angus ownership catalogue](concurrency/07-angus-transport-abort.md#write-timeout-resource-ownership).
 
 ## 8. Configuration Support (`core-module`)
 

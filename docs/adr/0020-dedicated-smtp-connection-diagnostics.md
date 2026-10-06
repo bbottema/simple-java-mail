@@ -17,6 +17,12 @@ Expose `probeConnection()` through the existing synchronous and asynchronous vie
 
 Clone Session properties and retain provider selection without modifying the original Session. Authentication is opt-in per invocation. The default path has no authenticator or cached credentials and does not call the OAuth2 token provider; explicit authentication reuses normal credential resolution. The CLI's `--authenticate` belongs to the request, not the retained Mailer profile.
 
+Copying properties must not copy internal runtime ownership. The Angus adapter rebinds SJM's tracked factory and internal write-timeout
+controller to the dedicated probe; it retains any application-supplied scheduler. Probe setup retains its own connection reference before
+connecting, and failed setup or full probe close releases it after socket cleanup. It cannot borrow or stop the send Session's generation.
+Custom-factory fail-closed defaults and failed TLS-handoff cleanup also apply when the probe uses an owned source Session. See the
+[resource verification record](../research/726-managed-angus-resource-verification.md).
+
 Capture separate greeting, pre-TLS EHLO, STARTTLS, post-TLS EHLO and optional authentication facts through supported provider hooks. Retain unknown and repeated extensions. Reject stale discovery: a failed post-TLS EHLO must not authorize authentication using earlier advertisements. TLS metadata must preserve the configured trust and hostname-verifier decisions; missing metadata is preferable to changing that policy to populate a report.
 
 Return immutable, bounded and escaped display facts and phase-specific failures. Do not retain message content, authentication exchanges, raw provider exceptions or transport references in the report. A capability advertisement is evidence of the server's response, not proof that a later send used it. Inspecting a connection never sends an Email or produces a mail-send observer event.

@@ -1,9 +1,9 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
 - Assessment date: 2026-10-04.
-- Implementation refresh: 2026-10-05, adding recipient-rejection handling under #754. Competitor findings retain their 2026-10-04 assessment; this update did not repeat competitor research.
+- Implementation refresh: 2026-10-06, retaining recipient-rejection handling under #754 and adding the managed-transport resource corrections below. Competitor findings retain their 2026-10-04 assessment; this update did not repeat competitor research.
 - Original research: [The World-Class SMTP Framework](simple-java-mail-world-class-smtp-research.pdf), dated 2026-08-29.
-- Implementation baseline: `codex/10.0.0` at [`e9fe18ec3fbe11e22e97215fb1acaf36c58e3e96`](https://github.com/bbottema/simple-java-mail/commit/e9fe18ec3fbe11e22e97215fb1acaf36c58e3e96).
+- Implementation baseline: `codex/10.0.0` at [`d17884ad`](https://github.com/bbottema/simple-java-mail/commit/d17884adc9dca23d92beadd8a2c8ccf8b5cd5ea5).
 - Release status: development of 10.0.0 continues. The assessed capabilities are present on the development branch, not in a published release. This does not describe the capabilities of the published 9.x libraries.
 - Method: repository and evidence review, supplemented by current official competitor documentation. No new cross-library benchmark or black-box comparison was run for this report.
 
@@ -29,6 +29,7 @@ The PDF described a broad and approachable library with important operational an
 | Recipient rejection handling | Per-email choice to continue for accepted recipients or withhold content after a known rejection, using defaults/overrides and locks. Partial acceptance still fails the operation and retains its receipt. | [#754](https://github.com/bbottema/simple-java-mail/issues/754) |
 | Execution and overload | Explicit `sync()`/`async()` views, optional bounded async admission, saturation diagnostics and graceful draining. | [#734](https://github.com/bbottema/simple-java-mail/issues/734), [#725](https://github.com/bbottema/simple-java-mail/issues/725) |
 | Cancellation and deadlines | Requests reach supported acquisition and transport paths, with fenced pooled leases and outcomes that retain uncertainty or already observed acceptance. | [#726](https://github.com/bbottema/simple-java-mail/issues/726) |
+| Managed transport resources | The reviewed follow-up makes omitted custom-factory fallback fail closed, closes failed TLS handoffs, and shares write-timeout scheduling by owned Session and physical-connection lifetime. Existing custom-factory trust checks remain intact. | [#726](https://github.com/bbottema/simple-java-mail/issues/726), [#735](https://github.com/bbottema/simple-java-mail/issues/735), [#733](https://github.com/bbottema/simple-java-mail/issues/733) |
 | Capability negotiation | Dedicated probes, per-message SMTPUTF8/8BITMIME decisions, verified-legacy compatibility opt-in, and SIZE checks against reliable advertised maxima. | [#733](https://github.com/bbottema/simple-java-mail/issues/733), [#742](https://github.com/bbottema/simple-java-mail/issues/742), [#748](https://github.com/bbottema/simple-java-mail/issues/748) |
 | DSN and onward TLS | ENVID correlation, recipient/group NOTIFY preferences, automatic ORCPT from the actual envelope, and per-email REQUIRETLS with explicit unsupported behavior. | [#736](https://github.com/bbottema/simple-java-mail/issues/736), [#738](https://github.com/bbottema/simple-java-mail/issues/738), [#741](https://github.com/bbottema/simple-java-mail/issues/741) |
 | Message integrity | Exact EML submission through the ordinary infrastructure, offline rehearsal, and independent checks of DKIM, S/MIME and OpenPGP content. | [#713](https://github.com/bbottema/simple-java-mail/issues/713), [#709](https://github.com/bbottema/simple-java-mail/issues/709), [#747](https://github.com/bbottema/simple-java-mail/issues/747) |
@@ -73,6 +74,24 @@ An unset choice preserves existing behavior. Requiring all recipients is not ato
 Provider support remains explicit: a requested choice is honored or rejected before submission, and conflicting advanced Angus settings are
 reported rather than silently weakening it. This closes an API-convenience gap, not a protocol-breadth gap. See
 [ADR 0028](../adr/0028-per-email-recipient-rejection-handling.md) and the [verification record](754-recipient-rejection-verification.md).
+
+### Managed transport resource ownership
+
+The next characterization pass found two resource-management gaps and an unsafe default, rather than another missing public feature.
+The local correction closes an already-connected socket when a custom SSL factory fails before handing its wrapper back to Angus. It also
+shares one lazy write-timeout worker across an owned Session's physical connections, releasing it only after the last connection is disposed.
+A healthy pool return or raw socket abort is not complete transport disposal. Failed setup, reconnects, private probes and selected clustered
+Sessions use the same ownership boundary. Application-supplied schedulers remain application-owned.
+
+Custom factory selection, explicit fallback choices and TLS decisions remain intact. Omitted fallback now fails closed instead of silently
+switching factories. Caller-owned Sessions and alternate providers retain their existing ownership; custom factories do not acquire new
+cancellation capabilities merely because their failure cleanup is protected. Class-based SSL factories use public entry points and respect
+module exports.
+
+This strengthens the operational experience without adding another timeout abstraction or claiming broader SMTP support. See the
+[characterization and follow-up report](SMTP_TRANSPORT_OWNERSHIP_CHARACTERIZATION.md) and
+[implementation/verification record](726-managed-angus-resource-verification.md). These corrections are reviewed development-branch work,
+not a published release or part of the earlier hosted conformance run.
 
 Together, these additions remove useful application plumbing while retaining a clear account of what the library can and cannot control.
 

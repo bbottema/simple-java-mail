@@ -90,6 +90,10 @@ Do not collapse the following events into one “done” state:
 
 ## Scope and evidence
 
+The [Angus transport page](07-angus-transport-abort.md#write-timeout-resource-ownership) also covers Session-owned write-timeout workers,
+physical-connection references, failed-acquisition cleanup and the last-disposal/reconnect race. Those resources remain in the infographic's
+transport layer; there is no additional send executor or public execution mode.
+
 Each mechanism page contains the relevant state, transitions, synchronization rules, at least one important interleaving, and links to implementation and regression tests. Test descriptions say what is actually controlled or asserted. A happy-path test, a bounded stress test, and a test that deliberately holds a particular thread are different kinds of evidence.
 
 The coverage notes are not a newly approved implementation backlog. “Not deterministically forced by a dedicated test” does not mean “known broken,” and a state diagram does not prove freedom from deadlocks. Application callbacks, custom executors, and upstream providers can introduce dependencies outside the library's own locks.

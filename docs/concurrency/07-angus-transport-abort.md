@@ -18,7 +18,7 @@ This is provider integration, not behavior guaranteed by the Jakarta Mail API. T
 |---|---|
 | Discover optional connection lifecycle support | [MailTransportLifecycleResolver][resolver]: `configureOwnedSession()`, `findAbortAction()`, `registerAbort()`, `requireAbortSupport()` |
 | Cross-module contract | [MailTransportLifecycleAdapter][spi]: `createAbortAction()` requires an idempotent, monitor-independent, latched action |
-| Install only on a compatible SJM-owned Session | [AngusMailTransportLifecycleAdapter][lifecycle]: `supportsProvider()`, `configureOwnedSession()`, `hasCustomSocketFactory()` |
+| Install only on a compatible SJM-owned Session | [AngusMailTransportLifecycleAdapter][lifecycle]: `supportsProvider()`, `configureOwnedSession()`; [factory safeguards][factories] |
 | Capture the unconnected socket for the right transport | [AngusSocketFactory][factory]: `bind()`, `createSocket()`, `restore()` |
 | Abort and record this attempt's protocol boundaries | [ManagedAngusTransport][managed]: `protocolConnect()`, `trackSocket()`, `abortConnection()`, `sendMessage()`, `sendCommand()`, `readServerResponse()` |
 | Keep sending and response capture atomic | [AngusMailTransportAdapter][adapter]: `sendMessage()`, `sendWithRecipientReporting()` |
@@ -27,7 +27,13 @@ This is provider integration, not behavior guaranteed by the Jakarta Mail API. T
 
 `ServiceLoader` discovers the lifecycle adapter through the module's [service registration](../../modules/angus-mail-provider-module/src/main/resources/META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter). The resolver rejects multiple matching lifecycle adapters; finding a capability must not connect or acquire a resource.
 
-For a newly created SJM-owned Session using the stock Angus SMTP/SMTPS provider, configuration selects `ManagedAngusTransport` for protocol handling. It also installs `AngusSocketFactory` when no application socket factory is configured. In that tracked-socket case, fallback is disabled so an aborted socket cannot be silently replaced by an untracked connection. Application-provided ordinary or SSL socket factories and their settings stay untouched: managed protocol hooks still apply, but physical-abort support remains unavailable.
+For a newly created SJM-owned Session using the stock Angus SMTP/SMTPS provider, configuration selects `ManagedAngusTransport` for protocol handling.
+It installs `AngusSocketFactory` when no application factory is configured and disables fallback so an aborted socket cannot be replaced by an
+untracked connection. Custom factories retain their selection and explicit settings, but omitted fallback defaults to false. A thin SSL decorator
+closes a connected socket if wrapping fails before handoff; it keeps the original failure and suppresses close failures. Class factories stay lazy,
+using public factory methods and module exports only. This does not add physical-abort support to an application factory.
+The SSL guard preserves Angus's `MailSSLSocketFactory` trust hook and forwards it to the original factory selected for that socket.
+This keeps custom trusted-host restrictions and subclass checks active after Angus's handshake, including class factories returning different instances.
 
 ## Physical connection state
 
@@ -47,7 +53,9 @@ stateDiagram-v2
     Aborted --> [*]: owner disposes transport
 ```
 
-`Untracked` means no socket has been captured **yet**, not that the adapter advertised a capability for an incompatible transport. The exact raw reference may retain a closed socket; these labels describe its lifecycle, not merely whether the reference is null. An aborted instance is not reset for reuse.
+`Untracked` means no socket has been captured **yet**, not that the adapter advertised a capability for an incompatible transport. Abort retains the
+raw handle so full cleanup can retry a failed close; completed connection cleanup clears the reference. The abort latch remains set, so a subsequently
+published socket still closes immediately. An aborted instance is not reset for reuse. These labels describe the lifecycle, not merely a null reference.
 
 | Event | Guard and state change | Acting thread |
 |---|---|---|
@@ -114,7 +122,9 @@ The [shared infographic](inside-a-mail-send.md) therefore remains accurate; this
 | The actual `SMTPTransport` monitor | Angus protocol operations; SJM `commitPossible`, `readingFinalResponse`, `sending`, `pendingRecipientIndex`, `finalResponse`, `recipientResponses`, `activeRecipientCommands`, `activeMailFromParameters`; temporary `reportSuccess` change and result capture | `AngusMailTransportAdapter` holds this monitor across sending, classification and restoration. Hook methods/getters rely on that caller-held monitor even where not declared `synchronized`. Submission choices are cleared in `finally` before another borrower can use the transport. |
 | `AtomicReference<Socket> rawSocket` | Publication/read of the currently tracked physical socket handle | Abort reads it without waiting for SMTP state. Socket closure can race safely with connect/write/read. It does not protect Angus's response fields. |
 | `AtomicBoolean aborted` | Permanent abort latch | Set before reading/closing the socket. Socket publication checks it after storing the socket. |
-| Per-`AngusSocketFactory` `ThreadLocal<ManagedAngusTransport>` | Which transport is currently connecting on this thread | Set only around `protocolConnect()` and restored in `finally`; identifies ownership absent from `SocketFactory.createSocket()` arguments. It is not a per-email global map. |
+| Per-`AngusSocketFactory` `ThreadLocal<SocketTracker>` | Which managed transport or dedicated probe owns socket creation on this thread | Set only around `protocolConnect()` and restored in `finally`; identifies ownership absent from `SocketFactory.createSocket()` arguments. It is not a per-email global map. |
+| Internal write-timeout controller monitor | Active scheduler generation, physical-connection references and permanent shutdown flag | Bookkeeping only. Scheduling, socket closure, shutdown and termination waits happen outside this monitor. See below. |
+| SSL guard's synchronized weak-key map | Original factory selected for each socket until Angus's post-handshake trust check | Only registration/removal is synchronized. Factory creation, handshake and original trust callbacks run outside the map monitor. A completed check removes the entry; failed-handshake sockets are weakly held. Missing entries reject trust rather than bypassing the check. |
 | Session properties | Pre-publication factory configuration | Do not mutate caller-owned Sessions or put cancellation state here. `hasTrackedSocketConfiguration()` verifies the expected factory identity, disabled fallback and lack of SSL factory override when advertising capability. |
 | Upstream lease CAS and SJM registration fence | Authority to invoke abort while this generation owns the transport | See [pool claims and leases](06-pool-claims-and-leases.md). Atomic socket access alone would not stop a stale callback from hurting a new borrower. |
 
@@ -165,12 +175,59 @@ sequenceDiagram
     W->>F: Restore prior thread-local binding in finally
 ```
 
+## Write-timeout resource ownership
+
+[AngusWriteTimeoutScheduler][write-timeout] is a stable internal `ScheduledExecutorService` installed per owned Session/protocol only when
+write timeouts are enabled and no executor was supplied. Creating a Mailer or looking up a view starts no worker. A physical connection retains
+a reference before setup; the first write lazily starts one daemon worker. All live connections of that Session share it. Angus remains responsible
+for scheduling a socket-specific timeout and cancelling it after the write; remove-on-cancel avoids retaining those cancelled tasks.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Active: first connection retains a generation
+    Active --> Active: another connection retains, or one of several disposes
+    Active --> Idle: last disposal detaches generation; shutdown outside monitor
+    Idle --> Active: later connection creates fresh generation
+```
+
+The generation has a lease per physical connection, not per email or pool borrower. Failed setup first closes captured sockets, then releases its
+lease. Normal close runs Angus cleanup before releasing; raw abort alone does not release. A healthy pooled lease return, retained batch connection
+or open-connection scope therefore keeps its scheduler alive. Application schedulers are neither replaced nor shut down. Non-positive write timeouts
+install no internal controller. A configured but idle Session retains the small controller, not a worker.
+
+The last release detaches its generation under the controller monitor, then shuts that executor down outside the monitor. A racing connection either
+retains the still-live generation or creates a new one after detachment. The old release holds its exact generation, so it cannot stop the new one.
+Connection leases close idempotently. Socket operations and timeout callbacks do not run under the controller monitor; teardown does not await worker
+termination while holding it. Existing SMTP-monitor serialization remains unchanged. Brief worker-generation overlap during teardown is possible;
+this is not an exact thread-termination deadline for arbitrary custom socket code.
+
+Clustered transport construction reads the **selected Session's** controller. Closing one participant stops only its disposed connections, not another
+Session's live generation. A dedicated probe rebinds the internal factory/controller to private properties, then disposes its own resources before
+returning the report. It leaves the source Session and application-supplied schedulers alone. Caller-owned Sessions, alternate providers and CustomMailer
+retain their existing resource ownership.
+
+Regression anchors:
+
+- [Scheduler tests][write-timeout-tests]: lazy creation, last-reference shutdown, idempotent stale leases, 200 last-release/acquire races,
+  cancelled-task removal, external ownership and probe-controller isolation.
+- [Loopback ownership tests][ownership-tests]: shared workers across actual connections and pooled sends, abort/full-close ordering,
+  failed setup/reconnect, dedicated probes, clustered destination ownership and independent disposal.
+- [Factory tests][factory-tests] and [SSL decorator tests][ssl-tests]: explicit/omitted fallback, locked settings, public lazy class resolution,
+  pre-handoff socket cleanup, original exception identity and suppressed close failures. Trusted-host allowlists and hostname-verifier
+  rejections cover both TLS protocols; reverse-order checks retain each socket's original factory, and an unknown socket cannot pass the gate.
+
+These corrections do not add a send worker or a layer to the [shared infographic](inside-a-mail-send.md). The scheduler belongs to the existing
+physical-transport layer. Finite controlled tests establish these interleavings, not freedom from every scheduling or third-party failure.
+
 ## Boundaries to keep explicit
 
 - `MailTransportAdapter` provides submission facts; `MailTransportLifecycleAdapter` provides connection-abort capability. Supporting one does not imply supporting the other.
 - A different provider can implement the same SPI contract. The managed-Angus hooks and their detailed boundary observations are not automatically available when swapping providers.
 - Caller-owned Sessions are not rewritten. A timeout is allowed only if their selected transport genuinely exposes an abort action; a stock caller-created Angus Session does not automatically become managed.
-- An SJM-owned stock Angus Session with custom socket factories retains those factories and their settings. Managed protocol hooks still apply, but opaque factories do not gain physical-abort support. Unsupported total-timeout configurations fail before connecting. Untimed cooperative sending remains possible.
+- An SJM-owned stock Angus Session retains custom factory selection and explicit settings, with fail-closed defaults and failed TLS-handoff cleanup
+  as described above. Opaque factories do not gain physical-abort support. Unsupported total-timeout configurations fail before connecting.
+  Untimed cooperative sending remains possible.
 - `CustomMailer` owns its transport: SJM cannot install physical abort in that callback, and a configured total timeout is rejected except in logging-only mode. It does not invalidate the callback's successful return solely because a request arrived late. `withOpenConnection` does not accept `CustomMailer` at all.
 - Simple batches hold one direct connection and control; open-connection scope uses separate opening/per-email controls. Their observers run per reached email before the shared connection is closed, unlike ordinary pooled-send completion.
 - `ACCEPTED` is SMTP acceptance, not final delivery. After possible commit with a missing final response, retrying may duplicate the email; no automatic retry is introduced here.
@@ -205,3 +262,9 @@ The loopback tests establish specific interleavings, not deadlock freedom. They 
 [submission-tests]: ../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSubmissionResultTest.java
 [upstream-transport]: https://github.com/eclipse-ee4j/angus-mail/blob/2.0.5/providers/smtp/src/main/java/org/eclipse/angus/mail/smtp/SMTPTransport.java
 [upstream-sockets]: https://github.com/eclipse-ee4j/angus-mail/blob/2.0.5/core/src/main/java/org/eclipse/angus/mail/util/SocketFetcher.java
+[factories]: ../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusSocketFactories.java
+[write-timeout]: ../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusWriteTimeoutScheduler.java
+[write-timeout-tests]: ../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusWriteTimeoutSchedulerTest.java
+[ownership-tests]: ../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpWriteTimeoutOwnershipCharacterizationTest.java
+[factory-tests]: ../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpSocketFactoryFallbackCharacterizationTest.java
+[ssl-tests]: ../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSslSocketFactoryTest.java

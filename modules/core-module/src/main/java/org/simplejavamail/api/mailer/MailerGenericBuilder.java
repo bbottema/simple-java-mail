@@ -277,8 +277,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *     <li>{@link TransportStrategy#propertyNameTimeout()}</li>
 	 *     <li>{@link TransportStrategy#propertyNameWriteTimeout()}</li>
 	 * </ul>
+	 * On owned managed Angus Sessions, enabled write timeouts share one lazy daemon scheduler per Session/protocol. Its worker stops after the
+	 * last physical connection is disposed; returning a pooled lease or aborting a raw socket is not disposal. A supplied
+	 * {@code mail.smtp.executor.writetimeout} (or {@code mail.smtps} equivalent) remains application-owned and is not shut down by the Mailer.
+	 * Caller-owned Sessions and other providers keep their existing timeout-resource ownership. This is not a total-send deadline.
 	 *
-	 * @param sessionTimeout Duration to use for session timeout.
+	 * @param sessionTimeout Socket timeout in milliseconds.
 	 */
 	T withSessionTimeout(@NotNull Integer sessionTimeout);
 
