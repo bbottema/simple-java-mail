@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Recorded: 2026-09-16; historical dates below identify the underlying work
 - Applies to: `codex/10.0.0`, including its unreleased API migration
-- Implementation: Committed in `fcf8c3b2`; this record introduces no API change
+- Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is planned, not implemented
 
 ## Context and historical rationale
 
@@ -30,6 +30,29 @@ Framework adapters supply sources rather than another global registry. Spring's 
 [ADR 0025](0025-factory-scoped-locked-configuration.md) adds immutable restrictions under `simplejavamail.locked.`. Source precedence still applies
 within each namespace; a locked declaration supplies the effective ordinary value and survives snapshot copying. All Mailers from the factory inherit
 the restriction, without another template, global registry or mutable policy tracker.
+
+### Accepted extension: named failover configuration (2026-10-07)
+
+**Planned, not implemented under [#755](https://github.com/bbottema/simple-java-mail/issues/755).**
+[ADR 0029](0029-smtp-submission-failover.md#accepted-named-mailer-configuration) records the accepted property-backed failover model:
+capture named, independently configured Mailer definitions and their failover references through the same loader. Reuse existing property
+types, source precedence, diagnostics and secret handling. References resolve from the immutable captured configuration, not through
+runtime source reloads, Spring bean lookup or a process-global registry.
+
+The primary's ordinary values do not supply missing credentials or Email templates to a named failover. Each definition resolves its own
+normal builder defaults; mandatory message restrictions survive delegation under the accepted addendum to
+[ADR 0025](0025-factory-scoped-locked-configuration.md#accepted-addendum-delegation-to-approved-failover-mailers-2026-10-07).
+Normal builders do not gain permission to ignore their captured locks. Known missing references, cycles and incompatible locked values
+are construction errors. The concrete snapshot representation and final new property names belong in the implementation plan.
+
+Named definitions contain configuration, not live Mailers or mutable counters. Factory/destination runtime history remains separate;
+repeated construction must not accidentally reset recovery observations or multiply configured sending allowance. Independent factories
+remain independent even with equal names and definitions. Reusing configuration does not itself share connections or executors.
+
+The factory still owns no Mailer resources and gains no close contract. A primary owns private failover Mailers SJM constructs from definitions
+and closes them after admitted work drains. Existing Mailers supplied by the application remain borrowed and independently closed.
+Spring's normal default-Mailer lifecycle and CLI cleanup follow the same owner. ADR 0029 owns the construction/rollback/shutdown details
+and future verification; this extension is not evidence that those paths are already implemented.
 
 ## Alternatives and consequences
 
