@@ -5,11 +5,13 @@ import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
@@ -32,6 +34,13 @@ public interface BatchModule {
 			@NotNull SendingAllowance sendingAllowance);
 
 	/**
+	 * Registers a pool with factory-owned connection observation. The observer records physical setup outcomes and can defer only
+	 * background replenishment while a failover route waits to recheck a failed destination; it does not select destinations or retry sends.
+	 */
+	void registerToCluster(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey, @NotNull Session session,
+			@NotNull SendingAllowance sendingAllowance, @NotNull PoolConnectionObserver observer);
+
+	/**
 	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster.
 	 *                      Useful when testing connections.
 	 *
@@ -47,6 +56,12 @@ public interface BatchModule {
 	 */
 	@NotNull
 	SelectedPoolTransport selectTransport(@NotNull UUID clusterKey, @NotNull Session session, boolean stickySession, @Nullable MailSendControl control);
+
+	/**
+	 * Returns finite, pinned registrations in the pool's configured selection order. Selection borrows no connections, so callers can
+	 * decide which destination's allowance to reserve before acquiring that destination's connection.
+	 */
+	@NotNull List<SelectedPoolTransport> selectTransportCandidates(@NotNull UUID clusterKey, @Nullable MailSendControl control);
 
 	/**
 	 * Shuts down connection pool(s) and closes remaining open connections.

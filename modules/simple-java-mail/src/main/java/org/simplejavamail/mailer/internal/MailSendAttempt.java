@@ -23,7 +23,8 @@ final class MailSendAttempt {
 	@Nullable private final MailSendObserverNotifier notifier;
 	@Nullable private final String initialMessageId;
 	@Nullable private final Instant requestedAt;
-	private final boolean loggingOnly;
+	private boolean loggingOnly;
+	private boolean submissionStarted;
 	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 	@Nullable private Instant readyAt;
 	@Nullable private Instant startedAt;
@@ -59,13 +60,37 @@ final class MailSendAttempt {
 		return new MailSendAttempt(null, null, null, false, null);
 	}
 
+	/** Safety fact retained even without an observer; a nested callback's exception cannot authorize replay. */
+	void submissionStarted() {
+		submissionStarted = true;
+	}
+
+	boolean hasSubmissionStarted() {
+		return submissionStarted;
+	}
+
 	void prepared(@NotNull final Email email) {
 		if (notifier == null) {
 			return;
 		}
 		effectiveEmail = email;
-		readyAt = Instant.now();
 		diagnostics.prepared();
+	}
+
+	void readyForAdmission() {
+		if (notifier != null) {
+			readyAt = Instant.now();
+			diagnostics.readyForAdmission();
+		}
+	}
+
+	void preparationStarted() {
+		diagnostics.startPreparation();
+	}
+
+	/** Record the destination-specific operational mode that determines what this attempt actually does. */
+	void selectedSendingMode(final boolean loggingOnly) {
+		this.loggingOnly = loggingOnly;
 	}
 
 	@NotNull
@@ -98,16 +123,19 @@ final class MailSendAttempt {
 	 */
 	@Nullable
 	private MailSubmissionReceipt submissionReceiptFromStartedFailure(@NotNull final Throwable failure) {
-		if (startedAt != null && failure instanceof MailSendCancelledException) {
+		if (!diagnostics.hasEnteredSubmission()) {
+			return null;
+		}
+		if (failure instanceof MailSendCancelledException) {
 			return ((MailSendCancelledException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
-		if (startedAt != null && failure instanceof MailSendTimeoutException) {
+		if (failure instanceof MailSendTimeoutException) {
 			return ((MailSendTimeoutException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
-		if (startedAt != null && failure instanceof MailSubmissionException) {
+		if (failure instanceof MailSubmissionException) {
 			return ((MailSubmissionException) failure).getSubmissionReceipt();
 		}
-		return startedAt == null ? null : diagnostics.capturedReceipt();
+		return diagnostics.capturedReceipt();
 	}
 
 	private void complete(final boolean successful,

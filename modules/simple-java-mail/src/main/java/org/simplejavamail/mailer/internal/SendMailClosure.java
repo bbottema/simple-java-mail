@@ -9,6 +9,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -44,12 +45,24 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 	@Nullable private final SelectedPoolTransport selectedTransport;
 	@Nullable private final SendingAllowance.Reservation allowance;
+	private final PoolConnectionObserver connectionObserver;
+	private final Runnable submissionStarted;
 
 	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email,
 			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
 			@NotNull MailSendControl control, @NotNull MailSendDiagnosticsRecorder diagnostics,
 			@Nullable SelectedPoolTransport selectedTransport, @Nullable SendingAllowance.Reservation allowance) {
+		this(operationalConfig, session, email, proxyServer, transportModeLoggingOnly, smtpConnectionCounter, control, diagnostics,
+				selectedTransport, allowance, PoolConnectionObserver.NONE, () -> { });
+	}
+
+	SendMailClosure(final OperationalConfig operationalConfig, final Session session, final Email email,
+			@Nullable final AnonymousSocks5Server proxyServer, final boolean transportModeLoggingOnly, final AtomicInteger smtpConnectionCounter,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, @Nullable final SelectedPoolTransport selectedTransport,
+			@Nullable final SendingAllowance.Reservation allowance, final PoolConnectionObserver connectionObserver, final Runnable submissionStarted) {
 		super(smtpConnectionCounter, proxyServer, session, diagnostics);
+		this.connectionObserver = connectionObserver;
+		this.submissionStarted = submissionStarted;
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.email = email;
@@ -85,16 +98,17 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				control.checkStopped();
 				diagnostics.startSubmission();
 				requireNonNull(allowance, "allowance").commit(control);
+				submissionStarted.run();
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
 				diagnostics.receiptProduced(receipt);
 			} else {
 				receipt = TransportRunner.sendMessage(session, email, control, diagnostics, selectedTransport,
-						requireNonNull(allowance, "allowance"));
+						requireNonNull(allowance, "allowance"), connectionObserver, submissionStarted);
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
-		} catch (final MailSubmissionException | MailSendCancelledException | MailSendTimeoutException e) {
+		} catch (final MailSubmissionException | MailSendCancelledException | MailSendTimeoutException | ConnectionSetupFailure e) {
 			throw e;
 		} catch (final MailerException | EmailTooBigException e) {
 			handleException(e, MAILER_ERROR);

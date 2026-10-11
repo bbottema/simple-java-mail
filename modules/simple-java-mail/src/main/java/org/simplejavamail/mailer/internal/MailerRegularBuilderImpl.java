@@ -80,7 +80,17 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 
 	/** Internal factory wiring; builders retain their factory's allowance registry, not a process-global registry. */
 	public MailerRegularBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
-		super(config, sendingLimits);
+		this(config, new FactoryMailerRuntime(config, sendingLimits));
+	}
+
+	/** Internal factory wiring shares named destination history while each built Mailer retains its own lifecycle. */
+	public MailerRegularBuilderImpl(final SimpleJavaMailConfig config, final FactoryMailerRuntime runtime) {
+		this(runtime.independent(config), runtime);
+	}
+
+	MailerRegularBuilderImpl(final FactoryMailerRuntime.Definition definition, final FactoryMailerRuntime runtime) {
+		super(definition, runtime);
+		final SimpleJavaMailConfig config = definition.config;
 		this.opportunisticTLS = config.valueOrProperty(null, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
 		this.host = config.getStringProperty(SMTP_HOST);
 		this.port = config.getIntegerProperty(SMTP_PORT);
@@ -209,8 +219,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public Mailer buildMailer() {
-		validateLockedConfiguration();
-		return new MailerImpl(this);
+		return buildConfiguredMailer(() -> new MailerImpl(this));
 	}
 
 	@Override

@@ -64,6 +64,37 @@ final class LockedEmailConfiguration {
 	private final Email configuredDefaults;
 	private final LockedMessageProtection protection;
 
+	/** A callback can change its envelope after governance; carrying a requirement in Email is not proof that it will be honored. */
+	static void verifyCustomMailerCompatibility(final SimpleJavaMailConfig config) {
+		for (String key : config.getLocks().getValues().keySet()) {
+			if (requiresMailerControlledEnvelope(key)) {
+				throw config.getLocks().conflict(key, "This route keeps a mandatory delivery-envelope setting from an earlier Mailer, "
+						+ "but the selected Mailer uses CustomMailer, whose callback controls the actual recipients and SMTP options. "
+						+ "Use an SMTP Mailer for this destination, or ask the configuration owner to change that lock; "
+						+ "the callback has not been invoked.");
+			}
+		}
+	}
+
+	static boolean requiresMailerControlledEnvelope(final String key) {
+		return key.equals(DEFAULT_REQUIRE_TLS.key()) || key.equals(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS.key())
+				|| key.equals(DEFAULT_BOUNCETO_ADDRESS.key()) || key.equals(DEFAULT_TO_ADDRESS.key()) || key.equals(DEFAULT_CC_ADDRESS.key())
+				|| key.equals(DEFAULT_BCC_ADDRESS.key()) || key.equals(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key())
+				|| key.equals(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key());
+	}
+
+	/** Fixed message values must agree before routing; required recipient lists can contribute different additional recipients. */
+	static void verifyCompatibleLocks(final SimpleJavaMailConfig first, final SimpleJavaMailConfig second) {
+		for (Property property : MESSAGE_DEFAULTS) {
+			if (property != DEFAULT_TO_ADDRESS && property != DEFAULT_CC_ADDRESS && property != DEFAULT_BCC_ADDRESS
+					&& first.getLocks().contains(property) && second.getLocks().contains(property)
+					&& !Objects.deepEquals(first.getProperty(property), second.getProperty(property))) {
+				throw second.getLocks().conflict(property, "Another Mailer on this failover route fixes a different value for the same message setting. "
+						+ "Mandatory message settings remain in force through failover. Ask the configuration owner to make these route definitions compatible.");
+			}
+		}
+	}
+
 	LockedEmailConfiguration(final SimpleJavaMailConfig config, final Email configuredDefaults) {
 		this.config = config;
 		this.locks = config.getLocks();

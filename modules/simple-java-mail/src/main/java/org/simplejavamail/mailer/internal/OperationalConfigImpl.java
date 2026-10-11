@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -195,6 +196,9 @@ class OperationalConfigImpl implements OperationalConfig {
 
 	/** @see OperationalConfig#isRateLimitBurstsAllowed() */
 	private final boolean rateLimitBurstsAllowed;
+
+	/** @see OperationalConfig#getFailoverPolicy() */
+	@Nullable private final FailoverPolicy failoverPolicy;
 
 	@Override
 	@Nullable

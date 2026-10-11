@@ -8,10 +8,14 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
+import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -33,12 +37,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
@@ -55,7 +62,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
-abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T> {
+abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T>, CliFailoverMailerBuilder {
 
 	private static final AsyncQueueConfig DEFAULT_ASYNC_QUEUE_CONFIG = new AsyncQueueConfig(
 			DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS);
@@ -64,6 +71,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private final SimpleJavaMailConfig config;
 	/** Factory runtime state stays separate from the immutable property snapshot and built OperationalConfig. */
 	private final FactorySendingLimits sendingLimits;
+	private final FactoryMailerRuntime runtime;
+	private final FactoryMailerRuntime.Definition definition;
 	private final Map<Property, Object> explicitSessionSettings = new LinkedHashMap<>();
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
 	@Nullable private SendingRateLimit messageRateLimit;
@@ -73,6 +82,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable private String rateLimitGroup;
 	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
 	private boolean rateLimitBurstsAllowed;
+	@Nullable private MailerImpl failoverMailer;
+	@Nullable private FailoverPolicy failoverPolicy;
+	@Nullable private String failoverName;
+	private boolean ownsFailoverMailer;
+	private final Properties cliFailoverOptions = new Properties();
 
 	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
@@ -296,8 +310,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable private Duration mailSendTimeout;
 
 	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
+		this(config, new FactoryMailerRuntime(config, sendingLimits));
+	}
+
+	MailerGenericBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactoryMailerRuntime runtime) {
+		this(runtime.independent(config), runtime);
+	}
+
+	MailerGenericBuilderImpl(final FactoryMailerRuntime.Definition definition, final FactoryMailerRuntime runtime) {
+		final SimpleJavaMailConfig config = definition.config;
 		this.config = requireNonNull(config, "config");
-		this.sendingLimits = requireNonNull(sendingLimits, "sendingLimits");
+		this.runtime = requireNonNull(runtime, "runtime");
+		this.definition = definition;
+		this.sendingLimits = runtime.sendingLimits();
+		this.failoverName = config.getStringProperty(Property.FAILOVER_MAILER);
+		this.failoverPolicy = ConfiguredFailover.policy(config);
 		this.messageRateLimit = resolveRateLimit(config, Property.SMTP_MESSAGE_RATE_LIMIT, Property.SMTP_MESSAGE_RATE_PERIOD);
 		this.recipientRateLimit = resolveRateLimit(config, Property.SMTP_RECIPIENT_RATE_LIMIT, Property.SMTP_RECIPIENT_RATE_PERIOD);
 		this.rateLimitGroup = config.getStringProperty(Property.SMTP_RATE_LIMIT_GROUP);
@@ -376,6 +403,128 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	FactorySendingLimits getFactorySendingLimits() {
 		return sendingLimits;
+	}
+
+	FactoryMailerRuntime.Definition getDefinition() {
+		return definition;
+	}
+
+	boolean ownsFailoverMailer() {
+		return ownsFailoverMailer;
+	}
+
+	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
+	final MailerImpl buildConfiguredMailer(final Supplier<MailerImpl> constructMailer) {
+		resolveCliFailoverPolicy();
+		validateFailoverGraph(new LinkedHashSet<>());
+		final MailerImpl suppliedFailoverMailer = failoverMailer;
+		try {
+			constructNamedFailoverMailer();
+			final MailerImpl configuredMailer = constructMailer.get();
+			// Traversal includes the initiating Mailer, so only configured routes may enable this gate.
+			if (configuredMailer.failoverMailer() != null) {
+				enableCoordinatedFailoverFor(configuredMailer);
+			}
+			return configuredMailer;
+		} catch (RuntimeException | Error failure) {
+			closeOwnedFailoverAfterFailedBuild(failure);
+			throw failure;
+		} finally {
+			failoverMailer = suppliedFailoverMailer;
+			ownsFailoverMailer = false;
+		}
+	}
+
+	private void constructNamedFailoverMailer() {
+		if (failoverName != null) {
+			failoverMailer = (MailerImpl) new MailerRegularBuilderImpl(runtime.named(failoverName), runtime).buildMailer();
+			ownsFailoverMailer = true;
+		}
+	}
+
+	private static void enableCoordinatedFailoverFor(final MailerImpl configuredMailer) {
+		for (MailerImpl routeParticipant = configuredMailer;
+				routeParticipant != null;
+				routeParticipant = routeParticipant.failoverMailer()) {
+			routeParticipant.definition().recovery.enableCoordinatedFailover();
+		}
+	}
+
+	private void closeOwnedFailoverAfterFailedBuild(final Throwable failure) {
+		// Supplied Mailers are borrowed; construction rollback may close only privately created named Mailers.
+		if (ownsFailoverMailer && failoverMailer != null) {
+			try {
+				failoverMailer.close();
+			} catch (Exception cleanupFailure) {
+				if (cleanupFailure instanceof InterruptedException) {
+					Thread.currentThread().interrupt();
+				}
+				failure.addSuppressed(cleanupFailure);
+			}
+		}
+	}
+
+	final void validateFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+		validateLockedConfiguration();
+		ConfiguredFailover.verifyPolicyLocks(config.getLocks(), failoverPolicy);
+		verifyCompatibleAncestorMessageLocks(failoverRoute, config);
+		if (!failoverRoute.add(definition)) {
+			throw new IllegalArgumentException("The named failover Mailers form a cycle. "
+					+ "Remove the relationship that points back to an earlier definition; each failover route must end.");
+		}
+		verifyLockedRelationship();
+		validateNextFailoverStage(failoverRoute);
+		failoverRoute.remove(definition);
+	}
+
+	private void validateNextFailoverStage(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+		if (failoverName != null) {
+			new MailerRegularBuilderImpl(runtime.named(failoverName), runtime).validateFailoverGraph(failoverRoute);
+		} else {
+			for (MailerImpl failoverParticipant = failoverMailer;
+					failoverParticipant != null;
+					failoverParticipant = failoverParticipant.failoverMailer()) {
+				verifySuppliedFailoverRouteLocks(failoverRoute, failoverParticipant);
+			}
+		}
+	}
+
+	private static void verifySuppliedFailoverRouteLocks(final Set<FactoryMailerRuntime.Definition> failoverRoute,
+			final MailerImpl failoverParticipant) {
+		for (FactoryMailerRuntime.Definition precedingDefinition : failoverRoute) {
+			LockedEmailConfiguration.verifyCompatibleLocks(precedingDefinition.config, failoverParticipant.definition().config);
+			if (failoverParticipant.getOperationalConfig().getCustomMailer() != null) {
+				LockedEmailConfiguration.verifyCustomMailerCompatibility(precedingDefinition.config);
+			}
+		}
+	}
+
+	private static void verifyCompatibleAncestorMessageLocks(final Set<FactoryMailerRuntime.Definition> failoverRoute,
+			final SimpleJavaMailConfig candidateConfiguration) {
+		for (FactoryMailerRuntime.Definition precedingDefinition : failoverRoute) {
+			LockedEmailConfiguration.verifyCompatibleLocks(precedingDefinition.config, candidateConfiguration);
+		}
+	}
+
+	private void verifyLockedRelationship() {
+		if (!config.getLocks().contains(Property.FAILOVER_MAILER)) {
+			return;
+		}
+		final String permittedFailoverName = config.getStringProperty(Property.FAILOVER_MAILER);
+		if (usesPermittedNamedFailover(permittedFailoverName) || usesPermittedSuppliedFailover(permittedFailoverName)) {
+			return;
+		}
+		throw config.getLocks().conflict(Property.FAILOVER_MAILER, "This factory fixes the permitted failover definition and its nested route. "
+				+ "Keep the captured named relationship, or ask the configuration owner to supply a compatible failover route; "
+				+ "an unrelated Mailer with the same name or host is not that definition.");
+	}
+
+	private boolean usesPermittedNamedFailover(final String permittedFailoverName) {
+		return failoverName != null && failoverName.equals(permittedFailoverName);
+	}
+
+	private boolean usesPermittedSuppliedFailover(final String permittedFailoverName) {
+		return failoverMailer != null && failoverMailer.definition() == runtime.named(permittedFailoverName);
 	}
 
 	final SimpleJavaMailConfig configuration() {
@@ -497,12 +646,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		}
 		for (String key : locks.getValues().keySet()) {
 			final boolean smtpSetting = key.startsWith("simplejavamail.smtp.") && !key.startsWith("simplejavamail.smtp.ratelimit.");
-			final boolean envelopeSetting = key.equals(Property.DEFAULT_REQUIRE_TLS.key()) || key.equals(Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS.key())
-					|| key.equals(Property.DEFAULT_BOUNCETO_ADDRESS.key())
-					|| key.equals(Property.DEFAULT_TO_ADDRESS.key()) || key.equals(Property.DEFAULT_CC_ADDRESS.key())
-					|| key.equals(Property.DEFAULT_BCC_ADDRESS.key()) || key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY.key())
-					|| key.equals(Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION.key());
-			if (smtpSetting || envelopeSetting || key.startsWith("simplejavamail.proxy.") || key.startsWith("simplejavamail.extraproperties.")
+			final boolean requiresMailerControlledEnvelope = LockedEmailConfiguration.requiresMailerControlledEnvelope(key);
+			if (smtpSetting || requiresMailerControlledEnvelope || key.startsWith("simplejavamail.proxy.") || key.startsWith("simplejavamail.extraproperties.")
 					|| key.equals(Property.TRANSPORT_STRATEGY.key()) || key.equals(Property.CUSTOM_SSLFACTORY_CLASS.key())
 					|| key.equals(Property.DEFAULT_TRUST_ALL_HOSTS.key()) || key.equals(Property.DEFAULT_TRUSTED_HOSTS.key())
 					|| key.equals(Property.DEFAULT_VERIFY_SERVER_IDENTITY.key()) || key.equals(Property.OPPORTUNISTIC_TLS.key())
@@ -686,7 +831,98 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider(),
-				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed);
+				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy);
+	}
+
+	/** @see MailerGenericBuilder#withFailoverMailer(Mailer, FailoverPolicy) */
+	@Override
+	public T withFailoverMailer(@NotNull final Mailer mailer, @NotNull final FailoverPolicy policy) {
+		requireNonNull(mailer, "failoverMailer");
+		requireNonNull(policy, "policy");
+		if (!(mailer instanceof MailerImpl)) {
+			throw new IllegalArgumentException("Use a failover Mailer created with Simple Java Mail's mailerBuilder(). "
+					+ "An independent Mailer implementation cannot share this send's deadline, cancellation or connection lifecycle. "
+					+ "Third-party Jakarta Mail providers are supported through a Simple Java Mail Mailer.");
+		}
+		failoverMailer = (MailerImpl) mailer;
+		failoverPolicy = policy;
+		failoverName = null;
+		cliFailoverOptions.clear();
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#clearFailoverMailer() */
+	@Override
+	public T clearFailoverMailer() {
+		failoverMailer = null;
+		failoverPolicy = null;
+		failoverName = null;
+		cliFailoverOptions.clear();
+		return (T) this;
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverMailerName(String) */
+	@Override
+	public T withFailoverMailerName(final String name) {
+		failoverName = requireNonNull(name, "name");
+		failoverMailer = null;
+		return withCliFailoverOption(Property.FAILOVER_MAILER, name);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverPrimaryConnectionAttempts(int) */
+	@Override
+	public T withFailoverPrimaryConnectionAttempts(final int attempts) {
+		return withCliFailoverOption(Property.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, attempts);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverPrimaryRetryDelay(Duration) */
+	@Override
+	public T withFailoverPrimaryRetryDelay(final Duration delay) {
+		return withCliFailoverOption(Property.FAILOVER_PRIMARY_RETRY_DELAY, delay);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverPrimaryRecheckInterval(Duration) */
+	@Override
+	public T withFailoverPrimaryRecheckInterval(final Duration interval) {
+		return withCliFailoverOption(Property.FAILOVER_PRIMARY_RECHECK_INTERVAL, interval);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverPrimaryRecheckBackoff(int, Duration) */
+	@Override
+	public T withFailoverPrimaryRecheckBackoff(final int multiplier, final Duration maximumInterval) {
+		FailoverPolicy.builder().withPrimaryRecheckBackoff(multiplier, maximumInterval);
+		withCliFailoverOption(Property.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER, multiplier);
+		return withCliFailoverOption(Property.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL, maximumInterval);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverOnAuthenticationFailure(boolean) */
+	@Override
+	public T withFailoverOnAuthenticationFailure(final boolean enabled) {
+		return withCliFailoverOption(Property.FAILOVER_ON_AUTHENTICATION_FAILURE, enabled);
+	}
+
+	/** @see CliFailoverMailerBuilder#withFailoverOnCertificateVerificationFailure(boolean) */
+	@Override
+	public T withFailoverOnCertificateVerificationFailure(final boolean enabled) {
+		return withCliFailoverOption(Property.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE, enabled);
+	}
+
+	private T withCliFailoverOption(final Property property, final Object value) {
+		cliFailoverOptions.put(property.key(), requireNonNull(value, property.key()));
+		return (T) this;
+	}
+
+	private void resolveCliFailoverPolicy() {
+		if (!cliFailoverOptions.isEmpty()) {
+			// Validate with the other finished builder settings, so CLI construction can show the safe, property-specific conflict.
+			cliFailoverOptions.forEach((key, value) -> config.getLocks().verify((String) key, value));
+			failoverPolicy = ConfiguredFailover.policy(ConfigLoader.builder().withConfig(config).withProperties("CLI failover options", cliFailoverOptions).load());
+		}
+	}
+
+	@Nullable
+	MailerImpl getFailoverMailer() {
+		return failoverMailer;
 	}
 
 	/**

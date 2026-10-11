@@ -22,6 +22,9 @@ public class LockedSimpleJavaMailProperties {
     @NestedConfigurationProperty private SimpleJavaMailProperties.Javaxmail javaxmail;
     private String transportstrategy;
     private Map<String, String> extraproperties;
+    /** Named SMTP configurations whose values are locked for IDE metadata; runtime loading still reads Spring's Environment. */
+    private Map<String, SimpleJavaMailProperties> mailers;
+    @NestedConfigurationProperty private SimpleJavaMailProperties.Failover failover;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Smtp smtp;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Proxy proxy;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Defaults defaults;

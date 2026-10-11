@@ -6,6 +6,9 @@ import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -38,6 +41,9 @@ public final class MailSendDiagnostics implements Serializable {
 	@NotNull private final MailSendMeasurement cleanup;
 	@Nullable private final String smtpHost;
 	@Nullable private final Integer smtpPort;
+	// Null only in snapshots serialized before connection-history reporting was added.
+	@Nullable private final List<MailSendConnectionStep> connectionHistory;
+	private final long omittedConnectionSteps;
 
 	/**
 	 * Creates a supplied-data snapshot. Applications normally receive one through {@link MailSendOutcome#getDiagnostics()}.
@@ -71,6 +77,18 @@ public final class MailSendDiagnostics implements Serializable {
 			@NotNull final MailSendMeasurement mimePreparation, @NotNull final MailSendMeasurement submission,
 			@NotNull final MailSendMeasurement cleanup, @Nullable final String smtpHost, @Nullable final Integer smtpPort,
 			@NotNull final MailSendMeasurement rateLimitWait) {
+		this(elapsed, preparation, scheduling, connectionAcquisition, mimePreparation, submission, cleanup, smtpHost, smtpPort,
+				rateLimitWait, Collections.emptyList(), 0);
+	}
+
+	/** Creates a snapshot with at most 64 connection steps (the first 63 and latest) and a non-negative count of omitted steps. */
+	public MailSendDiagnostics(@NotNull final Duration elapsed, @NotNull final MailSendMeasurement preparation,
+			@NotNull final MailSendMeasurement scheduling, @NotNull final MailSendMeasurement connectionAcquisition,
+			@NotNull final MailSendMeasurement mimePreparation, @NotNull final MailSendMeasurement submission,
+			@NotNull final MailSendMeasurement cleanup, @Nullable final String smtpHost, @Nullable final Integer smtpPort,
+			@NotNull final MailSendMeasurement rateLimitWait, @NotNull final List<MailSendConnectionStep> connectionHistory, final long omittedConnectionSteps) {
+		this.connectionHistory = immutableConnectionHistory(connectionHistory, omittedConnectionSteps);
+		this.omittedConnectionSteps = omittedConnectionSteps;
 		this.elapsed = requireNonNull(elapsed, "elapsed");
 		this.preparation = requireNonNull(preparation, "preparation");
 		this.scheduling = requireNonNull(scheduling, "scheduling");
@@ -96,7 +114,10 @@ public final class MailSendDiagnostics implements Serializable {
 	/** @return Total elapsed time, from attempt entry to the terminal snapshot, excluding this outcome's observer dispatch and callback. */
 	@NotNull public Duration getElapsed() { return elapsed; }
 
-	/** @return Time spent applying Email governance and validation, before MIME conversion, including elapsed time until preparation failure. */
+	/**
+	 * @return Time spent applying the selected Mailer's Email governance and validation, before MIME conversion, including preparation failures.
+	 * Connection failover can prepare more than one destination from the original Email; their preparation durations accumulate here.
+	 */
 	@NotNull public MailSendMeasurement getPreparation() { return preparation; }
 
 	/**
@@ -142,7 +163,24 @@ public final class MailSendDiagnostics implements Serializable {
 	/** @return Selected logical SMTP port, or empty when the transport did not provide one. No protocol-default port is guessed. */
 	@NotNull public Optional<Integer> getSmtpPort() { return Optional.ofNullable(smtpPort); }
 
-	/** @return Fixed-order measurements using ISO-8601 durations, without endpoints, identifiers, exception messages or content. */
+	/**
+	 * @return Immutable connection acquisition/skip history for this attempt, never submission retries. Retains the first 63 steps and the latest;
+	 * the routing operation itself is not limited by this reporting budget. Older snapshots and shared-scope setup have empty history.
+	 */
+	@NotNull
+	public List<MailSendConnectionStep> getConnectionHistory() {
+		return connectionHistory == null ? Collections.emptyList() : connectionHistory;
+	}
+
+	/** @return Number of intermediate connection steps omitted from this report. */
+	public long getOmittedConnectionSteps() {
+		return omittedConnectionSteps;
+	}
+
+	/**
+	 * @return Fixed-order measurements using ISO-8601 durations, followed by any connection history and omitted-step count.
+	 * Destination names, endpoints, identifiers, raw exception messages and content remain excluded.
+	 */
 	@Override
 	public String toString() {
 		return "Mail send timings:\n  Total: " + elapsed
@@ -152,6 +190,30 @@ public final class MailSendDiagnostics implements Serializable {
 				+ "\n  Connection acquisition: " + connectionAcquisition
 				+ "\n  MIME preparation: " + mimePreparation
 				+ "\n  Submission: " + submission
-				+ "\n  Cleanup: " + cleanup;
+				+ "\n  Cleanup: " + cleanup
+				+ renderConnectionHistory();
+	}
+
+	private String renderConnectionHistory() {
+		final List<MailSendConnectionStep> history = getConnectionHistory();
+		if (history.isEmpty() && omittedConnectionSteps == 0) {
+			return "";
+		}
+		final StringBuilder report = new StringBuilder("\n  Connection history:");
+		history.forEach(step -> report.append("\n    - ").append(step));
+		if (omittedConnectionSteps > 0) {
+			report.append("\n    Intermediate steps omitted: ").append(omittedConnectionSteps);
+		}
+		return report.toString();
+	}
+
+	@NotNull
+	private static List<MailSendConnectionStep> immutableConnectionHistory(@NotNull final List<MailSendConnectionStep> connectionHistory,
+			final long omittedConnectionSteps) {
+		if (requireNonNull(connectionHistory, "connectionHistory").size() > 64 || omittedConnectionSteps < 0) {
+			throw new IllegalArgumentException("Retain at most 64 connection steps and a non-negative omitted-step count.");
+		}
+		connectionHistory.forEach(step -> requireNonNull(step, "connection step"));
+		return Collections.unmodifiableList(new ArrayList<>(connectionHistory));
 	}
 }

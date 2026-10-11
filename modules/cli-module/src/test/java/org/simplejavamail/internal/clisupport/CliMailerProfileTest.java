@@ -63,6 +63,26 @@ class CliMailerProfileTest {
 		return CliMailerProfile.create(config, List.of(), daemonKey, workingDirectory);
 	}
 
+	@Test
+	void namedRouteSettingsLocksDurationsAndKeyContentsParticipateInIdentity() throws Exception {
+		final Path key = workingDirectory.resolve("failover-key.pem");
+		Files.writeString(key, "first key");
+		final Properties properties = new Properties();
+		properties.setProperty("simplejavamail.failover.mailer", "other");
+		properties.setProperty("simplejavamail.failover.primary.recheckinterval", "PT30S");
+		properties.setProperty("simplejavamail.mailers.other.smtp.host", "other.example.org");
+		properties.setProperty("simplejavamail.mailers.other." + ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key().substring("simplejavamail.".length()),
+				key.getFileName().toString());
+		final SimpleJavaMailConfig firstConfig = ConfigLoader.builder().withProperties(properties).load();
+		final CliMailerProfile first = profile(firstConfig, new byte[32]);
+		assertThat(first).isEqualTo(profile(ConfigLoader.builder().withProperties(properties).load(), new byte[32]));
+		Files.writeString(key, "second key");
+		assertThat(first).isNotEqualTo(profile(firstConfig, new byte[32]));
+		Files.writeString(key, "first key");
+		properties.setProperty("simplejavamail.locked.mailers.other.smtp.host", "other.example.org");
+		assertThat(first).isNotEqualTo(profile(ConfigLoader.builder().withProperties(properties).load(), new byte[32]));
+	}
+
 	private static SimpleJavaMailConfig config(final String password) {
 		final Properties properties = new Properties();
 		properties.setProperty(ConfigLoader.Property.SMTP_HOST.key(), "smtp.example.test");

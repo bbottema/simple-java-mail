@@ -1,7 +1,6 @@
 package org.simplejavamail.api.email.config;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +30,6 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
  * @see DkimConfigBuilder#signingAlgorithm(String)
  */
 @ToString(exclude = "dkimPrivateKeyData")
-@Getter
 @EqualsAndHashCode
 public class DkimConfig implements Serializable {
 
@@ -48,15 +46,6 @@ public class DkimConfig implements Serializable {
      */
     private final byte[] dkimPrivateKeyData;
 
-    /**
-     * Lists default DKIM headers to omit when a downstream relay is known to rewrite them. This is intended for narrow interoperability
-     * exceptions, such as a relay replacing {@code Date} or {@code Message-ID}.
-     * <p>
-     * {@code From} is mandatory in a DKIM signature and cannot be excluded.
-     *
-     * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-     * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
-     */
     private final String dkimSigningDomain;
 
     /**
@@ -65,19 +54,6 @@ public class DkimConfig implements Serializable {
      */
     private final String dkimSelector;
 
-    /**
-     * Controls the inclusion of the l= parameter (body length tag) in the DKIM signature. The l= parameter specifies the exact length of the body content that
-     * was signed.
-     * <p>
-     * <strong>Default Value:</strong> null (indicating that the default behavior is determined by the library, which typically excludes the l= parameter).
-     * </p>
-     * <p>
-     * <strong>Warning:</strong> Exercise caution when enabling this parameter. Its inclusion can enhance robustness in scenarios where emails undergo
-     * legitimate alterations after sending (such as the addition of footers by mailing lists). However, it also poses security risks by allowing attackers to
-     * append malicious content to the message without compromising the integrity of the DKIM signature. It is advisable to disable this option (set to false)
-     * unless a specific scenario necessitates its use.
-     * </p>
-     */
     @Nullable
     private final Boolean useLengthParam;
 
@@ -88,44 +64,12 @@ public class DkimConfig implements Serializable {
     @Nullable
     private final Set<String> excludedHeadersFromDkimDefaultSigningList;
 
-    /**
-     * Specifies the canonicalization algorithm for header fields in the DKIM signature. Canonicalization is the process of standardizing data into a consistent
-     * format before signing. This affects the processing and signing of email headers.
-     * <p>
-     * <strong>Available Values:</strong><br>
-     * - <strong>SIMPLE:</strong> Applies minimal canonicalization, aiming to preserve the original form of headers as closely as possible.<br> -
-     * <strong>RELAXED:</strong> Implements a more forgiving canonicalization, accommodating minor alterations in whitespace and case sensitivity.
-     * </p>
-     * <p><strong>Default Value:</strong> RELAXED</p>
-     * <p>
-     * <strong>NOTE:</strong> The choice between SIMPLE and RELAXED can impact the success rate of DKIM verification across different mail servers. The RELAXED
-     * option tends to normalize minor discrepancies in headers, offering broader compatibility.
-     * </p>
-     */
     @Nullable
     private final Canonicalization headerCanonicalization;
 
-    /**
-     * Defines the canonicalization algorithm for the email body, mirroring the functionality described for {@link #headerCanonicalization}. It dictates the
-     * standardization process for the body content before signing.
-     */
     @Nullable
     private final Canonicalization bodyCanonicalization;
 
-    /**
-     * Selects the cryptographic algorithm for generating the DKIM signature. This choice influences the security and interoperability of your DKIM signature.
-     * <p>
-     * <strong>Default Value:</strong> SHA256withRSA, which balances robust security with good performance and is broadly supported across platforms.
-     * </p>
-     * <p>
-     * <strong>Supported Signature Algorithms:</strong><br>
-     * - <strong>SHA256_WITH_RSA</strong> (Recommended)<br> - <strong>SHA1_WITH_RSA</strong><br> - <strong>SHA256_WITH_ED25519</strong><br>
-     * </p>
-     * <p>
-     * <strong>NOTE:</strong> The rsa-sha256 algorithm (or another algorithm offering similar security) is strongly recommended. Weaker algorithms, such as
-     * rsa-sha1, are no longer deemed secure against contemporary cryptographic threats.
-     * </p>
-     */
     @Nullable
     private final String signingAlgorithm;
 
@@ -146,11 +90,54 @@ public class DkimConfig implements Serializable {
     }
 
     /**
+     * Returns a copy of the private-key bytes.
+     *
+     * @see DkimConfigBuilder#dkimPrivateKeyData(byte[])
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
      * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
      */
     public byte[] getDkimPrivateKeyData() {
         return dkimPrivateKeyData.clone();
+    }
+
+    /** @see DkimConfigBuilder#dkimSigningDomain(String) */
+    public String getDkimSigningDomain() {
+        return dkimSigningDomain;
+    }
+
+    /** @see DkimConfigBuilder#dkimSelector(String) */
+    public String getDkimSelector() {
+        return dkimSelector;
+    }
+
+    /** @see DkimConfigBuilder#useLengthParam(Boolean) */
+    @Nullable
+    public Boolean getUseLengthParam() {
+        return useLengthParam;
+    }
+
+    /** @see DkimConfigBuilder#excludedHeadersFromDkimDefaultSigningList(Set) */
+    @Nullable
+    public Set<String> getExcludedHeadersFromDkimDefaultSigningList() {
+        return excludedHeadersFromDkimDefaultSigningList;
+    }
+
+    /** @see DkimConfigBuilder#headerCanonicalization(Canonicalization) */
+    @Nullable
+    public Canonicalization getHeaderCanonicalization() {
+        return headerCanonicalization;
+    }
+
+    /** @see DkimConfigBuilder#bodyCanonicalization(Canonicalization) */
+    @Nullable
+    public Canonicalization getBodyCanonicalization() {
+        return bodyCanonicalization;
+    }
+
+    /** @see DkimConfigBuilder#signingAlgorithm(String) */
+    @Nullable
+    public String getSigningAlgorithm() {
+        return signingAlgorithm;
     }
 
     public static DkimConfigBuilder builder() {
@@ -250,7 +237,17 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Configures whether the DKIM signature should include the body length tag.
+         * Controls the inclusion of the l= parameter (body length tag) in the DKIM signature. The l= parameter specifies the exact length of the body
+         * content that was signed.
+         * <p>
+         * <strong>Default Value:</strong> null (indicating that the default behavior is determined by the library, which typically excludes the l= parameter).
+         * </p>
+         * <p>
+         * <strong>Warning:</strong> Exercise caution when enabling this parameter. Its inclusion can enhance robustness in scenarios where emails undergo
+         * legitimate alterations after sending (such as the addition of footers by mailing lists). However, it also poses security risks by allowing
+         * attackers to append malicious content to the message without compromising the integrity of the DKIM signature. It is advisable to disable
+         * this option (set to false) unless a specific scenario necessitates its use.
+         * </p>
          */
         public DkimConfigBuilder useLengthParam(@Nullable Boolean useLengthParam) {
             this.useLengthParam = useLengthParam;
@@ -285,7 +282,18 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Configures the canonicalization algorithm for email headers.
+         * Specifies the canonicalization algorithm for header fields in the DKIM signature. Canonicalization is the process of standardizing data
+         * into a consistent format before signing. This affects the processing and signing of email headers.
+         * <p>
+         * <strong>Available Values:</strong><br>
+         * - <strong>SIMPLE:</strong> Applies minimal canonicalization, aiming to preserve the original form of headers as closely as possible.<br> -
+         * <strong>RELAXED:</strong> Implements a more forgiving canonicalization, accommodating minor alterations in whitespace and case sensitivity.
+         * </p>
+         * <p><strong>Default Value:</strong> RELAXED</p>
+         * <p>
+         * <strong>NOTE:</strong> The choice between SIMPLE and RELAXED can impact the success rate of DKIM verification across different mail servers.
+         * The RELAXED option tends to normalize minor discrepancies in headers, offering broader compatibility.
+         * </p>
          */
         public DkimConfigBuilder headerCanonicalization(@Nullable Canonicalization headerCanonicalization) {
             this.headerCanonicalization = headerCanonicalization;
@@ -293,7 +301,8 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Configures the canonicalization algorithm for the email body.
+         * Defines the canonicalization algorithm for the email body, mirroring the functionality described for
+         * {@link #headerCanonicalization(Canonicalization)}. It dictates the standardization process for the body content before signing.
          */
         public DkimConfigBuilder bodyCanonicalization(@Nullable Canonicalization bodyCanonicalization) {
             this.bodyCanonicalization = bodyCanonicalization;
@@ -301,7 +310,19 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Configures the DKIM signing algorithm.
+         * Selects the cryptographic algorithm for generating the DKIM signature. This choice influences the security and interoperability of your
+         * DKIM signature.
+         * <p>
+         * <strong>Default Value:</strong> SHA256withRSA, which balances robust security with good performance and is broadly supported across platforms.
+         * </p>
+         * <p>
+         * <strong>Supported Signature Algorithms:</strong><br>
+         * - <strong>SHA256_WITH_RSA</strong> (Recommended)<br> - <strong>SHA1_WITH_RSA</strong><br> - <strong>SHA256_WITH_ED25519</strong><br>
+         * </p>
+         * <p>
+         * <strong>NOTE:</strong> The rsa-sha256 algorithm (or another algorithm offering similar security) is strongly recommended. Weaker algorithms, such as
+         * rsa-sha1, are no longer deemed secure against contemporary cryptographic threats.
+         * </p>
          */
         public DkimConfigBuilder signingAlgorithm(@Nullable String signingAlgorithm) {
             this.signingAlgorithm = signingAlgorithm;

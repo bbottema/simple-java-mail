@@ -23,10 +23,12 @@ import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -77,7 +79,7 @@ public final class CliMailerProfile {
 		try (DataOutputStream output = new DataOutputStream(bytes)) {
 			config.asMap().entrySet().stream()
 					.sorted(Comparator.comparing(entry -> entry.getKey().name()))
-					.forEach(entry -> writeConfigEntry(output, entry, configurationWorkingDirectory));
+					.forEach(configEntry -> writeCanonicalConfigurationEntry(output, configEntry, configurationWorkingDirectory));
 			// Equal effective values are not interchangeable when only one snapshot restricts later customization.
 			writeString(output, "configuration locks");
 			writeValue(output, config.getLocks().getValues());
@@ -93,16 +95,32 @@ public final class CliMailerProfile {
 		return bytes.toByteArray();
 	}
 
-	private static void writeConfigEntry(final DataOutputStream output, final Map.Entry<ConfigLoader.Property, Object> entry,
+	private static void writeCanonicalConfigurationEntry(final DataOutputStream output, final Map.Entry<ConfigLoader.Property, Object> configEntry,
 			final Path configurationWorkingDirectory) {
 		try {
-			writeString(output, entry.getKey().name());
-			writeValue(output, entry.getValue());
-			if (entry.getValue() instanceof String pathValue && isSecurityFileProperty(entry.getKey())) {
+			writeString(output, configEntry.getKey().name());
+			if (configEntry.getKey() == ConfigLoader.Property.NAMED_MAILERS) {
+				writeNamedMailerDefinitions(output, configEntry.getValue(), configurationWorkingDirectory);
+			} else {
+				writeValue(output, configEntry.getValue());
+			}
+			if (configEntry.getValue() instanceof String pathValue && isSecurityFileProperty(configEntry.getKey())) {
 				writeSecurityFileFingerprint(output, configurationWorkingDirectory, pathValue);
 			}
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to derive Mailer identity", e);
+		}
+	}
+
+	/** A named route's complete configuration determines daemon reuse; matching route names alone can still select different servers, locks or key material. */
+	private static void writeNamedMailerDefinitions(final DataOutputStream output, final Object namedMailerDefinitions,
+			final Path configurationWorkingDirectory) throws IOException {
+		@SuppressWarnings("unchecked") final Map<String, SimpleJavaMailConfig> namedConfigurations =
+				(Map<String, SimpleJavaMailConfig>) namedMailerDefinitions;
+		output.writeInt(namedConfigurations.size());
+		for (String name : namedConfigurations.keySet().stream().sorted().toList()) {
+			writeString(output, name);
+			writeBytes(output, canonicalMailerInputs(namedConfigurations.get(name), List.of(), configurationWorkingDirectory));
 		}
 	}
 
@@ -137,7 +155,7 @@ public final class CliMailerProfile {
 		writeString(output, value.getClass().getName());
 		if (value instanceof CharSequence || value instanceof Number || value instanceof Boolean
 				|| value instanceof Character || value instanceof Enum<?> || value instanceof UUID
-				|| value instanceof TemporalAccessor || value instanceof Date) {
+				|| value instanceof TemporalAccessor || value instanceof TemporalAmount || value instanceof Date) {
 			writeString(output, String.valueOf(value));
 		} else if (value instanceof File file) {
 			writeFile(output, file);

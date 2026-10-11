@@ -9,18 +9,17 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
-import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
-import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.MailSendDiagnosticsRecorder;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
@@ -34,9 +33,9 @@ import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * If available, runs activities on Transport connections using SMTP connection pool from the batch-module.
+ * Sends mail through a selected pooled transport when available, or a direct Jakarta Mail transport otherwise.
  * <p>
- * Otherwise, always creates a new connection to run the activity on.
+ * Selection remains separate from acquisition so the selected destination keeps ownership of its allowance and connection facts.
  * <p>
  * <strong>Note</strong> that <a href="https://stackoverflow.com/a/12733317/441662">
  *     multiple threads can safely use a Session</a>, but are synchronized in the Transport connection.
@@ -56,59 +55,23 @@ public class TransportRunner {
 	public static MailSubmissionReceipt sendMessage(@NotNull final Session session, @NotNull final Email email,
 			@NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
 			@Nullable final SelectedPoolTransport selected, @NotNull final SendingAllowance.Reservation allowance) throws MessagingException {
+		return sendMessage(session, email, control, diagnostics, selected, allowance, PoolConnectionObserver.NONE, () -> { });
+	}
+
+	/**
+	 * Sends through the selected destination while reporting connection setup to the pool observer.
+	 * The callback marks the point after which routing must never replay this email.
+	 */
+	public static MailSubmissionReceipt sendMessage(final Session session, final Email email, final MailSendControl control,
+			final MailSendDiagnosticsRecorder diagnostics, @Nullable final SelectedPoolTransport selected,
+			final SendingAllowance.Reservation allowance, final PoolConnectionObserver observer, final Runnable markSubmissionStarted) throws MessagingException {
 		diagnostics.startConnectionAcquisition();
 		control.checkStopped();
-		if (selected != null) {
-			return sendUsingLease(selected.acquireTransport(control), diagnostics,
-					(transport, actualSessionUsed) -> sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics, allowance));
-		}
-		return sendOnNewTransport(session, email, control, diagnostics, allowance);
-	}
-
-	private static MailSubmissionReceipt sendOnNewTransport(final Session session, final Email email, final MailSendControl control,
-			final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance)
-			throws MessagingException {
-		final Transport transport = transportFor(session);
-		try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, control)) {
-			MailSubmissionReceipt receipt = null;
-			Throwable primaryFailure = null;
+		try (AcquiredMailTransport connection = AcquiredMailTransport.acquire(session, selected, control, observer)) {
 			try {
-				control.checkStopped();
-				TransportConnectionHelper.connectTransport(transport, session);
-				receipt = sendMessageOnTransport(transport, session, email, control, diagnostics, allowance);
-				return receipt;
-			} catch (MessagingException failure) {
-				diagnostics.failed();
-				final RuntimeException mapped = control.translateFailure(buildSubmissionException(email, MailTransportResult.failed(failure, null)));
-				primaryFailure = mapped;
-				throw mapped;
-			} catch (RuntimeException failure) {
-				diagnostics.failed();
-				final RuntimeException mapped = control.translateFailure(failure);
-				primaryFailure = mapped;
-				throw mapped;
-			} catch (Error failure) {
-				diagnostics.failed();
-				primaryFailure = failure;
-				throw failure;
+				return connection.send(email, diagnostics, allowance, control, markSubmissionStarted);
 			} finally {
 				diagnostics.startCleanup();
-				closeAfterSend(transport, control, receipt, primaryFailure);
-			}
-		}
-	}
-
-	private static void closeAfterSend(final Transport transport, final MailSendControl control,
-			@Nullable final MailSubmissionReceipt receipt, @Nullable final Throwable primaryFailure) throws MessagingException {
-		try {
-			transport.close();
-		} catch (MessagingException | RuntimeException cleanupFailure) {
-			if (primaryFailure != null) {
-				primaryFailure.addSuppressed(cleanupFailure);
-			} else if (receipt != null && receipt.getStatus() == MailSubmissionStatus.ACCEPTED && control.isStopRequested()) {
-				LOGGER.debug("SMTP acceptance was observed before the connection was aborted during cleanup", cleanupFailure);
-			} else {
-				throw new MessagingException("Unable to close the SMTP transport after sending", cleanupFailure);
 			}
 		}
 	}
@@ -118,6 +81,16 @@ public class TransportRunner {
 			@NotNull final Email email, @NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
 			@NotNull final SendingAllowance.Reservation allowance)
 			throws MessagingException {
+		return sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics, allowance, () -> { });
+	}
+
+	/**
+	 * Sends through a connection already owned by the caller, such as a retained batch or open-connection scope.
+	 * The callback marks the irreversible provider-invocation boundary for that email.
+	 */
+	public static MailSubmissionReceipt sendMessageOnTransport(final Transport transport, final Session actualSessionUsed, final Email email,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
+			final Runnable markSubmissionStarted) throws MessagingException {
 		try {
 			diagnostics.connectionAcquired(transport);
 			control.checkStopped();
@@ -125,6 +98,7 @@ public class TransportRunner {
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
 			control.checkStopped();
 			diagnostics.startSubmission();
+			markSubmissionStarted.run();
 			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> allowance.commit(control))
 					.withEnvelopeRecipients(preparedMail.getRecipients());
 			if (!transportResult.isSuccessful()) {

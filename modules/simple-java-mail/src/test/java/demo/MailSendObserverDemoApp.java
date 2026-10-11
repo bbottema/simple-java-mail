@@ -23,6 +23,8 @@ import static org.simplejavamail.recipient.RecipientBuilder.to;
  * SMTP server, temporarily enable the {@code LOGGING_MODE} flag in {@code DemoAppBase}.
  * Timings describe the actual attempt and exclude this callback. Scheduling includes admission and worker waiting; submission includes provider work,
  * not just network traffic. An unavailable measurement prints n/a (for example, submission in logging-only mode).
+ * Asynchronous preparation runs after execution starts and uses the selected Mailer's templates. With connection failover, preparation and acquisition
+ * accumulate work across destinations; connection history distinguishes actual acquisitions from destinations skipped until their next recheck.
  * </p>
  */
 public class MailSendObserverDemoApp extends DemoAppBase {
@@ -95,6 +97,9 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 					duration(report.getCleanup()),
 					report.getElapsed().toMillis(),
 					Thread.currentThread().getName());
+			if (report.getConnectionHistory().size() > 1 || report.getOmittedConnectionSteps() > 0) {
+				System.out.printf("  Connection route: %s (omitted: %d)%n", report.getConnectionHistory(), report.getOmittedConnectionSteps());
+			}
 		}
 	}
 

@@ -1,7 +1,6 @@
 package org.simplejavamail.api.email.config;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +24,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
  */
 @ToString
-@Getter
 @EqualsAndHashCode
 public final class DeliveryStatusNotification implements Serializable {
 
@@ -90,6 +88,35 @@ public final class DeliveryStatusNotification implements Serializable {
 		this.returnOption = returnOption;
 		this.notifyOptions = normalizedNotifyOptions;
 		this.envelopeId = envelopeId;
+	}
+
+	/**
+	 * @see DeliveryStatusNotificationBuilder#returnOption(ReturnOption)
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(ReturnOption)
+	 */
+	@Nullable
+	public ReturnOption getReturnOption() {
+		return returnOption;
+	}
+
+	/**
+	 * @see DeliveryStatusNotificationBuilder#notifyOptions(NotifyOption...)
+	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+	 */
+	@NotNull
+	public Set<NotifyOption> getNotifyOptions() {
+		return notifyOptions;
+	}
+
+	/**
+	 * Returns only the configured identifier, not one generated during sending.
+	 *
+	 * @see DeliveryStatusNotificationBuilder#envelopeId(String)
+	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 */
+	@Nullable
+	public String getEnvelopeId() {
+		return envelopeId;
 	}
 
 	public static DeliveryStatusNotification of(@NotNull final NotifyOption @NotNull ...notifyOptions) {

@@ -2,7 +2,6 @@ package org.simplejavamail.api.email.config;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,6 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
  * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
  */
 @ToString
-@Getter
 @EqualsAndHashCode
 @AllArgsConstructor
 public class SmimeSigningConfig implements Serializable {
@@ -41,50 +39,20 @@ public class SmimeSigningConfig implements Serializable {
      */
     @NotNull
     private final Pkcs12Config pkcs12Config;
-    /**
-     * <p>Configuration for S/MIME signing, including the certificate chain and private key information,
-     * along with the signature algorithm. The choice of signature algorithm affects the security
-     * and compatibility of the S/MIME signature.</p>
-     *
-     * <p><strong>Default Algorithm:</strong> SHA256withRSA. This is widely supported and recommended
-     * for most use cases due to its balance of security and performance.</p>
-     *
-     * <p><strong>Allowed Signature Algorithms:</strong> This following list focuses on the most commonly used
-     * and secure algorithms. Algorithms like MD5 and SHA1 are not included due to their known security
-     * vulnerabilities and are not recommended for new applications. For a comprehensive and up-to-date
-     * list, including less common algorithms, refer to the Bouncy Castle's {@code DefaultSignatureAlgorithmIdentifierFinder}
-     * class to find an exhaustive list.</p>
-     *
-     * <ul>
-     *     <li>SHA256withRSA (Recommended)</li>
-     *     <li>SHA384withRSA</li>
-     *     <li>SHA512withRSA</li>
-     *     <li>SHA256withECDSA</li>
-     *     <li>SHA384withECDSA</li>
-     *     <li>SHA512withECDSA</li>
-     *     <li>SHA256withDSA</li>
-     *     <li>SHA384withDSA</li>
-     *     <li>SHA512withDSA</li>
-     *     <li>SHA256withRSAandMGF1</li>
-     *     <li>SHA384withRSAandMGF1</li>
-     *     <li>SHA512withRSAandMGF1</li>
-     *     <li>SHA3-256withRSA</li>
-     *     <li>SHA3-384withRSA</li>
-     *     <li>SHA3-512withRSA</li>
-     *     <li>SHA3-256withECDSA</li>
-     *     <li>SHA3-384withECDSA</li>
-     *     <li>SHA3-512withECDSA</li>
-     *     <li>SHA256withSM2</li>
-     *     <li>SHA3-256withSM2</li>
-     *     <li>SHA3-384withSM2</li>
-     *     <li>SHA3-512withSM2</li>
-     * </ul>
-     *
-     * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-     * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
-     */
     @Nullable
     private final String signatureAlgorithm;
+
+    /** @see SmimeSigningConfigBuilder#pkcs12Config(Pkcs12Config) */
+    @NotNull
+    public Pkcs12Config getPkcs12Config() {
+        return pkcs12Config;
+    }
+
+    /** @see SmimeSigningConfigBuilder#signatureAlgorithm(String) */
+    @Nullable
+    public String getSignatureAlgorithm() {
+        return signatureAlgorithm;
+    }
 
     public static SmimeSigningConfigBuilder builder() {
         return new SmimeSigningConfigBuilder();
@@ -107,7 +75,8 @@ public class SmimeSigningConfig implements Serializable {
         /**
          * Delegates to {@link #pkcs12Config(InputStream, String, String, String)}.
          */
-        public SmimeSigningConfigBuilder pkcs12Config(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword) {
+        public SmimeSigningConfigBuilder pkcs12Config(@NotNull File pkcs12StoreFile, @NotNull String storePassword,
+                @NotNull String keyAlias, @NotNull String keyPassword) {
             return pkcs12Config(pkcs12StoreFile.toPath(), storePassword, keyAlias, keyPassword);
         }
 
@@ -132,7 +101,8 @@ public class SmimeSigningConfig implements Serializable {
         /**
          * Delegates to {@link #pkcs12Config(byte[], String, String, String)}.
          */
-        public SmimeSigningConfigBuilder pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword) {
+        public SmimeSigningConfigBuilder pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword,
+                @NotNull String keyAlias, @NotNull String keyPassword) {
             final byte[] pkcs12StoreData;
             try {
                 pkcs12StoreData = readInputStreamToBytes(pkcs12StoreStream);
@@ -145,7 +115,8 @@ public class SmimeSigningConfig implements Serializable {
         /**
          * Delegates to {@link #pkcs12Config(Pkcs12Config)}.
          */
-        public SmimeSigningConfigBuilder pkcs12Config(byte @NotNull [] pkcs12StoreData, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword) {
+        public SmimeSigningConfigBuilder pkcs12Config(byte @NotNull [] pkcs12StoreData, @NotNull String storePassword,
+                @NotNull String keyAlias, @NotNull String keyPassword) {
             return pkcs12Config(Pkcs12Config.builder()
                     .pkcs12Store(pkcs12StoreData)
                     .storePassword(storePassword)
@@ -155,7 +126,43 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * For detailed information, see {@link SmimeSigningConfig#signatureAlgorithm}.
+         * <p>Configuration for S/MIME signing, including the certificate chain and private key information,
+         * along with the signature algorithm. The choice of signature algorithm affects the security
+         * and compatibility of the S/MIME signature.</p>
+         *
+         * <p><strong>Default Algorithm:</strong> SHA256withRSA. This is widely supported and recommended
+         * for most use cases due to its balance of security and performance.</p>
+         *
+         * <p><strong>Allowed Signature Algorithms:</strong> This following list focuses on the most commonly used
+         * and secure algorithms. Algorithms like MD5 and SHA1 are not included due to their known security
+         * vulnerabilities and are not recommended for new applications. For a comprehensive and up-to-date
+         * list, including less common algorithms, refer to the Bouncy Castle's {@code DefaultSignatureAlgorithmIdentifierFinder}
+         * class to find an exhaustive list.</p>
+         *
+         * <ul>
+         *     <li>SHA256withRSA (Recommended)</li>
+         *     <li>SHA384withRSA</li>
+         *     <li>SHA512withRSA</li>
+         *     <li>SHA256withECDSA</li>
+         *     <li>SHA384withECDSA</li>
+         *     <li>SHA512withECDSA</li>
+         *     <li>SHA256withDSA</li>
+         *     <li>SHA384withDSA</li>
+         *     <li>SHA512withDSA</li>
+         *     <li>SHA256withRSAandMGF1</li>
+         *     <li>SHA384withRSAandMGF1</li>
+         *     <li>SHA512withRSAandMGF1</li>
+         *     <li>SHA3-256withRSA</li>
+         *     <li>SHA3-384withRSA</li>
+         *     <li>SHA3-512withRSA</li>
+         *     <li>SHA3-256withECDSA</li>
+         *     <li>SHA3-384withECDSA</li>
+         *     <li>SHA3-512withECDSA</li>
+         *     <li>SHA256withSM2</li>
+         *     <li>SHA3-256withSM2</li>
+         *     <li>SHA3-384withSM2</li>
+         *     <li>SHA3-512withSM2</li>
+         * </ul>
          *
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
          * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)

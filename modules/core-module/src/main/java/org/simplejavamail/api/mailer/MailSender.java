@@ -7,7 +7,9 @@ import org.simplejavamail.api.email.Email;
  * Scoped sender provided by {@link Mailer#withOpenConnection(OpenConnectionCallback)}.
  * <p>
  * The sender uses the SMTP connection owned by the surrounding {@link Mailer} call. It is not closeable and does not expose Jakarta Mail's
- * {@code Transport}.
+ * {@code Transport}. Use it only on the thread running the callback, before that callback returns or throws. Don't retain it for later or
+ * pass it to another thread; use {@link Mailer#async()} for independent asynchronous sends. Simple Java Mail rejects calls outside this scope
+ * before preparing or submitting an email.
  */
 public interface MailSender {
 
@@ -20,6 +22,7 @@ public interface MailSender {
 	 * @param email The email to send.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during sending.
 	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
+	 * @throws IllegalStateException If called from another thread or after the enclosing callback has ended.
 	 */
 	void sendMail(Email email);
 
@@ -35,6 +38,7 @@ public interface MailSender {
 	 * @return A receipt for the completed submission.
 	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during sending.
 	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
+	 * @throws IllegalStateException If called from another thread or after the enclosing callback has ended.
 	 */
 	default MailSubmissionReceipt sendMailAndGetReceipt(Email email) {
 		sendMail(email);

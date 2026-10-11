@@ -13,7 +13,7 @@ import org.simplejavamail.converter.ConfiguredEmailConverter;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
-import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
+import org.simplejavamail.mailer.internal.FactoryMailerRuntime;
 
 import static java.util.Objects.requireNonNull;
 
@@ -30,10 +30,11 @@ import static java.util.Objects.requireNonNull;
 public final class SimpleJavaMail {
 
 	private final SimpleJavaMailConfig config;
-	private final FactorySendingLimits sendingLimits = new FactorySendingLimits();
+	private final FactoryMailerRuntime runtime;
 
 	private SimpleJavaMail(@NotNull final SimpleJavaMailConfig config) {
 		this.config = requireNonNull(config, "config");
+		this.runtime = new FactoryMailerRuntime(config);
 	}
 
 	/**
@@ -95,7 +96,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerRegularBuilder<?> mailerBuilder() {
-		return new MailerRegularBuilderImpl(config, sendingLimits);
+		return new MailerRegularBuilderImpl(config, runtime);
 	}
 
 	/**
@@ -105,7 +106,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerFromSessionBuilder<?> mailerBuilder(@NotNull final Session session) {
-		return new MailerFromSessionBuilderImpl(config, sendingLimits).usingSession(session);
+		return new MailerFromSessionBuilderImpl(config, runtime).usingSession(session);
 	}
 
 	private static final class DefaultsHolder {

@@ -140,15 +140,17 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			throw failure;
 		}
 		mailSendAttempt.attachControl(operation.control());
+		mailSendAttempt.readyForAdmission();
 		return operation.executeSync(() -> sendOnOpenConnection(checkedEmail, mailSendAttempt, operation.control()));
 	}
 
 	private MailSubmissionReceipt sendOnOpenConnection(final Email checkedEmail, final MailSendAttempt mailSendAttempt, final MailSendControl control) {
+		mailSendAttempt.started();
+		mailSendAttempt.preparationStarted();
 		try {
 			final Email preparedEmail = prepareEmail(checkedEmail);
 			control.checkStopped();
 			mailSendAttempt.prepared(preparedEmail);
-			mailSendAttempt.started();
 			if (transportModeLoggingOnly) {
 				mailSendAttempt.diagnostics().startMimePreparation();
 				final MailSubmissionReceipt receipt = convertAndLogPreparedEmail(preparedEmail);
@@ -172,8 +174,9 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	}
 
 	private void runCallback(@NotNull final MailSender sender) {
+		final ScopedMailSender scopedSender = new ScopedMailSender(sender);
 		try {
-			openConnectionCallback.accept(sender);
+			openConnectionCallback.accept(scopedSender);
 		} catch (final MailException | EmailTooBigException failure) {
 			throw failure;
 		} catch (final RuntimeException callbackFailure) {
@@ -182,6 +185,8 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			throw failure;
 		} catch (final Exception callbackFailure) {
 			throw new CheckedCallbackException(callbackFailure);
+		} finally {
+			scopedSender.endCallback();
 		}
 	}
 

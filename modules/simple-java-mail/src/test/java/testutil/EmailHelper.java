@@ -237,7 +237,8 @@ public class EmailHelper {
 					/*29*/null,
 					/*30*/null,
 					/*31*/null,
-					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
+					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
+					/*33*/null);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

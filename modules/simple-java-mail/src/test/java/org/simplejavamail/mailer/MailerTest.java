@@ -159,6 +159,8 @@ public class MailerTest {
 		assertThat(firstSettings.remove("mail.smtp.socketFactory")).isNotSameAs(secondSettings.remove("mail.smtp.socketFactory"));
 		assertThat(firstSettings.remove("mail.smtp.executor.writetimeout"))
 				.isNotSameAs(secondSettings.remove("mail.smtp.executor.writetimeout"));
+		assertThat(firstSettings.remove("org.simplejavamail.internal.mailerOwner"))
+				.isNotSameAs(secondSettings.remove("org.simplejavamail.internal.mailerOwner"));
 		assertThat(firstSettings).isEqualTo(secondSettings);
 	}
 

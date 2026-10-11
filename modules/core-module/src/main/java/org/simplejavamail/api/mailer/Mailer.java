@@ -70,7 +70,7 @@ public interface Mailer extends AutoCloseable {
 
 	/**
 	 * Returns this Mailer's cached executor-backed execution view. Obtaining the view does not start workers or register another connection pool.
-	 * Preparation and admission can still run on the caller thread, as documented by each operation.
+	 * Admission can wait on the caller thread. Preparation runs during executor execution, which may use the caller with a direct/caller-runs executor.
 	 *
 	 * @return The same asynchronous view on every call, sharing this Mailer's resources and lifecycle with {@link #sync()}.
 	 */
@@ -114,7 +114,10 @@ public interface Mailer extends AutoCloseable {
 		 * Untouched emails have no outcomes. The total timeout covers the whole batch, excluding inline observer work between emails.
 		 * <p>
 		 * For concurrent pooled sending, submit separate emails through {@link Async#sendMail(Email)} with the optional batch-module.
-		 * This simple batch intentionally sends one email at a time and does not borrow a pool lease.
+		 * This simple batch intentionally sends one email at a time. Without configured failover it uses a dedicated connection, outside the pool.
+		 * With failover configured, it retains a lease from the selected pool when the batch-module is available; otherwise it owns a direct connection.
+		 * A retained lease counts against pool capacity until released and need not close its socket on release. Between emails, the batch may move to
+		 * a recovered earlier destination; it never replays an email whose submission has started.
 		 *
 		 * @param emails The lazy source of emails, in send order.
 		 * @throws IllegalArgumentException If {@code emails} is {@code null}.
@@ -171,8 +174,8 @@ public interface Mailer extends AutoCloseable {
 	 */
 	interface Async {
 		/**
-		 * Prepares one email on the caller thread and schedules its transport work on this Mailer's executor.
-		 * Preparation and validation stay on the caller thread; admission may wait according to the queue policy.
+		 * Schedules one email on this Mailer's executor, then selects its destination and applies that Mailer's templates and validation there.
+		 * Admission may wait according to the queue policy. A direct/caller-runs executor can perform execution on the physical caller thread.
 		 * The completion covers preparation, admission, connection, submission and cleanup. Operational failures complete it exceptionally;
 		 * a null email is an immediate argument error. This method does not promise an immediate return.
 		 * <p>
@@ -183,7 +186,7 @@ public interface Mailer extends AutoCloseable {
 		 * An inline observer runs before completion; with an application executor only the observer handoff is attempted first.
 		 * Requesting cancellation through {@link MailSend#requestCancellation()} does not immediately complete the send:
 		 * cleanup and outcome reporting still run. Cancelling a detached completion future does not cancel sending.
-		 * With inline dispatch, preparation/admission failures report on the caller thread and executed tasks on their execution thread.
+		 * With inline dispatch, admission failures report on the caller thread; preparation and sending report on their execution thread.
 		 * Cancelled or expired queued tasks report on this Mailer's completion worker; offloaded callbacks use the configured observer executor.
 		 *
 		 * @param email The email to prepare and send.
@@ -255,10 +258,16 @@ public interface Mailer extends AutoCloseable {
 	 *     }
 	 * });
 	 * }</pre>
-	 * Simple Java Mail owns the SMTP connection and closes it when the callback returns or fails. The delegate does <strong>not</strong> use the
-	 * batch-module connection pool, does not queue emails, and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
+	 * Without configured failover, Simple Java Mail opens a dedicated connection outside the pool and closes it when the callback returns or fails.
+	 * With failover configured, initial acquisition follows that route and retains a lease from the selected pool when the batch-module is available;
+	 * otherwise it owns a direct connection. The callback runs once, pinned to that connection. Cleanup releases or invalidates a lease rather than
+	 * necessarily closing its socket. The lease counts against pool capacity throughout the callback, including application work between sends.
+	 * Do not wait inside the callback for an independent send that needs the same exhausted pool; use this callback's sender or finish the scope first.
+	 * The delegate does not queue emails and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
 	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link Sync#sendMail(Email)}.
 	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
+	 * Use the sender only on the callback's thread and while the callback is running. Calls from another thread or after the callback ends are rejected;
+	 * use {@link #async()} for independent asynchronous sends rather than passing the scoped sender to an executor.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
 	 * A configured total timeout applies separately to opening the connection and to each send, not to application work between sends or final scope cleanup.
 	 *

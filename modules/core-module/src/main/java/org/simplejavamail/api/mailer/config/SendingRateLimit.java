@@ -2,6 +2,7 @@ package org.simplejavamail.api.mailer.config;
 
 import lombok.Value;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -17,9 +18,7 @@ public class SendingRateLimit implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	/** Maximum message or recipient count in the period. */
 	int count;
-	/** Rolling period, independent of wall-clock minute boundaries. */
 	@NotNull Duration period;
 
 	/**
@@ -42,6 +41,23 @@ public class SendingRateLimit implements Serializable {
 		}
 		this.count = count;
 		this.period = period;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMessageRateLimit(int, Duration)
+	 * @see MailerGenericBuilder#withRecipientRateLimit(int, Duration)
+	 */
+	public int getCount() {
+		return count;
+	}
+
+	/**
+	 * @see MailerGenericBuilder#withMessageRateLimit(int, Duration)
+	 * @see MailerGenericBuilder#withRecipientRateLimit(int, Duration)
+	 */
+	@NotNull
+	public Duration getPeriod() {
+		return period;
 	}
 
 	private Object readResolve() {

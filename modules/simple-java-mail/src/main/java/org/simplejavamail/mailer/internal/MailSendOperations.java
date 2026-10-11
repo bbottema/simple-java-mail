@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 /** Keeps deadline signals and terminal application callbacks on separate, lazily started Mailer-owned workers. */
 final class MailSendOperations {
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
-    private static final ThreadLocal<MailSendOperations> CURRENT_OPERATION = new ThreadLocal<>();
+    private static final ThreadLocal<ExecutingScope> CURRENT_OPERATION = new ThreadLocal<>();
 
     private final OperationalConfig config;
     private final ScheduledThreadPoolExecutor deadlines;
@@ -61,8 +61,8 @@ final class MailSendOperations {
     }
 
     <T> T withinOperation(final Supplier<T> action) {
-        final MailSendOperations previous = CURRENT_OPERATION.get();
-        CURRENT_OPERATION.set(this);
+        final ExecutingScope previous = CURRENT_OPERATION.get();
+        CURRENT_OPERATION.set(new ExecutingScope(this, previous));
         try {
             return action.get();
         } finally {
@@ -99,7 +99,23 @@ final class MailSendOperations {
     }
 
     boolean isCurrentOperation() {
-        return CURRENT_OPERATION.get() == this;
+        for (ExecutingScope scope = CURRENT_OPERATION.get(); scope != null; scope = scope.previous) {
+            if (scope.owner == this) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Delegated sends belong to every participating owner until they return, not just to the innermost selected Mailer. */
+    private static final class ExecutingScope {
+        private final MailSendOperations owner;
+        private final ExecutingScope previous;
+
+        private ExecutingScope(final MailSendOperations owner, final ExecutingScope previous) {
+            this.owner = owner;
+            this.previous = previous;
+        }
     }
 
     private RuntimeException closedRejection() {

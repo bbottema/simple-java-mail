@@ -38,21 +38,37 @@ public final class Pkcs12Config implements Serializable {
 		return new Pkcs12ConfigBuilder();
 	}
 
+	/**
+	 * Returns a copy of the store bytes.
+	 *
+	 * @see Pkcs12ConfigBuilder#pkcs12Store(byte[])
+	 */
 	@NotNull
-	public  byte[] getPkcs12StoreData() {
+	public byte[] getPkcs12StoreData() {
 		return this.pkcs12StoreData.clone();
 	}
 
+	/**
+	 * Returns a copy of the store password.
+	 *
+	 * @see Pkcs12ConfigBuilder#storePassword(char[])
+	 */
 	@NotNull
 	public char[] getStorePassword() {
 		return this.storePassword.clone();
 	}
 
+	/** @see Pkcs12ConfigBuilder#keyAlias(String) */
 	@NotNull
 	public String getKeyAlias() {
 		return this.keyAlias;
 	}
 
+	/**
+	 * Returns a copy of the private-key password.
+	 *
+	 * @see Pkcs12ConfigBuilder#keyPassword(char[])
+	 */
 	@NotNull
 	public char[] getKeyPassword() {
 		return this.keyPassword.clone();

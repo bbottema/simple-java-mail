@@ -12,23 +12,8 @@ import static java.util.Objects.requireNonNull;
  */
 @Value
 public class AsyncQueueConfig {
-    /**
-     * Maximum waiting tasks, excluding active workers; -1 preserves unbounded queuing and zero permits only direct handoff.
-     * <p>
-     * <strong>Builder Default:</strong> {@value MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_CAPACITY} (unbounded).
-     */
     int capacity;
-    /**
-     * Behavior when all workers and waiting slots are occupied.
-     * <p>
-     * <strong>Builder Default:</strong> {@link MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY} (immediate rejection).
-     */
     @NotNull AsyncQueueOverflowPolicy overflowPolicy;
-    /**
-     * Maximum caller-side admission wait in milliseconds; used only by {@link AsyncQueueOverflowPolicy#WAIT_FOR_CAPACITY}.
-     * <p>
-     * <strong>Builder Default:</strong> {@value MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS} milliseconds (one second).
-     */
     int waitTimeoutMillis;
 
     /**
@@ -47,5 +32,33 @@ public class AsyncQueueConfig {
         this.capacity = capacity;
         this.overflowPolicy = requireNonNull(overflowPolicy, "overflowPolicy");
         this.waitTimeoutMillis = waitTimeoutMillis;
+    }
+
+    /**
+     * <strong>Builder Default:</strong> {@value MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_CAPACITY} (unbounded).
+     *
+     * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
+     */
+    public int getCapacity() {
+        return capacity;
+    }
+
+    /**
+     * <strong>Builder Default:</strong> {@link MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY} (immediate rejection).
+     *
+     * @see MailerGenericBuilder#withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
+     */
+    @NotNull
+    public AsyncQueueOverflowPolicy getOverflowPolicy() {
+        return overflowPolicy;
+    }
+
+    /**
+     * <strong>Builder Default:</strong> {@value MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS} milliseconds (one second).
+     *
+     * @see MailerGenericBuilder#withAsyncQueueWaitTimeoutMillis(int)
+     */
+    public int getWaitTimeoutMillis() {
+        return waitTimeoutMillis;
     }
 }

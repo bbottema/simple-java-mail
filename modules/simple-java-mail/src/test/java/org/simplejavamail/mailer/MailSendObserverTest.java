@@ -140,19 +140,19 @@ class MailSendObserverTest {
 	}
 
 	@Test
-	void preparationFailureReportsTheExactFailureWithoutReadyOrStartedTimestamps() throws Exception {
+	void preparationFailureReportsTheExactFailureAfterExecutionStarts() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
 				.withMailSendObserver(outcomes::add)
 				.buildMailer()) {
 			final RuntimeException synchronousFailure = synchronousFailure(() -> mailer.sync().sendMail(incompleteEmail));
-			assertPreparationFailure(outcomes.get(0), synchronousFailure);
+			assertPreparationFailure(outcomes.get(0), synchronousFailure, false);
 
 			outcomes.clear();
 			final CompletableFuture<MailSubmissionReceipt> asynchronousSend = mailer.async().sendMail(incompleteEmail).getCompletion();
 			final Throwable asynchronousFailure = futureFailure(asynchronousSend);
-			assertPreparationFailure(outcomes.get(0), asynchronousFailure);
+			assertPreparationFailure(outcomes.get(0), asynchronousFailure, true);
 		}
 	}
 
@@ -267,7 +267,8 @@ class MailSendObserverTest {
 			assertThat(outcomes.get(1).isSuccessful()).isFalse();
 			assertThat(outcomes.get(1).getInitialMessageId()).isEqualTo("batch-invalid@example.org");
 			assertThat(outcomes.get(1).getFailure()).containsSame(batchFailure);
-			assertThat(outcomes.get(1).getReadyAt()).isEmpty();
+			assertThat(outcomes.get(1).getReadyAt()).isPresent();
+			assertThat(outcomes.get(1).getStartedAt()).isPresent();
 			assertThat(customMailer.sentSubjects).containsExactly("batch first");
 		}
 	}
@@ -280,14 +281,13 @@ class MailSendObserverTest {
 		assertThat(outcome.getStartedAt().get()).isBeforeOrEqualTo(outcome.getCompletedAt());
 	}
 
-	private static void assertPreparationFailure(final MailSendOutcome outcome, final Throwable failure) {
+	private static void assertPreparationFailure(final MailSendOutcome outcome, final Throwable failure, final boolean asynchronous) {
 		assertThat(outcome.getDiagnostics().orElseThrow().getPreparation().isFailureObservedHere()).isTrue();
-		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isEmpty();
+		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed().isPresent()).isEqualTo(asynchronous);
 		assertThat(outcome.isSuccessful()).isFalse();
 		assertThat(outcome.getFailure()).containsSame(failure);
 		assertThat(outcome.getSubmissionReceipt()).isEmpty();
-		assertThat(outcome.getReadyAt()).isEmpty();
-		assertThat(outcome.getStartedAt()).isEmpty();
+		assertCompleteTiming(outcome);
 		assertThat(outcome.getRequestedAt()).isBeforeOrEqualTo(outcome.getCompletedAt());
 	}
 

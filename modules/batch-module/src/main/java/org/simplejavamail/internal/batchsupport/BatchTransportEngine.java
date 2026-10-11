@@ -11,18 +11,23 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.batch.BatchTransportException;
 import org.simplejavamail.batch.BatchTransportOperation;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionSetupException;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.smtpconnectionpool.SmtpConnectionException;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportLease;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportSelection;
+import org.simplejavamail.smtpconnectionpool.TransportConnectionObserver;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -39,6 +44,8 @@ public final class BatchTransportEngine<K> {
 	private static final String SMTP_POOL_PROTOCOL = "smtppool";
 
 	private final Object lifecycleMonitor = new Object();
+	// The upstream allocator owns one callback for this engine; Session identifies the selected Mailer configuration to notify.
+	private final Map<Session, PoolConnectionObserver> connectionObserverBySession = new ConcurrentHashMap<>();
 	private final SmtpConnectionPoolClustered<K> smtpConnectionPool;
 	private final Map<K, PoolSettings> clusterSettings = new HashMap<>();
 	private final Map<K, Set<Session>> registeredSessions = new HashMap<>();
@@ -48,7 +55,9 @@ public final class BatchTransportEngine<K> {
 	private boolean shutdownStarted;
 
 	BatchTransportEngine(final PoolSettings defaultSettings) {
-		smtpConnectionPool = new SmtpConnectionPoolClustered<>(requireNonNull(defaultSettings, "defaultSettings").toSmtpClusterConfig());
+		// Allocator ownership is engine-wide upstream; dispatch observations by the selected registration's Session.
+		smtpConnectionPool = new SmtpConnectionPoolClustered<>(requireNonNull(defaultSettings, "defaultSettings").<K>toSmtpClusterConfig()
+				.withTransportConnectionObserver(createTransportConnectionObserver()));
 	}
 
 	public BatchTransportEngine(final BatchTransportPoolConfiguration defaultConfiguration) {
@@ -63,7 +72,12 @@ public final class BatchTransportEngine<K> {
 
 	/** @return true when an earlier registration fixed different settings for this cluster */
 	boolean register(final K clusterKey, final Session session, final PoolSettings settings) {
+		return register(clusterKey, session, settings, PoolConnectionObserver.NONE);
+	}
+
+	boolean register(final K clusterKey, final Session session, final PoolSettings settings, final PoolConnectionObserver observer) {
 		rejectDeclaredProviderOwnedPool(requireNonNull(session, "session"));
+		connectionObserverBySession.putIfAbsent(session, requireNonNull(observer, "observer"));
 		return registerValidated(clusterKey, session, settings);
 	}
 
@@ -159,6 +173,49 @@ public final class BatchTransportEngine<K> {
 		}
 	}
 
+	List<SmtpTransportSelection> selectCandidates(final K clusterKey, @Nullable final MailSendControl control) {
+		final int claimTimeoutMillis = validateClaim(clusterKey, null, control);
+		final ClaimControl claimControl = new ClaimControl();
+		try (MailSendControl.Registration ignored = control == null ? null : control.onStop(claimControl::requestCancellation)) {
+			return smtpConnectionPool.selectTransportCandidates(clusterKey, claimOptions(claimTimeoutMillis, control, claimControl));
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new BatchTransportException("Interrupted while selecting SMTP destinations; no connection was borrowed", interrupted);
+		}
+	}
+
+	private TransportConnectionObserver createTransportConnectionObserver() {
+		return new TransportConnectionObserver() {
+			@Override
+			public boolean isBackgroundConnectionAllowed(final Session session) {
+				return connectionObserverFor(session).isBackgroundConnectionAllowed();
+			}
+
+			@Override
+			public Attempt connectionStarting(final Session session, final Transport transport) {
+				return forwardConnectionAttempt(connectionObserverFor(session).connectionStarting());
+			}
+		};
+	}
+
+	private PoolConnectionObserver connectionObserverFor(final Session session) {
+		return connectionObserverBySession.getOrDefault(session, PoolConnectionObserver.NONE);
+	}
+
+	private static TransportConnectionObserver.Attempt forwardConnectionAttempt(final PoolConnectionObserver.Attempt observedAttempt) {
+		return new TransportConnectionObserver.Attempt() {
+			@Override
+			public void connected() {
+				observedAttempt.connected();
+			}
+
+			@Override
+			public void failed(final Throwable failure) {
+				observedAttempt.failed(failure);
+			}
+		};
+	}
+
 	private int validateClaim(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
 		requireNonNull(clusterKey, "clusterKey");
 		synchronized (lifecycleMonitor) {
@@ -189,6 +246,9 @@ public final class BatchTransportEngine<K> {
 			Thread.currentThread().interrupt();
 			throw new BatchTransportException("Interrupted while waiting for an SMTP transport", interrupted);
 		} catch (RuntimeException failure) {
+			if (control != null && selected != null) {
+				throwIfRecordedConnectionSetupFailed(failure);
+			}
 			final RuntimeException mapped = new BatchTransportException("Unable to claim an SMTP transport", failure);
 			throw control == null ? mapped : control.translateFailure(mapped);
 		}
@@ -201,6 +261,16 @@ public final class BatchTransportEngine<K> {
 			activeLeases.add(lease);
 		}
 		return lease;
+	}
+
+	private static void throwIfRecordedConnectionSetupFailed(final RuntimeException failure) {
+		// A capacity wait has no setup evidence and must remain an ordinary pool failure, not trigger another destination.
+		final Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+		for (Throwable cause = failure; cause != null && visited.add(cause); cause = cause.getCause()) {
+			if (cause instanceof SmtpConnectionException) {
+				throw new PoolConnectionSetupException(cause);
+			}
+		}
 	}
 
 	private SmtpTransportLease acquireLease(final K clusterKey, @Nullable final Session stickySession,
@@ -277,6 +347,7 @@ public final class BatchTransportEngine<K> {
 	Future<Void> shutdownPool(final Session session) {
 		synchronized (lifecycleMonitor) {
 			final Future<Void> shutdown = smtpConnectionPool.shutdownPool(session);
+			connectionObserverBySession.remove(session);
 			final Iterator<Map.Entry<K, Set<Session>>> clusters = registeredSessions.entrySet().iterator();
 			while (clusters.hasNext()) {
 				final Map.Entry<K, Set<Session>> cluster = clusters.next();

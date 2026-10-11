@@ -20,6 +20,8 @@ interface EmailSource extends Serializable {
 	@NotNull
 	Email prepareForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean disableAllClientValidation);
 
+	void validateForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean disableAllClientValidation);
+
 	@NotNull
 	MimeMessage renderMimeMessage(@NotNull Email email, @NotNull Session session, boolean processSecurity)
 			throws MessagingException, UnsupportedEncodingException;

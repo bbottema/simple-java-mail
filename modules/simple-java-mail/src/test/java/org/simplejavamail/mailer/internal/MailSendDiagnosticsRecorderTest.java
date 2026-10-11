@@ -17,6 +17,27 @@ import static org.mockito.Mockito.when;
 
 class MailSendDiagnosticsRecorderTest {
 	@Test
+	void historyRetainsFirst63AndLatestAndPreparationAccumulatesAcrossDestinations() {
+		final AtomicLong clock = new AtomicLong();
+		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
+		for (int i = 0; i < 80; i++) {
+			recorder.startPreparation();
+			clock.addAndGet(2);
+			recorder.prepared();
+			recorder.beginConnectionStep("destination-" + i, null, null);
+			clock.addAndGet(3);
+			recorder.failedConnectionStep("Connection refused");
+			recorder.continuingAfterConnectionFailure();
+		}
+		final MailSendDiagnostics report = recorder.finish(false);
+		assertThat(report.getPreparation().getElapsed()).contains(Duration.ofNanos(160));
+		assertThat(report.getConnectionHistory()).hasSize(64);
+		assertThat(report.getConnectionHistory().get(62).getConfiguredName()).contains("destination-62");
+		assertThat(report.getConnectionHistory().get(63).getConfiguredName()).contains("destination-79");
+		assertThat(report.getOmittedConnectionSteps()).isEqualTo(16);
+	}
+
+	@Test
 	void rateWaitingIsSeparateFromSelectionAndAcquisition() {
 		final AtomicLong clock = new AtomicLong();
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
@@ -42,10 +63,12 @@ class MailSendDiagnosticsRecorderTest {
 		final AtomicLong clock = new AtomicLong(7);
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
 		recorder.useAsyncScheduling();
+		recorder.readyForAdmission();
 		clock.set(17);
-		recorder.prepared();
-		clock.set(37);
 		recorder.started();
+		recorder.startPreparation();
+		clock.set(37);
+		recorder.prepared();
 		clock.set(41);
 		recorder.startConnectionAcquisition();
 		clock.set(81);
@@ -64,8 +87,8 @@ class MailSendDiagnosticsRecorderTest {
 		final MailSendDiagnostics report = recorder.finish(true);
 		clock.set(1000000); // Application observer work cannot change the frozen report.
 		assertThat(report.getElapsed()).isEqualTo(Duration.ofNanos(234));
-		assertThat(report.getPreparation().getElapsed()).contains(Duration.ofNanos(10));
-		assertThat(report.getScheduling().getElapsed()).contains(Duration.ofNanos(20));
+		assertThat(report.getPreparation().getElapsed()).contains(Duration.ofNanos(20));
+		assertThat(report.getScheduling().getElapsed()).contains(Duration.ofNanos(10));
 		assertThat(report.getConnectionAcquisition().getElapsed()).contains(Duration.ofNanos(40));
 		assertThat(report.getMimePreparation().getElapsed()).contains(Duration.ofNanos(30));
 		assertThat(report.getSubmission().getElapsed()).contains(Duration.ofNanos(60));
@@ -78,6 +101,7 @@ class MailSendDiagnosticsRecorderTest {
 	void elapsedSubtractionWorksAcrossMonotonicCounterWrap() {
 		final AtomicLong clock = new AtomicLong(Long.MAX_VALUE - 5);
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
+		recorder.startPreparation();
 		clock.set(Long.MIN_VALUE + 4);
 		assertThat(recorder.finish(false).getPreparation().getElapsed()).contains(Duration.ofNanos(10));
 	}
@@ -120,10 +144,13 @@ class MailSendDiagnosticsRecorderTest {
 	void preparationAndUnstartedSchedulingFailuresHaveDistinctLocations() {
 		final MailSendDiagnosticsRecorder preparation = new MailSendDiagnosticsRecorder(() -> 0);
 		preparation.useAsyncScheduling();
+		preparation.readyForAdmission();
+		preparation.started();
+		preparation.startPreparation();
 		assertThat(preparation.finish(false).getPreparation().isFailureObservedHere()).isTrue();
 		final MailSendDiagnosticsRecorder scheduling = new MailSendDiagnosticsRecorder(() -> 0);
 		scheduling.useAsyncScheduling();
-		scheduling.prepared();
+		scheduling.readyForAdmission();
 		final MailSendDiagnostics report = scheduling.finish(false);
 		assertThat(report.getScheduling().getElapsed()).contains(Duration.ZERO);
 		assertThat(report.getScheduling().isFailureObservedHere()).isTrue();
@@ -165,6 +192,11 @@ class MailSendDiagnosticsRecorderTest {
 		final Transport transport = mock(Transport.class);
 		recorder.useAsyncScheduling();
 		recorder.useSharedConnection();
+		recorder.readyForAdmission();
+		recorder.startPreparation();
+		recorder.beginConnectionStep(null, null, null);
+		recorder.failedConnectionStep("unobserved");
+		recorder.skippedConnection(null, null, null, "unobserved");
 		recorder.useLoggingOnly();
 		recorder.useCustomMailer();
 		recorder.useUnlimitedSending();

@@ -20,7 +20,7 @@ import testutil.smtp.SmtpConversation;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -322,8 +322,9 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
             try {
                 beginTls(peer, strategy);
                 peer.expectClosed();
-            } catch (SSLHandshakeException | SocketException expectedRejection) {
-                // The client's rejection can arrive as a TLS alert or a connection reset during the peer's handshake.
+            } catch (SSLException | SocketException expectedRejection) {
+                // JSSE can send handshake_failure or internal_error for the client's empty trust store, depending on the JDK.
+                // The client-side assertion below still requires the original certificate-trust failure.
             }
         }); Mailer mailer = builder(server.port(), strategy).withCustomSSLFactoryInstance(application)
                 .withProperty(strategy == SMTPS ? "mail.smtps.ssl.protocols" : "mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {

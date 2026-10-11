@@ -41,6 +41,7 @@ class MailSendAttemptDiagnosticsTest {
 		try (MockedStatic<MailSendDiagnosticsRecorder> recorders = mockStatic(MailSendDiagnosticsRecorder.class, CALLS_REAL_METHODS)) {
 			recorders.when(MailSendDiagnosticsRecorder::observed).thenReturn(recorder);
 			final MailSendAttempt attempt = notifier.beginAttempt(mock(Email.class));
+			attempt.readyForAdmission();
 			attempt.prepared(mock(Email.class));
 			attempt.started();
 			recorder.startMimePreparation();
@@ -61,6 +62,7 @@ class MailSendAttemptDiagnosticsTest {
 	void genericCleanupFailureRetainsTheExactProducedReceiptAndPublishesOnlyOnce() {
 		final List<MailSendOutcome> outcomes = new ArrayList<>();
 		final MailSendAttempt attempt = new MailSendObserverNotifier(outcomes::add, false).beginAttempt(mock(Email.class));
+		attempt.readyForAdmission();
 		attempt.prepared(mock(Email.class));
 		attempt.started();
 		attempt.diagnostics().startConnectionAcquisition();
@@ -81,7 +83,7 @@ class MailSendAttemptDiagnosticsTest {
 
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
-	void exceptionReceiptsArePreservedOnlyAfterExecutionStarted(final boolean started) {
+	void exceptionReceiptsArePreservedOnlyAfterSubmissionBegins(final boolean submissionStarted) {
 		final MailSubmissionReceipt exceptionReceipt = receipt();
 		final RuntimeException[] failures = {
 				new MailSubmissionException("submission failed", new MessagingException(), exceptionReceipt),
@@ -91,14 +93,16 @@ class MailSendAttemptDiagnosticsTest {
 		for (RuntimeException failure : failures) {
 			final List<MailSendOutcome> outcomes = new ArrayList<>();
 			final MailSendAttempt attempt = new MailSendObserverNotifier(outcomes::add, false).beginAttempt(mock(Email.class));
-			if (started) {
+			if (submissionStarted) {
+				attempt.readyForAdmission();
 				attempt.prepared(mock(Email.class));
 				attempt.started();
+				attempt.diagnostics().startSubmission();
 				attempt.diagnostics().receiptProduced(receipt()); // Must not replace the exception's exact facts.
 			}
 			attempt.completeWithFailure(failure);
 			assertThat(outcomes.get(0).getFailure()).containsSame(failure);
-			if (started) {
+			if (submissionStarted) {
 				assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(exceptionReceipt);
 			} else {
 				assertThat(outcomes.get(0).getSubmissionReceipt()).isEmpty();

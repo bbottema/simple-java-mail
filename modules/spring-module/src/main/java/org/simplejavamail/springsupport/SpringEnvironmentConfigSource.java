@@ -21,6 +21,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 
 	private static final String EXTRA_PROPERTIES_PREFIX = "simplejavamail.extraproperties.";
 	private static final String CONNECTIONPOOL_CLUSTERS_PREFIX = "simplejavamail.defaults.connectionpool.clusters.";
+	private static final String NAMED_MAILERS_PREFIX = "simplejavamail.mailers.";
 
 	private static final Map<String, String[]> COMPATIBILITY_ALIASES = compatibilityAliases();
 
@@ -47,7 +48,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 
 	@Override
 	public String getPropertySourceName(final String propertyName) {
-		final String underlyingSourceName = isWildcardPropertyName(propertyName)
+		final String underlyingSourceName = isWildcardPropertyName(propertyName) && !isNamedMailerProperty(propertyName)
 				? findUnderlyingPropertySourceName(propertyName)
 				: findSingleValuePropertySourceName(propertyName);
 		return underlyingSourceName != null ? underlyingSourceName : getName();
@@ -71,7 +72,9 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	}
 
 	private static boolean isWildcardProperty(final Property property) {
-		return property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS;
+		return property == Property.EXTRA_PROPERTIES
+				|| property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS
+				|| property == Property.NAMED_MAILERS;
 	}
 
 	@Nullable
@@ -97,23 +100,36 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 			final Map<String, Object> resolvedProperties) {
 		for (String propertyName : propertySource.getPropertyNames()) {
 			if (isWildcardPropertyName(propertyName)) {
-				final String resolvedValue = environment.getProperty(propertyName);
+				final String canonicalPropertyName = canonicalizeNamedMailerProperty(propertyName);
+				final String resolvedValue = resolveWildcardPropertyValue(propertyName, canonicalPropertyName);
 				if (resolvedValue != null) {
-					resolvedProperties.put(propertyName, resolvedValue);
+					resolvedProperties.put(canonicalPropertyName, resolvedValue);
 				}
 			}
 		}
 	}
 
+	/** Named Mailers inherit the root aliases, so ask Spring for their canonical value instead of retaining the property-source spelling. */
+	@Nullable
+	private String resolveWildcardPropertyValue(final String propertyName, final String canonicalPropertyName) {
+		return isNamedMailerProperty(canonicalPropertyName)
+				? resolveSingleValueProperty(canonicalPropertyName)
+				: environment.getProperty(propertyName);
+	}
+
 	private static boolean isWildcardPropertyName(final String propertyName) {
 		final String ordinaryName = ConfigurationLocks.ordinaryName(propertyName);
-		return ordinaryName.startsWith(EXTRA_PROPERTIES_PREFIX) || ordinaryName.startsWith(CONNECTIONPOOL_CLUSTERS_PREFIX);
+		return ordinaryName.startsWith(EXTRA_PROPERTIES_PREFIX) || ordinaryName.startsWith(CONNECTIONPOOL_CLUSTERS_PREFIX)
+				|| ordinaryName.startsWith(NAMED_MAILERS_PREFIX);
 	}
 
 	private static String[] aliasesFor(final String canonicalKey) {
 		if (ConfigurationLocks.isLockedName(canonicalKey)) {
 			return Arrays.stream(aliasesFor(ConfigurationLocks.ordinaryName(canonicalKey)))
 					.map(ConfigurationLocks::lockedName).toArray(String[]::new);
+		}
+		if (isNamedMailerProperty(canonicalKey)) {
+			return aliasesForNamedMailer(canonicalKey);
 		}
 		final String[] explicitAliases = COMPATIBILITY_ALIASES.get(canonicalKey);
 		if (explicitAliases != null) {
@@ -123,6 +139,44 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 			return new String[] { canonicalKey.replace('_', '-') };
 		}
 		return new String[0];
+	}
+
+	private static String[] aliasesForNamedMailer(final String canonicalKey) {
+		final int namedMailerNameEnd = canonicalKey.indexOf('.', NAMED_MAILERS_PREFIX.length());
+		if (namedMailerNameEnd < 0) {
+			return new String[0];
+		}
+		final String namedMailerPrefix = canonicalKey.substring(0, namedMailerNameEnd + 1);
+		final String rootPropertyName = "simplejavamail." + canonicalKey.substring(namedMailerNameEnd + 1);
+		return Arrays.stream(aliasesFor(rootPropertyName))
+				.map(alias -> namedMailerPrefix + alias.substring("simplejavamail.".length()))
+				.toArray(String[]::new);
+	}
+
+	private static boolean isNamedMailerProperty(final String key) {
+		return ConfigurationLocks.ordinaryName(key).startsWith(NAMED_MAILERS_PREFIX);
+	}
+
+	/** Named definitions use the root property's canonical spelling and compatibility aliases. */
+	private static String canonicalizeNamedMailerProperty(final String key) {
+		if (ConfigurationLocks.isLockedName(key)) {
+			return ConfigurationLocks.lockedName(canonicalizeNamedMailerProperty(ConfigurationLocks.ordinaryName(key)));
+		}
+		if (!isNamedMailerProperty(key)) {
+			return key;
+		}
+		final int namedMailerNameEnd = key.indexOf('.', NAMED_MAILERS_PREFIX.length());
+		if (namedMailerNameEnd < 0) {
+			return key;
+		}
+		final String namedMailerPrefix = key.substring(0, namedMailerNameEnd + 1);
+		final String rootPropertyName = "simplejavamail." + key.substring(namedMailerNameEnd + 1);
+		for (Property property : Property.values()) {
+			if (Arrays.asList(lookupNamesFor(property.key())).contains(rootPropertyName)) {
+				return namedMailerPrefix + property.key().substring("simplejavamail.".length());
+			}
+		}
+		return key;
 	}
 
 	private static String[] lookupNamesFor(final String canonicalKey) {

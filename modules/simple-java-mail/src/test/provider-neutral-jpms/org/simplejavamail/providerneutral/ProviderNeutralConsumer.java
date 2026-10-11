@@ -26,7 +26,9 @@ import org.simplejavamail.api.mailer.MailRecipientResult;
 import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendConnectionStep;
 import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendRejectedException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -34,11 +36,11 @@ import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.SmtpCapabilities;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
-import org.simplejavamail.api.mailer.SmtpTlsDetails;
-import org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
 import org.simplejavamail.api.mailer.SmtpRecipientStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.SmtpTlsDetails;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
@@ -47,6 +49,7 @@ import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.api.mailer.spi.SmtpConnectionProbeAdapter;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigDiagnosticGroup;
 import org.simplejavamail.config.ConfigLoader;
@@ -112,6 +115,7 @@ public final class ProviderNeutralConsumer {
 		assertRecipientReplyApiIsAvailable();
 		assertConnectionProbeApiIsAvailable();
 		assertExecutionViewsApiIsAvailable();
+		assertConnectionFailoverApiIsAvailable(simpleJavaMail);
 		assertEnvelopeIdentifierApiIsAvailable(simpleJavaMail);
 		assertRecipientRejectionApiIsAvailable(simpleJavaMail);
 		assertSigningTemplateApiIsAvailable(simpleJavaMail);
@@ -122,6 +126,19 @@ public final class ProviderNeutralConsumer {
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** A failover policy and its connection history remain usable before a Jakarta Mail implementation is installed. */
+	private static void assertConnectionFailoverApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
+		final FailoverPolicy policy = FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofSeconds(30)).build();
+		simpleJavaMail.mailerBuilder().clearFailoverMailer();
+		if (policy.getPrimaryConnectionAttempts() != 1) {
+			throw new AssertionError("Failover defaults or clearing are unavailable");
+		}
+		@SuppressWarnings("unused") final BiFunction<Mailer, FailoverPolicy, ?> configuredFailoverRoute =
+				(destination, selectedPolicy) -> simpleJavaMail.mailerBuilder().withFailoverMailer(destination, selectedPolicy);
+		@SuppressWarnings("unused") final Function<MailSendOutcome, List<MailSendConnectionStep>> connectionHistory =
+				outcome -> outcome.getDiagnostics().orElseThrow().getConnectionHistory();
 	}
 
 	private static void assertLockedConfigurationApiIsAvailable() {
@@ -301,7 +318,8 @@ public final class ProviderNeutralConsumer {
 			throw new AssertionError("Execution control API is unavailable");
 		}
 		@SuppressWarnings("unused") final Function<Mailer, MailSend<MailSubmissionReceipt>> start = mailer -> mailer.async().sendMail(email);
-		@SuppressWarnings("unused") final BiFunction<MailTransportLifecycleAdapter, Transport, Optional<Runnable>> abort = MailTransportLifecycleAdapter::createAbortAction;
+		@SuppressWarnings("unused") final BiFunction<MailTransportLifecycleAdapter, Transport, Optional<Runnable>> abort =
+				MailTransportLifecycleAdapter::createAbortAction;
 	}
 
 	private static void assertAngusIsAbsent() {

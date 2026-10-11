@@ -27,13 +27,19 @@ enum ComposedEmailSource implements EmailSource {
 			@NotNull final EmailGovernance emailGovernance,
 			final boolean disableAllClientValidation) {
 		final Email governedEmail = prepareForConversion(email, emailGovernance);
+		validateForSending(governedEmail, emailGovernance, disableAllClientValidation);
+		return governedEmail;
+	}
+
+	@Override
+	public void validateForSending(@NotNull final Email governedEmail, @NotNull final EmailGovernance emailGovernance,
+			final boolean disableAllClientValidation) {
 		final boolean valid = disableAllClientValidation
 				? MailerHelper.validateLenient(governedEmail, emailGovernance.getEmailValidator())
 				: MailerHelper.validate(governedEmail, emailGovernance.getEmailValidator());
 		if (!valid) {
 			throw new IllegalStateException("Email not valid, but no MailException was thrown for it");
 		}
-		return governedEmail;
 	}
 
 	@Override

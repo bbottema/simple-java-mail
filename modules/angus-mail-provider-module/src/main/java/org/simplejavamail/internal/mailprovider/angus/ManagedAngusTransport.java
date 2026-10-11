@@ -10,9 +10,11 @@ import org.eclipse.angus.mail.util.PropUtil;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.internal.util.SmtpSizeSupport;
+import org.simplejavamail.internal.util.SmtpServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -38,6 +40,8 @@ public final class ManagedAngusTransport extends SMTPTransport {
     private boolean commitPossible;
     private boolean readingFinalResponse;
     private boolean sending;
+    // Setup failures are eligible for failover only before Angus can begin a mail submission.
+    private boolean connectionSetupInProgress;
     private int pendingRecipientIndex = -1;
     @Nullable private SmtpServerResponse finalResponse;
     private final List<SmtpServerResponse> recipientResponses = new ArrayList<>();
@@ -91,6 +95,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
             writeTimeoutLease = writeTimeoutScheduler.retainConnection();
         }
         final AngusSocketFactory.SocketTracker previous = socketFactory == null ? null : socketFactory.bind(this::trackSocket);
+        connectionSetupInProgress = true;
         try {
             final boolean connected = super.protocolConnect(host, port, user, password);
             if (!connected) {
@@ -101,6 +106,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
             releaseAfterFailure(failure);
             throw failure;
         } finally {
+            connectionSetupInProgress = false;
             if (socketFactory != null) {
                 socketFactory.restore(previous);
             }
@@ -275,6 +281,25 @@ public final class ManagedAngusTransport extends SMTPTransport {
     @Override
     protected int readServerResponse() throws MessagingException {
         final int response = super.readServerResponse();
+        throwIfConnectionSetupFailed(response);
+        recordServerResponse(response);
+        return response;
+    }
+
+    private void throwIfConnectionSetupFailed(final int response) throws MessagingException {
+        if (!connectionSetupInProgress) {
+            return;
+        }
+        if (response == 421) {
+            throw new SmtpServiceUnavailableException();
+        }
+        if (response == -1 && "[EOF]".equals(getLastServerResponse())) {
+            // Angus 2.0.5 returns this exact sentinel (without a line ending) on empty EOF. Malformed reply lines retain their newline.
+            throw new MessagingException("The SMTP server disconnected during connection setup.", new EOFException("SMTP setup ended before a reply"));
+        }
+    }
+
+    private void recordServerResponse(final int response) {
         final SmtpServerResponse observed = AngusSubmissionResult.smtpResponse(response, getLastServerResponse());
         if (pendingRecipientIndex >= 0) {
             recipientResponses.set(pendingRecipientIndex, observed);
@@ -284,7 +309,6 @@ public final class ManagedAngusTransport extends SMTPTransport {
             finalResponse = observed;
             readingFinalResponse = false;
         }
-        return response;
     }
 
     boolean wasCommitPossible() {

@@ -10,11 +10,44 @@ import java.io.ObjectOutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailSendDiagnosticsTest {
+	@Test
+	void connectionHistoryIsImmutableBoundedAndSerializationDoesNotEscapeTwice() throws Exception {
+		final MailSendConnectionStep skipped = new MailSendConnectionStep("primary\nname", "internal\nrelay", 587,
+				false, false, null, "Cached failure; recheck pending.\r\n" + "x".repeat(3000));
+		final MailSendConnectionStep acquired = new MailSendConnectionStep("secondary", "private-relay", 2525,
+				true, true, Duration.ZERO, null);
+		final List<MailSendConnectionStep> steps = new ArrayList<>(List.of(skipped, acquired));
+		final MailSendDiagnostics report = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(), measured(),
+				measured(), null, null, measured(), steps, 4);
+		steps.clear();
+		assertThat(report.getConnectionHistory()).containsExactly(skipped, acquired);
+		assertThatThrownBy(() -> report.getConnectionHistory().clear()).isInstanceOf(UnsupportedOperationException.class);
+		final MailSendDiagnostics copy = roundTrip(report);
+		assertThat(copy.getOmittedConnectionSteps()).isEqualTo(4);
+		assertThat(copy.getConnectionHistory().get(0).getConfiguredName()).isEqualTo(skipped.getConfiguredName());
+		assertThat(copy.getConnectionHistory().get(0).getExplanation()).isEqualTo(skipped.getExplanation());
+		assertThat(copy.getConnectionHistory().get(1).getElapsed()).contains(Duration.ZERO);
+		assertThat(copy.toString()).isEqualTo(report.toString());
+		assertThat(copy.toString()).doesNotContain("private-relay", "primary", "internal", "secondary");
+		assertThat(copy.toString()).contains("Cached failure; recheck pending.\\r\\n").doesNotContain("\r");
+		assertThat(skipped.toString()).doesNotContain("internal", "primary", "\r", "\n");
+		assertThatThrownBy(() -> new MailSendConnectionStep(null, null, null, false, true, null, null))
+				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new MailSendConnectionStep(null, null, null, true, false, Duration.ZERO, null))
+				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new MailSendDiagnostics(Duration.ZERO, measured(), measured(), measured(), measured(), measured(), measured(),
+				null, null, measured(), Collections.nCopies(65, acquired), 0)).isInstanceOf(IllegalArgumentException.class);
+		assertThat(report(measured(), measured(), null, null).getConnectionHistory()).isEmpty();
+	}
+
 	@Test
 	void readsAnActualPreDiagnosticsSerializedOutcome() throws Exception {
 		// Serialized with the unmodified pre-#750 core JAR: UID 1 and no diagnostics field in its stream descriptor.
@@ -76,6 +109,39 @@ class MailSendDiagnosticsTest {
 				"Mail send timings:\n  Total: PT1S\n  Preparation: PT0S\n  Scheduling: PT0S"
 						+ "\n  Sending-limit wait: not measured: Sending-limit waiting was not recorded in this snapshot.\n  Connection acquisition: PT0S"
 						+ "\n  MIME preparation: PT0S\n  Submission: PT0S\n  Cleanup: PT0S");
+	}
+
+	@Test
+	void rendersConnectionHistoryInOrderWithOmissionsButWithoutDestinationDetails() throws Exception {
+		final List<MailSendConnectionStep> steps = List.of(
+				new MailSendConnectionStep("primary-name", "primary-host", 587, true, false, Duration.ofMillis(24), "Connection refused."),
+				new MailSendConnectionStep("other-name", "other-host", 2525, false, false, null, "Recheck pending."),
+				new MailSendConnectionStep("failover-name", "failover-host", 465, true, true, Duration.ofMillis(8), null));
+		final MailSendDiagnostics report = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(), measured(),
+				measured(), "selected-host", 25, measured(), steps, 3);
+		final String expectedHistory = "\n  Connection history:\n    - Connection failed in PT0.024S: Connection refused."
+				+ "\n    - Destination skipped: Recheck pending.\n    - Connection acquired in PT0.008S\n    Intermediate steps omitted: 3";
+		final MailSendDiagnostics withoutHistory = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(),
+				measured(), measured(), "selected-host", 25, measured());
+		assertThat(report.toString()).isEqualTo(withoutHistory + expectedHistory)
+				.doesNotContain("primary-name", "primary-host", "other-name", "other-host", "failover-name", "failover-host", "selected-host", "587", "2525", "465");
+		assertThat(roundTrip(report).toString()).isEqualTo(report.toString());
+	}
+
+	@Test
+	void rendersHistoryWithoutAnOmissionMarkerWhenEveryStepWasRetained() {
+		final MailSendConnectionStep acquired = new MailSendConnectionStep(null, null, null, true, true, Duration.ZERO, null);
+		final MailSendDiagnostics report = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(), measured(),
+				measured(), null, null, measured(), List.of(acquired), 0);
+		assertThat(report.toString()).endsWith("\n  Connection history:\n    - Connection acquired in PT0S")
+				.doesNotContain("Intermediate steps omitted:");
+	}
+
+	@Test
+	void rendersAnOmittedCountEvenWhenNoConnectionStepsWereSupplied() {
+		final MailSendDiagnostics report = new MailSendDiagnostics(Duration.ofSeconds(1), measured(), measured(), measured(), measured(), measured(),
+				measured(), null, null, measured(), Collections.emptyList(), 2);
+		assertThat(report.toString()).endsWith("\n  Connection history:\n    Intermediate steps omitted: 2");
 	}
 
 	@Test

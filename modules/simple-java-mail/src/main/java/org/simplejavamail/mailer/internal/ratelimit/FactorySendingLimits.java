@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
  */
 public final class FactorySendingLimits {
 
-	private final Map<String, Registration> groups = new HashMap<>();
+	private final Map<Object, Registration> allowanceRegistrations = new HashMap<>();
 	private final LongSupplier clock;
 
 	public FactorySendingLimits() {
@@ -37,28 +37,40 @@ public final class FactorySendingLimits {
 	@NotNull
 	public MailSendRateLimiter register(@Nullable final String group, @Nullable final SendingRateLimit messages,
 			@Nullable final SendingRateLimit recipients, final boolean allowBursts, final Consumer<MailSendRateLimiter> initialize) {
+		return register(null, group, messages, recipients, allowBursts, initialize);
+	}
+
+	/**
+	 * A captured named SMTP definition retains its private allowance even when its privately owned Mailer is rebuilt.
+	 *
+	 * @param definitionIdentity Stable factory-local identity used only when no named allowance group is configured.
+	 */
+	@NotNull
+	public MailSendRateLimiter register(@Nullable final Object definitionIdentity, @Nullable final String group, @Nullable final SendingRateLimit messages,
+			@Nullable final SendingRateLimit recipients, final boolean allowBursts, final Consumer<MailSendRateLimiter> initialize) {
 		if (group != null && group.isBlank()) {
 			throw new IllegalArgumentException("A rate-limit group needs a nonblank name; reset the group to use a private allowance.");
 		}
 		final Rules rules = new Rules(messages, recipients, allowBursts);
-		if (group == null) {
+		final Object allowanceIdentity = group == null ? definitionIdentity : group;
+		if (allowanceIdentity == null) {
 			final MailSendRateLimiter limiter = rules.newLimiter(clock);
 			initialize.accept(limiter);
 			return limiter;
 		}
-		final Registration registration = retainProvisionalGroup(group, rules);
+		final Registration registration = retainProvisionalRegistration(allowanceIdentity, rules);
 		boolean initialized = false;
 		try {
 			initialize.accept(registration.limiter);
 			initialized = true;
 			return registration.limiter;
 		} finally {
-			finishRegistration(group, registration, initialized);
+			finishRegistration(allowanceIdentity, registration, initialized);
 		}
 	}
 
-	private synchronized Registration retainProvisionalGroup(final String group, final Rules rules) {
-		final Registration existing = groups.get(group);
+	private synchronized Registration retainProvisionalRegistration(final Object allowanceIdentity, final Rules rules) {
+		final Registration existing = allowanceRegistrations.get(allowanceIdentity);
 		if (existing != null) {
 			if (!existing.rules.equals(rules)) {
 				throw new IllegalArgumentException("Mailers sharing a rate-limit group must use the same message limit, recipient limit and burst setting."
@@ -68,15 +80,15 @@ public final class FactorySendingLimits {
 			return existing;
 		}
 		final Registration registration = new Registration(rules, rules.newLimiter(clock));
-		groups.put(group, registration);
+		allowanceRegistrations.put(allowanceIdentity, registration);
 		return registration;
 	}
 
-	private synchronized void finishRegistration(final String group, final Registration registration, final boolean initialized) {
+	private synchronized void finishRegistration(final Object allowanceIdentity, final Registration registration, final boolean initialized) {
 		registration.established |= initialized;
 		registration.pendingBuilders--;
 		if (!registration.established && registration.pendingBuilders == 0) {
-			groups.remove(group);
+			allowanceRegistrations.remove(allowanceIdentity);
 		}
 	}
 

@@ -19,11 +19,18 @@ public final class ConfigurationLocks {
 	private static final String PREFIX = "simplejavamail.locked.";
 	private final Map<String, Object> values;
 	private final Map<String, String> sources;
+	private final String displayPropertyPrefix;
 
 	/** Receives already-parsed restrictions and their sources from the shared configuration loader. */
 	public ConfigurationLocks(final Map<String, Object> values, final Map<String, String> sources) {
+		this(values, sources, "simplejavamail.");
+	}
+
+	/** Named definitions compare ordinary schema keys but identify the full named property in user-facing errors. */
+	public ConfigurationLocks(final Map<String, Object> values, final Map<String, String> sources, final String displayPropertyPrefix) {
 		this.values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
 		this.sources = Collections.unmodifiableMap(new LinkedHashMap<>(sources));
+		this.displayPropertyPrefix = displayPropertyPrefix;
 	}
 
 	/** Converts a canonical ordinary property name to its locked counterpart. */
@@ -81,9 +88,15 @@ public final class ConfigurationLocks {
 	}
 
 	public IllegalArgumentException conflict(final String propertyName, final String remedy) {
-		return new IllegalArgumentException("Configuration property " + escapeControlCharacters(lockedName(propertyName))
+		return new IllegalArgumentException("Configuration property " + fullLockedPropertyName(propertyName)
 				+ " is locked by " + escapeControlCharacters(sources.get(propertyName))
 				+ ". This key uses simplejavamail.locked.*, so its setting is fixed for every Mailer created by this factory. "
 				+ "Ordinary properties, builder calls and Email settings cannot override it. " + remedy);
+	}
+
+	/** Named Mailer definitions store ordinary schema keys, but errors must identify the property the user actually configured. */
+	private String fullLockedPropertyName(final String ordinaryPropertyName) {
+		final String propertyTail = ordinaryPropertyName.substring("simplejavamail.".length());
+		return escapeControlCharacters(lockedName(displayPropertyPrefix + propertyTail));
 	}
 }

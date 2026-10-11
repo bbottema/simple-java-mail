@@ -11,6 +11,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -589,7 +590,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * One ordinary send, receipt-returning send, simple batch, or asynchronous connection test occupies one place. A simple batch remains one lazy,
 	 * sequential operation, regardless of its email count. Blocking sends and the standalone BatchTransportExecutor do not use this queue.
-	 * Preparation stays on the calling thread, before admission; this is not a bound on application threads preparing emails.
+	 * Destination selection and ordinary email preparation run after admission, on executor execution. This bounds waiting sends, not message size
+	 * or application memory. A direct/caller-runs executor can still perform the work on the calling thread.
 	 * <p>
 	 * Saturation uses {@link #withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)}. Rejected operations acquire no SMTP or proxy resources.
 	 * Queue settings cannot be combined with {@link #withExecutorService(ExecutorService)}: configure that caller-owned executor itself instead.
@@ -903,6 +905,29 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see CustomMailer
 	 */
 	T withCustomMailer(@NotNull CustomMailer customMailer);
+
+	/**
+	 * Uses another configured Mailer when this destination cannot establish a usable SMTP connection and the policy permits failover.
+	 * For example, a connection refusal can immediately move the send to a second relay while the primary is reconsidered later.
+	 * A busy connection pool or sending-limit wait keeps its normal waiting behavior. Once message submission starts, no email is replayed.
+	 * <p>
+	 * The selected Mailer supplies its own SMTP settings, email defaults/overrides, validation and message protection. This Mailer still
+	 * owns the executor, observer, completion and overall deadline. Mandatory message settings configured through
+	 * {@code simplejavamail.locked.*} remain binding across the route. The supplied Mailer is borrowed, not closed with this Mailer.
+	 * Its own configured failover relationship is honored, without starting another public send or using its executor.
+	 * <p>
+	 * Repeated calls replace both the destination and its policy. Authentication and certificate-verification failures stop by default;
+	 * their independent policy opt-ins permit switching destinations without weakening either destination's security checks.
+	 * Both arguments must be non-null. Composition requires Mailers built by Simple Java Mail, including those using third-party providers.
+	 *
+	 * @see #clearFailoverMailer()
+	 */
+	@Cli.ExcludeApi(reason = "Live Mailers and paired policies use the internal named-configuration CLI facade")
+	T withFailoverMailer(@NotNull Mailer failoverMailer, @NotNull FailoverPolicy policy);
+
+	/** Removes the failover relationship and its policy, unless that relationship is fixed by a {@code simplejavamail.locked.*} property. */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders select named configuration rather than clearing live Mailer references")
+	T clearFailoverMailer();
 
 	/**
 	 * Restores blocking client-side validation by resetting this option to its default ({@value #DEFAULT_DISABLE_ALL_CLIENTVALIDATION}).

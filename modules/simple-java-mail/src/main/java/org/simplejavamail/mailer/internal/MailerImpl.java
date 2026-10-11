@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -74,6 +75,7 @@ public class MailerImpl implements Mailer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
 	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
+	private static final String SESSION_OWNER = "org.simplejavamail.internal.mailerOwner";
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
@@ -128,6 +130,10 @@ public class MailerImpl implements Mailer {
 	private final MailSendObserverNotifier mailSendObserverNotifier;
 	private final MailSendOperations mailSendOperations;
 	private final MailSendRateLimiter sendingLimits;
+	private final FactoryMailerRuntime.Definition definition;
+	@Nullable private final MailerImpl failoverMailer;
+	private final boolean ownsFailoverMailer;
+	private final DestinationConnectionObserver connectionObserver;
 
 	private final Sync synchronousView = new SynchronousView();
 	private final Async asynchronousView = new AsynchronousView();
@@ -143,7 +149,8 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildOperationalConfig(),
 				fromSessionBuilder.getMailSendObserver(),
 				fromSessionBuilder.getMailSendObserverExecutor(),
-				true, fromSessionBuilder.getFactorySendingLimits());
+				true, fromSessionBuilder.getFactorySendingLimits(), fromSessionBuilder.getDefinition(),
+				fromSessionBuilder.getFailoverMailer(), fromSessionBuilder.ownsFailoverMailer());
 	}
 	
 	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
@@ -155,7 +162,8 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildOperationalConfig(),
 				regularBuilder.getMailSendObserver(),
 				regularBuilder.getMailSendObserverExecutor(),
-				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits());
+				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits(), regularBuilder.getDefinition(),
+				regularBuilder.getFailoverMailer(), regularBuilder.ownsFailoverMailer());
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance, @NotNull ProxyConfig proxyConfig,
@@ -172,14 +180,19 @@ public class MailerImpl implements Mailer {
 			@Nullable Session session, @NotNull OperationalConfig operationalConfig, @Nullable final MailSendObserver mailSendObserver,
 			final boolean opportunisticTLS) {
 		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, mailSendObserver, null, opportunisticTLS,
-				new FactorySendingLimits());
+				new FactorySendingLimits(), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false);
 	}
 
 	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
 			@Nullable MailSendObserver mailSendObserver, @Nullable Executor observerExecutor, final boolean opportunisticTLS,
-			@NotNull final FactorySendingLimits factorySendingLimits) {
+			@NotNull final FactorySendingLimits factorySendingLimits, final FactoryMailerRuntime.Definition definition,
+			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer) {
+		this.definition = definition;
+		this.failoverMailer = failoverMailer;
+		this.ownsFailoverMailer = ownsFailoverMailer;
 		this.serverConfig = serverConfig;
+		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig));
 		this.transportStrategy = transportStrategy;
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
@@ -206,10 +219,65 @@ public class MailerImpl implements Mailer {
 		}
 		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, observerExecutor, operationalConfig.isTransportModeLoggingOnly());
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
+		boolean poolRegistrationBegun = false;
+		try {
+			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession);
+			publishConfiguredSessionOwner();
+			poolRegistrationBegun = true;
+			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
+		} catch (RuntimeException | Error failure) {
+			rollbackConstruction(poolRegistrationBegun, failure);
+			throw failure;
+		}
+	}
+
+	private static String describeDestination(final FactoryMailerRuntime.Definition definition, @Nullable final ServerConfig serverConfig) {
+		if (definition.name != null) {
+			return definition.name;
+		}
+		if (serverConfig != null && serverConfig.getHost() != null) {
+			return serverConfig.getHost();
+		}
+		return "unnamed SMTP configuration";
+	}
+
+	/** Publish the configured context before its Session becomes selectable by another cluster member. */
+	private void publishConfiguredSessionOwner() {
+		session.getProperties().put(SESSION_OWNER, new SessionOwner(this));
+	}
+
+	private MailSendRateLimiter registerSendingAllowance(final FactorySendingLimits factorySendingLimits) {
+		return factorySendingLimits.register(definition.name == null ? null : definition.privateAllowance,
+				operationalConfig.getRateLimitGroup(), operationalConfig.getMessageRateLimit(),
+				operationalConfig.getRecipientRateLimit(), operationalConfig.isRateLimitBurstsAllowed(),
+				limiter -> initCluster(session, operationalConfig, limiter));
+	}
+
+	/** Configuration may allocate a proxy bridge, but does not start it or connect to SMTP. */
+	@Nullable
+	private AnonymousSocks5Server configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
+			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession) {
 		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
 				session, operationalConfig.getProperties(), effectiveTransportStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		);
-		this.proxyServer = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
+		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
+		try {
+			finishSendingSessionConfiguration(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
+			return configuredProxy;
+		} catch (RuntimeException | Error failure) {
+			if (configuredProxy != null) {
+				try {
+					configuredProxy.stop();
+				} catch (RuntimeException | Error cleanupFailure) {
+					failure.addSuppressed(cleanupFailure);
+				}
+			}
+			throw failure;
+		}
+	}
+
+	private void finishSendingSessionConfiguration(@Nullable final TransportStrategy effectiveTransportStrategy,
+			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, @Nullable final Supplier<String> oauth2AccessTokenProvider) {
 		initSession(session, operationalConfig, emailGovernance, effectiveTransportStrategy);
 		lockedSmtpConfiguration.applyLockedExtraProperties(session);
 		if (operationalConfig.getCustomMailer() == null) {
@@ -229,9 +297,32 @@ public class MailerImpl implements Mailer {
 		if (oauth2AccessTokenProvider != null) {
 			session.getProperties().put(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY, oauth2AccessTokenProvider);
 		}
-		this.sendingLimits = factorySendingLimits.register(operationalConfig.getRateLimitGroup(), operationalConfig.getMessageRateLimit(),
-				operationalConfig.getRecipientRateLimit(), operationalConfig.isRateLimitBurstsAllowed(),
-				limiter -> initCluster(this.session, operationalConfig, limiter));
+	}
+
+	/** A failed build must not leave a published cluster participant or owned workers behind. The builder owns failover-graph rollback. */
+	private void rollbackConstruction(final boolean poolRegistrationBegun, final Throwable failure) {
+		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
+			operationalConfig.getExecutorService().shutdown();
+		}
+		try {
+			mailSendOperations.shutdown().get();
+			if (poolRegistrationBegun) {
+				closeConnectionPools().get();
+			}
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			failure.addSuppressed(interrupted);
+		} catch (ExecutionException | RuntimeException | Error cleanupFailure) {
+			failure.addSuppressed(cleanupFailure);
+		} finally {
+			if (poolRegistrationBegun) {
+				session.getProperties().remove(SESSION_OWNER);
+			}
+		}
+	}
+
+	FactoryMailerRuntime.Definition definition() {
+		return definition;
 	}
 
 	/**
@@ -455,7 +546,7 @@ public class MailerImpl implements Mailer {
 
 	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, final SendingAllowance allowance) {
 		if (ModuleLoader.batchModuleAvailable()) {
-			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session, allowance);
+			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session, allowance, connectionObserver);
 		}
 	}
 
@@ -518,8 +609,8 @@ public class MailerImpl implements Mailer {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		final MailSendOperation<MailSubmissionReceipt> operation = beginEmailOperation(attempt);
-		final PreparedMailSend prepared = prepareMailSend(checkedEmail, attempt, operation);
-		return operation.executeSync(() -> sendPreparedEmail(prepared, operation.control()));
+		attempt.readyForAdmission();
+		return operation.executeSync(() -> executeEmailSend(checkedEmail, attempt, operation.control()));
 	}
 
 	/**
@@ -536,12 +627,8 @@ public class MailerImpl implements Mailer {
 		} catch (final RuntimeException failure) {
 			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}
-		try {
-			final PreparedMailSend prepared = prepareMailSend(checkedEmail, attempt, operation);
-			operation.schedule(() -> sendPreparedEmail(prepared, operation.control()));
-		} catch (RuntimeException ignored) {
-			// Preparation already notified on the caller thread with this exact failure.
-		}
+		attempt.readyForAdmission();
+		operation.schedule(() -> executeEmailSend(checkedEmail, attempt, operation.control()));
 		return operation.handle();
 	}
 
@@ -556,28 +643,12 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	@NotNull
-	private PreparedMailSend prepareMailSend(final Email checkedEmail, final MailSendAttempt mailSendAttempt,
-			final MailSendOperation<MailSubmissionReceipt> operation) {
-		try {
-			operation.control().checkStopped();
-			validateDeadlineSupport();
-			final Email preparedEmail = prepareEmailForSending(checkedEmail);
-			operation.control().checkStopped();
-			mailSendAttempt.prepared(preparedEmail);
-			return new PreparedMailSend(preparedEmail, mailSendAttempt);
-		} catch (final RuntimeException failure) {
-			final RuntimeException reported = operation.control().translateFailure(failure);
-			operation.preparationFailed(reported);
-			throw reported;
-		} catch (final Error failure) {
-			operation.preparationFailed(failure);
-			throw failure;
-		}
+	private void validateDeadlineSupport() {
+		validateDeadlineSupport(operationalConfig.getMailSendTimeout() != null);
 	}
 
-	private void validateDeadlineSupport() {
-		if (operationalConfig.getMailSendTimeout() != null && !operationalConfig.isTransportModeLoggingOnly()) {
+	private void validateDeadlineSupport(final boolean deadlineConfigured) {
+		if (deadlineConfigured && !operationalConfig.isTransportModeLoggingOnly()) {
 			if (operationalConfig.getCustomMailer() != null) {
 				throw new MailerException("Don't configure a total send timeout when using CustomMailer: Simple Java Mail can't stop its sending code. "
 						+ "Handle timeouts in your CustomMailer instead. If the timeout comes from configuration you can't change, "
@@ -588,22 +659,65 @@ public class MailerImpl implements Mailer {
 	}
 
 	@NotNull
-	private MailSubmissionReceipt sendPreparedEmail(@NotNull final PreparedMailSend preparedMailSend, final MailSendControl control) {
-		preparedMailSend.markStarted();
-		final SelectedPoolTransport selected = selectSendingDestination(control, preparedMailSend.diagnostics());
-		final Session selectedSession = selected == null ? session : selected.getSession();
-		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, selectedSession);
-		final Email selectedEmail = selectedSession == session ? preparedMailSend.getEmail()
-				: SessionBasedEmailToMimeMessageConverter.applySelectedMessageLocks(selectedSession, preparedMailSend.getEmail());
-		// Construct the closure only after admission: its constructor registers proxy use, and run() starts that proxy.
-		try (SendingAllowance.Reservation allowance = operationalConfig.isTransportModeLoggingOnly() ? null
-				: EmailSendingAllowance.reserve(selected == null ? sendingLimits : selected.getSendingAllowance(),
-						selectedSession, selectedEmail, control, preparedMailSend.diagnostics())) {
+	private MailSubmissionReceipt executeEmailSend(final Email originalEmail, final MailSendAttempt attempt, final MailSendControl control) {
+		attempt.started();
+		try {
+			return new MailConnectionRoute<>(this, attempt.diagnostics(), control, destinationSend(originalEmail, attempt, control)).execute();
+		} catch (RuntimeException failure) {
+			throw control.translateFailure(failure);
+		}
+	}
+
+	private MailConnectionRoute.DestinationOperation<MailSubmissionReceipt> destinationSend(final Email originalEmail,
+			final MailSendAttempt attempt, final MailSendControl control) {
+		return new MailConnectionRoute.DestinationOperation<MailSubmissionReceipt>() {
+			@Override
+			public MailSubmissionReceipt execute(final MailerImpl destination, final SelectedPoolTransport selected, final List<MailerImpl> stages) {
+				return sendThroughDestination(originalEmail, attempt, control, selected, destination, stages);
+			}
+
+			@Override
+			public boolean hasSubmissionStarted() {
+				return attempt.hasSubmissionStarted();
+			}
+		};
+	}
+
+	static MailerImpl selectedOwner(final Session selectedSession) {
+		final Object owner = selectedSession.getProperties().get(SESSION_OWNER);
+		if (!(owner instanceof SessionOwner)) {
+			throw new MailerException("The selected pool connection has no owning Simple Java Mail Mailer. "
+					+ "Register cluster members through mailerBuilder() so their email settings and resource lifetimes can be honored.");
+		}
+		return ((SessionOwner) owner).mailer;
+	}
+
+	/** Session diagnostics must not recursively render the Mailer and its Session, or expose this runtime owner's configuration. */
+	private static final class SessionOwner {
+		private final MailerImpl mailer;
+
+		private SessionOwner(final MailerImpl mailer) {
+			this.mailer = mailer;
+		}
+
+		@Override
+		public String toString() {
+			return "Simple Java Mail sending context";
+		}
+	}
+
+	MailSubmissionReceipt sendThroughDestination(final Email originalEmail, final MailSendAttempt attempt, final MailSendControl control,
+			@Nullable final SelectedPoolTransport selected, final MailerImpl destination, final List<MailerImpl> stages) {
+		attempt.preparationStarted();
+		attempt.selectedSendingMode(destination.operationalConfig.isTransportModeLoggingOnly());
+		destination.validateSelectedDestination(operationalConfig.getMailSendTimeout() != null);
+		final Email selectedEmail = prepareSelectedEmail(originalEmail, destination, stages);
+		control.checkStopped();
+		attempt.prepared(selectedEmail);
+		try (SendingAllowance.Reservation allowance = reserveSelectedSendingAllowance(destination, selected, selectedEmail, control, attempt.diagnostics())) {
 			control.checkStopped();
-			final SendMailClosure sendMailClosure = new SendMailClosure(operationalConfig, session, selectedEmail, proxyServer,
-					operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control, preparedMailSend.diagnostics(), selected, allowance);
-			sendMailClosure.run();
-			return sendMailClosure.getReceipt();
+			recordSelectedConnectionAttempt(destination, attempt.diagnostics());
+			return sendPreparedEmailThroughDestination(destination, selected, selectedEmail, attempt, control, allowance);
 		} catch (MessagingException failure) {
 			throw control.translateFailure(new MailerException("Unable to resolve the delivery recipients before waiting for sending allowance. "
 					+ "Check the email's recipient addresses and any custom To, Cc or Bcc headers; no message was submitted.", failure));
@@ -611,12 +725,146 @@ public class MailerImpl implements Mailer {
 	}
 
 	@Nullable
-	private SelectedPoolTransport selectSendingDestination(final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics) {
-		if (operationalConfig.isTransportModeLoggingOnly() || operationalConfig.getCustomMailer() != null) {
+	private SendingAllowance.Reservation reserveSelectedSendingAllowance(final MailerImpl destination, @Nullable final SelectedPoolTransport selected,
+			final Email email, final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
+		return destination.operationalConfig.isTransportModeLoggingOnly() ? null
+				: EmailSendingAllowance.reserve(selected == null ? destination.sendingLimits : selected.getSendingAllowance(),
+						destination.session, email, control, diagnostics);
+	}
+
+	private void recordSelectedConnectionAttempt(final MailerImpl destination, final MailSendDiagnosticsRecorder diagnostics) {
+		if (destination.usesSmtpConnection() && diagnostics.isObserved()) {
+			diagnostics.beginConnectionStep(destination.definition.name, destination.logicalHost(), destination.logicalPort());
+		}
+	}
+
+	private MailSubmissionReceipt sendPreparedEmailThroughDestination(final MailerImpl destination, @Nullable final SelectedPoolTransport selected,
+			final Email email, final MailSendAttempt attempt, final MailSendControl control, @Nullable final SendingAllowance.Reservation allowance) {
+		// Construct only after admission and allowance: the closure registers proxy use before run() starts that proxy.
+		final SendMailClosure closure = new SendMailClosure(destination.operationalConfig, destination.session, email, destination.proxyServer,
+				destination.operationalConfig.isTransportModeLoggingOnly(), destination.smtpConnectionCounter, control, attempt.diagnostics(), selected, allowance,
+				destination.connectionObserver, attempt::submissionStarted);
+		closure.run();
+		return closure.getReceipt();
+	}
+
+	/** Ordinary templates belong only to the selected member; the initiating Mailer's mandatory message locks still travel with the send. */
+	Email prepareSelectedEmail(final Email originalEmail, final MailerImpl destination, final List<MailerImpl> stages) {
+		verifySelectedCustomMailerLockCompatibility(destination, stages);
+		final Email governedEmail = applySelectedEmailGovernance(originalEmail, destination);
+		final Email lockedEmail = applyTraversedMessageLocks(governedEmail, destination, stages);
+		validateSelectedEmail(lockedEmail, destination);
+		return lockedEmail;
+	}
+
+	private void verifySelectedCustomMailerLockCompatibility(final MailerImpl destination, final List<MailerImpl> stages) {
+		if (destination.operationalConfig.getCustomMailer() != null) {
+			for (MailerImpl stage : stages) {
+				LockedEmailConfiguration.verifyCustomMailerCompatibility(stage.definition.config);
+			}
+		}
+	}
+
+	private Email applySelectedEmailGovernance(final Email originalEmail, final MailerImpl destination) {
+		return InternalEmail.requireInternalEmail(originalEmail).prepareForConversion(destination.emailGovernance);
+	}
+
+	private Email applyTraversedMessageLocks(final Email governedEmail, final MailerImpl destination, final List<MailerImpl> stages) {
+		Email lockedEmail = governedEmail;
+		// The selected destination already applied its locks with its own governance; earlier owners contribute locks only.
+		for (MailerImpl stage : stages) {
+			if (destination != stage && stage.emailGovernance instanceof EmailGovernanceImpl) {
+				lockedEmail = ((EmailGovernanceImpl) stage.emailGovernance).applyLocksToPreparedEmail(lockedEmail);
+			}
+		}
+		return lockedEmail;
+	}
+
+	private void validateSelectedEmail(final Email email, final MailerImpl destination) {
+		InternalEmail.requireInternalEmail(email).validateForSending(destination.emailGovernance,
+				destination.operationalConfig.isDisableAllClientValidation());
+	}
+
+	<T> T withDelegatedOperation(final MailerImpl initiator, final Supplier<T> work) {
+		try (MailSendOperations.Scope ignored = this == initiator ? null : mailSendOperations.openScope()) {
+			return mailSendOperations.withinOperation(work);
+		}
+	}
+
+	MailSendOperations.Scope retainDelegatedScope() {
+		return mailSendOperations.openScope();
+	}
+
+	<T> T withinDelegatedExecution(final Supplier<T> work) {
+		return mailSendOperations.withinOperation(work);
+	}
+
+	SendingAllowance sendingAllowance() {
+		return sendingLimits;
+	}
+
+	DestinationConnectionObserver connectionObserver() {
+		return connectionObserver;
+	}
+
+	void validateSelectedDestination(final boolean deadlineConfigured) {
+		validateDeadlineSupport(deadlineConfigured);
+		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
+	}
+
+	SmtpProxyScope openProxy() {
+		final SmtpProxyScope scope = new SmtpProxyScope(smtpConnectionCounter, proxyServer, session);
+		try {
+			scope.start();
+			return scope;
+		} catch (RuntimeException | Error failure) {
+			try {
+				scope.close();
+			} catch (RuntimeException | Error cleanupFailure) {
+				failure.addSuppressed(cleanupFailure);
+			}
+			throw failure;
+		}
+	}
+
+	@Nullable
+	MailerImpl failoverMailer() {
+		return failoverMailer;
+	}
+
+	boolean usesSmtpConnection() {
+		return !operationalConfig.isTransportModeLoggingOnly() && operationalConfig.getCustomMailer() == null;
+	}
+
+	@Nullable
+	String logicalHost() {
+		return serverConfig != null ? serverConfig.getHost() : session.getProperty(selectedProtocolPrefix() + ".host");
+	}
+
+	@Nullable
+	Integer logicalPort() {
+		if (serverConfig != null) {
+			return serverConfig.getPort();
+		}
+		try {
+			final String value = session.getProperty(selectedProtocolPrefix() + ".port");
+			final int port = value == null ? -1 : Integer.parseInt(value);
+			return port >= 1 && port <= 65535 ? port : null;
+		} catch (NumberFormatException unspecifiedPort) {
 			return null;
 		}
-		diagnostics.startConnectionAcquisition();
-		return TransportRunner.selectTransport(operationalConfig.getClusterKey(), session, control);
+	}
+
+	private String selectedProtocolPrefix() {
+		return "mail." + session.getProperties().getProperty("mail.transport.protocol", "smtp");
+	}
+
+	List<SelectedPoolTransport> connectionCandidates(final MailSendControl control, final boolean failoverEnabled) {
+		if (!ModuleLoader.batchModuleAvailable()) {
+			return Collections.singletonList(null);
+		}
+		return failoverEnabled ? ModuleLoader.loadBatchModule().selectTransportCandidates(operationalConfig.getClusterKey(), control)
+				: Collections.singletonList(TransportRunner.selectTransport(operationalConfig.getClusterKey(), session, control));
 	}
 
 	private CompletableFuture<Void> executeMailOperationAsync(final String processName, final Runnable operation) {
@@ -634,6 +882,10 @@ public class MailerImpl implements Mailer {
 		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
 		validateDeadlineSupport();
 		try (MailSendOperations.Scope ignored = mailSendOperations.openScope()) {
+			if (failoverMailer != null && usesSmtpConnection()) {
+				new FailoverSharedSends(this, mailSendOperations, mailSendObserverNotifier).withOpenConnection(checkedOpenConnectionCallback);
+				return;
+			}
 			SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 			new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
 					mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, mailSendOperations, sendingLimits)
@@ -668,6 +920,10 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void sendSimpleBatch(@NotNull final Iterable<Email> emails, final MailSendControl control) {
+		if (failoverMailer != null && usesSmtpConnection()) {
+			new FailoverSharedSends(this, mailSendOperations, mailSendObserverNotifier).sendBatch(emails, control);
+			return;
+		}
 		validateDeadlineSupport();
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
@@ -755,12 +1011,32 @@ public class MailerImpl implements Mailer {
 				// Graceful shutdown retains accepted work; a capacity timeout is not a send timeout.
 			}
 			mailSendOperations.shutdown().get();
-			closeConnectionPools().get();
+			closeOwnedConnectionResources();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			throw new CompletionException(interrupted);
 		} catch (ExecutionException failure) {
 			throw new CompletionException(failure.getCause());
+		}
+	}
+
+	private void closeOwnedConnectionResources() throws InterruptedException, ExecutionException {
+		try {
+			closeConnectionPools().get();
+		} catch (InterruptedException | ExecutionException | RuntimeException | Error failure) {
+			try {
+				closeOwnedFailoverMailer();
+			} catch (InterruptedException | ExecutionException | RuntimeException | Error cleanupFailure) {
+				failure.addSuppressed(cleanupFailure);
+			}
+			throw failure;
+		}
+		closeOwnedFailoverMailer();
+	}
+
+	private void closeOwnedFailoverMailer() throws InterruptedException, ExecutionException {
+		if (ownsFailoverMailer && failoverMailer != null) {
+			failoverMailer.close();
 		}
 	}
 

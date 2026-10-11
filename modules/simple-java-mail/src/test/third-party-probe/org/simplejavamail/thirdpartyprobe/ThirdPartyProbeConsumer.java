@@ -27,6 +27,10 @@ public final class ThirdPartyProbeConsumer {
     public static void main(final String[] args) throws Exception {
         check(ThirdPartyProbeConsumer.class.getModule().isNamed() == "jpms".equals(args[0]), "Wrong runtime path for the fixture");
         assertAngusIsAbsent();
+        final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
+        ConnectionFailoverConsumer.verify(mail, mail.emailBuilder().startingBlank().from("sender@example.org")
+                .withRecipients(org.simplejavamail.recipient.RecipientBuilder.to(null, "recipient@example.org"))
+                .withPlainText("Must not reach MIME conversion").buildEmail());
         check(ServiceLoader.load(SmtpConnectionProbeAdapter.class).stream()
                 .filter(provider -> provider.type() == PartialProbeAdapter.class).count() == 1, "The fixture adapter was not discovered");
         for (final boolean async : new boolean[]{false, true}) {
@@ -51,7 +55,8 @@ public final class ThirdPartyProbeConsumer {
                     final SmtpConnectionReport report = probeAndCheckIsolation(mailer, source, async, authenticate);
                     check(report.isSupported() && report.isSuccessful() && report.isConnected(), "Partial diagnostics prevented a successful connection");
                     check(report.isAuthenticationRequested() == authenticate && report.isAuthenticated() == authenticate, "Authentication choice was lost");
-                    check(authenticationCalls.get() == previousAuthenticationCalls + (authenticate ? 1 : 0), "Credentials were resolved outside the opted-in probe");
+                    check(authenticationCalls.get() == previousAuthenticationCalls + (authenticate ? 1 : 0),
+                            "Credentials were resolved outside the opted-in probe");
                     check(report.isTlsActive() && report.getTlsDetails().isEmpty(), "Missing TLS metadata was invented");
                     check(report.getAuthenticationMechanism().isEmpty(), "An unobserved AUTH mechanism was invented");
                     check(report.getBeforeTls().isEmpty(), "A plaintext snapshot was invented for this TLS-only provider");
@@ -59,7 +64,8 @@ public final class ThirdPartyProbeConsumer {
                     check(report.getEffectiveCapabilities().isPresent() == capabilitiesAvailable, "Effective capabilities misrepresented missing facts");
                     if (capabilitiesAvailable) {
                         check(report.getEffectiveCapabilities().orElseThrow().supports("X-FIXTURE"), "An unknown extension was lost");
-                        check(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize().orElseThrow() == 4096, "The observed SIZE limit was lost");
+                        check(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize().orElseThrow() == 4096,
+                                "The observed SIZE limit was lost");
                     } else {
                         check(report.toString().contains("After TLS: not available"), "Unknown capabilities were not explained");
                     }
@@ -84,7 +90,8 @@ public final class ThirdPartyProbeConsumer {
                         "Cleanup erased the first failure phase");
                 check(report.getEffectiveCapabilities().isPresent() == "close".equals(failure), "Cleanup lost facts or connection failure invented them");
                 if ("both".equals(failure)) {
-                    check(report.getWarnings().stream().anyMatch(warning -> warning.contains("also failed during cleanup")), "Secondary cleanup failure was lost");
+                    check(report.getWarnings().stream().anyMatch(warning -> warning.contains("also failed during cleanup")),
+                            "Secondary cleanup failure was lost");
                 }
             }
             source.getProperties().remove("fixture.fail.connect");
@@ -122,10 +129,12 @@ public final class ThirdPartyProbeConsumer {
         final SmtpConnectionReport report = probe(mailer, async, authenticate);
         check(FixtureTransport.CREATED.size() == previousTransports + 1, "A probe must own exactly one new transport");
         final FixtureTransport transport = FixtureTransport.CREATED.get(previousTransports);
-        check(transport.connectionCalls == 1 && transport.closeCalls == 1 && transport.closed, "The connector or cleanup did not run exactly once before completion");
+        check(transport.connectionCalls == 1 && transport.closeCalls == 1 && transport.closed,
+                "The connector or cleanup did not run exactly once before completion");
         check((transport.connectionThread != callerThread) == async, "The execution view did not preserve thread semantics");
         check(transport.probeSession != source && transport.probeSession.getProperties() != source.getProperties(), "The caller's Session was used directly");
-        check(transport.probeSession.getProperties().get("fixture.shared.hook") == source.getProperties().get("fixture.shared.hook"), "A caller-owned hook was copied or replaced");
+        check(transport.probeSession.getProperties().get("fixture.shared.hook") == source.getProperties().get("fixture.shared.hook"),
+                "A caller-owned hook was copied or replaced");
         check(!transport.probeSession.getDebug(), "The dedicated Session leaked debug authentication output");
         check(source.getProperties().equals(originalProperties) && source.getDebug() && source.getProvider("smtp") == originalProvider,
                 "Probing mutated the caller's configuration, debug mode or provider registration");

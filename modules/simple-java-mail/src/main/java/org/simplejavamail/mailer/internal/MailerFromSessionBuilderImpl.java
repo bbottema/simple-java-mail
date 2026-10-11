@@ -28,6 +28,11 @@ public class MailerFromSessionBuilderImpl
 	public MailerFromSessionBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySendingLimits sendingLimits) {
 		super(config, sendingLimits);
 	}
+
+	/** Internal factory wiring; named routes resolve within the captured factory snapshot. */
+	public MailerFromSessionBuilderImpl(final SimpleJavaMailConfig config, final FactoryMailerRuntime runtime) {
+		super(config, runtime);
+	}
 	
 	/**
 	 * @see MailerFromSessionBuilder#usingSession(Session)
@@ -44,8 +49,7 @@ public class MailerFromSessionBuilderImpl
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerImpl buildMailer() {
-		validateLockedConfiguration();
-		return new MailerImpl(this);
+		return buildConfiguredMailer(() -> new MailerImpl(this));
 	}
 	
 	/**

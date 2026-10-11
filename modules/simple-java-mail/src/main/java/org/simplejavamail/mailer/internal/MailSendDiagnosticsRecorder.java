@@ -7,19 +7,25 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSendConnectionStep;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
  * Owns the measurements of one email attempt. Passed explicitly through send helpers; never attached to a Session or shared transport.
- * Caller preparation hands it to execution or terminal completion through the operation's existing boundaries; they do not mutate it concurrently.
+ * Admission hands it to execution or terminal completion through the operation's existing boundaries; they do not mutate it concurrently.
  */
 public final class MailSendDiagnosticsRecorder {
 
 	private static final MailSendDiagnosticsRecorder UNOBSERVED = new MailSendDiagnosticsRecorder(null);
 	private static final String NOT_REACHED = "This part of the send was not reached.";
 	private static final String SHARED_CONNECTION = "The shared connection is opened and closed outside this email's attempt.";
+	/** Retain the beginning of the route and its latest step; this limits reporting, never destination traversal. */
+	private static final int MAX_RETAINED_CONNECTION_STEPS = 64;
 
 	@Nullable private final LongSupplier clock;
 	private final long requestedAt;
@@ -30,28 +36,35 @@ public final class MailSendDiagnosticsRecorder {
 	private final Measurement mimePreparation = new Measurement(NOT_REACHED);
 	private final Measurement submission = new Measurement(NOT_REACHED);
 	private final Measurement cleanup = new Measurement(NOT_REACHED);
-	@Nullable private Measurement active;
-	@Nullable private Measurement primaryFailure;
+	@Nullable private Measurement activeMeasurement;
+	@Nullable private Measurement failureMeasurement;
 	@Nullable private MailSubmissionReceipt receipt;
 	@Nullable private String smtpHost;
 	@Nullable private Integer smtpPort;
 	private boolean asynchronous;
 	private boolean ownsCleanup;
 	private boolean failureObserved;
+	@Nullable private List<MailSendConnectionStep> connectionHistory;
+	private long omittedConnectionSteps;
+	private long connectionStepStarted;
+	private boolean hasActiveConnectionStep;
+	@Nullable private String connectionConfigurationName;
+	@Nullable private String configuredConnectionHost;
+	@Nullable private Integer configuredConnectionPort;
 
 	/** Clock injection is internal and exists to test elapsed boundaries without timing-sensitive sleeps. */
 	MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock) {
 		this.clock = clock;
 		requestedAt = clock == null ? 0 : clock.getAsLong();
-		if (clock != null) {
-			preparation.start(requestedAt);
-			active = preparation;
-		}
 	}
 
 	@NotNull
 	static MailSendDiagnosticsRecorder observed() {
 		return new MailSendDiagnosticsRecorder(System::nanoTime);
+	}
+
+	boolean isObserved() {
+		return clock != null;
 	}
 
 	/** Shared stateless fast path: every mutating method returns before reading the clock or writing fields. */
@@ -67,12 +80,24 @@ public final class MailSendDiagnosticsRecorder {
 		}
 	}
 
-	void prepared() {
+	void readyForAdmission() {
 		if (asynchronous) {
 			start(scheduling);
 		} else {
 			finishActive();
 		}
+	}
+
+	void startPreparation() {
+		start(preparation);
+	}
+
+	void prepared() {
+		finishActive();
+	}
+
+	boolean hasEnteredSubmission() {
+		return submission.reached || receipt != null;
 	}
 
 	void started() {
@@ -129,6 +154,60 @@ public final class MailSendDiagnosticsRecorder {
 			smtpHost = null;
 			smtpPort = null;
 		}
+		finishConnectionStep(true, null);
+	}
+
+	void beginConnectionStep(@Nullable final String configurationName, @Nullable final String host, @Nullable final Integer port) {
+		if (clock != null) {
+			connectionStepStarted = clock.getAsLong();
+			hasActiveConnectionStep = true;
+			connectionConfigurationName = configurationName;
+			configuredConnectionHost = host;
+			configuredConnectionPort = port;
+		}
+	}
+
+	void failedConnectionStep(final String explanation) {
+		finishConnectionStep(false, explanation);
+	}
+
+	private void finishConnectionStep(final boolean acquired, @Nullable final String explanation) {
+		if (clock != null && hasActiveConnectionStep) {
+			final String host = acquired && smtpHost != null ? smtpHost : configuredConnectionHost;
+			final Integer port = acquired && smtpPort != null ? smtpPort : configuredConnectionPort;
+			addConnectionStep(new MailSendConnectionStep(connectionConfigurationName, host, port, true, acquired,
+					Duration.ofNanos(clock.getAsLong() - connectionStepStarted), explanation));
+			hasActiveConnectionStep = false;
+			connectionConfigurationName = null;
+			configuredConnectionHost = null;
+			configuredConnectionPort = null;
+		}
+	}
+
+	void skippedConnection(final String configurationName, final String host, final Integer port, final String explanation) {
+		if (clock != null) {
+			addConnectionStep(new MailSendConnectionStep(configurationName, host, port, false, false, null, explanation));
+		}
+	}
+
+	/** A remedied acquisition is history, not the failure location of a later terminal error. */
+	void continuingAfterConnectionFailure() {
+		if (clock != null) {
+			failureMeasurement = null;
+			failureObserved = false;
+		}
+	}
+
+	private void addConnectionStep(final MailSendConnectionStep step) {
+		if (connectionHistory == null) {
+			connectionHistory = new ArrayList<>();
+		}
+		if (connectionHistory.size() < MAX_RETAINED_CONNECTION_STEPS) {
+			connectionHistory.add(step);
+		} else {
+			connectionHistory.set(MAX_RETAINED_CONNECTION_STEPS - 1, step);
+			omittedConnectionSteps++;
+		}
 	}
 
 	public void startMimePreparation() {
@@ -165,7 +244,7 @@ public final class MailSendDiagnosticsRecorder {
 	public void failed() {
 		if (clock != null && !failureObserved) {
 			failureObserved = true;
-			primaryFailure = active;
+			failureMeasurement = activeMeasurement;
 		}
 	}
 
@@ -177,7 +256,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void cleanupCompleted() {
-		if (active == cleanup) {
+		if (activeMeasurement == cleanup) {
 			finishActive();
 		}
 	}
@@ -189,6 +268,9 @@ public final class MailSendDiagnosticsRecorder {
 
 	@Nullable
 	MailSendDiagnostics finish(final boolean successful) {
+		if (!successful) {
+			failedConnectionStep("Connection acquisition did not complete; see the outcome's failure for details.");
+		}
 		if (clock == null) {
 			return null;
 		}
@@ -197,10 +279,11 @@ public final class MailSendDiagnosticsRecorder {
 		}
 		final long completedAt = clock.getAsLong();
 		finishActive(completedAt);
-		final Measurement failurePoint = successful ? null : primaryFailure;
+		final Measurement failurePoint = successful ? null : failureMeasurement;
 		return new MailSendDiagnostics(Duration.ofNanos(completedAt - requestedAt), preparation.snapshot(failurePoint), scheduling.snapshot(failurePoint),
 				connectionAcquisition.snapshot(failurePoint), mimePreparation.snapshot(failurePoint), submission.snapshot(failurePoint),
-				cleanup.snapshot(failurePoint), smtpHost, smtpPort, rateLimitWait.snapshot(failurePoint));
+				cleanup.snapshot(failurePoint), smtpHost, smtpPort, rateLimitWait.snapshot(failurePoint),
+				connectionHistory == null ? Collections.emptyList() : connectionHistory, omittedConnectionSteps);
 	}
 
 	void releaseReceipt() {
@@ -210,25 +293,25 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	private void start(final Measurement measurement) {
-		if (clock == null || active == measurement) {
+		if (clock == null || activeMeasurement == measurement) {
 			return;
 		}
 		final long now = clock.getAsLong();
 		finishActive(now);
 		measurement.start(now);
-		active = measurement;
+		activeMeasurement = measurement;
 	}
 
 	private void finishActive() {
-		if (clock != null && active != null) {
+		if (clock != null && activeMeasurement != null) {
 			finishActive(clock.getAsLong());
 		}
 	}
 
 	private void finishActive(final long now) {
-		if (active != null) {
-			active.elapsed += now - active.startedAt;
-			active = null;
+		if (activeMeasurement != null) {
+			activeMeasurement.elapsed += now - activeMeasurement.startedAt;
+			activeMeasurement = null;
 		}
 	}
 

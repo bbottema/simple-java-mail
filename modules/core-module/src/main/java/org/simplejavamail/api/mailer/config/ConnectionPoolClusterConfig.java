@@ -3,6 +3,7 @@ package org.simplejavamail.api.mailer.config;
 import lombok.Builder;
 import lombok.Value;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.Serializable;
 
@@ -36,5 +37,41 @@ public class ConnectionPoolClusterConfig implements Serializable {
 		this.expireAfterMillis = expireAfterMillis;
 		this.expireAfterCreationMillis = expireAfterCreationMillis;
 		this.loadBalancingStrategy = loadBalancingStrategy;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer) */
+	@Nullable
+	public Integer getCoreSize() {
+		return coreSize;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer) */
+	@Nullable
+	public Integer getMaxSize() {
+		return maxSize;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer) */
+	@Nullable
+	public Integer getClaimTimeoutMillis() {
+		return claimTimeoutMillis;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer) */
+	@Nullable
+	public Integer getExpireAfterMillis() {
+		return expireAfterMillis;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer) */
+	@Nullable
+	public Integer getExpireAfterCreationMillis() {
+		return expireAfterCreationMillis;
+	}
+
+	/** @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy) */
+	@Nullable
+	public LoadBalancingStrategy getLoadBalancingStrategy() {
+		return loadBalancingStrategy;
 	}
 }

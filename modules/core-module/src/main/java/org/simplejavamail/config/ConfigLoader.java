@@ -51,6 +51,8 @@ public final class ConfigLoader {
 			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>"
 					+ "clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|expireaftercreation\\.millis|loadbalancing\\.strategy)$");
 
+	private static final Pattern NAMED_MAILER_PROPERTY_PATTERN = compile("^simplejavamail\\.mailers\\.(?<name>[A-Za-z0-9_-]+)\\.(?<tail>.+)$");
+
 	private final List<ConfigSource> sources = new ArrayList<>();
 
 	/**
@@ -74,6 +76,15 @@ public final class ConfigLoader {
 		SMTP_RECIPIENT_RATE_LIMIT("simplejavamail.smtp.ratelimit.recipients.limit"),
 		SMTP_RECIPIENT_RATE_PERIOD("simplejavamail.smtp.ratelimit.recipients.period"),
 		SMTP_RATE_LIMIT_ALLOW_BURSTS("simplejavamail.smtp.ratelimit.allowbursts"),
+		FAILOVER_MAILER("simplejavamail.failover.mailer"),
+		FAILOVER_PRIMARY_CONNECTION_ATTEMPTS("simplejavamail.failover.primary.connectionattempts"),
+		FAILOVER_PRIMARY_RETRY_DELAY("simplejavamail.failover.primary.retrydelay"),
+		FAILOVER_PRIMARY_RECHECK_INTERVAL("simplejavamail.failover.primary.recheckinterval"),
+		FAILOVER_PRIMARY_BACKOFF_MULTIPLIER("simplejavamail.failover.primary.backoffmultiplier"),
+		FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL("simplejavamail.failover.primary.maximumrecheckinterval"),
+		FAILOVER_ON_AUTHENTICATION_FAILURE("simplejavamail.failover.onauthenticationfailure"),
+		FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE("simplejavamail.failover.oncertificateverificationfailure"),
+		NAMED_MAILERS("simplejavamail.mailers.*"),
 		SMTP_LOCAL_ADDRESS("simplejavamail.smtp.localaddress"),
 		SMTP_LOCAL_PORT("simplejavamail.smtp.localport"),
 		DISABLE_ALL_CLIENTVALIDATION("simplejavamail.disable.all.clientvalidation"),
@@ -299,7 +310,7 @@ public final class ConfigLoader {
 			public Map<String, ?> getProperties() {
 				final Map<String, Object> normalized = new LinkedHashMap<>();
 				for (Property property : Property.values()) {
-					if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
+					if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS || property == Property.NAMED_MAILERS) {
 						continue;
 					}
 					final String value = environment.get(property.key().replace('.', '_').toUpperCase(Locale.ROOT));
@@ -382,14 +393,18 @@ public final class ConfigLoader {
 	}
 
 	private static SimpleJavaMailConfig resolve(final Map<String, RawValue> winners) {
+		return resolve(winners, "simplejavamail.");
+	}
+
+	private static SimpleJavaMailConfig resolve(final Map<String, RawValue> winners, final String configurationPropertyPrefix) {
 		final Map<String, RawValue> effective = new LinkedHashMap<>();
 		winners.forEach((key, value) -> {
-			if (!value.locked) {
+			if (!value.locked && !isNamedMailerProperty(key)) {
 				effective.put(key, value);
 			}
 		});
 		winners.forEach((key, value) -> {
-			if (value.locked) {
+			if (value.locked && !isNamedMailerProperty(key)) {
 				effective.put(ConfigurationLocks.ordinaryName(key), value);
 			}
 		});
@@ -411,8 +426,73 @@ public final class ConfigLoader {
 			}
 		});
 
+		resolveNamedMailerConfigurations(winners, resolved, resolvedSourceProperties, diagnostics, lockedValues, lockedSources);
 		return new SimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics),
-				new ConfigurationLocks(lockedValues, lockedSources));
+				new ConfigurationLocks(lockedValues, lockedSources, configurationPropertyPrefix));
+	}
+
+	/** Named definitions reuse the ordinary parser independently; the root never supplies missing values to a named Mailer. */
+	private static void resolveNamedMailerConfigurations(final Map<String, RawValue> winners, final Map<Property, Object> resolved,
+			final Map<String, Object> sourceProperties, final List<ConfigPropertyDiagnostic> diagnostics,
+			final Map<String, Object> lockedValues, final Map<String, String> lockedSources) {
+		final Map<String, Map<String, RawValue>> namedMailerProperties = collectNamedMailerProperties(winners);
+		final Map<String, SimpleJavaMailConfig> namedMailerConfigurations = new LinkedHashMap<>();
+		namedMailerProperties.forEach((mailerName, properties) -> {
+			final SimpleJavaMailConfig namedMailerConfiguration = resolve(properties, "simplejavamail.mailers." + mailerName + ".");
+			namedMailerConfigurations.put(mailerName, namedMailerConfiguration);
+			copyNamedMailerSourceProperties(mailerName, namedMailerConfiguration, winners, sourceProperties, lockedValues, lockedSources);
+			copyNamedMailerDiagnostics(mailerName, namedMailerConfiguration, diagnostics);
+		});
+		if (!namedMailerConfigurations.isEmpty()) {
+			resolved.put(Property.NAMED_MAILERS, Collections.unmodifiableMap(namedMailerConfigurations));
+		}
+	}
+
+	private static Map<String, Map<String, RawValue>> collectNamedMailerProperties(final Map<String, RawValue> winners) {
+		final Map<String, Map<String, RawValue>> namedMailerProperties = new LinkedHashMap<>();
+		winners.forEach((key, value) -> {
+			final Matcher matcher = NAMED_MAILER_PROPERTY_PATTERN.matcher(ConfigurationLocks.ordinaryName(key));
+			if (matcher.matches()) {
+				final String ordinaryChildKey = "simplejavamail." + matcher.group("tail");
+				namedMailerProperties.computeIfAbsent(matcher.group("name"), unused -> new LinkedHashMap<>())
+						.put(value.locked ? ConfigurationLocks.lockedName(ordinaryChildKey) : ordinaryChildKey, value);
+			}
+		});
+		return namedMailerProperties;
+	}
+
+	private static void copyNamedMailerSourceProperties(final String mailerName, final SimpleJavaMailConfig namedMailerConfiguration,
+			final Map<String, RawValue> winners,
+			final Map<String, Object> sourceProperties, final Map<String, Object> lockedValues, final Map<String, String> lockedSources) {
+		namedMailerConfiguration.asSourceMap().forEach((key, value) -> {
+			final String fullKey = qualifyNamedMailerProperty(mailerName, key);
+			sourceProperties.put(fullKey, value);
+			if (ConfigurationLocks.isLockedName(key)) {
+				final String ordinary = ConfigurationLocks.ordinaryName(fullKey);
+				lockedValues.put(ordinary, value);
+				lockedSources.put(ordinary, winners.get(fullKey).propertySourceName);
+			}
+		});
+	}
+
+	private static void copyNamedMailerDiagnostics(final String mailerName, final SimpleJavaMailConfig namedMailerConfiguration,
+			final List<ConfigPropertyDiagnostic> diagnostics) {
+		for (ConfigDiagnosticGroup group : namedMailerConfiguration.getDiagnostics().getGroups()) {
+			for (ConfigPropertyDiagnostic entry : namedMailerConfiguration.getDiagnostics().getProperties(group)) {
+				diagnostics.add(new ConfigPropertyDiagnostic(group, qualifyNamedMailerProperty(mailerName, entry.getPropertyName()),
+						entry.getDisplayValue(), entry.getSourceName(), entry.isRedacted()));
+			}
+		}
+	}
+
+	private static String qualifyNamedMailerProperty(final String mailerName, final String propertyName) {
+		final String ordinary = ConfigurationLocks.ordinaryName(propertyName);
+		final String qualified = "simplejavamail.mailers." + mailerName + "." + ordinary.substring("simplejavamail.".length());
+		return ConfigurationLocks.isLockedName(propertyName) ? ConfigurationLocks.lockedName(qualified) : qualified;
+	}
+
+	private static boolean isNamedMailerProperty(final String propertyName) {
+		return NAMED_MAILER_PROPERTY_PATTERN.matcher(ConfigurationLocks.ordinaryName(propertyName)).matches();
 	}
 
 	private static void resolveSingleValueProperties(final Map<String, RawValue> winners,
@@ -421,7 +501,7 @@ public final class ConfigLoader {
 			final Map<String, Object> resolvedSourceProperties,
 			final List<ConfigPropertyDiagnostic> diagnostics) {
 		for (Property property : Property.values()) {
-			if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS) {
+			if (property == Property.EXTRA_PROPERTIES || property == Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS || property == Property.NAMED_MAILERS) {
 				continue;
 			}
 			final RawValue winner = winners.get(property.key());
@@ -556,6 +636,7 @@ public final class ConfigLoader {
 		for (Property property : Property.values()) {
 			if (property != Property.EXTRA_PROPERTIES
 					&& property != Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS
+					&& property != Property.NAMED_MAILERS
 					&& property.key().equals(ordinaryKey)) {
 				return true;
 			}
@@ -564,6 +645,13 @@ public final class ConfigLoader {
 	}
 
 	private static boolean isWildcardKey(final String key) {
+		final Matcher namedMailerProperty = NAMED_MAILER_PROPERTY_PATTERN.matcher(key);
+		if (namedMailerProperty.matches()) {
+			final String propertyTail = namedMailerProperty.group("tail");
+			final boolean isNestedNamedMailerDefinition = propertyTail.startsWith("mailers.");
+			final boolean isNestedLockNamespace = propertyTail.startsWith("locked.");
+			return !isNestedNamedMailerDefinition && !isNestedLockNamespace && isRecognizedKey("simplejavamail." + propertyTail);
+		}
 		return EXTRA_PROPERTY_PATTERN.matcher(key).matches() || CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(key).matches();
 	}
 

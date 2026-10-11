@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.Map;
 
 /**
- * @deprecated Don't use this class directly, it is only used to generate the file "spring-configuration-metadata.json" used for IDE hints for the application.properties file.
+ * @deprecated Do not use this class directly. It only generates {@code spring-configuration-metadata.json}
+ * for IDE hints in {@code application.properties}.
  */
 @SuppressWarnings("ConfigurationProperties")
 @ConfigurationProperties(prefix = "simplejavamail")
@@ -22,6 +23,11 @@ public class SimpleJavaMailProperties {
     private String transportstrategy;
     private Map<String, String> extraproperties;
 
+    /** Named SMTP configurations used by failover routes. Each resolves independently, without inheriting root settings. */
+    private Map<String, SimpleJavaMailProperties> mailers;
+    /** Tries one named SMTP configuration when this configuration cannot establish a connection; it never resends after submission begins. */
+    private Failover failover;
+
     private Smtp smtp;
     private Proxy proxy;
     private Defaults defaults;
@@ -33,6 +39,38 @@ public class SimpleJavaMailProperties {
     private Custom custom;
     private Transport transport;
     private Opportunistic opportunistic;
+
+    /**
+     * @deprecated Metadata-only shape for IDE configuration hints. Runtime configuration is read from Spring's Environment.
+     */
+    @Getter
+    @Setter
+    public static class Failover {
+        /** Named configuration to try after an eligible connection failure, never after message submission. */
+        private String mailer;
+        /** Retry and recheck timing for this configuration after a connection failure. */
+        private Primary primary;
+        /** Allows this route after SMTP authentication is rejected. */
+        private Boolean onauthenticationfailure;
+        /** Allows this route after TLS certificate or host-identity verification fails, without disabling those checks. */
+        private Boolean oncertificateverificationfailure;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Primary {
+            /** Total connection-setup attempts per candidate visit, including the first. */
+            private Integer connectionattempts;
+            /** ISO-8601 delay between additional setup attempts. */
+            private String retrydelay;
+            /** ISO-8601 interval before reconsidering a failed configuration. */
+            private String recheckinterval;
+            /** Multiplier for increasing recheck intervals; values greater than one need an explicit maximum. */
+            private Integer backoffmultiplier;
+            /** Positive ISO-8601 maximum interval, at least the initial interval. */
+            private String maximumrecheckinterval;
+        }
+    }
 
     /**
      * @deprecated See {@link SimpleJavaMailProperties}

@@ -395,7 +395,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		return config;
 	}
 
-	/** A selected cluster member contributes its locks, but does not reapply its ordinary templates to an already prepared email. */
+	/** Apply a traversed owner's mandatory message locks after the selected destination's ordinary templates, without importing another template. */
 	Email applyLocksToPreparedEmail(final Email email) {
 		if (config.getLocks().isEmpty()) {
 			return email;

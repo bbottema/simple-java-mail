@@ -93,7 +93,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			throws MessagingException {
 		while (emailIterator.hasNext()) {
 			final Email email = prepareNextEmail(emailIterator);
-			markCurrentSendStarted();
+			control.checkStopped();
 			currentDiagnostics().startMimePreparation();
 			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 			control.checkStopped();
@@ -106,7 +106,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		val customMailer = checkNonEmptyArgument(operationalConfig.getCustomMailer(), "customMailer");
 		while (emailIterator.hasNext()) {
 			val email = prepareNextEmail(emailIterator);
-			markCurrentSendStarted();
+			control.checkStopped();
 			try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
 				currentDiagnostics().startMimePreparation();
 				final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
@@ -129,7 +129,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 					TransportConnectionHelper.connectTransport(ownedTransport, session);
 					while (emailIterator.hasNext()) {
 						final Email email = prepareNextEmail(emailIterator);
-						markCurrentSendStarted();
+						control.checkStopped();
 						try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
 							completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(
 									ownedTransport, session, email, control, currentDiagnostics(), allowance));
@@ -153,6 +153,9 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		control.checkStopped();
 		final Email userProvidedEmail = verifyNonnull(emailIterator.next());
 		currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail, control);
+		currentMailSendAttempt.readyForAdmission();
+		currentMailSendAttempt.started();
+		currentMailSendAttempt.preparationStarted();
 		if (transportModeLoggingOnly) {
 			currentDiagnostics().useLoggingOnly();
 		} else if (operationalConfig.getCustomMailer() != null) {
@@ -164,10 +167,6 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		control.checkStopped();
 		currentMailSendAttempt.prepared(currentEmail);
 		return currentEmail;
-	}
-
-	private void markCurrentSendStarted() {
-		checkNonEmptyArgument(currentMailSendAttempt, "currentMailSendAttempt").started();
 	}
 
 	private MailSendDiagnosticsRecorder currentDiagnostics() {

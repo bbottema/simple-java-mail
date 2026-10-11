@@ -18,7 +18,7 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.batch</automaticModuleName>
-        <smtp-connection-pool.version>4.3.0</smtp-connection-pool.version>
+        <smtp-connection-pool.version>4.4.0-SNAPSHOT</smtp-connection-pool.version>
     </properties>
 
     <dependencies>

@@ -39,8 +39,8 @@ public final class MailSendOutcome implements Serializable {
 	 * @param initialMessageId  Message-ID present when the individual send attempt began, if any.
 	 * @param effectiveMessageId Message-ID after mailer preparation and MIME conversion, if one was produced.
 	 * @param requestedAt       Time at which this individual email attempt began.
-	 * @param readyAt           Time at which preparation completed, or {@code null} when preparation failed.
-	 * @param startedAt         Time at which send execution started, or {@code null} when preparation or scheduling failed.
+	 * @param readyAt           Time at which the attempt was ready for execution admission, or {@code null} when that boundary was not reached.
+	 * @param startedAt         Time at which execution began, before destination-specific preparation, or {@code null} when execution never began.
 	 * @param completedAt       Time at which the attempt reached its terminal result.
 	 * @param successful        Whether the configured send operation completed without throwing.
 	 * @param loggingOnly       Whether this attempt used transport logging-only mode.
@@ -66,7 +66,7 @@ public final class MailSendOutcome implements Serializable {
 	 * @param initialMessageId Initial Message-ID, if known.
 	 * @param effectiveMessageId Effective Message-ID, if known.
 	 * @param requestedAt Attempt entry time.
-	 * @param readyAt Preparation completion time, if reached.
+	 * @param readyAt Time the attempt became ready for execution admission, if reached.
 	 * @param startedAt Execution start time, if reached.
 	 * @param completedAt Terminal snapshot time, before observer dispatch.
 	 * @param successful Whether the operation completed successfully.
@@ -133,7 +133,7 @@ public final class MailSendOutcome implements Serializable {
 	}
 
 	/**
-	 * @return The time at which preparation completed, or empty when preparation failed.
+	 * @return The time the attempt became ready for execution admission, before destination-specific preparation. Empty if admission readiness was not reached.
 	 */
 	@NotNull
 	public Optional<Instant> getReadyAt() {
@@ -141,7 +141,7 @@ public final class MailSendOutcome implements Serializable {
 	}
 
 	/**
-	 * @return The time at which send execution started, or empty when preparation/admission failed or queued work was cancelled or expired.
+	 * @return The time execution began, before destination-specific preparation. Empty for rejected or unstarted cancelled/expired work.
 	 */
 	@NotNull
 	public Optional<Instant> getStartedAt() {

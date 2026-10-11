@@ -10,14 +10,14 @@ import java.util.function.Supplier;
 
 /** Arbitrates execution versus removal without completing a future or invoking application code on a deadline thread. */
 final class MailSendOperation<T> implements Runnable {
-    private enum State { PREPARING, ADMITTING, QUEUED, RUNNING, FINISHING }
+    private enum State { CREATED, ADMITTING, QUEUED, RUNNING, FINISHING }
 
     private final MailSendOperations owner;
     private final MailSendControl control;
     private final Consumer<T> success;
     private final Consumer<Throwable> failure;
     private final CompletableFuture<T> completion = new CompletableFuture<>();
-    private final AtomicReference<State> state = new AtomicReference<>(State.PREPARING);
+    private final AtomicReference<State> state = new AtomicReference<>(State.CREATED);
     private Supplier<T> work;
 
     MailSendOperation(final MailSendOperations owner, final MailSendControl control,
@@ -60,11 +60,6 @@ final class MailSendOperation<T> implements Runnable {
         work = action;
         state.set(State.RUNNING);
         return executeWork();
-    }
-
-    void preparationFailed(final Throwable cause) {
-        state.set(State.FINISHING);
-        finish(null, cause);
     }
 
     @Override

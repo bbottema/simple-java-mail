@@ -222,10 +222,10 @@ public class ResultHandlingTest {
 					.isInstanceOf(MailCompletenessException.class);
 
 			final CompletableFuture<?> asyncResult = mailer.async().sendMail(incompleteEmail).getCompletion();
-			assertThat(asyncResult).isCompletedExceptionally();
-			assertThatThrownBy(asyncResult::get)
+			assertThatThrownBy(() -> asyncResult.get(5, TimeUnit.SECONDS))
 					.isInstanceOf(ExecutionException.class)
 					.hasCauseInstanceOf(MailCompletenessException.class);
+			assertThat(asyncResult).isCompletedExceptionally();
 		}
 	}
 

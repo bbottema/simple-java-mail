@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -14,9 +15,12 @@ import org.simplejavamail.smtpconnectionpool.SmtpTransportSelection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -25,15 +29,13 @@ import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
-/**
- * This class only serves to hide the Batch implementation behind an easy-to-load-with-reflection class.
- */
+/** Reflection bridge from the optional batch module to the core Mailer module. */
 @SuppressWarnings("unused") // it is used through reflection
 public class BatchSupport implements BatchModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchSupport.class);
 
-	// no need to make this static, because this module itself is already static in the ModuleLoader
+	// ModuleLoader retains one reflected module instance, so each loader has one shared transport engine.
 	@Nullable private BatchTransportEngine<UUID> batchTransportEngine;
 	// Retained as a direct field for diagnostics and compatibility with existing internal tests.
 	@Nullable private SmtpConnectionPoolClustered<UUID> smtpConnectionPool;
@@ -45,9 +47,16 @@ public class BatchSupport implements BatchModule {
 	@Override
 	public synchronized void registerToCluster(@NotNull final OperationalConfig operationalConfig, @NotNull final UUID clusterKey,
 			@NotNull final Session session, @NotNull final SendingAllowance sendingAllowance) {
+		registerToCluster(operationalConfig, clusterKey, session, sendingAllowance, PoolConnectionObserver.NONE);
+	}
+
+	/** @see BatchModule#registerToCluster(OperationalConfig, UUID, Session, SendingAllowance, PoolConnectionObserver) */
+	@Override
+	public synchronized void registerToCluster(final OperationalConfig operationalConfig, final UUID clusterKey, final Session session,
+			final SendingAllowance sendingAllowance, final PoolConnectionObserver observer) {
 		requireCompatibleAllowance(clusterKey, session, sendingAllowance);
 		ensureEngineInitialized(operationalConfig);
-		if (requireNonNull(batchTransportEngine).register(clusterKey, session, PoolSettings.from(operationalConfig, clusterKey))) {
+		if (requireNonNull(batchTransportEngine).register(clusterKey, session, PoolSettings.from(operationalConfig, clusterKey), observer)) {
 			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster; "
 					+ "ignoring later pool settings",
 					clusterKey);
@@ -93,6 +102,19 @@ public class BatchSupport implements BatchModule {
 		return new LifecycleDelegatingTransportImpl(engine, engine.claim(clusterKey, stickySession ? session : null, control), control);
 	}
 
+	/** @see BatchModule#selectTransportCandidates(UUID, MailSendControl) */
+	@Override
+	public List<SelectedPoolTransport> selectTransportCandidates(final UUID clusterKey, final MailSendControl control) {
+		final BatchTransportEngine<UUID> engine = requireNonNull(batchTransportEngine, "Connection pools have not been initialized");
+		final Map<Session, SendingAllowance> allowanceSnapshot = sendingAllowancesSnapshot(clusterKey);
+		final List<SelectedPoolTransport> candidateTransports = new ArrayList<>();
+		for (SmtpTransportSelection selection : engine.selectCandidates(clusterKey, control)) {
+			candidateTransports.add(new SelectedTransport(engine, clusterKey, selection,
+					requireSelectedSendingAllowance(clusterKey, selection.getSession(), allowanceSnapshot)));
+		}
+		return Collections.unmodifiableList(candidateTransports);
+	}
+
 	/** @see BatchModule#selectTransport(UUID, Session, boolean, MailSendControl) */
 	@NotNull
 	@Override
@@ -100,9 +122,10 @@ public class BatchSupport implements BatchModule {
 			@Nullable final MailSendControl control) {
 		final BatchTransportEngine<UUID> engine = requireNonNull(batchTransportEngine,
 				"Connection pool used before it was initialized. This shouldn't be possible.");
-		final Map<Session, SendingAllowance> registered = sendingAllowancesSnapshot(clusterKey);
-		final SmtpTransportSelection selected = engine.select(clusterKey, stickySession ? session : null, control);
-		return new SelectedTransport(engine, clusterKey, selected, sendingAllowance(clusterKey, selected.getSession(), registered));
+		final Map<Session, SendingAllowance> allowanceSnapshot = sendingAllowancesSnapshot(clusterKey);
+		final SmtpTransportSelection selection = engine.select(clusterKey, stickySession ? session : null, control);
+		return new SelectedTransport(engine, clusterKey, selection,
+				requireSelectedSendingAllowance(clusterKey, selection.getSession(), allowanceSnapshot));
 	}
 
 	private synchronized Map<Session, SendingAllowance> sendingAllowancesSnapshot(final UUID clusterKey) {
@@ -110,11 +133,11 @@ public class BatchSupport implements BatchModule {
 		return registered == null ? emptyMap() : registered;
 	}
 
-	private synchronized SendingAllowance sendingAllowance(final UUID clusterKey, final Session session,
-			final Map<Session, SendingAllowance> originalRegistrations) {
+	private synchronized SendingAllowance requireSelectedSendingAllowance(final UUID clusterKey, final Session session,
+			final Map<Session, SendingAllowance> allowanceSnapshot) {
 		final Map<Session, SendingAllowance> cluster = sendingAllowances.get(clusterKey);
 		final SendingAllowance allowance = cluster == null ? null : cluster.get(session);
-		if (allowance == null || originalRegistrations.get(session) != allowance) {
+		if (allowance == null || allowanceSnapshot.get(session) != allowance) {
 			throw new IllegalStateException("The selected SMTP configuration changed while selecting its connection pool. No email was submitted. "
 					+ "Keep participating Mailers open until their sends have finished.");
 		}
@@ -153,14 +176,14 @@ public class BatchSupport implements BatchModule {
 	private static final class SelectedTransport implements SelectedPoolTransport {
 		private final BatchTransportEngine<UUID> engine;
 		private final UUID clusterKey;
-		private final SmtpTransportSelection selected;
+		private final SmtpTransportSelection selection;
 		private final SendingAllowance sendingAllowance;
 
-		private SelectedTransport(final BatchTransportEngine<UUID> engine, final UUID clusterKey, final SmtpTransportSelection selected,
+		private SelectedTransport(final BatchTransportEngine<UUID> engine, final UUID clusterKey, final SmtpTransportSelection selection,
 				final SendingAllowance sendingAllowance) {
 			this.engine = engine;
 			this.clusterKey = clusterKey;
-			this.selected = selected;
+			this.selection = selection;
 			this.sendingAllowance = sendingAllowance;
 		}
 
@@ -175,14 +198,14 @@ public class BatchSupport implements BatchModule {
 		@NotNull
 		@Override
 		public Session getSession() {
-			return selected.getSession();
+			return selection.getSession();
 		}
 
 		/** @see SelectedPoolTransport#acquireTransport(MailSendControl) */
 		@NotNull
 		@Override
 		public LifecycleDelegatingTransport acquireTransport(@Nullable final MailSendControl control) {
-			return new LifecycleDelegatingTransportImpl(engine, engine.claimSelected(clusterKey, selected, control), control);
+			return new LifecycleDelegatingTransportImpl(engine, engine.claimSelected(clusterKey, selection, control), control);
 		}
 	}
 }

@@ -25,6 +25,14 @@ import java.util.concurrent.ExecutorService;
  * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
  */
 public interface OperationalConfig {
+
+	/**
+	 * The resolved policy for this Mailer's failover relationship, or null when none is configured. Contains no live Mailer or routing history.
+	 *
+	 * @see MailerGenericBuilder#withFailoverMailer(Mailer, FailoverPolicy)
+	 */
+	@Nullable
+	FailoverPolicy getFailoverPolicy();
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
 	@Nullable SendingRateLimit getMessageRateLimit();
 
