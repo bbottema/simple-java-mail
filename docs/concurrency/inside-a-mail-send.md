@@ -5,28 +5,35 @@ This is the maintenance source for the [architecture infographic](assets/inside-
 ## Scope
 
 - Version shown: Simple Java Mail 10.0.0 development line.
-- Path shown: an ordinary pooled asynchronous send with managed Angus transport.
-- Last reviewed: 2026-09-29, at completion of the five SMTP robustness phases; see the review ledger below.
+- Path shown: a pooled asynchronous send with configured connection failover and managed Angus transport.
+- Last architecture review: 2026-10-10, against the local connection-failover implementation; see the [architecture guide](../failover/architecture.md) and ledger below. Website encoding reviewed on 2026-10-11.
 - Not a release-status graphic, a lock-order graph, or an exhaustive map of every send path.
 - Proposed changes stay out of the picture until implemented. Do not add them ahead of the code.
 
 The outer layers group responsibilities rather than literal object containment. The reporting bracket spans the send attempt; observation does not start only after the socket finishes. Synchronous sends, simple batches, open connections, custom mailers, and caller-owned Sessions have their own paths and contracts in the catalogue and user documentation.
 
-## One master, shared publication
+## One master, optimized website derivative
 
 | Surface | Source or consumer |
 | --- | --- |
 | Canonical artwork | [`assets/inside-a-mail-send.png`](assets/inside-a-mail-send.png) in this repository |
 | Editable wording and update brief | This Markdown file |
 | Concurrency catalogue | [Overview in the index](README.md#start-with-the-overview), using the local master |
-| Website asset | `simplejavamail.org/src/assets/architecture/inside-a-mail-send.png`, an exact copy of the master |
+| Website asset | `simplejavamail.org/src/assets/architecture/inside-a-mail-send.png`, a web-optimized derivative of the master |
 | Website component | `simplejavamail.org/src/_includes/components/mail-send-architecture.hbs`, shared by any page that embeds it |
 | Website entry point | `sending-and-execution.html#section-send-architecture`; diagnostics and result guidance link there |
 | Umbrella issue | [#722](https://github.com/bbottema/simple-java-mail/issues/722), embedding the master through the development branch's raw-file URL |
 
-Do not edit the website copy independently or upload a separate permanent GitHub issue attachment. The issue's branch URL follows updates to the canonical asset. Refresh its `v` query value to the new image's SHA-256 prefix when the artwork changes, so an image proxy does not keep showing the previous revision. The website component uses the same revision value.
+Keep artwork and wording changes in the canonical master and derive the website asset from it. The website PNG may use a reduced palette or different compression while preserving the dimensions, labels, connections and readable lettering. Its bytes and hash may therefore differ from the master. The current website derivative is an indexed-color PNG; the master retains its RGB encoding.
 
-For the current edition, that revision is `6678f77dd107`.
+The issue's branch URL follows the canonical asset; do not upload a competing permanent issue attachment. Use the SHA-256 prefix of the asset served on each surface for its `v` query value. The issue embed follows the master hash; the website component follows the optimized website hash. Update the website query after an encoding-only optimization too.
+
+| Current asset | SHA-256 revision prefix | File size |
+| --- | --- | --- |
+| Canonical master / issue embed source | `3e51924c4e9c` | 2,050,207 bytes |
+| Optimized website source / component | `64c285f68384` | 366,973 bytes |
+
+Both images are 1536 × 1024. The [image-edit prompt](../../output/imagegen/inside-a-mail-send-failover-prompt.txt) records the exact requested wording and preserved layout.
 
 ## Text and layout source
 
@@ -36,19 +43,23 @@ Title: **Inside a mail send**
 
 Subtitle: **Simple Java Mail 10.0.0 · layers, responsibilities and control**
 
-Path caption: **Illustrated path: pooled async send with managed Angus transport**
+Path caption: **Illustrated path: pooled async send with configured connection failover**
 
 | Layer | Label | Role text |
 | --- | --- | --- |
-| 01 — Entry & supervision | `MailerImpl` | Prepares and validates on the caller thread. |
+| 01 — Entry & supervision | `MailerImpl` | Admits work; async preparation runs on the executor. |
 | 01 — Entry & supervision | `MailSendOperations` | Tracks active calls and coordinates shutdown. |
 | 02 — Execution & control | `MailSendExecutor` | Admission, queue and send workers. |
 | 02 — Execution & control | `MailSendOperation` | One call: start, stop and result completion. |
 | 02 — Execution & control | `MailSendControl` | Deadline budget and registered stop actions. |
-| 03 — Per-email send | `SendMailClosure · TransportRunner` | Execute the send and manage transport cleanup. |
-| 04 — Connection pool | `BatchTransportEngine · transport lease` | Borrow, release or invalidate a connection. |
+| 03 — Per-email send & routing | `MailConnectionRoute · ConnectionRecovery` | Fail over before submission; coordinate failure rechecks. |
+| 03 — Per-email send & routing | `SendMailClosure · TransportRunner` | Submit once through the selected Mailer. |
+| 03 — Per-email send & routing | `AcquiredMailTransport` | Owns transport cleanup and pooled lease release. |
+| 04 — Connection pool | `BatchTransportEngine · transport lease` | Select candidates; acquire, release or invalidate. |
 | 05 — SMTP & network | `AngusMailTransportAdapter` | Captures provider-specific send facts. |
-| 05 — SMTP & network | `ManagedAngusTransport` | Delegates SMTP to Angus; tracks commit and socket abort. |
+| 05 — SMTP & network | `ManagedAngusTransport` | Tracks SMTP setup, commit and socket abort. |
+
+Routing chooses a destination before that destination's message preparation and connection acquisition. All visits remain inside the initiating operation, under its executor, deadline and cancellation control. `ConnectionRecovery` shares availability observations and coordinates operation-led rechecks; it does not add a health executor. The picture's failover path requires configuration, and local preparation errors or submission failures do not authorize routing that email again. For synchronous sends, preparation runs during the caller's operation execution; async execution follows the configured executor, including its direct or caller-runs behavior.
 
 The core is labeled **Socket**. The dashed control route is labeled **Cancellation / deadline signals**, with **Stop requested ≠ work finished** alongside it. It represents stop/abort signals, not Java thread interruption or proof that SMTP did not accept the message.
 
@@ -60,7 +71,7 @@ Its three connected stages read:
 
 | Stage | Role text |
 | --- | --- |
-| `MailSendAttempt` | Collects Message-ID, timings and the final outcome. |
+| `MailSendAttempt` | Collects Message-ID, timings, connection history and outcome. |
 | `MailSendObserverNotifier` | Passes the outcome to your observer. |
 | Your application | Receives the callback inline or on your configured executor. |
 
@@ -73,19 +84,25 @@ Review this overview at the end of **every remaining step**, at each phase bound
 1. Compare the class names and responsibilities above with the implementation and relevant [state-machine pages](README.md#start-with-the-question-you-have). Check new connections as well as renamed or removed classes.
 2. Decide whether the high-level picture changed. A new capability can fit inside an existing layer without needing another box. If unchanged, record that decision and its reason; do not regenerate the image merely to advance the phase number.
 3. If changed, update this wording source and edit the canonical PNG together. Keep planned behavior out of the image and preserve the simpler reporting layout.
-4. Copy the approved PNG into the website asset path and update the website component's revision query. Reuse the component wherever the website needs the image.
+4. Derive and web-optimize the approved PNG into the website asset path, preserving the artwork and readable lettering. Update the website component's revision query from the website file's hash. Reuse the component wherever the website needs the image.
 5. Check the catalogue's relative image link, the website's inline and full-size views, and the image in #722. On an artwork change, update #722's existing embed and its revision query rather than adding another competing diagram comment. Do not claim publication until the relevant repository changes have actually been pushed.
 6. Record the review in the ledger below before completing the child issue or phase. Repeat the check before release; versioned release documentation should retain the diagram for its own implementation, not silently acquire a later release's behavior.
 
-After copying, this check from the root confirms that the website has exactly the same image:
+After replacing either asset, this check from the root reports its own revision and verifies that all three website component URLs follow the optimized website file:
 
 ```powershell
-$master = (Get-FileHash docs/concurrency/assets/inside-a-mail-send.png -Algorithm SHA256).Hash
-$website = (Get-FileHash simplejavamail.org/src/assets/architecture/inside-a-mail-send.png -Algorithm SHA256).Hash
-if ($master -ne $website) { throw 'The website infographic differs from its master.' }
+$masterRevision = (Get-FileHash docs/concurrency/assets/inside-a-mail-send.png -Algorithm SHA256).Hash.Substring(0, 12).ToLowerInvariant()
+$websiteRevision = (Get-FileHash simplejavamail.org/src/assets/architecture/inside-a-mail-send.png -Algorithm SHA256).Hash.Substring(0, 12).ToLowerInvariant()
+Write-Output "Master revision: $masterRevision"
+Write-Output "Website revision: $websiteRevision"
+$component = Get-Content -Raw simplejavamail.org/src/_includes/components/mail-send-architecture.hbs
+$websiteUrl = "inside-a-mail-send.png?v=$websiteRevision"
+if ([regex]::Matches($component, [regex]::Escape($websiteUrl)).Count -ne 3) {
+    throw 'The website component does not use the optimized image revision everywhere.'
+}
 ```
 
-Then run the website check/build and internal-link verification. Those check publication mechanics, not the truth of a concurrency claim.
+Compare dimensions and visually check the optimized lettering and diagram against the master. Hash equality is not required between the master and derivative; the generated website image must match the optimized website source. Run the website check/build and internal-link verification. Those check publication mechanics, not the truth of a concurrency claim.
 
 ## Review ledger
 
@@ -120,3 +137,6 @@ Add a dated row for each completed step. Record the change, or explicitly say wh
 | Sending limits, local #751 integration, 2026-10-01 | The resource layers in the overview remain useful, but it is not a complete gate/lock diagram. Factory-local allowance now adds a bookkeeping monitor before ordinary connection acquisition, with per-email gates inside retained scopes. The [sending-limit page](09-sending-limits.md) and catalogue graph show that detail. No worker, proxy or transport owner is added. The artwork and website copy are unchanged; revisit the overview wording at final feature acceptance. |
 | Sending limits, holistic-review corrections, 2026-10-02 | Allowance ownership is explicit on the Mailer and pool registration, with provisional construction rollback and selection ownership checks. These are bookkeeping changes within the existing layers, not new resource owners. The image remains a responsibility overview; [sending-limit concurrency](09-sending-limits.md) supplies the detailed locks and transitions, and the website now explains the pre-acquisition wait and retained-scope exception. No image regeneration is needed. |
 | Per-email recipient rejection, #754 acceptance, 2026-10-05 | Reviewed unchanged. A nullable choice travels through Email governance and the attempt's envelope to the provider-owned message facade. Dispatch checks adapter support; Angus checks the selected Session's incompatible advanced setting under its existing transport monitor. No new worker, lock, scheduler, lease or resource owner is introduced. [The provider concurrency page](07-angus-transport-abort.md#per-email-recipient-rejection-handling) records the submission and healthy-lease boundaries. The master and website copy remain identical; production-only and holistic reviews are complete. |
+| Connection failover, local #755 architecture review, 2026-10-10 | Updated the five-ring artwork for the [current implementation](../failover/architecture.md). Entry wording now places async preparation on the executor. Ring 03 names `MailConnectionRoute`, `ConnectionRecovery` and the cleanup owner `AcquiredMailTransport`; routing happens before submission, and recovery remains operation-led bookkeeping. Pool selection, provider setup evidence and connection-history reporting are visible within the existing layers. The canonical PNG and website asset are identical, and the website revision query follows the updated image hash. This is a local artwork update; GitHub/publication surfaces still require publication. |
+| Website image optimization, 2026-10-11 | The user optimized the website PNG to 366,973 bytes, an 82.1% reduction from the 2,050,207-byte master. Its encoded PNG color type is 3 (indexed color); the master retains color type 2 (RGB). Both remain 1536 × 1024 with the same architecture wording and layout. The website component now uses the derivative's own `64c285f68384` revision. The maintenance workflow permits optimized encoding differences while keeping content aligned with the canonical master. |
+| Connection failover, recovery-contract corrections, 2026-10-11 | Resource layers remain unchanged. Recovery now distinguishes an observation generation from a recheck visit's cancellation lifetime; connection failures retain the public `MailException` boundary. The [recovery transition table](10-connection-failover.md#publication-rules), rendered state/sequence diagrams and public retained-scope documentation describe the details. Failover-enabled batches/callbacks can retain a selected pool lease, while ordinary scopes remain dedicated. No artwork or website image was modified for these corrections. |

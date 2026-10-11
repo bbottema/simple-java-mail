@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Recorded: 2026-09-16; historical dates below identify the underlying work
 - Applies to: `codex/10.0.0`, including its unreleased API migration
-- Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is planned, not implemented
+- Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is implemented locally under #755, uncommitted and awaiting review
 
 ## Context and historical rationale
 
@@ -33,7 +33,7 @@ the restriction, without another template, global registry or mutable policy tra
 
 ### Accepted extension: named failover configuration (2026-10-07)
 
-**Planned, not implemented under [#755](https://github.com/bbottema/simple-java-mail/issues/755).**
+**Implemented locally under [#755](https://github.com/bbottema/simple-java-mail/issues/755); uncommitted and awaiting review.**
 [ADR 0029](0029-smtp-submission-failover.md#accepted-named-mailer-configuration) records the accepted property-backed failover model:
 capture named, independently configured Mailer definitions and their failover references through the same loader. Reuse existing property
 types, source precedence, diagnostics and secret handling. References resolve from the immutable captured configuration, not through
@@ -43,7 +43,8 @@ The primary's ordinary values do not supply missing credentials or Email templat
 normal builder defaults; mandatory message restrictions survive delegation under the accepted addendum to
 [ADR 0025](0025-factory-scoped-locked-configuration.md#accepted-addendum-delegation-to-approved-failover-mailers-2026-10-07).
 Normal builders do not gain permission to ignore their captured locks. Known missing references, cycles and incompatible locked values
-are construction errors. The concrete snapshot representation and final new property names belong in the implementation plan.
+are construction errors. `simplejavamail.mailers.<name>.<existing-property-tail>` holds each independent definition, and
+`simplejavamail.failover.mailer` selects it. The same policy keys can occur inside a named definition for another relationship.
 
 Named definitions contain configuration, not live Mailers or mutable counters. Factory/destination runtime history remains separate;
 repeated construction must not accidentally reset recovery observations or multiply configured sending allowance. Independent factories

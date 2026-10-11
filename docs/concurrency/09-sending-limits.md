@@ -10,8 +10,11 @@ the [verification report](../research/sending-limits-verification.md) records th
 ## Where the gate sits
 
 For an ordinary send, `MailerImpl` selects a pool registration without borrowing from it. `SelectedPoolTransport` carries that registration's
-`SendingAllowance`; it is not read from the Session's mutable conversion context. Direct, custom and retained-connection sends keep the
-invoking Mailer's allowance. `EmailSendingAllowance` projects recipient headers through the same MIME recipient/header setters, or uses the
+`SendingAllowance`; it is not read from the Session's mutable conversion context. Direct, custom and retained-connection sends use the
+selected destination's allowance, which is the invoking Mailer's unless routing selected another destination. Candidate templates and mandatory
+message locks are resolved before costing that candidate's envelope. A failed acquisition releases its unused reservation before the next
+destination is considered; changing destinations never resets either allowance. See [connection failover](10-connection-failover.md).
+`EmailSendingAllowance` projects recipient headers through the same MIME recipient/header setters, or uses the
 explicit envelope override. No body, attachment, protection or message serialization is needed to count the intended recipients.
 
 The send reserves allowance **before constructing `SendMailClosure`**, because that constructor registers authenticated-proxy use.

@@ -8,6 +8,7 @@ It is intended for both human developers and coding agents starting new sessions
 For architectural decisions and a topic index, see the [architecture decisions](adr/README.md).
 For feature propagation and verification, see [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md).
 For send-state transitions, resource ownership, and races, see [docs/concurrency/README.md](concurrency/README.md).
+For connection-failover architecture, integration contracts and verification references, see [docs/failover/README.md](failover/README.md).
 For issue, Dependabot, and release handling workflows, see [MAINTAINER_WORKFLOW.md](MAINTAINER_WORKFLOW.md).
 
 ---

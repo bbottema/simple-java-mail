@@ -8,7 +8,9 @@ The first collection covers the Phase 2 execution-control implementation on `cod
 
 [![Inside a mail send: five implementation layers and the outcome-reporting path.](assets/inside-a-mail-send.png)](assets/inside-a-mail-send.png)
 
-The infographic shows the pooled asynchronous path with managed Angus transport. It maps responsibilities, not monitor nesting or every possible send path. Outcome reporting follows the email across those layers; it is not another transport layer. Open the image for the full-size view, then use the pages below for transitions and locking rules.
+The infographic shows the pooled asynchronous path with configured connection failover and managed Angus transport. It maps responsibilities, not monitor nesting or every possible send path. Outcome reporting follows the email across those layers; it is not another transport layer. Open the image for the full-size view, then use the pages below for transitions and locking rules.
+
+The [failover architecture guide](../failover/architecture.md) maps routing, recovery, destination-specific preparation and connection ownership onto these layers. The [failover documentation index](../failover/README.md) connects that guide with configuration, design and verification records.
 
 The [infographic source and maintenance notes](inside-a-mail-send.md) record its scope, the shared asset, and the review checkpoint for each remaining improvement phase.
 
@@ -27,10 +29,13 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 | How can cancellation unblock Angus without waiting for its SMTP lock? What if SMTP already accepted the email? | [07 — Angus transport abort](07-angus-transport-abort.md) |
 | How do the machines fit together, including observers, batches, and future completion? | [08 — Cross-machine contracts](08-cross-machine-contracts.md) |
 | Why select a destination before borrowing? Who charges or releases sending allowance? | [09 — Sending limits](09-sending-limits.md) |
+| Who may recheck a failed primary? Why doesn't a full pool trigger failover? | [10 — Connection failover](10-connection-failover.md) |
 
 ## Entry points and adjacent mechanisms
 
 `Mailer.sync()` and `Mailer.async()` are cached immutable views of one Mailer. They add no workers, pools, locks, or shutdown ownership. Single-email sends return a receipt or `MailSend<MailSubmissionReceipt>`; simple batches return void or `MailSend<Void>` and remain lazy and first-failure-stopping. Async closures acquire proxy/transport resources after worker execution begins. CLI send/connect commands use the synchronous view; daemon request concurrency is owned by the daemon. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) records the API decision.
+
+Async destination selection and Email preparation also run during executor execution. Connection failover adds finite route traversal and short factory-local recovery bookkeeping, not another admission queue. Selected members own ordinary templates; the initiating operation owns cancellation and observation. See [connection failover](10-connection-failover.md) for recheck fencing, participant lifecycle scopes and the upstream background-allocation gate.
 
 Connection tests and capability probes have separate helper paths. A probe opens a dedicated connection without an Email, send-pool lease, observer outcome, or total send deadline. It reuses proxy accounting and holds the Mailer monitor through synchronous cleanup; the async wrapper uses the Mailer's executor. Admission/shutdown failures produce exceptional futures, while connection/cleanup failures are diagnostic reports. See [ADR 0020](../adr/0020-dedicated-smtp-connection-diagnostics.md) for authentication, provider limitations, and future-cancellation semantics.
 

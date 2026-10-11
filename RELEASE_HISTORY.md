@@ -6,6 +6,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. No replay occurs after provider invocation, and ordinary capacity/rate waiting does not trigger failover.
+
 - [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration.
 
 - [#751](https://github.com/bbottema/simple-java-mail/issues/751): added optional message and recipient sending limits, configurable as counts over rolling periods. Named groups share allowance within a factory, optional spreading avoids bursts, and actual-send diagnostics distinguish rate waiting from connection acquisition. Limits apply to ordinary sends, simple batches, open connections and CustomMailer callbacks; no implicit rate is imposed.
@@ -36,6 +38,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - [#715](https://github.com/bbottema/simple-java-mail/issues/715): added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable `SimpleJavaMail` factory snapshot.
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
+
+### Bug fixes
+
+- [#757](https://github.com/bbottema/simple-java-mail/issues/757): restored selected-member Email defaults, overrides and validation in clustered sends, including without failover. Destination preparation starts from the original Email; the invoking Mailer's ordinary templates no longer contaminate another member's submission. Individual async preparation now runs on executor execution, with consistent scheduling/preparation diagnostics. See the migration notes for applications depending on the previous behavior.
 
 ### Supporting Libraries
 

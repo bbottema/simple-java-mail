@@ -36,6 +36,18 @@ Capture only the selected transport's logical host and port when available, with
 This is not the physical peer, proxy route or proof of TLS. Default rendering omits endpoints, identifiers, exception messages and content.
 Preserve the exact produced receipt across later cleanup failure without changing the caller-facing throwable or first-failure arbitration.
 
+### Connection failover and executor-side preparation
+
+[ADR 0029](0029-smtp-submission-failover.md) changes asynchronous preparation to execute after admission, on the initiating executor.
+Scheduling measures admission and worker waiting; preparation measures destination-specific governance/validation, accumulating across attempted
+destinations. `readyAt` means admission-ready, and `startedAt` precedes preparation. These are shallow send checks, not full MIME rehearsal.
+The original constructors and serialization identifiers remain available.
+
+`getConnectionHistory()` adds immutable per-email acquisition/skip facts with explicit getters. Retain the first 63 and latest entries, reporting
+omitted entries separately; this budget never limits routing. Failed acquisitions and cached skips are distinct. Logical names/endpoints are optional,
+bounded and excluded from automatic report rendering. No history or endpoint reads occur without an observer. Shared-scope setup is not repeated for
+every batch email. Timings and history cannot authorize replay after provider invocation.
+
 ## Alternatives considered
 
 - **Phase enum and generic iteration:** useful for generic metrics adapters, but introduces lookup indirection for six fixed measurements.

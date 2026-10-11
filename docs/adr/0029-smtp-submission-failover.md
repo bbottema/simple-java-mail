@@ -3,7 +3,7 @@
 - Status: **Accepted**.
 - Decision date: 2026-10-07.
 - Target: 10.0.0; connection-only initial scope accepted.
-- Implementation: **Planned, not implemented**; acceptance of this ADR does not authorize implementation.
+- Implementation: **Implemented locally, uncommitted and awaiting review** under the accepted [implementation plan](../plans/755-smtp-connection-failover.md). See the [verification report](../research/755-connection-failover-verification.md); upstream dependencies remain unpublished.
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755).
 - Evidence: [SMTP failover research](../research/755-smtp-submission-failover.md).
 
@@ -29,7 +29,7 @@ such as copying maintainers whenever the failover Mailer is used. Treating compo
 On 2026-10-07 the maintainer selected **connection failover first**: try an explicitly configured failover destination when the primary cannot provide
 a usable connection. Once provider submission invocation begins, retain the existing failure and receipt behavior without automatic replay.
 This applies to ordinary synchronous/asynchronous sends, with or without pooling. The architectural decisions below are accepted;
-concrete implementation signatures and mechanics follow in the implementation plan.
+concrete signatures, property names and verification obligations are fixed in the implementation plan.
 
 Failover handles failure modes, not capacity expansion. Preserve normal pool waiting and existing claim timeouts; a busy pool, executor
 or sending-rate limiter does not trigger another destination. Pool sizing, clustering and load balancing own capacity management.
@@ -37,14 +37,15 @@ The immutable `FailoverPolicy` configures eligible failures and connection retry
 
 The policy also owns any primary-connection retry, backoff and reconsideration rules. The maintainer prefers behavior emerging from
 policy evaluation and minimal private attempt history, not a separate server-health/state-orchestration subsystem. This direction does
-not accept concrete retry intervals or additional retry limits.
+does not introduce another public health coordinator or exception-classification callback.
 
 The default tries the primary connection once before considering an eligible failover Mailer; additional primary setup retries/backoff can be
 explicitly configured. Backoff is per destination, not a delay imposed on the entire fallback chain. A working failover's sending flow is
 unchanged by the primary's retry timing. Eligible later sends return to the primary after a usable connection is obtained there.
 
 Primary reconsideration uses a configurable fixed interval by default, with optional increasing backoff capped at a configured maximum.
-The interval, increasing-backoff parameters and exact signatures remain to be settled; no example duration is an accepted built-in default.
+The accepted implementation defaults are one setup attempt, no retry delay and a 30-second fixed recheck interval. Increasing backoff is optional,
+requires a multiplier greater than one and an explicit maximum, and never delays the working failover destination.
 
 Mailers created by one factory share connection-failure history and coordinate primary rechecks for the same configured destination.
 Separate factories remain independent, even when created from identical configuration snapshots. Sharing observations does not override
@@ -59,13 +60,14 @@ Automatic operational logging is the baseline notification mechanism, including 
 submission works around an unresolved relay problem; it does not erase that problem or repair the primary. Log genuine setup failures
 at ERROR, meaningful failover/recovery transitions at INFO and repeated unsuccessful rechecks at DEBUG.
 Suppress duplicate incident messages across participating Mailers. Optional ordered connection-attempt history belongs in the existing
-observer diagnostics, not a new failure handler or send-result wrapper. Concrete history signatures remain pending.
+observer diagnostics, not a new failure handler or send-result wrapper. `MailSendDiagnostics.getConnectionHistory()` contains immutable
+`MailSendConnectionStep` values; retain the first 63 plus the latest and report the omitted count. This limits reporting, not routing.
 
 The website must explain how applications can handle later retry decisions through the existing observer and receipt APIs.
 General mail-send retry policies, including possible backoff, are separate research under [#756](https://github.com/bbottema/simple-java-mail/issues/756);
 they do not expand the agreed initial scope or acquire a release target through this ADR.
 
-The maintainer selected a failover Mailer on the primary Mailer's builder, not a third resilient Mailer. The accepted planned shape is
+The maintainer selected a failover Mailer on the primary Mailer's builder, not a third resilient Mailer. The accepted shape is
 `withFailoverMailer(Mailer failoverMailer, FailoverPolicy policy)`, returning the normal fluent builder. The failover Mailer and policy are configured
 together; replacing or clearing that relationship replaces or clears both. Do not add a standalone `withFailoverPolicy(...)` setter
 or a staged intermediate builder interface. Existing sync/async send entry points remain unchanged.
@@ -85,7 +87,7 @@ Mailer's policy governs its own alternatives and the actual selected Mailer supp
 The precedent is scoped ownership in existing clusters: the first registration establishes shared cluster pool settings, not every
 participating Mailer's complete configuration. The analogous failover boundary is one owner for shared execution, not another public
 send or executor admission at every nested Mailer. Failover Mailers from different factories, scoped lock ownership and named configuration are
-accepted. Inspection remains specific to the Mailer called; concrete policy fields and final property spelling follow in implementation planning.
+accepted. Inspection remains specific to the Mailer called; the implementation plan records the concrete policy fields and canonical property names.
 
 The primary owns its normal execution, coordination and connection resources. An application-supplied failover Mailer remains borrowed: closing
 the primary does not close that failover Mailer, its executor or pool registration. Applications close supplied failover Mailers separately after their
@@ -102,12 +104,13 @@ remain with each approved destination. This restriction does not reinstate inher
 The maintainer also accepted named Mailer configuration blocks resolved by the existing loader on 2026-10-07. Java, Spring and the CLI
 can construct private failover Mailers from captured definitions without application-specific object registration. Names identify independent
 configuration definitions, not Spring beans or process-global live Mailers. Supplied instances still use the paired Java setter and
-retain borrowed ownership. Final new property names remain illustrative until the implementation plan settles their spelling.
+retain borrowed ownership. Canonical names are `simplejavamail.failover.*` and `simplejavamail.mailers.<name>.<existing-tail>`,
+with `simplejavamail.locked.` equivalents. Named settings do not inherit ordinary root settings.
 
 ## Accepted locked configuration and approved failover Mailers
 
 The maintainer accepted this decision on 2026-10-07 after comparing the alternatives below. It settles lock ownership, not the remaining
-route-reference syntax or the complete ADR. The feature remains unimplemented.
+route-reference syntax, which was subsequently settled in the implementation plan. Implementation remains under review.
 
 The lock contract is recorded in [ADR 0025's accepted addendum](0025-factory-scoped-locked-configuration.md#accepted-addendum-delegation-to-approved-failover-mailers-2026-10-07).
 This ADR owns the failover-specific alternatives, ownership matrix, route representation and execution consequences.
@@ -183,8 +186,9 @@ documentation. No new property syntax is established by this example.
 ## Accepted credentials and certificate-verification choices
 
 The maintainer selected two independent policy opt-ins on 2026-10-07: permit failover use after an authentication failure, and permit failover
-use after a certificate-verification failure. Both are disabled by default. Enabling one does not enable the other. Final method names
-and property keys remain pending; this decision does not implement the options.
+use after a certificate-verification failure. Both are disabled by default. Enabling one does not enable the other. The implementation uses
+`withFailoverOnAuthenticationFailure` and `withFailoverOnCertificateVerificationFailure`, with corresponding
+`simplejavamail.failover.onauthenticationfailure` and `simplejavamail.failover.oncertificateverificationfailure` properties.
 
 No permission means no fallback for that failure category, and permission to use a failover must never mean disabling its checks.
 
@@ -218,13 +222,13 @@ logging makes the incident visible without requiring an observer; the optional o
 A successful failover submission does not repair the certificate or establish final mailbox delivery.
 
 Include this scenario in the website failover guide, with both opt-ins explained independently, illustrative output and the default-stop
-behavior. Final API examples must use the agreed policy methods once those signatures have been settled.
+behavior. API examples use the policy methods recorded in the implementation plan.
 
 ## Final boundary decisions (2026-10-07)
 
-These decisions complete the architecture. Final policy method/property names, attempt-history signatures, retry intervals/counts,
-registration identity, traversal and lifecycle mechanics belong in the implementation plan. They must implement the agreed ownership
-and safety boundaries rather than introduce new routing behavior.
+These decisions complete the architecture. The [implementation plan](../plans/755-smtp-connection-failover.md) fixes policy names,
+attempt-history signatures, retry intervals/counts, registration identity, traversal and lifecycle mechanics. They implement the agreed
+ownership and safety boundaries rather than introduce new routing behavior.
 
 ### Failure modes, not capacity expansion
 
@@ -317,10 +321,10 @@ completion and the remaining overall deadline. Nested setup attempts share the o
 the deadline, revive stopped work, multiply independent retry loops or continue after any provider submission invocation has begun.
 Reject cyclic failover configurations clearly; explicit bounded connection retries are distinct from following a cycle.
 
-#### Planned ownership matrix
+#### Ownership matrix
 
 In the first two columns the application sends on A; in the last it sends directly on B. The named destination actually submits the email.
-These are accepted design semantics, not implemented behavior. Synchronous calls use their caller's thread rather than an async executor.
+These are accepted design semantics; implementation under #755 remains uncommitted for review. Synchronous calls use their caller's thread rather than an async executor.
 
 | Concern | A sends through B | A sends through C via B | B sends directly through C |
 | --- | --- | --- | --- |
@@ -421,12 +425,15 @@ independently of this optional message-policy use case.
 
 #### Relationship to existing cluster behavior
 
-Today's [selected-session preparation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java)
-adds selected locks, and [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java)
-explicitly does not reapply a selected cluster member's ordinary templates to an already prepared Email. The Configuration page nevertheless
-describes server-specific templates as a clustered-Mailer use case. Do not present the proposed selected-template behavior as already implemented.
-During implementation, reconcile ordinary cluster selection, failover selection and documentation without silently changing unrelated
-cluster behavior. Any actual change against released behavior needs migration guidance; the additive failover API alone does not.
+The selected member must own ordinary templates even when failover is disabled. Source history places the regression in commit
+`349cd24efc5db72194632cd3c365d9a6aba439d6`, first included in 8.0.0: preparation moved before selection, so the invoking Mailer's templates
+could leak into another member's submission. The same path remains in 9.3.5. This is a source-history finding, not a claim that historical binaries
+were rerun. [#757](https://github.com/bbottema/simple-java-mail/issues/757) restores the documented server-specific-template behavior behind
+[#383](https://github.com/bbottema/simple-java-mail/issues/383), independently of enabling #755. No maintenance backport is included.
+
+Select first, then prepare the original Email with that destination's governance. Never pass one candidate's ordinary-template result into another.
+Applicable message locks still accumulate. Document the changed released behavior in migration notes; do not describe the regression as an
+intentional ownership rule or preserve it merely for compatibility.
 
 ### Accepted failover lifetime: supplied instances are borrowed, private instances are owned
 
@@ -474,8 +481,8 @@ merging ordinary templates or configuration snapshots. Cross-factory use does no
 Retain destination observations with the runtime owning that configured destination, rather than copy them into another factory merely
 because another primary borrows it. Explicit reuse of the same Mailer/registration can share its existing destination context;
 independently configured Mailers remain independent even with equal snapshots or hostnames. Evaluate each relevant fallback policy's
-permissions against those facts. Cross-factory participation is accepted, not implemented; pin down destination identity and the exact
-runtime boundary in the implementation plan, preserving the owning factory's context rather than silently copying or merging it.
+permissions against those facts. Captured named definitions retain a stable identity in their owning factory runtime; independently built
+Java destinations retain their own identity. Borrowing a Mailer preserves its owning factory's context rather than copying or merging it.
 
 ### Accepted named Mailer configuration
 
@@ -492,8 +499,8 @@ The following alternatives were reviewed and the named-definition model accepted
 | Names identify complete Mailer configuration definitions | Self-contained Java/Spring/CLI configuration, readable chains, reusable definitions and useful diagnostic names. | Accepted: SJM constructs private failover Mailers and the primary owns their cleanup. |
 | Embed a complete configuration under every failover | Simple for one failover. | Not selected: deeper chains become unwieldy and shared definitions are duplicated. |
 
-This is the accepted shape with illustrative new property names, not implemented configuration. The implementation plan settles final
-spelling, converter details and policy fields; the example supplies no arbitrary retry-duration default. Credentials are omitted.
+These are the canonical property names fixed by the implementation plan. The local implementation remains uncommitted for review.
+Policy defaults are one connection attempt, no retry delay, and fixed 30-second reconsideration intervals. Credentials are omitted.
 
 ```properties
 # Primary
@@ -536,11 +543,15 @@ Pair the application-supplied failover Mailer and immutable supplied-data policy
 configuration remains fluent. Do not add a standalone policy setter or a staged interface after choosing the failover Mailer. Replacing that Mailer
 also replaces the policy; clearing the relationship removes both. No failover means unchanged existing sending behavior.
 
-The entry-point shape is accepted, but not implemented. Policy construction, concrete options, reset naming, defaults and property keys
-still need implementation design. Named configuration supplies the property-backed equivalent with private ownership as described above.
-For example, `policy` below is an already constructed policy; no policy-builder signature is implied:
+The entry-point shape and `FailoverPolicy.builder()` are fixed by the implementation plan. Policy setters have matching reset operations;
+the immutable value validates supplied data. Named configuration supplies the property-backed equivalent with private ownership described above.
+For example:
 
 ```java
+FailoverPolicy policy = FailoverPolicy.builder()
+    .withPrimaryRecheckInterval(Duration.ofSeconds(30))
+    .build();
+
 Mailer primary = mail.mailerBuilder()
     .withSMTPServer("primary.example.org", 587)
     .withFailoverMailer(failoverMailer, policy)
@@ -549,7 +560,7 @@ Mailer primary = mail.mailerBuilder()
 primary.async().sendMail(email);
 ```
 
-The same setter configures a nested failover. In this planned example, B keeps its own fallback to C:
+The same setter configures a nested failover. In this example, B keeps its own failover to C:
 
 ```java
 Mailer failoverB = mail.mailerBuilder()
@@ -674,7 +685,10 @@ existing first-terminal-failure/stop arbitration, without allowing earlier recov
 ### Preserve scope and observation meaning
 
 Ordinary single sends support direct and pooled routes. A simple batch or open-connection scope may use fallback to obtain its initial
-connection. Without failover configured, both retain their existing one-connection behavior.
+connection. Without failover configured, both retain their existing dedicated, non-pooled connection behavior. With failover configured
+and the batch module available, they retain a lease from the selected pool; without that module, they own a direct connection. A retained
+lease occupies capacity throughout the scope and is released or invalidated at cleanup, not necessarily physically closed. Application
+work, inline observers and sending-limit waits do not release it between emails.
 
 With failover enabled, a simple batch reuses its connection for successive emails but may change destination between them. Finish the
 current email's submission and required per-email observer handoff before switching. A failed email still stops the batch; recovery must
@@ -692,7 +706,7 @@ credentials, proxy, locks and sending-limit history for subsequent emails, witho
 
 `withOpenConnection` remains pinned after initial acquisition because it explicitly promises a retained connection for caller-managed
 work. Do not rerun the application callback or substitute another connection inside that scope. Standalone arbitrary batch callbacks
-have the same non-reexecution boundary. Reconcile the opt-in simple-batch exception with ADR 0015 and public Javadocs during implementation.
+have the same non-reexecution boundary. ADR 0015 and public Javadocs describe these opt-in routing and lease-ownership differences.
 
 Third-party providers can participate only at boundaries the orchestration can establish honestly. Physical abort/deadline support is
 a separate requirement. Do not automatically reinvoke CustomMailer or standalone arbitrary batch callbacks. Probing and connection
@@ -708,9 +722,9 @@ succeeds, publish one successful outcome with an empty `getFailure()` and histor
 connections fail, retain normal exceptional completion and one unsuccessful observer outcome. Do not invoke a separate per-server
 application failure handler or manufacture a failed-email outcome for an intermediate connection error.
 
-Concrete history signatures remain to be settled before implementation. Current diagnostics contain one endpoint, not a route history;
-this decision does not treat that missing API as already implemented. Distinguish actual attempts for this operation from cached facts
-that explain a skipped destination; never present an earlier operation's failure as a newly performed connection attempt.
+`MailSendDiagnostics.getConnectionHistory()` contains immutable `MailSendConnectionStep` values; `getOmittedConnectionSteps()` reports
+entries beyond the retained first 63 and latest entry. This bounds diagnostic retention, not traversal. Distinguish actual attempts for this
+operation from cached facts that explain a skipped destination; never present an earlier operation's failure as a new connection attempt.
 
 ### Operational visibility without application handlers
 
@@ -730,7 +744,7 @@ INFO  Using failover relay B. The primary certificate problem remains unresolved
 INFO  Connected to primary relay A again; subsequent emails will use A.
 ```
 
-These are planned examples, not output from an implemented feature. Emit a new incident notice for a materially changed problem, but
+These lines illustrate the intended information, rather than quoting a test run's exact output. Emit a new incident notice for a materially changed problem, but
 do not log an identical ERROR or failover-activation INFO for every email in a long outage. Coordinate duplicate suppression using the
 factory-local observations already required for failover; do not add a public health model or another background reporting loop. Keep
 logging outside bookkeeping locks. A usable primary connection, not a successful failover send, ends the corresponding connection incident.
@@ -887,8 +901,10 @@ Verify independent selected-Mailer templates: existing single/compound precedenc
 explicit false, suppression at both categories and per-property exclusions, replacement/clearing and snapshot defaults. Cover a failover-only
 maintainer BCC, an A-only ordinary archive default absent on B, explicitly shared templates, A-to-B-to-A isolation and concurrent reuse of the same Email.
 Assert real envelope cost and receipt recipient facts, deliberate duplicate occurrences and no application of unselected templates. Cover signing/encryption, exact/protected bytes,
-local template failures, and no repeated content reads solely for connection fallback. Pin down caller-thread preparation and scheduling
-contracts rather than silently moving all preparation to workers or labelling route-specific preparation as pure connection time.
+local template failures, and no repeated content reads solely for connection fallback. The accepted execution change moves asynchronous
+destination selection and shallow governance/validation onto executor execution. Immediate argument checks remain direct; preparation failures
+complete the returned handle exceptionally. `readyAt` now means ready for admission and `startedAt` precedes preparation. Scheduling measures
+admission/worker waiting; preparation accumulates across candidates. This is not full rehearsal, MIME conversion or attachment reading.
 
 Verify A-to-B-to-C nesting under distinct policies without ignoring B's configured fallback or starting another async job/observer outcome.
 Cover cyclic configurations, finite traversal, cancellation/deadline propagation, shared failover use and recovery toward earlier destinations

@@ -38,7 +38,7 @@ stateDiagram-v2
 | Event | Guard / state change | Acting thread |
 | --- | --- | --- |
 | `begin(success, failure)` | Under owner monitor, reject if `closing`; construct operation/control, then `active++`. | Send caller, or open-connection caller. |
-| `openScope()` | Under owner monitor, reject if `closing`; `active++`. | `withOpenConnection` caller. |
+| `openScope()` | Under owner monitor, reject if `closing`; `active++`. | Open-connection caller or delegated sending thread. |
 | `finished()` | Under owner monitor, `active--`; if `closing && active == 0`, initiate private-worker shutdown and complete `drained`. | Completing send thread, private completion worker, or scope owner. |
 | `shutdown()` | Under owner monitor, set `closing = true`; perform the same zero-active check. | Shutdown initiator and dedicated shutdown thread. |
 | `Scope.close()` | A scope-local `closed` flag prevents sequential double release, then calls `finished`. | Thread leaving the lexical open-connection scope. |
@@ -51,9 +51,10 @@ stateDiagram-v2
 | --- | --- | --- |
 | `synchronized (MailSendOperations)` | `active`, `closing`, and the decision to complete `drained`. | `begin` constructs a control under this monitor, acquiring that new control's monitor. No send I/O or observer is invoked here. |
 | `synchronized (MailerImpl)` | Publication and reuse of `shutdownFuture`. | `shutdownConnectionPool` calls executor shutdown and then owner shutdown while holding this monitor; it does not wait for sends there. |
-| `CURRENT_OPERATION` | Per-thread innermost Mailer-operation owner, including terminal notification/completion. | No lock. Save previous value, install current owner, run immediately, restore/remove in `finally`. |
+| `CURRENT_OPERATION` | Per-thread stack of participating Mailer-operation owners, including required inline callbacks. | No lock. Push owner, run immediately, restore/remove in `finally`. Self-wait checks inspect the complete stack. |
 | Executor `CURRENT_WORKER` | Identity of the SJM-owned executor whose task is on this thread. | Set in `beforeExecute`, removed in `afterExecute`; covers non-send tasks too. |
 | `Scope.closed` | One lexical open-connection scope's release-once state. | Plain boolean, not a concurrent close protocol; the scope is used on its owning call stack. |
+| `ScopedMailSender.callbackThread` / `active` | Application access to one callback-owned connection. | Reject other threads before reading `active`; end the sender in `finally` before connection cleanup. No lock spans sends or the callback. |
 | `SEQUENCE` | Names private worker pairs uniquely. | `AtomicInteger`; no lifecycle authority. |
 
 The owner has no `wait()`/`notify()` loop. The dedicated shutdown thread waits on executor termination and futures **after leaving** both the Mailer and owner monitors. The owner calls `drained.complete(null)` while holding its monitor; in production this is an internal coordination future, not the user's send future. New dependent callbacks on that internal future would need their own lock/callback review.
@@ -115,7 +116,10 @@ sequenceDiagram
 
 The marker also surrounds synchronous sends, sends running on caller executors, private queued-completion work, and the full open-connection callback. Nested calls do not simply clear the marker: restoring the prior value preserves the surrounding operation after nested work returns or throws.
 
-This is a local self-wait guard, not a general dependency-graph detector. It retains the innermost owner, not every owner in a cross-Mailer call chain. The owned-worker check catches some additional cases, but cannot generally detect cycles between multiple Mailers, application locks or futures. Calling `shutdownConnectionPool().get()` explicitly from one's own callback also bypasses the convenience `close()` guard; initiating shutdown and waiting for it are different actions.
+This is a local self-wait guard, not a general dependency-graph detector. Delegated failover work retains all participating owners on the stack.
+For a retained batch, this includes the inline observer: closing its selected Mailer would otherwise wait for the batch holding that connection.
+The guard cannot detect arbitrary cross-thread cycles involving application locks or futures. Calling `shutdownConnectionPool().get()` explicitly
+from one's own callback also bypasses the convenience `close()` guard; initiating shutdown and waiting for it are different actions.
 
 ## What counts as active
 
@@ -123,6 +127,7 @@ This is a local self-wait guard, not a general dependency-graph detector. It ret
 | --- | --- |
 | Ordinary synchronous/asynchronous send | From successful `begin`, through preparation/admission/execution, cleanup, inline observer or handoff, and private future completion. |
 | Simple batch | One operation for the complete batch; per-email observers execute within it. |
+| Delegated destination | An operation scope on each participating Mailer, without using its executor or observer. A retained connection holds these scopes through final cleanup. |
 | Open connection | One scope for opening, callback gaps, per-email sends and final transport/proxy cleanup; opening and each email also register nested operations. |
 | A queued send retired by cancellation | Remains active until terminal reporting finishes on the private completion worker. |
 | Observer accepted by an external executor | Only the handoff is counted; its later application work is not. A direct executor runs within the counted handoff. |
@@ -130,6 +135,9 @@ This is a local self-wait guard, not a general dependency-graph detector. It ret
 | Connection-test tasks | Not `MailSendOperation`s; an owned executor's termination wait accounts for accepted executor tasks. Caller-owned executor tasks do not gain send-lifetime tracking from this mechanism. |
 
 Open-connection scope accounting is separate from deadlines: application gaps and final scope cleanup have no send deadline, while opening and each email have their own control. Keeping `active > 0` through those gaps prevents pool shutdown from racing the still-open scope. The callback's `MailSender` is a scoped, sequential helper, not a concurrent shared transport.
+
+Supplied failover Mailers are borrowed and remain independently owned. A parent closes only privately constructed named Mailers, after its work drains.
+Construction failure rolls back those owned resources, not supplied Mailers or executors. See [connection failover](10-connection-failover.md).
 
 ## Tests and boundaries
 

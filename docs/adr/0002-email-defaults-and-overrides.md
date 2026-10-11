@@ -103,6 +103,14 @@ This slice does not change recipient precedence, collection/header resolution, e
 
 ## Consequences and review requirements
 
+### Selected-member ownership correction
+
+[#757](https://github.com/bbottema/simple-java-mail/issues/757) restores this decision in ordinary clustered sends, independently of failover.
+The source-history regression introduced around 8.0.0 applied the invoking Mailer's ordinary templates before choosing a member and remains in 9.3.5.
+Selection must precede governance: start each candidate from the original Email, apply only its ordinary templates, then enforce applicable message locks.
+No extra template layer is introduced. [ADR 0029](0029-smtp-submission-failover.md) applies the same rule when moving between configured failover Mailers.
+The initiating Mailer still owns execution and observation. The released-behavior correction requires migration guidance.
+
 [ADR 0025](0025-factory-scoped-locked-configuration.md) adds opt-in factory-scoped restrictions after this ordinary template resolution.
 Suppression and template replacement still work as described for unlocked values. They cannot remove a locked setting; conflicting single-value settings fail,
 while required recipient occurrences remain in the actual envelope. This is not a third public Email template and does not turn ordinary overrides into locks.

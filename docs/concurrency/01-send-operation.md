@@ -8,13 +8,13 @@ This keeps a send from being both started and cancelled out of its queue, and gi
 
 | Source | Entry points and responsibility |
 | --- | --- |
-| [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | `schedule`, `run`, `executeSync`, `preparationFailed`, `retireQueuedOperation`, `finish` own this machine. |
-| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `beginEmailOperation`, `prepareMailSend`, `sendPreparedEmail`, and `sendSimpleBatchSynchronously` / `sendSimpleBatchAsynchronously` decide what work belongs to the operation. |
+| [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | `schedule`, `run`, `executeSync`, `retireQueuedOperation`, `finish` own this machine. |
+| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `beginEmailOperation`, `executeEmailSend`, and the simple-batch execution methods decide what work belongs to the operation. |
 | [MailSendAttempt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendAttempt.java) | `complete` constructs the per-email outcome and gates notification. |
 | [MailSendObserverNotifier](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendObserverNotifier.java) | `notifyCompletion` chooses inline invocation or application-executor handoff. |
 | [MailSend](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailSend.java) | `getCompletion` exposes detached result views; `requestCancellation` signals work rather than cancelling a view. |
 
-The public `Mailer.sync()` and `Mailer.async()` views delegate to the same owning `MailerImpl`; the views add no resource or synchronization boundary. An ordinary email is prepared on its caller thread before asynchronous admission. The transport/proxy-owning `SendMailClosure` is constructed only inside `sendPreparedEmail`, after execution starts. A simple batch is one operation: it does not open its iterable during admission and produces separate per-email outcomes during execution. Open-connection opening and individual sends use separate operations inside a longer-lived [scope](02-mailer-lifecycle.md).
+The public `Mailer.sync()` and `Mailer.async()` views delegate to the same owning `MailerImpl`; the views add no resource or synchronization boundary. An asynchronous email enters admission before destination selection and preparation. `executeEmailSend` selects a destination, applies its templates and cumulative message locks, validates, and only then constructs resource-owning work. A direct or caller-runs executor may execute on the submitting thread. A simple batch is one operation: it does not open its iterable during admission and produces separate per-email outcomes during execution. Open-connection opening and individual sends use separate operations inside a longer-lived [scope](02-mailer-lifecycle.md).
 
 ## States and transitions
 
@@ -22,10 +22,9 @@ These five names are the **actual private `State` enum**, held in an `AtomicRefe
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PREPARING: construction
-    PREPARING --> ADMITTING: schedule publishes work
-    PREPARING --> RUNNING: executeSync
-    PREPARING --> FINISHING: preparationFailed
+    [*] --> CREATED: construction
+    CREATED --> ADMITTING: schedule publishes work
+    CREATED --> RUNNING: executeSync
     ADMITTING --> QUEUED: execute returned and caller CAS wins
     ADMITTING --> RUNNING: worker CAS wins before execute returns
     ADMITTING --> FINISHING: admission failure and caller CAS wins
@@ -46,12 +45,12 @@ stateDiagram-v2
 | Executor returns without starting | CAS `ADMITTING → QUEUED`; if already stopped, immediately retry retirement. | Submitting caller. |
 | Admission throws | Only CAS `ADMITTING → FINISHING` claims reporting. Runtime failures pass through control classification; an `Error` is rethrown. | Submitting caller. |
 | `executeSync(action)` | Directly sets `RUNNING`; these internal entry points are not a reusable concurrent API. | Calling thread. |
-| Preparation fails | `preparationFailed` directly sets `FINISHING`; no executor admission, sending lease or network connection has been entered. Capability validation can construct and close a probe transport. | Calling thread. |
+| Preparation fails | Running work takes the ordinary exceptional completion path; no message submission has begun. | Executing thread. |
 | Cancellation/deadline signal | `retireQueuedOperation` only claims `QUEUED → FINISHING`; other states are untouched by this callback. | Cancellation caller, deadline watcher, or caller observing expiry. |
 | Running work returns/throws | `finish` records `FINISHING` and owns terminal reporting. | Executing thread. |
 | Retired queued work is reported | Owned queue removal is attempted first; terminal reporting is handed to the private completion executor. | Completion worker, not signal thread. |
 
-A stop during `PREPARING` or `ADMITTING` is retained by the [control](04-stop-and-deadline-control.md). It does not prematurely finish preparation or race the scheduler into two completions. A worker checks the control before entering the supplied action; the submitting caller checks it again after successfully publishing `QUEUED`.
+A stop during `CREATED` or `ADMITTING` is retained by the [control](04-stop-and-deadline-control.md). It does not race the scheduler into two completions. A worker checks the control before entering the supplied action; the submitting caller checks it again after successfully publishing `QUEUED`.
 
 ## Who protects what
 
@@ -61,9 +60,9 @@ A stop during `PREPARING` or `ADMITTING` is retained by the [control](04-stop-an
 | `work` | Written before executor publication; consumed by the winning executing path; cleared by the finishing path. | The internal object is started once, not resubmitted or restarted by callers. |
 | `completion` | `CompletableFuture` synchronization. | Calling `complete` may execute already-attached non-async continuations on the completing thread. |
 | Attempt notification | `MailSendAttempt.completed.compareAndSet(false, true)`. | Prevents a second outcome if batch failure handling encounters an already-reported email. It does not make all attempt fields independently thread-safe. |
-| Attempt timing/email fields | Caller preparation followed by executor publication, then single executing/finishing path. | They are not a mutable public concurrent model. |
+| Attempt timing/email fields | Admission-ready publication followed by the single executing/finishing path; preparation belongs to execution. | They are not a mutable public concurrent model. |
 | Cancellation/deadline resources | `MailSendControl` and each [registration](05-stop-registration.md). | `control.close()` may wait for an already-running resource action; it runs before notifying the application. |
-| Current-operation context | Owner's `CURRENT_OPERATION` `ThreadLocal`. | Marks execution and terminal reporting, restores prior context in `finally`; not a lock or thread handoff. |
+| Current-operation context | `CURRENT_OPERATION` holds a same-thread stack of participating owners. | Marks execution/delegation and terminal reporting, restores prior context in `finally`; not a lock or thread handoff. |
 
 `finish()` itself does not acquire the owner monitor while waiting for registrations or invoking observers. It enters `owner.finished()` only after future completion returns. The lock relationships inside control closure are documented separately.
 

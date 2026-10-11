@@ -24,7 +24,7 @@ flowchart TD
 
 The terminal observer is not invoked while holding the operation's state CAS, control monitor, registration monitor, or SMTP monitor acquired by this send path. This is a scoped statement, not a claim that arbitrary application code never runs under any lock: MIME/data-source code can run inside provider work, and application callers may themselves hold locks across a synchronous send.
 
-The path is assembled by [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) (`beginEmailOperation`, `prepareMailSend`, `sendPreparedEmail`), [SendMailClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailClosure.java), [TransportRunner](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), and [MailSendOperation.finish](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java). See [lease ownership](06-pool-claims-and-leases.md) for the actual CAS and fencing details.
+The path is assembled by [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) (`beginEmailOperation`, `executeEmailSend`), [MailConnectionRoute](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailConnectionRoute.java), [SendMailClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailClosure.java), [TransportRunner](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), and [MailSendOperation.finish](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java). See [lease ownership](06-pool-claims-and-leases.md) for the actual CAS and fencing details.
 
 For an ordinary **unpooled** send, `TransportRunner` closes the direct transport and then closes its abort registration before returning. Do not generalize the pooled lease's fence-before-return rule into “every transport's abort registration closes before transport cleanup”: the direct path keeps abort available during cleanup. A stop during QUIT cleanup must not erase acceptance already observed.
 
@@ -63,7 +63,7 @@ These are roles, not a promise of a particular thread name. A custom executor ma
 
 | Work | Normal execution role | Relevant boundary |
 | --- | --- | --- |
-| Ordinary email preparation/validation | Submitting caller, including async entry points | Preparation failure reports there; no send closure, sending lease or network connection has been acquired. Deadline-support validation may construct and close a probe `Transport`. |
+| Ordinary email preparation/validation | Executor execution for async sends; caller for synchronous sends | Selection precedes templates/validation, which precede resource acquisition. A direct executor can use the submitting thread. Deadline-support validation may construct and close an unconnected `Transport`. |
 | Bounded executor admission | Submitting caller | May wait for capacity; admission timeout is distinct from the total send budget. |
 | Accepted async send | Configured send executor | Worker owns work, resource cleanup, and normal completion. |
 | Cancelled/timed-out operation still in `QUEUED` | Per-Mailer completion executor after retirement wins its CAS | Does not need an occupied send worker to become free. No email work runs. |
@@ -82,8 +82,8 @@ The deadline scheduler therefore does not have to run a slow terminal observer t
 
 | Shape | Tracked work and timeout budget | Transport ownership | Observation and final completion |
 | --- | --- | --- | --- |
-| Ordinary send | One operation; preparation, admission, queue wait, execution and relevant cleanup share its budget. | One pooled lease, or one direct transport without the batch module. | Per-email observation after cleanup; then its result. |
-| Simple batch | One operation/control for the whole batch. Iterator access and preparation occur during execution. | One intentionally shared direct transport for the SMTP batch. | Per-email observation while transport stays open; aggregate result after batch cleanup. First failure stops untouched emails. |
+| Ordinary send | One operation; admission, queue wait, selection, preparation, execution and relevant cleanup share its budget. | One successful connection; failed acquisitions finish cleanup before the next candidate. | Per-email observation after cleanup; then its result. |
+| Simple batch | One operation/control for the whole batch. Iterator access and preparation occur during execution. | An intentionally shared connection; configured failover can return to an earlier destination between emails. | Per-email observation while transport stays open; aggregate result after batch cleanup. First failure stops untouched emails. |
 | `withOpenConnection` | One tracked outer scope; opening and each send have separate operations/budgets. Application gaps are not per-send work. | One direct transport stays in scope across the callback's sends; an abort can make it unusable. | Per-email observation after that send's abort registration closes, while shared transport remains in scope. Outer scope retires after callback and transport cleanup. |
 
 There is no per-email callback for an untouched batch element. A queued batch cancelled before execution does not open the iterable. `withOpenConnection` is not an async batch handle: its callback controls which emails are submitted on that shared connection.
@@ -150,7 +150,7 @@ The public [MailSend](../../modules/core-module/src/main/java/org/simplejavamail
 
 - A running non-cooperative data source may not return immediately after cancellation. Socket abort prevents further useful SMTP progress but cannot forcibly make arbitrary application code return. Completion waits for real execution/cleanup, not an invented early result.
 - An inline observer can block its own send's result indefinitely. A completion continuation can do the same to owner retirement, even with observer offloading enabled.
-- An inline observer that performs a **synchronous** reentrant send can reuse a returned pool-size-one lease. An observer that queues more work to a saturated executor and waits for it can instead create an application-level dependency cycle. These are different cases.
+- An inline observer after an ordinary single send can perform a **synchronous** reentrant send using the returned pool-size-one lease. An observer inside a failover-enabled simple batch runs while its scope still retains the lease; a nested send needing that same exhausted pool cannot proceed. A pinned callback has the same capacity constraint. Separately, an observer that queues more work to a saturated executor and waits for it can create an application-level dependency cycle.
 - `Mailer.close()` detects important same-operation/owned-worker self-waits. Explicitly waiting on `shutdownConnectionPool()` from that callback, cross-Mailer dependency cycles, and arbitrary application locks are not generally prevented by that convenience guard.
 - Provider-neutral receipts and cooperative stop checks do not imply provider-neutral physical abort. For actual sending, total deadlines require a supported lifecycle adapter; an unsupported caller-owned Session or `CustomMailer` is rejected for a configured total timeout before sending. Logging-only mode is exempt. See page 07 for supported Angus wiring and limitations.
 
