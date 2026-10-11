@@ -3,14 +3,17 @@ package testutil.smtp;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -28,16 +31,45 @@ public final class ScriptedSmtpServer implements AutoCloseable {
 	private final ExecutorService workers;
 	private final CompletableFuture<Void> serving;
 	private final Set<Socket> sockets = ConcurrentHashMap.newKeySet();
+	private final List<CompletableFuture<Void>> conversations = new CopyOnWriteArrayList<>();
+	private final AtomicBoolean closing = new AtomicBoolean();
+	private final boolean acceptsUntilClosed;
+
+	/** Accepts zero or more conversations until closed, so an unused failover server is a valid test result. */
+	public ScriptedSmtpServer(final Charset charset, final PeerScript script) throws Exception {
+		acceptsUntilClosed = true;
+		server = new ServerSocket(0, 32, InetAddress.getByName("localhost"));
+		// One listener plus sixteen conversations: well above the four-worker tests, without a thread per accepted socket.
+		workers = Executors.newFixedThreadPool(17);
+		serving = CompletableFuture.runAsync(() -> serveUntilClosed(charset, script), workers);
+	}
 
 	public ScriptedSmtpServer(final int connections, final PeerScript script) throws Exception {
 		this(connections, US_ASCII, script);
 	}
 
 	public ScriptedSmtpServer(final int connections, final Charset charset, final PeerScript script) throws Exception {
+		acceptsUntilClosed = false;
 		server = new ServerSocket(0, connections, InetAddress.getByName("localhost"));
 		server.setSoTimeout(15000);
 		workers = Executors.newFixedThreadPool(connections + 1);
 		serving = CompletableFuture.runAsync(() -> serveConnections(connections, charset, script), workers);
+	}
+
+	private void serveUntilClosed(final Charset charset, final PeerScript script) {
+		try {
+			while (!closing.get()) {
+				final Socket socket = server.accept();
+				sockets.add(socket);
+				conversations.add(CompletableFuture.runAsync(() -> conductConversation(socket, charset, script), workers));
+			}
+		} catch (SocketException failure) {
+			if (!closing.get()) {
+				throw new AssertionError("SMTP listener failed before test teardown", failure);
+			}
+		} catch (Exception failure) {
+			throw new AssertionError("SMTP listener failed", failure);
+		}
 	}
 
 	private void serveConnections(final int connections, final Charset charset, final PeerScript script) {
@@ -71,6 +103,13 @@ public final class ScriptedSmtpServer implements AutoCloseable {
 	@Override
 	public void close() throws Exception {
 		try {
+			if (acceptsUntilClosed) {
+				closing.set(true);
+				server.close();
+				serving.get(5, SECONDS);
+				// Mailers are closed first by the test. Surface every script failure, not just the listener's result.
+				CompletableFuture.allOf(conversations.toArray(new CompletableFuture<?>[0])).get(15, SECONDS);
+			}
 			serving.get(25, SECONDS);
 		} finally {
 			server.close();

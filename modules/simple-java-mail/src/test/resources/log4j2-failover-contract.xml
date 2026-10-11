@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="ERROR">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%level %logger{1}: %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <!-- Keep failures visible without serializing messages just for TRACE logging. -->
+        <Root level="WARN"><AppenderRef ref="Console"/></Root>
+    </Loggers>
+</Configuration>

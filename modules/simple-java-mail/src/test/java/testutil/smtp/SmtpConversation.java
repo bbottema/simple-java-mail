@@ -82,6 +82,11 @@ public final class SmtpConversation implements AutoCloseable {
         return reader.readLine();
     }
 
+    /** Barrier-driven tests need their socket watchdog to outlive the controlled pause. */
+    public void setReadTimeoutMillis(final int timeoutMillis) throws IOException {
+        socket.setSoTimeout(timeoutMillis);
+    }
+
     public void expectClosed() throws IOException {
         assertThat(reader.readLine()).as("peer must close without sending mail").isNull();
     }
