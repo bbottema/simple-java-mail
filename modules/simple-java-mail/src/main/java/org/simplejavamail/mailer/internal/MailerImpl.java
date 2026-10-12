@@ -134,6 +134,7 @@ public class MailerImpl implements Mailer {
 	@Nullable private final MailerImpl failoverMailer;
 	private final boolean ownsFailoverMailer;
 	private final DestinationConnectionObserver connectionObserver;
+	private final SessionOwner sessionOwner = new SessionOwner(this);
 
 	private final Sync synchronousView = new SynchronousView();
 	private final Async asynchronousView = new AsynchronousView();
@@ -222,8 +223,8 @@ public class MailerImpl implements Mailer {
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		boolean poolRegistrationBegun = false;
 		try {
+			claimSessionOwnership();
 			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession);
-			publishConfiguredSessionOwner();
 			poolRegistrationBegun = true;
 			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
 		} catch (RuntimeException | Error failure) {
@@ -242,9 +243,29 @@ public class MailerImpl implements Mailer {
 		return "unnamed SMTP configuration";
 	}
 
-	/** Publish the configured context before its Session becomes selectable by another cluster member. */
-	private void publishConfiguredSessionOwner() {
-		session.getProperties().put(SESSION_OWNER, new SessionOwner(this));
+	/** Reserve before configuration: another constructor must not replace the converter, proxy route or selected governance. */
+	private void claimSessionOwnership() {
+		final Properties properties = session.getProperties();
+		synchronized (properties) {
+			if (properties.containsKey(SESSION_OWNER)) {
+				throw new IllegalArgumentException("This Session or its Properties object already belongs to another Mailer, "
+						+ "which may still be building or shutting down. Sharing it would mix their email defaults, overrides and connection settings. "
+						+ "Reuse the existing Mailer, or create a fresh Session with independent Properties copied from your original SMTP settings. "
+						+ "If you do not need a custom Session, call this factory's mailerBuilder() without supplying one.");
+			}
+			properties.put(SESSION_OWNER, sessionOwner);
+		}
+	}
+
+	/** Only completed cleanup can retire this owner; failed/rejected construction must never retire somebody else's converter. */
+	private void releaseSessionOwnership() {
+		final Properties properties = session.getProperties();
+		synchronized (properties) {
+			if (properties.get(SESSION_OWNER) == sessionOwner) {
+				SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
+				properties.remove(SESSION_OWNER);
+			}
+		}
 	}
 
 	private MailSendRateLimiter registerSendingAllowance(final FactorySendingLimits factorySendingLimits) {
@@ -310,15 +331,12 @@ public class MailerImpl implements Mailer {
 			if (poolRegistrationBegun) {
 				closeConnectionPools().get();
 			}
+			releaseSessionOwnership();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			failure.addSuppressed(interrupted);
 		} catch (ExecutionException | RuntimeException | Error cleanupFailure) {
 			failure.addSuppressed(cleanupFailure);
-		} finally {
-			if (poolRegistrationBegun) {
-				session.getProperties().remove(SESSION_OWNER);
-			}
 		}
 	}
 
@@ -988,6 +1006,7 @@ public class MailerImpl implements Mailer {
 			throw failure;
 		}
 		closeOwnedFailoverMailer();
+		releaseSessionOwnership();
 	}
 
 	private void closeOwnedFailoverMailer() throws InterruptedException, ExecutionException {

@@ -66,13 +66,15 @@ class MailerSendingLimitsTest {
 	private static final Duration PERIOD = Duration.ofHours(1);
 
 	@Test
-	void anotherMailerUsingTheSameSessionCannotReplaceTheInvokingMailersLimits() throws Exception {
+	void rejectedSessionReuseAndIndependentMailersCannotReplaceTheInvokingMailersLimits() throws Exception {
 		final Clock clock = new Clock();
 		final AtomicInteger invoked = new AtomicInteger();
 		final MailerFromSessionBuilderImpl firstBuilder = builder(new FactorySendingLimits(clock), new State());
 		try (Mailer limited = firstBuilder.withMessageRateLimit(1, PERIOD).withCustomMailer(countingCustomMailer(invoked)).buildMailer();
-			 Mailer unlimited = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(limited.getSession())
+			 Mailer unlimited = builder(new FactorySendingLimits(), new State())
 					.withCustomMailer(countingCustomMailer(invoked)).buildMailer()) {
+			assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(limited.getSession())
+					.withCustomMailer(countingCustomMailer(invoked)).buildMailer()).isInstanceOf(IllegalArgumentException.class);
 			limited.sync().sendMail(email("limited"));
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = limited.async().sendMail(email("still limited"));
@@ -102,14 +104,14 @@ class MailerSendingLimitsTest {
 
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
-	void reusedSessionKeepsLimitsAcrossIndividualAndRetainedSendPaths(final boolean custom) throws Exception {
+	void independentSessionKeepsLimitsAcrossIndividualAndRetainedSendPaths(final boolean custom) throws Exception {
 		final State state = new State();
 		final MailerFromSessionBuilderImpl configured = builder(new FactorySendingLimits(), state).withRecipientRateLimit(1, PERIOD);
 		if (custom) {
 			configured.withCustomMailer(countingCustomMailer(state.submissions));
 		}
 		try (Mailer limited = configured.buildMailer();
-			 Mailer unlimited = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(limited.getSession())
+			 Mailer unlimited = builder(new FactorySendingLimits(), state)
 					.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).buildMailer()) {
 			final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("two recipients"))
 					.withRecipients(bcc(null, "archive@example.org")).buildEmail();

@@ -37,7 +37,6 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -111,57 +110,54 @@ public class MailerTest {
 	}
 	
 	@Test
-	public void createMailSession_MinimalConstructor_WithoutConfig() {
+	public void createMailSession_MinimalConstructor_WithoutConfig() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final UUID clusterKey = UUID.randomUUID();
-		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
-		assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
+		try (Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
+			 Mailer otherMailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer()) {
+			assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
+			final Session session = mailer.getSession();
 
-		Session session = mailer.getSession();
-		
-		assertThat(session.getDebug()).isFalse();
-		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isNull();
-		assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
-		assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
-		assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
-		
-		assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
-		assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
-		assertThat(session.getProperty("mail.smtp.ssl.trust")).isNull();
-		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
-		
-		assertThat(session.getProperty("mail.smtp.user")).isNull();
-		assertThat(session.getProperty("mail.smtp.auth")).isNull();
-		assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
-		assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+			assertThat(session.getDebug()).isFalse();
+			assertThat(mailer.getOperationalConfig().getDebugPrinter()).isNull();
+			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
+			assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
+			assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
 
-		assertThat(session.getProperty("extra1")).isNull();
-		assertThat(session.getProperty("extra2")).isNull();
+			assertThat(session.getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
+			assertThat(session.getProperty("mail.smtp.starttls.required")).isEqualTo("false");
+			assertThat(session.getProperty("mail.smtp.ssl.trust")).isNull();
+			assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 
-		assertThat(session.getProperty("extra-properties-property1")).isNull();
-		assertThat(session.getProperty("extra-properties-property2")).isNull();
+			assertThat(session.getProperty("mail.smtp.user")).isNull();
+			assertThat(session.getProperty("mail.smtp.auth")).isNull();
+			assertThat(session.getProperty("mail.smtp.socks.host")).isNull();
+			assertThat(session.getProperty("mail.smtp.socks.port")).isNull();
+			assertThat(session.getProperty("extra1")).isNull();
+			assertThat(session.getProperty("extra2")).isNull();
+			assertThat(session.getProperty("extra-properties-property1")).isNull();
+			assertThat(session.getProperty("extra-properties-property2")).isNull();
+			assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 
-		assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
+			assertThatThrownBy(() -> simpleJavaMail.mailerBuilder(session).withClusterKey(clusterKey).buildMailer())
+					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already belongs to another Mailer");
+			assertThat(session.getProperties()).isNotEqualTo(otherMailer.getSession().getProperties());
 
-		Mailer otherMailerSameSession = simpleJavaMail.mailerBuilder(session).withClusterKey(clusterKey).buildMailer();
-		assertThat(session.getProperties()).isEqualTo(otherMailerSameSession.getSession().getProperties());
-
-		Mailer otherMailerOtherSession = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer();
-		assertThat(session.getProperties()).isNotEqualTo(otherMailerOtherSession.getSession().getProperties());
-
-		SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
-		SessionBasedEmailToMimeMessageConverter.unprimeSession(otherMailerOtherSession.getSession());
-		final Properties firstSettings = new Properties();
-		firstSettings.putAll(session.getProperties());
-		final Properties secondSettings = new Properties();
-		secondSettings.putAll(otherMailerOtherSession.getSession().getProperties());
-		assertThat(firstSettings.remove("mail.smtp.socketFactory")).isNotSameAs(secondSettings.remove("mail.smtp.socketFactory"));
-		assertThat(firstSettings.remove("mail.smtp.executor.writetimeout"))
-				.isNotSameAs(secondSettings.remove("mail.smtp.executor.writetimeout"));
-		assertThat(firstSettings.remove("org.simplejavamail.internal.mailerOwner"))
-				.isNotSameAs(secondSettings.remove("org.simplejavamail.internal.mailerOwner"));
-		assertThat(firstSettings).isEqualTo(secondSettings);
+			// Compare supplied settings without removing runtime ownership from either live Session.
+			final Properties firstSettings = new Properties();
+			firstSettings.putAll(session.getProperties());
+			final Properties secondSettings = new Properties();
+			secondSettings.putAll(otherMailer.getSession().getProperties());
+			assertThat(firstSettings.remove("SESSION_BASED_EMAIL_TO_MIME_MESSAGE_CONVERTER_KEY"))
+					.isNotSameAs(secondSettings.remove("SESSION_BASED_EMAIL_TO_MIME_MESSAGE_CONVERTER_KEY"));
+			assertThat(firstSettings.remove("mail.smtp.socketFactory")).isNotSameAs(secondSettings.remove("mail.smtp.socketFactory"));
+			assertThat(firstSettings.remove("mail.smtp.executor.writetimeout"))
+					.isNotSameAs(secondSettings.remove("mail.smtp.executor.writetimeout"));
+			assertThat(firstSettings.remove("org.simplejavamail.internal.mailerOwner"))
+					.isNotSameAs(secondSettings.remove("org.simplejavamail.internal.mailerOwner"));
+			assertThat(firstSettings).isEqualTo(secondSettings);
+		}
 	}
 
 	@Test

@@ -30,6 +30,15 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * <p>
 	 * Calling {@link #withProxy(String, Integer)} or {@link #withProxy(String, Integer, String, String)} is the deliberate exception: Simple Java Mail
 	 * updates the supported {@code mail.smtp.socks.*} route, while leaving the remaining connection configuration under the caller's control.
+	 * <p>
+	 * One Mailer at a time may use the Session and its {@link java.util.Properties} object. Building another Mailer with either is rejected before
+	 * changing the first Mailer's configuration, even if the Mailers belong to different factories. Reuse the existing Mailer for concurrent sends,
+	 * or create another Session with independent Properties copied from your original SMTP configuration, not from a Session already used by a Mailer.
+	 * A second Session that shares the first Session's Properties is not independent. Prefer {@link Session#getInstance(java.util.Properties)} over
+	 * {@link Session#getDefaultInstance(java.util.Properties)}, which can return an existing Session.
+	 * <p>
+	 * The Session becomes available for another Mailer after successful, completed shutdown of its previous owner. Starting shutdown is not enough:
+	 * wait for {@link Mailer#close()} or the future returned by {@link Mailer#shutdownConnectionPool()}. If cleanup fails, use a fresh Session.
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */
@@ -40,6 +49,8 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * <p>
 	 * Generic values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its
 	 * configured factory. SMTP connection and transport values remain owned by the supplied {@link Session}, as documented by {@link #usingSession(Session)}.
+	 *
+	 * @throws IllegalArgumentException when the Session or its Properties already belongs to another Mailer
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();
