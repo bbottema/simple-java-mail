@@ -4,7 +4,7 @@ Implementation tracking: clustered ownership [#757](https://github.com/bbottema/
 upstream allocation gate [generic-object-pool #26](https://github.com/bbottema/generic-object-pool/issues/26),
 finite selection [clustered-object-pool #31](https://github.com/bbottema/clustered-object-pool/issues/31),
 and acquisition integration [smtp-connection-pool #37](https://github.com/simple-java-mail/smtp-connection-pool/issues/37).
-Upstream candidate versions are local SNAPSHOT builds; publication remains a separate approval gate.
+The supporting pool integrations are published as SMTP Connection Pool 4.4.0, Clustered Object Pool 4.3.0 and Generic Object Pool 2.6.0. The original separate publication gate was approved and completed; the implementation and delivery checkpoints below preserve that sequence.
 
 - Accepted implementation plan: 2026-10-08.
 - Status: **Implementation in progress; not yet verified or ready for review**.
@@ -136,6 +136,8 @@ Simple batches retain one lazy iterator and first-failure stopping. Finish the c
 Open-connection scopes can fail over during initial acquisition, then stay pinned; application callbacks execute once.
 Supplied Mailers are borrowed; named private Mailers owned. Delegation participates in lifecycle admission/draining without secondary executor/observer. Extend self-deadlock checks.
 Resolve references/cycles/known lock conflicts before private construction; roll back owned resources only.
+
+**Accepted ownership correction (2026-10-12):** reject a second live Mailer around the same Session or Properties object before mutation, rather than preserving simultaneous sharing through wider sending-context changes. Claim an exact token under the Properties monitor; release only that owner's token/converter after successful rollback or completed resource draining. Keep the guard when cleanup fails. Cover no-lock sync/async pooled use, shared Properties, construction races, rejected-build isolation and shutdown/reuse; include the breaking behavioral change in website migration notes. See the [review report](../failover/code-review-2026-10-12.md).
 SJM Mailers using third-party providers participate when evidence permits; reject opaque foreign Mailer implementations on composition.
 CustomMailer is opaque and never reinvoked; logging-only work performs no SMTP recovery.
 
@@ -192,6 +194,7 @@ Do not push, close #755/the bug issue, mark Done, reopen completed issues or imp
 - [x] GitHub tracking initialized and read back.
 - [x] Cluster ownership and executor preparation corrected and tested.
 - [x] Upstream hooks implemented and tested locally.
+- [x] Supporting-library cascade released on 12 October 2026: [Generic Object Pool 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), [Clustered Object Pool 4.3.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.3.0) and [SMTP Connection Pool 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0). Their issues, milestones, tags and Central artifacts are complete; SJM review and delivery remain separate.
 - [x] Policy/configuration/locks integrated.
 - [x] Routing/recovery/lifecycle/scopes integrated.
 - [x] Diagnostics and docs updated.
@@ -227,7 +230,7 @@ reproducible at the public boundary separately. **Stop for review here.** Do not
 
 ### Stage B — after the test review is accepted
 
-Replace loose recovery flags with private Java 11 state objects: Eligible, FailureRecorded and Rechecking. Keep generations, incident timing and an explicit
+Replace loose recovery flags with private Java 11 state objects: ConnectionAttemptsAllowed, ConnectionFailureRecorded and ConnectionRecheckInProgress. Keep generations, incident timing and an explicit
 recheck owner with the state that owns them. Centralize transitions: overlapping success can clear a failure; success fences older observations; a due recheck
 opens a new generation; a failed visit advances backoff once; cancellation retires only its own observation tickets. Old scope closure cannot invalidate newer
 work. Classify each caller's security policy independently. Logging and IO remain outside bookkeeping monitors.
@@ -264,5 +267,28 @@ Follow-up checkpoint, 2026-10-11:
 - [x] Stage A public-boundary suite and separate pool-free JVM implemented.
 - [x] Baseline run on Java 11.0.16.1 and Java 21: 119 passing scenarios and one confirmed recovery regression per JDK; 26 existing checks also pass.
 - [x] Correct red regression left enabled, evidence and remaining narrower verification documented.
-- [ ] Stage A review accepted. **Stop here until acceptance.**
-- [ ] Stage B recovery-state, route-boundary and upstream claim-identity refactor started.
+- [x] Stage A review accepted and locally checkpointed at `0594624f822809b22a4c9d0f23b435281eeab22e` (including its preceding implementation/test commits).
+- [x] Stage B recovery-state, route-boundary and upstream claim-identity refactor implemented after plan acceptance.
+- [x] Stage B verified against the unchanged Stage A behavioral assertions on both JDKs; two reuse fixtures now specify their connection lifetime explicitly.
+
+Results, fixture adjustments and the full-reactor/TLS limitations are recorded in the
+[state-refactor verification report](../research/755-failover-state-refactor-verification.md).
+
+At that checkpoint, Stage B changes remained uncommitted for review; dependency publication, push and issue closure had not been authorized. The later publication and local commit checkpoints are recorded separately.
+
+Boundary follow-up, 2026-10-12:
+
+- [x] Prevent authenticated-proxy pool warmup from recording a false primary outage before its operation-owned bridge exists. Foreground acquisition and healthy lease reuse remain available.
+- [x] Retain setup and suppressed cleanup failures when cancellation stops routing after failed acquisition cleanup; do not freeze a remediable failure as the operation's terminal classification.
+- [x] Add public socket/provider regressions plus deterministic background-permission tests; reproduce both defects before fixing production and rerun the provider cases without pool artifacts.
+- [x] Refresh stale concurrency ownership references, disposal guarantees and proxy prerequisites; validate links and render all diagrams.
+- [x] Repeat Java 11 verification and the full modern-JDK test run, followed by successful packaging after a transient Windows metadata-file lock. Apply style and license cleanup with source-integrity checks.
+- [x] Retrace the six cross-class review seams with no additional defect found. Record exact test counts, the packaging retry and remaining release boundaries in the [state-refactor verification report](../research/755-failover-state-refactor-verification.md#boundary-follow-up-12-october-2026).
+
+At that follow-up boundary, the changes remained uncommitted and unpushed. No issue or project state was changed.
+
+### Local commit delivery (12 October 2026)
+
+The maintainer accepted the recovery-state/resource-scope refactor and the ownership corrections, then authorized selective semantic commits of the implementation and its documentation. The final internal type renames were applied to code, tests and diagrams without changing behavior or the public API. Focused real-JDK-11 verification passed against the published dependency chain, and the updated Mermaid diagrams parsed successfully.
+
+Commit the released dependency integration, routing/recovery refactor, exclusive Session ownership correction and final documentation separately. Include the Session-sharing migration guidance in the nested website repository and update the root gitlink. Preserve unrelated maintainer documentation, staged artwork and concurrent website/Journal work. This delivery gate authorizes local commits only: pushing, closing #755/#757 and changing project status remain separate actions.

@@ -18,7 +18,7 @@ The scope depends on the entry point:
 | Simple batch | One control covers the whole batch, including lazy iteration and preparation. Observer notification between emails temporarily pauses its deadline. |
 | `withOpenConnection` | Connection opening has its own control; each email has a fresh control. Application gaps and final scope cleanup have no send deadline. |
 
-Sources: [MailerImpl.prepareMailSend / sendSimpleBatch](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [SendMailsInSimpleBatchClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java), [SendMailsWithOpenConnectionClosure.openSmtpTransport / sendMailAndGetReceipt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java).
+Sources: [MailerImpl.beginEmailOperation / executeEmailSend / sendSimpleBatch](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [ReadyMailSend.prepare](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/ReadyMailSend.java), [FailoverSharedSends](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/FailoverSharedSends.java), [SendMailsInSimpleBatchClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java), [SendMailsWithOpenConnectionClosure.openSmtpTransport / sendMailAndGetReceipt](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java).
 
 ## State is split deliberately
 
@@ -44,7 +44,7 @@ stateDiagram-v2
     TIMED_OUT --> TIMED_OUT: later stop request has no effect
 ```
 
-Closing disarms the alarm and rejects further stop requests; it does not clear the recorded reason. An already accepted SMTP result can therefore coexist with a late stop recorded during connection cleanup. [TransportRunner.closeAfterSend](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java) preserves observed acceptance when a subsequent stop causes cleanup to fail. Do not infer a submission status from this diagram.
+Closing disarms the alarm and rejects further stop requests; it does not clear the recorded reason. An already accepted SMTP result can therefore coexist with a late stop recorded during connection cleanup. [AcquiredMailTransport.close](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/AcquiredMailTransport.java) preserves observed acceptance when a subsequent stop causes cleanup to fail. Do not infer a submission status from this diagram.
 
 The following is a **derived budget view**, not another enum. It shows pause accounting for a timed control; stopping or closing prevents further alarms from being scheduled.
 
@@ -77,6 +77,8 @@ All references below are methods of `MailSendControl` unless named otherwise.
 `remainingNanos()` returns `Long.MAX_VALUE` for an untimed or paused deadline. Otherwise it subtracts elapsed `System.nanoTime()` from the saved budget and clamps at zero. This is elapsed-duration accounting, not wall-clock timestamp accounting; `MailSendOutcome` timestamps are a separate concern.
 
 The first failure snapshot is not a saved throwable. A later `translateFailure` can return a later contextual wrapper unchanged when `stopAtFailure` was `null`. When a stop was already recorded, it wraps the supplied failure in the corresponding stop exception, retaining the exact receipt if that supplied failure is a `MailSubmissionException`. Existing cancellation/timeout exceptions pass through unchanged.
+
+A connection failure that routing can remedy is not yet the operation's terminal failure. `MailConnectionRoute` checks for a stop after failed acquisition cleanup without calling `translateFailure` for every failed candidate. If cancellation or timeout has arrived, it creates the stop exception with the caught setup failure as its cause, retaining any suppressed cleanup errors. Otherwise routing may continue; the remedied failure must not freeze the failure classification for later work.
 
 ## Why alarm generations matter
 
@@ -121,9 +123,12 @@ These are the production consumers of the control's boundary API:
 |---|---|
 | [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | Checks before admission and execution; translates admission failures; registers queued-task retirement; closes the control before terminal reporting. |
 | [MailSendExecutor.enqueueBeforeTimeout](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendExecutor.java) | Checks stop before each admission poll and after the loop; caps each wait by the remaining budget. |
-| [MailerImpl.prepareMailSend](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | Checks before and after preparation; translates a preparation failure before completing the operation. |
+| [ReadyMailSend.prepare](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/ReadyMailSend.java) | Applies selected governance/validation, checks stop before reservation, and closes unused resources on failure. `MailerImpl.executeEmailSend` translates the escaping terminal failure. |
+| [MailConnectionRoute](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailConnectionRoute.java) | Checks between candidates/retries; retires visit ownership on stop; retains setup/cleanup evidence when a stop prevents continuation. |
 | [SendMailClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailClosure.java) | Checks before execution and after conversion in logging/custom-mailer paths; translates ordinary failures. |
-| [TransportRunner](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java) | Checks before acquiring/connecting/converting/sending; translates submission failures before transport cleanup. Registers direct transport abort for the ownership scope. |
+| [AcquiredMailTransport](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/AcquiredMailTransport.java) | Checks before acquisition and usable handoff; owns the direct abort registration or pooled lease through cleanup. |
+| [TransportRunner.sendMessageOnTransport](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java) | Checks before conversion and provider invocation; translates submission failures before transport cleanup. It does not acquire or close the connection. |
+| [RoutedMailConnection](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/RoutedMailConnection.java) | Uses the current email's control and abort scope on a retained connection, not the completed opening control. |
 | [SendMailsInSimpleBatchClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java) | Checks before iterable access, each email's preparation and subsequent send boundaries; freezes failures before shared-transport cleanup. |
 | [SendMailsWithOpenConnectionClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java) | Separate opening and per-email checks, failure translation and abort scopes. |
 | [BatchTransportEngine.claim](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchTransportEngine.java) | Registers claim cancellation; caps acquisition timeout by remaining budget; translates runtime claim failures. |
@@ -137,6 +142,7 @@ The registrations and their ownership scopes are detailed on the [next page](05-
 - Application observers and future completion are not control actions. A slow control action can still delay other actions on the same signalling thread, so registered actions must stay short.
 - `finished` means closing started, not that all actions are fenced. The first `close` caller performs the fence outside the monitor; another concurrent `close` returns immediately. Production resource retirement must wait for its owning close path, not poll `finished`.
 - The owning operation closes the control before terminal reporting; resource registrations are also retired at their narrower ownership boundaries. This is what prevents a late signal from crossing into a reused lease, not merely cancelling the timer.
+- A stop during failed setup cleanup retains that setup failure and its suppressed cleanup errors, and never starts another destination.
 - No total deadline can forcibly terminate arbitrary caller code, a non-cooperative data source or every DNS implementation. A stop can be recorded while execution is still blocked; completion honestly waits for the execution/cleanup path.
 
 ## Tests that pin down this mechanism
@@ -157,6 +163,7 @@ Method names below link to the actual test class, not an assertion that every po
 | `MailSendExecutionControlTest.simpleBatchSharesOneBudgetAndDoesNotReachUntouchedEmails` | A later email expires within the shared batch budget; untouched emails get no outcome. |
 | `MailSendExecutionControlTest.acceptedUnpooledSendSurvivesDeadlineDuringQuitCleanup` | Observed SMTP acceptance survives a deadline firing during unpooled QUIT cleanup. |
 | `MailSendExecutionControlTest.nonCooperativeDataSourceDelaysCompletionButCannotSendAfterCancellation` | Cancellation does not pretend blocked caller code has finished; no message is submitted once that code is released. |
+| [FailoverProviderContractTest.cancellationDuringFailedSetupCleanupRetainsItsEvidenceWithoutUsingFailover](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/failover/FailoverProviderContractTest.java) | Blocks actual provider cleanup, cancels through the public handle, then releases cleanup. With and without an observer or cleanup error, the same completion/outcome failure retains setup evidence, closes once and contacts no alternative. The provider suite also runs with the pool artifacts absent. |
 
 Coverage limit: the dedicated tests do not deterministically park an already-running old alarm at the control monitor and then force pause/resume before releasing it, nor force simultaneous timeout and cancellation contenders. The generation and first-winner rules above are source-derived invariants, not claims that those exact interleavings have a dedicated regression test.
 

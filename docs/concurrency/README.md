@@ -33,7 +33,7 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 
 ## Entry points and adjacent mechanisms
 
-`Mailer.sync()` and `Mailer.async()` are cached immutable views of one Mailer. They add no workers, pools, locks, or shutdown ownership. Single-email sends return a receipt or `MailSend<MailSubmissionReceipt>`; simple batches return void or `MailSend<Void>` and remain lazy and first-failure-stopping. Async closures acquire proxy/transport resources after worker execution begins. CLI send/connect commands use the synchronous view; daemon request concurrency is owned by the daemon. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) records the API decision.
+`Mailer.sync()` and `Mailer.async()` are cached immutable views of one Mailer. They add no workers, pools, locks, or shutdown ownership. Single-email sends return a receipt or `MailSend<MailSubmissionReceipt>`; simple batches return void or `MailSend<Void>` and remain lazy and first-failure-stopping. Async execution selects and prepares its destination before the owned scope acquires proxy/transport resources. CLI send/connect commands use the synchronous view; daemon request concurrency is owned by the daemon. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) records the API decision.
 
 Async destination selection and Email preparation also run during executor execution. Connection failover adds finite route traversal and short factory-local recovery bookkeeping, not another admission queue. Selected members own ordinary templates; the initiating operation owns cancellation and observation. See [connection failover](10-connection-failover.md) for recheck fencing, participant lifecycle scopes and the upstream background-allocation gate.
 

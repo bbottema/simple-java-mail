@@ -17,8 +17,10 @@ destination is considered; changing destinations never resets either allowance. 
 `EmailSendingAllowance` projects recipient headers through the same MIME recipient/header setters, or uses the
 explicit envelope override. No body, attachment, protection or message serialization is needed to count the intended recipients.
 
-The send reserves allowance **before constructing `SendMailClosure`**, because that constructor registers authenticated-proxy use.
-Only then does the closure start its proxy and `TransportRunner` claim the selected registration. Acquisition cannot select again.
+`ReadyMailSend.prepare` reserves allowance before `RoutedConnectionScope.acquireConnection` starts the authenticated-proxy scope and
+`AcquiredMailTransport` claims the pinned registration. `SendMailClosure` owns conversion/submission only; its constructor starts no proxy
+and borrows no connection. Acquisition cannot select again. A retained `RoutedMailConnection` reserves separately for each reached email
+while its intentionally shared connection stays open.
 No-limit sends skip envelope projection and diagnostic rate-clock reads.
 
 `TransportRunner` prepares the message on the selected Session. `MailTransportAdapterResolver` charges immediately before invoking the

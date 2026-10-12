@@ -6,9 +6,11 @@ This machinery lets one send stop waiting for, or using, a connection without ta
 
 ## Where this fits
 
-An ordinary send follows `TransportRunner.sendUsingConnectionPool()` → `BatchTransportEngine.claim()` → the upstream SMTP/cluster/generic pools. After the claim returns, `LifecycleDelegatingTransportImpl` owns the lease until the send either returns it healthy or invalidates it. This page describes that path, not a new public send API.
+An ordinary send follows `MailConnectionRoute` → `RoutedConnectionScope.acquireConnection()` → `AcquiredMailTransport.acquirePooled()` → `BatchTransportEngine.claimSelected()` → the upstream SMTP/cluster/generic pools. The route first pins a registration without borrowing. After acquisition, `AcquiredMailTransport` owns the `LifecycleDelegatingTransportImpl` lease until cleanup returns it healthy or invalidates it. This page describes that path, not a new public send API.
 
-The [BatchModule contract](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java) handles registration, acquisition, and pool closure; it does not schedule async work. [BatchSupport.registerToCluster](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) registers the Session with `SmtpConnectionPoolClustered`, overlaying the matching immutable `simplejavamail.defaults.connectionpool.clusters.*` defaults on the general pool settings. Without the optional module, `TransportRunner` uses a directly owned `Session.getTransport()` connection. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) explains that separation and the first-configuration boundary for a shared cluster key.
+The [BatchModule contract](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java) handles registration, acquisition, and pool closure; it does not schedule async work. [BatchSupport.registerToCluster](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) registers the Session with `SmtpConnectionPoolClustered`, overlaying the matching immutable `simplejavamail.defaults.connectionpool.clusters.*` defaults on the general pool settings. Without the optional module, `AcquiredMailTransport.acquireDirect()` owns the `Session.getTransport()` connection. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) explains that separation and the first-configuration boundary for a shared cluster key.
+
+Before either control is used, `MailerImpl` atomically claims the Session's actual Properties object. One live Mailer owns that Session and its conversion/governance context, even across factories or different Sessions sharing the same Properties. Rejected construction does not change Session settings or register/close another owner's pool. The guard is retired only after successful construction rollback or completed graceful shutdown; unresolved cleanup keeps it reserved. See [Session ownership](#session-ownership-before-registration).
 
 There are two different controls, with a deliberate handoff between them:
 
@@ -24,14 +26,28 @@ There are two different controls, with a deliberate handoff between them:
 
 | Layer | Source to read |
 |---|---|
-| SJM ownership | [TransportRunner][runner]: `sendUsingConnectionPool()`; [BatchTransportEngine][engine]: `claim()`, `release()`, `invalidate()` |
+| SJM ownership | [AcquiredMailTransport][acquired]: `acquirePooled()`, `close()`; [BatchTransportEngine][engine]: `claimSelected()`, `claimRegistered()`, `release()`, `invalidate()` |
 | Lease completion fence | [LifecycleDelegatingTransportImpl][delegate]: `signalTransportUsed()`, `signalTransportFailed()`, `awaitInvalidatedDisposal()` |
 | Capability wiring | [PoolSettings][settings]: `toSmtpClusterConfig()` |
-| SMTP pool **4.1.0** | [SmtpTransportLease][lease], [TransportAllocator][allocator], [SmtpConnectionPoolClustered][smtp-cluster] |
-| Clustered pool **4.1.0** | [ResourceClusters][clusters], [ResourcePools][pools], [ResourcePool][resource-pool] |
-| Generic pool **2.5.0** | [GenericObjectPool][generic], [ClaimAttempt][claim-attempt], [ClaimControl][claim-control], [AllocationContext][allocation-context] |
+| SMTP pool | [SmtpTransportLease][lease], [TransportAllocator][allocator], [SmtpConnectionPoolClustered][smtp-cluster] |
+| Clustered pool | [ResourceClusters][clusters], [ResourcePools][pools], [ResourcePool][resource-pool] |
+| Generic pool | [GenericObjectPool][generic], [ClaimAttempt][claim-attempt], [ClaimControl][claim-control], [AllocationContext][allocation-context] |
 
-These versions are the chain selected by the [batch-module POM](../../modules/batch-module/pom.xml), the [SMTP 4.1.0 POM](https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/pom.xml) and the [clustered 4.1.0 POM](https://github.com/bbottema/clustered-object-pool/blob/4.1.0/pom.xml). Upstream links are pinned to those tags; revisit this page when that chain changes.
+The upstream source links pin the published controlled-claim foundation: SMTP and clustered pools **4.1.0**, generic pool **2.5.0**. Current failover development uses locally verified **4.4.0-SNAPSHOT**, **4.3.0-SNAPSHOT** and **2.6.0-SNAPSHOT** respectively; see the [batch-module POM](../../modules/batch-module/pom.xml) and [verification report](../research/755-failover-state-refactor-verification.md). Those snapshots add candidate traversal, claim attribution and background observation/gating. They are not published releases; refresh the pinned links when their release gate is approved.
+
+### Background setup has its own prerequisites
+
+`DestinationConnectionObserver.isBackgroundConnectionAllowed()` combines recovery eligibility with the destination's ability to set up a connection independently. Refusal defers allocation before capacity reservation; it is not a failed SMTP attempt. A foreground claim remains available and starts its required resources normally.
+
+Authenticated SOCKS uses an operation-owned local bridge. Background replenishment is therefore disabled for that destination, even while some operation has the bridge running: that operation could finish before the allocator has connected. Foreground acquisition starts the bridge before claiming, and healthy pooled connections remain reusable. Anonymous SOCKS and direct SMTP keep normal background allocation, subject to recovery backoff. Logging-only and CustomMailer modes start no background SMTP connections.
+
+## Session ownership before registration
+
+`MailerImpl.claimSessionOwnership()` runs before changing properties, installing the MIME converter, configuring a proxy or registering a pool. The check-and-claim is atomic under the actual Properties monitor. That monitor protects only token claim/removal and converter retirement; configuration, pool callbacks, waits and network work run outside it.
+
+`releaseSessionOwnership()` removes only its own exact token and converter. Rejected construction cannot retire another owner's context. Graceful shutdown retains ownership while accepted work and connections drain. This makes `selectedOwner()` stable for every admitted pooled operation without adding another registration-context API.
+
+Reuse one Mailer for concurrent sends, or create independent Sessions with independent Properties copied from the original SMTP settings. Successful completed shutdown permits reuse. [MailerSessionOwnershipTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailerSessionOwnershipTest.java) covers public sync/async sends, shared Properties, construction interleaving, rollback and draining shutdown. Website migration notes document the changed Session-sharing behavior.
 
 ## Acquisition: reserve, prepare, hand off
 
@@ -86,7 +102,7 @@ stateDiagram-v2
 | Healthy ordinary send finishes | Fence the SJM stop registration, then call `lease.release()`; only `ACTIVE → RELEASED` returns the resource for reuse | Send worker/caller |
 | Stop arrives while the lease is active | `ACTIVE → INVALIDATED` CAS happens **before** the provider abort; then invalidate the generic pool object | Stop-action thread |
 | Send fails, except the recognized compatibility-failure route below | Request physical abort when supported, fence the stop registration, invalidate and await disposal; preserve an existing primary failure if cleanup also fails | Send worker/caller |
-| `MailSubmissionException` has `MailTransportCompatibilityException` as its cause | `TransportRunner` selects `signalTransportUsed()` instead: return the otherwise healthy connection rather than invalidating it because the payload/provider combination is unsupported | Send worker/caller |
+| `MailSubmissionException` has `MailTransportCompatibilityException` as its cause | `AcquiredMailTransport.close()` selects `signalTransportUsed()` instead: return the otherwise healthy connection rather than invalidating it because the payload/provider combination is unsupported | Send worker/caller |
 | Release races with a stop already in flight | Fencing waits for the stop action; if the lease is invalidated, release cannot return it healthy and SJM waits for disposal | Send worker/caller |
 | Release itself throws | Upstream changes the lease to `INVALIDATED`, requests invalidation and rethrows; SJM waits for disposal before propagating the release failure, suppressing any additional disposal failure | Releasing thread |
 | Late handle from an old lease | CAS sees a terminal state; no abort action runs against a new borrower | Any caller retaining that old handle |
@@ -120,7 +136,7 @@ The main lock sequence is **reserve under bookkeeping → unlock → prepare und
 
 For ordinary SJM sends, `signalTransportUsed()` and `signalTransportFailed()` are called after the transport adapter has released the SMTP monitor. Therefore their registration fence and disposal join do not hold that monitor while the abort/deallocator needs to finish. The join is conditional on the lease being `INVALIDATED`: a healthy release intentionally does not wait for eventual physical disposal.
 
-Exceptional cleanup follows the same disposal boundary. If healthy release throws after invalidating the lease, `signalTransportUsed()` still waits for disposal before propagating the release failure. On the failed-send path, abort, invalidation and disposal can each fail: the first cleanup failure remains primary and later failures are suppressed onto it. A disposal failure therefore neither skips the wait nor replaces an earlier failure. `TransportRunner` retains an existing send failure and attaches the cleanup failure to it.
+Exceptional cleanup follows the same disposal boundary. If healthy release throws after invalidating the lease, `signalTransportUsed()` still waits for disposal before propagating the release failure. On the failed-send path, abort, invalidation and disposal can each fail: the first cleanup failure remains primary and later failures are suppressed onto it. A disposal failure therefore neither skips the wait nor replaces an earlier failure. `RoutedConnectionScope` attaches cleanup failure to an escaping send failure; retained callbacks use try-with-resources against their actual escaping exception, not a failure already handled by application code.
 
 The SJM engine's post-claim shutdown check invalidates the late lease under `lifecycleMonitor`, but does not join disposal there. `stopClaimsAndInvalidateActiveLeases()` closes admission and snapshots under the monitor, then invalidates outside it. Its direct invalidation is not the same as requesting the optional monitor-independent abort, and does not forcibly stop arbitrary operation callbacks.
 
@@ -174,7 +190,7 @@ The deallocator may run concurrently with the original send unwinding; it can ne
 - A confirmed SMTP acceptance is a fact about that submission. Invalidating its transport afterwards does not retract it and does not establish delivery to an inbox.
 - A timed cluster claim validates **all** its registered Sessions, because non-sticky selection may choose a Session other than the Mailer's own. Future registrations into that marked cluster must also support abort.
 - The standalone `BatchTransportExecutor` shares this lease engine but is not automatically instrumented with Mailer observers or `MailSendControl`; ordinary facade operations pass no send control.
-- `sendMailsInSimpleBatch` and `withOpenConnection` are **not this pooled-lease path**. They own one direct transport and notify for each reached email while that transport is still in scope. Simple batch uses one send budget; open-connection opening and each email have separate budgets. See [SendMailsInSimpleBatchClosure][simple-batch] and [SendMailsWithOpenConnectionClosure][open-connection].
+- Without configured failover, `sendMailsInSimpleBatch` and `withOpenConnection` own one dedicated direct transport. With failover, `FailoverSharedSends` retains the acquired destination's pool lease when the optional module is present, or a direct connection without it. Both shapes notify for each reached email while the shared connection stays in scope. Simple batch uses one send budget; open-connection opening and each email have separate budgets. See [SendMailsInSimpleBatchClosure][simple-batch], [SendMailsWithOpenConnectionClosure][open-connection] and [connection failover](10-connection-failover.md#retained-scopes-and-shutdown).
 - Cancellation is a functional signal, not `Thread.interrupt()`. A real interrupted acquisition is a separate path: `BatchTransportEngine` restores the interrupt flag and wraps the cause.
 - Custom token suppliers, allocators, DNS, provider code and cleanup can be non-cooperative. A stop request does not promise an immediate completed result, nor permit handing off a late resource after cancellation wins.
 
@@ -194,13 +210,14 @@ These links identify actual assertions, not a claim that every possible interlea
 | [SMTP 4.1.0 SmtpLeaseCancellationTest][lease-tests] — `aDelayedHandleFromAnOldLeaseCannotAbortTheNextBorrower()` / `releaseAndAbortRaceHasExactlyOneWinner()` | A latched stale handle cannot affect the next borrower; sixty release-versus-abort races have one terminal winner and the corresponding abort count. |
 | Same upstream class — `disposalAcknowledgementWaitsForCleanupAndRetainsFailure()` | Blocks final close, observes pending disposal, then checks its cleanup failure; cancelling a detached stage cannot cancel real cleanup. |
 | [SMTP 4.1.0 SmtpClaimCancellationTest][claim-tests] — `cooperativePreparationAbortExitsTheOperationAndDisposesBeforeReturning()` / `cancelledPreparationWaitsForPartialTransportDisposal()` | Controlled connect/readiness cancellation closes the resource before claim settlement; a deliberately blocked partial-resource close keeps settlement pending. |
+| [FailoverProxyContractTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/failover/FailoverProxyContractTest.java) | Nonzero-core authenticated-proxy sends stay on a healthy primary and reuse its lease. A genuine proxied setup failure still opens the configured alternative. |
 
 The finite race test is not exhaustive scheduling verification. Provider-independent support still depends on an honest abort capability, and these tests do not turn blocking third-party callbacks into preemptible code.
 
 [engine]: ../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchTransportEngine.java
 [delegate]: ../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/LifecycleDelegatingTransportImpl.java
 [settings]: ../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/PoolSettings.java
-[runner]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java
+[acquired]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/AcquiredMailTransport.java
 [simple-batch]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsInSimpleBatchClosure.java
 [open-connection]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java
 [execution-tests]: ../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendExecutionControlTest.java

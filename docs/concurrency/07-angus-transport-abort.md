@@ -23,7 +23,7 @@ This is provider integration, not behavior guaranteed by the Jakarta Mail API. T
 | Abort and record this attempt's protocol boundaries | [ManagedAngusTransport][managed]: `protocolConnect()`, `trackSocket()`, `abortConnection()`, `sendMessage()`, `sendCommand()`, `readServerResponse()` |
 | Keep sending and response capture atomic | [AngusMailTransportAdapter][adapter]: `sendMessage()`, `sendWithRecipientReporting()` |
 | Interpret captured facts | [AngusSubmissionResult][submission]: `classifySubmission()`, `describeRecipients()`, `retryDisposition()` |
-| Coordinate ordinary-send cleanup | [TransportRunner][runner]: `sendOnNewTransport()`, `closeAfterSend()`, `sendUsingConnectionPool()`; the exceptional healthy-release failure is described on the [lease page](06-pool-claims-and-leases.md) |
+| Coordinate ordinary-send cleanup | [AcquiredMailTransport][acquired]: `acquireDirect()`, `acquirePooled()`, `close()`; [RoutedConnectionScope][scope] owns transport, proxy and participant cleanup. Release/invalidation failures still await required disposal; see the [lease page](06-pool-claims-and-leases.md). |
 
 `ServiceLoader` discovers the lifecycle adapter through the module's [service registration](../../modules/angus-mail-provider-module/src/main/resources/META-INF/services/org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter). The resolver rejects multiple matching lifecycle adapters; finding a capability must not connect or acquire a resource.
 
@@ -133,7 +133,7 @@ The [shared infographic](inside-a-mail-send.md) therefore remains accurate; this
 - The send/connect worker holds the SMTP monitor while waiting for network I/O, TLS negotiation and some payload/provider work. That serialization is intentional: the connection is one SMTP conversation.
 - Abort **must not** acquire that monitor. Its only network action is closing the captured socket; it does not run the observer, complete the send future or call synchronized `Transport.close()`.
 - The send adapter restores `reportSuccess` and snapshots/classifies facts before releasing the SMTP monitor. It does not hold it across the lease-release fence or disposal join.
-- Pool disposal may call synchronized provider `close()` and therefore wait for the original send to leave the monitor. Where SJM waits for invalidated disposal, that wait occurs after the send has unwound out of that monitor. The [lease page](06-pool-claims-and-leases.md) documents the exceptional healthy-release failure that bypasses its subsequent disposal join.
+- Pool disposal may call synchronized provider `close()` and therefore wait for the original send to leave the monitor. SJM waits for invalidated disposal after the send has unwound out of that monitor, including when healthy release itself fails and invalidates the lease. The [lease page](06-pool-claims-and-leases.md) describes the cleanup-error ordering.
 - A socket abort is not `Thread.interrupt()`. Non-cooperative payload code or DNS that is not currently blocked on the captured socket may still delay unwinding. The code does not claim a hard wall-clock completion bound for arbitrary application code.
 
 ### Race: stop while the SMTP worker holds its monitor
@@ -156,7 +156,7 @@ sequenceDiagram
     W->>W: Notify observer or hand off, complete result
 ```
 
-This sequence shows an **ordinary** send's normal abort/disposal path, not the exceptional healthy-release failure noted above. A simple-batch/open-connection observer is deliberately called while its shared transport remains in scope; its scope owner closes later.
+This sequence shows an **ordinary** send's abort/disposal path. A simple-batch/open-connection observer is deliberately called while its shared transport remains in scope; its scope owner closes later.
 
 ### Race: the stop arrives before any socket exists
 
@@ -229,7 +229,7 @@ physical-transport layer. Finite controlled tests establish these interleavings,
   as described above. Opaque factories do not gain physical-abort support. Unsupported total-timeout configurations fail before connecting.
   Untimed cooperative sending remains possible.
 - `CustomMailer` owns its transport: SJM cannot install physical abort in that callback, and a configured total timeout is rejected except in logging-only mode. It does not invalidate the callback's successful return solely because a request arrived late. `withOpenConnection` does not accept `CustomMailer` at all.
-- Simple batches hold one direct connection and control; open-connection scope uses separate opening/per-email controls. Their observers run per reached email before the shared connection is closed, unlike ordinary pooled-send completion.
+- Simple batches hold one shared connection and control; open-connection scope uses separate opening/per-email controls. Without failover the connection is dedicated and direct; configured failover can retain a pool lease. Their observers run per reached email before that connection is released or closed, unlike ordinary pooled-send completion.
 - `ACCEPTED` is SMTP acceptance, not final delivery. After possible commit with a missing final response, retrying may duplicate the email; no automatic retry is introduced here.
 
 ## Regression evidence and limits
@@ -257,6 +257,8 @@ The loopback tests establish specific interleavings, not deadlock freedom. They 
 [adapter]: ../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusMailTransportAdapter.java
 [submission]: ../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusSubmissionResult.java
 [runner]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java
+[acquired]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/AcquiredMailTransport.java
+[scope]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/RoutedConnectionScope.java
 [socket-tests]: ../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSocketAbortTest.java
 [execution-tests]: ../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendExecutionControlTest.java
 [submission-tests]: ../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSubmissionResultTest.java

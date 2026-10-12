@@ -3,7 +3,7 @@
 - Status: **Accepted**.
 - Decision date: 2026-10-07.
 - Target: 10.0.0; connection-only initial scope accepted.
-- Implementation: **Implemented locally, uncommitted and awaiting review** under the accepted [implementation plan](../plans/755-smtp-connection-failover.md). See the [verification report](../research/755-connection-failover-verification.md); upstream dependencies remain unpublished.
+- Implementation: **Implemented and reviewed** under the accepted [implementation plan](../plans/755-smtp-connection-failover.md). The supporting pool integrations are published; see the [refactor and release verification](../research/755-failover-state-refactor-verification.md). Local commit delivery does not publish Simple Java Mail or close #755.
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755).
 - Evidence: [SMTP failover research](../research/755-smtp-submission-failover.md).
 
@@ -324,7 +324,7 @@ Reject cyclic failover configurations clearly; explicit bounded connection retri
 #### Ownership matrix
 
 In the first two columns the application sends on A; in the last it sends directly on B. The named destination actually submits the email.
-These are accepted design semantics; implementation under #755 remains uncommitted for review. Synchronous calls use their caller's thread rather than an async executor.
+These are the accepted and implemented design semantics under #755. Synchronous calls use their caller's thread rather than an async executor.
 
 | Concern | A sends through B | A sends through C via B | B sends directly through C |
 | --- | --- | --- | --- |
@@ -435,6 +435,12 @@ Select first, then prepare the original Email with that destination's governance
 Applicable message locks still accumulate. Document the changed released behavior in migration notes; do not describe the regression as an
 intentional ownership rule or preserve it merely for compatibility.
 
+### Session ownership boundary accepted on 2026-10-12
+
+Reject building a second live Mailer with an already owned Jakarta Mail Session or its Properties object, even across factories. Sharing previously allowed another constructor to replace the conversion/governance owner used by ordinary pooled sends. Reserve an exact ownership token atomically before any Session configuration or pool registration. Rejected construction must leave the first owner untouched.
+
+Retire only that token and converter after required construction rollback succeeds or graceful shutdown has fully drained its work and resources. Starting shutdown does not release ownership; unresolved cleanup keeps it reserved. Independent Sessions with independent Properties remain supported, as does reuse after successful completed shutdown. Document the restriction against released Session-sharing usage in migration notes. This deliberately chooses the smaller ownership boundary rather than introducing separate conversion, pool-registration and lifecycle contexts solely to preserve simultaneous Session sharing. See the [review finding](../failover/code-review-2026-10-12.md#finding-preserve-the-owner-of-a-caller-supplied-session) and [concurrency contract](../concurrency/06-pool-claims-and-leases.md#session-ownership-before-registration).
+
 ### Accepted failover lifetime: supplied instances are borrowed, private instances are owned
 
 The maintainer accepted this refinement on 2026-10-07. It supersedes the earlier blanket statement that every failover is borrowed;
@@ -499,7 +505,7 @@ The following alternatives were reviewed and the named-definition model accepted
 | Names identify complete Mailer configuration definitions | Self-contained Java/Spring/CLI configuration, readable chains, reusable definitions and useful diagnostic names. | Accepted: SJM constructs private failover Mailers and the primary owns their cleanup. |
 | Embed a complete configuration under every failover | Simple for one failover. | Not selected: deeper chains become unwieldy and shared definitions are duplicated. |
 
-These are the canonical property names fixed by the implementation plan. The local implementation remains uncommitted for review.
+These are the canonical property names used by the implementation.
 Policy defaults are one connection attempt, no retry delay, and fixed 30-second reconsideration intervals. Credentials are omitted.
 
 ```properties
@@ -619,8 +625,15 @@ is preserved. A busy but working A is not a reason to keep routing new work thro
 
 Minimal bookkeeping still needs thread-safe updates and bounded coordination so concurrent sends do not all make the same delayed
 primary attempt at once. Reserve eligibility under a short critical section; never hold its lock while waiting, connecting, preparing MIME,
-submitting, cleaning up or invoking application code. No named health states are required to express this contract. The concrete mechanism
-and interaction with existing pool maintenance/reconnection must be characterized rather than assumed.
+submitting, cleaning up or invoking application code. The accepted internal refinement uses private Java 11 state objects:
+`ConnectionAttemptsAllowed`, `ConnectionFailureRecorded` and `ConnectionRecheckInProgress`. These manage the actual transitions, not just their documentation; they are not public
+health indicators or a rules engine. A recheck has one explicit visit owner, and every connection observation belongs either to its
+supplied visit or to independent/background work. An active recheck must never acquire ownership of unrelated observations implicitly.
+
+Failure leaves the current observation generation open for an overlapping success. Success clears the incident and advances the
+generation; a due recheck also advances it. Closing or cancelling a visit retires only that visit's observations. Backoff advances once
+per failed recheck visit, not once per immediate retry. Duplicate, abandoned, closed-owner and older-generation results cannot publish.
+The accepted regression baseline exposed why generation and visit lifetime must remain separate.
 
 Reevaluate the invoking policy's permissions when using cached failure facts, including the independent authentication/certificate options.
 Local pool saturation and sending-rate waits must not become a cached claim that the relay is unhealthy. Do not invalidate existing usable
@@ -653,6 +666,17 @@ deadlines, revive cancelled operations or make a successful connection prove SMT
 For classified availability failure before submission invocation, clean up the failed candidate and try the next eligible destination.
 Once provider submission invocation begins, preserve the current result/failure behavior and do not automatically replay the Email.
 This conservative portable boundary includes provider-internal preflight in submission, even if that preflight sends no SMTP commands.
+
+Enforce this boundary structurally: route traversal returns an owned, ready-to-send scope. Governance, locks and allowance preparation
+are outside the connection-failure catch; MIME conversion, protection, provider invocation and final cleanup occur after routing returns.
+Do not rely on a mutable submission-started flag inside a catch spanning the whole send. Retained batch/open-connection scopes keep
+their separate per-email boundaries, and acquisition cleanup must finish before another candidate is considered.
+
+For pooled foreground work, carry the running claim's opaque identity through the existing allocation context and pinned selections.
+The batch bridge associates that identity with the explicitly supplied observer only until claim settlement. Background and unrelated
+connections remain independent; no ThreadLocal, Session policy field or global registry is added. A physical connection success is
+provisional until the returned lease is accepted after cancellation checks. Healthy reuse also supplies usable-connection evidence;
+abandoned handoff supplies neither recovery nor outage evidence. Existing upstream observer overloads keep their default behavior.
 
 Known wrong credentials, certificate/TLS verification, local message/configuration errors, missing required capabilities and locked-value
 conflicts are not blanket availability failures. Known authentication/certificate-verification failures stop by default; each has its own

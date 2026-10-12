@@ -7,12 +7,15 @@ Start with the [architecture guide](architecture.md) for the onion responsibilit
 | Question | Documentation |
 | --- | --- |
 | Where does failover fit, and which abstractions own it? | [Implementation architecture](architecture.md) |
+| Which seams deserve deeper review in the current implementation? | [Prioritized ownership and handoff seams](architecture.md#11-deeper-implementation-review-seams) |
+| What did the latest code review find and verify? | [12 October ownership seam review](code-review-2026-10-12.md) |
 | Who may recheck a failed destination, and which observations remain valid? | [Connection failover and recovery state machines](../concurrency/10-connection-failover.md) |
 | Which APIs and ownership rules were chosen? | [ADR 0029](../adr/0029-smtp-submission-failover.md) |
 | How do I configure Java, properties, Spring or CLI failover? | [User guide source](../../simplejavamail.org/src/pages/smtp-connection-failover.hbs) |
 | What work is tracked for the feature and its upstream dependencies? | [Implementation plan](../plans/755-smtp-connection-failover.md) |
 | Which compatibility and conformance checks have been recorded? | [Implementation verification](../research/755-connection-failover-verification.md) |
-| What protects the upcoming recovery-state refactor? | [Public-boundary regression baseline and review gate](../research/755-failover-blackbox-baseline.md) |
+| What protected the recovery-state refactor before it started? | [Public-boundary regression baseline and review gate](../research/755-failover-blackbox-baseline.md) |
+| What changed in the explicit recovery-state refactor, and how was it verified? | [State-refactor verification](../research/755-failover-state-refactor-verification.md) |
 | What options and evidence informed the design? | [Original research](../research/755-smtp-submission-failover.md) |
 | How do I maintain or optimize the shared onion image? | [Infographic source and publication paths](../concurrency/inside-a-mail-send.md) |
 

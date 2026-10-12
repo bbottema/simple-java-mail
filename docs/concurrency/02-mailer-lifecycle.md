@@ -51,6 +51,7 @@ stateDiagram-v2
 | --- | --- | --- |
 | `synchronized (MailSendOperations)` | `active`, `closing`, and the decision to complete `drained`. | `begin` constructs a control under this monitor, acquiring that new control's monitor. No send I/O or observer is invoked here. |
 | `synchronized (MailerImpl)` | Publication and reuse of `shutdownFuture`. | `shutdownConnectionPool` calls executor shutdown and then owner shutdown while holding this monitor; it does not wait for sends there. |
+| Session Properties monitor | Exclusive construction ownership token and converter retirement. | Claim before configuration; retire only the exact owner's token after drain/cleanup succeeds. No configuration, pool callbacks, I/O or waiting while held. Distinct Sessions sharing Properties still conflict. |
 | `CURRENT_OPERATION` | Per-thread stack of participating Mailer-operation owners, including required inline callbacks. | No lock. Push owner, run immediately, restore/remove in `finally`. Self-wait checks inspect the complete stack. |
 | Executor `CURRENT_WORKER` | Identity of the SJM-owned executor whose task is on this thread. | Set in `beforeExecute`, removed in `afterExecute`; covers non-send tasks too. |
 | `Scope.closed` | One lexical open-connection scope's release-once state. | Plain boolean, not a concurrent close protocol; the scope is used on its owning call stack. |
@@ -85,12 +86,14 @@ sequenceDiagram
     O-->>W: Release owner monitor
     W->>W: Restore context<br/>task returns
     S->>S: Executor wait returns<br/>await operations drained
-    S->>S: Close connection pools<br/>complete shutdown future
+    S->>S: Close connection pools and owned failover Mailers<br/>retire Session ownership<br/>complete shutdown future
 ```
 
 If the send uses a caller-owned executor, shutdown skips executor termination entirely, but still waits for SJM's accepted operations. Already cancelled wrappers can remain queued in that external executor without retaining active SJM work. SJM never shuts down that executor or an observer executor.
 
 Accepted sends are drained, not cancelled. A queued/admitting operation has its own [stop/deadline rules](04-stop-and-deadline-control.md). The asynchronous shutdown future represents pool closure as well as send drain; a send result alone does not.
+
+Session ownership is retained through that drain. Starting shutdown cannot let another Mailer replace a converter still needed by accepted work. After successful cleanup, `releaseSessionOwnership()` removes only the current Mailer's token and converter; another Mailer may then reuse the Session. Failed cleanup retains the guard. Repeating the old Mailer's already-completed shutdown cannot retire a newer owner's context. See [the Session ownership boundary](06-pool-claims-and-leases.md#session-ownership-before-registration).
 
 ## Why `withinOperation` is a context marker
 
