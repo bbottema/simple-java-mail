@@ -1,6 +1,6 @@
 # Connection failover verification
 
-Implementation: [#755](https://github.com/bbottema/simple-java-mail/issues/755), with its [accepted plan](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md) preserved in commit-pinned history. Clustered template correction: [#757](https://github.com/bbottema/simple-java-mail/issues/757).
+Implementation: [#755](https://github.com/bbottema/simple-java-mail/issues/755), with its [accepted plan](https://github.com/bbottema/simple-java-mail/blob/c8baad90556a37de3fb7b23c4e39ed5c36c049ec/docs/plans/755-smtp-connection-failover.md) preserved in commit-pinned history. Clustered template correction: [#757](https://github.com/bbottema/simple-java-mail/issues/757).
 
 This is the original pre-review verification record, not release evidence. Later review, ownership corrections and upstream publication are recorded in the [state-refactor verification report](755-failover-state-refactor-verification.md); current behavior is described by the [maintained architecture guide](../failover/architecture.md).
 

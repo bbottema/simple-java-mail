@@ -1,6 +1,6 @@
 # #755: Public-boundary failover baseline before the recovery refactor
 
-Date: 2026-10-11. Scope: Stage A of the [accepted follow-up plan](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state), preserved in commit-pinned history after completion.
+Date: 2026-10-11. Scope: Stage A of the [accepted follow-up plan](https://github.com/bbottema/simple-java-mail/blob/c8baad90556a37de3fb7b23c4e39ed5c36c049ec/docs/plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state), preserved in commit-pinned history after completion.
 
 This is a regression gate, not a declaration that failover is finished. Production code and upstream APIs are unchanged by this pass. Stage B needs a separate
 review acceptance. Correct failing regressions remain enabled; none is disabled or changed to assert the defect.

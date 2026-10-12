@@ -4,7 +4,7 @@
 
 This guide describes the current connection-failover implementation: its responsibilities, abstractions, ownership, routing boundaries and maintenance contracts. Keep it aligned with code changes together with the concurrency mechanism and shared infographic.
 
-Last aligned on **12 October 2026** with the unreleased 10.0.0 working-tree implementation on `codex/10.0.0`, including the explicit recovery-state and resource-scope refactor after local checkpoint `0594624f822809b22a4c9d0f23b435281eeab22e`. The assessment includes the optional modules and current claim-context changes in the three local pool repositories. The [refactor verification record](../research/755-failover-state-refactor-verification.md) records runtime evidence separately from this source and diagram review.
+Last aligned on **12 October 2026** with the unreleased 10.0.0 working-tree implementation on `codex/10.0.0`, including the explicit recovery-state and resource-scope refactor after local checkpoint `bb392ef0a5d1ff536dd12fd1584eb0d0889b8235`. The assessment includes the optional modules and current claim-context changes in the three local pool repositories. The [refactor verification record](../research/755-failover-state-refactor-verification.md) records runtime evidence separately from this source and diagram review.
 
 ## Architectural overview
 
@@ -472,7 +472,7 @@ The baseline also rendered and visually inspected all five Mermaid UML diagrams 
 
 The [original implementation verification record](../research/755-connection-failover-verification.md) retains earlier reactor, compatibility and review-correction evidence. The [public-boundary baseline](../research/755-failover-blackbox-baseline.md) records the regression gate that preceded the refactor. Consult each record's date and scope when using its results.
 
-Related design records: [ADR 0029](../adr/0029-smtp-submission-failover.md), [connection failover concurrency mechanism](../concurrency/10-connection-failover.md), and [#755](https://github.com/bbottema/simple-java-mail/issues/755). The completed implementation plan is preserved in [commit-pinned history](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md); current guidance remains in this guide and the linked ADRs.
+Related design records: [ADR 0029](../adr/0029-smtp-submission-failover.md), [connection failover concurrency mechanism](../concurrency/10-connection-failover.md), and [#755](https://github.com/bbottema/simple-java-mail/issues/755). The completed implementation plan is preserved in [commit-pinned history](https://github.com/bbottema/simple-java-mail/blob/c8baad90556a37de3fb7b23c4e39ed5c36c049ec/docs/plans/755-smtp-connection-failover.md); current guidance remains in this guide and the linked ADRs.
 
 ## 11. Deeper implementation review seams
 

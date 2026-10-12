@@ -1,9 +1,9 @@
 # #755: Explicit recovery-state refactor
 
-Dates: 2026-10-11 and 2026-10-12. Scope: Stage B of the [accepted follow-up plan](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state), preserved in commit-pinned history after completion.
+Dates: 2026-10-11 and 2026-10-12. Scope: Stage B of the [accepted follow-up plan](https://github.com/bbottema/simple-java-mail/blob/c8baad90556a37de3fb7b23c4e39ed5c36c049ec/docs/plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state), preserved in commit-pinned history after completion.
 
 This report follows the [Stage A black-box baseline](755-failover-blackbox-baseline.md), which remains an unchanged historical record of the confirmed defect.
-The implementation is based on local checkpoint `0594624f822809b22a4c9d0f23b435281eeab22e`. This follow-up changes internal ownership, not the public sending API,
+The implementation is based on local checkpoint `bb392ef0a5d1ff536dd12fd1584eb0d0889b8235`. This follow-up changes internal ownership, not the public sending API,
 failover permissions or the connection-only safety boundary. Dependency publication and feature release remain separate decisions.
 
 ## What changed
@@ -228,8 +228,24 @@ At the cascade checkpoint, SJM implementation and documentation remained uncommi
 
 The eight recovery-state and observation types were renamed consistently across production code, tests, ADR/plan references and architecture/concurrency diagrams. `ConnectionAttemptsAllowed` deliberately describes permission to attempt setup, not known server health. The rename changed no behavior or public API.
 
-Fresh real-JDK-11 focused reactor verification completed successfully against the published pool integrations, including recovery ownership, connection observations, failover scopes/wire/provider contracts, duplicate Session ownership and classpath/JPMS fixtures. All eight Mermaid diagrams in the two renamed architecture/concurrency pages parsed in the website's installed Mermaid runtime. The production-only review artifact was regenerated against checkpoint `0594624f` with the new names.
+Fresh real-JDK-11 focused reactor verification completed successfully against the published pool integrations, including recovery ownership, connection observations, failover scopes/wire/provider contracts, duplicate Session ownership and classpath/JPMS fixtures. All eight Mermaid diagrams in the two renamed architecture/concurrency pages parsed in the website's installed Mermaid runtime. The production-only review artifact was regenerated against the pre-refactor baseline `bb392ef0` with the new names.
 
 The maintainer subsequently authorized selective semantic local commits of the reviewed feature and associated documentation. This supersedes the earlier uncommitted-review gate, not the separate push or issue-closure gate. #755/#757 remain open and unrelated maintainer, artwork and Journal work remains outside the commits.
 
 At this local commit gate, fresh website checks passed all 84 cases, all 384 relative documentation links/anchors across 18 documents passed, and all 40 current Mermaid diagrams in those documentation pages parsed and rendered successfully. These are current documentation checks, not another full Maven, SMTP conformance or Spring compatibility-matrix run.
+
+
+### Commit-message cleanup, 12 October 2026
+
+The maintainer approved replacing operational snapshot wording with descriptive commit subjects and force-pushing both development branches. Author identities and timestamps were retained. Every rewritten website file tree is identical to its original; Java file trees differ only in the matching website gitlink. No application or test code changed, and the historical verification results were not rerun or relabelled as new test runs.
+
+The original runs used the hashes in the left column. References above now point to the equivalent rewritten commits in the right column; the accepted plan remains available in commit-pinned history. Local recovery refs retain the original branch tips.
+
+| Original commit | Equivalent rewritten commit | Subject |
+| --- | --- | --- |
+| `f8b7d02d` | `542f076d` | feat(failover): add coordinated SMTP connection routing (#755, #757) |
+| `f33f9dff` | `407164c8` | test(failover): cover public sending and recovery contracts (#755) |
+| `0594624f` | `bb392ef0` | docs(failover): describe architecture and verification (#755) |
+| `1faa25df` | `c8baad90` | docs(failover): finalize ownership, recovery and verification guidance (#755, #757) |
+| `efe14d51` | `babcb19d` | docs(failover): explain routing, recovery and configuration (#755) |
+| `4bae4ff2` | `487cf15c` | docs(configuration): explain exclusive Session ownership (#755, #757) |
