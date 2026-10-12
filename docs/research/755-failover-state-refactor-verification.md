@@ -1,6 +1,6 @@
 # #755: Explicit recovery-state refactor
 
-Dates: 2026-10-11 and 2026-10-12. Scope: Stage B of the [accepted follow-up plan](../plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state).
+Dates: 2026-10-11 and 2026-10-12. Scope: Stage B of the [accepted follow-up plan](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md#accepted-follow-up-black-box-regression-gate-then-explicit-recovery-state), preserved in commit-pinned history after completion.
 
 This report follows the [Stage A black-box baseline](755-failover-blackbox-baseline.md), which remains an unchanged historical record of the confirmed defect.
 The implementation is based on local checkpoint `0594624f822809b22a4c9d0f23b435281eeab22e`. This follow-up changes internal ownership, not the public sending API,

@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Recorded: 2026-09-16; historical dates below identify the underlying work
 - Applies to: `codex/10.0.0`, including its unreleased API migration
-- Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is implemented locally under #755, uncommitted and awaiting review
+- Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is implemented and accepted under #755 for unreleased 10.0.0
 
 ## Context and historical rationale
 
@@ -33,7 +33,7 @@ the restriction, without another template, global registry or mutable policy tra
 
 ### Accepted extension: named failover configuration (2026-10-07)
 
-**Implemented locally under [#755](https://github.com/bbottema/simple-java-mail/issues/755); uncommitted and awaiting review.**
+**Implemented and accepted under [#755](https://github.com/bbottema/simple-java-mail/issues/755). The extension targets unreleased 10.0.0.**
 [ADR 0029](0029-smtp-submission-failover.md#accepted-named-mailer-configuration) records the accepted property-backed failover model:
 capture named, independently configured Mailer definitions and their failover references through the same loader. Reuse existing property
 types, source precedence, diagnostics and secret handling. References resolve from the immutable captured configuration, not through

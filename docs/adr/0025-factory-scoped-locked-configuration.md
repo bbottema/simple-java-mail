@@ -3,7 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-09-29
 - Target: 10.0.0
-- Implementation status: Original decision implemented for unreleased 10.0.0; verification recorded separately. The 2026-10-07 failover addendum is implemented locally under #755, uncommitted and awaiting review.
+- Implementation status: Original decision implemented for unreleased 10.0.0; verification recorded separately. The 2026-10-07 failover addendum is implemented and accepted under #755 for unreleased 10.0.0.
 - Tracking: [#740](https://github.com/bbottema/simple-java-mail/issues/740)
 
 ## Context and decision drivers
@@ -164,7 +164,7 @@ First-hop TLS and onward REQUIRETLS remain different settings. Locking either on
 
 ## Accepted addendum: delegation to approved failover Mailers (2026-10-07)
 
-**Status: Accepted; implemented locally under [#755](https://github.com/bbottema/simple-java-mail/issues/755), uncommitted and awaiting review.**
+**Status: Accepted; implemented and accepted under [#755](https://github.com/bbottema/simple-java-mail/issues/755) for unreleased 10.0.0.**
 This extends the lock contract for the accepted failover design in [ADR 0029](0029-smtp-submission-failover.md).
 It does not describe behavior delivered by the original #740 implementation or approve unrelated cross-factory operations.
 
@@ -215,7 +215,7 @@ The following records retain their existing unlocked behavior. This ADR adds an 
 | [0013: Exact EML submission](0013-exact-eml-submission.md) | Preserve authoritative bytes and the ordinary template bypass. That bypass must not silently remove a lock; reject incompatible operations. |
 | [0023: Per-message REQUIRETLS](0023-per-message-requiretls.md) | Keep onward TLS separate from connection TLS. A locked REQUIRETLS value is non-suppressible within the factory, unlike the existing ordinary default. |
 | [0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) | Implemented under #754: lock either Boolean choice at the existing Email owner, preserve exact bytes, and reject conflicting advanced settings or unsupported providers. |
-| [0029: SMTP submission failover](0029-smtp-submission-failover.md) | The accepted addendum above defines lock ownership during delegated sends; ADR 0029 supplies the route-specific matrices, boundaries and implementation obligations. Local implementation under #755 awaits review. |
+| [0029: SMTP submission failover](0029-smtp-submission-failover.md) | The accepted addendum above defines lock ownership during delegated sends; ADR 0029 supplies the route-specific matrices, boundaries and implementation obligations. The #755 implementation is accepted for unreleased 10.0.0. |
 
 ## Implementation status and verification obligations
 

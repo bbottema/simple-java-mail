@@ -3,7 +3,7 @@
 - Status: **Accepted**.
 - Decision date: 2026-10-07.
 - Target: 10.0.0; connection-only initial scope accepted.
-- Implementation: **Implemented and reviewed** under the accepted [implementation plan](../plans/755-smtp-connection-failover.md). The supporting pool integrations are published; see the [refactor and release verification](../research/755-failover-state-refactor-verification.md). Local commit delivery does not publish Simple Java Mail or close #755.
+- Implementation: **Implemented and accepted for unreleased 10.0.0** under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Current ownership and maintenance contracts live in the [architecture guide](../failover/architecture.md); the supporting pool integrations are published. See the [refactor and release verification](../research/755-failover-state-refactor-verification.md). Completing the issue does not release Simple Java Mail 10.0.0.
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755).
 - Evidence: [SMTP failover research](../research/755-smtp-submission-failover.md).
 
@@ -226,7 +226,7 @@ behavior. API examples use the policy methods recorded in the implementation pla
 
 ## Final boundary decisions (2026-10-07)
 
-These decisions complete the architecture. The [implementation plan](../plans/755-smtp-connection-failover.md) fixes policy names,
+These decisions complete the architecture. The [implementation architecture](../failover/architecture.md) describes policy names,
 attempt-history signatures, retry intervals/counts, registration identity, traversal and lifecycle mechanics. They implement the agreed
 ownership and safety boundaries rather than introduce new routing behavior.
 

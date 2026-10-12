@@ -472,7 +472,7 @@ The baseline also rendered and visually inspected all five Mermaid UML diagrams 
 
 The [original implementation verification record](../research/755-connection-failover-verification.md) retains earlier reactor, compatibility and review-correction evidence. The [public-boundary baseline](../research/755-failover-blackbox-baseline.md) records the regression gate that preceded the refactor. Consult each record's date and scope when using its results.
 
-Related design records: [ADR 0029](../adr/0029-smtp-submission-failover.md), [connection failover concurrency mechanism](../concurrency/10-connection-failover.md), [implementation plan](../plans/755-smtp-connection-failover.md).
+Related design records: [ADR 0029](../adr/0029-smtp-submission-failover.md), [connection failover concurrency mechanism](../concurrency/10-connection-failover.md), and [#755](https://github.com/bbottema/simple-java-mail/issues/755). The completed implementation plan is preserved in [commit-pinned history](https://github.com/bbottema/simple-java-mail/blob/1faa25df4ba6a7ce4d6ce308c2458250a4e999af/docs/plans/755-smtp-connection-failover.md); current guidance remains in this guide and the linked ADRs.
 
 ## 11. Deeper implementation review seams
 

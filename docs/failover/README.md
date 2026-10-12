@@ -12,7 +12,7 @@ Start with the [architecture guide](architecture.md) for the onion responsibilit
 | Who may recheck a failed destination, and which observations remain valid? | [Connection failover and recovery state machines](../concurrency/10-connection-failover.md) |
 | Which APIs and ownership rules were chosen? | [ADR 0029](../adr/0029-smtp-submission-failover.md) |
 | How do I configure Java, properties, Spring or CLI failover? | [User guide source](../../simplejavamail.org/src/pages/smtp-connection-failover.hbs) |
-| What work is tracked for the feature and its upstream dependencies? | [Implementation plan](../plans/755-smtp-connection-failover.md) |
+| Where are the feature and related work tracked? | [#755](https://github.com/bbottema/simple-java-mail/issues/755), the clustered-ownership correction [#757](https://github.com/bbottema/simple-java-mail/issues/757), and the [published pool integration record](../research/755-failover-state-refactor-verification.md#authorized-supporting-library-cascade-12-october-2026) |
 | Which compatibility and conformance checks have been recorded? | [Implementation verification](../research/755-connection-failover-verification.md) |
 | What protected the recovery-state refactor before it started? | [Public-boundary regression baseline and review gate](../research/755-failover-blackbox-baseline.md) |
 | What changed in the explicit recovery-state refactor, and how was it verified? | [State-refactor verification](../research/755-failover-state-refactor-verification.md) |
