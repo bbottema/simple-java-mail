@@ -61,7 +61,8 @@ class CliFailoverConfigurationTest {
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), new OneShotMailerProvider())) {
             final CliExecutionResult help = execute(environment, "send", "--mailer:withFailoverMailerName--help");
             assertThat(help.exitCode()).isZero();
-            assertThat(help.stdout()).contains("simplejavamail.mailers.secondary", "connection failure", "never to replay");
+            assertThat(help.stdout().replaceAll("\\s+", " "))
+                    .contains("simplejavamail.mailers.secondary", "connection failure", "never replays a submitted email");
         }
     }
 
