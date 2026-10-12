@@ -100,7 +100,7 @@ class MailSendDiagnosticsTransportTest {
 		final SelectedPoolTransport selection = mock(SelectedPoolTransport.class);
 		when(selection.getSession()).thenReturn(selectedSession);
 		when(selection.getSendingAllowance()).thenReturn(new MailSendRateLimiter(null, null, true));
-		when(selection.acquireTransport(any())).thenReturn(lease);
+		when(selection.acquireTransport(any(), any())).thenReturn(lease);
 		when(batch.selectTransport(any(), any(), anyBoolean(), any())).thenReturn(selection);
 		when(batch.shutdownConnectionPools(any())).thenReturn(CompletableFuture.completedFuture(null));
 		final RuntimeException releaseFailure = new IllegalStateException("lease release failed");

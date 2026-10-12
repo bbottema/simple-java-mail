@@ -58,9 +58,9 @@ public final class AcquiredMailTransport implements AutoCloseable {
 
 	private static AcquiredMailTransport acquirePooled(final SelectedPoolTransport selected, final MailSendControl control,
 			final PoolConnectionObserver observer) throws MessagingException {
-		final PoolConnectionObserver.Attempt observation = observer.connectionStarting();
+		final PoolConnectionObserver.Attempt observation = new ConnectionObservation(observer.connectionStarting());
 		try {
-			final LifecycleDelegatingTransport pooledLease = selected.acquireTransport(control);
+			final LifecycleDelegatingTransport pooledLease = selected.acquireTransport(control, observePhysicalSetup(observation));
 			final AcquiredMailTransport acquiredConnection = new AcquiredMailTransport(pooledLease.getSessionUsedToObtainTransport(),
 					pooledLease.getTransport(), pooledLease, null, control);
 			try {
@@ -78,7 +78,23 @@ public final class AcquiredMailTransport implements AutoCloseable {
 			}
 		} catch (PoolConnectionSetupException failure) {
 			throw new ConnectionSetupFailure(failure.getCause());
+		} finally {
+			// A capacity wait or discarded lease supplies no recovery evidence. Completed observations ignore abandonment.
+			observation.abandoned();
 		}
+	}
+
+	/** Physical success is provisional until the pool and cancellation checks accept the lease; failure remains setup evidence. */
+	private static PoolConnectionObserver observePhysicalSetup(final PoolConnectionObserver.Attempt observation) {
+		return new PoolConnectionObserver() {
+			@Override
+			public Attempt connectionStarting() {
+				return new Attempt() {
+					@Override public void failed(final Throwable failure) { observation.failed(failure); }
+					@Override public void abandoned() { observation.abandoned(); }
+				};
+			}
+		};
 	}
 
 	private static AcquiredMailTransport acquireDirect(final Session session, final MailSendControl control,
@@ -106,7 +122,7 @@ public final class AcquiredMailTransport implements AutoCloseable {
 
 	private static void connectAndObserve(final Transport transport, final Session session, final MailSendControl control,
 			final PoolConnectionObserver observer) {
-		final PoolConnectionObserver.Attempt observation = observer.connectionStarting();
+		final PoolConnectionObserver.Attempt observation = new ConnectionObservation(observer.connectionStarting());
 		try {
 			TransportConnectionHelper.connectForSending(transport, session);
 			control.checkStopped();
@@ -117,6 +133,8 @@ public final class AcquiredMailTransport implements AutoCloseable {
 				observation.failed(failure);
 			}
 			throw failure;
+		} finally {
+			observation.abandoned();
 		}
 	}
 
@@ -136,15 +154,10 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	/** Retained connections use the current email's control, not the already completed scope-opening control. */
 	public MailSubmissionReceipt send(final Email email, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
 			final MailSendControl control) throws MessagingException {
-		return send(email, diagnostics, allowance, control, () -> { });
-	}
-
-	public MailSubmissionReceipt send(final Email email, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
-			final MailSendControl control, final Runnable submissionStarted) throws MessagingException {
 		this.activeControl = control;
 		receipt = null;
 		try {
-			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance, submissionStarted);
+			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance);
 			return receipt;
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;
@@ -185,5 +198,45 @@ public final class AcquiredMailTransport implements AutoCloseable {
 
 	private static boolean isLocalCompatibilityFailure(final Throwable failure) {
 		return failure instanceof MailSubmissionException && failure.getCause() instanceof MailTransportCompatibilityException;
+	}
+
+	/** Acquisition-thread bookkeeping: finally abandons unfinished setup, but never sends a second terminal callback. */
+	private static final class ConnectionObservation implements PoolConnectionObserver.Attempt {
+
+		private final PoolConnectionObserver.Attempt delegate;
+		private boolean completed;
+
+		private ConnectionObservation(final PoolConnectionObserver.Attempt delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public void connected() {
+			if (completeOnce()) {
+				delegate.connected();
+			}
+		}
+
+		@Override
+		public void failed(final Throwable failure) {
+			if (completeOnce()) {
+				delegate.failed(failure);
+			}
+		}
+
+		@Override
+		public void abandoned() {
+			if (completeOnce()) {
+				delegate.abandoned();
+			}
+		}
+
+		private boolean completeOnce() {
+			if (completed) {
+				return false;
+			}
+			completed = true;
+			return true;
+		}
 	}
 }

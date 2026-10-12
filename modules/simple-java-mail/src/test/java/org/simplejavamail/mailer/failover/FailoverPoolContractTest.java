@@ -57,10 +57,11 @@ class FailoverPoolContractTest {
         final CountDownLatch borrowed = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         final ExecutorService callback = Executors.newSingleThreadExecutor();
+        // Keep the released connection eligible for reuse even when the first send is slow on the test host.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(150)
-                     .withFailoverMailer(selected, policy()).buildMailer()) {
+                     .withConnectionPoolExpireAfterMillis(60000).withFailoverMailer(selected, policy()).buildMailer()) {
             try {
                 final var occupied = callback.submit(() -> {
                     initiating.withOpenConnection(sender -> {
@@ -93,9 +94,11 @@ class FailoverPoolContractTest {
         final AtomicReference<Mailer> active = new AtomicReference<>();
         final AtomicReference<Throwable> observerFailure = new AtomicReference<>();
         final AtomicInteger completions = new AtomicInteger();
+        // Test lease release and reentry, not expiration while a slow host completes the first send.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withFailoverMailer(selected, policy())
+             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000)
+                     .withFailoverMailer(selected, policy())
                      .withMailSendObserver(outcome -> {
                          if (completions.incrementAndGet() == 1) {
                              observerFailure.set(catchThrowable(() -> active.get().sync().sendMail(email())));

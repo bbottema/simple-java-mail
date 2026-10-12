@@ -7,6 +7,7 @@ import jakarta.mail.URLName;
 import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
 import org.bbottema.genericobjectpool.ClaimControl;
 import org.bbottema.genericobjectpool.ClaimOptions;
+import org.bbottema.genericobjectpool.AllocationContext;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.batch.BatchTransportException;
 import org.simplejavamail.batch.BatchTransportOperation;
@@ -46,6 +47,8 @@ public final class BatchTransportEngine<K> {
 	private final Object lifecycleMonitor = new Object();
 	// The upstream allocator owns one callback for this engine; Session identifies the selected Mailer configuration to notify.
 	private final Map<Session, PoolConnectionObserver> connectionObserverBySession = new ConcurrentHashMap<>();
+	/** In-flight claims only; background and unrelated claims keep their independent Session observer. */
+	private final Map<Object, PoolConnectionObserver> connectionObserverByClaim = new ConcurrentHashMap<>();
 	private final SmtpConnectionPoolClustered<K> smtpConnectionPool;
 	private final Map<K, PoolSettings> clusterSettings = new HashMap<>();
 	private final Map<K, Set<Session>> registeredSessions = new HashMap<>();
@@ -156,6 +159,11 @@ public final class BatchTransportEngine<K> {
 		return claimRegistered(clusterKey, selected.getSession(), control, selected);
 	}
 
+	SmtpTransportLease claimSelected(final K clusterKey, final SmtpTransportSelection selected, @Nullable final MailSendControl control,
+			final PoolConnectionObserver observer) {
+		return claimRegistered(clusterKey, selected.getSession(), control, selected, observer);
+	}
+
 	/** Selection is delegated upstream; application admission runs after this returns and holds no borrowed transport. */
 	SmtpTransportSelection select(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control) {
 		final int claimTimeoutMillis = validateClaim(clusterKey, stickySession, control);
@@ -192,8 +200,10 @@ public final class BatchTransportEngine<K> {
 			}
 
 			@Override
-			public Attempt connectionStarting(final Session session, final Transport transport) {
-				return forwardConnectionAttempt(connectionObserverFor(session).connectionStarting());
+			public Attempt connectionStarting(final Session session, final Transport transport, @Nullable final AllocationContext context) {
+				final PoolConnectionObserver observer = context == null ? connectionObserverFor(session)
+						: connectionObserverByClaim.getOrDefault(context.getClaimIdentity(), connectionObserverFor(session));
+				return forwardConnectionAttempt(observer.connectionStarting());
 			}
 		};
 	}
@@ -212,6 +222,11 @@ public final class BatchTransportEngine<K> {
 			@Override
 			public void failed(final Throwable failure) {
 				observedAttempt.failed(failure);
+			}
+
+			@Override
+			public void abandoned() {
+				observedAttempt.abandoned();
 			}
 		};
 	}
@@ -236,12 +251,17 @@ public final class BatchTransportEngine<K> {
 
 	private SmtpTransportLease claimRegistered(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control,
 			@Nullable final SmtpTransportSelection selected) {
+		return claimRegistered(clusterKey, stickySession, control, selected, null);
+	}
+
+	private SmtpTransportLease claimRegistered(final K clusterKey, final Session stickySession, @Nullable final MailSendControl control,
+			@Nullable final SmtpTransportSelection selected, @Nullable final PoolConnectionObserver observer) {
 		final int claimTimeoutMillis = validateClaim(clusterKey, stickySession, control);
 		final SmtpTransportLease lease;
 		final ClaimControl claimControl = new ClaimControl();
 		try (MailSendControl.Registration ignored = control == null ? null : control.onStop(claimControl::requestCancellation)) {
-			final ClaimOptions options = control == null ? null : claimOptions(claimTimeoutMillis, control, claimControl);
-			lease = acquireLease(clusterKey, stickySession, selected, options);
+			final ClaimOptions options = control == null && observer == null ? null : claimOptions(claimTimeoutMillis, control, claimControl);
+			lease = observer == null ? acquireLease(clusterKey, stickySession, selected, options) : claimWithObserver(selected, options.start(), observer);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			throw new BatchTransportException("Interrupted while waiting for an SMTP transport", interrupted);
@@ -261,6 +281,17 @@ public final class BatchTransportEngine<K> {
 			activeLeases.add(lease);
 		}
 		return lease;
+	}
+
+	private SmtpTransportLease claimWithObserver(final SmtpTransportSelection selected, final AllocationContext context,
+			final PoolConnectionObserver observer) throws InterruptedException {
+		connectionObserverByClaim.put(context.getClaimIdentity(), observer);
+		try {
+			return selected.claimTransportWithContext(context);
+		} finally {
+			// Claim settlement includes disposal/allocator callback retirement, even when cancellation wins handoff.
+			connectionObserverByClaim.remove(context.getClaimIdentity());
+		}
 	}
 
 	private static void throwIfRecordedConnectionSetupFailed(final RuntimeException failure) {

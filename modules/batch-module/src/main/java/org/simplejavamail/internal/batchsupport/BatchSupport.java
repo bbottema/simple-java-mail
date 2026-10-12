@@ -207,5 +207,12 @@ public class BatchSupport implements BatchModule {
 		public LifecycleDelegatingTransport acquireTransport(@Nullable final MailSendControl control) {
 			return new LifecycleDelegatingTransportImpl(engine, engine.claimSelected(clusterKey, selection, control), control);
 		}
+
+		/** @see SelectedPoolTransport#acquireTransport(MailSendControl, PoolConnectionObserver) */
+		@Override
+		@NotNull
+		public LifecycleDelegatingTransport acquireTransport(@Nullable final MailSendControl control, @NotNull final PoolConnectionObserver observer) {
+			return new LifecycleDelegatingTransportImpl(engine, engine.claimSelected(clusterKey, selection, control, observer), control);
+		}
 	}
 }

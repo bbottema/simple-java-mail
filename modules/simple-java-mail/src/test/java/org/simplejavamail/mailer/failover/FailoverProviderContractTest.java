@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.Mailer;
@@ -19,11 +20,17 @@ import testutil.smtp.RecordingSmtpServer;
 
 import java.net.ConnectException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
@@ -31,6 +38,66 @@ import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
 /** Supplemental SPI fault tests: these do not claim to be real SMTP/TLS server tests. */
 @Timeout(30)
 class FailoverProviderContractTest {
+
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void cancellationDuringFailedSetupCleanupRetainsItsEvidenceWithoutUsingFailover(final boolean observed, final boolean cleanupFails) throws Exception {
+        final FailoverTestProvider.State state = new FailoverTestProvider.State();
+        state.connectionFailure = new MessagingException("fixture connection refused", new ConnectException("fixture refusal"));
+        state.cleanupFailure = cleanupFails ? new MessagingException("fixture disposal failed") : null;
+        final CountDownLatch cleanupStarted = new CountDownLatch(1);
+        final CountDownLatch finishCleanup = new CountDownLatch(1);
+        state.beforeClose = () -> {
+            cleanupStarted.countDown();
+            try {
+                await(finishCleanup);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(interrupted);
+            }
+        };
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        try (RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer()) {
+            final var configured = FailoverTestProvider.builder(state).withFailoverMailer(alternative, policy());
+            if (observed) {
+                configured.withMailSendObserver(outcomes::add);
+            }
+            try (Mailer initiating = configured.buildMailer()) {
+                try {
+                    final var sending = initiating.async().sendMail(email());
+                    await(cleanupStarted);
+                    sending.requestCancellation();
+                    finishCleanup.countDown();
+                    final Throwable completionFailure = catchThrowable(() -> sending.getCompletion().get(10, SECONDS));
+                    assertThat(completionFailure).isNotNull();
+                    final Throwable failure = completionFailure.getCause();
+                    assertThat(failure).isInstanceOf(MailSendCancelledException.class);
+                    final List<Throwable> retainedCauses = Stream.iterate(failure, Objects::nonNull, Throwable::getCause).collect(Collectors.toList());
+                    assertThat(retainedCauses).contains(state.connectionFailure);
+                    final List<Throwable> suppressed = retainedCauses.stream().flatMap(cause -> Arrays.stream(cause.getSuppressed()))
+                            .collect(Collectors.toList());
+                    if (cleanupFails) {
+                        assertThat(suppressed).contains(state.cleanupFailure);
+                    } else {
+                        assertThat(suppressed).isEmpty();
+                    }
+                    assertThat(state.connections).hasValue(1);
+                    assertThat(state.closes).hasValue(1);
+                    assertThat(state.invocations).hasValue(0);
+                    assertThat(secondary.connectionCount()).isZero();
+                    if (observed) {
+                        assertThat(outcomes).hasSize(1);
+                        assertThat(outcomes.get(0).getFailure()).containsSame(failure);
+                        assertThat(outcomes.get(0).getSubmissionReceipt()).isEmpty();
+                    }
+                } finally {
+                    finishCleanup.countDown();
+                    state.beforeClose = () -> { };
+                    state.cleanupFailure = null;
+                }
+            }
+        }
+    }
 
     @Test
     void providerPreflightFailureCannotBeReinterpretedAsAConnectionOutage() throws Exception {

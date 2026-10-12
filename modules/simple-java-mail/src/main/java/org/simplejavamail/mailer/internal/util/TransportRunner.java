@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
-import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
@@ -51,46 +50,10 @@ public class TransportRunner {
 		return ModuleLoader.batchModuleAvailable() ? ModuleLoader.loadBatchModule().selectTransport(clusterKey, session, false, control) : null;
 	}
 
-	/** Acquires from the already selected registration; no second load-balancing decision can change the charged destination. */
-	public static MailSubmissionReceipt sendMessage(@NotNull final Session session, @NotNull final Email email,
-			@NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
-			@Nullable final SelectedPoolTransport selected, @NotNull final SendingAllowance.Reservation allowance) throws MessagingException {
-		return sendMessage(session, email, control, diagnostics, selected, allowance, PoolConnectionObserver.NONE, () -> { });
-	}
-
-	/**
-	 * Sends through the selected destination while reporting connection setup to the pool observer.
-	 * The callback marks the point after which routing must never replay this email.
-	 */
-	public static MailSubmissionReceipt sendMessage(final Session session, final Email email, final MailSendControl control,
-			final MailSendDiagnosticsRecorder diagnostics, @Nullable final SelectedPoolTransport selected,
-			final SendingAllowance.Reservation allowance, final PoolConnectionObserver observer, final Runnable markSubmissionStarted) throws MessagingException {
-		diagnostics.startConnectionAcquisition();
-		control.checkStopped();
-		try (AcquiredMailTransport connection = AcquiredMailTransport.acquire(session, selected, control, observer)) {
-			try {
-				return connection.send(email, diagnostics, allowance, control, markSubmissionStarted);
-			} finally {
-				diagnostics.startCleanup();
-			}
-		}
-	}
-
-	/** The same per-email boundary is used for ordinary sends and deliberately shared connections. */
-	public static MailSubmissionReceipt sendMessageOnTransport(@NotNull final Transport transport, @NotNull final Session actualSessionUsed,
-			@NotNull final Email email, @NotNull final MailSendControl control, @NotNull final MailSendDiagnosticsRecorder diagnostics,
-			@NotNull final SendingAllowance.Reservation allowance)
-			throws MessagingException {
-		return sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics, allowance, () -> { });
-	}
-
-	/**
-	 * Sends through a connection already owned by the caller, such as a retained batch or open-connection scope.
-	 * The callback marks the irreversible provider-invocation boundary for that email.
-	 */
+	/** Sends through an already-acquired connection. The owning connection route has returned before this method can be invoked. */
 	public static MailSubmissionReceipt sendMessageOnTransport(final Transport transport, final Session actualSessionUsed, final Email email,
-			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
-			final Runnable markSubmissionStarted) throws MessagingException {
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance)
+			throws MessagingException {
 		try {
 			diagnostics.connectionAcquired(transport);
 			control.checkStopped();
@@ -98,7 +61,6 @@ public class TransportRunner {
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
 			control.checkStopped();
 			diagnostics.startSubmission();
-			markSubmissionStarted.run();
 			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> allowance.commit(control))
 					.withEnvelopeRecipients(preparedMail.getRecipients());
 			if (!transportResult.isSuccessful()) {

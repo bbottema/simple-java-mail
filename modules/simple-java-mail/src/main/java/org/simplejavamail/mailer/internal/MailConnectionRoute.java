@@ -2,7 +2,10 @@ package org.simplejavamail.mailer.internal;
 
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
+import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.time.Duration;
@@ -17,11 +20,11 @@ import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
 
 /** One finite connection-routing operation. It never calls another Mailer's public send API and never catches submission failures. */
-final class MailConnectionRoute<T> {
+final class MailConnectionRoute<T extends RoutedConnectionScope> {
 
 	private final MailerImpl initiator;
 	private final MailSendDiagnosticsRecorder diagnostics;
-	private final DestinationOperation<T> destinationOperation;
+	private final DestinationPreparation<T> destinationPreparation;
 	private final MailSendControl control;
 	private final List<MailerImpl> routeStages = new ArrayList<>();
 	private final List<MailerImpl> unavailableDestinations = new ArrayList<>();
@@ -32,16 +35,16 @@ final class MailConnectionRoute<T> {
 	private int cachedSkips;
 
 	MailConnectionRoute(final MailerImpl initiator, final MailSendDiagnosticsRecorder diagnostics, final MailSendControl control,
-			final DestinationOperation<T> operation) {
-		this(initiator, diagnostics, control, operation, new HashMap<>());
+			final DestinationPreparation<T> preparation) {
+		this(initiator, diagnostics, control, preparation, new HashMap<>());
 	}
 
 	MailConnectionRoute(final MailerImpl initiator, final MailSendDiagnosticsRecorder diagnostics, final MailSendControl control,
-			final DestinationOperation<T> operation, final Map<UUID, List<SelectedPoolTransport>> groups) {
+			final DestinationPreparation<T> preparation, final Map<UUID, List<SelectedPoolTransport>> groups) {
 		this.initiator = initiator;
 		this.diagnostics = diagnostics;
 		this.control = control;
-		this.destinationOperation = operation;
+		this.destinationPreparation = preparation;
 		this.candidateGroups = groups;
 	}
 
@@ -55,7 +58,7 @@ final class MailConnectionRoute<T> {
 			throw new IllegalStateException("The failover route returned to a Mailer already visited by this send. No message was replayed.");
 		}
 		routeStages.add(stage);
-		final T retained = destinationOperation.retainAtRouteStage(stage);
+		final T retained = destinationPreparation.retainAtRouteStage(stage);
 		if (retained != null) {
 			// Its retained scope already admitted this work, including when a participant has since begun graceful shutdown.
 			return retained;
@@ -111,13 +114,13 @@ final class MailConnectionRoute<T> {
 			@Nullable final FailoverPolicy policy) {
 		control.checkStopped();
 		return destination.withDelegatedOperation(initiator, () -> {
-			try (ConnectionRecovery.Visit visit = destination.definition().recovery.openVisit(policy);
+			try (ConnectionRecovery.ConnectionRecoveryVisit visit = destination.definition().recovery.openVisit(policy);
 					 MailSendControl.Registration ignored = control.onStop(visit::close)) {
 				if (!visit.shouldAttemptConnection) {
 					recordCachedSkip(destination, visit.cachedFailure);
 					return null;
 				}
-				return tryConnectionAttempts(destination, selection, policy);
+				return tryConnectionAttempts(destination, selection, policy, destination.connectionObserver().forVisit(visit));
 			}
 		});
 	}
@@ -134,7 +137,7 @@ final class MailConnectionRoute<T> {
 
 	@Nullable
 	private T tryConnectionAttempts(final MailerImpl destination, @Nullable final SelectedPoolTransport selection,
-			@Nullable final FailoverPolicy policy) {
+			@Nullable final FailoverPolicy policy, final PoolConnectionObserver observer) {
 		final int maximumConnectionAttempts = policy == null ? 1 : policy.getPrimaryConnectionAttempts();
 		for (int attemptNumber = 0; attemptNumber < maximumConnectionAttempts; attemptNumber++) {
 			if (attemptNumber > 0) {
@@ -142,8 +145,11 @@ final class MailConnectionRoute<T> {
 			}
 			control.checkStopped();
 			recordFailoverContinuation();
+			// Governance and allowance waiting are not connection failures, even if application code throws a similarly named exception.
+			final T candidate = destinationPreparation.prepare(destination, selection, routeStages);
 			try {
-				return destinationOperation.execute(destination, selection, routeStages);
+				candidate.acquireConnection(selection, control, observer);
+				return candidate;
 			} catch (ConnectionSetupFailure failure) {
 				verifySafeFailoverContinuation(failure, policy);
 				lastFailure = failure;
@@ -163,13 +169,22 @@ final class MailConnectionRoute<T> {
 
 	private void verifySafeFailoverContinuation(final ConnectionSetupFailure failure, @Nullable final FailoverPolicy policy) {
 		diagnostics.failedConnectionStep(failure.explanation());
-		control.checkStopped();
+		checkStoppedAfterConnectionFailure(failure);
 		if (failure.hasUnresolvedCleanup()) {
 			throw new MailerException("The SMTP connection failed, and cleaning it up also failed. Failover has stopped so another "
 					+ "connection isn't started while the first one's cleanup is unresolved. Check the cause and its suppressed cleanup failure.", failure);
 		}
-		if (destinationOperation.hasSubmissionStarted() || Thread.currentThread().isInterrupted() || policy == null || !failure.allowsFailover(policy)) {
+		if (Thread.currentThread().isInterrupted() || policy == null || !failure.allowsFailover(policy)) {
 			throw failure;
+		}
+	}
+
+	private void checkStoppedAfterConnectionFailure(final ConnectionSetupFailure failure) {
+		try {
+			control.checkStopped();
+		} catch (MailSendCancelledException | MailSendTimeoutException stopped) {
+			// Preserve setup and suppressed cleanup evidence. A failure that routing can remedy must not freeze the operation's failure state.
+			throw control.stoppedFailure(failure);
 		}
 	}
 
@@ -198,17 +213,13 @@ final class MailConnectionRoute<T> {
 	}
 
 	@FunctionalInterface
-	interface DestinationOperation<T> {
-		T execute(MailerImpl destination, @Nullable SelectedPoolTransport selected, List<MailerImpl> routeStages);
+	interface DestinationPreparation<T extends RoutedConnectionScope> {
+		T prepare(MailerImpl destination, @Nullable SelectedPoolTransport selected, List<MailerImpl> routeStages);
 
 		/** A retained batch connection stays in use when the earlier route stages have not recovered. */
 		@Nullable
 		default T retainAtRouteStage(final MailerImpl stage) {
 			return null;
-		}
-
-		default boolean hasSubmissionStarted() {
-			return false;
 		}
 	}
 }

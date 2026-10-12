@@ -5,18 +5,13 @@ import org.simplejavamail.api.mailer.config.FailoverPolicy;
 
 import java.util.function.LongSupplier;
 
-/** Factory-local connection observations. Its monitor protects bookkeeping only, never connection work or waiting. */
+/** Factory-local recovery bookkeeping. Explicit visit ownership keeps cancellation from retiring another caller's connection. */
 final class ConnectionRecovery {
 
 	private final LongSupplier clock;
-	/** Success and a new due recheck retire older work; a failure must not discard a still-running peer's success. */
-	private long observationGeneration;
-	private long latestFailureAt;
-	private int consecutiveFailedRechecks;
-	private boolean hasReportedFailover;
+	private ConnectionRecoveryState state = new ConnectionAttemptsAllowed(0);
+	/** Ordinary pools still replenish normally until this destination participates in coordinated failover. */
 	private boolean usesCoordinatedFailover;
-	@Nullable private ConnectionSetupFailure latestFailure;
-	@Nullable private Visit activeRecheck;
 
 	ConnectionRecovery() {
 		this(System::nanoTime);
@@ -26,138 +21,207 @@ final class ConnectionRecovery {
 		this.clock = clock;
 	}
 
-	/** Once this destination participates in a configured route, background allocation must respect recorded incidents too. */
 	synchronized void enableCoordinatedFailover() {
 		usesCoordinatedFailover = true;
 	}
 
-	/** Each caller applies its own permission and intervals to shared facts; one permissive policy never changes another policy. */
-	synchronized Visit openVisit(@Nullable final FailoverPolicy policy) {
+	/** Each caller applies its own permissions and intervals to the shared incident. No connection work runs under this monitor. */
+	synchronized ConnectionRecoveryVisit openVisit(@Nullable final FailoverPolicy policy) {
 		usesCoordinatedFailover |= policy != null;
-		if (latestFailure == null || policy == null) {
-			return new Visit(true, null);
+		final ConnectionFailureIncident incident = state.incident();
+		if (incident == null || policy == null) {
+			return new ConnectionRecoveryVisit(true, null, state.generation);
 		}
-		if (hasCurrentRecheck() || clock.getAsLong() - latestFailureAt < recheckIntervalNanos(policy)) {
-			if (!latestFailure.allowsFailover(policy)) {
+		if (state instanceof ConnectionRecheckInProgress || clock.getAsLong() - incident.failedAt < recheckIntervalNanos(policy, incident.failedRechecks)) {
+			if (!incident.failure.allowsFailover(policy)) {
 				throw new MailerException("An earlier connection attempt failed, and this Mailer's failover policy does not allow another destination "
 						+ "for that failure. No new connection was attempted; a primary recheck is not due or is already running. "
-						+ "Review the cause and this route's authentication/certificate permissions.", latestFailure);
+						+ "Review the cause and this route's authentication/certificate permissions.", incident.failure);
 			}
-			return new Visit(false, latestFailure);
+			return new ConnectionRecoveryVisit(false, incident.failure, state.generation);
 		}
-		// Rechecking the original destination is not permission to bypass its authentication or certificate checks.
-		// A deliberate new recheck supersedes pending results from the earlier connection window.
-		observationGeneration++;
-		activeRecheck = new Visit(true, latestFailure);
-		return activeRecheck;
+		// One due visit owns the recheck. Its generation fences results from the earlier connection window.
+		final ConnectionRecoveryVisit visit = new ConnectionRecoveryVisit(true, incident.failure, state.generation + 1);
+		state = new ConnectionRecheckInProgress(visit.generation, incident, visit);
+		return visit;
 	}
 
-	/** A recovered visit may still be sending or cleaning up, but it no longer owns later connection observations. */
-	private boolean hasCurrentRecheck() {
-		return activeRecheck != null && activeRecheck.generation == observationGeneration;
-	}
-
-	private long recheckIntervalNanos(final FailoverPolicy policy) {
+	private static long recheckIntervalNanos(final FailoverPolicy policy, final int failedRechecks) {
 		long interval = policy.getPrimaryRecheckInterval().toNanos();
 		final long maximum = policy.getPrimaryMaximumRecheckInterval().toNanos();
 		final int multiplier = policy.getPrimaryRecheckBackoffMultiplier();
-		for (int recheckNumber = 0; multiplier > 1 && recheckNumber < consecutiveFailedRechecks && interval < maximum; recheckNumber++) {
-			// Compare before multiplying so increasing backoff cannot overflow into an immediate recheck.
+		for (int index = 0; multiplier > 1 && index < failedRechecks && interval < maximum; index++) {
 			interval = interval > maximum / multiplier ? maximum : Math.min(maximum, interval * multiplier);
 		}
 		return interval;
 	}
 
 	synchronized boolean allowsBackgroundConnections() {
-		return !usesCoordinatedFailover || latestFailure == null;
+		return !usesCoordinatedFailover || state.incident() == null;
 	}
 
-	/** Report the routing remedy once per incident, independently of how many Mailers or concurrent sends observe it. */
+	/** Report the remedy once per incident, independently of how many operations encounter it. */
 	synchronized boolean markFailoverReported() {
-		if (latestFailure == null || hasReportedFailover) {
+		final ConnectionFailureIncident incident = state.incident();
+		if (incident == null || incident.hasReportedFailover) {
 			return false;
 		}
-		hasReportedFailover = true;
+		incident.hasReportedFailover = true;
 		return true;
 	}
 
-	/** Capture the current connection window and its recheck owner; all publication happens under this monitor. */
-	synchronized Observation observeConnection() {
-		return new Observation(observationGeneration, hasCurrentRecheck() ? activeRecheck : null);
+	/** Background or unrelated connection work has its own lifetime, never that of an ambient recheck. */
+	synchronized ConnectionRecoveryObservation observeConnection() {
+		return new ConnectionRecoveryObservation(state.generation, null);
 	}
 
-	final class Observation {
-		private final long startedGeneration;
-		@Nullable private final Visit owningRecheck;
+	private abstract static class ConnectionRecoveryState {
+		final long generation;
+
+		ConnectionRecoveryState(final long generation) {
+			this.generation = generation;
+		}
+
+		@Nullable abstract ConnectionFailureIncident incident();
+	}
+
+	private static final class ConnectionAttemptsAllowed extends ConnectionRecoveryState {
+		ConnectionAttemptsAllowed(final long generation) {
+			super(generation);
+		}
+
+		@Override ConnectionFailureIncident incident() {
+			return null;
+		}
+	}
+
+	private static class ConnectionFailureRecorded extends ConnectionRecoveryState {
+		private final ConnectionFailureIncident incident;
+
+		ConnectionFailureRecorded(final long generation, final ConnectionFailureIncident incident) {
+			super(generation);
+			this.incident = incident;
+		}
+
+		@Override ConnectionFailureIncident incident() {
+			return incident;
+		}
+	}
+
+	private static final class ConnectionRecheckInProgress extends ConnectionFailureRecorded {
+		private final ConnectionRecoveryVisit owner;
+
+		ConnectionRecheckInProgress(final long generation, final ConnectionFailureIncident incident, final ConnectionRecoveryVisit owner) {
+			super(generation, incident);
+			this.owner = owner;
+		}
+	}
+
+	private static final class ConnectionFailureIncident {
+		private final ConnectionSetupFailure failure;
+		private final long failedAt;
+		private final int failedRechecks;
+		private boolean hasReportedFailover;
+
+		ConnectionFailureIncident(final ConnectionSetupFailure failure, final long failedAt, final int failedRechecks, final boolean hasReportedFailover) {
+			this.failure = failure;
+			this.failedAt = failedAt;
+			this.failedRechecks = failedRechecks;
+			this.hasReportedFailover = hasReportedFailover;
+		}
+	}
+
+	/** Internal publication result lets logging distinguish a repeated incident from a discarded late result. */
+	enum ConnectionFailurePublication { FIRST_INCIDENT, REPEATED_FAILURE, IGNORED }
+
+	final class ConnectionRecoveryObservation {
+		private final long generation;
+		@Nullable private final ConnectionRecoveryVisit owner;
 		private boolean completed;
 
-		private Observation(final long startedGeneration, @Nullable final Visit owningRecheck) {
-			this.startedGeneration = startedGeneration;
-			this.owningRecheck = owningRecheck;
+		private ConnectionRecoveryObservation(final long generation, @Nullable final ConnectionRecoveryVisit owner) {
+			this.generation = generation;
+			this.owner = owner;
 		}
 
 		boolean recordSuccessfulConnection() {
 			synchronized (ConnectionRecovery.this) {
-				if (!canPublishObservation()) {
+				if (!canPublish()) {
 					return false;
 				}
 				completed = true;
-				final boolean recovered = latestFailure != null;
-				latestFailure = null;
-				consecutiveFailedRechecks = 0;
-				hasReportedFailover = false;
-				// A usable connection outweighs overlapping failures; their late results must not restore the old incident.
-				observationGeneration++;
+				final boolean recovered = state.incident() != null;
+				// A usable connection clears the incident and fences all overlapping older failures.
+				state = new ConnectionAttemptsAllowed(state.generation + 1);
 				return recovered;
 			}
 		}
 
-		boolean recordFailedConnection(final ConnectionSetupFailure currentFailure) {
+		ConnectionFailurePublication recordFailedConnection(final ConnectionSetupFailure failure) {
 			synchronized (ConnectionRecovery.this) {
-				if (!canPublishObservation()) {
-					return false;
+				if (!canPublish()) {
+					return ConnectionFailurePublication.IGNORED;
 				}
 				completed = true;
-				final boolean firstFailure = latestFailure == null;
-				latestFailure = currentFailure;
-				latestFailureAt = clock.getAsLong();
-				// Immediate retries belong to one visit, not separate recovery-backoff steps.
-				if (owningRecheck != null && !owningRecheck.hasRecordedFailure) {
-					consecutiveFailedRechecks = consecutiveFailedRechecks == Integer.MAX_VALUE ? consecutiveFailedRechecks : consecutiveFailedRechecks + 1;
-					owningRecheck.hasRecordedFailure = true;
-				}
-				// Keep the window open: another connection already in flight can still demonstrate recovery.
-				return firstFailure;
+				final ConnectionFailureIncident previous = state.incident();
+				final ConnectionFailureIncident incident = new ConnectionFailureIncident(failure, clock.getAsLong(), failedRecheckCount(previous),
+						previous != null && previous.hasReportedFailover);
+				// Failure keeps this generation open: an independent in-flight connection may still recover it.
+				state = state instanceof ConnectionRecheckInProgress
+						? new ConnectionRecheckInProgress(state.generation, incident, ((ConnectionRecheckInProgress) state).owner)
+						: new ConnectionFailureRecorded(state.generation, incident);
+				return previous == null ? ConnectionFailurePublication.FIRST_INCIDENT : ConnectionFailurePublication.REPEATED_FAILURE;
 			}
 		}
 
-		/** Called under the recovery monitor; cancellation retires the whole visit, independently of peer results. */
-		private boolean canPublishObservation() {
-			return !completed && startedGeneration == observationGeneration && (owningRecheck == null || !owningRecheck.closed);
+		private int failedRecheckCount(@Nullable final ConnectionFailureIncident previous) {
+			final int count = previous == null ? 0 : previous.failedRechecks;
+			if (state instanceof ConnectionRecheckInProgress && ((ConnectionRecheckInProgress) state).owner == owner && !owner.hasRecordedFailure) {
+				owner.hasRecordedFailure = true;
+				return count == Integer.MAX_VALUE ? count : count + 1;
+			}
+			return count;
+		}
+
+		void abandon() {
+			synchronized (ConnectionRecovery.this) {
+				completed = true;
+			}
+		}
+
+		/** Called only under the recovery monitor; visit retirement does not fence independent work. */
+		private boolean canPublish() {
+			return !completed && generation == state.generation && (owner == null || !owner.closed);
 		}
 	}
 
-	/** A routing scope fences unfinished recheck observations on close without retiring a newer connection window. */
-	final class Visit implements AutoCloseable {
+	/** A visit explicitly owns its observations, including immediate retries, but never another visit's work. */
+	final class ConnectionRecoveryVisit implements AutoCloseable {
 		final boolean shouldAttemptConnection;
 		@Nullable final ConnectionSetupFailure cachedFailure;
 		private final long generation;
 		private boolean closed;
 		private boolean hasRecordedFailure;
 
-		private Visit(final boolean shouldAttemptConnection, @Nullable final ConnectionSetupFailure cachedFailure) {
+		private ConnectionRecoveryVisit(final boolean shouldAttemptConnection, @Nullable final ConnectionSetupFailure cachedFailure, final long generation) {
 			this.shouldAttemptConnection = shouldAttemptConnection;
 			this.cachedFailure = cachedFailure;
-			this.generation = observationGeneration;
+			this.generation = generation;
+		}
+
+		ConnectionRecoveryObservation observeConnection() {
+			synchronized (ConnectionRecovery.this) {
+				return new ConnectionRecoveryObservation(state.generation, this);
+			}
 		}
 
 		@Override
 		public void close() {
 			synchronized (ConnectionRecovery.this) {
-				if (activeRecheck == this) {
-					activeRecheck = null;
-				}
 				closed = true;
+				if (state instanceof ConnectionRecheckInProgress && ((ConnectionRecheckInProgress) state).owner == this) {
+					state = new ConnectionFailureRecorded(state.generation, state.incident());
+				}
 			}
 		}
 	}

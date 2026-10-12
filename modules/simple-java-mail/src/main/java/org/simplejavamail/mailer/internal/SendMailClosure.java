@@ -6,10 +6,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
-import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
-import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -18,8 +15,8 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
-
-import java.util.concurrent.atomic.AtomicInteger;
+import org.simplejavamail.mailer.internal.util.AcquiredMailTransport;
+import org.slf4j.Logger;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -27,14 +24,17 @@ import static java.util.Optional.ofNullable;
 import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
 import static org.simplejavamail.mailer.internal.MailerException.MAILER_ERROR;
 import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * Separate closure that can be executed directly or from a thread.
+ * Submits one prepared email after routing has finished acquiring its destination. It owns no connection or proxy lifetime.
  * <p>
  * Note that this Runnable implementation is <strong>not</strong> thread related, it is just to encapsulate the code to
  * be run directly or from a <em>real</em> Runnable.
  */
-class SendMailClosure extends AbstractProxyServerSyncingClosure {
+class SendMailClosure implements Runnable {
+
+	private static final Logger LOGGER = getLogger(SendMailClosure.class);
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
@@ -43,45 +43,24 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 	@Nullable private MailSubmissionReceipt receipt;
 	@NotNull private final MailSendControl control;
 	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
-	@Nullable private final SelectedPoolTransport selectedTransport;
+	@Nullable private final AcquiredMailTransport connection;
 	@Nullable private final SendingAllowance.Reservation allowance;
-	private final PoolConnectionObserver connectionObserver;
-	private final Runnable submissionStarted;
 
-	SendMailClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Email email,
-			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
-			@NotNull MailSendControl control, @NotNull MailSendDiagnosticsRecorder diagnostics,
-			@Nullable SelectedPoolTransport selectedTransport, @Nullable SendingAllowance.Reservation allowance) {
-		this(operationalConfig, session, email, proxyServer, transportModeLoggingOnly, smtpConnectionCounter, control, diagnostics,
-				selectedTransport, allowance, PoolConnectionObserver.NONE, () -> { });
-	}
-
-	SendMailClosure(final OperationalConfig operationalConfig, final Session session, final Email email,
-			@Nullable final AnonymousSocks5Server proxyServer, final boolean transportModeLoggingOnly, final AtomicInteger smtpConnectionCounter,
-			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, @Nullable final SelectedPoolTransport selectedTransport,
-			@Nullable final SendingAllowance.Reservation allowance, final PoolConnectionObserver connectionObserver, final Runnable submissionStarted) {
-		super(smtpConnectionCounter, proxyServer, session, diagnostics);
-		this.connectionObserver = connectionObserver;
-		this.submissionStarted = submissionStarted;
+	SendMailClosure(final OperationalConfig operationalConfig, final Session session, final Email email, final MailSendControl control,
+			final MailSendDiagnosticsRecorder diagnostics, @Nullable final AcquiredMailTransport connection,
+			@Nullable final SendingAllowance.Reservation allowance) {
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.email = email;
-		this.transportModeLoggingOnly = transportModeLoggingOnly;
+		this.transportModeLoggingOnly = operationalConfig.isTransportModeLoggingOnly();
 		this.control = control;
 		this.diagnostics = diagnostics;
-		this.selectedTransport = selectedTransport;
+		this.connection = connection;
 		this.allowance = allowance;
-		if (transportModeLoggingOnly) {
-			diagnostics.useLoggingOnly();
-		} else if (operationalConfig.getCustomMailer() != null) {
-			diagnostics.useCustomMailer();
-		} else {
-			diagnostics.startConnectionAcquisition();
-		}
 	}
 
 	@Override
-	public void executeClosure() {
+	public void run() {
 		LOGGER.trace("sending email...");
 		try {
 			control.checkStopped();
@@ -98,13 +77,11 @@ class SendMailClosure extends AbstractProxyServerSyncingClosure {
 				control.checkStopped();
 				diagnostics.startSubmission();
 				requireNonNull(allowance, "allowance").commit(control);
-				submissionStarted.run();
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
 				diagnostics.receiptProduced(receipt);
 			} else {
-				receipt = TransportRunner.sendMessage(session, email, control, diagnostics, selectedTransport,
-						requireNonNull(allowance, "allowance"), connectionObserver, submissionStarted);
+				receipt = requireNonNull(connection, "connection").send(email, diagnostics, requireNonNull(allowance, "allowance"), control);
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);

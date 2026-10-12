@@ -151,10 +151,10 @@ final class FailoverSharedSends {
 			return route.execute();
 		}
 
-		private MailConnectionRoute.DestinationOperation<RoutedMailConnection> createConnectionOpening(final MailSendControl control) {
-			return new MailConnectionRoute.DestinationOperation<RoutedMailConnection>() {
+		private MailConnectionRoute.DestinationPreparation<RoutedMailConnection> createConnectionOpening(final MailSendControl control) {
+			return new MailConnectionRoute.DestinationPreparation<RoutedMailConnection>() {
 				@Override
-				public RoutedMailConnection execute(final MailerImpl destination, final SelectedPoolTransport registration,
+				public RoutedMailConnection prepare(final MailerImpl destination, final SelectedPoolTransport registration,
 						final List<MailerImpl> routeStages) {
 					return new RoutedMailConnection(initiatingMailer, destination, registration, routeStages, control);
 				}

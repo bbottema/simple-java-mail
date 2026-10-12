@@ -19,4 +19,7 @@ public interface SelectedPoolTransport {
 
 	/** Claims from that registration without selecting again; retirement makes acquisition fail rather than switch destinations. */
 	@NotNull LifecycleDelegatingTransport acquireTransport(@Nullable MailSendControl control);
+
+	/** Associates physical setup with this caller's observation without changing the selected registration. */
+	@NotNull LifecycleDelegatingTransport acquireTransport(@Nullable MailSendControl control, @NotNull PoolConnectionObserver observer);
 }

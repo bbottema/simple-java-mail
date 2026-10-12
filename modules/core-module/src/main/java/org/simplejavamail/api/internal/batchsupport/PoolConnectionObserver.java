@@ -39,5 +39,8 @@ public interface PoolConnectionObserver {
 		 * @param failure The provider failure that prevented the connection from becoming usable.
 		 */
 		default void failed(Throwable failure) { }
+
+		/** Cancelled or discarded acquisition is neither an outage nor evidence of recovery. */
+		default void abandoned() { }
 	}
 }

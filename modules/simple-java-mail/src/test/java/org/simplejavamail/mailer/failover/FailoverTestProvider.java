@@ -48,9 +48,11 @@ public final class FailoverTestProvider implements MailTransportAdapter {
     static final class State {
         final AtomicInteger connections = new AtomicInteger();
         final AtomicInteger invocations = new AtomicInteger();
+        final AtomicInteger closes = new AtomicInteger();
         volatile MessagingException connectionFailure;
         volatile MessagingException submissionFailure;
         volatile MessagingException cleanupFailure;
+        volatile Runnable beforeClose = () -> { };
     }
 
     public static final class ContractTransport extends Transport {
@@ -81,6 +83,8 @@ public final class FailoverTestProvider implements MailTransportAdapter {
         @Override
         public synchronized void close() throws MessagingException {
             super.close();
+            state.closes.incrementAndGet();
+            state.beforeClose.run();
             if (state.cleanupFailure != null) {
                 throw state.cleanupFailure;
             }

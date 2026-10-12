@@ -24,7 +24,6 @@ final class MailSendAttempt {
 	@Nullable private final String initialMessageId;
 	@Nullable private final Instant requestedAt;
 	private boolean loggingOnly;
-	private boolean submissionStarted;
 	@NotNull private final MailSendDiagnosticsRecorder diagnostics;
 	@Nullable private Instant readyAt;
 	@Nullable private Instant startedAt;
@@ -58,15 +57,6 @@ final class MailSendAttempt {
 	@NotNull
 	static MailSendAttempt unobserved() {
 		return new MailSendAttempt(null, null, null, false, null);
-	}
-
-	/** Safety fact retained even without an observer; a nested callback's exception cannot authorize replay. */
-	void submissionStarted() {
-		submissionStarted = true;
-	}
-
-	boolean hasSubmissionStarted() {
-		return submissionStarted;
 	}
 
 	void prepared(@NotNull final Email email) {
