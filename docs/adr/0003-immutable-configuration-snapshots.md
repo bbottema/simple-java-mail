@@ -21,6 +21,31 @@ Pass the snapshot to `SimpleJavaMail.withConfig(...)`. That factory supplies fre
 
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
+### Built-in defaults stay together on the key builders
+
+Accepted clarification, 13 October 2026: publish Simple Java Mail's built-in fallback values as named constants on the relevant
+Email or Mailer builder contract. Message-related defaults belong on `EmailStartingBuilder` or `EmailPopulatingBuilder`, according to
+the existing API owner; operational defaults belong on `MailerGenericBuilder` or the relevant Mailer builder contract.
+Users and maintainers should not have to search policy classes and implementation objects to discover the library's defaults.
+
+This convention predates immutable snapshots. [eaa76777](https://github.com/bbottema/simple-java-mail/commit/eaa767778fa97f4f889de23c884af9abdba2d93c),
+24 December 2017, moved Mailer construction and property defaults through builders and placed named timeout, thread-pool, proxy-bridge
+and logging defaults on the generic Mailer builder. [68659327](https://github.com/bbottema/simple-java-mail/commit/686593277fa35905723d8c98a2366dee651c42e0),
+9 September 2026, explicitly required declaring built-in defaults alongside existing builder defaults in the API expansion workflow.
+The older commits establish the convention; this clarification records its discoverability rationale and its application to policy builders.
+
+Dedicated policy builders remain useful for configuring a cohesive feature. Their initial values and reset methods reference the same
+key-builder constants, as do property and CLI resolution. They do not become independent catalogues of defaults. Immutable policy/configuration
+values validate supplied settings but do not resolve defaults, consult configuration sources, or expose default-producing factories.
+Do not construct a throwaway default policy just to recover its fallback values.
+
+A derived fallback still follows the caller's selected values: for example, fixed failover rechecks use the configured initial interval as
+their maximum. Resolve that relationship rather than introducing an unrelated constant. Required user choices, such as a submission-retry
+count and initial delay, stay required; centralizing defaults does not invent them. Validation bounds are also distinct from fallback values.
+
+These are library fallback constants, not application-owned Email defaults/overrides or configured snapshot entries. Their central placement
+does not change precedence, lock handling, optional-policy enablement, serialization, or the runtime owner of the setting.
+
 [ADR 0027](0027-factory-scoped-sending-limits.md) adds factory-local sending-limit history alongside, not inside, this immutable snapshot.
 Named groups can coordinate participating Mailers without sharing their executors or connections. Two factories built from the same
 snapshot still have independent histories; the snapshot and `OperationalConfig` contain settings, never mutable usage counters.

@@ -1,6 +1,7 @@
 package org.simplejavamail.api.mailer.config;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -12,6 +13,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FailoverPolicyTest {
+
+	@Test
+	void policyDefaultsUseThePublishedMailerConstants() {
+		final FailoverPolicy policy = FailoverPolicy.builder().build();
+		assertThat(policy.getPrimaryConnectionAttempts()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS);
+		assertThat(policy.getPrimaryConnectionRetryDelay()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY);
+		assertThat(policy.getPrimaryRecheckInterval()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
+		assertThat(policy.getPrimaryRecheckBackoffMultiplier()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER);
+		assertThat(policy.isFailoverOnAuthenticationFailure()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE);
+		assertThat(policy.isFailoverOnCertificateVerificationFailure()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE);
+	}
+
+	@Test
+	void fixedMaximumFollowsTheConfiguredInitialIntervalAfterReset() {
+		final Duration chosenInterval = Duration.ofSeconds(7);
+		final FailoverPolicy policy = FailoverPolicy.builder().withPrimaryRecheckInterval(chosenInterval)
+				.withPrimaryRecheckBackoff(2, Duration.ofMinutes(1)).resetPrimaryRecheckBackoff().build();
+		assertThat(policy.getPrimaryRecheckInterval()).isEqualTo(chosenInterval);
+		assertThat(policy.getPrimaryMaximumRecheckInterval()).isEqualTo(chosenInterval);
+		assertThat(policy.getPrimaryRecheckBackoffMultiplier()).isEqualTo(MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER);
+	}
 
 	@Test
 	void defaultsAndResetsAgreeAndTheBuilderDoesNotMutateBuiltPolicies() throws Exception {

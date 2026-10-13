@@ -37,6 +37,37 @@ import java.util.concurrent.ExecutorService;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
+	/**
+	 * Total connection setup attempts per destination visit, including the first.
+	 * @see FailoverPolicy.Builder#withPrimaryConnectionAttempts(int)
+	 */
+	int DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS = 1;
+	/**
+	 * No delay between additional connection setup attempts unless configured.
+	 * @see FailoverPolicy.Builder#withPrimaryConnectionRetryDelay(Duration)
+	 */
+	Duration DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY = Duration.ZERO;
+	/**
+	 * Reconsider a failed primary after thirty seconds; this does not delay use of a working failover destination.
+	 * @see FailoverPolicy.Builder#withPrimaryRecheckInterval(Duration)
+	 */
+	Duration DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL = Duration.ofSeconds(30);
+	/**
+	 * Fixed recheck intervals unless increasing backoff is configured. The default maximum follows the chosen initial interval.
+	 * @see FailoverPolicy.Builder#withPrimaryRecheckBackoff(int, Duration)
+	 */
+	int DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER = 1;
+	/**
+	 * Stop on authentication rejection unless failover for that failure is explicitly enabled.
+	 * @see FailoverPolicy.Builder#withFailoverOnAuthenticationFailure(boolean)
+	 */
+	boolean DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE = false;
+	/**
+	 * Stop on certificate or server-identity verification failure unless failover for that failure is explicitly enabled.
+	 * @see FailoverPolicy.Builder#withFailoverOnCertificateVerificationFailure(boolean)
+	 */
+	boolean DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE = false;
+
 	/** No total send deadline unless explicitly configured. */
 	@Nullable Duration DEFAULT_MAIL_SEND_TIMEOUT = null;
 	/** Available sending allowance may be used immediately unless spreading is explicitly requested. */

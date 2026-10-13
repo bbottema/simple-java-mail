@@ -2,11 +2,18 @@ package org.simplejavamail.api.mailer.config;
 
 import lombok.Value;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.Serializable;
 import java.time.Duration;
 
 import static java.util.Objects.requireNonNull;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL;
 
 /**
  * Rules for obtaining a usable connection before moving to a configured failover Mailer. They never authorize
@@ -129,19 +136,25 @@ public class FailoverPolicy implements Serializable {
                 primaryRecheckBackoffMultiplier, primaryMaximumRecheckInterval, failoverOnAuthenticationFailure, failoverOnCertificateVerificationFailure);
     }
 
-    /** Resolves defaults and validates the combined policy when {@link #build()} is called. Repeated setters replace the previous choice. */
+    /**
+     * Resolves the defaults published on {@link MailerGenericBuilder} and validates the combined policy when {@link #build()} is called.
+     * Repeated setters replace the previous choice.
+     */
     public static final class Builder {
-        private int primaryConnectionAttempts = 1;
-        private Duration primaryConnectionRetryDelay = Duration.ZERO;
-        private Duration primaryRecheckInterval = Duration.ofSeconds(30);
-        private int primaryRecheckBackoffMultiplier = 1;
+        private int primaryConnectionAttempts = DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS;
+        private Duration primaryConnectionRetryDelay = DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY;
+        private Duration primaryRecheckInterval = DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL;
+        private int primaryRecheckBackoffMultiplier = DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER;
         private Duration primaryMaximumRecheckInterval;
-        private boolean failoverOnAuthenticationFailure;
-        private boolean failoverOnCertificateVerificationFailure;
+        private boolean failoverOnAuthenticationFailure = DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE;
+        private boolean failoverOnCertificateVerificationFailure = DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE;
 
         private Builder() { }
 
-        /** Total setup attempts per candidate in one visit, including the first; not attempts to submit message content. Default: one. */
+        /**
+         * Total setup attempts per candidate in one visit, including the first; not attempts to submit message content.
+         * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS one setup attempt}.
+         */
         @NotNull
         public Builder withPrimaryConnectionAttempts(final int primaryConnectionAttempts) {
             this.primaryConnectionAttempts = primaryConnectionAttempts;
@@ -151,10 +164,13 @@ public class FailoverPolicy implements Serializable {
         /** Restores one setup attempt per candidate. */
         @NotNull
         public Builder resetPrimaryConnectionAttempts() {
-            return withPrimaryConnectionAttempts(1);
+            return withPrimaryConnectionAttempts(DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS);
         }
 
-        /** Non-negative delay between additional setup attempts explicitly enabled with {@link #withPrimaryConnectionAttempts(int)}. Default: zero. */
+        /**
+         * Non-negative delay between additional setup attempts explicitly enabled with {@link #withPrimaryConnectionAttempts(int)}.
+         * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY no delay}.
+         */
         @NotNull
         public Builder withPrimaryConnectionRetryDelay(@NotNull final Duration primaryConnectionRetryDelay) {
             this.primaryConnectionRetryDelay = requireNonNull(primaryConnectionRetryDelay, "primaryConnectionRetryDelay");
@@ -164,13 +180,14 @@ public class FailoverPolicy implements Serializable {
         /** Restores zero delay between additional setup attempts. */
         @NotNull
         public Builder resetPrimaryConnectionRetryDelay() {
-            return withPrimaryConnectionRetryDelay(Duration.ZERO);
+            return withPrimaryConnectionRetryDelay(DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY);
         }
 
         /**
          * Positive initial interval before reconsidering a failed destination. For example, 30 seconds lets other sends
          * continue through a working failover Mailer while only one operation checks the primary when it is due again.
-         * Default: 30 seconds. This is not a delay before trying the failover Mailer.
+         * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL thirty seconds}.
+         * This is not a delay before trying the failover Mailer.
          */
         @NotNull
         public Builder withPrimaryRecheckInterval(@NotNull final Duration primaryRecheckInterval) {
@@ -181,7 +198,7 @@ public class FailoverPolicy implements Serializable {
         /** Restores the initial reconsideration interval to 30 seconds. */
         @NotNull
         public Builder resetPrimaryRecheckInterval() {
-            return withPrimaryRecheckInterval(Duration.ofSeconds(30));
+            return withPrimaryRecheckInterval(DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
         }
 
         /**
@@ -205,12 +222,15 @@ public class FailoverPolicy implements Serializable {
         /** Restores fixed reconsideration intervals, using {@link #withPrimaryRecheckInterval(Duration)}. */
         @NotNull
         public Builder resetPrimaryRecheckBackoff() {
-            primaryRecheckBackoffMultiplier = 1;
+            primaryRecheckBackoffMultiplier = DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER;
             primaryMaximumRecheckInterval = null;
             return this;
         }
 
-        /** Allows a separately configured destination to take over when the primary rejects its credentials. Default: false. */
+        /**
+         * Allows a separately configured destination to take over when the primary rejects its credentials.
+         * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE disabled}.
+         */
         @NotNull
         public Builder withFailoverOnAuthenticationFailure(final boolean enabled) {
             failoverOnAuthenticationFailure = enabled;
@@ -220,13 +240,13 @@ public class FailoverPolicy implements Serializable {
         /** Restores stopping on authentication rejection. */
         @NotNull
         public Builder resetFailoverOnAuthenticationFailure() {
-            return withFailoverOnAuthenticationFailure(false);
+            return withFailoverOnAuthenticationFailure(DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE);
         }
 
         /**
          * Allows another configured destination when this one fails certificate or hostname verification, for example
          * after an expired certificate. Both destinations retain their own TLS requirements; verification is never disabled.
-         * Default: false, independently of the authentication choice.
+         * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE disabled}, independently of the authentication choice.
          */
         @NotNull
         public Builder withFailoverOnCertificateVerificationFailure(final boolean enabled) {
@@ -237,7 +257,7 @@ public class FailoverPolicy implements Serializable {
         /** Restores stopping on certificate or server-identity verification failure. */
         @NotNull
         public Builder resetFailoverOnCertificateVerificationFailure() {
-            return withFailoverOnCertificateVerificationFailure(false);
+            return withFailoverOnCertificateVerificationFailure(DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE);
         }
 
         @NotNull
