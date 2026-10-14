@@ -470,8 +470,14 @@ After the deploy job finishes:
 5. Create or update the GitHub release using the required single-item sentence or multi-item bullet format above.
 6. Attach the release assets: the versioned CLI standalone `.tar` and `.zip` archives and the sample `log4j2_example.xml` logging configuration.
 7. Recheck that every release-note issue/PR and summarized Dependabot item is in the exact-version milestone.
-8. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
-9. Fast-forward `develop` to `master` and push `develop`.
+8. For 10.0.0, complete the website and Journal comments launch in [#759](https://github.com/bbottema/simple-java-mail/issues/759), following the [website release checklist](../simplejavamail.org/RELEASE-CHECKLIST.md), before closing the milestone.
+9. Confirm every milestone item is closed, set the milestone due date to the actual published release date, then close it.
+10. Fast-forward `develop` to `master` and push `develop`.
+
+The 10.0.0 website launch is tracked on the [Simple Java Mail 10.0.0 Project board](https://github.com/users/bbottema/projects/1).
+The Terraform migration and comments backend are already deployed. Publish the reviewed 10.0.0 website content through its existing
+`develop` pipeline only after the SJM 10.0.0 artifacts and release tag are available. Switch Google OAuth from Testing to Production
+once the public application and policy pages are live, then verify the public comments flows and launch checks in #759.
 
 If a published artifact is wrong or missing, assume the Central release is immutable. Fix the release lane and ship a patch release. Fold the patch changes into the parent repository notes using the release-note decision tree above, while giving the patch tag its own GitHub release in the required concise format.
 
