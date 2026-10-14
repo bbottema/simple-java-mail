@@ -15,6 +15,10 @@ The original [#183](https://github.com/bbottema/simple-java-mail/issues/183) exp
 
 Keep feature contracts and shared data types in `core-module`, implement each optional feature in its own Maven module, and let the main implementation load that module by implementation-class name when needed. Use the core interface after loading; do not import an optional implementation into ordinary main-module code.
 
+The same direction applies to the main API: `core-module` is the API-bearing artifact, while `simple-java-mail` provides bootstrap and the main
+implementation. Core can contain necessary shared internals, but not arbitrary main-only machinery. [ADR 0031](0031-public-api-and-internal-construction.md)
+distinguishes module ownership from public/internal package visibility.
+
 `ModuleLoader` lazily caches one instance per module interface using `ConcurrentHashMap.computeIfAbsent`. Optional feature implementations must therefore tolerate shared concurrent use. Class-availability checks let selected paths degrade deliberately: absent batch support means direct transports, while requesting an unavailable signing module raises a focused error. Module absence is not permission to silently omit requested protection.
 
 OpenPGP follows the same boundary. Its PGPainless implementation belongs to `openpgp-module`; adding it does not impose OpenPGP dependencies on ordinary senders. The separate provider adapter SPI is covered by [ADR 0007](0007-provider-neutral-mime-boundary.md): replaceable transport providers and the fixed set of bundled optional feature modules use different discovery contracts.

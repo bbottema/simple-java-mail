@@ -94,12 +94,13 @@ A broken connection is not made usable by this flag. Batch first-failure stoppin
 Assume `mail` is the application's configured factory and `mailer` is its Mailer:
 
 ```java
-import static org.simplejavamail.recipient.RecipientBuilder.to;
-
 Email email = mail.emailBuilder().startingBlank()
     .from("sender@example.org")
-    .withRecipients(to("Alice", "alice@example.org"), to("Bob", "bob@example.org"),
-        to("Carol", "carol@example.org"))
+    .withRecipients(mail.recipientsBuilder()
+        .withRecipient("Alice", "alice@example.org", Message.RecipientType.TO)
+        .withRecipient("Bob", "bob@example.org", Message.RecipientType.TO)
+        .withRecipient("Carol", "carol@example.org", Message.RecipientType.TO)
+        .buildRecipients())
     .withSubject("Service notification")
     .withPlainText("The service window has changed.")
     .withSendingToAcceptedRecipients(true)

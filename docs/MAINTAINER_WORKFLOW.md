@@ -204,7 +204,8 @@ Read the relevant code and tests before editing. Use TDD when the issue is repro
 For public API or config changes:
 
 - Follow [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md).
-- Check the [public/internal package boundary](API_EXPANSION_WORKFLOW.md#public-api-versus-internal-cross-module-types): a type made `public` only for cross-module implementation use still belongs in an `.internal` package, not among supported application APIs.
+- Check [module ownership and public/internal visibility](API_EXPANSION_WORKFLOW.md#public-api-versus-internal-cross-module-types): `core-module` carries the API and shared contracts, while `simple-java-mail` carries the main implementation. An `.internal` package does not excuse putting main-only machinery in core. A type made `public` only for implementation access is still not supported application API.
+- Follow [ADR 0031](adr/0031-public-api-and-internal-construction.md): result construction belongs behind core read contracts unless it serves an explicitly supported SPI. Internal and provider-SPI builders use Lombok; application configuration builders are explicit and document the setter as the source of truth. Keep application-facing result getters documented even when a provider constructs the value. Avoid telescoping optional-value constructors without replacing deliberate test/DI seams. Verify core-only consumers and generated public Javadocs.
 - Keep Java API, property configuration, Spring support, defaults/overrides, CLI exposure, and website/README docs aligned where applicable.
 - Do not expose low-level Jakarta Mail terminology when Simple Java Mail can provide a higher-level concept.
 - Prefer builder APIs that hide underlying property names and transport-specific details.

@@ -146,3 +146,9 @@ These controlled interleavings are not a proof against every application/provide
 ## Infographic review
 
 The shared [resource-layer infographic](inside-a-mail-send.md) remains accurate at its level: one entry/operation, existing executor, selected transport and once-only observation. Failover coordinates destination selection; it adds no send executor or message replay layer. Its entry-point companion table now says preparation occurs during executor execution. No replacement raster was generated.
+
+## Separately configured submission retries
+
+[Mail-send retries](11-mail-send-retries.md) may replay a safely refused temporary whole-envelope attempt on the already selected registration.
+They never reopen this route, apply another destination's templates, or weaken the no-failover-after-provider-entry boundary. Partial or uncertain
+acceptance and failed cleanup remain terminal. Dedicated scopes remain dedicated unless connection failover itself selected a pooled route.

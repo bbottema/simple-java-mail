@@ -30,6 +30,7 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 | How do the machines fit together, including observers, batches, and future completion? | [08 — Cross-machine contracts](08-cross-machine-contracts.md) |
 | Why select a destination before borrowing? Who charges or releases sending allowance? | [09 — Sending limits](09-sending-limits.md) |
 | Who may recheck a failed primary? Why doesn't a full pool trigger failover? | [10 — Connection failover](10-connection-failover.md) |
+| Who owns a parked retry, its replay bytes and resumed execution? | [11 — Mail-send retries](11-mail-send-retries.md) |
 
 ## Entry points and adjacent mechanisms
 

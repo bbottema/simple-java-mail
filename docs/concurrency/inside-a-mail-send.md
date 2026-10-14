@@ -33,7 +33,7 @@ The issue's branch URL follows the canonical asset; do not upload a competing pe
 | Canonical master / issue embed source | `3e51924c4e9c` | 2,050,207 bytes |
 | Optimized website source / component | `64c285f68384` | 366,973 bytes |
 
-Both images are 1536 × 1024. The [image-edit prompt](../../output/imagegen/inside-a-mail-send-failover-prompt.txt) records the exact requested wording and preserved layout.
+Both images are 1536 × 1024. The [archived image-edit prompt](https://github.com/bbottema/simple-java-mail/blob/9f094c845b5bf403ce74ccd24036d21fa7cf532b/output/imagegen/inside-a-mail-send-failover-prompt.txt) records the exact requested wording and preserved layout. The generated working files were subsequently removed; the immutable history link retains this reference.
 
 ## Text and layout source
 
@@ -143,3 +143,7 @@ Add a dated row for each completed step. Record the change, or explicitly say wh
 | Connection failover, explicit recovery-state refactor, 2026-10-11 | Reviewed unchanged: `ConnectionRecovery` now manages private state objects and explicit observation owners. Routing returns an owned connection scope before submission; upstream claim identity connects foreground observations without ambient ownership. These are refinements within ring 03 and the existing resource owners, not another executor, transport layer or public health model. Updated state/sequence/class diagrams render successfully. No raster or website artwork was changed. |
 | Connection failover, architecture and review-seam refresh, 2026-10-12 | Rechecked the current SJM and upstream claim-context implementations. The [architecture guide](../failover/architecture.md) now shows `ReadyMailSend` and common `RoutedConnectionScope` ownership, the acquisition-only routing catch, explicit observation generation/visit lifetimes and provisional pool handoff. Its deeper-review priorities follow those boundaries. These helpers refine ring 03; claim identity refines ring 04. The representative five-ring artwork remains accurate, and both the canonical PNG and the user's optimized website derivative are preserved. |
 | Connection failover, Session ownership correction, 2026-10-12 | A construction token now reserves each Session/Properties object for one live Mailer before installing configuration. Successful rollback or completed shutdown retires it; failed cleanup cannot free another owner's context. This tightens ring 03's existing destination/lifecycle boundary without adding a resource layer. The [pool ownership contract](06-pool-claims-and-leases.md#session-ownership-before-registration) and migration notes document the deliberate rejection of simultaneous Session sharing. No artwork or website image changes are needed. |
+
+## Retry review, 2026-10-13
+
+Reviewed for #756: the five resource layers still apply. Retry coordination adds one lazy dispatcher within execution control, bounded pending tickets and attempt-owned replay bytes; it is not another transport layer or a durable job queue. The current overview is intentionally non-exhaustive, so use [retry concurrency](11-mail-send-retries.md) for these new actors and the updated [operation](01-send-operation.md) and [shutdown](02-mailer-lifecycle.md) diagrams. No raster regeneration or concurrent website artwork changes were made.

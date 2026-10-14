@@ -13,7 +13,7 @@ This lets shutdown wait for the work the Mailer still owns without making a send
 | [SendMailsWithOpenConnectionClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java) | `runOpenConnectionCallback`, `openSmtpTransport`, `sendMailAndGetReceipt`, `closeTransportIfOpened`. |
 | [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | `executeWork` and `finish` install context and release lifetime bookkeeping. |
 
-`MailSendOperations` owns two lazily started daemon workers: one scheduled deadline worker (`sjm-deadline-*`) and one serial terminal-reporting worker (`sjm-control-completion-*`). Normal sends use the configured send executor, not either of these workers. The separate terminal worker handles sends retired before execution so a slow observer cannot occupy the deadline watcher.
+`MailSendOperations` owns a scheduled deadline worker (`sjm-deadline-*`) and a serial terminal-reporting worker (`sjm-control-completion-*`), both lazily started. Retry-enabled work additionally starts one bounded-ledger dispatcher on demand. Normal SMTP work uses the configured send executor; timer signals never invoke observers or perform executor admission. The separate terminal worker handles sends retired before execution so a slow observer cannot occupy the deadline watcher.
 
 ## States are derived, not an enum
 
@@ -50,7 +50,7 @@ stateDiagram-v2
 | Mechanism | Protects / owns | Nesting and waiting rules |
 | --- | --- | --- |
 | `synchronized (MailSendOperations)` | `active`, `closing`, and the decision to complete `drained`. | `begin` constructs a control under this monitor, acquiring that new control's monitor. No send I/O or observer is invoked here. |
-| `synchronized (MailerImpl)` | Publication and reuse of `shutdownFuture`. | `shutdownConnectionPool` calls executor shutdown and then owner shutdown while holding this monitor; it does not wait for sends there. |
+| `synchronized (MailerImpl)` | Publication and reuse of `shutdownFuture`. | `shutdownConnectionPool` stops logical admission through the owner while holding this monitor; it does not wait there or shut down the executor before retry drain. |
 | Session Properties monitor | Exclusive construction ownership token and converter retirement. | Claim before configuration; retire only the exact owner's token after drain/cleanup succeeds. No configuration, pool callbacks, I/O or waiting while held. Distinct Sessions sharing Properties still conflict. |
 | `CURRENT_OPERATION` | Per-thread stack of participating Mailer-operation owners, including required inline callbacks. | No lock. Push owner, run immediately, restore/remove in `finally`. Self-wait checks inspect the complete stack. |
 | Executor `CURRENT_WORKER` | Identity of the SJM-owned executor whose task is on this thread. | Set in `beforeExecute`, removed in `afterExecute`; covers non-send tasks too. |
@@ -74,18 +74,18 @@ sequenceDiagram
     W->>W: Send work and transport<br/>cleanup return
     W->>W: Begin inline observer
     A->>M: Acquire for<br/>shutdownConnectionPool
-    M->>M: Stop owned<br/>executor admission
+    M->>M: Stop new logical<br/>send admission
     M->>O: Acquire, set closing<br/>active remains positive
     O-->>M: Release<br/>drained still pending
     M-->>S: Start dedicated<br/>daemon cleanup thread
     M-->>A: Publish shutdown future<br/>release Mailer monitor
-    S->>S: Await owned executor<br/>termination<br/>No SJM monitor held
+    S->>S: Await logical operation drain<br/>including parked retries<br/>No SJM monitor held
     W->>W: Observer returns<br/>Complete result and<br/>inline continuations
     W->>O: Acquire, decrement<br/>active to zero
     O->>O: Shut down private workers<br/>complete drained
     O-->>W: Release owner monitor
     W->>W: Restore context<br/>task returns
-    S->>S: Executor wait returns<br/>await operations drained
+    S->>S: Shut down owned executor<br/>await termination
     S->>S: Close connection pools and owned failover Mailers<br/>retire Session ownership<br/>complete shutdown future
 ```
 

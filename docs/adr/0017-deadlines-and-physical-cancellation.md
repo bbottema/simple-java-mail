@@ -50,6 +50,10 @@ This design adds control state, registration fences and pool/provider cooperatio
 
 ## Implementation and regression anchors
 
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Backoff consumes
+the same deadline, cancellation retires delayed continuations, and intermediate retryable failures must not freeze the logical send
+as terminal. Existing terminal-failure and acceptance/cleanup arbitration remains authoritative; the operation now explicitly fences waiting and resumption.
+
 - [MailSend](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/MailSend.java), [MailSendControl](../../modules/core-module/src/main/java/org/simplejavamail/internal/util/concurrent/MailSendControl.java), [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java)
 - [MailTransportLifecycleAdapter](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/spi/MailTransportLifecycleAdapter.java), [pool claims and leases](../concurrency/06-pool-claims-and-leases.md), [cross-machine regression evidence](../concurrency/08-cross-machine-contracts.md)
 

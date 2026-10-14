@@ -42,6 +42,10 @@ Draining is not instantaneous and has no independent forced-completion guarantee
 
 ## Implementation and regression anchors
 
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Suspended retries have
+their own bounded per-initiating-Mailer collection: an executor queue cannot bound work waiting outside it. They remain part of the
+same admitted operation for cancellation and graceful draining, rather than reentering public send admission.
+
 - [MailSendExecutor](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendExecutor.java), [MailSendOperations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperations.java), [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java)
 - [Executor admission catalogue](../concurrency/03-executor-admission.md), [Mailer lifetime catalogue](../concurrency/02-mailer-lifecycle.md)
 - [MailSendExecutorTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailSendExecutorTest.java), [MailSendQueueTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendQueueTest.java), [MailSendOperationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailSendOperationTest.java)

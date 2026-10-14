@@ -55,6 +55,13 @@ Inline reporting can delay call/future completion. Offloaded reporting can arriv
 
 ## Implementation boundaries
 
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension. A retry-enabled
+logical send publishes one final outcome, not a callback for every submission attempt. Intermediate refusals and delays belong
+in bounded history and logging; recording that direction does not change the current terminal-observation contract.
+
+[ADR 0031](0031-public-api-and-internal-construction.md) keeps the outcome's read contract in core and its assembly in the main implementation.
+Applications receive outcomes rather than construct them; the accepted report-format break does not change observer ordering or result identity.
+
 The observer registration is Java behavior attached directly to the builder and Mailer; it does not belong in OperationalConfig, configuration files, Spring property binding, CLI generation or redacted configuration diagnostics. Validation, rehearsal, probes/connection tests, shutdown and standalone `BatchTransportExecutor` operations are not email attempts.
 
 Ordinary cleanup failures can produce whole-attempt failure even after useful SMTP work. [ADR 0026](0026-actual-send-diagnostics.md) extends this boundary under #750:

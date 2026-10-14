@@ -64,8 +64,10 @@ observer diagnostics, not a new failure handler or send-result wrapper. `MailSen
 `MailSendConnectionStep` values; retain the first 63 plus the latest and report the omitted count. This limits reporting, not routing.
 
 The website must explain how applications can handle later retry decisions through the existing observer and receipt APIs.
-General mail-send retry policies, including possible backoff, are separate research under [#756](https://github.com/bbottema/simple-java-mail/issues/756);
-they do not expand the agreed initial scope or acquire a release target through this ADR.
+General mail-send retry policies were separate research under [#756](https://github.com/bbottema/simple-java-mail/issues/756) when
+this failover decision was accepted. [ADR 0030](0030-safe-bounded-mail-send-retries.md) subsequently accepts that direction for
+10.0.0. It does not expand #755's delivered connection-only scope: initial failover selects a destination,
+then any eligible submission retries stay with that selected Mailer rather than reopening route traversal.
 
 The maintainer selected a failover Mailer on the primary Mailer's builder, not a third resilient Mailer. The accepted shape is
 `withFailoverMailer(Mailer failoverMailer, FailoverPolicy policy)`, returning the normal fluent builder. The failover Mailer and policy are configured
@@ -643,7 +645,8 @@ Here, primary retry/backoff means **connection setup before provider submission 
 repeated setup attempts share the operation's cancellation, deadline and finite attempt budget; do not nest unbounded retry loops or restart
 the overall timeout. The agreed baseline prefers a failover destination after one failed primary setup attempt. Primary reconsideration defaults to a
 configurable fixed interval; optional increasing backoff has a configured cap. Concrete periods, repeat controls and destination-identity
-representation still require agreement. General submission retry/backoff remains separate under #756.
+representation still require agreement. General submission retry/backoff remains separate under #756 and
+[ADR 0030](0030-safe-bounded-mail-send-retries.md), accepted but not implemented.
 
 ### Factory-local connection history
 
@@ -683,7 +686,8 @@ conflicts are not blanket availability failures. Known authentication/certificat
 explicit failover permission. No option weakens requirements or strips a rejected option. Pool saturation remains backpressure and never
 triggers failover; sending-rate waits do not become availability failures.
 
-Broader recovery belongs to #756 and needs its own evidence/replay contract before implementation. Known retryability alone does not
+Broader recovery belongs to #756; [ADR 0030](0030-safe-bounded-mail-send-retries.md) records its implemented
+evidence/replay contract. Known retryability alone does not
 authorize a new relay. Confirmed, partial or uncertain acceptance always prevents whole-message replay. Recipient splitting and repeated
 same-destination submission are not implicitly included.
 
@@ -868,6 +872,8 @@ Any broader amendment belongs to #756 and needs its own explicit accepted wordin
   [0025](0025-factory-scoped-locked-configuration.md): fallback does not relax connection, onward-delivery or locked requirements.
 - [0027](0027-factory-scoped-sending-limits.md): reserve/charge against the selected registration; sharing does not follow hostname guesses.
 - [0028](0028-per-email-recipient-rejection-handling.md): partial continuation still fails overall; it does not authorize failover replay.
+- [0030](0030-safe-bounded-mail-send-retries.md): implemented under #756; bounded temporary-failure retries retain the selected
+  Mailer and prepared content without broadening this decision's connection-routing boundary.
 - [API expansion workflow](../API_EXPANSION_WORKFLOW.md): Java/property/Spring/CLI parity, supplied-data configuration and provider boundaries.
 
 Keep #382 and #722 closed. Distributed coordination (#753), PIPELINING/CHUNKING (#699), durable spooling and accepted server queues

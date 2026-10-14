@@ -58,7 +58,14 @@ The cost is a richer result model and provider-specific normalization. The benef
 
 ## Implementation boundaries and current limits
 
-The additive SIZE facts introduced by [#748](https://github.com/bbottema/simple-java-mail/issues/748) follow the same evidence rule. `getMessageSize()` reports a completed prepared-content count, not successfully transmitted bytes; `getServerMaximumMessageSize()` reports the reliable positive maximum on the selected connection. Unknown values remain `null`. A local oversized rejection can therefore retain both values without an SMTP reply, consumed ENVID or used REQUIRETLS. Immutable result enrichments and receipt serialization preserve these fields; older receipts and non-reporting adapters leave them absent. A separate declared-SIZE field was deliberately omitted: an advanced caller estimate is not the measured content size and adds little to the ordinary diagnosis.
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the opt-in retry extension.
+It requires temporary failure as well as safe full-envelope replay; retry guidance alone does not trigger a resend. The result meanings
+and the prohibition on replay after confirmed, partial or uncertain acceptance remain unchanged.
+
+The additive SIZE facts introduced by [#748](https://github.com/bbottema/simple-java-mail/issues/748) follow the same evidence rule. `getMessageSize()` reports a completed prepared-content count, not successfully transmitted bytes; `getServerMaximumMessageSize()` reports the reliable positive maximum on the selected connection. Unknown values remain `null`. A local oversized rejection can therefore retain both values without an SMTP reply, consumed ENVID or used REQUIRETLS. Immutable result enrichments and receipt serialization preserve these fields; non-reporting adapters leave them absent. A separate declared-SIZE field was deliberately omitted: an advanced caller estimate is not the measured content size and adds little to the ordinary diagnosis.
+
+[ADR 0031](0031-public-api-and-internal-construction.md) makes the receipt a core read contract with main-module internal construction.
+It deliberately supersedes historical concrete-report serialization compatibility; it does not change acceptance, recipient facts or retry guidance.
 
 Angus success-reporting mode uses exceptions even after successful submission. Its adapter enables recipient reporting only during the exclusively owned send, restores the previous Transport setting in `finally`, and does not mutate shared Session properties. Normalization to success requires a real final 2xx reply, all recipients accepted and no rejection. Other exceptions retain their original failure meaning.
 

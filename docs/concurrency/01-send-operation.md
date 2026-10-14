@@ -18,7 +18,7 @@ The public `Mailer.sync()` and `Mailer.async()` views delegate to the same ownin
 
 ## States and transitions
 
-These five names are the **actual private `State` enum**, held in an `AtomicReference`. `FINISHING` remains the stored value after completion; there is no `DONE` enum member. The final diagram marker means `finish()` has returned, not another enum value.
+These eight names are the **actual private `State` enum**, held in an `AtomicReference`. Retry waits preserve the same logical operation rather than creating another public send.
 
 ```mermaid
 stateDiagram-v2
@@ -30,10 +30,15 @@ stateDiagram-v2
     ADMITTING --> FINISHING: admission failure and caller CAS wins
     QUEUED --> RUNNING: worker CAS wins
     QUEUED --> FINISHING: stop callback CAS wins
+    RUNNING --> WAITING_FOR_RETRY: safely refused, resources released, ticket reserved
+    WAITING_FOR_RETRY --> RESUMING: dispatcher CAS wins
+    RESUMING --> RUNNING: executor CAS wins
+    WAITING_FOR_RETRY --> FINISHING: stop or failed resumption
+    RESUMING --> FINISHING: stop or executor rejection
     RUNNING --> FINISHING: work returns or throws
-    FINISHING --> [*]: notification, result completion, owner.finished return
+    FINISHING --> FINISHED: notification, result completion, owner.finished return
+    FINISHED --> [*]
     note right of FINISHING
-        The stored enum never advances again.
         Cleanup and callbacks can still be running here.
     end note
 ```
@@ -46,7 +51,7 @@ stateDiagram-v2
 | Admission throws | Only CAS `ADMITTING → FINISHING` claims reporting. Runtime failures pass through control classification; an `Error` is rethrown. | Submitting caller. |
 | `executeSync(action)` | Directly sets `RUNNING`; these internal entry points are not a reusable concurrent API. | Calling thread. |
 | Preparation fails | Running work takes the ordinary exceptional completion path; no message submission has begun. | Executing thread. |
-| Cancellation/deadline signal | `retireQueuedOperation` only claims `QUEUED → FINISHING`; other states are untouched by this callback. | Cancellation caller, deadline watcher, or caller observing expiry. |
+| Cancellation/deadline signal | `retireQueuedOperation` claims queued, retry-waiting or resuming work; running work unwinds on its owning execution. | Cancellation caller, deadline watcher, or caller observing expiry. |
 | Running work returns/throws | `finish` records `FINISHING` and owns terminal reporting. | Executing thread. |
 | Retired queued work is reported | Owned queue removal is attempted first; terminal reporting is handed to the private completion executor. | Completion worker, not signal thread. |
 
@@ -57,7 +62,7 @@ A stop during `CREATED` or `ADMITTING` is retained by the [control](04-stop-and-
 | State | Protection / owner | Important boundary |
 | --- | --- | --- |
 | `state` | `AtomicReference<State>`; CAS arbitrates worker versus queued retirement. | No operation monitor and no `wait()` in this class. |
-| `work` | Written before executor publication; consumed by the winning executing path; cleared by the finishing path. | The internal object is started once, not resubmitted or restarted by callers. |
+| `work` | Written before executor publication; consumed by the winning executing path; cleared by the finishing path. | Started once by callers; a retry continuation may resubmit the same operation through a fenced internal handoff. |
 | `completion` | `CompletableFuture` synchronization. | Calling `complete` may execute already-attached non-async continuations on the completing thread. |
 | Attempt notification | `MailSendAttempt.completed.compareAndSet(false, true)`. | Prevents a second outcome if batch failure handling encounters an already-reported email. It does not make all attempt fields independently thread-safe. |
 | Attempt timing/email fields | Admission-ready publication followed by the single executing/finishing path; preparation belongs to execution. | They are not a mutable public concurrent model. |
@@ -132,7 +137,7 @@ Observer behavior is deliberately separate from result ownership:
 
 The outcome's completion timestamp is captured **before** notification. On an ordinary send's normal cleanup path, a healthy pooled lease has been returned for reuse, invalidated disposal has settled, or a directly owned transport has been closed; healthy release is not physical disposal. For a batch, each email notifies while its shared transport remains in scope; its ongoing control pauses the deadline around inline callback / handoff time. Those per-email notifications precede the batch operation's eventual `finish()`. Do not apply the ordinary-send resource-retirement ordering to shared scopes. See [pool cleanup boundaries](06-pool-claims-and-leases.md) for exceptional release paths.
 
-Cancellation is a request, not a final state or proof of non-delivery. This machine does not classify SMTP acceptance or retry safety. A late stop can coexist with an accepted receipt; classification belongs to the [cross-machine result contract](08-cross-machine-contracts.md).
+Cancellation is a request, not a final state or proof of non-delivery. This machine does not classify SMTP acceptance or retry safety. A late stop can coexist with an accepted receipt; classification belongs to the [cross-machine result contract](08-cross-machine-contracts.md). [Retry coordination](11-mail-send-retries.md) adds bounded waiting, timer handoff and terminal cleanup without changing that distinction.
 
 ## Actual-send measurements
 

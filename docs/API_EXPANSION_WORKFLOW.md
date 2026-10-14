@@ -17,11 +17,37 @@ Read [ADR 0001: Email configuration scopes and inheritance](adr/0001-email-confi
 
 ### Public API versus internal cross-module types
 
+Follow [ADR 0031](adr/0031-public-api-and-internal-construction.md). Classify the consumer first: application configuration, inspection of a
+library-produced result, supported provider SPI, or library-internal construction. A returned result does not automatically need a public builder.
+`core-module` is the API-bearing artifact; `simple-java-mail` is the main implementation. There is no separate current `api-module`.
+
+Check module ownership before package visibility. Put application contracts, builder interfaces and public result/value types in core. Put concrete
+main-runtime builders, recording and orchestration in `simple-java-mail`; put optional implementations in their feature module. Core may contain
+necessary shared utilities and internal cross-module contracts, but is not a home for main-only machinery just because it has internal packages.
+After bootstrap, continuing application calls and their parameter/return/callback types should need only core and its declared API dependencies
+to compile. Keep the implementation available at runtime. A contract with one library-owned implementation still earns this module boundary.
+
 Java `public` visibility does not by itself make a type supported application API. Implementation types that need to cross module boundaries belong in a package containing an `internal` segment, such as `org.simplejavamail.internal.config.ConfigurationLocks`. Keep them package-private when cross-package access is unnecessary.
 
-Use `@ApiStatus.Internal` where appropriate, but do not use that annotation as a substitute for the internal package. Mark internal bridge accessors on public types with it as well. Genuine application-facing types and supported provider extension SPIs remain in their public API packages.
+Use `@ApiStatus.Internal` where appropriate, but do not use that annotation as a substitute for the internal package. Genuine application-facing types and supported provider extension SPIs remain in their public API packages. Do not expose library-only accessors such as configuration-lock machinery on an application read contract.
 
-Check package placement during review and verify cross-module classpath/JPMS consumers after a move. The Javadoc build excludes internal packages, so implementation types should not appear as ordinary user-facing API.
+Public utilities may retain their implementation and private helpers. Do not add an internal class mirroring every public method simply to relocate code;
+identify the actual module, construction or visibility boundary, and extract only shared work that earns its own responsibility.
+
+Keep runtime result assembly builders internal to their implementation module. Core reading contracts must not depend on concrete assembly builders.
+Use a read interface and a producer-owned implementation for library-only result assembly, not a public construction bridge annotated as internal.
+Reserve `@Deprecated` for retiring supported API, not identifying new internal code.
+Do not introduce telescoping constructors. Use named builder assignments and one validation/copying boundary. Internal and provider-SPI builders
+use Lombok. Public application configuration builders are explicit, with setter-owned Javadocs and getter/reset/clear references to that setter.
+SPI authors do not need those companion methods or the application documentation convention; document their obligations and supplied facts directly.
+For values also read by applications, retain explicit documentation on the result getters.
+Preserve deliberate dependency injection and test constructors rather than introducing builders solely to satisfy a constructor-count rule.
+Compatibility concerns apply to released supported API; they do not justify retaining every unreleased internal overload.
+
+Check both module and package placement during review and verify cross-module classpath/JPMS consumers after a move. Compile continuing application
+usage with only core and its declared API dependencies; keep bootstrap/runtime and provider construction fixtures separate. Include negative
+compilation checks and generic/callback signature checks. The Javadoc build excludes internal packages, so implementation types must not leak through
+public signatures or appear as ordinary user-facing API.
 
 ---
 
@@ -42,7 +68,7 @@ New fields must be accessible through the fluent Builder API.
 - **Builder Interface Ownership**: Follow [ADR 0024](adr/0024-builder-interfaces-are-not-extension-spis.md). All builder interfaces are library-owned API contracts, not extension SPIs. Update Simple Java Mail's implementations when adding abstract methods; do not add default methods solely to preserve unsupported external implementations.
 - **Update Builder Interfaces**: Add new methods to the public builder interfaces (e.g., `EmailPopulatingBuilder`, `IRecipientsBuilder`, `IRecipientBuilder`).
 - **Discoverable Java Choices**: Use enums or cohesive typed values for a closed set of choices; do not make Java callers discover protocol tokens such as `"SUCCESS"`, `"NEVER"`, or `"HDRS"`. Explain enum values in user terms and use typed values in Java examples. Parse text at configuration/CLI boundaries. Do not add or retain String builder overloads just for CLI conversion: register a converter for the typed parameter instead. Any retained text-input overload needs an independent compatibility or Java-use justification.
-- **Javadoc Source of Truth**: Put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics.
+- **Javadoc Source of Truth**: For application configuration, put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics. This convention does not apply to provider-SPI builders.
 - **Public Configuration Getters**: Link each configuration getter to its corresponding public builder method with `@see`. Keep Lombok for value semantics where appropriate, but declare application-facing configuration getters explicitly so the source-based Javadoc build includes them. Describe getter-specific absence or defensive-copy behavior locally; do not repeat the feature contract. Check the generated HTML for both the getter and its builder link rather than treating a successful Javadoc build as proof that generated accessors are documented.
 - **CLI Compatibility Rules**:
   - **Parameter Types**: For CLI-exposed methods, use supported scalars, enums, or types with a `ValueInterpreter` in the `cli-module` (e.g., `X509Certificate`, `File`, `URL`, `Date`). CLI conversion must not dictate an untyped Java API; use a converter or an explicitly documented text-input boundary where necessary.
@@ -62,14 +88,14 @@ New fields must be accessible through the fluent Builder API.
 
 Implement the new API methods and ensure data propagation.
 
-- **Update Builder Implementations**: Update `EmailPopulatingBuilderImpl`, `RecipientsBuilder`, `RecipientBuilder`, etc.
+- **Update Builder Implementations**: Update `EmailPopulatingBuilderImpl`, `RecipientsBuilderImpl`, `RecipientBuilderImpl`, etc.
 - **CRITICAL: Data Propagation**:
   - For recipient-capable fields, retain metadata through fixed-type groups, Email copies/governance, override receivers, exact-EML envelopes and serialization. Preserve duplicate recipient occurrences and the provider's TO/CC/BCC ordering; never map preferences solely by address. Recipient NOTIFY is an example of a complete preference set, while RET/ENVID remain transaction-wide.
   - Ensure that "copy" methods (e.g., `withRecipient(Recipient)`) and delegation methods correctly copy the new field.
   - Failure to do this will result in data being lost when `simpleJavaMail.emailBuilder().copying(email)` is used or when builders delegate to each other.
 - **Update Email Constructor**: Ensure the `Email` constructor copies the new field from the builder.
 - **Utility Classes**: Update `MiscUtil` if it contains helper methods for object creation or parsing (e.g., `interpretRecipient`).
-- **Send Results**: Runtime facts belong to the send result, not the reusable Email. Preserve added fields through result enrichment, receipt construction, and serialization/read-resolution. Keep existing constructors usable, and test that older serialized receipts receive an appropriate absent value.
+- **Send Results**: Runtime facts belong to the send result, not the reusable Email. Preserve added fields through result enrichment, receipt construction, and serialization/read-resolution. Keep internal assembly out of the application API and use builders instead of adding positional constructor overloads. Review genuinely released construction contracts separately; retaining serialized compatibility does not require retaining unreleased constructors. Test absence behavior within the supported snapshot format. ADR 0031 explicitly supersedes compatibility with the former concrete report classes; keep that migration boundary distinct from the preserved Email/recipient/attachment format.
 
 ## 4. Message Conversion & Processing (`simple-java-mail`)
 
@@ -106,19 +132,21 @@ Public API configuration should have parity across the Java builder API and the 
 
 Only skip defaults/overrides integration when the value cannot sensibly be represented on the source model, when it depends on runtime state that cannot be copied, or when it is a per-recipient sub-field that should be set while constructing recipients instead. Document the reason in the implementing issue or PR.
 
-- Add EmailProperty entry (core-module)
-  - If the field is on Email and needs default/override resolution, add a corresponding constant to org.simplejavamail.internal.config.EmailProperty.
-  - Mark it as collection-based when the value is a collection so merging is applied instead of replacement.
+- Add the field selector and its internal mapping (core-module)
+  - If the field is on `Email` and needs default/override resolution, add a constant to `org.simplejavamail.api.email.EmailProperty`.
+  - Add the matching getter strategy to `org.simplejavamail.internal.config.EmailPropertyAccess`. The public selector names the field; it does not expose its implementation.
+  - Keep a same-named constant in `org.simplejavamail.internal.config.EmailProperty` for `EmailPropertySerialization`. This compatibility enum preserves serialized suppression sets; do not put getter strategies or collection flags there.
+  - Keep `PublicApiBoundaryTest.everyPublicSelectorHasAnInternalAccessorAndSerializationName` passing, and cover the new selector's default/override suppression through copying and serialization.
 - Apply default values (simple-java-mail)
   - In `EmailGovernanceImpl.createConfiguredDefaults(...)`, derive a sensible default from the Mailer's `SimpleJavaMailConfig` snapshot if applicable and set it on the builder.
 - Apply defaults/overrides to provided Email (simple-java-mail)
-  - In EmailGovernanceImpl.produceEmailApplyingDefaultsAndOverrides(), resolve values using MiscUtil.overrideOrProvideOrDefaultProperty / overrideAndOrProvideAndOrDefaultCollection and apply them to the builder.
+  - In `EmailGovernanceImpl.produceEmailApplyingDefaultsAndOverrides()`, explicitly choose `MiscUtil.overrideOrProvideOrDefaultProperty` for replacement or `MiscUtil.overrideAndOrProvideAndOrDefaultCollection` for meaningful additive merging, then apply the result to the builder. Collection types do not automatically imply merging; policy sets may need to be replaced as a whole.
   - Ensure ignoringDefaults / ignoringOverrides and the per-property suppression sets are respected (this comes for free when using the MiscUtil helpers).
 - Module-triggering fields
   - If the new field influences downstream processing (e.g., per-recipient S/MIME), make sure SpecializedMimeMessageProducer considers the presence of the field when deciding to trigger the corresponding module.
   - Ensure the corresponding module implementation tolerates null global config if the trigger is a per-item value.
 - Per-recipient fields
-  - Resolve recipient/group choices through IRecipientsBuilder / RecipientsBuilder, preserving the resulting metadata on each Recipient. Email governance can supply the email-wide fallback for a recipient-capable setting; it must not create a second hierarchy by rewriting recipient sub-fields behind the builder API.
+  - Resolve recipient/group choices through IRecipientsBuilder / RecipientsBuilderImpl, preserving the resulting metadata on each Recipient. Email governance can supply the email-wide fallback for a recipient-capable setting; it must not create a second hierarchy by rewriting recipient sub-fields behind the builder API.
 - Follow ADR 0001's scope rules and ADR 0002's resolution conventions. Distinguish an absent recipient preference from explicit disabling, and define how forced overrides interact across scopes. Treat policy sets such as DSN NOTIFY as complete values rather than blindly merging events with defaults.
 
 ## 7. Mailer Configuration API Expansion
@@ -156,6 +184,7 @@ Only skip property configuration when the value cannot be expressed safely or cl
 Always verify the following areas:
 
 - **Builder Chain**: Verify the field is preserved across multiple builder calls.
+- **Public/Internal Boundary**: Check module ownership as well as package visibility. Compile continuing builder/send/result calls against core and its declared dependencies without the main implementation on the compile path; test bootstrap/runtime separately. Check returned-result construction separately from public configuration builders and provider SPIs. Inspect generated Javadocs for leaked builders/bridges, and keep application classpath/JPMS fixtures on supported inspection methods rather than internal construction helpers.
 - **Opt-in Runtime Behavior**: Exercise both configured and unconfigured behavior through the actual factory/builder. Testing a policy or state object directly does not verify who enables it during construction. For background behavior, demonstrate recovery without a foreground operation hiding the failure.
 - **Concurrent Transitions**: Write down who owns each state transition and when pending results become stale. Test both completion orders of overlapping success/failure, cancellation followed by replacement, and work begun after recovery. Pair focused state tests with real send-path regressions; a routing fix must also preserve public exception families, exact observer/completion failures, receipt retention and resource ownership.
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.

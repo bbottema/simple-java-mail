@@ -19,6 +19,10 @@ Treat every Simple Java Mail builder interface, public or internal, as a library
 
 Applications may use public builder interfaces as types, but implementations outside Simple Java Mail are unsupported. Adding an abstract method to a builder interface therefore does not require a default implementation solely to preserve external custom implementations. Implement the method in the library's own builder classes and verify the affected Java behavior and generated integrations.
 
+[ADR 0031](0031-public-api-and-internal-construction.md) distinguishes those application builders from internal result assembly. A builder used only to
+construct a library-produced report belongs in its implementation module's `.internal` package; this record does not make every builder an
+application-facing contract. The core contract/main implementation boundary is useful with one implementation and is not itself an extension SPI.
+
 Continue to review compatibility for callers of the builder API. This decision does not make it acceptable to remove or rename existing methods, change their parameter or return types, or silently change their behavior. It only excludes external interface implementations from the project's compatibility contract.
 
 ## Alternatives and consequences
@@ -32,5 +36,5 @@ This decision keeps builder API expansion direct, but the library must update ev
 ## Implementation anchors
 
 - [Mailer builder interfaces](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer), [Email builder interfaces](../../modules/core-module/src/main/java/org/simplejavamail/api/email)
-- [Mailer builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal), [Email builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal), [recipient builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/recipient)
+- [Mailer builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal), [Email builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal), [recipient builder implementations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/recipient/internal)
 - [ADR 0018: Generate the CLI from builder contracts](0018-cli-from-builder-contracts.md), [API expansion workflow](../API_EXPANSION_WORKFLOW.md)

@@ -18,7 +18,8 @@ from a later failure releasing that connection. Neither a new lifecycle-event st
 ## Decision
 
 Extend [the existing terminal outcome](0012-terminal-send-observation.md) with optional immutable `MailSendDiagnostics`.
-Collect whenever an observer is registered, retaining the unobserved fast path. Preserve existing constructors and older serialized outcomes without diagnostics.
+Collect whenever an observer is registered, retaining the unobserved fast path. The original concrete outcome preserved older snapshots without diagnostics;
+[ADR 0031](0031-public-api-and-internal-construction.md) supersedes that storage-format compatibility when separating read contracts from internal implementations.
 
 Expose explicit getters for preparation, scheduling, connection acquisition, MIME preparation, submission and cleanup. Each returns one `MailSendMeasurement`
 with elapsed time or a human-readable absence explanation. Its `isFailureObservedHere()` getter identifies the step where the send failed.
@@ -36,12 +37,23 @@ Capture only the selected transport's logical host and port when available, with
 This is not the physical peer, proxy route or proof of TLS. Default rendering omits endpoints, identifiers, exception messages and content.
 Preserve the exact produced receipt across later cleanup failure without changing the caller-facing throwable or first-failure arbitration.
 
+### Named snapshot construction
+
+Construction belongs to the recorder, not the application. As clarified in [ADR 0031](0031-public-api-and-internal-construction.md), use an internal
+builder with named assignments and one validation/copying boundary. Do not expose `MailSendDiagnostics.builder()` or retain telescoping constructors.
+Use Lombok for mechanical builder code. Keep the read API in core and recorder-specific assembly in the main implementation module, without making
+the read API depend on a concrete implementation builder. Internal package visibility alone does not establish the correct module ownership.
+The total and six original measurements remain required. Optional waiting measurements begin explicitly unrecorded; endpoints and histories begin absent.
+The builder measures nothing, reads no configuration and supplies no invented zero-duration work. Preserve serialization within the implementation's
+supported snapshot format; ADR 0031 explicitly accepts the break from the former concrete API class names. Applications receive the completed report
+through their observer and inspect it rather than constructing it.
+
 ### Connection failover and executor-side preparation
 
 [ADR 0029](0029-smtp-submission-failover.md) changes asynchronous preparation to execute after admission, on the initiating executor.
 Scheduling measures admission and worker waiting; preparation measures destination-specific governance/validation, accumulating across attempted
 destinations. `readyAt` means admission-ready, and `startedAt` precedes preparation. These are shallow send checks, not full MIME rehearsal.
-The original constructors and serialization identifiers remain available.
+Internal construction and the accepted snapshot-format boundary follow ADR 0031.
 
 `getConnectionHistory()` adds immutable per-email acquisition/skip facts with explicit getters. Retain the first 63 and latest entries, reporting
 omitted entries separately; this budget never limits routing. Failed acquisitions and cached skips are distinct. Logical names/endpoints are optional,
@@ -73,6 +85,10 @@ The implementation uses one attempt-local recorder passed through existing paths
 Verify isolation, exact receipt/throwable identity, serialization and observed/unobserved work counts as well as successful sends.
 
 ## Related decisions
+
+- [ADR 0030](0030-safe-bounded-mail-send-retries.md): explains intermediate
+  refusals, delays and exhaustion through one final outcome. Retry measurements distinguish waiting from
+  scheduling and connection acquisition without presenting an intermediate failure as the logical operation's terminal failure.
 
 - [ADR 0027](0027-factory-scoped-sending-limits.md): adds the explicit `getRateLimitWait()` measurement for intentional local rate waiting.
   It is separate from scheduling and acquisition, follows the existing observation opt-in, and adds no provider timing hooks.

@@ -35,6 +35,10 @@ No configuration property or Spring metadata default is added for a per-send ide
 
 ## Implementation evidence and limits
 
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Generated ENVID
+remains transaction-specific on each replay, while explicitly fixed IDs remain fixed. A stable Message-ID or ENVID is not a server
+deduplication guarantee; retry safety still comes from submission facts.
+
 - Local [DeliveryStatusNotification](../../modules/core-module/src/main/java/org/simplejavamail/api/email/config/DeliveryStatusNotification.java) and [MailTransportAdapter](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/spi/MailTransportAdapter.java) define fixed-value validation and provider opt-in.
 - Local [AngusMailTransportAdapter](../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusMailTransportAdapter.java) checks the connection, creates the per-message facade and reports ENVID without changing protected bytes.
 - Local [SmtpEnvelopeIdTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpEnvelopeIdTest.java) and [DSN characterization tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpDsnCharacterizationTest.java) are review evidence. Verification results in the plan belong to the implementation work; no Java tests were rerun for this ADR.

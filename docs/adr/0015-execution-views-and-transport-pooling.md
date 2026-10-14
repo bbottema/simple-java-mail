@@ -55,6 +55,10 @@ See the [resource verification record](../research/726-managed-angus-resource-ve
 
 ## Implementation anchors
 
+[ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Ordinary async
+backoff releases the send worker and connection while retaining one admitted operation; synchronous and intentional retained
+scopes keep their execution ownership. Retries stay with the selected Mailer instead of restarting cluster or failover selection.
+
 - [Mailer](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/Mailer.java), [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), [MailerGenericBuilderImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerGenericBuilderImpl.java)
 - [TransportRunner](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/util/TransportRunner.java), [BatchSupport](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java), [PoolSettings](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/PoolSettings.java)
 - [Execution-view implementation, #734](https://github.com/bbottema/simple-java-mail/issues/734), [pool claims and leases](../concurrency/06-pool-claims-and-leases.md)
