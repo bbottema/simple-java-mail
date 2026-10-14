@@ -35,8 +35,12 @@ class MailTransportAdapterDiscoveryTest {
     @Test
     void discoveryIsReusedButEveryTransportInstanceIsMatchedWithAFreshAdapter() throws Exception {
         final Session session = Session.getInstance(new Properties());
-        final PreparedMail mail = new PreparedMail(new MimeMessage(session), new Address[]{new InternetAddress("receiver@example.org")},
-                new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        final PreparedMail mail = PreparedMail.builder()
+            .withMimeMessage(new MimeMessage(session))
+            .withRecipients(new Address[]{new InternetAddress("receiver@example.org")})
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
         final Path registration = directory.resolve("adapters");
         Files.writeString(registration, StatefulAdapter.class.getName());
         final AtomicInteger scans = new AtomicInteger();
@@ -69,8 +73,12 @@ class MailTransportAdapterDiscoveryTest {
     @Test
     void ambiguityStillFailsBeforeAnySubmissionAfterDiscoveryIsCached() throws Exception {
         final Session session = Session.getInstance(new Properties());
-        final PreparedMail mail = new PreparedMail(new MimeMessage(session), new Address[0],
-                new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        final PreparedMail mail = PreparedMail.builder()
+            .withMimeMessage(new MimeMessage(session))
+            .withRecipients(new Address[0])
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
         final Path registration = directory.resolve("ambiguous-adapters");
         Files.write(registration, List.of(StatefulAdapter.class.getName(), SecondAdapter.class.getName()));
         final Thread caller = Thread.currentThread();

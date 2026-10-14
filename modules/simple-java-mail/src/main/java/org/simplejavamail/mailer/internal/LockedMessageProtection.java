@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -41,7 +43,7 @@ final class LockedMessageProtection {
 
 	LockedMessageProtection(final SimpleJavaMailConfig config, final Email configuredDefaults) {
 		this.config = config;
-		this.locks = config.getLocks();
+		this.locks = locksOf(config);
 		this.configuredDefaults = configuredDefaults;
 	}
 

@@ -1,5 +1,9 @@
 package org.simplejavamail.recipient;
 
+import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
+
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -33,7 +37,7 @@ class RecipientDsnTest {
     @Test
     void recipientSettingsReplaceRatherThanMergeAndBuiltSnapshotsStayImmutable() {
         final NotifyOption[] source = {FAILURE, DELAY};
-        final IRecipientBuilder builder = new RecipientBuilder().withAddress("same@example.test").withType(TO)
+        final IRecipientBuilder builder = new RecipientBuilderImpl().withAddress("same@example.test").withType(TO)
                 .withDeliveryStatusNotificationNotifyOptions(source);
         source[0] = SUCCESS;
         final Recipient first = builder.build();
@@ -46,7 +50,7 @@ class RecipientDsnTest {
 
     @Test
     void rejectsInvalidOptionsWithoutChangingThePreviousPolicy() {
-        final IRecipientBuilder builder = new RecipientBuilder().withAddress("a@example.test").withDeliveryStatusNotificationNotifyOptions(SUCCESS);
+        final IRecipientBuilder builder = new RecipientBuilderImpl().withAddress("a@example.test").withDeliveryStatusNotificationNotifyOptions(SUCCESS);
         assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(NEVER, FAILURE)).hasMessageContaining("NEVER");
         assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(FAILURE, null)).hasMessageContaining("null");
         assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions((NotifyOption[]) null)).isInstanceOf(NullPointerException.class);
@@ -59,7 +63,7 @@ class RecipientDsnTest {
         final X509Certificate certificate = mock(X509Certificate.class);
         final Recipient explicit = recipient(NEVER);
         final Recipient inherited = recipient();
-        final IRecipientsBuilder group = new RecipientsBuilder().withRecipients(List.of(explicit, inherited), BCC)
+        final IRecipientsBuilder group = new RecipientsBuilderImpl().withRecipients(List.of(explicit, inherited), BCC)
                 .withFixedSmimeCertificate(certificate).withDefaultDeliveryStatusNotificationNotifyOptions(FAILURE, DELAY);
         final List<Recipient> defaulted = new ArrayList<>(group.buildRecipients());
         assertThat(defaulted.get(0).getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER);
@@ -82,7 +86,7 @@ class RecipientDsnTest {
 
     @Test
     void allGroupSettersValidateAndTheLastPolicyWins() {
-        final IRecipientsBuilder group = new RecipientsBuilder().withRecipient(recipient(NEVER))
+        final IRecipientsBuilder group = new RecipientsBuilderImpl().withRecipient(recipient(NEVER))
                 .withDefaultDeliveryStatusNotificationNotifyOptions(FAILURE).withFixedDeliveryStatusNotificationNotifyOptions(SUCCESS);
         assertThat(group.buildRecipients()).singleElement().satisfies(recipient ->
                 assertThat(recipient.getDeliveryStatusNotificationNotifyOptions()).containsExactly(SUCCESS));
@@ -123,12 +127,12 @@ class RecipientDsnTest {
 
     @Test
     void recipientBuildersOfferOnlyTypedNotificationChoices() throws Exception {
-        for (final Class<?> builderType : List.of(IRecipientBuilder.class, RecipientBuilder.class)) {
+        for (final Class<?> builderType : List.of(IRecipientBuilder.class, RecipientBuilderImpl.class)) {
             assertThat(builderType.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class)).isNotNull();
             assertThatThrownBy(() -> builderType.getMethod("withDeliveryStatusNotificationNotifyOptions", String.class))
                     .isInstanceOf(NoSuchMethodException.class);
         }
-        for (final Class<?> builderType : List.of(IRecipientsBuilder.class, RecipientsBuilder.class)) {
+        for (final Class<?> builderType : List.of(IRecipientsBuilder.class, RecipientsBuilderImpl.class)) {
             for (final String methodName : List.of("withDefaultDeliveryStatusNotificationNotifyOptions", "withFixedDeliveryStatusNotificationNotifyOptions")) {
                 assertThat(builderType.getMethod(methodName, NotifyOption[].class)).isNotNull();
                 assertThatThrownBy(() -> builderType.getMethod(methodName, String.class)).isInstanceOf(NoSuchMethodException.class);
@@ -147,6 +151,6 @@ class RecipientDsnTest {
     }
 
     private static Recipient recipient(final NotifyOption... options) {
-        return new RecipientBuilder().withAddress("same@example.test").withType(TO).withDeliveryStatusNotificationNotifyOptions(options).build();
+        return new RecipientBuilderImpl().withAddress("same@example.test").withType(TO).withDeliveryStatusNotificationNotifyOptions(options).build();
     }
 }

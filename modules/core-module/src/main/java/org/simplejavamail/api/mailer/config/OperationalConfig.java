@@ -25,6 +25,11 @@ import java.util.concurrent.ExecutorService;
  * @see org.simplejavamail.config.SimpleJavaMailConfig#getDiagnostics()
  */
 public interface OperationalConfig {
+	/**
+	 * Returns the resolved settings, including resource limits even when retries are disabled.
+	 * @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy)
+	 */
+	@NotNull MailSendRetryPolicy getMailSendRetryPolicy();
 
 	/**
 	 * The resolved policy for this Mailer's failover relationship, or null when none is configured. Contains no live Mailer or routing history.

@@ -44,7 +44,10 @@ class MailTransportAdapterResolverTest {
                 return true;
             }
         };
-        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withSendingToAcceptedRecipients(choice)
+            .build());
         final AtomicInteger invocations = new AtomicInteger();
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter), invocations::incrementAndGet))
                 .isInstanceOf(MailTransportCompatibilityException.class)
@@ -59,7 +62,10 @@ class MailTransportAdapterResolverTest {
     @ValueSource(booleans = {true, false})
     void genericFallbackRejectsExplicitRecipientRejectionHandlingBeforeInvocation(final boolean choice) throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withSendingToAcceptedRecipients(choice)
+            .build());
         final AtomicInteger invocations = new AtomicInteger();
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, mail, List.of(), invocations::incrementAndGet))
                 .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("no provider adapter is available to apply that choice");
@@ -76,7 +82,10 @@ class MailTransportAdapterResolverTest {
                 return true;
             }
         };
-        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, List.of(), false, false, choice));
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withSendingToAcceptedRecipients(choice)
+            .build());
         final AtomicInteger invocations = new AtomicInteger();
         assertThat(MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter), invocations::incrementAndGet)
                 .getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
@@ -93,8 +102,11 @@ class MailTransportAdapterResolverTest {
                 return true;
             }
         };
-        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null,
-                DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE), List.of(), false, true));
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder()
+            .withDeliveryStatusNotification(DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE))
+            .withRecipientOptions(List.of())
+            .withDeliveryStatusNotificationRequired(true)
+            .build());
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), mail, List.of(adapter)))
                 .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("mandatory DSN");
         assertThat(adapter.preparedMail).isNull();
@@ -103,7 +115,11 @@ class MailTransportAdapterResolverTest {
     @Test
     void mandatoryNotificationSurvivesSerializationWithoutChangingOldConstructorBehavior() throws Exception {
         final DeliveryStatusNotification request = DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE);
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, request, List.of(), false, true);
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+            .withDeliveryStatusNotification(request)
+            .withRecipientOptions(List.of())
+            .withDeliveryStatusNotificationRequired(true)
+            .build();
         final java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
         try (java.io.ObjectOutputStream output = new java.io.ObjectOutputStream(bytes)) {
             output.writeObject(envelope);
@@ -113,8 +129,11 @@ class MailTransportAdapterResolverTest {
             assertThat(restored.isDeliveryStatusNotificationRequired()).isTrue();
             assertThat(restored.getDeliveryStatusNotification().getNotifyOptions()).containsExactly(DeliveryStatusNotification.NotifyOption.FAILURE);
         }
-        assertThat(new DeliveryEnvelope(null, request).isDeliveryStatusNotificationRequired()).isFalse();
-        assertThatThrownBy(() -> new DeliveryEnvelope(null, null, List.of(), false, true)).isInstanceOf(IllegalArgumentException.class)
+        assertThat(DeliveryEnvelope.builder().withDeliveryStatusNotification(request).build().isDeliveryStatusNotificationRequired()).isFalse();
+        assertThatThrownBy(() -> DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withDeliveryStatusNotificationRequired(true)
+            .build()).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("deliveryStatusNotificationRequired is true, but deliveryStatusNotification is null")
                 .hasMessageContaining("Supply a DeliveryStatusNotification request")
                 .hasMessageContaining("set deliveryStatusNotificationRequired to false");
@@ -123,8 +142,9 @@ class MailTransportAdapterResolverTest {
     @Test
     void olderAdapterCannotSilentlyIgnoreAnEnvelopeIdentifier() throws Exception {
         final RecordingAdapter adapter = new RecordingAdapter(true);
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null,
-                DeliveryStatusNotification.builder().envelopeId("attempt-42").build()));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder()
+            .withDeliveryStatusNotification(DeliveryStatusNotification.builder().envelopeId("attempt-42").build())
+            .build());
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter)))
                 .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("cannot send the requested SMTP envelope options")
                 .hasMessageContaining("remove the unsupported options").hasMessageContaining("ENVID")
@@ -139,7 +159,10 @@ class MailTransportAdapterResolverTest {
 
 	@Test
 	void olderAndUnknownProvidersCannotSilentlyIgnoreRequireTls() throws Exception {
-		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, List.of(), true);
+		final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+			.withRecipientOptions(List.of())
+			.withTlsRequiredForOnwardDelivery(true)
+			.build();
 		final PreparedMail preparedMail = preparedMail(envelope);
 		final RecordingTransport transport = new RecordingTransport();
 		final RecordingAdapter olderAdapter = new RecordingAdapter(true);
@@ -164,7 +187,7 @@ class MailTransportAdapterResolverTest {
             }
         };
         final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("attempt+42").build();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, notification));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().withDeliveryStatusNotification(notification).build());
         MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter));
         assertThat(adapter.preparedMail.getDeliveryEnvelope().getDeliveryStatusNotification()).isSameAs(notification);
     }
@@ -172,7 +195,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void unknownProviderUsesGenericFallbackForOrdinaryMail() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build());
 
         final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList());
@@ -188,7 +211,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void olderAdapterKeepsOrdinarySendingWithoutInventingAnEnvelopeIdentifier() throws Exception {
         final RecordingAdapter adapter = new RecordingAdapter(true);
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build());
 
         final MailTransportResult result = MailTransportAdapterResolver.sendMessage(new RecordingTransport(), preparedMail, List.of(adapter));
 
@@ -205,7 +228,7 @@ class MailTransportAdapterResolverTest {
         final SendFailedException failure = new SendFailedException("partial", null,
                 new Address[]{accepted}, new Address[]{unsent}, new Address[]{invalid});
         final FailingTransport transport = new FailingTransport(failure);
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build());
 
         final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList());
@@ -220,9 +243,10 @@ class MailTransportAdapterResolverTest {
     @Test
     void unknownProviderRejectsDeliveryCapabilitiesBeforeSending() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(
-                "bounce@example.com",
-                DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE)));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder()
+            .withEnvelopeFrom("bounce@example.com")
+            .withDeliveryStatusNotification(DeliveryStatusNotification.of(DeliveryStatusNotification.NotifyOption.FAILURE))
+            .build());
 
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList()))
@@ -236,7 +260,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void unknownProviderRejectsExactContentBeforeSending() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build(), ContentRequirement.PRESERVE_ALL_BYTES);
 
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>emptyList()))
@@ -248,7 +272,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void adapterMustExplicitlySupportExactContent() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build(), ContentRequirement.PRESERVE_ALL_BYTES);
 
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Collections.<MailTransportAdapter>singletonList(new RecordingAdapter(true))))
@@ -261,7 +285,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void exactlyOneSupportingAdapterOwnsSubmission() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build());
         final RecordingAdapter adapter = new RecordingAdapter(true);
 
         final MailTransportResult result = MailTransportAdapterResolver.sendMessage(
@@ -278,7 +302,7 @@ class MailTransportAdapterResolverTest {
     @Test
     void ambiguousAdaptersFailInDeterministicClassNameOrder() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail preparedMail = preparedMail(new DeliveryEnvelope(null, null));
+        final PreparedMail preparedMail = preparedMail(DeliveryEnvelope.builder().build());
 
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(
                 transport, preparedMail, Arrays.<MailTransportAdapter>asList(new ZAdapter(), new AAdapter())))
@@ -289,8 +313,10 @@ class MailTransportAdapterResolverTest {
     @Test
     void recipientPreferencesCannotBeSilentlyDroppedByUnknownOrOlderAdapters() throws Exception {
         final RecordingTransport transport = new RecordingTransport();
-        final PreparedMail mail = preparedMail(new DeliveryEnvelope(null, null, Collections.singletonList(
-                new DeliveryRecipient("receiver@example.com", Collections.singleton(DeliveryStatusNotification.NotifyOption.NEVER)))));
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder()
+            .withRecipientOptions(Collections.singletonList(
+                new DeliveryRecipient("receiver@example.com", Collections.singleton(DeliveryStatusNotification.NotifyOption.NEVER))))
+            .build());
         assertThatThrownBy(() -> MailTransportAdapterResolver.sendMessage(transport, mail, Collections.emptyList()))
                 .isInstanceOf(MailTransportCompatibilityException.class);
         final RecordingAdapter olderAdapter = new RecordingAdapter(true);
@@ -308,8 +334,12 @@ class MailTransportAdapterResolverTest {
         final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
         message.setText("body");
         message.saveChanges();
-        return new PreparedMail(message,
-                new Address[]{new InternetAddress("receiver@example.com")}, envelope, contentRequirement);
+        return PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(new Address[]{new InternetAddress("receiver@example.com")})
+            .withDeliveryEnvelope(envelope)
+            .withContentRequirement(contentRequirement)
+            .build();
     }
 
     private static final class RecordingTransport extends Transport {

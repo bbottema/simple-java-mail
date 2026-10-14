@@ -40,8 +40,5 @@ public interface MailSender {
 	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
 	 * @throws IllegalStateException If called from another thread or after the enclosing callback has ended.
 	 */
-	default MailSubmissionReceipt sendMailAndGetReceipt(Email email) {
-		sendMail(email);
-		return new MailSubmissionReceipt(email.getId(), null, java.time.Instant.now());
-	}
+	MailSubmissionReceipt sendMailAndGetReceipt(Email email);
 }

@@ -94,6 +94,10 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(CalendarMethod.class, "RFC-2446 VEVENT METHOD");
 		put(int.class, "NUM");
 		put(Integer.class, "NUM");
+		put(long.class, "NUM");
+		put(Long.class, "NUM");
+		put(double.class, "NUM");
+		put(Double.class, "NUM");
 		put(MimeMessage.class, "EML FILE");
 		put(DataSource.class, "FILE");
 		put(byte[].class, "FILE");

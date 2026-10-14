@@ -1,5 +1,9 @@
 package org.simplejavamail.internal.outlooksupport.converter;
 
+import org.simplejavamail.internal.outlooksupport.model.EmailFromOutlookMessageImpl;
+
+import org.simplejavamail.internal.outlooksupport.model.OutlookMessageDataImpl;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
@@ -140,7 +144,11 @@ public class OutlookEmailConverter implements OutlookModule {
 			}
 		}
 
-		return new EmailFromOutlookMessage(builder, new OutlookMessageProxy(outlookMessage), extractOutlookMessageData(outlookMessage));
+		return EmailFromOutlookMessageImpl.builder()
+			.emailBuilder(builder)
+			.outlookMessage(new OutlookMessageProxy(outlookMessage))
+			.outlookMessageData(extractOutlookMessageData(outlookMessage))
+			.build();
 	}
 
 	private static boolean hasNoMimeContent(@NotNull final Email email) {
@@ -154,21 +162,22 @@ public class OutlookEmailConverter implements OutlookModule {
 
 	@NotNull
 	private static OutlookMessageData extractOutlookMessageData(@NotNull final OutlookMessage outlookMessage) {
-		return new OutlookMessageData(
-				outlookMessage.getHeadersMap(),
-				outlookMessage.getHeaders(),
-				outlookMessage.getMessageClass(),
-				outlookMessage.getDisplayTo(),
-				outlookMessage.getDisplayCc(),
-				outlookMessage.getDisplayBcc(),
-				outlookMessage.getDate(),
-				outlookMessage.getClientSubmitTime(),
-				outlookMessage.getCreationDate(),
-				outlookMessage.getLastModificationDate(),
-				outlookMessage.getLastModifierName(),
-				outlookMessage.getPropertiesAsHex(),
-				outlookMessage.getPropertyCodes(),
-				outlookMessage.getPropertyListing());
+		return OutlookMessageDataImpl.builder()
+			.headers(outlookMessage.getHeadersMap())
+			.rawHeaders(outlookMessage.getHeaders())
+			.messageClass(outlookMessage.getMessageClass())
+			.displayTo(outlookMessage.getDisplayTo())
+			.displayCc(outlookMessage.getDisplayCc())
+			.displayBcc(outlookMessage.getDisplayBcc())
+			.date(outlookMessage.getDate())
+			.clientSubmitTime(outlookMessage.getClientSubmitTime())
+			.creationDate(outlookMessage.getCreationDate())
+			.lastModificationDate(outlookMessage.getLastModificationDate())
+			.lastModifierName(outlookMessage.getLastModifierName())
+			.propertiesAsHex(outlookMessage.getPropertiesAsHex())
+			.propertyCodes(outlookMessage.getPropertyCodes())
+			.propertyListing(outlookMessage.getPropertyListing())
+			.build();
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")

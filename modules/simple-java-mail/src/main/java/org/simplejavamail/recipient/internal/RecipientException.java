@@ -1,4 +1,4 @@
-package org.simplejavamail.recipient;
+package org.simplejavamail.recipient.internal;
 
 import org.simplejavamail.MailException;
 

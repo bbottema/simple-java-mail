@@ -24,8 +24,8 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Not
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.SUCCESS;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.FULL_MESSAGE;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
-import static org.simplejavamail.internal.config.EmailProperty.DELIVERY_STATUS_NOTIFICATION;
-import static org.simplejavamail.internal.config.EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY;
+import static org.simplejavamail.api.email.EmailProperty.DELIVERY_STATUS_NOTIFICATION;
+import static org.simplejavamail.api.email.EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_REQUIRE_TLS;
 
 public class EmailGovernanceImplTest {

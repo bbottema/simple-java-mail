@@ -36,10 +36,20 @@ class AngusContentNegotiationTest {
                 + "DKIM-Signature: v=1; b=unchanged-signature\r\nContent-Transfer-Encoding: 8bit\r\n\r\nCafé\r\n")
                 .getBytes(StandardCharsets.UTF_8);
         final PreparedMail strict = protectedMail(signedBytes);
-        final PreparedMail legacy = new PreparedMail(strict.getMimeMessage(), RECIPIENTS, strict.getDeliveryEnvelope(),
-                strict.getContentRequirement(), true);
+        final PreparedMail legacy = PreparedMail.builder()
+            .withMimeMessage(strict.getMimeMessage())
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(strict.getDeliveryEnvelope())
+            .withContentRequirement(strict.getContentRequirement())
+            .withLegacySmtpContentSupportEnabled(true)
+            .build();
         assertThat(strict.isLegacySmtpContentSupportEnabled()).isFalse();
-        assertThat(new PreparedMail(strict.getMimeMessage(), RECIPIENTS, strict.getDeliveryEnvelope(), true)
+        assertThat(PreparedMail.builder()
+            .withMimeMessage(strict.getMimeMessage())
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(strict.getDeliveryEnvelope())
+            .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+            .build()
                 .isLegacySmtpContentSupportEnabled()).isFalse();
         assertThatThrownBy(() -> AngusContentNegotiation.resolveMailParameters(transportSupporting(), strict,
                 "smtp", null, "test", RECIPIENTS)).isInstanceOf(MailTransportCompatibilityException.class);
@@ -54,8 +64,13 @@ class AngusContentNegotiationTest {
     void malformedMailboxIsRejectedEvenAfterAnEarlierInternationalizedAddress() throws Exception {
         final PreparedMail original = protectedMail("From: sender@example.test\r\n\r\nBody\r\n".getBytes(StandardCharsets.US_ASCII));
         final Address[] recipients = {new InternetAddress("müller@example.test"), new InternetAddress("bad\uD800@example.test")};
-        final PreparedMail legacy = new PreparedMail(original.getMimeMessage(), recipients, original.getDeliveryEnvelope(),
-                original.getContentRequirement(), true);
+        final PreparedMail legacy = PreparedMail.builder()
+            .withMimeMessage(original.getMimeMessage())
+            .withRecipients(recipients)
+            .withDeliveryEnvelope(original.getDeliveryEnvelope())
+            .withContentRequirement(original.getContentRequirement())
+            .withLegacySmtpContentSupportEnabled(true)
+            .build();
         assertThatThrownBy(() -> AngusContentNegotiation.resolveMailParameters(transportSupporting(), legacy, "smtp", null, "test", recipients))
                 .isInstanceOf(MailTransportCompatibilityException.class).hasMessageContaining("malformed Unicode", "No message was submitted");
     }
@@ -66,7 +81,12 @@ class AngusContentNegotiationTest {
         message.setText("ASCII body");
         message.setHeader("Subject", "Café");
         message.setHeader("X-Malformed", "bad\uD800");
-        final PreparedMail preparedMail = new PreparedMail(message, RECIPIENTS, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
 
         assertThatThrownBy(() -> AngusContentNegotiation.resolveMailParameters(transportSupporting("SMTPUTF8", "8BITMIME"), preparedMail,
                 "smtp", null, "test", RECIPIENTS))
@@ -83,7 +103,12 @@ class AngusContentNegotiationTest {
             }
         };
         message.setText("ASCII body");
-        final PreparedMail preparedMail = new PreparedMail(message, RECIPIENTS, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
 
         assertThatThrownBy(() -> AngusContentNegotiation.resolveMailParameters(transportSupporting(), preparedMail,
                 "smtp", null, "test", RECIPIENTS))
@@ -115,8 +140,13 @@ class AngusContentNegotiationTest {
         assertThat(AngusContentNegotiation.resolveMailParameters(transportSupporting("SMTPUTF8", "8BITMIME"), strict,
                 "smtp", null, "test", RECIPIENTS).getMailExtension()).isEqualTo("SMTPUTF8 BODY=8BITMIME");
 
-        final PreparedMail legacy = new PreparedMail(strict.getMimeMessage(), RECIPIENTS, strict.getDeliveryEnvelope(),
-                strict.getContentRequirement(), true);
+        final PreparedMail legacy = PreparedMail.builder()
+            .withMimeMessage(strict.getMimeMessage())
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(strict.getDeliveryEnvelope())
+            .withContentRequirement(strict.getContentRequirement())
+            .withLegacySmtpContentSupportEnabled(true)
+            .build();
         assertThat(AngusContentNegotiation.resolveMailParameters(transportSupporting(), legacy,
                 "smtp", null, "test", RECIPIENTS).getMailExtension()).isNull();
         assertThat(((FinalizedMimeMessage) strict.getMimeMessage()).getSerializedBytes()).containsExactly(finalizedBytes);
@@ -208,9 +238,13 @@ class AngusContentNegotiationTest {
 
     private static PreparedMail protectedMail(final byte[] finalizedBytes) throws Exception {
         final Session session = Session.getInstance(new Properties());
-        return new PreparedMail(FinalizedMimeMessage.fromMessageBytes(session, finalizedBytes,
-                FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED), RECIPIENTS,
-                new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        return PreparedMail.builder()
+            .withMimeMessage(FinalizedMimeMessage.fromMessageBytes(session, finalizedBytes,
+                FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED))
+            .withRecipients(RECIPIENTS)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+            .build();
     }
 
     private static SMTPTransport transportSupporting(final String... extensions) {

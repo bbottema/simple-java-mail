@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
@@ -82,7 +84,7 @@ public final class CliMailerProfile {
 					.forEach(configEntry -> writeCanonicalConfigurationEntry(output, configEntry, configurationWorkingDirectory));
 			// Equal effective values are not interchangeable when only one snapshot restricts later customization.
 			writeString(output, "configuration locks");
-			writeValue(output, config.getLocks().getValues());
+			writeValue(output, locksOf(config).getValues());
 			for (final CliReceivedOptionData option : receivedOptions) {
 				if (option.determineTargetBuilderApi() == CliBuilderApiType.MAILER) {
 					writeString(output, option.getDeclaredOptionSpec().getSourceMethod().toGenericString());

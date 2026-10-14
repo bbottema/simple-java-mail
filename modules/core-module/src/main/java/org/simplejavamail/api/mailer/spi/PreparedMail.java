@@ -3,7 +3,6 @@ package org.simplejavamail.api.mailer.spi;
 import jakarta.mail.Address;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,25 +23,8 @@ public final class PreparedMail {
     private final ContentRequirement contentRequirement;
     private final boolean legacySmtpContentSupportEnabled;
 
-    public PreparedMail(@NotNull final MimeMessage mimeMessage,
-                        @NotNull final Address[] recipients,
-                        @NotNull final DeliveryEnvelope deliveryEnvelope,
-                        @NotNull final ContentRequirement contentRequirement) {
-        this(mimeMessage, recipients, deliveryEnvelope, contentRequirement, false);
-    }
-
-    /**
-     * Carries the selected server's compatibility permission without mutating its Session or the reusable Email.
-     * Existing constructors leave this permission disabled. It never changes the content-preservation contract.
-     *
-     * @param mimeMessage Prepared MIME content; providers must honor its preservation requirement.
-     * @param recipients Ordered SMTP envelope recipients; copied defensively.
-     * @param deliveryEnvelope Transport-only sender, DSN and onward TLS requirements.
-     * @param contentRequirement Which prepared bytes must remain unchanged.
-     * @param legacySmtpContentSupportEnabled Whether the application permits unadvertised UTF-8/8-bit support on the selected server.
-     * @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean)
-     */
-    public PreparedMail(@NotNull final MimeMessage mimeMessage, @NotNull final Address[] recipients, @NotNull final DeliveryEnvelope deliveryEnvelope,
+    @lombok.Builder(builderClassName = "Builder", setterPrefix = "with")
+    private PreparedMail(@NotNull final MimeMessage mimeMessage, @NotNull final Address[] recipients, @NotNull final DeliveryEnvelope deliveryEnvelope,
                         @NotNull final ContentRequirement contentRequirement, final boolean legacySmtpContentSupportEnabled) {
         this.mimeMessage = requireNonNull(mimeMessage, "mimeMessage");
         this.recipients = requireNonNull(recipients, "recipients").clone();
@@ -51,53 +33,32 @@ public final class PreparedMail {
         this.legacySmtpContentSupportEnabled = legacySmtpContentSupportEnabled;
     }
 
-    /**
-     * @deprecated Use {@link #PreparedMail(MimeMessage, Address[], DeliveryEnvelope, ContentRequirement)} to state the preservation contract explicitly.
-     */
-    @Deprecated
-    public PreparedMail(@NotNull final MimeMessage mimeMessage,
-                        @NotNull final Address[] recipients,
-                        @NotNull final DeliveryEnvelope deliveryEnvelope,
-                        final boolean stableContentRequired) {
-        this(mimeMessage, recipients, deliveryEnvelope, stableContentRequired
-                ? ContentRequirement.PRESERVE_PROTECTED_CONTENT
-                : ContentRequirement.NORMAL);
-    }
-
+    /** The finalized message to submit. Construction never reads or serializes its content. */
     @NotNull
     public MimeMessage getMimeMessage() {
         return mimeMessage;
     }
 
+    /** A defensive copy of the ordered envelope recipients, including duplicate occurrences. */
     @NotNull
     public Address[] getRecipients() {
         return recipients.clone();
     }
 
+    /** Transport-only sender and delivery requirements; these do not change MIME headers. */
     @NotNull
     public DeliveryEnvelope getDeliveryEnvelope() {
         return deliveryEnvelope;
     }
 
-    /**
-     * @return The preservation contract the selected transport adapter must honor.
-     */
+    /** Which prepared bytes the adapter must preserve. NORMAL allows provider conversion. */
     @NotNull
     public ContentRequirement getContentRequirement() {
         return contentRequirement;
     }
 
-    /** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+    /** Whether the selected server permits unchanged content without advertised SMTPUTF8/8BITMIME support. Security requirements still apply. */
     public boolean isLegacySmtpContentSupportEnabled() {
         return legacySmtpContentSupportEnabled;
     }
-
-    /**
-     * @deprecated Use {@link #getContentRequirement()} to distinguish protected-content stability from preservation of every supplied byte.
-     */
-    @Deprecated
-    public boolean requiresStableContent() {
-        return contentRequirement != ContentRequirement.NORMAL;
-    }
-
 }

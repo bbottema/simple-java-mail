@@ -1,10 +1,17 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailRetryDisposition;
+
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
+
+import java.util.Collections;
+
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.SmtpServerResponse;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -16,6 +23,52 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class MailSendDiagnosticsRecorderTest {
+	@Test
+	void providerSentinelCodesDoNotBecomeDiagnosticFailuresOrFakeReplyFacts() {
+		final AtomicLong clock = new AtomicLong();
+		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
+		recorder.enableSubmissionHistory();
+		recorder.startSubmission();
+		recorder.submissionInvoked();
+		final MailSubmissionReceipt receipt = MailSubmissionReceiptImpl.builder()
+			.emailId(null)
+			.smtpResponse(new SmtpServerResponse(-1, "EOF"))
+			.submittedAt(Instant.EPOCH)
+			.status((new SmtpServerResponse(-1, "EOF")).isPositiveCompletionReply() ? MailSubmissionStatus.ACCEPTED : MailSubmissionStatus.REJECTED)
+			.recipientResults(Collections.emptyList())
+			.retryDisposition((new SmtpServerResponse(-1, "EOF")).isPositiveCompletionReply() ? MailRetryDisposition.DO_NOT_RETRY : MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build();
+		recorder.receiptProduced(receipt);
+		recorder.submissionStep(1, receipt, null, false);
+		assertThat(recorder.finish(true).getSubmissionHistory().get(0).getSmtpReplyCode()).isEmpty();
+	}
+	@Test
+	void retryWaitAndActualInvocationHistoryAccumulateWithBoundedRetention() {
+		final AtomicLong clock = new AtomicLong();
+		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
+		recorder.enableSubmissionHistory();
+		for (int attempt = 1; attempt <= 80; attempt++) {
+			recorder.startSubmission();
+			recorder.submissionInvoked();
+			clock.addAndGet(5);
+			final MailSubmissionReceipt accepted = receipt();
+			recorder.receiptProduced(accepted);
+			recorder.submissionStep(attempt, accepted, attempt == 80 ? null : Duration.ofNanos(10), false);
+			if (attempt != 80) {
+				recorder.startRetryWait();
+				clock.addAndGet(10);
+				recorder.retryWaitCompleted();
+			}
+		}
+		final MailSendDiagnostics report = recorder.finish(true);
+		assertThat(report.getSubmission().getElapsed()).contains(Duration.ofNanos(400));
+		assertThat(report.getRetryWait().getElapsed()).contains(Duration.ofNanos(790));
+		assertThat(report.getSubmissionHistory()).hasSize(64);
+		assertThat(report.getSubmissionHistory().get(62).getAttemptNumber()).isEqualTo(63);
+		assertThat(report.getSubmissionHistory().get(63).getAttemptNumber()).isEqualTo(80);
+		assertThat(report.getOmittedSubmissionSteps()).isEqualTo(16);
+		assertThat(report.toString()).contains("Intermediate submissions omitted: 16");
+	}
 	@Test
 	void historyRetainsFirst63AndLatestAndPreparationAccumulatesAcrossDestinations() {
 		final AtomicLong clock = new AtomicLong();
@@ -224,6 +277,13 @@ class MailSendDiagnosticsRecorderTest {
 	}
 
 	private static MailSubmissionReceipt receipt() {
-		return new MailSubmissionReceipt("message@example.org", null, Instant.EPOCH);
+		return MailSubmissionReceiptImpl.builder()
+			.emailId("message@example.org")
+			.smtpResponse(null)
+			.submittedAt(Instant.EPOCH)
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(Collections.emptyList())
+			.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build();
 	}
 }

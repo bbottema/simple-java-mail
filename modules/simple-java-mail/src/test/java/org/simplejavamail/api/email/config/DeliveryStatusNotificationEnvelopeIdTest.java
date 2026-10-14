@@ -18,7 +18,7 @@ import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailProperty;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;

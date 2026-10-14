@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import testutil.smtp.ScriptedSmtpServer;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
 
 import java.util.Arrays;
@@ -594,6 +596,6 @@ class SmtpContentNegotiationCharacterizationTest {
 
     static Email composedEmail(final String sender, final String recipient, final String subject, final String body) {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().from(sender)
-                .withRecipients(RecipientBuilder.to(null, recipient)).withSubject(subject).withPlainText(body).buildEmail();
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(recipient).withType(RecipientType.TO).build()).withSubject(subject).withPlainText(body).buildEmail();
     }
 }

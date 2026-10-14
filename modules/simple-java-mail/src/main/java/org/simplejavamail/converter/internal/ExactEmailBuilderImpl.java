@@ -1,17 +1,18 @@
-package org.simplejavamail.converter;
+package org.simplejavamail.converter.internal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.DeliveryStatusNotificationBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
+import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
@@ -22,6 +23,8 @@ import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
+import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
@@ -30,6 +33,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 /**
  * @see ExactEmailBuilder
  */
+@ApiStatus.Internal
 public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 
 	private final SimpleJavaMailConfig config;
@@ -198,8 +202,8 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	@NotNull
 	private EmailPopulatingBuilder parseEmlIntoEmailBuilder() {
 		try {
-			final MimeMessage mimeMessage = FinalizedMimeMessage.fromExactMessageBytes(EmailConverter.createDummySession(), emlBytes);
-			return EmailConverter.buildEmailFromMimeMessage(
+			final MimeMessage mimeMessage = FinalizedMimeMessage.fromExactMessageBytes(JakartaMailImplementation.createSession(new Properties()), emlBytes);
+			return MimeMessageEmailMapper.populate(
 					new EmailStartingBuilderImpl(config).startingBlank(),
 					MimeMessageParser.parseMimeMessage(mimeMessage, true));
 		} catch (final MessagingException | RuntimeException invalidEml) {

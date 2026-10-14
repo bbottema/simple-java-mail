@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal.util;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
@@ -56,6 +57,44 @@ import static java.util.stream.Collectors.joining;
  * @see TransportRunner
  */
 final class MailTransportAdapterResolver {
+
+    @NotNull
+    static PreparedMail prepareForRepeatedSubmission(final Transport transport, final PreparedMail original, final MimeMessage frozen)
+            throws MessagingException {
+        return prepareForRepeatedSubmission(transport, original, frozen, MailProviderDiscovery.newProviders(MailTransportAdapter.class));
+    }
+
+    static PreparedMail prepareForRepeatedSubmission(final Transport transport, final PreparedMail original, final MimeMessage frozen,
+            final Iterable<MailTransportAdapter> availableAdapters) throws MessagingException {
+        final MailTransportAdapter adapter = selectRepeatableAdapter(transport, original, availableAdapters);
+        final PreparedMail repeated = requireNonNull(adapter.prepareForRepeatedSubmission(transport, original, frozen), "repeatable prepared mail");
+        return withAuthoritativeEnvelope(original, repeated);
+    }
+
+    private static MailTransportAdapter selectRepeatableAdapter(final Transport transport, final PreparedMail original,
+            final Iterable<MailTransportAdapter> availableAdapters) throws MailTransportCompatibilityException {
+        final List<MailTransportAdapter> adapters = findSupportingAdapters(transport, availableAdapters);
+        if (adapters.size() > 1) {
+            throw buildAmbiguousAdapterException(transport, adapters);
+        }
+        if (adapters.isEmpty()) {
+            throw new MailTransportCompatibilityException("Automatic retries need a provider adapter that keeps the email unchanged between attempts. "
+                    + "Install a matching adapter, or call clearMailSendRetryPolicy() on the selected Mailer's builder. No message was submitted.",
+                    original.getRecipients());
+        }
+        return adapters.get(0);
+    }
+
+    private static PreparedMail withAuthoritativeEnvelope(final PreparedMail original, final PreparedMail repeated) {
+        // The hook resolves provider options, not destinations or recipients. Keep the authoritative envelope and preservation request outside it.
+        return PreparedMail.builder()
+            .withMimeMessage(repeated.getMimeMessage())
+            .withRecipients(original.getRecipients())
+            .withDeliveryEnvelope(original.getDeliveryEnvelope())
+            .withContentRequirement(original.getContentRequirement() == ContentRequirement.NORMAL ? repeated.getContentRequirement() : original.getContentRequirement())
+            .withLegacySmtpContentSupportEnabled(original.isLegacySmtpContentSupportEnabled())
+            .build();
+    }
 
     private MailTransportAdapterResolver() {
     }

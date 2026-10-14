@@ -4,7 +4,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.MiscUtil;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ModuleLoaderTestHelper;
 
 import java.awt.*;
@@ -45,7 +45,7 @@ public class DependencyChecker extends DemoAppBase {
                             .buildMailer()
                             .sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                                     .from("Dependency Checker", "no-reply@dependency-checker.com")
-                                    .withRecipients(new RecipientBuilder()
+                                    .withRecipients(new RecipientBuilderImpl()
                                             .withAddress(YOUR_GMAIL_ADDRESS)
                                             .withType(TO)
                                             .build())

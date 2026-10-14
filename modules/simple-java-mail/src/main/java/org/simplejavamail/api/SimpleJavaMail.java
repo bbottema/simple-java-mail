@@ -2,18 +2,23 @@ package org.simplejavamail.api;
 
 import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.email.IRecipientBuilder;
+import org.simplejavamail.api.email.IRecipientsBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.SimpleJavaMailConfig;
-import org.simplejavamail.converter.ConfiguredEmailConverter;
+import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.mailer.internal.FactoryMailerRuntime;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
 import org.simplejavamail.mailer.internal.MailerRegularBuilderImpl;
-import org.simplejavamail.mailer.internal.FactoryMailerRuntime;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
+import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
 
 import static java.util.Objects.requireNonNull;
 
@@ -87,7 +92,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public ConfiguredEmailConverter converter() {
-		return new ConfiguredEmailConverter(config);
+		return new ConfiguredEmailConverterImpl(config);
 	}
 
 	/**
@@ -107,6 +112,20 @@ public final class SimpleJavaMail {
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerFromSessionBuilder<?> mailerBuilder(@NotNull final Session session) {
 		return new MailerFromSessionBuilderImpl(config, runtime).usingSession(session);
+	}
+
+	/** @return A fresh builder for one recipient and its optional certificate and delivery-notification preferences. */
+	@NotNull
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public IRecipientBuilder recipientBuilder() {
+		return new RecipientBuilderImpl();
+	}
+
+	/** @return A fresh builder for recipients with shared defaults and overrides. */
+	@NotNull
+	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
+	public IRecipientsBuilder recipientsBuilder() {
+		return new RecipientsBuilderImpl();
 	}
 
 	private static final class DefaultsHolder {

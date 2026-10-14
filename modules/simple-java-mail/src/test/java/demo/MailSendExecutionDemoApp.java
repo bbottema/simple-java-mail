@@ -1,5 +1,7 @@
 package demo;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSend;
@@ -16,7 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /**
  * Shows why send completion and executor-backed observer aggregation are separate waits.
@@ -61,7 +63,7 @@ public final class MailSendExecutionDemoApp extends DemoAppBase {
 
     private static Email email(final int number) {
         return SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-                .from("simplejavamail@demo.app").withRecipients(to(null, YOUR_GMAIL_ADDRESS))
+                .from("simplejavamail@demo.app").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(YOUR_GMAIL_ADDRESS).withType(RecipientType.TO).build())
                 .fixingMessageId("execution-demo-" + number + "@simplejavamail.org")
                 .withSubject("Send execution demo " + number).withPlainText("A notification that may become obsolete.").buildEmail();
     }

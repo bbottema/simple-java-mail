@@ -159,6 +159,11 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 				return receipt;
 			}
 			final Transport activeTransport = checkNonEmptyArgument(transport, "transport");
+			if (operationalConfig.getMailSendRetryPolicy().isRetryEnabled()) {
+				try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control)) {
+					return RetainedMailSendRetry.send(session, activeTransport, preparedEmail, sendingAllowance, control, mailSendAttempt.diagnostics());
+				}
+			}
 			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control);
 					SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(
 							sendingAllowance, session, preparedEmail, control, mailSendAttempt.diagnostics())) {

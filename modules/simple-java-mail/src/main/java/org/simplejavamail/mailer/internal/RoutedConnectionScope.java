@@ -119,6 +119,15 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 			return;
 		}
 		scopeClosed = true;
+		try {
+			closeAttemptResources();
+		} finally {
+			closeDelegatedScopes();
+		}
+	}
+
+	/** Retry waits keep participating Mailers alive, but own no ordinary lease, proxy or sending reservation. */
+	final void closeAttemptResources() throws MessagingException {
 		diagnostics.startCleanup();
 		try {
 			throwCleanupFailure(executeWithinOwners(this::closeConnectionAndProxy));
@@ -129,7 +138,6 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 			try {
 				releaseReservation();
 			} finally {
-				closeDelegatedScopes();
 				diagnostics.cleanupCompleted();
 			}
 		}
@@ -137,17 +145,22 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 
 	@Nullable
 	private Throwable closeConnectionAndProxy() {
+		final AcquiredMailTransport connection = acquiredTransport;
+		final SmtpProxyScope proxy = proxyScope;
+		// Detach these attempt resources before cleanup: a thrown close must not make terminal cleanup try to dispose them a second time.
+		acquiredTransport = null;
+		proxyScope = null;
 		Throwable primaryFailure = null;
 		try {
-			if (acquiredTransport != null) {
-				acquiredTransport.close();
+			if (connection != null) {
+				connection.close();
 			}
 		} catch (MessagingException | RuntimeException | Error failure) {
 			primaryFailure = failure;
 		} finally {
 			try {
-				if (proxyScope != null) {
-					proxyScope.close();
+				if (proxy != null) {
+					proxy.close();
 				}
 			} catch (RuntimeException | Error failure) {
 				if (primaryFailure == null) {

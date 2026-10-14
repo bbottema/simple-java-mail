@@ -131,8 +131,12 @@ class AngusSubmissionResultTest {
 		reply.setNextException(new SMTPAddressSucceededException(second, "RCPT TO:<second@example.org>", 250, "250 second"));
 		final ProbeTransport transport = new ProbeTransport(session);
 		transport.checkedFailure = new SMTPSendFailedException(".", 250, "250 queued", reply, new Address[]{first, second}, null, null);
-		final PreparedMail mail = new PreparedMail(messageWithBody(session),
-				new Address[]{new InternetAddress("Group: first@example.org, second@example.org;")}, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+		final PreparedMail mail = PreparedMail.builder()
+			.withMimeMessage(messageWithBody(session))
+			.withRecipients(new Address[]{new InternetAddress("Group: first@example.org, second@example.org;")})
+			.withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+			.withContentRequirement(ContentRequirement.NORMAL)
+			.build();
 		final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, mail);
 		assertThat(result.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 		assertThat(result.getFailure()).isEmpty();
@@ -157,8 +161,12 @@ class AngusSubmissionResultTest {
 	void reportingPreferenceIsRestoredAfterSuccessAndBothKindsOfFailure(final boolean originalPreference) throws Exception {
 		final Session session = Session.getInstance(new Properties());
 		final InternetAddress address = new InternetAddress("recipient@example.org");
-		final PreparedMail mail = new PreparedMail(messageWithBody(session), new Address[]{address},
-				new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+		final PreparedMail mail = PreparedMail.builder()
+			.withMimeMessage(messageWithBody(session))
+			.withRecipients(new Address[]{address})
+			.withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+			.withContentRequirement(ContentRequirement.NORMAL)
+			.build();
 		final ProbeTransport transport = new ProbeTransport(session);
 		transport.setReportSuccess(originalPreference);
 		final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();

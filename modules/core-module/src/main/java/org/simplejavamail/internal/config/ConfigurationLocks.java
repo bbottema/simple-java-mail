@@ -21,11 +21,6 @@ public final class ConfigurationLocks {
 	private final Map<String, String> sources;
 	private final String displayPropertyPrefix;
 
-	/** Receives already-parsed restrictions and their sources from the shared configuration loader. */
-	public ConfigurationLocks(final Map<String, Object> values, final Map<String, String> sources) {
-		this(values, sources, "simplejavamail.");
-	}
-
 	/** Named definitions compare ordinary schema keys but identify the full named property in user-facing errors. */
 	public ConfigurationLocks(final Map<String, Object> values, final Map<String, String> sources, final String displayPropertyPrefix) {
 		this.values = Collections.unmodifiableMap(new LinkedHashMap<>(values));

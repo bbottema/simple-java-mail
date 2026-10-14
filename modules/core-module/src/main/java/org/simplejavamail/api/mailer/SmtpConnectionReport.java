@@ -1,8 +1,6 @@
 package org.simplejavamail.api.mailer;
 
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.SmtpCapabilityDiagnostics;
@@ -26,10 +24,12 @@ import static java.util.Objects.requireNonNull;
  * The endpoint is the configured endpoint: a custom socket factory or proxy may route it elsewhere.
  * Read the configured transport strategy from {@link Mailer#getTransportStrategy()}; it is not a probe observation.
  *
+ * <p>Provider adapters construct these facts with the generated {@code builder()}; applications inspect the returned report.</p>
+ *
  * @see Mailer.Sync#probeConnection()
  * @see Mailer.Async#probeConnection()
  */
-@Getter
+@Builder(toBuilder = true)
 public final class SmtpConnectionReport implements Serializable {
     private static final long serialVersionUID = 1L;
     @NotNull private final String host;
@@ -46,18 +46,17 @@ public final class SmtpConnectionReport implements Serializable {
     private final boolean startTlsCompleted;
     /** Whether TLS was observed during setup, not an independent certificate-trust verdict. */
     private final boolean tlsActive;
-    @Getter(AccessLevel.NONE) @Nullable private final String greeting;
-    @Getter(AccessLevel.NONE) @Nullable private final SmtpCapabilities beforeTls;
-    @Getter(AccessLevel.NONE) @Nullable private final SmtpCapabilities afterTls;
-    @Getter(AccessLevel.NONE) @Nullable private final SmtpTlsDetails tlsDetails;
-    @Getter(AccessLevel.NONE) @Nullable private final String authenticationMechanism;
-    @Getter(AccessLevel.NONE) @Nullable private final SmtpConnectionPhase failurePhase;
-    @Getter(AccessLevel.NONE) @Nullable private final String failureDescription;
-    @NotNull private final List<String> warnings;
+    @Nullable private final String greeting;
+    @Nullable private final SmtpCapabilities beforeTls;
+    @Nullable private final SmtpCapabilities afterTls;
+    @Nullable private final SmtpTlsDetails tlsDetails;
+    @Nullable private final String authenticationMechanism;
+    @Nullable private final SmtpConnectionPhase failurePhase;
+    @Nullable private final String failureDescription;
+    @Builder.Default @NotNull private final List<String> warnings = List.of();
 
     /** Provider-adapter construction boundary. All supplied collections and display fields are copied. */
-    @Builder(toBuilder = true)
-    public SmtpConnectionReport(@NotNull final String host, final int port, @NotNull final String protocol,
+    private SmtpConnectionReport(@NotNull final String host, final int port, @NotNull final String protocol,
             @NotNull final Instant startedAt, @NotNull final Instant completedAt, final boolean supported, final boolean connected,
             final boolean authenticationRequested, final boolean authenticated, final boolean startTlsAttempted,
             final boolean startTlsCompleted, final boolean tlsActive, @Nullable final String greeting,
@@ -150,5 +149,75 @@ public final class SmtpConnectionReport implements Serializable {
 
     private Object readResolve() {
         return toBuilder().build();
+    }
+
+    /** Logical configured server name, not a physical-peer claim. Escaped for diagnostic output. */
+    @NotNull
+    public String getHost() {
+        return host;
+    }
+
+    /** Configured port; a negative value represents an unspecified provider port. */
+    public int getPort() {
+        return port;
+    }
+
+    /** Jakarta Mail protocol used for the dedicated probe. */
+    @NotNull
+    public String getProtocol() {
+        return protocol;
+    }
+
+    /** Wall-clock instant when this dedicated probe began. */
+    @NotNull
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    /** Wall-clock instant after setup and cleanup completed. */
+    @NotNull
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    /** Whether the provider supports connection probing. */
+    public boolean isSupported() {
+        return supported;
+    }
+
+    /** Whether setup returned successfully; the dedicated socket is closed before this report is returned. */
+    public boolean isConnected() {
+        return connected;
+    }
+
+    /** Whether the caller asked this probe to authenticate. */
+    public boolean isAuthenticationRequested() {
+        return authenticationRequested;
+    }
+
+    /** Whether requested authentication succeeded; this is an observation, not a credential-validity promise. */
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
+
+    /** Whether this connection attempted the STARTTLS upgrade. */
+    public boolean isStartTlsAttempted() {
+        return startTlsAttempted;
+    }
+
+    /** Whether the attempted STARTTLS upgrade succeeded. */
+    public boolean isStartTlsCompleted() {
+        return startTlsCompleted;
+    }
+
+    /** Whether TLS was observed during setup, not an independent certificate-trust verdict. */
+    public boolean isTlsActive() {
+        return tlsActive;
+    }
+
+    /** Immutable diagnostic explanations, escaped for display; includes warnings for omitted capability snapshots. */
+    @NotNull
+    public List<String> getWarnings() {
+        return warnings;
     }
 }

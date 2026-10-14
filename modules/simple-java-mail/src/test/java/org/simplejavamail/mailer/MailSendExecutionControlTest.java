@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.activation.DataSource;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
@@ -57,7 +59,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 @Timeout(20)
 class MailSendExecutionControlTest {
@@ -103,7 +105,7 @@ class MailSendExecutionControlTest {
         try (BlockedSmtpServer server = new BlockedSmtpServer("BODY");
              Mailer mailer = builder(server).buildMailer()) {
             final Email large = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-                    .from("sender@example.org").withRecipients(to(null, "large@example.org"))
+                    .from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("large@example.org").withType(RecipientType.TO).build())
                     .withPlainText("x".repeat(8_000_000)).buildEmail();
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(large);
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
@@ -126,7 +128,7 @@ class MailSendExecutionControlTest {
                 @Override public String getName() { return "blocked-data-source"; }
             };
             final Email attachment = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-                    .from("sender@example.org").withRecipients(to(null, "attachment@example.org"))
+                    .from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("attachment@example.org").withType(RecipientType.TO).build())
                     .withAttachment("blocked", source).buildEmail();
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(attachment);
             try {
@@ -410,7 +412,7 @@ class MailSendExecutionControlTest {
 
     private static Email email(final String recipient) {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-                .from("sender@example.org").withRecipients(to(null, recipient + "@example.org"))
+                .from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(recipient + "@example.org").withType(RecipientType.TO).build())
                 .withSubject("Execution control test").withPlainText("body").buildEmail();
     }
 

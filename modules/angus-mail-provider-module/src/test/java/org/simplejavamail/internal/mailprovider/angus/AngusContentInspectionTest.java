@@ -185,7 +185,12 @@ class AngusContentInspectionTest {
 
     private static String resolve(final MimeMessage message, final ContentRequirement requirement) throws Exception {
         final Address[] recipients = {new InternetAddress("receiver@example.test")};
-        final PreparedMail prepared = new PreparedMail(message, recipients, new DeliveryEnvelope(null, null), requirement);
+        final PreparedMail prepared = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(requirement)
+            .build();
         final SMTPTransport transport = new SMTPTransport(Session.getInstance(new Properties()), null) {
             @Override
             public boolean supportsExtension(final String extension) {

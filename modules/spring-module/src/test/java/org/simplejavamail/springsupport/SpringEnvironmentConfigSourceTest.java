@@ -1,5 +1,7 @@
 package org.simplejavamail.springsupport;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.config.ConfigDiagnostics;
 import org.simplejavamail.config.ConfigDiagnosticGroup;
@@ -35,7 +37,7 @@ class SpringEnvironmentConfigSourceTest {
 		ConfigurationPropertySources.attach(environment);
 		final SimpleJavaMailConfig config = loadConfig(environment);
 		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("relay.example.org");
-		assertThat(config.getLocks().contains(SMTP_HOST)).isTrue();
+		assertThat(locksOf(config).contains(SMTP_HOST)).isTrue();
 		assertThat(config.getDiagnostics().toString()).contains("simplejavamail.locked.smtp.host = relay.example.org (source: central deployment)",
 				"simplejavamail.locked.javaxmail.debug.out = STDERR", "simplejavamail.locked.extraproperties.mail.smtp.auth = true");
 	}

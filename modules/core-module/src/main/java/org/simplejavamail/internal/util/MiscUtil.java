@@ -16,7 +16,8 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailProperty;
+import org.simplejavamail.internal.config.EmailPropertyAccess;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -580,11 +581,11 @@ public final class MiscUtil {
 	@Nullable
 	public static <Out> Out overrideOrProvideOrDefaultProperty(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides, @NotNull EmailProperty emailProperty) {
 		return ofNullable(overrideAllowedForProperty(provided, emailProperty) ? overrides : null)
-				.map(emailProperty.<Out>getGetter())
+				.map(EmailPropertyAccess.forProperty(emailProperty).<Out>getGetter())
 				.orElse(ofNullable(provided)
-						.map(emailProperty.<Out>getGetter())
+						.map(EmailPropertyAccess.forProperty(emailProperty).<Out>getGetter())
 						.orElse(ofNullable(defaultAllowedForProperty(provided, emailProperty) ? defaults : null)
-								.map(emailProperty.<Out>getGetter())
+								.map(EmailPropertyAccess.forProperty(emailProperty).<Out>getGetter())
 								.orElse(null)));
 	}
 
@@ -592,13 +593,13 @@ public final class MiscUtil {
 	public static <Out> List<Out> overrideAndOrProvideAndOrDefaultCollection(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides, @NotNull EmailProperty emailProperty) {
 		val listOut = new ArrayList<Out>();
 		if (overrides != null && overrideAllowedForProperty(provided, emailProperty)) {
-			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(overrides));
+			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(overrides));
 		}
 		if (provided != null) {
-			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(provided));
+			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(provided));
 		}
 		if (defaults != null && defaultAllowedForProperty(provided, emailProperty)) {
-			listOut.addAll(emailProperty.<Collection<Out>>getGetter().apply(defaults));
+			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(defaults));
 		}
 		return listOut;
 	}

@@ -25,6 +25,7 @@ import org.simplejavamail.api.mailer.spi.PreparedMail;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Objects;
@@ -34,6 +35,138 @@ import java.util.function.BooleanSupplier;
 
 /** Angus Mail implementation of Simple Java Mail's provider adapter SPI. */
 public final class AngusMailTransportAdapter implements MailTransportAdapter {
+
+    /** @see MailTransportAdapter#prepareForRepeatedSubmission(Transport, PreparedMail, MimeMessage) */
+    @Override
+    @NotNull
+    public PreparedMail prepareForRepeatedSubmission(final Transport transport, final PreparedMail original, final MimeMessage frozen)
+            throws MessagingException {
+        final String protocol = transport.getURLName().getProtocol();
+        final AngusReplayableMessage replay = new AngusReplayableMessage(original.getMimeMessage(), frozen);
+        replay.retainEnvelopeOptions(original, protocol);
+        replay.disableMimeRewriting();
+        replay.retainSessionOptions(original.getMimeMessage().getSession(), protocol);
+        return PreparedMail.builder()
+            .withMimeMessage(replay)
+            .withRecipients(original.getRecipients())
+            .withDeliveryEnvelope(original.getDeliveryEnvelope())
+            .withContentRequirement(replayContentRequirement(original))
+            .withLegacySmtpContentSupportEnabled(original.isLegacySmtpContentSupportEnabled())
+            .build();
+    }
+
+    private static ContentRequirement replayContentRequirement(final PreparedMail original) {
+        // Even unsigned mail now has a byte-preservation requirement. Reuse the existing preservation path to prevent rewriting,
+        // not to imply that the content is cryptographically protected; exact EML keeps its stronger complete-byte requirement.
+        return original.getContentRequirement() == ContentRequirement.PRESERVE_ALL_BYTES ? ContentRequirement.PRESERVE_ALL_BYTES
+                : ContentRequirement.PRESERVE_PROTECTED_CONTENT;
+    }
+
+    /** Freezes provider options separately from bytes; each send still creates its own ordinary AngusSmtpMessage facade. */
+    private static final class AngusReplayableMessage extends SMTPMessage {
+        private final MimeMessage frozen;
+
+        private AngusReplayableMessage(final MimeMessage original, final MimeMessage frozen) throws MessagingException {
+            super(frozen.getSession());
+            this.frozen = frozen;
+            // Angus still reads headers for sender lookup and preflight; copying them does not replace the frozen serialization.
+            copyHeaders(frozen, this);
+            retainMessageOptions(original);
+        }
+
+        private void retainMessageOptions(final MimeMessage original) {
+            if (original instanceof SMTPMessage) {
+                final SMTPMessage options = (SMTPMessage) original;
+                setNotifyOptions(options.getNotifyOptions());
+                setReturnOption(options.getReturnOption());
+                setSendPartial(options.getSendPartial());
+                setSubmitter(options.getSubmitter());
+            }
+        }
+
+        private void retainEnvelopeOptions(final PreparedMail original, final String protocol) throws MessagingException {
+            setEnvelopeFrom(AngusContentNegotiation.resolveEnvelopeSender(original, protocol));
+            setMailExtension(mailExtensionOf(original.getMimeMessage(), protocol).value);
+        }
+
+        private void disableMimeRewriting() {
+            // Disable Angus's optional MIME conversion so every attempt sends the frozen bytes.
+            // Already-8-bit content is still allowed; the usual content/capability checks apply on each connection.
+            setAllow8bitMIME(false);
+        }
+
+        /** Resolve Angus's Session fallbacks once. Do not let a later attempt accidentally lose its original per-message choices. */
+        private void retainSessionOptions(final Session session, final String protocol) {
+            final String prefix = "mail." + protocol;
+            // Match Angus's precedence: a per-message false does not override a Session-wide sendpartial=true.
+            setSendPartial(getSendPartial() || PropUtil.getBooleanProperty(session.getProperties(), prefix + ".sendpartial", false));
+            retainSubmitterDefault(session, prefix);
+            retainNotificationDefault(session, prefix);
+            retainReturnOptionDefault(session, prefix);
+        }
+
+        private void retainSubmitterDefault(final Session session, final String prefix) {
+            if (getSubmitter() == null) {
+                setSubmitter(session.getProperty(prefix + ".submitter"));
+            }
+        }
+
+        private void retainNotificationDefault(final Session session, final String prefix) {
+            final String notify = session.getProperty(prefix + ".dsn.notify");
+            if (getNotifyOptions() == 0 && notify != null) {
+                setNotifyOptions(toAngusNotifyOptions(DeliveryStatusNotification.parseNotifyOptions(notify)));
+            }
+        }
+
+        private void retainReturnOptionDefault(final Session session, final String prefix) {
+            final String returned = session.getProperty(prefix + ".dsn.ret");
+            if (getReturnOption() == 0 && returned != null) {
+                setReturnOption(DeliveryStatusNotification.parseReturnOption(returned) == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE
+                        ? RETURN_FULL : RETURN_HDRS);
+            }
+        }
+
+        @Override public void saveChanges() { /* Frozen bytes, including Message-ID and signatures, are authoritative. */ }
+        @Override public void writeTo(final OutputStream output) throws IOException, MessagingException { frozen.writeTo(output); }
+        @Override public void writeTo(final OutputStream output, final String[] omittedHeaders) throws IOException, MessagingException {
+            frozen.writeTo(output, omittedHeaders);
+        }
+        @Override public boolean isMimeType(final String type) throws MessagingException { return frozen.isMimeType(type); }
+        @Override public Object getContent() throws IOException, MessagingException { return frozen.getContent(); }
+        @Override public InputStream getInputStream() throws IOException, MessagingException { return frozen.getInputStream(); }
+    }
+
+    private static void copyHeaders(@NotNull final MimeMessage sourceMessage, @NotNull final MimeMessage targetMessage) throws MessagingException {
+        final Enumeration<Header> headers = sourceMessage.getAllHeaders();
+        while (headers.hasMoreElements()) {
+            final Header header = headers.nextElement();
+            targetMessage.addHeader(header.getName(), header.getValue());
+        }
+    }
+
+    /** Shared by typed Email preferences and frozen advanced Session defaults; Angus needs the same notification bit flags in both paths. */
+    private static int toAngusNotifyOptions(final Collection<DeliveryStatusNotification.NotifyOption> options) {
+        int flags = 0;
+        for (final DeliveryStatusNotification.NotifyOption option : options) {
+            switch (option) {
+                case SUCCESS:
+                    flags |= SMTPMessage.NOTIFY_SUCCESS;
+                    break;
+                case FAILURE:
+                    flags |= SMTPMessage.NOTIFY_FAILURE;
+                    break;
+                case DELAY:
+                    flags |= SMTPMessage.NOTIFY_DELAY;
+                    break;
+                case NEVER:
+                    flags = SMTPMessage.NOTIFY_NEVER;
+                    break;
+                default:
+                    throw new AssertionError(option);
+            }
+        }
+        return flags;
+    }
 
     @Override
     public boolean supports(@NotNull final Transport transport) {
@@ -394,8 +527,9 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     }
 
     /**
-     * The only provider-specific message facade in the pipeline. It exposes Angus envelope/DSN options while
-     * retaining the delegate's final serialization (including late DKIM output).
+     * The per-submission Angus facade exposes envelope/DSN options while retaining the delegate's final serialization (including late DKIM output).
+     * Retry-enabled sends delegate to AngusReplayableMessage for stable content and provider options; this facade is fresh for every invocation,
+     * so selected/used identifiers and other transaction facts cannot leak into the next attempt.
      */
     static final class AngusSmtpMessage extends SMTPMessage {
 
@@ -444,15 +578,6 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @NotNull
         private static Session sessionOf(@NotNull final MimeMessage message) {
             return message.getSession() != null ? message.getSession() : Session.getInstance(new Properties());
-        }
-
-        private static void copyHeaders(@NotNull final MimeMessage sourceMessage, @NotNull final MimeMessage targetMessage)
-                throws MessagingException {
-            final Enumeration<Header> headers = sourceMessage.getAllHeaders();
-            while (headers.hasMoreElements()) {
-                final Header header = headers.nextElement();
-                targetMessage.addHeader(header.getName(), header.getValue());
-            }
         }
 
         @Nullable
@@ -521,27 +646,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         }
 
         private void configureDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
-            int notifyOptions = 0;
-            for (final DeliveryStatusNotification.NotifyOption notifyOption : deliveryStatusNotification.getNotifyOptions()) {
-                switch (notifyOption) {
-                    case SUCCESS:
-                        notifyOptions |= SMTPMessage.NOTIFY_SUCCESS;
-                        break;
-                    case FAILURE:
-                        notifyOptions |= SMTPMessage.NOTIFY_FAILURE;
-                        break;
-                    case DELAY:
-                        notifyOptions |= SMTPMessage.NOTIFY_DELAY;
-                        break;
-                    case NEVER:
-                        notifyOptions = SMTPMessage.NOTIFY_NEVER;
-                        break;
-                    default:
-                        throw new AssertionError("Unsupported DSN notify option: " + notifyOption);
-                }
-            }
             if (!deliveryStatusNotification.getNotifyOptions().isEmpty()) {
-                super.setNotifyOptions(notifyOptions);
+                super.setNotifyOptions(toAngusNotifyOptions(deliveryStatusNotification.getNotifyOptions()));
             }
             if (deliveryStatusNotification.getReturnOption() != null) {
                 super.setReturnOption(deliveryStatusNotification.getReturnOption() == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE

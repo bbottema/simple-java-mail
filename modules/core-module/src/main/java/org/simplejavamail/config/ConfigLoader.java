@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.requireInternalConfig;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
@@ -76,6 +78,14 @@ public final class ConfigLoader {
 		SMTP_RECIPIENT_RATE_LIMIT("simplejavamail.smtp.ratelimit.recipients.limit"),
 		SMTP_RECIPIENT_RATE_PERIOD("simplejavamail.smtp.ratelimit.recipients.period"),
 		SMTP_RATE_LIMIT_ALLOW_BURSTS("simplejavamail.smtp.ratelimit.allowbursts"),
+		SMTP_RETRY_ATTEMPTS("simplejavamail.smtp.retry.attempts"),
+		SMTP_RETRY_DELAY("simplejavamail.smtp.retry.delay"),
+		SMTP_RETRY_BACKOFF_MULTIPLIER("simplejavamail.smtp.retry.backoffmultiplier"),
+		SMTP_RETRY_MAXIMUM_DELAY("simplejavamail.smtp.retry.maximumdelay"),
+		SMTP_RETRY_JITTER("simplejavamail.smtp.retry.jitter"),
+		DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY("simplejavamail.defaults.mailsend.retry.waitingcapacity"),
+		DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE("simplejavamail.defaults.mailsend.retry.maximummessagesize"),
+		DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT("simplejavamail.defaults.mailsend.retry.memorylimit"),
 		FAILOVER_MAILER("simplejavamail.failover.mailer"),
 		FAILOVER_PRIMARY_CONNECTION_ATTEMPTS("simplejavamail.failover.primary.connectionattempts"),
 		FAILOVER_PRIMARY_RETRY_DELAY("simplejavamail.failover.primary.retrydelay"),
@@ -353,7 +363,7 @@ public final class ConfigLoader {
 	 * Adds an existing immutable snapshot as a lower or higher-priority source according to its position in this loader.
 	 */
 	public ConfigLoader withConfig(final @NotNull SimpleJavaMailConfig config) {
-		return withMap("existing SimpleJavaMailConfig", config.asSourceMap());
+		return withMap("existing SimpleJavaMailConfig", requireInternalConfig(config).asSourceMap());
 	}
 
 	/**
@@ -427,7 +437,7 @@ public final class ConfigLoader {
 		});
 
 		resolveNamedMailerConfigurations(winners, resolved, resolvedSourceProperties, diagnostics, lockedValues, lockedSources);
-		return new SimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics),
+		return new LoadedSimpleJavaMailConfig(resolved, origins, resolvedSourceProperties, new ConfigDiagnostics(diagnostics),
 				new ConfigurationLocks(lockedValues, lockedSources, configurationPropertyPrefix));
 	}
 
@@ -464,7 +474,7 @@ public final class ConfigLoader {
 	private static void copyNamedMailerSourceProperties(final String mailerName, final SimpleJavaMailConfig namedMailerConfiguration,
 			final Map<String, RawValue> winners,
 			final Map<String, Object> sourceProperties, final Map<String, Object> lockedValues, final Map<String, String> lockedSources) {
-		namedMailerConfiguration.asSourceMap().forEach((key, value) -> {
+		requireInternalConfig(namedMailerConfiguration).asSourceMap().forEach((key, value) -> {
 			final String fullKey = qualifyNamedMailerProperty(mailerName, key);
 			sourceProperties.put(fullKey, value);
 			if (ConfigurationLocks.isLockedName(key)) {

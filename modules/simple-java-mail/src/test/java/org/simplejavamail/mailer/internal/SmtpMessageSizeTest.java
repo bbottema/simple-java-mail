@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,7 +20,7 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import testutil.smtp.SmtpConversation;
 import testutil.smtp.ScriptedSmtpServer;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.IOException;
@@ -162,7 +164,7 @@ class SmtpMessageSizeTest {
             captured.complete(acceptConvertedEightBitMessage(peer));
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.smtp.allow8bitmime", true).buildMailer()) {
-            final Email email = mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(RecipientBuilder.bcc(null, RECIPIENT))
+            final Email email = mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(RECIPIENT).withType(RecipientType.BCC).build())
                     .withSubject("Café").withPlainText("Café\r\n.hello")
                     .withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
                     .withHeader("Content-Length", "123456").buildEmail();

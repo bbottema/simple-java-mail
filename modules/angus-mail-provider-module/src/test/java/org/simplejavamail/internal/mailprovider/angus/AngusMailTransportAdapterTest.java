@@ -47,8 +47,15 @@ class AngusMailTransportAdapterTest {
         final SMTPMessage original = new SMTPMessage(message("body"));
         original.setSendPartial(originalChoice);
         final byte[] expected = bytes(original);
-        final PreparedMail prepared = new PreparedMail(original, recipients(),
-                new DeliveryEnvelope(null, null, List.of(), false, false, choice), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        final PreparedMail prepared = PreparedMail.builder()
+            .withMimeMessage(original)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder()
+                .withRecipientOptions(List.of())
+                .withSendingToAcceptedRecipients(choice)
+                .build())
+            .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+            .build();
         final AngusMailTransportAdapter.AngusSmtpMessage facade = new AngusMailTransportAdapter.AngusSmtpMessage(prepared,
                 new AngusMailFromParameters(false, null), null, null, false);
 
@@ -65,7 +72,15 @@ class AngusMailTransportAdapterTest {
         message.getSession().getProperties().setProperty("mail." + protocol + ".sendpartial", "true");
         final SMTPTransport transport = transportRejectingSubmission(message.getSession(), protocol);
         final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null, List.of(), false, false, false), ContentRequirement.NORMAL));
+                PreparedMail.builder()
+                    .withMimeMessage(message)
+                    .withRecipients(recipients())
+                    .withDeliveryEnvelope(DeliveryEnvelope.builder()
+                        .withRecipientOptions(List.of())
+                        .withSendingToAcceptedRecipients(false)
+                        .build())
+                    .withContentRequirement(ContentRequirement.NORMAL)
+                    .build());
 
         assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                 .isInstanceOf(org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException.class)
@@ -86,7 +101,15 @@ class AngusMailTransportAdapterTest {
         transportProperties.setProperty("mail.smtp.sendpartial", "true");
         try (ManagedAngusTransport transport = new ManagedAngusTransport(Session.getInstance(transportProperties), null)) {
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null, List.of(), false, false, false), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder()
+                            .withRecipientOptions(List.of())
+                            .withSendingToAcceptedRecipients(false)
+                            .build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessageContaining("mail.smtp.sendpartial=true"));
             assertThat(message.getSession().getProperty("mail.smtp.sendpartial")).isNull();
         }
@@ -97,9 +120,21 @@ class AngusMailTransportAdapterTest {
     void rejectionChoiceDoesNotAddContentReadsOrSerialization(final ContentRequirement requirement) throws Exception {
         final CountingMessage message = new CountingMessage(message("body"));
         final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();
-        final PreparedMail ordinary = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), requirement);
-        final PreparedMail chosen = new PreparedMail(message, recipients(),
-                new DeliveryEnvelope(null, null, List.of(), false, false, true), requirement);
+        final PreparedMail ordinary = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(requirement)
+            .build();
+        final PreparedMail chosen = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder()
+                .withRecipientOptions(List.of())
+                .withSendingToAcceptedRecipients(true)
+                .build())
+            .withContentRequirement(requirement)
+            .build();
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             adapter.sendMessage(transport, ordinary);
@@ -117,11 +152,20 @@ class AngusMailTransportAdapterTest {
     void rawReturnOptionsCannotReplaceALockedNotificationPreference() throws Exception {
         final MimeMessage message = message("body");
         message.getSession().getProperties().setProperty("mail.smtp.mailextension", "RET=HDRS");
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, DeliveryStatusNotification.of(FAILURE), List.of(), false, true);
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+            .withDeliveryStatusNotification(DeliveryStatusNotification.of(FAILURE))
+            .withRecipientOptions(List.of())
+            .withDeliveryStatusNotificationRequired(true)
+            .build();
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), envelope, ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(envelope)
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("requires its delivery-notification settings to be honored")
                     .hasMessageContaining("mail.smtp.mailextension").hasMessageContaining("Remove the RET parameter")
@@ -154,7 +198,12 @@ class AngusMailTransportAdapterTest {
         final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("fixed-selection").build();
 
         final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                new PreparedMail(original, recipients(), new DeliveryEnvelope(null, notification), ContentRequirement.NORMAL));
+                PreparedMail.builder()
+                    .withMimeMessage(original)
+                    .withRecipients(recipients())
+                    .withDeliveryEnvelope(DeliveryEnvelope.builder().withDeliveryStatusNotification(notification).build())
+                    .withContentRequirement(ContentRequirement.NORMAL)
+                    .build());
 
         assertThat(result.getFailure()).hasValueSatisfying(failure -> {
             assertThat(failure)
@@ -182,7 +231,12 @@ class AngusMailTransportAdapterTest {
         try (CommandRecordingTransport transport = new CommandRecordingTransport(original.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(original, recipients(), new DeliveryEnvelope(null, notification), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(original)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().withDeliveryStatusNotification(notification).build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).containsSame(transport.writeFailure);
             assertThat(result.getEnvelopeId()).isEqualTo("fixed-selection");
@@ -201,7 +255,12 @@ class AngusMailTransportAdapterTest {
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, new Address[0], new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(new Address[0])
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().withDeliveryStatusNotification(dsn).build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
             assertThat(result.getEnvelopeId()).isNull();
@@ -216,14 +275,24 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult attempted = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(attempted.getFailure()).containsSame(transport.writeFailure);
             assertThat(attempted.isRequireTlsUsed()).isTrue();
             assertThat(transport.commands).singleElement().asString().contains(" REQUIRETLS");
 
             final MailTransportResult notAttempted = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, new Address[0], requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(new Address[0])
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             assertThat(notAttempted.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
             assertThat(notAttempted.isRequireTlsUsed()).isFalse();
             assertThat(transport.commands).hasSize(1);
@@ -237,12 +306,21 @@ class AngusMailTransportAdapterTest {
                 .returnOption(HEADERS_ONLY)
                 .envelopeId("correlation-id")
                 .build();
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, dsn, List.of(), true);
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+            .withDeliveryStatusNotification(dsn)
+            .withRecipientOptions(List.of())
+            .withTlsRequiredForOnwardDelivery(true)
+            .build();
         try (CommandRecordingTlsTransport transport = new CommandRecordingTlsTransport(message.getSession(), true)) {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), envelope, ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(envelope)
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getEnvelopeId()).isEqualTo("correlation-id");
             assertThat(result.isRequireTlsUsed()).isTrue();
@@ -259,9 +337,19 @@ class AngusMailTransportAdapterTest {
             final AngusMailTransportAdapter adapter = new AngusMailTransportAdapter();
 
             final MailTransportResult required = adapter.sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             final MailTransportResult ordinary = adapter.sendMessage(transport,
-                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(required.isRequireTlsUsed()).isTrue();
             assertThat(ordinary.isRequireTlsUsed()).isFalse();
@@ -278,7 +366,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("does not advertise usable REQUIRETLS")
@@ -297,7 +390,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 25, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("SMTP connection is not using TLS")
@@ -316,7 +414,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("server identity verification is disabled")
@@ -335,7 +438,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("trust every TLS certificate")
@@ -353,7 +461,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("custom socket factory owns TLS certificate handling")
@@ -371,7 +484,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), requireTlsEnvelope(), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(requireTlsEnvelope())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure)
                     .hasMessageContaining("invalid REQUIRETLS=... parameter")
@@ -390,7 +508,12 @@ class AngusMailTransportAdapterTest {
             transport.connect("localhost", 465, null, null);
 
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.isRequireTlsUsed()).isTrue();
             assertThat(transport.commands).singleElement().asString().contains("XTRACE=1 REQUIRETLS");
@@ -404,7 +527,12 @@ class AngusMailTransportAdapterTest {
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).isInstanceOf(AddressException.class));
             assertThat(result.getEnvelopeId()).isNull();
@@ -418,7 +546,12 @@ class AngusMailTransportAdapterTest {
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                    new PreparedMail(message, new Address[]{new NewsAddress("example.group")}, new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(new Address[]{new NewsAddress("example.group")})
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
 
             assertThat(result.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessageContaining("is not an InternetAddress"));
             assertThat(result.getEnvelopeId()).isNull();
@@ -433,13 +566,23 @@ class AngusMailTransportAdapterTest {
         try (CommandRecordingTransport transport = new CommandRecordingTransport(message.getSession())) {
             transport.connect("localhost", 25, null, null);
             final MailTransportResult attempted = adapter.sendMessage(transport,
-                    new PreparedMail(message, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(recipients())
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             assertThat(attempted.getFailure()).containsSame(transport.writeFailure);
             assertThat(attempted.getEnvelopeId()).isNotNull();
             assertThat(transport.commands).containsExactly("MAIL FROM:<sender@example.com> ENVID=" + attempted.getEnvelopeId());
 
             final MailTransportResult notAttempted = adapter.sendMessage(transport,
-                    new PreparedMail(message, new Address[0], new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                    PreparedMail.builder()
+                        .withMimeMessage(message)
+                        .withRecipients(new Address[0])
+                        .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                        .withContentRequirement(ContentRequirement.NORMAL)
+                        .build());
             assertThat(notAttempted.getFailure()).hasValueSatisfying(failure -> assertThat(failure).hasMessage("No recipient addresses"));
             assertThat(notAttempted.getEnvelopeId()).isNull();
             assertThat(transport.commands).hasSize(1);
@@ -476,7 +619,12 @@ class AngusMailTransportAdapterTest {
             }
         };
         final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport,
-                new PreparedMail(original, recipients(), new DeliveryEnvelope(null, null), ContentRequirement.NORMAL));
+                PreparedMail.builder()
+                    .withMimeMessage(original)
+                    .withRecipients(recipients())
+                    .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                    .withContentRequirement(ContentRequirement.NORMAL)
+                    .build());
         assertThat(result.getEnvelopeId()).isNotNull();
         assertThat(original.getMailExtension()).isEqualTo("XTEST=original");
     }
@@ -501,7 +649,12 @@ class AngusMailTransportAdapterTest {
         final MimeMessage message = new MimeMessage(session);
         message.setText("body");
         message.saveChanges();
-        final PreparedMail preparedMail = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().withDeliveryStatusNotification(dsn).build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
 
         assertThat(new AngusMailTransportAdapter().sendMessage(transport, preparedMail).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
     }
@@ -515,7 +668,12 @@ class AngusMailTransportAdapterTest {
         message.setText("body");
         message.saveChanges();
         final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().envelopeId("smtps-id").build();
-        final PreparedMail preparedMail = new PreparedMail(message, recipients(), new DeliveryEnvelope(null, dsn), ContentRequirement.NORMAL);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().withDeliveryStatusNotification(dsn).build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
 
         final SMTPTransport transport = new SMTPSSLTransport(message.getSession(), new URLName("smtps", null, -1, null, null, null)) {
             @Override
@@ -539,10 +697,17 @@ class AngusMailTransportAdapterTest {
         final byte[] expected = bytes(message);
         final DeliveryStatusNotification dsn = DeliveryStatusNotification.builder().returnOption(HEADERS_ONLY)
                 .notifyOptions(FAILURE, DELAY).envelopeId("protected+42").build();
-        final PreparedMail preparedMail = new PreparedMail(message, recipients(),
-                new DeliveryEnvelope("bounce@example.com", dsn, List.of(new DeliveryRecipient(
-                        ((InternetAddress) recipients()[0]).getAddress(), List.of(DeliveryStatusNotification.NotifyOption.NEVER)))),
-                ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder()
+                .withEnvelopeFrom("bounce@example.com")
+                .withDeliveryStatusNotification(dsn)
+                .withRecipientOptions(List.of(new DeliveryRecipient(
+                        ((InternetAddress) recipients()[0]).getAddress(), List.of(DeliveryStatusNotification.NotifyOption.NEVER))))
+                .build())
+            .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+            .build();
         final AngusRecipientCommands recipientCommands = AngusRecipientCommands.prepare(new ManagedAngusTransport(message.getSession(), null), preparedMail, true);
 
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
@@ -560,8 +725,12 @@ class AngusMailTransportAdapterTest {
     @Test
     void stableFacadeSuppressesAngusEightBitTraversalAndSaveChanges() throws Exception {
         final MimeMessage message = message("body");
-        final PreparedMail preparedMail = new PreparedMail(message, recipients(),
-                new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_PROTECTED_CONTENT);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+            .build();
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
                 new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final byte[] before = bytes(facade);
@@ -586,8 +755,12 @@ class AngusMailTransportAdapterTest {
                 + "\r\nbody\r\n").getBytes(StandardCharsets.US_ASCII);
         final FinalizedMimeMessage message = FinalizedMimeMessage.fromExactMessageBytes(
                 Session.getInstance(new Properties()), exactEml);
-        final PreparedMail preparedMail = new PreparedMail(message, recipients(),
-                new DeliveryEnvelope(null, null), ContentRequirement.PRESERVE_ALL_BYTES);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message)
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.PRESERVE_ALL_BYTES)
+            .build();
         final AngusMailTransportAdapter.AngusSmtpMessage facade =
                 new AngusMailTransportAdapter.AngusSmtpMessage(preparedMail, new AngusMailFromParameters(false, null), null, null, false);
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -604,8 +777,12 @@ class AngusMailTransportAdapterTest {
     void failedSendDoesNotReuseThePreviousSubmissionResponse() throws Exception {
         final MessagingException failure = new MessagingException("connection dropped after DATA");
         final StaleResponseTransport transport = new StaleResponseTransport(failure);
-        final PreparedMail preparedMail = new PreparedMail(message("body"), recipients(),
-                new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        final PreparedMail preparedMail = PreparedMail.builder()
+            .withMimeMessage(message("body"))
+            .withRecipients(recipients())
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
 
         final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, preparedMail);
 
@@ -705,7 +882,10 @@ class AngusMailTransportAdapterTest {
     }
 
     private static DeliveryEnvelope requireTlsEnvelope() {
-        return new DeliveryEnvelope(null, null, List.of(), true);
+        return DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withTlsRequiredForOnwardDelivery(true)
+            .build();
     }
 
     private static SMTPTransport transportRejectingSubmission(final Session session, final String protocol) {
@@ -736,8 +916,12 @@ class AngusMailTransportAdapterTest {
     }
 
     private static PreparedMail preparedMail(final Address... envelope) throws Exception {
-        return new PreparedMail(message("body"), envelope.length == 0 ? recipients() : envelope,
-                new DeliveryEnvelope(null, null), ContentRequirement.NORMAL);
+        return PreparedMail.builder()
+            .withMimeMessage(message("body"))
+            .withRecipients(envelope.length == 0 ? recipients() : envelope)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
     }
 
     private static byte[] bytes(final MimeMessage message) throws Exception {

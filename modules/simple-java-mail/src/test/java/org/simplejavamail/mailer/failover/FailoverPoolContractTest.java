@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.failover;
 
+import jakarta.mail.Message.RecipientType;
+
+import org.simplejavamail.api.SimpleJavaMail;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,8 +28,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
-import static org.simplejavamail.recipient.RecipientBuilder.bcc;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
+
 
 /** Pool-specific contracts run only with the real optional batch module and its upstream dependencies. */
 @Timeout(45)
@@ -34,7 +38,7 @@ class FailoverPoolContractTest {
     @Test
     void ordinaryClusterUsesSelectedTemplatesForConcurrentOriginalReuse() throws Exception {
         final UUID cluster = UUID.randomUUID();
-        final Email original = MAIL.emailBuilder().startingBlank().withRecipients(to(null, "receiver@example.test"))
+        final Email original = MAIL.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withPlainText("unchanged original").buildEmail();
         try (RecordingSmtpServer first = new RecordingSmtpServer(); RecordingSmtpServer second = new RecordingSmtpServer();
              Mailer primary = builder(first.port()).withClusterKey(cluster).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN)
@@ -182,7 +186,7 @@ class FailoverPoolContractTest {
 
     private static Email template(final String name) {
         return MAIL.emailBuilder().startingBlank().from(name + "@example.test").withHeader("X-Relay", name)
-                .withRecipients(bcc(null, name + "-maintainer@example.test")).buildEmail();
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(name + "-maintainer@example.test").withType(RecipientType.BCC).build()).buildEmail();
     }
 
     private static void assertSelectedTemplate(final RecordingSmtpServer server, final String owner) {

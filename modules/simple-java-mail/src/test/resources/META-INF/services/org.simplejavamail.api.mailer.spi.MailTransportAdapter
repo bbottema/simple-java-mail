@@ -1,1 +1,2 @@
 org.simplejavamail.mailer.failover.FailoverTestProvider
+testutil.retry.RetryProviderAdapter

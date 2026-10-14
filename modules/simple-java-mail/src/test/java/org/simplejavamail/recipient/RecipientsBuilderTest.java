@@ -1,5 +1,7 @@
 package org.simplejavamail.recipient;
 
+import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Recipient;
 
@@ -18,7 +20,7 @@ public class RecipientsBuilderTest {
 
     @Test
     public void buildRecipients_collectsParsedRecipientsWithDefaultAndFixedNames() {
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withRecipientsWithDefaultName("Default", TO, "Alice <alice@example.com>", "bob@example.com")
                 .withRecipientsWithFixedName("Fixed", CC, "Carol <carol@example.com>", "dave@example.com")
                 .buildRecipients();
@@ -34,7 +36,7 @@ public class RecipientsBuilderTest {
     public void buildRecipients_preservesRecipientSmimeCertificates() {
         X509Certificate certificate = mock(X509Certificate.class);
 
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withRecipients(singletonList(new Recipient("Archive", "archive@example.com", TO, certificate)), BCC)
                 .buildRecipients();
 
@@ -46,7 +48,7 @@ public class RecipientsBuilderTest {
         X509Certificate groupCertificate = mock(X509Certificate.class);
         X509Certificate recipientCertificate = mock(X509Certificate.class);
 
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withDefaultSmimeCertificate(groupCertificate)
                 .withRecipient(new Recipient("Alice", "alice@example.com", TO, recipientCertificate))
                 .withRecipient("Bob", "bob@example.com", TO)
@@ -62,7 +64,7 @@ public class RecipientsBuilderTest {
         X509Certificate groupCertificate = mock(X509Certificate.class);
         X509Certificate recipientCertificate = mock(X509Certificate.class);
 
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withFixedSmimeCertificate(groupCertificate)
                 .withRecipient(new Recipient("Alice", "alice@example.com", TO, recipientCertificate))
                 .withRecipient("Bob", "bob@example.com", TO)
@@ -78,7 +80,7 @@ public class RecipientsBuilderTest {
         X509Certificate groupCertificate = mock(X509Certificate.class);
         X509Certificate recipientCertificate = mock(X509Certificate.class);
 
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withDefaultSmimeCertificate(groupCertificate)
                 .clearingSmimeCertificates()
                 .withRecipient(new Recipient("Alice", "alice@example.com", TO, recipientCertificate))
@@ -96,7 +98,7 @@ public class RecipientsBuilderTest {
         X509Certificate fixedCertificate = mock(X509Certificate.class);
         X509Certificate recipientCertificate = mock(X509Certificate.class);
 
-        Collection<Recipient> recipients = new RecipientsBuilder()
+        Collection<Recipient> recipients = new RecipientsBuilderImpl()
                 .withFixedSmimeCertificate(fixedCertificate)
                 .withDefaultSmimeCertificate(defaultCertificate)
                 .withRecipient(new Recipient("Alice", "alice@example.com", TO, recipientCertificate))
@@ -110,7 +112,7 @@ public class RecipientsBuilderTest {
 
     @Test
     public void buildRecipients_returnsDefensiveUnmodifiableCopy() {
-        RecipientsBuilder builder = new RecipientsBuilder();
+        RecipientsBuilderImpl builder = new RecipientsBuilderImpl();
         Collection<Recipient> firstBuild = builder
                 .withRecipient("first@example.com", TO)
                 .buildRecipients();

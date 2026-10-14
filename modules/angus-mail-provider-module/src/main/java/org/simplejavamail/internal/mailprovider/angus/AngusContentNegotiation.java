@@ -147,7 +147,7 @@ final class AngusContentNegotiation {
     }
 
     @Nullable
-    private static String resolveEnvelopeSender(@NotNull final PreparedMail preparedMail, @NotNull final String protocol)
+    static String resolveEnvelopeSender(@NotNull final PreparedMail preparedMail, @NotNull final String protocol)
             throws MessagingException {
         final String envelopeFrom = preparedMail.getDeliveryEnvelope().getEnvelopeFrom();
         if (envelopeFrom != null && !envelopeFrom.isEmpty()) {

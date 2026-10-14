@@ -1,5 +1,7 @@
 package demo;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
@@ -7,6 +9,7 @@ import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -14,7 +17,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /**
  * Demonstrates streaming terminal progress from asynchronous email sends.
@@ -25,7 +28,11 @@ import static org.simplejavamail.recipient.RecipientBuilder.to;
  * not just network traffic. An unavailable measurement prints n/a (for example, submission in logging-only mode).
  * Asynchronous preparation runs after execution starts and uses the selected Mailer's templates. With connection failover, preparation and acquisition
  * accumulate work across destinations; connection history distinguishes actual acquisitions from destinations skipped until their next recheck.
+ * To demonstrate automatic retries, optionally configure {@code withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3)
+ * .withRetryDelay(Duration.ofSeconds(30)).build())} on the builder below. Use a controlled relay that temporarily refuses submissions;
+ * this does not simulate failures or run during CI. Retry history belongs to one final outcome, not additional progress callbacks.
  * </p>
+ * @see MailSendRetryPolicy
  */
 public class MailSendObserverDemoApp extends DemoAppBase {
 
@@ -64,7 +71,7 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 	private static Email createEmail(final int emailNumber) {
 		return SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.from("Simple Java Mail observer demo", "simplejavamail@demo.app")
-				.withRecipients(to(null, YOUR_GMAIL_ADDRESS))
+				.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(YOUR_GMAIL_ADDRESS).withType(RecipientType.TO).build())
 				.withSubject("Mail-send observer demo " + emailNumber)
 				.withPlainText("This email demonstrates terminal mail-send progress.")
 				.fixingMessageId("observer-demo-" + emailNumber + "@simplejavamail.org")
@@ -84,22 +91,31 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 			}
 
 			final MailSendDiagnostics report = outcome.getDiagnostics().orElseThrow();
-			System.out.printf("[%d/%d] %-9s id=%s preparation=%s scheduling=%s connection=%s mime=%s submission=%s cleanup=%s total=%dms thread=%s%n",
+			System.out.printf("[%d/%d] %-9s id=%s preparation=%s scheduling=%s retry=%s connection=%s mime=%s submission=%s cleanup=%s"
+					+ " total=%dms thread=%s%n",
 					completed,
 					EMAIL_COUNT,
 					status(outcome),
 					messageId(outcome),
 					duration(report.getPreparation()),
 					duration(report.getScheduling()),
+					duration(report.getRetryWait()),
 					duration(report.getConnectionAcquisition()),
 					duration(report.getMimePreparation()),
 					duration(report.getSubmission()),
 					duration(report.getCleanup()),
 					report.getElapsed().toMillis(),
 					Thread.currentThread().getName());
-			if (report.getConnectionHistory().size() > 1 || report.getOmittedConnectionSteps() > 0) {
-				System.out.printf("  Connection route: %s (omitted: %d)%n", report.getConnectionHistory(), report.getOmittedConnectionSteps());
-			}
+			printAttemptHistory(report);
+		}
+	}
+
+	private static void printAttemptHistory(final MailSendDiagnostics report) {
+		if (report.getConnectionHistory().size() > 1 || report.getOmittedConnectionSteps() > 0) {
+			System.out.printf("  Connection route: %s (omitted: %d)%n", report.getConnectionHistory(), report.getOmittedConnectionSteps());
+		}
+		if (!report.getSubmissionHistory().isEmpty()) {
+			System.out.printf("  Submission attempts: %s (omitted: %d)%n", report.getSubmissionHistory(), report.getOmittedSubmissionSteps());
 		}
 	}
 

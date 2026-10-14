@@ -41,7 +41,14 @@ final class MailSendExecutor extends ThreadPoolExecutor {
         for (AsyncQueueRejectionReason reason : AsyncQueueRejectionReason.values()) {
             counts.put(reason, rejections.get(reason.ordinal()));
         }
-        return new AsyncQueueSnapshot(configuration, getMaximumPoolSize(), getQueue().size(), getActiveCount(), isShutdown(), counts);
+        return AsyncQueueSnapshotImpl.builder()
+            .configuration(configuration)
+            .workerLimit(getMaximumPoolSize())
+            .queuedCount(getQueue().size())
+            .activeCount(getActiveCount())
+            .shutdown(isShutdown())
+            .rejectionCounts(counts)
+            .build();
     }
 
     static boolean isCurrentWorker(final ExecutorService executor) {

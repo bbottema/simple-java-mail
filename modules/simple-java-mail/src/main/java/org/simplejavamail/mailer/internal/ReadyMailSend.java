@@ -1,14 +1,17 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.Address;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.mailer.internal.util.AcquiredMailTransport;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /** One governed email and its reserved destination resources. Submission happens only after the connection route has returned this owner. */
 final class ReadyMailSend extends RoutedConnectionScope {
@@ -17,6 +20,7 @@ final class ReadyMailSend extends RoutedConnectionScope {
 	private final MailSendControl control;
 	private Email email;
 	@Nullable private SendingAllowance.Reservation reservation;
+	@Nullable private SelectedPoolTransport selected;
 
 	private ReadyMailSend(final MailerImpl initiator, final MailerImpl destination, final List<MailerImpl> stages,
 			final MailSendDiagnosticsRecorder diagnostics, final MailSendControl control) {
@@ -30,6 +34,7 @@ final class ReadyMailSend extends RoutedConnectionScope {
 		attempt.preparationStarted();
 		attempt.selectedSendingMode(destination.getOperationalConfig().isTransportModeLoggingOnly());
 		final ReadyMailSend ready = new ReadyMailSend(initiator, destination, stages, attempt.diagnostics(), control);
+		ready.selected = selected;
 		try {
 			destination.validateSelectedDestination(control.isDeadlineEnabled());
 			ready.email = initiator.prepareSelectedEmail(original, destination, stages);
@@ -78,6 +83,34 @@ final class ReadyMailSend extends RoutedConnectionScope {
 		return receipt;
 	}
 
+	boolean supportsAutomaticRetry() {
+		return selectedDestination.usesSmtpConnection() && selectedDestination.getOperationalConfig().getMailSendRetryPolicy().isRetryEnabled();
+	}
+
+	MailSendRetryingSubmission retryingSubmission(final MailSendReplayBudget budget) {
+		return new MailSendRetryingSubmission(selectedDestination, email, control, diagnostics, budget, new MailSendRetryingSubmission.Connection() {
+			@Override public <T> T withinOwners(final Supplier<T> work) { return executeWithinOwners(work); }
+			@Override public AcquiredMailTransport current() { return transport(); }
+			@Override public SendingAllowance.Reservation reserve(final Address[] recipients) throws MessagingException {
+				if (reservation != null) {
+					final SendingAllowance.Reservation initial = reservation;
+					reservation = null;
+					return initial;
+				}
+				return EmailSendingAllowance.reserve(selected == null ? selectedDestination.sendingAllowance() : selected.getSendingAllowance(),
+						recipients, control, diagnostics);
+			}
+			@Override public void reacquire(final Address[] recipients) {
+				// Retry allowance may wait. Reserve it before borrowing another connection, just as the initial routed attempt does.
+				try { reservation = reserve(recipients); }
+				catch (MessagingException failure) { throw new MailerException("Couldn't reserve sending allowance for this email's retry.", failure); }
+				acquireConnection(selected, control, selectedDestination.connectionObserver());
+			}
+			@Override public void releaseAttempt() throws MessagingException { closeAttemptResources(); }
+			@Override public void close() throws MessagingException { ReadyMailSend.this.close(); }
+		});
+	}
+
 	private MailSubmissionReceipt send() {
 		requireOpenScope();
 		return executeWithinOwners(() -> {
@@ -97,6 +130,7 @@ final class ReadyMailSend extends RoutedConnectionScope {
 	void releaseReservation() {
 		if (reservation != null) {
 			reservation.close();
+			reservation = null;
 		}
 	}
 }

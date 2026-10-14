@@ -1,10 +1,19 @@
 package org.simplejavamail.mailer.internal.util;
 
+import org.simplejavamail.mailer.internal.MailSubmissionReceiptImpl;
+
+import org.simplejavamail.api.mailer.MailRetryDisposition;
+
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
+
+import java.util.Collections;
+
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -85,6 +94,60 @@ public class TransportRunner {
 		}
 	}
 
+	/** Captures provider-specific replay options once; it neither submits nor owns the supplied transport. */
+	public static PreparedMail prepareForRepeatedSubmission(final Transport transport, final PreparedMail original, final MimeMessage frozen)
+			throws MessagingException {
+		return MailTransportAdapterResolver.prepareForRepeatedSubmission(transport, original, frozen);
+	}
+
+	/**
+	 * Runs one physical attempt without freezing a logical terminal failure. The retry owner decides whether the captured
+	 * refusal is intermediate; ordinary sending retains its existing translating boundary above.
+	 */
+	public static MailSubmissionReceipt sendPreparedMessageOnTransport(final Transport transport, final PreparedMail preparedMail,
+			@Nullable final String messageId, @Nullable final String subject, final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics,
+			final SendingAllowance.Reservation allowance, final Runnable invocationStarted) throws MessagingException {
+		try {
+			final MailTransportResult result = invokePreparedSubmission(transport, preparedMail, control, diagnostics, allowance, invocationStarted);
+			final MailSubmissionReceipt receipt = recordSubmissionReceipt(messageId, preparedMail, result, diagnostics);
+			if (!result.isSuccessful()) {
+				throw buildSubmissionException(messageId, subject, result, receipt);
+			}
+			return receipt;
+		} catch (MailSubmissionException failure) {
+			diagnostics.failed();
+			throw failure;
+		} catch (MessagingException failure) {
+			diagnostics.failed();
+			final MailTransportResult result = MailTransportResult.failed(failure, null).withEnvelopeRecipients(preparedMail.getRecipients());
+			final MailSubmissionReceipt receipt = recordSubmissionReceipt(messageId, preparedMail, result, diagnostics);
+			throw buildSubmissionException(messageId, subject, result, receipt);
+		} catch (RuntimeException | Error failure) {
+			diagnostics.failed();
+			throw failure;
+		}
+	}
+
+	private static MailTransportResult invokePreparedSubmission(final Transport transport, final PreparedMail preparedMail, final MailSendControl control,
+			final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance, final Runnable invocationStarted)
+			throws MessagingException {
+		control.checkStopped();
+		diagnostics.startSubmission();
+		return MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> {
+			// Charge allowance and the attempt count at provider entry, not for resolver failures before an invocation starts.
+			allowance.commit(control);
+			diagnostics.submissionInvoked();
+			invocationStarted.run();
+		}).withEnvelopeRecipients(preparedMail.getRecipients());
+	}
+
+	private static MailSubmissionReceipt recordSubmissionReceipt(@Nullable final String messageId, final PreparedMail preparedMail,
+			final MailTransportResult result, final MailSendDiagnosticsRecorder diagnostics) {
+		final MailSubmissionReceipt receipt = buildReceipt(messageId, preparedMail.getRecipients(), result);
+		diagnostics.receiptProduced(receipt);
+		return receipt;
+	}
+
 	public static void connect(@NotNull final UUID clusterKey, @NotNull final Session session)
 			throws MessagingException {
 		runOnSessionTransport(clusterKey, session, true, (transport, actualSessionUsed) -> {
@@ -97,7 +160,15 @@ public class TransportRunner {
 	@NotNull
 	public static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @Nullable final SmtpServerResponse smtpServerResponse) {
 		if (smtpServerResponse != null) {
-			return new MailSubmissionReceipt(email.getId(), smtpServerResponse, Instant.now());
+			final boolean accepted = smtpServerResponse.isPositiveCompletionReply();
+			return MailSubmissionReceiptImpl.builder()
+				.emailId(email.getId())
+				.smtpResponse(smtpServerResponse)
+				.submittedAt(Instant.now())
+				.status(accepted ? MailSubmissionStatus.ACCEPTED : MailSubmissionStatus.REJECTED)
+				.recipientResults(Collections.emptyList())
+				.retryDisposition(accepted ? MailRetryDisposition.DO_NOT_RETRY : MailRetryDisposition.CALLER_POLICY_REQUIRED)
+				.build();
 		}
 		return buildReceipt(email, MailTransportResult.unknown(null));
 	}
@@ -106,21 +177,35 @@ public class TransportRunner {
 	private static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @NotNull final MailTransportResult transportResult) {
 		final Address[] envelope = asInternetAddresses(email.getOverrideReceivers().isEmpty()
 				? email.getRecipients() : email.getOverrideReceivers(), UTF_8).toArray(new Address[0]);
+		return buildReceipt(email.getId(), envelope, transportResult);
+	}
+
+	private static MailSubmissionReceipt buildReceipt(@Nullable final String messageId, final Address[] envelope, final MailTransportResult transportResult) {
 		final MailTransportResult completeResult = transportResult.withEnvelopeRecipients(envelope);
-		return new MailSubmissionReceipt(email.getId(), transportResult.getSmtpResponse().orElse(null), Instant.now(),
-				completeResult.getStatus(), completeResult.getRecipientResults(), completeResult.getRetryDisposition(),
-				completeResult.getEnvelopeId(), completeResult.isRequireTlsUsed(),
-				completeResult.getMessageSize(), completeResult.getServerMaximumMessageSize());
+		return MailSubmissionReceiptImpl.builder()
+			.emailId(messageId)
+			.smtpResponse(transportResult.getSmtpResponse().orElse(null))
+			.submittedAt(Instant.now())
+			.status(completeResult.getStatus())
+			.recipientResults(completeResult.getRecipientResults())
+			.retryDisposition(completeResult.getRetryDisposition())
+			.envelopeId(completeResult.getEnvelopeId())
+			.requireTlsUsed(completeResult.isRequireTlsUsed())
+			.messageSize(completeResult.getMessageSize())
+			.serverMaximumMessageSize(completeResult.getServerMaximumMessageSize())
+			.build();
 	}
 
 	@NotNull
 	private static MailSubmissionException buildSubmissionException(@NotNull final Email email, @NotNull final MailTransportResult transportResult) {
+		return buildSubmissionException(email.getId(), email.getSubject(), transportResult, buildReceipt(email, transportResult));
+	}
+
+	private static MailSubmissionException buildSubmissionException(@Nullable final String messageId, @Nullable final String subject,
+			final MailTransportResult transportResult, final MailSubmissionReceipt receipt) {
 		final MessagingException failure = transportResult.getFailure()
 				.orElseThrow(() -> new IllegalArgumentException("A failed transport result must retain its MessagingException"));
-		final MailSubmissionReceipt receipt = buildReceipt(email, transportResult);
-		final String emailIdentifier = email.getId() != null
-				? "ID: '" + email.getId() + "'"
-				: "Subject: '" + email.getSubject() + "'";
+		final String emailIdentifier = messageId != null ? "ID: '" + messageId + "'" : "Subject: '" + subject + "'";
 		return new MailSubmissionException("Failed to submit email [" + emailIdentifier + "], submission status: " + receipt.getStatus(),
 				failure, receipt);
 	}

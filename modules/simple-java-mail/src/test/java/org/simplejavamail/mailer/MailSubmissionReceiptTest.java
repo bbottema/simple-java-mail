@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.mailer.internal.MailSubmissionReceiptImpl;
+
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
@@ -38,8 +40,18 @@ class MailSubmissionReceiptTest {
 	void preservesKnownSizeFactsThroughSerializationAndAllowsUnknownFactsIndependently() throws Exception {
 		for (final Long size : java.util.Arrays.asList(null, 0L, 4_000_000_000L)) {
 			for (final Long maximum : java.util.Arrays.asList(null, 3_000_000_000L)) {
-				final MailSubmissionReceipt original = new MailSubmissionReceipt("<size>", null, Instant.now(), MailSubmissionStatus.REJECTED,
-						List.of(), MailRetryDisposition.CALLER_POLICY_REQUIRED, null, false, size, maximum);
+				final MailSubmissionReceipt original = MailSubmissionReceiptImpl.builder()
+					.emailId("<size>")
+					.smtpResponse(null)
+					.submittedAt(Instant.now())
+					.status(MailSubmissionStatus.REJECTED)
+					.recipientResults(List.of())
+					.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+					.envelopeId(null)
+					.requireTlsUsed(false)
+					.messageSize(size)
+					.serverMaximumMessageSize(maximum)
+					.build();
 				final MailSubmissionReceipt restored = roundTrip(original);
 				assertThat(restored.getMessageSize()).isEqualTo(size);
 				assertThat(restored.getServerMaximumMessageSize()).isEqualTo(maximum);
@@ -49,14 +61,36 @@ class MailSubmissionReceiptTest {
 
 	@Test
 	void preservesEffectiveEnvelopeIdentifierThroughSerialization() throws Exception {
-		final MailSubmissionReceipt receipt = new MailSubmissionReceipt("<message>", null, Instant.now(), MailSubmissionStatus.UNKNOWN,
-				List.of(), MailRetryDisposition.DUPLICATE_RISK, "submission-1", true);
+		final MailSubmissionReceipt receipt = MailSubmissionReceiptImpl.builder()
+			.emailId("<message>")
+			.smtpResponse(null)
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(List.of())
+			.retryDisposition(MailRetryDisposition.DUPLICATE_RISK)
+			.envelopeId("submission-1")
+			.requireTlsUsed(true)
+			.build();
 		assertThat(receipt.getEnvelopeId()).isEqualTo("submission-1");
 		assertThat(roundTrip(receipt).getEnvelopeId()).isEqualTo("submission-1");
 		assertThat(receipt.isRequireTlsUsed()).isTrue();
 		assertThat(roundTrip(receipt).isRequireTlsUsed()).isTrue();
-		assertThat(new MailSubmissionReceipt("<message>", null, Instant.now()).getEnvelopeId()).isNull();
-		assertThat(new MailSubmissionReceipt("<message>", null, Instant.now()).isRequireTlsUsed()).isFalse();
+		assertThat(MailSubmissionReceiptImpl.builder()
+			.emailId("<message>")
+			.smtpResponse(null)
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(Collections.emptyList())
+			.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build().getEnvelopeId()).isNull();
+		assertThat(MailSubmissionReceiptImpl.builder()
+			.emailId("<message>")
+			.smtpResponse(null)
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(Collections.emptyList())
+			.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build().isRequireTlsUsed()).isFalse();
 	}
 
 	@Test
@@ -66,51 +100,9 @@ class MailSubmissionReceiptTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource({"accepted,ACCEPTED,DO_NOT_RETRY", "rejected,REJECTED,CALLER_POLICY_REQUIRED", "unknown,UNKNOWN,CALLER_POLICY_REQUIRED"})
-	void restoresReceiptsWrittenBeforeRecipientFieldsExisted(final String fixture, final MailSubmissionStatus status,
-			final MailRetryDisposition retryDisposition) throws Exception {
-		final MailSubmissionReceipt restored = readFixture(fixture);
-		assertThat(restored.getEmailId()).isEqualTo("<legacy-response>");
-		assertThat(restored.getEnvelopeId()).isNull();
-		assertThat(restored.getMessageSize()).isNull();
-		assertThat(restored.getServerMaximumMessageSize()).isNull();
-		assertThat(restored.isRequireTlsUsed()).isFalse();
-		assertThat(restored.getSubmittedAt()).isEqualTo(Instant.parse("2026-09-08T12:00:00Z"));
-		assertThat(restored.getStatus()).isEqualTo(status);
-		assertThat(restored.getRetryDisposition()).isEqualTo(retryDisposition);
-		assertThat(restored.getRecipientResults()).isEmpty();
-		assertThat(restored.getRetryableRecipients()).isEmpty();
-		assertStableViews(restored);
-	}
-
-	@Test
-	void restoresGroupedReceiptsWrittenBeforeDetailedRecipientFieldsExisted() throws Exception {
-		final MailSubmissionReceipt restored = readFixture("groups");
-		assertThat(restored.getEmailId()).isEqualTo("<legacy-groups>");
-		assertThat(restored.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-		assertThat(restored.getRetryDisposition()).isEqualTo(MailRetryDisposition.CALLER_POLICY_REQUIRED);
-		assertThat(restored.getRecipientResults()).extracting(MailRecipientResult::getOriginalAddress)
-				.containsExactly("accepted@example.org", "unsent@example.org", "invalid@example.org");
-		assertThat(restored.getRecipientResults()).allSatisfy(recipient -> {
-			assertThat(recipient.getRcptAttempted()).isEmpty();
-			assertThat(recipient.getRcptResponse()).isEmpty();
-		});
-		assertStableViews(restored);
-	}
-
-	@Test
-	void restoresRichReceiptsWhoseCompatibilityListsWereNotStored() throws Exception {
-		final MailSubmissionReceipt restored = readFixture("rich");
-		assertThat(restored.getEmailId()).isEqualTo("<rich>");
-		assertThat(restored.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-		assertThat(restored.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_UNACCEPTED);
-		assertThat(restored.getAcceptedRecipients()).containsExactly("accepted@example.org");
-		assertThat(restored.getValidUnsentRecipients()).containsExactly("temporary@example.org");
-		assertThat(restored.getRetryableRecipients()).extracting(MailRecipientResult::getOriginalAddress)
-				.containsExactly("temporary@example.org");
-		assertThat(restored.getRecipientResults()).extracting(recipient -> recipient.getRcptResponse().orElseThrow().getReturnCode())
-				.containsExactly(450, 250);
-		assertStableViews(restored);
+	@ValueSource(strings = {"accepted", "rejected", "unknown", "groups", "rich"})
+	void rejectsSnapshotsOfTheFormerConcreteReceiptClass(final String fixture) {
+		assertThatThrownBy(() -> readFixture(fixture)).isInstanceOf(java.io.InvalidClassException.class);
 	}
 
 	@ParameterizedTest
@@ -139,8 +131,14 @@ class MailSubmissionReceiptTest {
 		recipients.add(recipient("temporary@example.org", MailRecipientDisposition.VALID_UNSENT, 450));
 		recipients.add(recipient("accepted@example.org", MailRecipientDisposition.ACCEPTED, 250));
 		recipients.add(recipient("invalid@example.org", MailRecipientDisposition.INVALID, 550));
-		final MailSubmissionReceipt receipt = new MailSubmissionReceipt("<id>", new SmtpServerResponse(250, "250 queued"),
-				Instant.now(), MailSubmissionStatus.PARTIALLY_ACCEPTED, recipients, MailRetryDisposition.SAFE_TO_RETRY_UNACCEPTED);
+		final MailSubmissionReceipt receipt = MailSubmissionReceiptImpl.builder()
+			.emailId("<id>")
+			.smtpResponse(new SmtpServerResponse(250, "250 queued"))
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.PARTIALLY_ACCEPTED)
+			.recipientResults(recipients)
+			.retryDisposition(MailRetryDisposition.SAFE_TO_RETRY_UNACCEPTED)
+			.build();
 		recipients.clear();
 
 		assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getOriginalAddress)
@@ -163,9 +161,16 @@ class MailSubmissionReceiptTest {
 	}
 
 	@Test
-	void legacyConstructorsRemainUsableWithoutInventingRcptReplies() throws Exception {
-		final MailSubmissionReceipt legacy = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.REJECTED,
-				Collections.emptyList(), List.of("unsent@example.org"), List.of("invalid@example.org"));
+	void builderKeepsUnavailableRcptFactsUnavailable() throws Exception {
+		final MailSubmissionReceipt legacy = MailSubmissionReceiptImpl.builder()
+			.emailId(null)
+			.smtpResponse(null)
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.REJECTED)
+			.recipientResults(List.of(new MailRecipientResult("unsent@example.org", "unsent@example.org", MailRecipientDisposition.VALID_UNSENT, null, null),
+                        new MailRecipientResult("invalid@example.org", "invalid@example.org", MailRecipientDisposition.INVALID, null, null)))
+			.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build();
 		assertStableViews(legacy);
 		final MailSubmissionReceipt restored = roundTrip(legacy);
 		assertStableViews(restored);
@@ -200,8 +205,14 @@ class MailSubmissionReceiptTest {
 	@Test
 	void unknownFinalAcceptanceDoesNotTurnPositiveRcptIntoRetryPermission() {
 		final MailRecipientResult ambiguous = recipient("ambiguous@example.org", MailRecipientDisposition.UNKNOWN, 250);
-		final MailSubmissionReceipt receipt = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.UNKNOWN,
-				List.of(ambiguous), MailRetryDisposition.DUPLICATE_RISK);
+		final MailSubmissionReceipt receipt = MailSubmissionReceiptImpl.builder()
+			.emailId(null)
+			.smtpResponse(null)
+			.submittedAt(Instant.now())
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(List.of(ambiguous))
+			.retryDisposition(MailRetryDisposition.DUPLICATE_RISK)
+			.build();
 		assertThat(ambiguous.getRcptStatus()).isEqualTo(SmtpRecipientStatus.ACCEPTED);
 		assertThat(receipt.getAcceptedRecipients()).isEmpty();
 		assertThat(receipt.getValidUnsentRecipients()).isEmpty();

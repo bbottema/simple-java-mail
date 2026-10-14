@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import com.sanctionco.jmail.EmailValidator;
 import com.sanctionco.jmail.JMail;
 import org.jetbrains.annotations.NotNull;
@@ -10,6 +12,7 @@ import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailSendRetryBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
@@ -17,6 +20,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -62,7 +66,8 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  * @see MailerGenericBuilder
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
-abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> implements InternalMailerBuilder<T>, CliFailoverMailerBuilder {
+abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
+		implements InternalMailerBuilder<T>, CliFailoverMailerBuilder, CliMailSendRetryBuilder {
 
 	private static final AsyncQueueConfig DEFAULT_ASYNC_QUEUE_CONFIG = new AsyncQueueConfig(
 			DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS);
@@ -87,6 +92,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	@Nullable private String failoverName;
 	private boolean ownsFailoverMailer;
 	private final Properties cliFailoverOptions = new Properties();
+	/** @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy) */
+	@NotNull private MailSendRetryPolicy mailSendRetryPolicy;
+	private final Properties cliRetryOptions = new Properties();
 
 	/**
 	 * @see MailerGenericBuilder#withProxyHost(String)
@@ -325,6 +333,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 		this.sendingLimits = runtime.sendingLimits();
 		this.failoverName = config.getStringProperty(Property.FAILOVER_MAILER);
 		this.failoverPolicy = ConfiguredFailover.policy(config);
+		this.mailSendRetryPolicy = ConfiguredMailSendRetry.policy(config);
 		this.messageRateLimit = resolveRateLimit(config, Property.SMTP_MESSAGE_RATE_LIMIT, Property.SMTP_MESSAGE_RATE_PERIOD);
 		this.recipientRateLimit = resolveRateLimit(config, Property.SMTP_RECIPIENT_RATE_LIMIT, Property.SMTP_RECIPIENT_RATE_PERIOD);
 		this.rateLimitGroup = config.getStringProperty(Property.SMTP_RATE_LIMIT_GROUP);
@@ -416,6 +425,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
 	final MailerImpl buildConfiguredMailer(final Supplier<MailerImpl> constructMailer) {
 		resolveCliFailoverPolicy();
+		resolveCliRetryPolicy();
 		validateFailoverGraph(new LinkedHashSet<>());
 		final MailerImpl suppliedFailoverMailer = failoverMailer;
 		try {
@@ -466,7 +476,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	final void validateFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
 		validateLockedConfiguration();
-		ConfiguredFailover.verifyPolicyLocks(config.getLocks(), failoverPolicy);
+		ConfiguredFailover.verifyPolicyLocks(locksOf(config), failoverPolicy);
 		verifyCompatibleAncestorMessageLocks(failoverRoute, config);
 		if (!failoverRoute.add(definition)) {
 			throw new IllegalArgumentException("The named failover Mailers form a cycle. "
@@ -507,14 +517,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	private void verifyLockedRelationship() {
-		if (!config.getLocks().contains(Property.FAILOVER_MAILER)) {
+		if (!locksOf(config).contains(Property.FAILOVER_MAILER)) {
 			return;
 		}
 		final String permittedFailoverName = config.getStringProperty(Property.FAILOVER_MAILER);
 		if (usesPermittedNamedFailover(permittedFailoverName) || usesPermittedSuppliedFailover(permittedFailoverName)) {
 			return;
 		}
-		throw config.getLocks().conflict(Property.FAILOVER_MAILER, "This factory fixes the permitted failover definition and its nested route. "
+		throw locksOf(config).conflict(Property.FAILOVER_MAILER, "This factory fixes the permitted failover definition and its nested route. "
 				+ "Keep the captured named relationship, or ask the configuration owner to supply a compatible failover route; "
 				+ "an unrelated Mailer with the same name or host is not that definition.");
 	}
@@ -539,7 +549,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 
 	/** Check the finished builder before executor, proxy or pool initialization can make a rejected build observable. */
 	void validateLockedConfiguration() {
-		final ConfigurationLocks locks = config.getLocks();
+		final ConfigurationLocks locks = locksOf(config);
 		if (locks.isEmpty()) {
 			return;
 		}
@@ -560,6 +570,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	}
 
 	private void validateLockedSendingSettings(final ConfigurationLocks locks) {
+		ConfiguredMailSendRetry.verifyLocks(locks, mailSendRetryPolicy);
 		locks.verify(Property.SMTP_RATE_LIMIT_GROUP, rateLimitGroup);
 		locks.verify(Property.SMTP_MESSAGE_RATE_LIMIT, messageRateLimit == null ? null : messageRateLimit.getCount());
 		locks.verify(Property.SMTP_MESSAGE_RATE_PERIOD, messageRateLimit == null ? null : messageRateLimit.getPeriod());
@@ -831,7 +842,69 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),
 				getOAuth2AccessTokenProvider(),
-				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy);
+				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy,
+				mailSendRetryPolicy);
+	}
+
+	/** @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy) */
+	@Override public T withMailSendRetryPolicy(final MailSendRetryPolicy policy) {
+		mailSendRetryPolicy = requireNonNull(policy, "mailSendRetryPolicy");
+		cliRetryOptions.clear();
+		return (T) this;
+	}
+	/** @see MailerGenericBuilder#clearMailSendRetryPolicy() */
+	@Override public T clearMailSendRetryPolicy() { return withMailSendRetryPolicy(MailSendRetryPolicy.builder().build()); }
+	/** @see MailerGenericBuilder#getMailSendRetryPolicy() */
+	@Override @NotNull public MailSendRetryPolicy getMailSendRetryPolicy() { return mailSendRetryPolicy; }
+	/** @see CliMailSendRetryBuilder#withMailSendRetryWaitingCapacity(int) */
+	@Override public T withMailSendRetryWaitingCapacity(final int capacity) {
+		return withCliRetryOption(Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY, capacity);
+	}
+	/** @see CliMailSendRetryBuilder#resetMailSendRetryWaitingCapacity() */
+	@Override public T resetMailSendRetryWaitingCapacity() {
+		return withMailSendRetryWaitingCapacity(DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY);
+	}
+	/** @see CliMailSendRetryBuilder#withMailSendRetryMaximumMessageSize(long) */
+	@Override public T withMailSendRetryMaximumMessageSize(final long bytes) {
+		return withCliRetryOption(Property.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, bytes);
+	}
+	/** @see CliMailSendRetryBuilder#resetMailSendRetryMaximumMessageSize() */
+	@Override public T resetMailSendRetryMaximumMessageSize() {
+		return withMailSendRetryMaximumMessageSize(DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE);
+	}
+	/** @see CliMailSendRetryBuilder#withMailSendRetryMemoryLimit(long) */
+	@Override public T withMailSendRetryMemoryLimit(final long bytes) { return withCliRetryOption(Property.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT, bytes); }
+	/** @see CliMailSendRetryBuilder#resetMailSendRetryMemoryLimit() */
+	@Override public T resetMailSendRetryMemoryLimit() {
+		return withMailSendRetryMemoryLimit(DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
+	}
+
+	/** @see CliMailSendRetryBuilder#withMailSendRetryAttempts(int) */
+	@Override public T withMailSendRetryAttempts(final int attempts) { return withCliRetryOption(Property.SMTP_RETRY_ATTEMPTS, attempts); }
+	/** @see CliMailSendRetryBuilder#withMailSendRetryDelay(Duration) */
+	@Override public T withMailSendRetryDelay(final Duration delay) { return withCliRetryOption(Property.SMTP_RETRY_DELAY, delay); }
+	/** @see CliMailSendRetryBuilder#withMailSendRetryBackoff(int, Duration) */
+	@Override public T withMailSendRetryBackoff(final int multiplier, final Duration maximumDelay) {
+		// Validate through the canonical builder before storing either CLI field; an invalid pair must not leave a partial change.
+		MailSendRetryPolicy.builder().withRetryBackoff(multiplier, maximumDelay);
+		withCliRetryOption(Property.SMTP_RETRY_BACKOFF_MULTIPLIER, multiplier);
+		return withCliRetryOption(Property.SMTP_RETRY_MAXIMUM_DELAY, maximumDelay);
+	}
+	/** @see CliMailSendRetryBuilder#withMailSendRetryJitter(double) */
+	@Override public T withMailSendRetryJitter(final double fraction) { return withCliRetryOption(Property.SMTP_RETRY_JITTER, fraction); }
+
+	private T withCliRetryOption(final Property property, final Object value) {
+		cliRetryOptions.put(property.key(), requireNonNull(value, property.key()));
+		return (T) this;
+	}
+
+	private void resolveCliRetryPolicy() {
+		if (cliRetryOptions.isEmpty()) {
+			return;
+		}
+		cliRetryOptions.forEach((key, value) -> locksOf(config).verify((String) key, value));
+		final SimpleJavaMailConfig overrides = ConfigLoader.builder().withProperties("CLI retry options", cliRetryOptions).load();
+		mailSendRetryPolicy = ConfiguredMailSendRetry.withOverrides(mailSendRetryPolicy, overrides);
 	}
 
 	/** @see MailerGenericBuilder#withFailoverMailer(Mailer, FailoverPolicy) */
@@ -915,7 +988,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>> i
 	private void resolveCliFailoverPolicy() {
 		if (!cliFailoverOptions.isEmpty()) {
 			// Validate with the other finished builder settings, so CLI construction can show the safe, property-specific conflict.
-			cliFailoverOptions.forEach((key, value) -> config.getLocks().verify((String) key, value));
+			cliFailoverOptions.forEach((key, value) -> locksOf(config).verify((String) key, value));
 			failoverPolicy = ConfiguredFailover.policy(ConfigLoader.builder().withConfig(config).withProperties("CLI failover options", cliFailoverOptions).load());
 		}
 	}

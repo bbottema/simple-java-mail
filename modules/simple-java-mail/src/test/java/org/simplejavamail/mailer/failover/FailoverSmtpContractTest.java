@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.failover;
 
+import jakarta.mail.Message.RecipientType;
+
+import org.simplejavamail.api.SimpleJavaMail;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +28,7 @@ import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.PARTIALLY_ACCEPTED;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.UNKNOWN;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /** The same public send contracts run here with real pools and in a separate, pool-free JVM. */
 @Timeout(40)
@@ -138,7 +142,7 @@ class FailoverSmtpContractTest {
             connection.acceptMessages(peer);
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
-            final Email message = MAIL.emailBuilder().copying(email()).withRecipients(to(null, "rejected@example.test"))
+            final Email message = MAIL.emailBuilder().copying(email()).withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("rejected@example.test").withType(RecipientType.TO).build())
                     .withSendingToAcceptedRecipients(partial).buildEmail();
             final Throwable failure = catchThrowable(() -> send(initiating, message, asynchronous));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);

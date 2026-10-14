@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.util;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -9,7 +11,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +38,7 @@ class FinalizedMimeMessageStorageTest {
     void plainMessageIsStructurallyFinalizedWithoutMaterializingItsBytes() throws Exception {
         final Email email = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank()
                 .from("sender@example.com")
-                .withRecipients(RecipientBuilder.to(null, "receiver@example.com"))
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.com").withType(RecipientType.TO).build())
                 .withSubject("plain")
                 .withPlainText("No cryptographic protection")
                 .buildEmail();

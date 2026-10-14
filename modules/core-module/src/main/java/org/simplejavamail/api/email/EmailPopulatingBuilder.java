@@ -18,7 +18,6 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.internal.config.EmailProperty;
 
 import java.io.File;
 import java.net.URL;
@@ -61,13 +60,9 @@ public interface EmailPopulatingBuilder {
 	 * a sender. Mailer preparation checks the completed message before sending; building a template does not validate its completeness.
 	 * <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
 	 * <p>
-	 * If you don't have a Mailer instance, or you just want to call helper methods that only accept an {@link EmailWithDefaultsAndOverridesApplied}, there are two ways
-	 * to complete this Email with defaults and overrides that you may have configured as (system) properties (files):
-	 * <ol>
-	 *     <li>Construct a new {@code EmailGovernanceImpl} or use {@code EmailGovernanceImpl.NO_GOVERNANCE()}, and then use {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}</li>
-	 *     <li>Don't use {@link #buildEmail()}, but use {@link #buildEmailCompletedWithDefaultsAndOverrides()} or {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} instead</li>
-	 * </ol>
-	 * It depends on whether you like fine-grained control over email governance (validation, max email size, defaults, overrides, etc.) or not.
+	 * To apply configured defaults before sending, use {@link #buildEmailCompletedWithDefaultsAndOverrides()}.
+	 * To use a particular Mailer's templates instead, pass its {@link Mailer#getEmailGovernance()} to
+	 * {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)}. Ordinary sending applies the selected Mailer's governance automatically.
 	 *
 	 * @throws IllegalArgumentException If email-level S/MIME and OpenPGP/MIME are both configured. Simple Java Mail does not support wrapping one
 	 *                                 protection format inside the other; choose one and remove the other configuration with {@link #clearSmime()}

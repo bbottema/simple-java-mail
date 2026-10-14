@@ -7,9 +7,10 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
-import org.simplejavamail.converter.ConfiguredEmailConverter;
+import org.simplejavamail.api.converter.ConfiguredEmailConverter;
+import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.converter.ExactEmailBuilderImpl;
+import org.simplejavamail.converter.internal.ExactEmailBuilderImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 
@@ -298,7 +299,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	}
 
 	private ConfiguredEmailConverter converter() {
-		return new ConfiguredEmailConverter(config);
+		return new ConfiguredEmailConverterImpl(config);
 	}
 
 	private EmailPopulatingBuilderImpl newPopulatingBuilder() {

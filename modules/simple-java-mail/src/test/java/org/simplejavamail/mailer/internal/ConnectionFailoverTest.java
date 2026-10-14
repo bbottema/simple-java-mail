@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.activation.DataSource;
 import jakarta.mail.AuthenticationFailedException;
@@ -59,8 +61,8 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.simplejavamail.recipient.RecipientBuilder.bcc;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
+
 
 @Timeout(20)
 class ConnectionFailoverTest {
@@ -313,6 +315,8 @@ class ConnectionFailoverTest {
         final FailoverPolicy policy = FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofSeconds(30)).build();
         try (Mailer alternative = builder(secondary).buildMailer();
              Mailer initiating = builder(primary, runtime).withConnectionPoolCoreSize(2).withConnectionPoolMaxSize(2)
+                     // Count recovery allocations, not replacements caused by wall-clock idle expiry.
+                     .withConnectionPoolExpireAfterMillis(0)
                      .withFailoverMailer(alternative, policy).buildMailer()) {
             try {
                 await(initialConnectionStarted);
@@ -1048,11 +1052,14 @@ class ConnectionFailoverTest {
 
     private Email template(final String name) {
         return mail.emailBuilder().startingBlank().from(name + "@example.org").withHeader("X-Relay", name)
-                .withRecipients(bcc(null, name + "-maintainer@example.org")).buildEmail();
+                .withRecipients(mail.recipientBuilder().withAddress(name + "-maintainer@example.org").withType(RecipientType.BCC).build())
+                .buildEmail();
     }
 
     private Email email() {
-        return mail.emailBuilder().startingBlank().from("sender@example.org").withRecipients(to(null, "customer@example.org"))
+        // Routing tests must not wait for host DNS while Jakarta Mail generates a Message-ID.
+        return mail.emailBuilder().startingBlank().fixingMessageId("<failover-test@example.test>").from("sender@example.org")
+                .withRecipients(mail.recipientBuilder().withAddress("customer@example.org").withType(RecipientType.TO).build())
                 .withPlainText("test").buildEmail();
     }
 

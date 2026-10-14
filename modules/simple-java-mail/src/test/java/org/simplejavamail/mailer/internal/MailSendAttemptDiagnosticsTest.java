@@ -1,5 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailRetryDisposition;
+
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
+
+import java.util.Collections;
+
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -123,6 +129,13 @@ class MailSendAttemptDiagnosticsTest {
 	}
 
 	private static MailSubmissionReceipt receipt() {
-		return new MailSubmissionReceipt("test@example.org", null, Instant.EPOCH);
+		return MailSubmissionReceiptImpl.builder()
+			.emailId("test@example.org")
+			.smtpResponse(null)
+			.submittedAt(Instant.EPOCH)
+			.status(MailSubmissionStatus.UNKNOWN)
+			.recipientResults(Collections.emptyList())
+			.retryDisposition(MailRetryDisposition.CALLER_POLICY_REQUIRED)
+			.build();
 	}
 }

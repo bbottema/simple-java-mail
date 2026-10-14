@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -17,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 class MailSendObserverDispatchTest {
     @Test
@@ -104,7 +106,7 @@ class MailSendObserverDispatchTest {
 
     private static Email email() {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-                .from("sender@example.org").withRecipients(to(null, "receiver@example.org"))
+                .from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.org").withType(RecipientType.TO).build())
                 .withPlainText("Observer dispatch test").buildEmail();
     }
 }

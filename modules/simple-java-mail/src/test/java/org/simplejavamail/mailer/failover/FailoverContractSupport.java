@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.failover;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendOutcome;
@@ -18,7 +20,7 @@ import java.util.function.BooleanSupplier;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /** Public API setup shared by socket tests; deliberately has no access to mailer.internal or pool implementations. */
 final class FailoverContractSupport {
@@ -49,7 +51,7 @@ final class FailoverContractSupport {
 
     static Email email() {
         return MAIL.emailBuilder().startingBlank().from("sender@example.test")
-                .withRecipients(to(null, "receiver@example.test")).withSubject("failover regression").withPlainText("one message").buildEmail();
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build()).withSubject("failover regression").withPlainText("one message").buildEmail();
     }
 
     static MailSubmissionReceipt send(final Mailer mailer, final Email email, final boolean asynchronous) throws Exception {

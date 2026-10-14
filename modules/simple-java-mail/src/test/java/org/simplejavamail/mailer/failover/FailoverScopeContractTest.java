@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.failover;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.activation.DataSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -35,8 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
 import static org.simplejavamail.mailer.failover.FailoverSmtpContractTest.unavailableServer;
-import static org.simplejavamail.recipient.RecipientBuilder.bcc;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
+
 
 @Timeout(45)
 class FailoverScopeContractTest {
@@ -47,7 +49,7 @@ class FailoverScopeContractTest {
         inbox.beforeEach(null);
         final SimpleJavaMail locked = SimpleJavaMail.withConfig(ConfigLoader.builder()
                 .withMap(Map.of("simplejavamail.locked.defaults.bcc.address", "archive@example.test")).load());
-        final Email original = MAIL.emailBuilder().startingBlank().withRecipients(to(null, "receiver@example.test"))
+        final Email original = MAIL.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withPlainText("one shared original").buildEmail();
         try (RecordingSmtpServer primary = unavailableServer();
              Mailer selected = builder(inbox.getPort()).withEmailOverrides(template("selected")).buildMailer();
@@ -371,7 +373,7 @@ class FailoverScopeContractTest {
 
     private static Email template(final String owner) {
         return MAIL.emailBuilder().startingBlank().from(owner + "@example.test").withHeader("X-Relay", owner)
-                .withRecipients(bcc(null, owner + "-maintainer@example.test")).buildEmail();
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(owner + "-maintainer@example.test").withType(RecipientType.BCC).build()).buildEmail();
     }
 
     private static Iterable<Email> trackedBatch(final AtomicInteger iterators, final AtomicInteger reached) {

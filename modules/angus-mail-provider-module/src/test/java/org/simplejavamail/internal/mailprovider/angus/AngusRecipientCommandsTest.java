@@ -144,7 +144,7 @@ class AngusRecipientCommandsTest {
     @Test
     void deliveryEnvelopeDefensivelyCopiesRecipientPolicies() {
         final List<DeliveryRecipient> recipientPolicies = new ArrayList<>(List.of(new DeliveryRecipient("a@example.test", List.of(NEVER))));
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, recipientPolicies);
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder().withRecipientOptions(recipientPolicies).build();
 
         recipientPolicies.clear();
 
@@ -155,8 +155,9 @@ class AngusRecipientCommandsTest {
 
     @Test
     void recipientPoliciesRequireAdapterOptIn() {
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null,
-                List.of(new DeliveryRecipient("a@example.test", List.of(NEVER))));
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of(new DeliveryRecipient("a@example.test", List.of(NEVER))))
+            .build();
 
         assertThat(mock(MailTransportAdapter.class, CALLS_REAL_METHODS).supportsDeliveryEnvelope(envelope)).isFalse();
     }
@@ -238,7 +239,11 @@ class AngusRecipientCommandsTest {
         for (int index = 0; index < mailboxes.length; index++) {
             addresses[index] = new InternetAddress(mailboxes[index]);
         }
-        return new PreparedMail(new MimeMessage(session), addresses,
-                new DeliveryEnvelope(null, null, recipientOptions), ContentRequirement.NORMAL);
+        return PreparedMail.builder()
+            .withMimeMessage(new MimeMessage(session))
+            .withRecipients(addresses)
+            .withDeliveryEnvelope(DeliveryEnvelope.builder().withRecipientOptions(recipientOptions).build())
+            .withContentRequirement(ContentRequirement.NORMAL)
+            .build();
     }
 }

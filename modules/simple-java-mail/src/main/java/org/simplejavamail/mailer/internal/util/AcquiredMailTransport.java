@@ -14,6 +14,7 @@ import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
+import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.ConnectionSetupFailure;
@@ -142,6 +143,11 @@ public final class AcquiredMailTransport implements AutoCloseable {
 		return transport;
 	}
 
+	/** Adapts an already-owned dedicated scope for one email; its caller retains responsibility for closing the actual transport. */
+	public static AcquiredMailTransport borrowedForSending(final Session session, final Transport transport, final MailSendControl control) {
+		return new AcquiredMailTransport(session, transport, null, null, control);
+	}
+
 	public Session getSession() {
 		return session;
 	}
@@ -158,6 +164,22 @@ public final class AcquiredMailTransport implements AutoCloseable {
 		receipt = null;
 		try {
 			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance);
+			return receipt;
+		} catch (MessagingException | RuntimeException | Error failure) {
+			sendFailure = failure;
+			throw failure;
+		}
+	}
+
+	/** One retry-enabled invocation; no terminal stop/failure arbitration occurs until its logical owner decides. */
+	public MailSubmissionReceipt sendPrepared(final PreparedMail prepared, @Nullable final String messageId, @Nullable final String subject,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
+			final Runnable invocationStarted) throws MessagingException {
+		activeControl = control;
+		receipt = null;
+		try {
+			receipt = TransportRunner.sendPreparedMessageOnTransport(transport, prepared, messageId, subject, control, diagnostics, allowance,
+					invocationStarted);
 			return receipt;
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;

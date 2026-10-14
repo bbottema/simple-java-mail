@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS;
-import static org.simplejavamail.internal.config.EmailProperty.SENDING_TO_ACCEPTED_RECIPIENTS;
+import static org.simplejavamail.api.email.EmailProperty.SENDING_TO_ACCEPTED_RECIPIENTS;
 
 class RecipientRejectionHandlingTest {
 
@@ -223,11 +223,14 @@ class RecipientRejectionHandlingTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void envelopePreservesFalseAndNullableChoiceThroughSerialization(final boolean choice) throws Exception {
-        final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, List.of(), false, false, choice);
+        final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+            .withRecipientOptions(List.of())
+            .withSendingToAcceptedRecipients(choice)
+            .build();
         assertThat(envelope.hasProviderSpecificOptions()).isTrue();
         assertThat(roundTrip(envelope).getSendingToAcceptedRecipients()).isEqualTo(choice);
-        assertThat(new DeliveryEnvelope(null, null).getSendingToAcceptedRecipients()).isNull();
-        assertThat(roundTrip(new DeliveryEnvelope(null, null)).getSendingToAcceptedRecipients()).isNull();
+        assertThat(DeliveryEnvelope.builder().build().getSendingToAcceptedRecipients()).isNull();
+        assertThat(roundTrip(DeliveryEnvelope.builder().build()).getSendingToAcceptedRecipients()).isNull();
     }
 
     @Test

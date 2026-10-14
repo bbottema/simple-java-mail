@@ -149,8 +149,13 @@ public class SMIMESupport implements SMIMEModule {
 							+ e.getClass().getSimpleName() + ": " + e.getMessage())
 					.originalProtectedMessage(originalBytes)
 					.build();
-			return new SmimePreprocessingResult(true, originalMessage, failed,
-					protectedTopLevelAttachment(originalMessage), Collections.emptyList());
+			return SmimePreprocessingResultImpl.builder()
+				.recognized(true)
+				.effectiveMimeMessage(originalMessage)
+				.details(failed)
+				.protectedAttachments(protectedTopLevelAttachment(originalMessage))
+				.decryptedArtifacts(Collections.emptyList())
+				.build();
 		}
 	}
 
@@ -166,8 +171,13 @@ public class SMIMESupport implements SMIMEModule {
 					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING)
 					.failureReason("No PKCS12 decryption key was provided for the S/MIME message")
 					.build();
-			return new SmimePreprocessingResult(true, originalMessage, details,
-					protectedAttachments, Collections.emptyList());
+			return SmimePreprocessingResultImpl.builder()
+				.recognized(true)
+				.effectiveMimeMessage(originalMessage)
+				.details(details)
+				.protectedAttachments(protectedAttachments)
+				.decryptedArtifacts(Collections.emptyList())
+				.build();
 		}
 
 		final MimeBodyPart encryptedPart = messageBodyPart(originalMessage, originalBytes);
@@ -186,7 +196,13 @@ public class SMIMESupport implements SMIMEModule {
 		final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
 				.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
 				.build();
-		return new SmimePreprocessingResult(true, effective, details, protectedAttachments, decryptedArtifacts);
+		return SmimePreprocessingResultImpl.builder()
+			.recognized(true)
+			.effectiveMimeMessage(effective)
+			.details(details)
+			.protectedAttachments(protectedAttachments)
+			.decryptedArtifacts(decryptedArtifacts)
+			.build();
 	}
 
 	@NotNull
@@ -240,8 +256,14 @@ public class SMIMESupport implements SMIMEModule {
 						: OriginalSmimeDetails.VerificationStatus.INVALID)
 				.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity")
 				.build();
-		return new SmimePreprocessingResult(true, effective, details, protectedAttachments, decryptedArtifacts,
-				exposeEffectiveMessageArtifact ? nestedSignedDetails : null);
+		return SmimePreprocessingResultImpl.builder()
+			.recognized(true)
+			.effectiveMimeMessage(effective)
+			.details(details)
+			.protectedAttachments(protectedAttachments)
+			.decryptedArtifacts(decryptedArtifacts)
+			.nestedSignedDetails(exposeEffectiveMessageArtifact ? nestedSignedDetails : null)
+			.build();
 	}
 
 	private static boolean verifyIncomingSignature(@NotNull final MimePart signedPart) {
@@ -304,8 +326,13 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	private static SmimePreprocessingResult unrecognized(@NotNull final MimeMessage message) {
-		return new SmimePreprocessingResult(false, message, OriginalSmimeDetailsImpl.builder().build(),
-				Collections.emptyList(), Collections.emptyList());
+		return SmimePreprocessingResultImpl.builder()
+			.recognized(false)
+			.effectiveMimeMessage(message)
+			.details(OriginalSmimeDetailsImpl.builder().build())
+			.protectedAttachments(Collections.emptyList())
+			.decryptedArtifacts(Collections.emptyList())
+			.build();
 	}
 
 	@NotNull

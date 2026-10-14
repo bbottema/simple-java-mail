@@ -1,7 +1,8 @@
-package org.simplejavamail.recipient;
+package org.simplejavamail.recipient.internal;
 
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.IRecipientsBuilder;
@@ -27,7 +28,8 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * @see IRecipientsBuilder
  */
-public class RecipientsBuilder implements IRecipientsBuilder {
+@ApiStatus.Internal
+public class RecipientsBuilderImpl implements IRecipientsBuilder {
 
     private enum GroupPolicyMode {
         PRESERVE,

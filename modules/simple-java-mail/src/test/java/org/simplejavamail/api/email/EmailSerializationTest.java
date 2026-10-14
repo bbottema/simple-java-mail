@@ -43,6 +43,21 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class EmailSerializationTest {
 
+	@Test
+	void keepsReleasedSelectorNamesWhileExposingPublicSelectors() throws Exception {
+		final Email original = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+				.dontApplyDefaultValueFor(EmailProperty.SUBJECT, EmailProperty.BCC_RECIPIENTS)
+				.dontApplyOverrideValueFor(EmailProperty.HEADERS).buildEmail();
+		final byte[] bytes = serialize(original);
+		assertThat(new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1))
+				.contains("org.simplejavamail.internal.config.EmailProperty");
+		final Email restored = deserialize(bytes, Email.class);
+		assertThat(restored.getPropertiesNotToApplyDefaultValueFor()).containsExactlyInAnyOrder(EmailProperty.SUBJECT, EmailProperty.BCC_RECIPIENTS);
+		assertThat(restored.getPropertiesNotToApplyOverrideValueFor()).containsExactly(EmailProperty.HEADERS);
+		assertThatThrownBy(() -> restored.getPropertiesNotToApplyOverrideValueFor().clear()).isInstanceOf(UnsupportedOperationException.class);
+		assertThat(SimpleJavaMail.fromDefaults().emailBuilder().copying(restored).buildEmail()).isEqualTo(restored);
+	}
+
 	@BeforeEach
 	void clearDefaults() {
 	}

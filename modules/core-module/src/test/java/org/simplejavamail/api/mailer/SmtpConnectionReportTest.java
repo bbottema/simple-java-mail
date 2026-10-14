@@ -20,6 +20,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SmtpConnectionReportTest {
     @Test
+    void generatedBuilderDefaultsAndReplacementsPreserveIndependentSnapshots() {
+        final SmtpConnectionReport initial = SmtpConnectionReport.builder().host("localhost").port(25).protocol("smtp")
+                .startedAt(Instant.EPOCH).completedAt(Instant.EPOCH).build();
+        assertThat(initial.getWarnings()).isEmpty();
+        final List<String> warnings = new ArrayList<>(List.of("first"));
+        final SmtpConnectionReport withWarning = initial.toBuilder().warnings(warnings).build();
+        warnings.clear();
+        assertThat(withWarning.getWarnings()).containsExactly("first");
+        assertThat(withWarning.toBuilder().warnings(List.of("replacement")).build().getWarnings()).containsExactly("replacement");
+        assertThat(withWarning.getWarnings()).containsExactly("first");
+        assertThat(initial.getWarnings()).isEmpty();
+    }
+
+    @Test
     void copiesAndSortsCapabilitiesWithoutLosingDuplicates() {
         final List<String> sizes = new ArrayList<>(List.of("123", "123"));
         final Map<String, List<String>> input = new LinkedHashMap<>();

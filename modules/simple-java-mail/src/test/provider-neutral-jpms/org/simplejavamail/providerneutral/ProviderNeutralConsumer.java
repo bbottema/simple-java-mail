@@ -13,8 +13,6 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
-import org.simplejavamail.recipient.RecipientBuilder;
-import org.simplejavamail.recipient.RecipientsBuilder;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
@@ -27,6 +25,8 @@ import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendConnectionStep;
+import org.simplejavamail.api.mailer.MailSendDiagnostics;
+import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSendObserver;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendRejectedException;
@@ -41,6 +41,8 @@ import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.SmtpTlsDetails;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
+import org.simplejavamail.api.mailer.MailSendSubmissionStep;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
@@ -94,8 +96,21 @@ import java.util.function.Function;
  */
 public final class ProviderNeutralConsumer {
 
+	private static void verifyRetryApi() {
+		final MailSendRetryPolicy retryPolicy = MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(30))
+				.withWaitingCapacity(2).withMaximumMessageSize(1024).withMemoryLimit(4096).build();
+		if (!retryPolicy.isRetryEnabled() || retryPolicy.getMaximumAttempts() != 3 || retryPolicy.getWaitingCapacity() != 2
+				|| retryPolicy.getMaximumMessageSize() != 1024 || retryPolicy.getMemoryLimit() != 4096) {
+			throw new AssertionError("Grouped retry policy API");
+		}
+		if (MailSendRetryPolicy.builder().withWaitingCapacity(2).build().isRetryEnabled()) {
+			throw new AssertionError("Resource limits must not enable retries");
+		}
+	}
+
 	/** Runs all module-path linkage and failure-diagnostic assertions; success is intentionally silent. */
 	public static void main(final String[] args) throws Exception {
+		verifyRetryApi();
 		final Properties configProperties = new Properties();
 		configProperties.setProperty(ConfigLoader.Property.DEFAULT_SUBJECT.key(), "provider neutral");
 		final SimpleJavaMail simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(configProperties).load());
@@ -107,6 +122,7 @@ public final class ProviderNeutralConsumer {
 				.withAttachment("proof.txt", "provider-neutral attachment".getBytes(StandardCharsets.UTF_8), "text/plain")
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertMailSendObserverApiIsAvailable(simpleJavaMail);
+		assertMailSendDiagnosticsInspectionApiIsAvailable();
 		assertLegacyContentSupportApiIsAvailable(simpleJavaMail);
 		assertSendingLimitsApiIsAvailable(simpleJavaMail);
 		assertAsyncQueueApiIsAvailable(simpleJavaMail);
@@ -126,6 +142,15 @@ public final class ProviderNeutralConsumer {
 		assertJava11ConvenienceApiIsAvailable(simpleJavaMail, source);
 		assertAngusIsAbsent();
 		assertMissingImplementationFailsClearly(source);
+	}
+
+	/** Applications read completed reports; their construction belongs to the library. */
+	@SuppressWarnings("unused")
+	private static void assertMailSendDiagnosticsInspectionApiIsAvailable() {
+		final Function<MailSendDiagnostics, Duration> elapsed = MailSendDiagnostics::getElapsed;
+		final Function<MailSendDiagnostics, MailSendMeasurement> retryWait = MailSendDiagnostics::getRetryWait;
+		final Function<MailSendDiagnostics, List<MailSendSubmissionStep>> submissions = MailSendDiagnostics::getSubmissionHistory;
+		final Function<MailSendSubmissionStep, Optional<Integer>> replyCode = MailSendSubmissionStep::getSmtpReplyCode;
 	}
 
 	/** A failover policy and its connection history remain usable before a Jakarta Mail implementation is installed. */
@@ -174,13 +199,14 @@ public final class ProviderNeutralConsumer {
 
 	/** Recipient policies and their ordered SPI representation must not load Angus. */
 	private static void assertRecipientDsnApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
-		final Recipient recipient = new RecipientBuilder().withAddress("recipient@example.org").withType(Message.RecipientType.TO)
+		final Recipient recipient = simpleJavaMail.recipientBuilder().withAddress("recipient@example.org").withType(Message.RecipientType.TO)
 				.withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption.NEVER).build();
 		final Email email = simpleJavaMail.emailBuilder().startingBlank()
-				.withRecipients(new RecipientsBuilder().withDefaultDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption.FAILURE)
+				.withRecipients(simpleJavaMail.recipientsBuilder().withDefaultDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption.FAILURE)
 						.withRecipient(recipient).buildRecipients()).buildEmail();
-		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null,
-				List.of(new DeliveryRecipient(recipient.getAddress(), recipient.getDeliveryStatusNotificationNotifyOptions())));
+		final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+			.withRecipientOptions(List.of(new DeliveryRecipient(recipient.getAddress(), recipient.getDeliveryStatusNotificationNotifyOptions())))
+			.build();
 		if (!email.getRecipients().get(0).equals(recipient) || !envelope.hasRecipientNotifyOptions()
 				|| !envelope.getRecipientOptions().get(0).getNotifyOptions().contains(DeliveryStatusNotification.NotifyOption.NEVER)) {
 			throw new AssertionError("Provider-neutral recipient NOTIFY preferences are unavailable");
@@ -236,7 +262,10 @@ public final class ProviderNeutralConsumer {
 				ExactEmailBuilder::withSendingToAcceptedRecipients;
 		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> clearExact = ExactEmailBuilder::clearSendingToAcceptedRecipients;
 		@SuppressWarnings("unused") final Function<ExactEmailBuilder, Boolean> getExact = ExactEmailBuilder::getSendingToAcceptedRecipients;
-		final DeliveryEnvelope envelope = new DeliveryEnvelope(null, null, List.of(), false, false, false);
+		final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
+			.withRecipientOptions(List.of())
+			.withSendingToAcceptedRecipients(false)
+			.build();
 		if (!Boolean.FALSE.equals(envelope.getSendingToAcceptedRecipients()) || !envelope.hasProviderSpecificOptions()
 				|| new FakeMailTransportAdapter().supportsSendingToAcceptedRecipients()) {
 			throw new AssertionError("Envelope requirement or backwards-compatible provider opt-in is unavailable");
@@ -412,15 +441,12 @@ public final class ProviderNeutralConsumer {
 		final MailTransportResult result = MailTransportResult.failed(new MessagingException("rejected"), null,
 				null, new Address[]{new InternetAddress("recipient@example.org")}, null)
 				.withRecipientResults(List.of(recipient), MailRetryDisposition.SAFE_TO_RETRY_ALL).withMessageSizeFacts(1234L, 5000L);
-		final MailSubmissionReceipt receipt = new MailSubmissionReceipt(null, null, Instant.now(), MailSubmissionStatus.REJECTED,
-				result.getRecipientResults(), result.getRetryDisposition(), null, true, result.getMessageSize(), result.getServerMaximumMessageSize());
-		if (!Long.valueOf(1234).equals(receipt.getMessageSize()) || !Long.valueOf(5000).equals(receipt.getServerMaximumMessageSize())) {
+		if (!Long.valueOf(1234).equals(result.getMessageSize()) || !Long.valueOf(5000).equals(result.getServerMaximumMessageSize())) {
 			throw new AssertionError("Submission size facts are unavailable");
 		}
-		if (!receipt.isRequireTlsUsed() || receipt.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
+		if (result.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
 				|| !recipient.getRcptAttempted().orElse(false)
-				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))
-				|| receipt.getRetryableRecipients().size() != 1 || receipt.getValidUnsentRecipients().size() != 1) {
+				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))) {
 			throw new AssertionError("Recipient reply API is unavailable");
 		}
 	}

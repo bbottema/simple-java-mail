@@ -28,7 +28,7 @@ import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import testutil.smtp.SmtpConversation;
 import testutil.smtp.ScriptedSmtpServer;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
 
 import java.util.ArrayList;
@@ -414,7 +414,7 @@ class RecipientDsnSubmissionTest {
                     .getBytes(US_ASCII)).containsExactly(eml);
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.mime.allowutf8", "true").buildMailer()) {
-            final Recipient recipient = new RecipientBuilder().withAddress(address).withDeliveryStatusNotificationNotifyOptions(FAILURE).build();
+            final Recipient recipient = new RecipientBuilderImpl().withAddress(address).withDeliveryStatusNotificationNotifyOptions(FAILURE).build();
             mailer.sync().sendMail(mail.emailBuilder().startingFromExactEml(eml).withEnvelopeRecipients(recipient).buildEmail());
         }
     }
@@ -488,7 +488,7 @@ class RecipientDsnSubmissionTest {
     }
 
     private static Recipient recipient(final RecipientType type, final NotifyOption... options) {
-        return new RecipientBuilder().withAddress(ADDRESS).withType(type).withDeliveryStatusNotificationNotifyOptions(options).build();
+        return new RecipientBuilderImpl().withAddress(ADDRESS).withType(type).withDeliveryStatusNotificationNotifyOptions(options).build();
     }
 
     private static String command(final String address, final String notify) {

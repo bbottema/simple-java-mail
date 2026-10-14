@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -29,8 +31,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.recipient.RecipientBuilder.bcc;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
+
 
 @Timeout(20)
 class SelectedMailerPreparationTest {
@@ -43,7 +45,7 @@ class SelectedMailerPreparationTest {
 		final List<Message> messagesSentByFailoverMailer = new CopyOnWriteArrayList<>();
 		try (Mailer primaryMailer = builder(clusterKey, messagesSentByPrimary).withEmailOverrides(template("primary")).buildMailer();
 				 Mailer failoverMailer = builder(clusterKey, messagesSentByFailoverMailer).withEmailOverrides(template("failover")).buildMailer()) {
-            final Email original = mail.emailBuilder().startingBlank().withRecipients(to(null, "customer@example.org"))
+            final Email original = mail.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("customer@example.org").withType(RecipientType.TO).build())
                     .withPlainText("Original content").buildEmail();
 			primaryMailer.sync().sendMail(original);
 			primaryMailer.sync().sendMail(original);
@@ -82,7 +84,7 @@ class SelectedMailerPreparationTest {
 						.withEmailOverrides(template("primary")).buildMailer();
 				 Mailer failoverMailer = builder(clusterKey, messagesSentByFailoverMailer, waitForBoth).withConnectionPoolExpireAfterMillis(0)
 						.withEmailOverrides(template("failover")).buildMailer()) {
-            final Email original = mail.emailBuilder().startingBlank().withRecipients(to(null, "customer@example.org"))
+            final Email original = mail.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("customer@example.org").withType(RecipientType.TO).build())
                     .withPlainText("Original content").buildEmail();
             // Initialize both physical connections and MIME support before testing simultaneous ownership, not startup throughput.
 			primaryMailer.sync().sendMail(original);
@@ -155,7 +157,7 @@ class SelectedMailerPreparationTest {
 
     private Email template(final String owner) {
         return mail.emailBuilder().startingBlank().from(owner + "@example.org").withHeader("X-Relay", owner)
-                .withRecipients(bcc(null, owner + "-maintainer@example.org")).buildEmail();
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(owner + "-maintainer@example.org").withType(RecipientType.BCC).build()).buildEmail();
     }
 
     private static void assertTemplate(final Message message, final String owner) throws MessagingException {

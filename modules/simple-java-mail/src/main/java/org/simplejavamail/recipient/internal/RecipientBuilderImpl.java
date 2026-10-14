@@ -1,9 +1,10 @@
-package org.simplejavamail.recipient;
+package org.simplejavamail.recipient.internal;
 
-import jakarta.mail.Message;
 import jakarta.mail.Message.RecipientType;
+import jakarta.mail.Message;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.IRecipientBuilder;
@@ -18,78 +19,13 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-import static org.simplejavamail.recipient.RecipientException.MISSING_ADDRESS;
+import static org.simplejavamail.recipient.internal.RecipientException.MISSING_ADDRESS;
 
 /**
  * @see IRecipientBuilder
  */
-public class RecipientBuilder implements IRecipientBuilder {
-
-    /**
-     * Creates a fully built {@link Recipient} for the common case where one TO recipient has an explicit display name and one address.
-     * Delimiter-separated address lists are not split. For recipient-specific metadata such as an S/MIME certificate, use the full
-     * {@link RecipientBuilder} API instead.
-     *
-     * @param name    Optional explicit display name.
-     * @param address One email address.
-     * @return An immutable TO recipient without an S/MIME certificate.
-     * @see #withName(String)
-     * @see #withAddress(String)
-     * @see #withType(Message.RecipientType)
-     * @see #withSmimeCertificate(X509Certificate)
-     * @since 10.0.0
-     */
-    @NotNull
-    public static Recipient to(@Nullable String name, @NotNull String address) {
-        return buildNamedRecipient(name, address, RecipientType.TO);
-    }
-
-    /**
-     * Creates a fully built {@link Recipient} for the common case where one CC recipient has an explicit display name and one address.
-     * Delimiter-separated address lists are not split. For recipient-specific metadata such as an S/MIME certificate, use the full
-     * {@link RecipientBuilder} API instead.
-     *
-     * @param name    Optional explicit display name.
-     * @param address One email address.
-     * @return An immutable CC recipient without an S/MIME certificate.
-     * @see #withName(String)
-     * @see #withAddress(String)
-     * @see #withType(Message.RecipientType)
-     * @see #withSmimeCertificate(X509Certificate)
-     * @since 10.0.0
-     */
-    @NotNull
-    public static Recipient cc(@Nullable String name, @NotNull String address) {
-        return buildNamedRecipient(name, address, RecipientType.CC);
-    }
-
-    /**
-     * Creates a fully built {@link Recipient} for the common case where one BCC recipient has an explicit display name and one address.
-     * Delimiter-separated address lists are not split. For recipient-specific metadata such as an S/MIME certificate, use the full
-     * {@link RecipientBuilder} API instead.
-     *
-     * @param name    Optional explicit display name.
-     * @param address One email address.
-     * @return An immutable BCC recipient without an S/MIME certificate.
-     * @see #withName(String)
-     * @see #withAddress(String)
-     * @see #withType(Message.RecipientType)
-     * @see #withSmimeCertificate(X509Certificate)
-     * @since 10.0.0
-     */
-    @NotNull
-    public static Recipient bcc(@Nullable String name, @NotNull String address) {
-        return buildNamedRecipient(name, address, RecipientType.BCC);
-    }
-
-    @NotNull
-    private static Recipient buildNamedRecipient(@Nullable String name, @NotNull String address, @NotNull RecipientType type) {
-        return new RecipientBuilder()
-                .withName(name)
-                .withAddress(address)
-                .withType(type)
-                .build();
-    }
+@ApiStatus.Internal
+public class RecipientBuilderImpl implements IRecipientBuilder {
 
     /**
      * @see IRecipientBuilder#withName(String)

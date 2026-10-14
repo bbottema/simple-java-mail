@@ -1,6 +1,8 @@
 package org.simplejavamail.api.mailer.spi;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -18,6 +20,29 @@ import org.jetbrains.annotations.NotNull;
  * only recipient facts that remain certain.</p>
  */
 public interface MailTransportAdapter {
+
+    /**
+     * Keeps one email's content and provider options stable when Simple Java Mail retries its submission.
+     * Combine the original envelope/provider options with the already frozen MIME bytes supplied by the caller.
+     * Called once on a connected transport before the first invocation, never to send or probe. Capture effective provider options
+     * rather than rereading changing defaults on later attempts. Keep generated transaction identifiers out of this reusable value.
+     * <p>
+     * The returned mail must retain the same recipients, required envelope behavior and content bytes for every invocation. Ordinary
+     * optional MIME rewriting must be suppressed; exact messages keep their complete-byte contract. Existing adapters do not opt in
+     * implicitly, even when they already support protected content. The default fails before submission rather than guessing.
+     * @param transport The actual selected connected provider transport; no commands may be issued by this hook.
+     * @param originalMail Original prepared mail carrying envelope and advanced provider choices.
+     * @param frozenContent Immutable repeatable MIME representation owned by the calling logical operation.
+     * @return Repeatable prepared mail with resolved provider options, not transport-local mutable attempt history.
+     * @throws MessagingException If this adapter cannot preserve repeated submission safely.
+     */
+    @NotNull
+    default PreparedMail prepareForRepeatedSubmission(@NotNull final Transport transport, @NotNull final PreparedMail originalMail,
+            @NotNull final MimeMessage frozenContent) throws MessagingException {
+        throw new MailTransportCompatibilityException("This SMTP provider adapter cannot keep the email unchanged across automatic retries. "
+                + "Use an adapter supporting repeatable submission, or call clearMailSendRetryPolicy() on the selected Mailer's builder "
+                + "and manage retry decisions in the application instead. No message was submitted.", originalMail.getRecipients());
+    }
 
     boolean supports(@NotNull Transport transport);
 
@@ -59,6 +84,14 @@ public interface MailTransportAdapter {
                 && (envelope.getDeliveryStatusNotification() == null || envelope.getDeliveryStatusNotification().getEnvelopeId() == null);
     }
 
+    /**
+     * Submits through the connection already supplied by the caller. Do not connect, reconnect or select another destination here:
+     * acquisition and retained-scope ownership belong to Simple Java Mail. A closed/unusable connection must fail normally,
+     * with conservative acceptance facts, rather than silently acquiring a replacement.
+     * @param transport Selected connected transport, which can become unusable before or during invocation.
+     * @param preparedMail Authoritative content and envelope for this physical submission.
+     * @return Actual submission facts, retaining uncertainty when acceptance could not be established.
+     */
     @NotNull
     MailTransportResult sendMessage(@NotNull Transport transport, @NotNull PreparedMail preparedMail);
 

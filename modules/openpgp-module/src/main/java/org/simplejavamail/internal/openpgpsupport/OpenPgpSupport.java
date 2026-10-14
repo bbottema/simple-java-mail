@@ -101,7 +101,11 @@ public final class OpenPgpSupport implements OpenPgpModule {
         if (encrypted) {
             return decryptEncryptedMessage(session, message, protectedMessage, receiveConfig, depth);
         }
-        return new OpenPgpParseResult(false, message, OpenPgpDetails.plain());
+        return OpenPgpParseResultImpl.builder()
+            .recognized(false)
+            .effectiveMimeMessage(message)
+            .details(OpenPgpDetails.plain())
+            .build();
     }
 
     private OpenPgpParseResult verifySignedMessage(final Session session, final MimeMessage originalMessage,
@@ -122,7 +126,11 @@ public final class OpenPgpSupport implements OpenPgpModule {
             final OpenPgpDetails details = pgpainlessAdapter.verifyDetachedSignature(
                     MimeEntitySupport.normalizeCrlf(signedEntity), MimeEntitySupport.partBody(mimeParts.get(1)),
                     receiveConfig, protectedMessage);
-            return new OpenPgpParseResult(true, readableMessage, details);
+            return OpenPgpParseResultImpl.builder()
+                .recognized(true)
+                .effectiveMimeMessage(readableMessage)
+                .details(details)
+                .build();
         } catch (Exception e) {
             return signatureFailure(session, originalMessage, readableMessageBytes, protectedMessage);
         }
@@ -183,14 +191,18 @@ public final class OpenPgpSupport implements OpenPgpModule {
 
     private static OpenPgpParseResult decryptedMessage(final MimeMessage clearMessage, final byte[] protectedMessage,
             final DecryptionResult decryptionResult) {
-        return new OpenPgpParseResult(true, clearMessage, OpenPgpDetails.builder()
+        return OpenPgpParseResultImpl.builder()
+            .recognized(true)
+            .effectiveMimeMessage(clearMessage)
+            .details(OpenPgpDetails.builder()
                 .openPgpMode(OpenPgpMode.ENCRYPTED)
                 .signatureStatus(SignatureStatus.NOT_PRESENT)
                 .decryptionStatus(DecryptionStatus.DECRYPTED)
                 .encryptionAlgorithm(decryptionResult.encryptionAlgorithm)
                 .recipientKeyIds(decryptionResult.recipientKeyIds)
                 .originalProtectedMessage(protectedMessage)
-                .build());
+                .build())
+            .build();
     }
 
     private static OpenPgpParseResult combinedProtection(final OpenPgpParseResult nestedProtection,
@@ -213,20 +225,28 @@ public final class OpenPgpSupport implements OpenPgpModule {
                 .failureReason(nestedDetails.getFailureReason())
                 .originalProtectedMessage(protectedMessage)
                 .build();
-        return new OpenPgpParseResult(true, nestedProtection.getEffectiveMimeMessage(), combined);
+        return OpenPgpParseResultImpl.builder()
+            .recognized(true)
+            .effectiveMimeMessage(nestedProtection.getEffectiveMimeMessage())
+            .details(combined)
+            .build();
     }
 
     private static OpenPgpParseResult missingDecryptionKey(final MimeMessage originalMessage,
             final byte[] protectedMessage,
             final List<String> recipientKeyIds) {
-        return new OpenPgpParseResult(true, originalMessage, OpenPgpDetails.builder()
+        return OpenPgpParseResultImpl.builder()
+            .recognized(true)
+            .effectiveMimeMessage(originalMessage)
+            .details(OpenPgpDetails.builder()
                 .openPgpMode(OpenPgpMode.ENCRYPTED)
                 .signatureStatus(SignatureStatus.NOT_PRESENT)
                 .decryptionStatus(DecryptionStatus.KEY_MISSING)
                 .recipientKeyIds(recipientKeyIds)
                 .failureReason("No decryption key matched an OpenPGP recipient")
                 .originalProtectedMessage(protectedMessage)
-                .build());
+                .build())
+            .build();
     }
 
     private static boolean isOpenPgpSigned(final MimeMessage message) throws MessagingException {
@@ -248,13 +268,17 @@ public final class OpenPgpSupport implements OpenPgpModule {
     private static OpenPgpParseResult failure(final MimeMessage effectiveMessage, final OpenPgpMode mode,
             final SignatureStatus signatureStatus, final DecryptionStatus decryptionStatus,
             final String reason, @Nullable final byte[] originalProtectedMessage) {
-        return new OpenPgpParseResult(mode != OpenPgpMode.PLAIN, effectiveMessage, OpenPgpDetails.builder()
+        return OpenPgpParseResultImpl.builder()
+            .recognized(mode != OpenPgpMode.PLAIN)
+            .effectiveMimeMessage(effectiveMessage)
+            .details(OpenPgpDetails.builder()
                 .openPgpMode(mode)
                 .signatureStatus(signatureStatus)
                 .decryptionStatus(decryptionStatus)
                 .failureReason(reason)
                 .originalProtectedMessage(originalProtectedMessage)
-                .build());
+                .build())
+            .build();
     }
 
     private static String boundary(final String type) {

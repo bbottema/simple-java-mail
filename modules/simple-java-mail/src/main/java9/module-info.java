@@ -21,5 +21,5 @@ module org.simplejavamail {
 	exports org.simplejavamail.mailer;
 	exports org.simplejavamail.mailer.internal;
 	exports org.simplejavamail.mailer.internal.util;
-	exports org.simplejavamail.recipient;
+	exports org.simplejavamail.recipient.internal;
 }

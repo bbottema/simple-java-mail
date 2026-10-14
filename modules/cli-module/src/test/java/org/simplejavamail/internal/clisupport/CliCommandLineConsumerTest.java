@@ -16,9 +16,20 @@ import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import static java.util.EnumSet.allOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType.EMAIL;
 
 public class CliCommandLineConsumerTest {
+	@Test
+	public void numericArgumentsKeepTheirDeclaredWidthAndFraction() throws NoSuchMethodException {
+		final Method method = TestClass.class.getMethod("numericValues", long.class, Long.class, double.class, Double.class);
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("4294967296", "9223372036854775807", "0.2", "0.75")), method))
+				.containsExactly(4294967296L, Long.MAX_VALUE, 0.2, 0.75);
+		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("9223372036854775808", "1", "0.2", "0.75")), method))
+				.isInstanceOf(CliExecutionException.class).hasMessage("Unable to parse a command-line value as long");
+	}
 	
 	@Test
 	public void convertProvidedOptionValues() {
@@ -74,6 +85,9 @@ public class CliCommandLineConsumerTest {
 	
 	@SuppressWarnings("unused")
 	public static class TestClass {
+		public void numericValues(final long primitiveLong, final Long boxedLong, final double primitiveDouble, final Double boxedDouble) {
+		}
+
 		public void testMethod(
 				@Nullable @Cli.Optional String optional1,
 				int mandatory1,

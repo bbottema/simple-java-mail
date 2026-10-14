@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.CustomMailer;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
@@ -18,7 +19,7 @@ import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-import org.simplejavamail.recipient.RecipientsBuilder;
+import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -54,7 +55,7 @@ public class EmailHelper {
 	@NotNull
 	public static Collection<Recipient> parsedRecipients(@Nullable String name, boolean fixedName,
 			@Nullable jakarta.mail.Message.RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
-		return new RecipientsBuilder()
+		return new RecipientsBuilderImpl()
 				.withRecipients(name, fixedName, recipientType, oneOrMoreAddressesEach)
 				.buildRecipients();
 	}
@@ -238,7 +239,8 @@ public class EmailHelper {
 					/*30*/null,
 					/*31*/null,
 					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
-					/*33*/null);
+					/*33*/null,
+					/*34*/MailSendRetryPolicy.builder().build());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

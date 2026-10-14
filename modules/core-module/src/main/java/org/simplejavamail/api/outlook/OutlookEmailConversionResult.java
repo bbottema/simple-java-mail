@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 
-import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
-
 /**
  * Result of converting an Outlook {@code .msg} message while retaining Outlook-specific source data.
  * <p>
@@ -15,37 +13,23 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  *
  * @see OutlookMessageData
  */
-public class OutlookEmailConversionResult {
-
-	private final EmailPopulatingBuilder emailBuilder;
-	private final OutlookMessageData outlookMessageData;
-
-	public OutlookEmailConversionResult(@NotNull final EmailPopulatingBuilder emailBuilder, @NotNull final OutlookMessageData outlookMessageData) {
-		this.emailBuilder = checkNonEmptyArgument(emailBuilder, "emailBuilder");
-		this.outlookMessageData = checkNonEmptyArgument(outlookMessageData, "outlookMessageData");
-	}
+public interface OutlookEmailConversionResult {
 
 	/**
 	 * @return The converted email builder.
 	 */
 	@NotNull
-	public EmailPopulatingBuilder getEmailBuilder() {
-		return emailBuilder;
-	}
+	EmailPopulatingBuilder getEmailBuilder();
 
 	/**
 	 * @return Outlook-specific source metadata and raw headers from the converted {@code .msg} message.
 	 */
 	@NotNull
-	public OutlookMessageData getOutlookMessageData() {
-		return outlookMessageData;
-	}
+	OutlookMessageData getOutlookMessageData();
 
 	/**
 	 * Convenience method for {@code getEmailBuilder().buildEmail()}.
 	 */
 	@NotNull
-	public Email buildEmail() {
-		return emailBuilder.buildEmail();
-	}
+	Email buildEmail();
 }

@@ -1,5 +1,7 @@
 package org.simplejavamail.thirdpartyprobe;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Provider;
@@ -29,7 +31,7 @@ public final class ThirdPartyProbeConsumer {
         assertAngusIsAbsent();
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
         ConnectionFailoverConsumer.verify(mail, mail.emailBuilder().startingBlank().from("sender@example.org")
-                .withRecipients(org.simplejavamail.recipient.RecipientBuilder.to(null, "recipient@example.org"))
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("recipient@example.org").withType(RecipientType.TO).build())
                 .withPlainText("Must not reach MIME conversion").buildEmail());
         check(ServiceLoader.load(SmtpConnectionProbeAdapter.class).stream()
                 .filter(provider -> provider.type() == PartialProbeAdapter.class).count() == 1, "The fixture adapter was not discovered");

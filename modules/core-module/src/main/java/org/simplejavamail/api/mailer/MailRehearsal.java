@@ -5,11 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Immutable snapshot of preparing an {@link Email} through one {@link Mailer}, without submitting it to a mail server.
@@ -23,100 +19,44 @@ import static java.util.Objects.requireNonNull;
  * @see Mailer#rehearse(Email)
  * @see Mailer#validate(Email)
  */
-public final class MailRehearsal implements Serializable {
-
-	private static final long serialVersionUID = 1L;
-
-	@NotNull private final Email effectiveEmail;
-	private final byte @NotNull [] emlBytes;
-	@Nullable private final String emailId;
-	@Nullable private final String envelopeSender;
-	@NotNull private final List<String> envelopeRecipients;
-	private final boolean fullRehearsal;
-
-	/**
-	 * Creates a rehearsal snapshot. Applications normally obtain instances from {@link Mailer#rehearse(Email)}.
-	 *
-	 * @param effectiveEmail     The governed composed email, or the unchanged exact email for which governance is deliberately bypassed.
-	 * @param emlBytes           The rendered EML representation.
-	 * @param emailId            The Message-ID in the rendered EML, if one was produced.
-	 * @param envelopeSender     The explicit SMTP envelope sender, or {@code null} when the provider will derive its default.
-	 * @param envelopeRecipients The mailbox addresses that would be supplied to the transport.
-	 * @param fullRehearsal      Whether security processing and configured maximum-size validation were requested.
-	 */
-	public MailRehearsal(@NotNull final Email effectiveEmail,
-			final byte @NotNull [] emlBytes,
-			@Nullable final String emailId,
-			@Nullable final String envelopeSender,
-			@NotNull final List<String> envelopeRecipients,
-			final boolean fullRehearsal) {
-		this.effectiveEmail = requireNonNull(effectiveEmail, "effectiveEmail");
-		this.emlBytes = requireNonNull(emlBytes, "emlBytes").clone();
-		this.emailId = emailId;
-		this.envelopeSender = envelopeSender;
-		this.envelopeRecipients = immutableRecipientCopy(envelopeRecipients);
-		this.fullRehearsal = fullRehearsal;
-	}
-
-	@NotNull
-	private static List<String> immutableRecipientCopy(@NotNull final List<String> envelopeRecipients) {
-		final List<String> copy = new ArrayList<>(requireNonNull(envelopeRecipients, "envelopeRecipients").size());
-		for (String envelopeRecipient : envelopeRecipients) {
-			copy.add(requireNonNull(envelopeRecipient, "envelopeRecipient"));
-		}
-		return Collections.unmodifiableList(copy);
-	}
+public interface MailRehearsal extends Serializable {
 
 	/**
 	 * @return The effective composed email after governance, or the unchanged exact email. Its Message-ID matches {@link #getEmailId()} when present.
 	 */
 	@NotNull
-	public Email getEffectiveEmail() {
-		return effectiveEmail;
-	}
+	Email getEffectiveEmail();
 
 	/**
 	 * @return A defensive copy of the complete rendered EML bytes.
 	 */
-	public byte @NotNull [] getEmlBytes() {
-		return emlBytes.clone();
-	}
+	byte @NotNull [] getEmlBytes();
 
 	/**
 	 * @return The encoded EML size in bytes.
 	 */
-	public long getEncodedSize() {
-		return emlBytes.length;
-	}
+	long getEncodedSize();
 
 	/**
 	 * @return The effective Message-ID in the rendered EML, or {@code null} if no Message-ID was produced.
 	 */
 	@Nullable
-	public String getEmailId() {
-		return emailId;
-	}
+	String getEmailId();
 
 	/**
 	 * @return The explicit SMTP envelope sender, or {@code null} when no override is configured and the mail provider will derive its default.
 	 */
 	@Nullable
-	public String getEnvelopeSender() {
-		return envelopeSender;
-	}
+	String getEnvelopeSender();
 
 	/**
 	 * @return The immutable, ordered mailbox addresses that would be supplied to the transport. Override receivers replace the MIME recipients here.
 	 */
 	@NotNull
-	public List<String> getEnvelopeRecipients() {
-		return envelopeRecipients;
-	}
+	List<String> getEnvelopeRecipients();
 
 	/**
 	 * @return {@code true} when security processing and configured maximum-size validation were requested; {@code false} for base-MIME rehearsal.
 	 */
-	public boolean isFullRehearsal() {
-		return fullRehearsal;
-	}
+	boolean isFullRehearsal();
 }

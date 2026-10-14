@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -47,7 +49,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 class MailSendDiagnosticsTransportTest {
 	@ParameterizedTest
@@ -237,7 +239,7 @@ class MailSendDiagnosticsTransportTest {
 	private static Email email(final String subject) {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().fixingMessageId("diagnostics@example.org")
 				.fixingSentDate(Instant.EPOCH)
-				.from("sender@example.org").withRecipients(to(null, "recipient@example.org")).withSubject(subject).withPlainText("diagnostic test").buildEmail();
+				.from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("recipient@example.org").withType(RecipientType.TO).build()).withSubject(subject).withPlainText("diagnostic test").buildEmail();
 	}
 
 	private static Session session(final TransportState state) throws Exception {

@@ -14,16 +14,9 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 
 	protected static final Logger LOGGER = getLogger(AbstractProxyServerSyncingClosure.class);
 	private final SmtpProxyScope proxy;
-	private final MailSendDiagnosticsRecorder diagnostics;
 
 	AbstractProxyServerSyncingClosure(final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer, final Session session) {
-		this(smtpConnectionCounter, proxyServer, session, MailSendDiagnosticsRecorder.unobserved());
-	}
-
-	AbstractProxyServerSyncingClosure(final AtomicInteger smtpConnectionCounter, @Nullable final AnonymousSocks5Server proxyServer, final Session session,
-			final MailSendDiagnosticsRecorder diagnostics) {
 		proxy = new SmtpProxyScope(smtpConnectionCounter, proxyServer, session);
-		this.diagnostics = diagnostics;
 	}
 
 	@Override
@@ -34,20 +27,15 @@ public abstract class AbstractProxyServerSyncingClosure implements Runnable {
 			executeClosure();
 		} catch (RuntimeException | Error failure) {
 			primaryFailure = failure;
-			diagnostics.failed();
 			throw failure;
 		} finally {
-			diagnostics.startCleanup();
 			try {
 				proxy.close();
 			} catch (RuntimeException | Error failure) {
-				diagnostics.failed();
 				if (primaryFailure == null) {
 					throw failure;
 				}
 				primaryFailure.addSuppressed(failure);
-			} finally {
-				diagnostics.cleanupCompleted();
 			}
 		}
 	}

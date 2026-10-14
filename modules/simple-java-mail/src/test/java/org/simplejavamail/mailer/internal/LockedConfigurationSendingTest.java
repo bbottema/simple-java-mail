@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -26,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.mailer.internal.LockedEmailConfigurationTest.locked;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.finishConnection;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 @Timeout(40)
 class LockedConfigurationSendingTest {
@@ -116,7 +118,7 @@ class LockedConfigurationSendingTest {
 	}
 
 	private Email email(final String id) {
-		return ordinary.emailBuilder().startingBlank().from("sender@example.org").withRecipients(to(null, id + "@example.org"))
+		return ordinary.emailBuilder().startingBlank().from("sender@example.org").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(id + "@example.org").withType(RecipientType.TO).build())
 				.withPlainText("Synthetic test.").fixingMessageId("<" + id + "@example.org>").buildEmail();
 	}
 }

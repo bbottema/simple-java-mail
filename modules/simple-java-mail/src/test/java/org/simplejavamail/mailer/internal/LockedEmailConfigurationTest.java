@@ -18,7 +18,7 @@ import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.internal.config.EmailProperty.SUBJECT;
+import static org.simplejavamail.api.email.EmailProperty.SUBJECT;
 
 class LockedEmailConfigurationTest {
 

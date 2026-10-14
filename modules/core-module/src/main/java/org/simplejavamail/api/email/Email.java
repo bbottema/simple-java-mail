@@ -15,7 +15,7 @@ import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.ByteArrayInputStream;
@@ -44,6 +44,8 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
+import static org.simplejavamail.internal.config.EmailPropertySerialization.publicSelectors;
+import static org.simplejavamail.internal.config.EmailPropertySerialization.serializedSelectors;
 import static org.simplejavamail.internal.util.ListUtil.merge;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -82,12 +84,14 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
-	private final Set<EmailProperty> propertiesNotToApplyDefaultValueFor;
+	private final Set<? extends Enum<?>> propertiesNotToApplyDefaultValueFor;
+	private transient Set<EmailProperty> defaultSuppression;
 
 	/**
 	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
 	 */
-	private final Set<EmailProperty> propertiesNotToApplyOverrideValueFor;
+	private final Set<? extends Enum<?>> propertiesNotToApplyOverrideValueFor;
+	private transient Set<EmailProperty> overrideSuppression;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingMessageId(String)
@@ -299,8 +303,10 @@ public class Email implements Serializable {
 
 		ignoreDefaults = builder.isIgnoreDefaults();
 		ignoreOverrides = builder.isIgnoreOverrides();
-		propertiesNotToApplyDefaultValueFor = builder.getPropertiesNotToApplyDefaultValueFor();
-		propertiesNotToApplyOverrideValueFor = builder.getPropertiesNotToApplyOverrideValueFor();
+		// Preserve the enum names stored by released Email snapshots; the public getters use the API selectors.
+		propertiesNotToApplyDefaultValueFor = serializedSelectors(builder.getPropertiesNotToApplyDefaultValueFor());
+		propertiesNotToApplyOverrideValueFor = serializedSelectors(builder.getPropertiesNotToApplyOverrideValueFor());
+		restorePropertySelectors();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
@@ -366,6 +372,7 @@ public class Email implements Serializable {
 	private void readObject(@NotNull final ObjectInputStream inputStream)
 			throws IOException, ClassNotFoundException {
 		inputStream.defaultReadObject();
+		restorePropertySelectors();
 		if (originalOpenPgpDetails == null) {
 			originalOpenPgpDetails = OpenPgpDetails.plain();
 		}
@@ -425,6 +432,11 @@ public class Email implements Serializable {
 	}
 
 	@SuppressWarnings("SameReturnValue")
+	private void restorePropertySelectors() {
+		defaultSuppression = publicSelectors(propertiesNotToApplyDefaultValueFor);
+		overrideSuppression = publicSelectors(propertiesNotToApplyOverrideValueFor);
+	}
+
 	@Override
 	public int hashCode() {
 		return 0;
@@ -552,7 +564,7 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
-		return propertiesNotToApplyDefaultValueFor;
+		return defaultSuppression;
 	}
 
 	/**
@@ -560,7 +572,7 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
-		return propertiesNotToApplyOverrideValueFor;
+		return overrideSuppression;
 	}
 
 	/**

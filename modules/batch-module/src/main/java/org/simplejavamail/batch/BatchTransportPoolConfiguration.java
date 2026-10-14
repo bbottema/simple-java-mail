@@ -1,5 +1,6 @@
 package org.simplejavamail.batch;
 
+import lombok.ToString;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.Objects;
  * physical pool. A cluster configuration is complete rather than partial, so every value shown by its getters is the
  * value that will be used for that cluster.
  */
+@ToString(onlyExplicitlyIncluded = true)
 public final class BatchTransportPoolConfiguration {
 
 	/** Default number of connections kept allocated. */
@@ -24,12 +26,18 @@ public final class BatchTransportPoolConfiguration {
 	/** Default cluster selection strategy. */
 	public static final BatchLoadBalancingStrategy DEFAULT_LOAD_BALANCING_STRATEGY = BatchLoadBalancingStrategy.ROUND_ROBIN;
 
+	@ToString.Include
 	private final int corePoolSize;
+	@ToString.Include
 	private final int maxPoolSize;
+	@ToString.Include
 	private final int claimTimeoutMillis;
+	@ToString.Include
 	private final int expireAfterMillis;
+	@ToString.Include
 	@Nullable
 	private final Integer expireAfterCreationMillis;
+	@ToString.Include
 	private final BatchLoadBalancingStrategy loadBalancingStrategy;
 
 	private BatchTransportPoolConfiguration(final Builder builder) {
@@ -114,18 +122,6 @@ public final class BatchTransportPoolConfiguration {
 	public int hashCode() {
 		return Objects.hash(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis,
 				expireAfterCreationMillis, loadBalancingStrategy);
-	}
-
-	@Override
-	public String toString() {
-		return "BatchTransportPoolConfiguration{" +
-				"corePoolSize=" + corePoolSize +
-				", maxPoolSize=" + maxPoolSize +
-				", claimTimeoutMillis=" + claimTimeoutMillis +
-				", expireAfterMillis=" + expireAfterMillis +
-				", expireAfterCreationMillis=" + expireAfterCreationMillis +
-				", loadBalancingStrategy=" + loadBalancingStrategy +
-				'}';
 	}
 
 	/**

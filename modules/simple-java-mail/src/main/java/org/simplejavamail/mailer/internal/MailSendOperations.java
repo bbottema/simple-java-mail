@@ -24,11 +24,18 @@ final class MailSendOperations {
     private final CompletableFuture<Void> drained = new CompletableFuture<>();
     private int active;
     private boolean closing;
+    private MailSendRetryCoordinator retries;
+    private MailSendReplayBudget replayBudget;
 
     MailSendOperations(final OperationalConfig config) {
+        this(config, null);
+    }
+
+    /** Internal scheduler injection lets race tests force timer handoff without wall-clock sleeps. */
+    MailSendOperations(final OperationalConfig config, final ScheduledThreadPoolExecutor suppliedTimers) {
         this.config = config;
         final int number = SEQUENCE.incrementAndGet();
-        deadlines = new ScheduledThreadPoolExecutor(1, daemonThreads("sjm-deadline-" + number));
+        deadlines = suppliedTimers == null ? new ScheduledThreadPoolExecutor(1, daemonThreads("sjm-deadline-" + number)) : suppliedTimers;
         deadlines.setRemoveOnCancelPolicy(true);
         completions = Executors.newSingleThreadExecutor(daemonThreads("sjm-control-completion-" + number));
     }
@@ -44,6 +51,18 @@ final class MailSendOperations {
 
     void schedule(final MailSendOperation<?> operation) {
         config.getExecutorService().execute(operation);
+    }
+
+    synchronized MailSendRetryCoordinator.Ticket reserveRetry(final MailSendOperation<?> operation) {
+        if (retries == null) {
+            retries = new MailSendRetryCoordinator(config.getMailSendRetryPolicy().getWaitingCapacity(), config.getExecutorService(), deadlines);
+        }
+        return retries.reserve(operation);
+    }
+
+    synchronized MailSendReplayBudget replayBudget() {
+        if (replayBudget == null) { replayBudget = new MailSendReplayBudget(config); }
+        return replayBudget;
     }
 
     void completeUnstarted(final MailSendOperation<?> operation, final Runnable completion) {
@@ -137,6 +156,7 @@ final class MailSendOperations {
 
     private void finishShutdownIfDrained() {
         if (closing && active == 0) {
+            if (retries != null) { retries.close(); }
             deadlines.shutdown();
             completions.shutdown();
             drained.complete(null);

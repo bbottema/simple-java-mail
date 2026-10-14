@@ -8,6 +8,8 @@ import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendConnectionStep;
+import org.simplejavamail.api.mailer.MailSendSubmissionStep;
+import org.simplejavamail.api.mailer.MailSubmissionStatus;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,8 +26,8 @@ public final class MailSendDiagnosticsRecorder {
 	private static final MailSendDiagnosticsRecorder UNOBSERVED = new MailSendDiagnosticsRecorder(null);
 	private static final String NOT_REACHED = "This part of the send was not reached.";
 	private static final String SHARED_CONNECTION = "The shared connection is opened and closed outside this email's attempt.";
-	/** Retain the beginning of the route and its latest step; this limits reporting, never destination traversal. */
-	private static final int MAX_RETAINED_CONNECTION_STEPS = 64;
+	/** Each history independently retains its first 63 steps and latest step; this limits reporting, never routing or retries. */
+	private static final int MAX_RETAINED_HISTORY_STEPS = 64;
 
 	@Nullable private final LongSupplier clock;
 	private final long requestedAt;
@@ -36,6 +38,11 @@ public final class MailSendDiagnosticsRecorder {
 	private final Measurement mimePreparation = new Measurement(NOT_REACHED);
 	private final Measurement submission = new Measurement(NOT_REACHED);
 	private final Measurement cleanup = new Measurement(NOT_REACHED);
+	private final Measurement retryWait = new Measurement("Automatic retries are not enabled for this send.");
+	@Nullable private List<MailSendSubmissionStep> submissionHistory;
+	private long omittedSubmissionSteps;
+	private long submissionStepStarted;
+	private long submissionStepElapsed;
 	@Nullable private Measurement activeMeasurement;
 	@Nullable private Measurement failureMeasurement;
 	@Nullable private MailSubmissionReceipt receipt;
@@ -117,6 +124,7 @@ public final class MailSendDiagnosticsRecorder {
 			connectionAcquisition.unavailableReason = "Logging-only mode does not acquire an SMTP connection.";
 			submission.unavailableReason = "Logging-only mode does not submit the email.";
 			cleanup.unavailableReason = "Logging-only mode has no sending connection to release.";
+			retryWait.unavailableReason = "Logging-only mode makes no SMTP attempts to retry.";
 		}
 	}
 
@@ -124,6 +132,7 @@ public final class MailSendDiagnosticsRecorder {
 		if (clock != null) {
 			connectionAcquisition.unavailableReason = "CustomMailer owns its connection setup inside its submission callback.";
 			cleanup.unavailableReason = "CustomMailer owns its connection cleanup inside its submission callback.";
+			retryWait.unavailableReason = "CustomMailer owns any retry decisions inside its callback.";
 		}
 	}
 
@@ -175,8 +184,15 @@ public final class MailSendDiagnosticsRecorder {
 		if (clock != null && hasActiveConnectionStep) {
 			final String host = acquired && smtpHost != null ? smtpHost : configuredConnectionHost;
 			final Integer port = acquired && smtpPort != null ? smtpPort : configuredConnectionPort;
-			addConnectionStep(new MailSendConnectionStep(connectionConfigurationName, host, port, true, acquired,
-					Duration.ofNanos(clock.getAsLong() - connectionStepStarted), explanation));
+			addConnectionStep(MailSendConnectionStepImpl.builder()
+				.configuredName(connectionConfigurationName)
+				.smtpHost(host)
+				.smtpPort(port)
+				.connectionAttempted(true)
+				.connectionAcquired(acquired)
+				.elapsed(Duration.ofNanos(clock.getAsLong() - connectionStepStarted))
+				.explanation(explanation)
+				.build());
 			hasActiveConnectionStep = false;
 			connectionConfigurationName = null;
 			configuredConnectionHost = null;
@@ -186,12 +202,24 @@ public final class MailSendDiagnosticsRecorder {
 
 	void skippedConnection(final String configurationName, final String host, final Integer port, final String explanation) {
 		if (clock != null) {
-			addConnectionStep(new MailSendConnectionStep(configurationName, host, port, false, false, null, explanation));
+			addConnectionStep(MailSendConnectionStepImpl.builder()
+				.configuredName(configurationName)
+				.smtpHost(host)
+				.smtpPort(port)
+				.connectionAttempted(false)
+				.connectionAcquired(false)
+				.elapsed(null)
+				.explanation(explanation)
+				.build());
 		}
 	}
 
 	/** A remedied acquisition is history, not the failure location of a later terminal error. */
 	void continuingAfterConnectionFailure() {
+		clearFailureAttribution();
+	}
+
+	private void clearFailureAttribution() {
 		if (clock != null) {
 			failureMeasurement = null;
 			failureObserved = false;
@@ -202,10 +230,10 @@ public final class MailSendDiagnosticsRecorder {
 		if (connectionHistory == null) {
 			connectionHistory = new ArrayList<>();
 		}
-		if (connectionHistory.size() < MAX_RETAINED_CONNECTION_STEPS) {
+		if (connectionHistory.size() < MAX_RETAINED_HISTORY_STEPS) {
 			connectionHistory.add(step);
 		} else {
-			connectionHistory.set(MAX_RETAINED_CONNECTION_STEPS - 1, step);
+			connectionHistory.set(MAX_RETAINED_HISTORY_STEPS - 1, step);
 			omittedConnectionSteps++;
 		}
 	}
@@ -232,10 +260,77 @@ public final class MailSendDiagnosticsRecorder {
 		start(submission);
 	}
 
+	/** History measures the invocation itself; resolver checks and rate commitment still belong to the broader submission measurement. */
+	public void submissionInvoked() {
+		if (clock != null && submissionHistory != null) { submissionStepStarted = clock.getAsLong(); }
+	}
+
+	void enableSubmissionHistory() {
+		if (clock != null) {
+			submissionHistory = new ArrayList<>();
+			retryWait.unavailableReason = "This email did not need to wait for a retry.";
+		}
+	}
+
+	void submissionStep(final int attemptNumber, @Nullable final MailSubmissionReceipt receipt, @Nullable final Duration delay, final boolean failed) {
+		if (clock == null || submissionHistory == null) { return; }
+		appendSubmissionStep(createSubmissionStep(attemptNumber, receipt, delay));
+		if (failed) {
+			failureObserved = true;
+			failureMeasurement = submission;
+		}
+	}
+
+	private MailSendSubmissionStep createSubmissionStep(final int attemptNumber, @Nullable final MailSubmissionReceipt receipt,
+			@Nullable final Duration delay) {
+		final MailSubmissionStatus status = receipt == null ? MailSubmissionStatus.UNKNOWN : receipt.getStatus();
+		final Integer code = receipt == null ? null : receipt.getSmtpResponse().map(response -> response.getReturnCode())
+				.filter(value -> value >= 100 && value <= 599).orElse(null);
+		return MailSendSubmissionStepImpl.builder()
+			.attemptNumber(attemptNumber)
+			.submissionStatus(status)
+			.smtpReplyCode(code)
+			.elapsed(Duration.ofNanos(receipt == null ? clock.getAsLong() - submissionStepStarted : submissionStepElapsed))
+			.retryDelay(delay)
+			.explanation(delay == null ? null : "Temporary refusal; the entire email can be submitted again safely.")
+			.build();
+	}
+
+	private void appendSubmissionStep(final MailSendSubmissionStep step) {
+		if (submissionHistory.size() < MAX_RETAINED_HISTORY_STEPS) { submissionHistory.add(step); }
+		else { submissionHistory.set(MAX_RETAINED_HISTORY_STEPS - 1, step); omittedSubmissionSteps++; }
+	}
+
+	/** Keep intermediate receipt/history facts, but clear terminal failure attribution so a recovered send has no stale failure marker. */
+	void continuingAfterSubmissionRefusal() {
+		clearFailureAttribution();
+	}
+
+	/** Record a delay only after cleanup and bounded retry admission allow it, not merely because the SMTP refusal looked eligible. */
+	void retryScheduled(final Duration delay) {
+		if (clock == null || submissionHistory == null || submissionHistory.isEmpty()) { return; }
+		final int latestIndex = submissionHistory.size() - 1;
+		final MailSendSubmissionStep latest = submissionHistory.get(latestIndex);
+		submissionHistory.set(latestIndex, MailSendSubmissionStepImpl.builder()
+			.attemptNumber(latest.getAttemptNumber())
+			.submissionStatus(latest.getSubmissionStatus())
+			.smtpReplyCode(latest.getSmtpReplyCode().orElse(null))
+			.elapsed(latest.getElapsed())
+			.retryDelay(delay)
+			.explanation("Temporary refusal; the entire email can be submitted again safely.")
+			.build());
+	}
+
+	void startRetryWait() { start(retryWait); }
+	void retryWaitCompleted() {
+		if (activeMeasurement == retryWait) { finishActive(); }
+	}
+
 	/** Saves the exact result before a release/close failure can prevent it from returning through the call stack. */
 	public void receiptProduced(@NotNull final MailSubmissionReceipt receipt) {
 		if (clock != null) {
 			this.receipt = receipt;
+			if (submissionHistory != null) { submissionStepElapsed = clock.getAsLong() - submissionStepStarted; }
 			finishActive();
 		}
 	}
@@ -280,10 +375,23 @@ public final class MailSendDiagnosticsRecorder {
 		final long completedAt = clock.getAsLong();
 		finishActive(completedAt);
 		final Measurement failurePoint = successful ? null : failureMeasurement;
-		return new MailSendDiagnostics(Duration.ofNanos(completedAt - requestedAt), preparation.snapshot(failurePoint), scheduling.snapshot(failurePoint),
-				connectionAcquisition.snapshot(failurePoint), mimePreparation.snapshot(failurePoint), submission.snapshot(failurePoint),
-				cleanup.snapshot(failurePoint), smtpHost, smtpPort, rateLimitWait.snapshot(failurePoint),
-				connectionHistory == null ? Collections.emptyList() : connectionHistory, omittedConnectionSteps);
+		return MailSendDiagnosticsImpl.builder()
+			.elapsed(Duration.ofNanos(completedAt - requestedAt))
+			.preparation(preparation.snapshot(failurePoint))
+			.scheduling(scheduling.snapshot(failurePoint))
+			.connectionAcquisition(connectionAcquisition.snapshot(failurePoint))
+			.mimePreparation(mimePreparation.snapshot(failurePoint))
+			.submission(submission.snapshot(failurePoint))
+			.cleanup(cleanup.snapshot(failurePoint))
+			.smtpHost(smtpHost)
+			.smtpPort(smtpPort)
+			.rateLimitWait(rateLimitWait.snapshot(failurePoint))
+			.connectionHistory(connectionHistory == null ? Collections.emptyList() : connectionHistory)
+			.omittedConnectionSteps(omittedConnectionSteps)
+			.retryWait(retryWait.snapshot(failurePoint))
+			.submissionHistory(submissionHistory == null ? Collections.emptyList() : submissionHistory)
+			.omittedSubmissionSteps(omittedSubmissionSteps)
+			.build();
 	}
 
 	void releaseReceipt() {
@@ -332,7 +440,11 @@ public final class MailSendDiagnosticsRecorder {
 		}
 
 		private MailSendMeasurement snapshot(@Nullable final Measurement failurePoint) {
-			return new MailSendMeasurement(reached ? Duration.ofNanos(elapsed) : null, reached ? null : unavailableReason, this == failurePoint);
+			return MailSendMeasurementImpl.builder()
+				.elapsed(reached ? Duration.ofNanos(elapsed) : null)
+				.unavailableReason(reached ? null : unavailableReason)
+				.failureObservedHere(this == failurePoint)
+				.build();
 		}
 	}
 }

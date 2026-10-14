@@ -5,7 +5,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ModuleLoaderTestHelper;
 
 import java.io.IOException;
@@ -222,7 +222,7 @@ public class EmailTypesDemoApp extends DemoAppBase {
 	}
 
 	private static Recipient demoRecipient() {
-		return new RecipientBuilder()
+		return new RecipientBuilderImpl()
 				.withAddress(YOUR_GMAIL_ADDRESS)
 				.withType(TO)
 				.build();

@@ -134,9 +134,19 @@ final class MailSendAttempt {
 		if (notifier == null || !completed.compareAndSet(false, true)) {
 			return;
 		}
-		final MailSendOutcome outcome = new MailSendOutcome(initialMessageId, effectiveMessageId(submissionReceipt),
-				requireNonNull(requestedAt, "requestedAt"), readyAt, startedAt, Instant.now(), successful, loggingOnly,
-				submissionReceipt, failure, diagnostics.finish(successful));
+		final MailSendOutcome outcome = MailSendOutcomeImpl.builder()
+			.initialMessageId(initialMessageId)
+			.effectiveMessageId(effectiveMessageId(submissionReceipt))
+			.requestedAt(requireNonNull(requestedAt, "requestedAt"))
+			.readyAt(readyAt)
+			.startedAt(startedAt)
+			.completedAt(Instant.now())
+			.successful(successful)
+			.loggingOnly(loggingOnly)
+			.submissionReceipt(submissionReceipt)
+			.failure(failure)
+			.diagnostics(diagnostics.finish(successful))
+			.build();
 		effectiveEmail = null;
 		diagnostics.releaseReceipt();
 		try (MailSendControl.DeadlinePause ignored = control == null ? null : control.pauseDeadline()) {

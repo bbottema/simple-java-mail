@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import jakarta.activation.DataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.InternetAddress;
@@ -29,7 +31,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.config.SimpleJavaMailConfig;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
@@ -387,16 +389,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 	/** Check before resolution can read a file or URL; these locks govern this factory's resolver, not previously supplied attachments. */
 	private void validateLockedImageResolution() {
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, embeddedImageAutoResolutionForFiles);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, embeddedImageAutoResolutionForClassPathResources);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, embeddedImageAutoResolutionForURLs);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, embeddedImageBaseDir);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, embeddedImageBaseClassPath);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, embeddedImageBaseUrl == null ? null : embeddedImageBaseUrl.toExternalForm());
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR, allowEmbeddedImageOutsideBaseDir);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH, allowEmbeddedImageOutsideBaseClassPath);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL, allowEmbeddedImageOutsideBaseUrl);
-		config.getLocks().verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, embeddedImageAutoResolutionMustBeSuccesful);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR, embeddedImageAutoResolutionForFiles);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH, embeddedImageAutoResolutionForClassPathResources);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL, embeddedImageAutoResolutionForURLs);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR, embeddedImageBaseDir);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH, embeddedImageBaseClassPath);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL, embeddedImageBaseUrl == null ? null : embeddedImageBaseUrl.toExternalForm());
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR, allowEmbeddedImageOutsideBaseDir);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH, allowEmbeddedImageOutsideBaseClassPath);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL, allowEmbeddedImageOutsideBaseUrl);
+		locksOf(config).verify(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL, embeddedImageAutoResolutionMustBeSuccesful);
 	}
 
 	private void validateProtectionFamilies() {

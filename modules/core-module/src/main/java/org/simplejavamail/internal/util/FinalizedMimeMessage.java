@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.SharedByteArrayInputStream;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
@@ -78,11 +79,19 @@ public final class FinalizedMimeMessage extends MimeMessage {
         return fromOwnedBytes(session, serialized.clone(), ProtectionState.NONE, true);
     }
 
+    /**
+     * Internal capture boundary: callers transfer exclusive ownership of the byte array and must never change it afterward.
+     * Use the copying factories when the array remains caller-owned. Setting {@code preserveAllBytes} also retains headers
+     * that the transport would normally omit, as required for exact EML.
+     * @see #fromMessageBytes(Session, byte[], ProtectionState)
+     * @see #fromExactMessageBytes(Session, byte[])
+     */
     @NotNull
-    private static FinalizedMimeMessage fromOwnedBytes(@NotNull final Session session,
-                                                       final byte @NotNull [] serialized,
-                                                       @NotNull final ProtectionState protectionState,
-                                                       final boolean preserveAllBytes)
+    @ApiStatus.Internal
+    public static FinalizedMimeMessage fromOwnedBytes(@NotNull final Session session,
+                                                      final byte @NotNull [] serialized,
+                                                      @NotNull final ProtectionState protectionState,
+                                                      final boolean preserveAllBytes)
             throws MessagingException {
         return new FinalizedMimeMessage(session, serialized, protectionState, preserveAllBytes);
     }

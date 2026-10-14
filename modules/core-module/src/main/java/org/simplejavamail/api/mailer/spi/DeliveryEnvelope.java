@@ -15,6 +15,7 @@ import static java.util.Collections.emptyList;
  * These values are deliberately kept separate from the MIME message: envelope sender, delivery notifications, onward TLS and recipient-rejection
  * handling govern submission, not message headers or body content.
  */
+@lombok.Builder(builderClassName = "Builder", setterPrefix = "with")
 public final class DeliveryEnvelope implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -23,73 +24,15 @@ public final class DeliveryEnvelope implements Serializable {
     private final String envelopeFrom;
     @Nullable
     private final DeliveryStatusNotification deliveryStatusNotification;
+    @lombok.Builder.Default
     @NotNull
-    private final List<DeliveryRecipient> recipientOptions;
+    private final List<DeliveryRecipient> recipientOptions = emptyList();
     private final boolean tlsRequiredForOnwardDelivery;
     private final boolean deliveryStatusNotificationRequired;
     @Nullable
     private final Boolean sendingToAcceptedRecipients;
 
-    /**
-     * Creates an envelope without recipient-specific notification preferences.
-     *
-     * @param envelopeFrom The SMTP envelope sender, or {@code null} to leave sender selection to the transport.
-     * @param deliveryStatusNotification The shared delivery-notification request, or {@code null} when none is configured.
-     */
-    public DeliveryEnvelope(@Nullable final String envelopeFrom,
-            @Nullable final DeliveryStatusNotification deliveryStatusNotification) {
-        this(envelopeFrom, deliveryStatusNotification, emptyList(), false);
-    }
-
-    /**
-     * Recipient options are defensively copied and retain duplicate occurrences.
-     *
-     * @param envelopeFrom The SMTP envelope sender, or {@code null} to leave sender selection to the transport.
-     * @param deliveryStatusNotification The shared delivery-notification request, or {@code null} when none is configured.
-     * @param recipientOptions Policies in exactly the same order as {@link PreparedMail#getRecipients()}, including duplicate occurrences.
-     *                         An empty list means no recipient-specific preferences; otherwise every recipient must have an entry.
-     */
-    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
-            @NotNull final List<DeliveryRecipient> recipientOptions) {
-        this(envelopeFrom, deliveryStatusNotification, recipientOptions, false);
-    }
-
-    /**
-     * Creates the complete provider-neutral SMTP envelope for one message submission.
-     *
-     * @param envelopeFrom The SMTP envelope sender, or {@code null} to leave sender selection to the transport.
-     * @param deliveryStatusNotification The shared delivery-notification request, or {@code null} when none is configured.
-     * @param recipientOptions Policies in exactly the same order as {@link PreparedMail#getRecipients()}, including duplicate occurrences.
-     * @param tlsRequiredForOnwardDelivery Whether the adapter must apply RFC 8689 REQUIRETLS to MAIL FROM.
-     */
-    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
-            @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery) {
-        this(envelopeFrom, deliveryStatusNotification, recipientOptions, tlsRequiredForOnwardDelivery, false);
-    }
-
-    /**
-     * Adds a mandatory DSN request, used for locked notification settings. The adapter must reject before MAIL FROM if the connected server cannot honor it.
-     * This requires the request to be applied, not that a delivery notification will actually arrive.
-     * Existing constructors retain their best-effort shared-DSN behavior.
-     */
-    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
-            @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery,
-            final boolean deliveryStatusNotificationRequired) {
-        this(envelopeFrom, deliveryStatusNotification, recipientOptions, tlsRequiredForOnwardDelivery, deliveryStatusNotificationRequired, null);
-    }
-
-    /**
-     * Adds the submission-wide recipient-rejection choice without changing MIME content. Existing constructors leave it unset.
-     *
-     * @param envelopeFrom Optional SMTP envelope sender.
-     * @param deliveryStatusNotification Optional shared delivery-notification request.
-     * @param recipientOptions Ordered recipient policies, defensively copied.
-     * @param tlsRequiredForOnwardDelivery Whether REQUIRETLS is mandatory.
-     * @param deliveryStatusNotificationRequired Whether the shared DSN request must be honored.
-     * @param sendingToAcceptedRecipients Whether to continue for accepted recipients after a rejection, or {@code null} to retain provider behavior.
-     * @see org.simplejavamail.api.email.EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean)
-     */
-    public DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
+    private DeliveryEnvelope(@Nullable final String envelopeFrom, @Nullable final DeliveryStatusNotification deliveryStatusNotification,
             @NotNull final List<DeliveryRecipient> recipientOptions, final boolean tlsRequiredForOnwardDelivery,
             final boolean deliveryStatusNotificationRequired, @Nullable final Boolean sendingToAcceptedRecipients) {
         if (deliveryStatusNotificationRequired && deliveryStatusNotification == null) {
@@ -104,11 +47,13 @@ public final class DeliveryEnvelope implements Serializable {
         this.sendingToAcceptedRecipients = sendingToAcceptedRecipients;
     }
 
+    /** SMTP envelope sender; null leaves selection to the provider. Does not change the MIME From header. */
     @Nullable
     public String getEnvelopeFrom() {
         return envelopeFrom;
     }
 
+    /** Shared delivery-notification request, or null when none is configured. */
     @Nullable
     public DeliveryStatusNotification getDeliveryStatusNotification() {
         return deliveryStatusNotification;
@@ -119,23 +64,23 @@ public final class DeliveryEnvelope implements Serializable {
                 || sendingToAcceptedRecipients != null;
     }
 
-    /** @see org.simplejavamail.api.email.EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+    /** True permits partial sending, false withholds content after recipient rejection, and null retains provider behavior. Partial sending still fails. */
     @Nullable
     public Boolean getSendingToAcceptedRecipients() {
         return sendingToAcceptedRecipients;
     }
 
-    /** @return Whether RFC 8689 REQUIRETLS must be applied to MAIL FROM for this submission. */
+    /** Whether the adapter must request REQUIRETLS for onward delivery; not a claim that the server accepted it. */
     public boolean isTlsRequiredForOnwardDelivery() {
         return tlsRequiredForOnwardDelivery;
     }
 
-    /** Whether the shared NOTIFY/RET request must be applied rather than omitted when DSN is unavailable. */
+    /** Whether the shared DSN request is mandatory. A server that cannot honor it must be rejected before submission. */
     public boolean isDeliveryStatusNotificationRequired() {
         return deliveryStatusNotificationRequired;
     }
 
-    /** Immutable ordered recipient policies; empty for older serialized envelopes and submissions without recipient policies. */
+    /** Immutable recipient policies in PreparedMail recipient order, including duplicates; empty when none are supplied. */
     @NotNull
     public List<DeliveryRecipient> getRecipientOptions() {
         return recipientOptions;

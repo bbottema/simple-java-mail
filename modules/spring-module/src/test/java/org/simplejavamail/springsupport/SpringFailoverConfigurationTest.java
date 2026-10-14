@@ -1,5 +1,7 @@
 package org.simplejavamail.springsupport;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -32,7 +34,7 @@ class SpringFailoverConfigurationTest {
             final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
             final Map<String, SimpleJavaMailConfig> namedMailerConfigurations = factory.getConfig().getProperty(ConfigLoader.Property.NAMED_MAILERS);
             assertThat(namedMailerConfigurations.get("other").getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("other.example.org");
-            assertThat(namedMailerConfigurations.get("other").getLocks().contains(ConfigLoader.Property.TRANSPORT_STRATEGY)).isTrue();
+            assertThat(locksOf(namedMailerConfigurations.get("other")).contains(ConfigLoader.Property.TRANSPORT_STRATEGY)).isTrue();
             assertThat(factory.getConfig().getDiagnostics().getProperties(ConfigDiagnosticGroup.SMTP_CONNECTION))
                     .filteredOn(SpringFailoverConfigurationTest::isFailoverConfigurationDiagnostic)
                     .isNotEmpty()

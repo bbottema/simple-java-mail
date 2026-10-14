@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.Address;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -10,8 +11,10 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
+import org.simplejavamail.mailer.internal.util.AcquiredMailTransport;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * A deliberately retained batch/open connection and all participating Mailer lifetimes. No per-email observer owns this setup cost.
@@ -79,6 +82,9 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 
 	private MailSubmissionReceipt sendWithSendingAllowance(final Email prepared, final MailSendControl control,
 			final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
+		if (selectedDestination.usesSmtpConnection() && selectedDestination.getOperationalConfig().getMailSendRetryPolicy().isRetryEnabled()) {
+			return sendWithRetries(prepared, control, diagnostics);
+		}
 		try (SendingAllowance.Reservation reservation = EmailSendingAllowance.reserve(allowance, selectedDestination.getSession(), prepared, control, diagnostics)) {
 			if (selectedDestination.getOperationalConfig().getCustomMailer() != null) {
 				return sendUsingCustomMailer(prepared, control, diagnostics, reservation);
@@ -87,6 +93,28 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport().getTransport(), control)) {
 				return transport().send(prepared, diagnostics, reservation, control);
 			}
+		}
+	}
+
+	private MailSubmissionReceipt sendWithRetries(final Email prepared, final MailSendControl control,
+			final MailSendDiagnosticsRecorder diagnostics) {
+		final MailSendRetryingSubmission.Connection retained = new MailSendRetryingSubmission.Connection() {
+			@Override public <T> T withinOwners(final Supplier<T> work) { return executeWithinOwners(work); }
+			@Override public AcquiredMailTransport current() { return transport(); }
+			@Override public SendingAllowance.Reservation reserve(final Address[] recipients) throws MessagingException {
+				return EmailSendingAllowance.reserve(allowance, recipients, control, diagnostics);
+			}
+			@Override public void reacquire(final Address[] recipients) {
+				// Keep the retained transport. Its provider preflight must fail if closed; do not probe with isConnected() or reconnect it.
+			}
+			@Override public boolean canRetryAfter(final MailSubmissionReceipt receipt) { return RetainedMailSendRetry.connectionCanRemainInScope(receipt); }
+			@Override public void releaseAttempt() { /* The batch/callback, not this email, owns the connection. */ }
+			@Override public void close() { /* The outer scope closes the connection once. */ }
+		};
+		try (MailSendRetryingSubmission retry = new MailSendRetryingSubmission(selectedDestination, prepared, control, diagnostics,
+				initiator.replayBudget(), retained);
+				MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport().getTransport(), control)) {
+			return retry.completeOnCurrentThread();
 		}
 	}
 

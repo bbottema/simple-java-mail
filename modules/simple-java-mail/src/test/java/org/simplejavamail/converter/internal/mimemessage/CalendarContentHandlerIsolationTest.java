@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.activation.CommandInfo;
 import jakarta.activation.CommandMap;
 import jakarta.activation.DataContentHandler;
@@ -9,7 +11,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,7 +25,7 @@ class CalendarContentHandlerIsolationTest {
 		try {
 			final Email email = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank()
 					.from("sender@example.com")
-					.withRecipients(RecipientBuilder.to(null, "receiver@example.com"))
+					.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.com").withType(RecipientType.TO).build())
 					.withSubject("calendar")
 					.withCalendarText(CalendarMethod.REQUEST, "BEGIN:VCALENDAR\r\nMETHOD:REQUEST\r\nEND:VCALENDAR")
 					.buildEmail();

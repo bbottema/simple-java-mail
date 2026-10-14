@@ -11,6 +11,7 @@ import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
@@ -199,6 +200,8 @@ class OperationalConfigImpl implements OperationalConfig {
 
 	/** @see OperationalConfig#getFailoverPolicy() */
 	@Nullable private final FailoverPolicy failoverPolicy;
+	/** @see OperationalConfig#getMailSendRetryPolicy() */
+	@NotNull private final MailSendRetryPolicy mailSendRetryPolicy;
 
 	@Override
 	@Nullable

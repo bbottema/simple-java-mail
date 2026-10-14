@@ -21,13 +21,35 @@ final class EmailSendingAllowance {
 	static SendingAllowance.Reservation reserve(final SendingAllowance allowance, final Session session, final Email email,
 			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
 		if (!allowance.isEnabled()) {
-			diagnostics.useUnlimitedSending();
-			return allowance.reserve(0, control);
+			return reserveUnlimited(allowance, control, diagnostics);
 		}
-		final Address[] recipients = email.getOverrideReceivers().isEmpty()
+		final Address[] recipients = resolveIntendedRecipients(email, session);
+		final int recipientCount = countRecipientOccurrences(recipients);
+		return reserve(allowance, recipientCount, control, diagnostics);
+	}
+
+	static SendingAllowance.Reservation reserve(final SendingAllowance allowance, final Address[] recipients,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
+		if (!allowance.isEnabled()) {
+			return reserveUnlimited(allowance, control, diagnostics);
+		}
+		return reserve(allowance, countRecipientOccurrences(recipients), control, diagnostics);
+	}
+
+	private static Address[] resolveIntendedRecipients(final Email email, final Session session) throws MessagingException {
+		return email.getOverrideReceivers().isEmpty()
 				? MimeMessageHelper.resolveRecipientHeaders(email, session)
 				: asInternetAddresses(email.getOverrideReceivers(), UTF_8).toArray(new Address[0]);
-		final int recipientCount = countRecipientOccurrences(recipients);
+	}
+
+	private static SendingAllowance.Reservation reserveUnlimited(final SendingAllowance allowance, final MailSendControl control,
+			final MailSendDiagnosticsRecorder diagnostics) {
+		diagnostics.useUnlimitedSending();
+		return allowance.reserve(0, control);
+	}
+
+	private static SendingAllowance.Reservation reserve(final SendingAllowance allowance, final int recipientCount,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics) {
 		diagnostics.startRateLimitWait();
 		final SendingAllowance.Reservation reservation = allowance.reserve(recipientCount, control);
 		diagnostics.rateLimitWaitCompleted();

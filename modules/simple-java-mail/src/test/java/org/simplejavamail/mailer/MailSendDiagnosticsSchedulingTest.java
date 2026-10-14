@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 @Timeout(20)
 class MailSendDiagnosticsSchedulingTest {
@@ -104,6 +106,6 @@ class MailSendDiagnosticsSchedulingTest {
 
 	private static Email email() {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().from("sender@example.org")
-				.withRecipients(to(null, "recipient@example.org")).withPlainText("scheduling diagnostics").buildEmail();
+				.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("recipient@example.org").withType(RecipientType.TO).build()).withPlainText("scheduling diagnostics").buildEmail();
 	}
 }

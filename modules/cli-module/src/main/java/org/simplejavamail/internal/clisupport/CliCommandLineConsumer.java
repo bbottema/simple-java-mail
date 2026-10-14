@@ -100,8 +100,15 @@ class CliCommandLineConsumer {
 			return MiscUtil.extractEmailAddresses(stringValue);
 		}
 		try {
+			// Parse the declared numeric width directly; a conversion through Integer loses fractions or overflows replay-byte limits.
+			if (targetType == long.class || targetType == Long.class) {
+				return Long.valueOf(stringValue);
+			}
+			if (targetType == double.class || targetType == Double.class) {
+				return Double.valueOf(stringValue);
+			}
 			return ValueConversionHelper.convert(stringValue, targetType);
-		} catch (IncompatibleTypeException e) {
+		} catch (IncompatibleTypeException | NumberFormatException e) {
 			LOGGER.error("Unable to parse one command-line value as {}", targetType.getName());
 			throw new CliExecutionException("Unable to parse a command-line value as " + targetType.getSimpleName(), e);
 		}

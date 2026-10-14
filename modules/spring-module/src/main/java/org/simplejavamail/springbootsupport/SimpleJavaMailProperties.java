@@ -3,6 +3,7 @@ package org.simplejavamail.springbootsupport;
 import lombok.Getter;
 import lombok.Setter;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
@@ -98,6 +99,26 @@ public class SimpleJavaMailProperties {
         private String localaddress;
         private String localport;
         private Ratelimit ratelimit;
+        private Retry retry;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Retry {
+            /** @see MailSendRetryPolicy.Builder#withMaximumAttempts(int) */
+            private Integer attempts;
+            /** @see MailSendRetryPolicy.Builder#withRetryDelay(java.time.Duration) */
+            private String delay;
+            /** @see MailSendRetryPolicy.Builder#withRetryBackoff(int, java.time.Duration) */
+            private Integer backoffmultiplier;
+            /**
+             * ISO-8601 maximum retry delay; required for increasing backoff.
+             * @see MailSendRetryPolicy.Builder#withRetryBackoff(int, java.time.Duration)
+             */
+            private String maximumdelay;
+            /** @see MailSendRetryPolicy.Builder#withRetryJitter(double) */
+            private Double jitter;
+        }
 
         /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
         @Getter
@@ -180,6 +201,19 @@ public class SimpleJavaMailProperties {
         public static class Mailsend {
             /** Total send budget as an ISO-8601 duration, such as PT30S; omitted means disabled. */
             private String timeout;
+            private Retry retry;
+
+            /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+            @Getter
+            @Setter
+            public static class Retry {
+                /** @see MailSendRetryPolicy.Builder#withWaitingCapacity(int) */
+                private Integer waitingcapacity;
+                /** @see MailSendRetryPolicy.Builder#withMaximumMessageSize(long) */
+                private Long maximummessagesize;
+                /** @see MailSendRetryPolicy.Builder#withMemoryLimit(long) */
+                private Long memorylimit;
+            }
         }
 
         /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */

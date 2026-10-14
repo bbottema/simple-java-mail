@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
@@ -68,6 +69,59 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	boolean DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE = false;
 
+	/**
+	 * Fixed submission retry delays unless increasing backoff is configured. Attempts and initial delay have no built-in default.
+	 * @see MailSendRetryPolicy.Builder#withRetryBackoff(int, Duration)
+	 */
+	int DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER = 1;
+	/**
+	 * No variation in submission retry delays unless jitter is configured.
+	 * @see MailSendRetryPolicy.Builder#withRetryJitter(double)
+	 */
+	double DEFAULT_MAIL_SEND_RETRY_JITTER = 0.0;
+
+	/**
+	 * Default suspended asynchronous retries; independent of the executor's initial admission queue.
+	 * @see MailSendRetryPolicy.Builder#withWaitingCapacity(int)
+	 */
+	int DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY = 100;
+	/**
+	 * Default maximum serialized replay message: 32 MiB, including MIME headers and encoded attachments.
+	 * @see MailSendRetryPolicy.Builder#withMaximumMessageSize(long)
+	 */
+	long DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE = 32L * 1024 * 1024;
+	/**
+	 * Default aggregate replay-content budget per initiating Mailer: 128 MiB; not a total JVM heap limit.
+	 * @see MailSendRetryPolicy.Builder#withMemoryLimit(long)
+	 */
+	long DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT = 128L * 1024 * 1024;
+
+	/**
+	 * Tries an unchanged email again after this Mailer's SMTP service temporarily refuses it, but only when the submission
+	 * receipt proves the entire envelope can safely be replayed. Partial acceptance, a lost final reply, permanent rejection,
+	 * cancellation and cleanup failure never qualify. Disabled unless the policy supplies an attempt count and initial delay.
+	 * <p>
+	 * The actual selected Mailer supplies the schedule: when clustering or failover selects another Mailer, its schedule is used,
+	 * or no automatic retry when it has none. Retries remain with that selected destination. The initiating Mailer supplies the
+	 * waiting and replay limits from its own policy and owns completion, observer and deadline. Resource limits alone do not enable
+	 * retries; they can bound a send that selects another retry-enabled Mailer. One logical send produces one final observer outcome.
+	 * <p>
+	 * Retry-enabled SMTP sends retain a bounded, unchanged MIME snapshot; adapters must support repeatable preparation.
+	 * Ordinary async backoff releases its send worker and connection. Synchronous sends and retained batch/open-connection scopes
+	 * wait on their existing thread; retained connections can encounter idle timeouts. CustomMailer and logging-only mode do not retry.
+	 * @param policy Non-null schedule and resource limits; a repeated call replaces the entire policy, including property-loaded values.
+	 */
+	@Cli.ExcludeApi(reason = "The retry policy is configured through typed CLI fields instead of a Java object.")
+	@NotNull T withMailSendRetryPolicy(@NotNull MailSendRetryPolicy policy);
+
+	/** Disables this Mailer's retry schedule and restores built-in resource limits, including property-loaded values, unless locks conflict. */
+	@NotNull T clearMailSendRetryPolicy();
+
+	/**
+	 * Returns the resolved settings, including resource limits even when retries are disabled.
+	 * @see #withMailSendRetryPolicy(MailSendRetryPolicy)
+	 */
+	@NotNull MailSendRetryPolicy getMailSendRetryPolicy();
 	/** No total send deadline unless explicitly configured. */
 	@Nullable Duration DEFAULT_MAIL_SEND_TIMEOUT = null;
 	/** Available sending allowance may be used immediately unless spreading is explicitly requested. */

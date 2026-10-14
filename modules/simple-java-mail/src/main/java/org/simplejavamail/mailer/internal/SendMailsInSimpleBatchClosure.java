@@ -130,6 +130,11 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 					while (emailIterator.hasNext()) {
 						final Email email = prepareNextEmail(emailIterator);
 						control.checkStopped();
+						if (operationalConfig.getMailSendRetryPolicy().isRetryEnabled()) {
+							completeCurrentSendSuccessfully(RetainedMailSendRetry.send(session, ownedTransport, email,
+									sendingAllowance, control, currentDiagnostics()));
+							continue;
+						}
 						try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
 							completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(
 									ownedTransport, session, email, control, currentDiagnostics(), allowance));

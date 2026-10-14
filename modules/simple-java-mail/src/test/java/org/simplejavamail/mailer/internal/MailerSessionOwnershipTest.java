@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -39,7 +41,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /** Public construction/send regressions: an accepted Mailer must keep its Session's governance until it has drained. */
 @Timeout(30)
@@ -248,11 +250,16 @@ class MailerSessionOwnershipTest {
 	private MailerFromSessionBuilderImpl builder(final Session session, final String owner) {
 		return (MailerFromSessionBuilderImpl) SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
 				.withEmailOverrides(mail.emailBuilder().startingBlank().from(owner + "@example.test").withHeader("X-Owner", owner).buildEmail())
-				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+				// This fixture verifies ownership, not wall-clock expiry.
+				.withConnectionPoolExpireAfterMillis(0);
 	}
 
 	private Email email() {
-		return mail.emailBuilder().startingBlank().withRecipients(to(null, "recipient@example.test")).withPlainText("ownership test").buildEmail();
+		// Ownership tests must not wait for host DNS while Jakarta Mail generates a Message-ID.
+		return mail.emailBuilder().startingBlank().fixingMessageId("<ownership-test@example.test>")
+				.withRecipients(mail.recipientBuilder().withAddress("recipient@example.test").withType(RecipientType.TO).build())
+				.withPlainText("ownership test").buildEmail();
 	}
 
 	private void send(final Mailer mailer, final boolean asynchronous) throws Exception {

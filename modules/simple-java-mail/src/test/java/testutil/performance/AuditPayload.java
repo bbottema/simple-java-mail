@@ -1,5 +1,7 @@
 package testutil.performance;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
 import jakarta.mail.util.ByteArrayDataSource;
@@ -8,7 +10,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -31,7 +33,7 @@ final class AuditPayload {
         // Match the existing DKIM test fixture's DNS-free signing path; DNS/key publication is outside this content-cost audit.
         final String sender = "dkim".equals(kind) ? "sender@supersecret-testing-domain.com" : "sender@example.test";
         final EmailPopulatingBuilder builder = factory.emailBuilder().startingBlank().from(sender)
-                .withRecipients(RecipientBuilder.to(null, "receiver@example.test"))
+                .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withSubject("Synthetic order confirmation: caf\u00e9")
                 .withPlainText("A synthetic order confirmation. No customer content.\r\n")
                 .fixingMessageId("<performance-audit@example.test>").fixingSentDate(new Date(0));

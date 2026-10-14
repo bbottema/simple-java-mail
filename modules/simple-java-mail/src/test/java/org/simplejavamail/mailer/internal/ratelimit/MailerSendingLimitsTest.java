@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal.ratelimit;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -24,11 +26,13 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
+import testutil.retry.RetryProviderTransport;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,8 +61,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.simplejavamail.recipient.RecipientBuilder.bcc;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
+
 
 @Timeout(20)
 class MailerSendingLimitsTest {
@@ -114,7 +118,7 @@ class MailerSendingLimitsTest {
 			 Mailer unlimited = builder(new FactorySendingLimits(), state)
 					.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).buildMailer()) {
 			final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("two recipients"))
-					.withRecipients(bcc(null, "archive@example.org")).buildEmail();
+					.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
 			assertThatThrownBy(() -> limited.sync().sendMail(oversized)).hasMessageContaining("2 envelope recipients");
 			assertThat(limited.async().sendMail(oversized).getCompletion().handle((receipt, failure) -> failure).get(5, SECONDS))
 					.hasMessageContaining("2 envelope recipients");
@@ -229,6 +233,40 @@ class MailerSendingLimitsTest {
 	}
 
 	@Test
+	void resumedRetryReservesAllowanceBeforeBorrowingItsPinnedConnection() throws Exception {
+		final Clock clock = new Clock();
+		final FactorySendingLimits limits = new FactorySendingLimits(clock);
+		final RetryProviderTransport.State providerState = new RetryProviderTransport.State();
+		final Session session = RetryProviderTransport.session(providerState);
+		try (Mailer mailer = new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session)
+				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+				.withConnectionPoolExpireAfterMillis(60000).withConnectionPoolClaimTimeoutMillis(5000)
+				.withMessageRateLimit(1, PERIOD).withRateLimitGroup("account")
+				.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2).withRetryDelay(Duration.ofNanos(1)).build())
+				.buildMailer()) {
+			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("rate-gated retry"));
+			try {
+				// Initial reservation, initial invocation commitment, then the resumed invocation's rate gate.
+				assertThat(clock.reads.tryAcquire(3, 10, SECONDS))
+						.as("Rate gate reached; premature terminal failure: %s", waiting.getCompletion().handle((value, failure) -> failure).getNow(null))
+						.isTrue();
+				assertThat(providerState.invocations).hasValue(1);
+				assertThat(waiting.getCompletion()).isNotDone();
+				final LifecycleDelegatingTransport available = ModuleLoader.loadBatchModule().acquireTransport(
+						mailer.getOperationalConfig().getClusterKey(), session, true, null);
+				available.signalTransportUsed();
+				clock.now.set(PERIOD.toNanos());
+				limits.register("account", new SendingRateLimit(1, PERIOD), null, true, unused -> { }).wakeWaiters();
+				assertThat(waiting.getCompletion().get(5, SECONDS).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+				assertThat(providerState.invocations).hasValue(2);
+				assertThat(providerState.captures).hasValue(1);
+			} finally {
+				waiting.requestCancellation();
+			}
+		}
+	}
+
+	@Test
 	void failedAcquisitionAndMimePreparationReleaseReservationButProviderFailureStaysCharged() throws Exception {
 		final Clock clock = new Clock();
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
@@ -263,11 +301,11 @@ class MailerSendingLimitsTest {
 		try (Mailer mailer = builder(limits, state).withRecipientRateLimit(3, PERIOD).buildMailer()) {
 			final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 			final Email fourRecipients = factory.emailBuilder().copying(email("duplicates"))
-					.withRecipients(bcc(null, "archive@example.org"))
+					.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build())
 					.withHeader("To", "recipient@example.org, another@example.org").buildEmail();
 			assertThatThrownBy(() -> mailer.sync().sendMail(fourRecipients)).hasMessageContaining("4 envelope recipients").hasMessageContaining("only 3");
 			assertThat(state.connections.get()).isZero();
-			final Email overridden = factory.emailBuilder().copying(fourRecipients).withOverrideReceivers(to(null, "only@example.org")).buildEmail();
+			final Email overridden = factory.emailBuilder().copying(fourRecipients).withOverrideReceivers(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("only@example.org").withType(RecipientType.TO).build()).buildEmail();
 			mailer.sync().sendMail(overridden);
 			assertThat(state.envelopes.get(0)).containsExactly("only@example.org");
 		}
@@ -405,7 +443,7 @@ class MailerSendingLimitsTest {
 			try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withRecipientRateLimit(1, PERIOD)
 					.withMailSendObserver(outcomes::add).buildMailer()) {
 				final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("too many"))
-						.withRecipients(bcc(null, "archive@example.org")).buildEmail();
+						.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
 				assertThatThrownBy(() -> mailer.sync().sendMail(oversized)).hasMessageContaining("2 envelope recipients");
 				assertThat(state.connections.get()).isZero();
 				mailer.sync().sendMail(email("first direct"));
@@ -532,7 +570,7 @@ class MailerSendingLimitsTest {
 
 	private static Email email(final String subject) {
 		return SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank().from("sender@example.org")
-				.withRecipients(to(null, "recipient@example.org")).withSubject(subject).withPlainText("test")
+				.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("recipient@example.org").withType(RecipientType.TO).build()).withSubject(subject).withPlainText("test")
 				.fixingMessageId("rate-test@example.org").fixingSentDate(Instant.EPOCH).buildEmail();
 	}
 

@@ -30,7 +30,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SUBJECT;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SELECTOR;
 import static org.simplejavamail.config.ConfigLoader.Property.DKIM_SIGNING_DOMAIN;
-import static org.simplejavamail.internal.config.EmailProperty.DKIM_SIGNING_CONFIG;
+import static org.simplejavamail.api.email.EmailProperty.DKIM_SIGNING_CONFIG;
 
 class EmailGovernancePolicyTest {
 

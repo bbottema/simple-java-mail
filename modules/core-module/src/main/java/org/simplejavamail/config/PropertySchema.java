@@ -34,6 +34,8 @@ final class PropertySchema {
 		BOOLEAN,
 		INTEGER,
 		POSITIVE_INTEGER,
+		LONG,
+		DOUBLE,
 		DURATION,
 		TRANSPORT_STRATEGY,
 		SESSION_DEBUG_OUTPUT,
@@ -123,6 +125,11 @@ final class PropertySchema {
 				Property.DEFAULT_SESSION_TIMEOUT_MILLIS);
 
 		set(ValueType.TRANSPORT_STRATEGY, Property.TRANSPORT_STRATEGY);
+		set(ValueType.POSITIVE_INTEGER, Property.SMTP_RETRY_ATTEMPTS, Property.SMTP_RETRY_BACKOFF_MULTIPLIER,
+				Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY);
+		set(ValueType.LONG, Property.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, Property.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
+		set(ValueType.DOUBLE, Property.SMTP_RETRY_JITTER);
+		set(ValueType.DURATION, Property.SMTP_RETRY_DELAY, Property.SMTP_RETRY_MAXIMUM_DELAY);
 		set(ValueType.POSITIVE_INTEGER, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS,
 				Property.SMTP_MESSAGE_RATE_LIMIT, Property.SMTP_RECIPIENT_RATE_LIMIT,
 				Property.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, Property.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER);
@@ -145,6 +152,10 @@ final class PropertySchema {
 	}
 
 	private static void registerDiagnosticMetadata() {
+		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.VISIBLE, Property.SMTP_RETRY_ATTEMPTS, Property.SMTP_RETRY_DELAY,
+				Property.SMTP_RETRY_BACKOFF_MULTIPLIER, Property.SMTP_RETRY_MAXIMUM_DELAY, Property.SMTP_RETRY_JITTER);
+		setDiagnostics(EXECUTION_AND_POOLING, SensitivityPolicy.VISIBLE, Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
+				Property.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, Property.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.VISIBLE, Property.FAILOVER_MAILER, Property.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS,
 				Property.FAILOVER_PRIMARY_RETRY_DELAY, Property.FAILOVER_PRIMARY_RECHECK_INTERVAL, Property.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER,
 				Property.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL, Property.FAILOVER_ON_AUTHENTICATION_FAILURE,
@@ -278,6 +289,10 @@ final class PropertySchema {
 					return parseInteger(rawValue);
 				case POSITIVE_INTEGER:
 					return parsePositiveInteger(rawValue);
+				case LONG:
+					return parseLong(rawValue);
+				case DOUBLE:
+					return parseDouble(rawValue);
 				case DURATION:
 					return rawValue instanceof Duration ? rawValue : Duration.parse(requireType(rawValue, String.class));
 				case TRANSPORT_STRATEGY:
@@ -416,6 +431,20 @@ final class PropertySchema {
 			return (Integer) value;
 		}
 		return Integer.valueOf(requireType(value, String.class));
+	}
+
+	private static Long parseLong(final Object value) {
+		if (value instanceof Long || value instanceof Integer) {
+			return ((Number) value).longValue();
+		}
+		return Long.parseLong(requireType(value, String.class));
+	}
+
+	private static Double parseDouble(final Object value) {
+		if (value instanceof Number) {
+			return ((Number) value).doubleValue();
+		}
+		return Double.parseDouble(requireType(value, String.class));
 	}
 
 	private static <T extends Enum<T>> T parseEnum(final Object value, final Class<T> enumType) {

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -61,7 +63,7 @@ final class LockedSmtpConfiguration {
 
 	LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
 			final OperationalConfig operational, @Nullable final TransportStrategy strategy) {
-		this.locks = config.getLocks();
+		this.locks = locksOf(config);
 		this.server = server;
 		this.proxy = proxy;
 		this.operational = operational;

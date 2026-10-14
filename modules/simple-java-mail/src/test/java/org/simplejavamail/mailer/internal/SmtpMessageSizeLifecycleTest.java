@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import jakarta.mail.Address;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
@@ -27,7 +29,7 @@ import org.simplejavamail.internal.mailprovider.angus.AngusMailTransportAdapter;
 import org.simplejavamail.internal.mailprovider.angus.AngusMailTransportLifecycleAdapter;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import testutil.smtp.ScriptedSmtpServer;
-import org.simplejavamail.recipient.RecipientBuilder;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -190,9 +192,12 @@ class SmtpMessageSizeLifecycleTest {
         }); Transport transport = session.getTransport("smtp")) {
             transport.connect("localhost", server.port(), null, null);
             final MimeMessage message = FinalizedMimeMessage.fromMessageBytes(session, original, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
-            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, new PreparedMail(message,
-                    new Address[]{new InternetAddress("receiver@example.test")}, new DeliveryEnvelope("sender@example.test", null),
-                    ContentRequirement.PRESERVE_PROTECTED_CONTENT));
+            final MailTransportResult result = new AngusMailTransportAdapter().sendMessage(transport, PreparedMail.builder()
+                .withMimeMessage(message)
+                .withRecipients(new Address[]{new InternetAddress("receiver@example.test")})
+                .withDeliveryEnvelope(DeliveryEnvelope.builder().withEnvelopeFrom("sender@example.test").build())
+                .withContentRequirement(ContentRequirement.PRESERVE_PROTECTED_CONTENT)
+                .build());
             assertThat(result.getFailure()).isEmpty();
             final byte[] captured = received.get(10, SECONDS);
             assertThat(result.getMessageSize()).isEqualTo((long) captured.length);
@@ -212,7 +217,7 @@ class SmtpMessageSizeLifecycleTest {
         final KeyPairGenerator keys = KeyPairGenerator.getInstance("RSA");
         keys.initialize(2048);
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-                .from("sender@supersecret-testing-domain.com").withRecipients(RecipientBuilder.to(null, "receiver@example.test"))
+                .from("sender@supersecret-testing-domain.com").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withPlainText("A signed message with an attachment.\r\n")
                 .withAttachment("sample.txt", "stable attachment".getBytes(US_ASCII), "text/plain")
                 .signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData(keys.generateKeyPair().getPrivate().getEncoded())
@@ -247,7 +252,12 @@ class SmtpMessageSizeLifecycleTest {
 
     private static MailTransportResult send(final Transport transport, final MimeMessage message, final Address[] recipients) {
         return new AngusMailTransportAdapter().sendMessage(transport,
-                new PreparedMail(message, recipients, new DeliveryEnvelope("sender@example.test", null), ContentRequirement.NORMAL));
+                PreparedMail.builder()
+                    .withMimeMessage(message)
+                    .withRecipients(recipients)
+                    .withDeliveryEnvelope(DeliveryEnvelope.builder().withEnvelopeFrom("sender@example.test").build())
+                    .withContentRequirement(ContentRequirement.NORMAL)
+                    .build());
     }
 
     private static Session session() {

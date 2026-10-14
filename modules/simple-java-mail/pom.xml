@@ -195,6 +195,16 @@
 								</configuration>
 							</execution>
 							<execution>
+								<id>core-only-compile-path</id>
+								<phase>prepare-package</phase>
+								<goals><goal>build-classpath</goal></goals>
+								<configuration>
+									<includeArtifactIds>core-module,jakarta.mail-api,jakarta.activation-api,jmail,slf4j-api,annotations,spotbugs-annotations</includeArtifactIds>
+									<includeScope>compile</includeScope>
+									<outputFile>${project.build.directory}/core-only-compile-path.txt</outputFile>
+								</configuration>
+							</execution>
+							<execution>
 								<id>managed-angus-runtime-path</id>
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
@@ -218,6 +228,21 @@
 								<configuration>
 									<target>
 										<loadfile property="providerNeutralPath" srcFile="${project.build.directory}/provider-neutral-runtime-path.txt" />
+										<!-- API continuation is checked without simple-java-mail or any provider implementation on either compile path. -->
+										<loadfile property="coreOnlyPath" srcFile="${project.build.directory}/core-only-compile-path.txt" />
+										<mkdir dir="${project.build.directory}/core-only-classpath-classes" />
+										<javac srcdir="${project.basedir}/../core-module/src/test/core-only"
+											   destdir="${project.build.directory}/core-only-classpath-classes"
+											   classpath="${coreOnlyPath}" excludes="module-info.java" sourcepath=""
+											   release="${library.java.release}" includeantruntime="false" />
+										<mkdir dir="${project.build.directory}/core-only-jpms-classes" />
+										<javac srcdir="${project.basedir}/../core-module/src/test/core-only"
+											   destdir="${project.build.directory}/core-only-jpms-classes"
+											   modulepath="${project.basedir}/../core-module/target/classes/META-INF/versions/9${path.separator}${coreOnlyPath}"
+											   release="${library.java.release}" includeantruntime="false">
+											<compilerarg value="--patch-module" />
+											<compilerarg value="org.simplejavamail.core=${project.basedir}/../core-module/target/core-module-${project.version}.jar" />
+										</javac>
 										<mkdir dir="${project.build.directory}/provider-neutral-jpms-classes" />
 										<!-- JDK 11 javac treats a JAR whose descriptor lives under META-INF/versions/9 as an automatic module.
 										     Point it at the descriptor directly and patch in the packaged classes. The runtime check below

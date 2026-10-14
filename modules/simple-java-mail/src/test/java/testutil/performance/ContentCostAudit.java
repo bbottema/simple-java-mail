@@ -53,8 +53,12 @@ public final class ContentCostAudit {
             }
             final AuditPayload payload = new AuditPayload(factory, kind, attachmentBytes, directory);
             final MimeMessage mime = EmailConverter.emailToMimeMessage(payload.email, session);
-            final PreparedMail prepared = new PreparedMail(mime, mime.getAllRecipients(), new DeliveryEnvelope(null, null),
-                    InternalEmail.requireInternalEmail(payload.email).determineContentRequirement());
+            final PreparedMail prepared = PreparedMail.builder()
+                .withMimeMessage(mime)
+                .withRecipients(mime.getAllRecipients())
+                .withDeliveryEnvelope(DeliveryEnvelope.builder().build())
+                .withContentRequirement(InternalEmail.requireInternalEmail(payload.email).determineContentRequirement())
+                .build();
             final CountingOutput counter = new CountingOutput();
             measure(kind, "render-and-protect", () -> consumedResult = EmailConverter.emailToMimeMessage(payload.email, session));
             measure(kind, "content-inspection", () -> consumedResult = (Object) inspection.invokeExact(prepared));

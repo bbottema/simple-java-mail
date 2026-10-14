@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import com.sanctionco.jmail.EmailValidator;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -200,7 +202,7 @@ public class MailerImpl implements Mailer {
 		final SimpleJavaMailConfig factoryConfig = emailGovernance instanceof EmailGovernanceImpl
 				? ((EmailGovernanceImpl) emailGovernance).configuration() : ConfigLoader.builder().load();
 		if (!ownsSession) {
-			SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !factoryConfig.getLocks().isEmpty());
+			SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !locksOf(factoryConfig).isEmpty());
 		}
 		if (session == null) {
 			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
@@ -634,7 +636,7 @@ public class MailerImpl implements Mailer {
 		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		final MailSendOperation<MailSubmissionReceipt> operation = beginEmailOperation(attempt);
 		attempt.readyForAdmission();
-		return operation.executeSync(() -> executeEmailSend(checkedEmail, attempt, operation.control()));
+		return operation.executeSync(() -> executeEmailSend(checkedEmail, attempt, operation));
 	}
 
 	/**
@@ -652,7 +654,7 @@ public class MailerImpl implements Mailer {
 			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}
 		attempt.readyForAdmission();
-		operation.schedule(() -> executeEmailSend(checkedEmail, attempt, operation.control()));
+		operation.schedule(() -> executeEmailSend(checkedEmail, attempt, operation));
 		return operation.handle();
 	}
 
@@ -683,16 +685,29 @@ public class MailerImpl implements Mailer {
 	}
 
 	@NotNull
-	private MailSubmissionReceipt executeEmailSend(final Email originalEmail, final MailSendAttempt attempt, final MailSendControl control) {
+	private MailSubmissionReceipt executeEmailSend(final Email originalEmail, final MailSendAttempt attempt,
+			final MailSendOperation<MailSubmissionReceipt> operation) {
+		final MailSendControl control = operation.control();
 		attempt.started();
 		try {
 			final ReadyMailSend ready = new MailConnectionRoute<>(this, attempt.diagnostics(), control,
 					(destination, selected, stages) -> ReadyMailSend.prepare(this, destination, selected, stages, originalEmail, attempt, control)).execute();
-			return ready.sendAndClose();
+			if (!ready.supportsAutomaticRetry()) {
+				return ready.sendAndClose();
+			}
+			try {
+				return operation.executeRetrying(ready.retryingSubmission(mailSendOperations.replayBudget()));
+			} catch (RuntimeException | Error failure) {
+				// The route already owns a connection. Even failure while constructing the continuation must retire that ownership.
+				ready.closeAfterFailure(failure);
+				throw failure;
+			}
 		} catch (RuntimeException failure) {
 			throw control.translateFailure(failure);
 		}
 	}
+
+	MailSendReplayBudget replayBudget() { return mailSendOperations.replayBudget(); }
 
 	static MailerImpl selectedOwner(final Session selectedSession) {
 		final Object owner = selectedSession.getProperties().get(SESSION_OWNER);
@@ -856,7 +871,7 @@ public class MailerImpl implements Mailer {
 		val checkedOpenConnectionCallback = verifyNonnull(openConnectionCallback);
 		validateDeadlineSupport();
 		try (MailSendOperations.Scope ignored = mailSendOperations.openScope()) {
-			if (failoverMailer != null && usesSmtpConnection()) {
+			if (usesSmtpConnection() && failoverMailer != null) {
 				new FailoverSharedSends(this, mailSendOperations, mailSendObserverNotifier).withOpenConnection(checkedOpenConnectionCallback);
 				return;
 			}
@@ -894,7 +909,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void sendSimpleBatch(@NotNull final Iterable<Email> emails, final MailSendControl control) {
-		if (failoverMailer != null && usesSmtpConnection()) {
+		if (usesSmtpConnection() && failoverMailer != null) {
 			new FailoverSharedSends(this, mailSendOperations, mailSendObserverNotifier).sendBatch(emails, control);
 			return;
 		}
@@ -971,9 +986,6 @@ public class MailerImpl implements Mailer {
 		if (shutdownFuture != null) {
 			return shutdownFuture;
 		}
-		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
-			operationalConfig.getExecutorService().shutdown();
-		}
 		mailSendOperations.shutdown();
 		shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
 		return shutdownFuture;
@@ -981,10 +993,12 @@ public class MailerImpl implements Mailer {
 
 	private void drainExecutorAndCloseConnectionPools() {
 		try {
+			// Accepted operations may still be parked for retry. Keep their executor open until every logical operation has finished.
+			mailSendOperations.shutdown().get();
+			if (!operationalConfig.isExecutorServiceIsUserProvided()) { operationalConfig.getExecutorService().shutdown(); }
 			while (!operationalConfig.isExecutorServiceIsUserProvided() && !operationalConfig.getExecutorService().awaitTermination(1, TimeUnit.DAYS)) {
 				// Graceful shutdown retains accepted work; a capacity timeout is not a send timeout.
 			}
-			mailSendOperations.shutdown().get();
 			closeOwnedConnectionResources();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();

@@ -1,8 +1,8 @@
 package org.simplejavamail.api.mailer.config;
 
-import lombok.Builder;
 import lombok.Value;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.Serializable;
@@ -23,8 +23,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 	@Nullable Integer expireAfterCreationMillis;
 	@Nullable LoadBalancingStrategy loadBalancingStrategy;
 
-	@Builder
-	ConnectionPoolClusterConfig(@Nullable final Integer coreSize, @Nullable final Integer maxSize,
+	private ConnectionPoolClusterConfig(@Nullable final Integer coreSize, @Nullable final Integer maxSize,
 			@Nullable final Integer claimTimeoutMillis, @Nullable final Integer expireAfterMillis,
 			@Nullable final Integer expireAfterCreationMillis,
 			@Nullable final LoadBalancingStrategy loadBalancingStrategy) {
@@ -73,5 +72,170 @@ public class ConnectionPoolClusterConfig implements Serializable {
 	@Nullable
 	public LoadBalancingStrategy getLoadBalancingStrategy() {
 		return loadBalancingStrategy;
+	}
+
+	/** @return A builder that collects supplied values without performing any mail operation. */
+	@NotNull
+	public static ConnectionPoolClusterConfigBuilder builder() {
+		return new ConnectionPoolClusterConfigBuilder();
+	}
+
+	/** Explicit construction contract for supplied values; each setter replaces its previous value. */
+	public static final class ConnectionPoolClusterConfigBuilder {
+		private Integer coreSize;
+		private Integer maxSize;
+		private Integer claimTimeoutMillis;
+		private Integer expireAfterMillis;
+		private Integer expireAfterCreationMillis;
+		private LoadBalancingStrategy loadBalancingStrategy;
+
+		private ConnectionPoolClusterConfigBuilder() {
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolCoreSize(Integer)} for its meaning and constraints. Replaces the previous value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder coreSize(@Nullable final Integer value) {
+			this.coreSize = value;
+			return this;
+		}
+
+		/** @see #coreSize(Integer) */
+		@Nullable
+		public Integer getCoreSize() {
+			return coreSize;
+		}
+
+		/** @see #coreSize(Integer) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearCoreSize() {
+			this.coreSize = null;
+			return this;
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolMaxSize(Integer)} for its meaning and constraints. Replaces the previous value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder maxSize(@Nullable final Integer value) {
+			this.maxSize = value;
+			return this;
+		}
+
+		/** @see #maxSize(Integer) */
+		@Nullable
+		public Integer getMaxSize() {
+			return maxSize;
+		}
+
+		/** @see #maxSize(Integer) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearMaxSize() {
+			this.maxSize = null;
+			return this;
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder claimTimeoutMillis(@Nullable final Integer value) {
+			this.claimTimeoutMillis = value;
+			return this;
+		}
+
+		/** @see #claimTimeoutMillis(Integer) */
+		@Nullable
+		public Integer getClaimTimeoutMillis() {
+			return claimTimeoutMillis;
+		}
+
+		/** @see #claimTimeoutMillis(Integer) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearClaimTimeoutMillis() {
+			this.claimTimeoutMillis = null;
+			return this;
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder expireAfterMillis(@Nullable final Integer value) {
+			this.expireAfterMillis = value;
+			return this;
+		}
+
+		/** @see #expireAfterMillis(Integer) */
+		@Nullable
+		public Integer getExpireAfterMillis() {
+			return expireAfterMillis;
+		}
+
+		/** @see #expireAfterMillis(Integer) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearExpireAfterMillis() {
+			this.expireAfterMillis = null;
+			return this;
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder expireAfterCreationMillis(@Nullable final Integer value) {
+			this.expireAfterCreationMillis = value;
+			return this;
+		}
+
+		/** @see #expireAfterCreationMillis(Integer) */
+		@Nullable
+		public Integer getExpireAfterCreationMillis() {
+			return expireAfterCreationMillis;
+		}
+
+		/** @see #expireAfterCreationMillis(Integer) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearExpireAfterCreationMillis() {
+			this.expireAfterCreationMillis = null;
+			return this;
+		}
+
+		/**
+		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
+		 * MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)} for its meaning and constraints. Replaces the previous
+		 * value.
+		 */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder loadBalancingStrategy(@Nullable final LoadBalancingStrategy value) {
+			this.loadBalancingStrategy = value;
+			return this;
+		}
+
+		/** @see #loadBalancingStrategy(LoadBalancingStrategy) */
+		@Nullable
+		public LoadBalancingStrategy getLoadBalancingStrategy() {
+			return loadBalancingStrategy;
+		}
+
+		/** @see #loadBalancingStrategy(LoadBalancingStrategy) */
+		@NotNull
+		public ConnectionPoolClusterConfigBuilder clearLoadBalancingStrategy() {
+			this.loadBalancingStrategy = null;
+			return this;
+		}
+
+		/** @return A validated snapshot with defensive copies of supplied mutable data. */
+		@NotNull
+		public ConnectionPoolClusterConfig build() {
+			return new ConnectionPoolClusterConfig(coreSize, maxSize, claimTimeoutMillis, expireAfterMillis,
+					expireAfterCreationMillis, loadBalancingStrategy);
+		}
 	}
 }

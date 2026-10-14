@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -225,17 +227,17 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	void validateLockedConfiguration() {
 		super.validateLockedConfiguration();
-		configuration().getLocks().verify(SMTP_HOST, host);
-		configuration().getLocks().verify(SMTP_PORT, port);
-		configuration().getLocks().verify(SMTP_USERNAME, username);
-		configuration().getLocks().verify(SMTP_PASSWORD, password);
-		configuration().getLocks().verify(TRANSPORT_STRATEGY, transportStrategy);
-		configuration().getLocks().verify(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
-		configuration().getLocks().verify(OPPORTUNISTIC_TLS, opportunisticTLS);
-		LockedSmtpConfiguration.verifyCustomSocketFactory(configuration().getLocks(), customSSLFactory != null || customSSLFactoryInstance != null
+		locksOf(configuration()).verify(SMTP_HOST, host);
+		locksOf(configuration()).verify(SMTP_PORT, port);
+		locksOf(configuration()).verify(SMTP_USERNAME, username);
+		locksOf(configuration()).verify(SMTP_PASSWORD, password);
+		locksOf(configuration()).verify(TRANSPORT_STRATEGY, transportStrategy);
+		locksOf(configuration()).verify(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
+		locksOf(configuration()).verify(OPPORTUNISTIC_TLS, opportunisticTLS);
+		LockedSmtpConfiguration.verifyCustomSocketFactory(locksOf(configuration()), customSSLFactory != null || customSSLFactoryInstance != null
 				|| LockedSmtpConfiguration.hasCustomSocketFactory(getProperties(), transportStrategy));
-		if (customSSLFactoryInstance != null && configuration().getLocks().contains(CUSTOM_SSLFACTORY_CLASS)) {
-			throw configuration().getLocks().conflict(CUSTOM_SSLFACTORY_CLASS,
+		if (customSSLFactoryInstance != null && locksOf(configuration()).contains(CUSTOM_SSLFACTORY_CLASS)) {
+			throw locksOf(configuration()).conflict(CUSTOM_SSLFACTORY_CLASS,
 					"withCustomSSLFactoryInstance(...) supplies a factory object, but this configuration locks the factory class to instantiate. "
 							+ "The supplied object would replace that locked class choice. Remove the builder call, "
 							+ "or remove the factory-class lock from the configuration source if your application should supply the instance.");

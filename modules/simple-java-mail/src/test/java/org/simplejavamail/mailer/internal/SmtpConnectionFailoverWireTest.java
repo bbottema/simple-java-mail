@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import jakarta.mail.Message.RecipientType;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +26,7 @@ import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.acceptMessage;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.finishConnection;
-import static org.simplejavamail.recipient.RecipientBuilder.to;
+
 
 /** Real loopback sockets exercise Angus setup evidence, not just synthetic exception classification. */
 @Timeout(30)
@@ -88,7 +90,7 @@ class SmtpConnectionFailoverWireTest {
     }
 
     private Email email() {
-        return mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(to(null, "receiver@example.test"))
+        return mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withPlainText("loopback test").buildEmail();
     }
 }

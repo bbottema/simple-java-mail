@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+
 import com.sanctionco.jmail.EmailValidator;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +28,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmail;
-import org.simplejavamail.internal.config.EmailProperty;
+import org.simplejavamail.api.email.EmailProperty;
 
 import java.util.Collection;
 import java.util.Date;
@@ -162,7 +164,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		this.emailValidator = emailValidator;
 		// A replacement template skips ordinary property defaults, including their key-file reads. Only locked requirements remain applicable.
 		final Email configuredDefaults = emailDefaults == null ? createConfiguredDefaults(config::hasProperty)
-				: config.getLocks().isEmpty() ? emailDefaults : createConfiguredDefaults(config.getLocks()::contains);
+				: locksOf(config).isEmpty() ? emailDefaults : createConfiguredDefaults(locksOf(config)::contains);
 		this.emailDefaults = emailDefaults != null ? emailDefaults : configuredDefaults;
 		this.emailOverrides = emailOverrides != null ? emailOverrides : emailBuilder.startingBlank().buildEmail();
 		this.maximumEmailSize = maximumEmailSize;
@@ -374,7 +376,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	/** Only envelope-compatible locks apply here; ordinary templates never rewrite exact EML. */
 	public Email prepareExactEmail(final Email email) {
-		if (config.getLocks().isEmpty()) {
+		if (locksOf(config).isEmpty()) {
 			return email;
 		}
 		lockedEmailConfiguration.verifyExactCompatibility(email);
@@ -397,7 +399,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	/** Apply a traversed owner's mandatory message locks after the selected destination's ordinary templates, without importing another template. */
 	Email applyLocksToPreparedEmail(final Email email) {
-		if (config.getLocks().isEmpty()) {
+		if (locksOf(config).isEmpty()) {
 			return email;
 		}
 		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
@@ -421,8 +423,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	}
 
 	private void retainSubmissionRestrictions(@Nullable final Email provided, final Email prepared) {
-		if (config.getLocks().contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)
-				|| config.getLocks().contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)
+		if (locksOf(config).contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)
+				|| locksOf(config).contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)
 				|| provided != null && InternalEmail.requireInternalEmail(provided).isDeliveryStatusNotificationRequired()) {
 			InternalEmail.requireInternalEmail(prepared).requireDeliveryStatusNotification();
 		}

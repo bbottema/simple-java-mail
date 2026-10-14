@@ -13,6 +13,7 @@ module org.simplejavamail.core {
 
 	exports org.simplejavamail;
 	exports org.simplejavamail.api.email;
+	exports org.simplejavamail.api.converter;
 	exports org.simplejavamail.api.email.config;
 	exports org.simplejavamail.api.internal.authenticatedsockssupport.common;
 	exports org.simplejavamail.api.internal.authenticatedsockssupport.socks5server;
