@@ -6,6 +6,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#756](https://github.com/bbottema/simple-java-mail/issues/756): added opt-in bounded retries of safely refused temporary SMTP submissions, with selected-Mailer schedules, immutable in-memory replay, cancellation-aware waits and one final completion/observer outcome. Ordinary async waits release their worker and connection; partial or uncertain acceptance is never replayed automatically.
+
 - [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. No replay occurs after provider invocation, and ordinary capacity/rate waiting does not trigger failover.
 
 - [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration.
@@ -23,6 +25,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
 ### Enhancements
+
+- Moved recipient-builder entry points onto `SimpleJavaMail` and separated library-produced result contracts from their internal construction. Applications keep using core API types after bootstrap. See the [10.0.0 migration notes](https://www.simplejavamail.org/migration-notes-10.0.0.html#api-construction) for removed constructors, relocated imports and stored report compatibility.
 
 - [#754](https://github.com/bbottema/simple-java-mail/issues/754): added per-email recipient-rejection handling through `withSendingToAcceptedRecipients(boolean)`, with a nullable choice, clearing, Email defaults/overrides, factory locks, exact EML, Spring and CLI support. Continuing for accepted recipients still fails the operation with its partial receipt and retry guidance. Unsupported adapters and conflicting advanced Angus settings are rejected before submission; no content rewriting, recipient splitting or automatic retries.
 

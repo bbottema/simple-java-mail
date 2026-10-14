@@ -40,7 +40,8 @@ SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
 
 Email email = mail.emailBuilder().startingBlank()
     .from("Sender", "sender@example.org")
-    .withRecipients(RecipientBuilder.to("Recipient", "recipient@example.net"))
+    .withRecipients(mail.recipientBuilder().withName("Recipient").withAddress("recipient@example.net")
+        .withType(Message.RecipientType.TO).build())
     .withSubject("It works")
     .withPlainText("Your first Simple Java Mail message.")
     .buildEmail();
@@ -311,6 +312,24 @@ Simple Java Mail is open source under the Apache License 2.0. It was first publi
 
 - Use the [issue tracker](https://github.com/bbottema/simple-java-mail/issues) for reproducible bugs and concrete feature ideas.
 - Use [Help and contribute](https://www.simplejavamail.org/contact.html) to choose the right public channel or arrange private follow-up for a sensitive report.
+
+## Safely retry a temporary SMTP refusal
+
+```java
+MailSendRetryPolicy retry = MailSendRetryPolicy.builder()
+    .withMaximumAttempts(3)
+    .withRetryDelay(Duration.ofSeconds(30))
+    .withRetryBackoff(2, Duration.ofMinutes(5))
+    .withRetryJitter(0.2)
+    .build();
+Mailer mailer = mail.mailerBuilder()
+    .withSMTPServer("smtp.example.org", 587)
+    .withMailSendRetryPolicy(retry)
+    .buildMailer();
+MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email);
+```
+
+This is opt-in and applies only to a safely refused temporary whole-envelope submission. Partial acceptance, a lost final reply, permanent rejection and cleanup failure never authorize automatic replay. `MailSendRetryPolicy` also groups `withWaitingCapacity(...)`, `withMaximumMessageSize(...)` and `withMemoryLimit(...)`; these resource settings alone do not enable retries. The selected Mailer supplies the schedule from its policy; the initiating Mailer supplies its own policy's resource limits and owns execution, deadline and final observer. All invocations use unchanged bytes, Message-ID and envelope. Ordinary async backoff releases the worker and connection; retained batch/callback scopes intentionally keep their connection. See [mail-send retries](https://www.simplejavamail.org/mail-send-retries.html) for limits, properties, Spring/CLI options, history and application-owned durable jobs.
 
 ## License
 
