@@ -129,7 +129,7 @@ class SelectedMailerPreparationTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final List<Thread> observers = new CopyOnWriteArrayList<>();
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 25).withTransportModeLoggingOnly(true)
-                .withExecutorService(executor).withMailSendObserver(outcome -> {
+                .withExecutorService(executor).withMailSendResultObserver(outcome -> {
                     outcomes.add(outcome);
                     observers.add(Thread.currentThread());
                 }).buildMailer()) {

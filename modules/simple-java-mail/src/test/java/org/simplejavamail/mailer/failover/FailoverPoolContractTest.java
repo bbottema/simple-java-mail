@@ -103,7 +103,7 @@ class FailoverPoolContractTest {
              Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000)
                      .withFailoverMailer(selected, policy())
-                     .withMailSendObserver(outcome -> {
+                     .withMailSendResultObserver(outcome -> {
                          if (completions.incrementAndGet() == 1) {
                              observerFailure.set(catchThrowable(() -> active.get().sync().sendMail(email())));
                          }

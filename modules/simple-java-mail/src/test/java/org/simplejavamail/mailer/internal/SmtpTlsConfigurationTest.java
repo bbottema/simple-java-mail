@@ -168,7 +168,7 @@ class SmtpTlsConfigurationTest {
         final ExecutorService executor = mock(ExecutorService.class);
         final MailerRegularBuilder<?> builder = builder(SMTP_OAUTH2).withSMTPServerPassword(null)
                 .withOAuth2AccessTokenProvider(() -> { tokenCalls.incrementAndGet(); return "fake-token"; })
-                .withMailSendObserver(outcome -> observerCalls.incrementAndGet())
+                .withMailSendResultObserver(outcome -> observerCalls.incrementAndGet())
                 .withExecutorService(executor).withProxy("localhost", 12346, "proxy-user", "fake-proxy-password")
                 .withProperty(REQUIRED, false);
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);

@@ -10,6 +10,8 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendConnectionStep;
 import org.simplejavamail.api.mailer.MailSendSubmissionStep;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
+import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -18,7 +20,8 @@ import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
- * Owns the measurements of one email attempt. Passed explicitly through send helpers; never attached to a Session or shared transport.
+ * Owns optional terminal measurements and forwards observed boundaries to the independently enabled live-progress recorder.
+ * Passed explicitly through send helpers; never attached to a Session or shared transport.
  * Admission hands it to execution or terminal completion through the operation's existing boundaries; they do not mutate it concurrently.
  */
 public final class MailSendDiagnosticsRecorder {
@@ -30,6 +33,7 @@ public final class MailSendDiagnosticsRecorder {
 	private static final int MAX_RETAINED_HISTORY_STEPS = 64;
 
 	@Nullable private final LongSupplier clock;
+	@Nullable private final MailSendProgressRecorder progress;
 	private final long requestedAt;
 	private final Measurement preparation = new Measurement(NOT_REACHED);
 	private final Measurement scheduling = new Measurement("This email has no separate asynchronous scheduling step.");
@@ -61,13 +65,20 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** Clock injection is internal and exists to test elapsed boundaries without timing-sensitive sleeps. */
 	MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock) {
+		this(clock, null);
+	}
+
+	/** Existing orchestration boundaries forward progress independently; a progress-only send collects no diagnostic histories or measurements. */
+	MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock, @Nullable final MailSendProgressRecorder progress) {
 		this.clock = clock;
+		this.progress = progress;
 		requestedAt = clock == null ? 0 : clock.getAsLong();
 	}
 
 	@NotNull
-	static MailSendDiagnosticsRecorder observed() {
-		return new MailSendDiagnosticsRecorder(System::nanoTime);
+	static MailSendDiagnosticsRecorder forObservers(final boolean observeResults, @Nullable final MailSendProgressRecorder progress) {
+		return !observeResults && progress == null ? UNOBSERVED
+				: new MailSendDiagnosticsRecorder(observeResults ? System::nanoTime : null, progress);
 	}
 
 	boolean isObserved() {
@@ -81,6 +92,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void useAsyncScheduling() {
+		progressStage(MailSendProgressStage.WAITING_FOR_EXECUTION);
 		if (clock != null) {
 			asynchronous = true;
 			scheduling.unavailableReason = NOT_REACHED;
@@ -96,6 +108,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void startPreparation() {
+		progressStage(MailSendProgressStage.PREPARING);
 		start(preparation);
 	}
 
@@ -138,7 +151,8 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** Begins before proxy startup; TransportRunner can call it again without restarting the same measurement. */
 	public void startConnectionAcquisition() {
-		if (clock != null) {
+		progressStage(MailSendProgressStage.ACQUIRING_CONNECTION);
+		if (clock != null || progress != null) {
 			ownsCleanup = true;
 			start(connectionAcquisition);
 		}
@@ -239,6 +253,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	public void startMimePreparation() {
+		progressStage(MailSendProgressStage.PREPARING_MIME);
 		start(mimePreparation);
 	}
 
@@ -249,6 +264,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void startRateLimitWait() {
+		progressStage(MailSendProgressStage.WAITING_FOR_RATE_LIMIT);
 		start(rateLimitWait);
 	}
 
@@ -257,11 +273,15 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	public void startSubmission() {
+		progressStage(MailSendProgressStage.SUBMITTING);
 		start(submission);
 	}
 
 	/** History measures the invocation itself; resolver checks and rate commitment still belong to the broader submission measurement. */
 	public void submissionInvoked() {
+		if (progress != null) {
+			progress.submissionInvoked();
+		}
 		if (clock != null && submissionHistory != null) { submissionStepStarted = clock.getAsLong(); }
 	}
 
@@ -321,13 +341,17 @@ public final class MailSendDiagnosticsRecorder {
 			.build());
 	}
 
-	void startRetryWait() { start(retryWait); }
+	void startRetryWait() {
+		progressStage(MailSendProgressStage.WAITING_TO_RETRY);
+		start(retryWait);
+	}
 	void retryWaitCompleted() {
 		if (activeMeasurement == retryWait) { finishActive(); }
 	}
 
 	/** Saves the exact result before a release/close failure can prevent it from returning through the call stack. */
 	public void receiptProduced(@NotNull final MailSubmissionReceipt receipt) {
+		effectiveMessageId(receipt.getEmailId());
 		if (clock != null) {
 			this.receipt = receipt;
 			if (submissionHistory != null) { submissionStepElapsed = clock.getAsLong() - submissionStepStarted; }
@@ -346,6 +370,7 @@ public final class MailSendDiagnosticsRecorder {
 	/** Includes ordinary transport cleanup and subsequent proxy teardown; shared-scope cleanup is deliberately not measured here. */
 	public void startCleanup() {
 		if (ownsCleanup) {
+			progressStage(MailSendProgressStage.CLEANING_UP);
 			start(cleanup);
 		}
 	}
@@ -359,6 +384,29 @@ public final class MailSendDiagnosticsRecorder {
 	@Nullable
 	MailSubmissionReceipt capturedReceipt() {
 		return receipt;
+	}
+
+	/** Opens reporting authority for one provider operation; no scope or cancellation registration exists on the disabled path. */
+	@Nullable
+	public MailSendProgressScope openProgressScope(final boolean connectionSetup, final MailSendControl control) {
+		if (progress == null) {
+			return null;
+		}
+		final MailSendProgressScope scope = progress.openScope(connectionSetup);
+		scope.observeCancellation(control);
+		return scope;
+	}
+
+	public void effectiveMessageId(@Nullable final String messageId) {
+		if (progress != null) {
+			progress.effectiveMessageId(messageId);
+		}
+	}
+
+	private void progressStage(final MailSendProgressStage stage) {
+		if (progress != null) {
+			progress.stage(stage);
+		}
 	}
 
 	@Nullable

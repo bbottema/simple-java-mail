@@ -8,7 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
-import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendResultObserver;
+import org.simplejavamail.api.mailer.MailSendProgressObserver;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
@@ -302,15 +303,19 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
 
 	/**
-	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
+	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver)
 	 */
 	@Nullable
-	private MailSendObserver mailSendObserver;
+	private MailSendResultObserver mailSendResultObserver;
 
 	/**
-	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
+	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, Executor)
 	 */
-	@Nullable private Executor mailSendObserverExecutor;
+	@Nullable private Executor mailSendResultObserverExecutor;
+	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver) */
+	@Nullable private MailSendProgressObserver mailSendProgressObserver;
+	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver, Executor) */
+	@Nullable private Executor mailSendProgressExecutor;
 
 	/**
 	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
@@ -1371,24 +1376,42 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver)
+	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver)
 	 */
 	@Override
-	public T withMailSendObserver(@NotNull final MailSendObserver mailSendObserver) {
-		this.mailSendObserver = requireNonNull(mailSendObserver, "mailSendObserver");
-		this.mailSendObserverExecutor = null;
+	public T withMailSendResultObserver(@NotNull final MailSendResultObserver mailSendResultObserver) {
+		this.mailSendResultObserver = requireNonNull(mailSendResultObserver, "mailSendResultObserver");
+		this.mailSendResultObserverExecutor = null;
 		return (T) this;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
+	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, Executor)
 	 */
 	@Override
-	public T withMailSendObserver(@NotNull final MailSendObserver mailSendObserver, @NotNull final Executor observerExecutor) {
-		requireNonNull(mailSendObserver, "mailSendObserver");
+	public T withMailSendResultObserver(@NotNull final MailSendResultObserver mailSendResultObserver, @NotNull final Executor observerExecutor) {
+		requireNonNull(mailSendResultObserver, "mailSendResultObserver");
 		requireNonNull(observerExecutor, "observerExecutor");
-		this.mailSendObserver = mailSendObserver;
-		this.mailSendObserverExecutor = observerExecutor;
+		this.mailSendResultObserver = mailSendResultObserver;
+		this.mailSendResultObserverExecutor = observerExecutor;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver) */
+	@Override
+	public T withMailSendProgressObserver(@NotNull final MailSendProgressObserver progressObserver) {
+		this.mailSendProgressObserver = requireNonNull(progressObserver, "progressObserver");
+		this.mailSendProgressExecutor = null;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver, Executor) */
+	@Override
+	public T withMailSendProgressObserver(@NotNull final MailSendProgressObserver progressObserver, @NotNull final Executor progressExecutor) {
+		requireNonNull(progressObserver, "progressObserver");
+		requireNonNull(progressExecutor, "progressExecutor");
+		this.mailSendProgressObserver = progressObserver;
+		this.mailSendProgressExecutor = progressExecutor;
 		return (T) this;
 	}
 
@@ -1999,16 +2022,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return oauth2AccessTokenProvider;
 	}
 
-	@Nullable
-	MailSendObserver getMailSendObserver() {
-		return mailSendObserver;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#withMailSendObserver(MailSendObserver, Executor)
-	 */
-	@Nullable
-	Executor getMailSendObserverExecutor() {
-		return mailSendObserverExecutor;
+	/** Captures both registrations without starting a progress thread or resolving any further configuration. */
+	MailSendObserverNotifier buildObserverNotifier() {
+		return MailSendObserverNotifier.builder()
+			.mailSendResultObserver(mailSendResultObserver)
+			.observerExecutor(mailSendResultObserverExecutor)
+			.progressObserver(mailSendProgressObserver)
+			.progressExecutor(mailSendProgressExecutor)
+			.loggingOnly(transportModeLoggingOnly)
+			.build();
 	}
 }

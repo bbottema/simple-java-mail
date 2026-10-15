@@ -95,7 +95,7 @@ class MailSendQueueTest {
         transport.release.countDown();
         final AtomicReference<Mailer> owner = new AtomicReference<>();
         final AtomicReference<Throwable> closeFailure = new AtomicReference<>();
-        try (Mailer mailer = builder(transport).withMailSendObserver(outcome -> {
+        try (Mailer mailer = builder(transport).withMailSendResultObserver(outcome -> {
             try {
                 owner.get().close();
             } catch (Exception failure) {
@@ -135,7 +135,7 @@ class MailSendQueueTest {
         final BlockingMailer transport = new BlockingMailer();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final AtomicReference<Thread> observerThread = new AtomicReference<>();
-        final Mailer mailer = builder(transport).withAsyncQueueCapacity(1).withMailSendObserver(outcome -> {
+        final Mailer mailer = builder(transport).withAsyncQueueCapacity(1).withMailSendResultObserver(outcome -> {
             outcomes.add(outcome);
             observerThread.set(Thread.currentThread());
         }).buildMailer();

@@ -234,7 +234,7 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, "receiver@example.test", TO, null))
                 .fixingMessageId("retained-scheduler@example.test").withPlainText("Synthetic retained-connection test.").buildEmail();
-        try (ScriptedSmtpServer server = sendingPeer(2); Mailer mailer = builder(server.port()).withMailSendObserver(outcome -> {
+        try (ScriptedSmtpServer server = sendingPeer(2); Mailer mailer = builder(server.port()).withMailSendResultObserver(outcome -> {
             try {
                 final ScheduledThreadPoolExecutor current = schedulerGeneration(controller.get());
                 assertThat(current).isNotNull();

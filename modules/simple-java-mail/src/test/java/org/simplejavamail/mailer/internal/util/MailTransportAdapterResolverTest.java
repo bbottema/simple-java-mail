@@ -22,6 +22,7 @@ import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 
 import java.util.Arrays;
@@ -34,6 +35,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MailTransportAdapterResolverTest {
+
+    @Test
+    void progressDoesNotRequireOldAdaptersOrTheGenericFallbackToImplementAnythingNew() throws Exception {
+        final MailTransportProgress unavailable = new MailTransportProgress() {
+            @Override public void contentTransferStarted(final Long size) { throw new AssertionError("No detailed provider hook"); }
+            @Override public void contentBytesWritten(final long size) { throw new AssertionError("No detailed provider hook"); }
+            @Override public void contentTransferFinished(final long size) { throw new AssertionError("No detailed provider hook"); }
+            @Override public void waitingForResponse() { throw new AssertionError("No detailed provider hook"); }
+        };
+        final PreparedMail mail = preparedMail(DeliveryEnvelope.builder().build());
+        final RecordingAdapter adapter = new RecordingAdapter(true);
+        final AtomicInteger invoked = new AtomicInteger();
+        final MailTransportResult adapted = MailTransportAdapterResolver.sendMessage(
+                new RecordingTransport(), mail, List.of(adapter), invoked::incrementAndGet, unavailable);
+        assertThat(adapted.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        assertThat(adapter.preparedMail).isSameAs(mail);
+        final RecordingTransport generic = new RecordingTransport();
+        final MailTransportResult fallback = MailTransportAdapterResolver.sendMessage(generic, mail, List.of(), invoked::incrementAndGet, unavailable);
+        assertThat(fallback.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+        assertThat(generic.sentMessage).isSameAs(mail.getMimeMessage());
+        assertThat(invoked).hasValue(2);
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})

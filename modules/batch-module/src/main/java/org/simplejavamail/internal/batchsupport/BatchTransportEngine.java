@@ -203,7 +203,7 @@ public final class BatchTransportEngine<K> {
 			public Attempt connectionStarting(final Session session, final Transport transport, @Nullable final AllocationContext context) {
 				final PoolConnectionObserver observer = context == null ? connectionObserverFor(session)
 						: connectionObserverByClaim.getOrDefault(context.getClaimIdentity(), connectionObserverFor(session));
-				return forwardConnectionAttempt(observer.connectionStarting());
+				return forwardConnectionAttempt(observer.connectionStarting(transport));
 			}
 		};
 	}

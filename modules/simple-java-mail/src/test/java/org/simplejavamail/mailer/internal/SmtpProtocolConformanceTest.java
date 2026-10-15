@@ -50,7 +50,7 @@ class SmtpProtocolConformanceTest {
 			acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
 			expectCommand(peer, "QUIT");
 			peer.reply("421 deliberately unavailable during cleanup");
-		}); Mailer mailer = builder(server).withMailSendObserver(observed::add).buildMailer()) {
+		}); Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
 			final MailSubmissionReceipt receipt = asynchronous ? mailer.async().sendMail(email()).getCompletion().get(10, SECONDS)
 					: mailer.sync().sendMail(email());
 			assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -63,7 +63,7 @@ class SmtpProtocolConformanceTest {
 	void explicitRejectionRemainsRejectedEvenWhenResetAlsoFails(final RejectionPoint point) throws Exception {
 		final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
 		try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> rejectAt(peer, point));
-			 Mailer mailer = builder(server).withMailSendObserver(observed::add).buildMailer()) {
+			 Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
 			final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email()));
 			assertThat(failure).isInstanceOf(MailSubmissionException.class);
 			final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
@@ -118,7 +118,7 @@ class SmtpProtocolConformanceTest {
 		try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
 			peer.reply("this is not an SMTP greeting");
 			peer.expectClosed();
-		}); Mailer mailer = builder(server).withMailSendObserver(observed::add).buildMailer()) {
+		}); Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
 			final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email()));
 			assertThat(failure).isNotNull();
 			assertThat(observed).singleElement().satisfies(outcome -> {

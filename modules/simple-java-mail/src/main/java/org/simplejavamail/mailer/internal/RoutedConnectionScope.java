@@ -67,7 +67,7 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 					diagnostics.beginConnectionStep(selectedDestination.definition().name, selectedDestination.logicalHost(), selectedDestination.logicalPort());
 				}
 				proxyScope = selectedDestination.openProxy();
-				acquiredTransport = AcquiredMailTransport.acquire(selectedDestination.getSession(), selected, control, observer);
+				acquiredTransport = AcquiredMailTransport.acquire(selectedDestination.getSession(), selected, control, observer, diagnostics);
 			}
 		} catch (MessagingException | RuntimeException | Error failure) {
 			closeAfterFailure(failure);

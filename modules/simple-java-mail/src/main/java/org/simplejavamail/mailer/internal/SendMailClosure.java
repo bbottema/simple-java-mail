@@ -74,9 +74,11 @@ class SendMailClosure implements Runnable {
 			} else if (operationalConfig.getCustomMailer() != null) {
 				diagnostics.startMimePreparation();
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				diagnostics.effectiveMessageId(email.getId());
 				control.checkStopped();
 				diagnostics.startSubmission();
 				requireNonNull(allowance, "allowance").commit(control);
+				diagnostics.submissionInvoked();
 				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
 				receipt = TransportRunner.buildReceipt(email, null);
 				diagnostics.receiptProduced(receipt);

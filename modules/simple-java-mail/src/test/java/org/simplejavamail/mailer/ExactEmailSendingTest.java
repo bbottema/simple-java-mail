@@ -78,7 +78,7 @@ class ExactEmailSendingTest {
 		try (Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withTransportModeLoggingOnly(true)
-				.withMailSendObserver(outcomes::add)
+				.withMailSendResultObserver(outcomes::add)
 				.buildMailer()) {
 			receipt = mailer.sync().sendMail(email);
 		}
@@ -134,7 +134,7 @@ class ExactEmailSendingTest {
 		try (Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withTransportModeLoggingOnly(true)
-				.withMailSendObserver(outcomes::add)
+				.withMailSendResultObserver(outcomes::add)
 				.buildMailer()) {
 			receipt = mailer.async().sendMail(email).getCompletion().get(5, TimeUnit.SECONDS);
 		}

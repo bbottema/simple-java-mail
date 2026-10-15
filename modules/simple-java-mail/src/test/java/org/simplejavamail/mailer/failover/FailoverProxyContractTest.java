@@ -39,7 +39,7 @@ class FailoverProxyContractTest {
              RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withProxy("localhost", proxy.getPort(), "user", "password")
                      .withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000)
-                     .withFailoverMailer(alternative, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withFailoverMailer(alternative, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             // Observe a quiet background interval, not a send-performance threshold. The gate itself has a deterministic companion test.
             assertThat(incidents.observed.await(300, MILLISECONDS)).as("no SMTP outage before a foreground proxy scope exists").isFalse();
             assertThat(initiating.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("0");
@@ -70,7 +70,7 @@ class FailoverProxyContractTest {
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withProxy("localhost", proxy.getPort(), "user", "password")
                      .withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1).withFailoverMailer(alternative, policy())
-                     .withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
             final var receipt = initiating.sync().sendMail(email());
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
             assertThat(primary.connectionCount()).isEqualTo(1);

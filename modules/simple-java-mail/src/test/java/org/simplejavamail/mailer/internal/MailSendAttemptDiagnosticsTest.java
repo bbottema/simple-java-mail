@@ -45,7 +45,7 @@ class MailSendAttemptDiagnosticsTest {
 			pending.add(notification);
 		}, true);
 		try (MockedStatic<MailSendDiagnosticsRecorder> recorders = mockStatic(MailSendDiagnosticsRecorder.class, CALLS_REAL_METHODS)) {
-			recorders.when(MailSendDiagnosticsRecorder::observed).thenReturn(recorder);
+			recorders.when(() -> MailSendDiagnosticsRecorder.forObservers(true, null)).thenReturn(recorder);
 			final MailSendAttempt attempt = notifier.beginAttempt(mock(Email.class));
 			attempt.readyForAdmission();
 			attempt.prepared(mock(Email.class));
@@ -123,7 +123,7 @@ class MailSendAttemptDiagnosticsTest {
 			attempt.prepared(mock(Email.class));
 			attempt.started();
 			attempt.completeSuccessfully(receipt());
-			recorders.verify(MailSendDiagnosticsRecorder::observed, never());
+			recorders.verify(() -> MailSendDiagnosticsRecorder.forObservers(true, null), never());
 			assertThat(attempt.diagnostics()).isSameAs(MailSendDiagnosticsRecorder.unobserved());
 		}
 	}

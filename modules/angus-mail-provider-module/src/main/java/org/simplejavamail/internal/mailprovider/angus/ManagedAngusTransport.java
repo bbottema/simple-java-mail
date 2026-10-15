@@ -9,6 +9,9 @@ import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.eclipse.angus.mail.util.PropUtil;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
+import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter.ConnectionProgressRegistration;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.internal.util.SmtpSizeSupport;
 import org.simplejavamail.internal.util.SmtpServiceUnavailableException;
 import org.slf4j.Logger;
@@ -16,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -24,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Keeps a closeable network handle outside Angus's synchronized SMTP methods and records its final submission boundary.
+ * Keeps a closeable network handle outside Angus's synchronized SMTP methods, observes live protocol stages and records final submission.
  * Angus still owns the complete protocol implementation. Public construction is required by Session's provider loader.
  */
 public final class ManagedAngusTransport extends SMTPTransport {
@@ -42,12 +46,16 @@ public final class ManagedAngusTransport extends SMTPTransport {
     private boolean sending;
     // Setup failures are eligible for failover only before Angus can begin a mail submission.
     private boolean connectionSetupInProgress;
+    private boolean awaitingGreeting;
+    private final AtomicReference<MailTransportProgress> connectionProgress = new AtomicReference<>();
     private int pendingRecipientIndex = -1;
     @Nullable private SmtpServerResponse finalResponse;
     private final List<SmtpServerResponse> recipientResponses = new ArrayList<>();
     @Nullable private AngusRecipientCommands activeRecipientCommands;
     @Nullable private AngusMailFromParameters activeMailFromParameters;
     @Nullable private AngusMailTransportAdapter.AngusSmtpMessage activeMessage;
+    @Nullable private MailTransportProgress activeProgress;
+    @Nullable private AngusContentCountingStream contentProgress;
     private SmtpSizeSupport currentSizeSupport = SmtpSizeSupport.unadvertised();
 
     public ManagedAngusTransport(final Session session, final URLName urlName) {
@@ -87,6 +95,25 @@ public final class ManagedAngusTransport extends SMTPTransport {
         return PropUtil.getBooleanProperty(session.getProperties(), propertyPrefix + ".sendpartial", false);
     }
 
+    /** Unregistration uses identity and never waits on Angus's network monitor, including cancellation during a blocked connect. */
+    @Nullable
+    ConnectionProgressRegistration observeConnectionSetup(final MailTransportProgress progress) {
+        return connectionProgress.compareAndSet(null, progress) ? () -> connectionProgress.compareAndSet(progress, null) : null;
+    }
+
+    private void connectionStage(final MailSendProgressStage stage) {
+        final MailTransportProgress progress = connectionProgress.get();
+        if (connectionSetupInProgress && progress != null) {
+            progress.stageChanged(stage);
+        }
+    }
+
+    private void submissionStage(final MailSendProgressStage stage) {
+        if (sending && activeProgress != null) {
+            activeProgress.stageChanged(stage);
+        }
+    }
+
     @Override
     protected synchronized boolean protocolConnect(final String host, final int port, final String user, final String password)
             throws MessagingException {
@@ -96,6 +123,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
         }
         final AngusSocketFactory.SocketTracker previous = socketFactory == null ? null : socketFactory.bind(this::trackSocket);
         connectionSetupInProgress = true;
+        awaitingGreeting = true;
         try {
             final boolean connected = super.protocolConnect(host, port, user, password);
             if (!connected) {
@@ -106,7 +134,9 @@ public final class ManagedAngusTransport extends SMTPTransport {
             releaseAfterFailure(failure);
             throw failure;
         } finally {
+            connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
             connectionSetupInProgress = false;
+            awaitingGreeting = false;
             if (socketFactory != null) {
                 socketFactory.restore(previous);
             }
@@ -117,17 +147,37 @@ public final class ManagedAngusTransport extends SMTPTransport {
     protected boolean ehlo(final String domain) throws MessagingException {
         // In particular, a failed post-STARTTLS EHLO must not leave the pre-TLS SIZE limit active.
         currentSizeSupport = SmtpSizeSupport.unadvertised();
-        final boolean succeeded = super.ehlo(domain);
-        if (succeeded) {
-            currentSizeSupport = AngusSmtpCapabilities.parseSizeSupport(getLastServerResponse());
+        connectionStage(MailSendProgressStage.NEGOTIATING_CAPABILITIES);
+        try {
+            final boolean succeeded = super.ehlo(domain);
+            if (succeeded) {
+                currentSizeSupport = AngusSmtpCapabilities.parseSizeSupport(getLastServerResponse());
+            }
+            return succeeded;
+        } finally {
+            connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
         }
-        return succeeded;
     }
 
     @Override
     protected void helo(final String domain) throws MessagingException {
         currentSizeSupport = SmtpSizeSupport.unadvertised();
-        super.helo(domain);
+        connectionStage(MailSendProgressStage.NEGOTIATING_CAPABILITIES);
+        try {
+            super.helo(domain);
+        } finally {
+            connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
+        }
+    }
+
+    @Override
+    protected void startTLS() throws MessagingException {
+        connectionStage(MailSendProgressStage.NEGOTIATING_TLS);
+        try {
+            super.startTLS();
+        } finally {
+            connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
+        }
     }
 
     @Nullable
@@ -228,6 +278,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
         finalResponse = null;
         recipientResponses.clear();
         activeMessage = message instanceof AngusMailTransportAdapter.AngusSmtpMessage ? (AngusMailTransportAdapter.AngusSmtpMessage) message : null;
+        activeProgress = activeMessage == null ? null : activeMessage.getProgress();
         activeRecipientCommands = activeMessage == null ? null : activeMessage.getRecipientCommands();
         activeMailFromParameters = activeMessage == null ? null : activeMessage.getMailFromParameters();
         sending = true;
@@ -237,7 +288,54 @@ public final class ManagedAngusTransport extends SMTPTransport {
         sending = false;
         activeRecipientCommands = null;
         activeMailFromParameters = null;
+        if (activeMessage != null) {
+            activeMessage.clearProgress();
+        }
         activeMessage = null;
+        activeProgress = null;
+        contentProgress = null;
+    }
+
+    @Override
+    protected OutputStream data() throws MessagingException {
+        try {
+            return observeContent(super.data());
+        } catch (MessagingException | RuntimeException failure) {
+            submissionStage(MailSendProgressStage.SUBMITTING);
+            throw failure;
+        }
+    }
+
+    @Override
+    protected OutputStream bdat() throws MessagingException {
+        return observeContent(super.bdat());
+    }
+
+    private OutputStream observeContent(final OutputStream stream) {
+        if (activeProgress == null) {
+            return stream;
+        }
+        activeProgress.contentTransferStarted(activeMessage.getProgressContentSize());
+        contentProgress = new AngusContentCountingStream(stream, activeProgress);
+        return contentProgress;
+    }
+
+    @Override
+    protected void finishData() throws IOException, MessagingException {
+        finishContentObservation();
+        super.finishData();
+    }
+
+    @Override
+    protected void finishBdat() throws IOException, MessagingException {
+        finishContentObservation();
+        super.finishBdat();
+    }
+
+    private void finishContentObservation() {
+        if (contentProgress != null) {
+            contentProgress.finishObservation();
+        }
     }
 
     @Override
@@ -247,7 +345,11 @@ public final class ManagedAngusTransport extends SMTPTransport {
             activeMessage.prepareMessageSize(getServerMaximumMessageSize(), currentSizeSupport.isAdvertised(),
                     aborted::get);
         }
-        super.mailFrom();
+        try {
+            super.mailFrom();
+        } finally {
+            submissionStage(MailSendProgressStage.SUBMITTING);
+        }
     }
 
     @Override
@@ -256,7 +358,43 @@ public final class ManagedAngusTransport extends SMTPTransport {
             trackOutgoingCommand(command);
         }
         final String mailCommand = activeMailFromParameters == null ? command : activeMailFromParameters.applyToCommand(command);
-        super.sendCommand(applyRecipientParameters(mailCommand));
+        final String outgoing = applyRecipientParameters(mailCommand);
+        observeCommandCategory(outgoing);
+        super.sendCommand(outgoing);
+    }
+
+    private void observeCommandCategory(final String command) {
+        if (connectionSetupInProgress && connectionProgress.get() != null && command.startsWith("AUTH ")) {
+            connectionStage(MailSendProgressStage.AUTHENTICATING);
+        }
+        if (sending && activeProgress != null) {
+            if (command.startsWith("MAIL FROM:")) {
+                submissionStage(MailSendProgressStage.SUBMITTING_SENDER);
+            } else if (command.startsWith("RCPT TO:")) {
+                submissionStage(MailSendProgressStage.SUBMITTING_RECIPIENTS);
+            } else if ("DATA".equals(command)) {
+                submissionStage(MailSendProgressStage.WAITING_FOR_DATA_PERMISSION);
+            }
+        }
+    }
+
+    @Override
+    protected int simpleCommand(final byte[] command) throws MessagingException {
+        // Some authentication mechanisms bypass sendCommand(String). Inspect only the five verb bytes, never decode the payload.
+        if (connectionSetupInProgress && connectionProgress.get() != null && command.length >= 5
+                && command[0] == 'A' && command[1] == 'U' && command[2] == 'T' && command[3] == 'H' && command[4] == ' ') {
+            connectionStage(MailSendProgressStage.AUTHENTICATING);
+        }
+        return super.simpleCommand(command);
+    }
+
+    @Override
+    protected void rcptTo() throws MessagingException {
+        try {
+            super.rcptTo();
+        } finally {
+            submissionStage(MailSendProgressStage.SUBMITTING);
+        }
     }
 
     private void trackOutgoingCommand(final String command) {
@@ -280,10 +418,25 @@ public final class ManagedAngusTransport extends SMTPTransport {
 
     @Override
     protected int readServerResponse() throws MessagingException {
-        final int response = super.readServerResponse();
-        throwIfConnectionSetupFailed(response);
-        recordServerResponse(response);
-        return response;
+        final boolean greeting = connectionSetupInProgress && awaitingGreeting;
+        awaitingGreeting = false;
+        if (greeting) {
+            connectionStage(MailSendProgressStage.WAITING_FOR_GREETING);
+        }
+        if (readingFinalResponse && activeProgress != null) {
+            // Angus has written/flushed the final DATA terminator or LAST chunk before entering this read.
+            activeProgress.waitingForResponse();
+        }
+        try {
+            final int response = super.readServerResponse();
+            throwIfConnectionSetupFailed(response);
+            recordServerResponse(response);
+            return response;
+        } finally {
+            if (greeting) {
+                connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
+            }
+        }
     }
 
     private void throwIfConnectionSetupFailed(final int response) throws MessagingException {

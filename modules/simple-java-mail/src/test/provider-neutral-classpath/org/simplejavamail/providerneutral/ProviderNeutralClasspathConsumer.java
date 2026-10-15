@@ -27,7 +27,7 @@ import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendConnectionStep;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendMeasurement;
-import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendResultObserver;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendRejectedException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -340,7 +340,7 @@ public final class ProviderNeutralClasspathConsumer {
 			throw new AssertionError("Completion views affected the operation");
 		}
 		if (mail.mailerBuilder().withMailSendTimeout(Duration.ofSeconds(1))
-				.withMailSendObserver(outcome -> { }, Runnable::run).getMailSendTimeout() == null
+				.withMailSendResultObserver(outcome -> { }, Runnable::run).getMailSendTimeout() == null
 				|| new MailSendCancelledException(null, null).getSubmissionReceipt().isPresent()
 				|| new MailSendTimeoutException(null, null).getSubmissionReceipt().isPresent()) {
 			throw new AssertionError("Execution control API is unavailable");
@@ -395,7 +395,8 @@ public final class ProviderNeutralClasspathConsumer {
 
 	/** Verifies the complete observer API can be linked and configured without constructing a transport or sending an email. */
 	private static void assertMailSendObserverApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
-		final MailSendObserver observer = outcome -> {
+		final MailSendResultObserver observer = outcome -> {
+			outcome.getObservationId();
 			outcome.getInitialMessageId();
 			outcome.getEffectiveMessageId();
 			outcome.getRequestedAt();
@@ -421,7 +422,19 @@ public final class ProviderNeutralClasspathConsumer {
 		};
 		simpleJavaMail.mailerBuilder()
 				.withSMTPServer("localhost", 25)
-				.withMailSendObserver(observer);
+				.withMailSendResultObserver(observer)
+				.withMailSendProgressObserver(progress -> {
+					progress.getObservationId();
+					progress.getSequence();
+					progress.getObservedAt();
+					progress.getElapsed();
+					progress.getStage();
+					progress.getSubmissionAttempt();
+					progress.getInitialMessageId();
+					progress.getEffectiveMessageId();
+					progress.getBytesWritten();
+					progress.getTotalBytes();
+				}, Runnable::run);
 	}
 
 	/** Verifies that third-party adapters can report a failed submission whose final acceptance remains unknown. */

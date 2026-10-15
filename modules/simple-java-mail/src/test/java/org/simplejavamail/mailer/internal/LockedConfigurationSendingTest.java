@@ -40,7 +40,7 @@ class LockedConfigurationSendingTest {
 	void concurrentPooledSendsAlwaysIncludeTheArchiveWithoutLeakingRecipientsOrOutcomes() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("defaults.bcc.address", "archive@example.org", "smtp.host", "localhost"));
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(factory).withConnectionPoolMaxSize(3).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(factory).withConnectionPoolMaxSize(3).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> completions = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
 				completions.add(mailer.async().sendMail(email("mail-" + index)).getCompletion());
@@ -59,7 +59,7 @@ class LockedConfigurationSendingTest {
 		final SimpleJavaMail factory = locked(Map.of("defaults.subject", "Locked", "defaults.bcc.address", "archive@example.org"));
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final Email conflict = ordinary.emailBuilder().copying(email("conflict")).withSubject("Other").buildEmail();
-		try (Mailer mailer = builder(factory).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(factory).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(List.of(email("first"), conflict, email("untouched"))))
 					.hasRootCauseInstanceOf(IllegalArgumentException.class);
 			assertThat(outcomes).hasSize(2);
@@ -113,7 +113,9 @@ class LockedConfigurationSendingTest {
 	}
 
 	private MailerRegularBuilder<?> builder(final SimpleJavaMail factory) {
+		// Keep EHLO and MIME Message-ID generation local; workstation DNS is unrelated to locked-recipient concurrency.
 		return factory.mailerBuilder().withSMTPServer("localhost", smtp.getWiser().getServer().getPortAllocated())
+				.withSmtpClientHostname("localhost").withProperty("mail.host", "localhost")
 				.withProperty("mail.from", "sender@example.org").withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
 	}
 

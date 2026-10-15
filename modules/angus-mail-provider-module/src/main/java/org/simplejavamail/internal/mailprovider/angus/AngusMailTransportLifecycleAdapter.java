@@ -5,6 +5,8 @@ import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 
 import java.util.Optional;
@@ -51,5 +53,12 @@ public final class AngusMailTransportLifecycleAdapter implements MailTransportLi
             return Optional.of(((ManagedAngusTransport) transport)::abortConnection);
         }
         return Optional.empty();
+    }
+
+    /** @see MailTransportLifecycleAdapter#observeConnectionSetup(Transport, MailTransportProgress) */
+    @Override
+    @Nullable
+    public ConnectionProgressRegistration observeConnectionSetup(@NotNull final Transport transport, @NotNull final MailTransportProgress progress) {
+        return transport instanceof ManagedAngusTransport ? ((ManagedAngusTransport) transport).observeConnectionSetup(progress) : null;
     }
 }

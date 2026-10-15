@@ -208,7 +208,7 @@ class RecipientRejectionHandlingTest {
     void loggingOnlyStillReportsCompletionWithoutAnSmtpInvocation(final boolean choice) throws Exception {
         final AtomicReference<MailSendOutcome> observed = new AtomicReference<>();
         try (Mailer mailer = ordinary.mailerBuilder().withTransportModeLoggingOnly(true).withProperty("mail.smtp.sendpartial", true)
-                .withMailSendObserver(observed::set).buildMailer()) {
+                .withMailSendResultObserver(observed::set).buildMailer()) {
             final Email email = ordinary.emailBuilder().startingBlank().from("sender@example.org")
                     .withRecipients(new Recipient(null, "receiver@example.org", jakarta.mail.Message.RecipientType.TO, null))
                     .withPlainText("body").withSendingToAcceptedRecipients(choice).buildEmail();

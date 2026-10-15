@@ -4,9 +4,11 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
@@ -119,7 +121,13 @@ final class MailTransportAdapterResolver {
     @NotNull
     static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail, final Runnable beforeInvocation)
             throws MessagingException {
-        return sendMessage(transport, preparedMail, MailProviderDiscovery.newProviders(MailTransportAdapter.class), beforeInvocation);
+        return sendMessage(transport, preparedMail, beforeInvocation, null);
+    }
+
+    /** Progress is optional provider evidence, never a compatibility requirement. */
+    static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail, final Runnable beforeInvocation,
+            @Nullable final MailTransportProgress progress) throws MessagingException {
+        return sendMessage(transport, preparedMail, MailProviderDiscovery.newProviders(MailTransportAdapter.class), beforeInvocation, progress);
     }
 
     /**
@@ -143,12 +151,18 @@ final class MailTransportAdapterResolver {
     @NotNull
     static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail,
             final Iterable<MailTransportAdapter> availableAdapters, final Runnable beforeInvocation) throws MessagingException {
+        return sendMessage(transport, preparedMail, availableAdapters, beforeInvocation, null);
+    }
+
+    static MailTransportResult sendMessage(final Transport transport, final PreparedMail preparedMail,
+            final Iterable<MailTransportAdapter> availableAdapters, final Runnable beforeInvocation,
+            @Nullable final MailTransportProgress progress) throws MessagingException {
         final List<MailTransportAdapter> supportingAdapters = findSupportingAdapters(transport, availableAdapters);
         if (supportingAdapters.size() > 1) {
             throw buildAmbiguousAdapterException(transport, supportingAdapters);
         }
         if (supportingAdapters.size() == 1) {
-            return sendUsingAdapter(supportingAdapters.get(0), transport, preparedMail, beforeInvocation);
+            return sendUsingAdapter(supportingAdapters.get(0), transport, preparedMail, beforeInvocation, progress);
         }
         requireProviderNeutralContent(transport, preparedMail.getContentRequirement());
         requireProviderNeutralEnvelope(transport, preparedMail);
@@ -181,7 +195,8 @@ final class MailTransportAdapterResolver {
     @NotNull
     private static MailTransportResult sendUsingAdapter(@NotNull final MailTransportAdapter adapter,
                                                         @NotNull final Transport transport,
-                                                        @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation)
+                                                        @NotNull final PreparedMail preparedMail, final Runnable beforeInvocation,
+                                                        @Nullable final MailTransportProgress progress)
             throws MessagingException {
         requireSupportedContent(adapter, transport, preparedMail.getContentRequirement());
         requireRecipientRejectionSupport(adapter, preparedMail);
@@ -199,7 +214,8 @@ final class MailTransportAdapterResolver {
                     preparedMail.getRecipients());
         }
         beforeInvocation.run();
-        return requireNonNull(adapter.sendMessage(transport, preparedMail), "MailTransportAdapter result");
+        return requireNonNull(progress == null ? adapter.sendMessage(transport, preparedMail)
+                : adapter.sendMessage(transport, preparedMail, progress), "MailTransportAdapter result");
     }
 
     private static void requireSupportedContent(@NotNull final MailTransportAdapter adapter,

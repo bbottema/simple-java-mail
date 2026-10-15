@@ -62,7 +62,7 @@ class SmtpRecipientRepliesTest {
 	@CsvSource({"true, true", "true, false", "false, true", "false, false"})
 	void perEmailChoiceControlsDataButPartialSendingStillFailsTheOperation(final boolean continueSending, final boolean async) throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			final Email email = emailWithChoice(continueSending, "accepted", "temporary", "permanent");
 			final MailSubmissionException failure;
 			if (async) {
@@ -105,7 +105,7 @@ class SmtpRecipientRepliesTest {
 	void trueFalseAndUnsetAlternateOnOneHealthyPooledConnectionWithoutLeakingChoicesOrResponses() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			for (final Boolean choice : Arrays.asList(true, false, null, true, null, false)) {
 				final MailSubmissionReceipt receipt = mailer.sync().sendMail(emailWithChoice(choice, "accepted-" + outcomes.size()));
 				assertThat(receipt.getRecipientResults()).singleElement().satisfies(result ->
@@ -132,7 +132,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final List<Boolean> choices = Arrays.asList(true, false, null);
 		try (RecipientSmtpServer server = new RecipientSmtpServer(null, new CyclicBarrier(3)); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> warmups = new ArrayList<>();
 			for (int index = 0; index < choices.size(); index++) {
 				warmups.add(mailer.async().sendMail(emailWithChoice(choices.get(index), "accepted-warmup-" + index)).getCompletion());
@@ -269,7 +269,7 @@ class SmtpRecipientRepliesTest {
 		final AtomicInteger traversed = new AtomicInteger();
 		final Iterable<Email> emails = () -> List.of(email("accepted-first"), emailWithChoice(continueSending, "accepted-second", "temporary-second"),
 				email("accepted-untouched")).stream().peek(email -> traversed.incrementAndGet()).iterator();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			final Throwable failure;
 			if (async) {
 				final ExecutionException completionFailure = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(emails).getCompletion()
@@ -476,7 +476,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(poolSize).withThreadPoolSize(6)
-				.withProperty("mail.smtp.sendpartial", true).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withProperty("mail.smtp.sendpartial", true).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			mailer.async().sendMail(email("accepted-warmup")).getCompletion().get(10, TimeUnit.SECONDS);
 			final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
@@ -511,7 +511,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(new CyclicBarrier(3)); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3)
-				.withProperty("mail.smtp.sendpartial", true).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withProperty("mail.smtp.sendpartial", true).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			for (int wave = 0; wave < 3; wave++) {
 				final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 				for (int index = 0; index < 3; index++) {
@@ -539,7 +539,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-				.withMailSendObserver(outcomes::add).buildMailer()) {
+				.withMailSendResultObserver(outcomes::add).buildMailer()) {
 			final ExecutionException failedBatch = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(
 					List.of(email("accepted-first"), email("temporary-second"), email("untouched-third"))).getCompletion()
 					.get(10, TimeUnit.SECONDS), ExecutionException.class);
@@ -560,7 +560,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSubmissionReceipt> receipts = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(2000)
-				.withMailSendObserver(outcome -> {
+				.withMailSendResultObserver(outcome -> {
 					receipts.add(outcome.getSubmissionReceipt().orElseThrow());
 					if (receipts.size() == 1) {
 						configuredMailer.get().sync().sendMail(email("accepted-reentrant"));
@@ -577,7 +577,7 @@ class SmtpRecipientRepliesTest {
 	void simpleBatchAndOpenConnectionPublishEachReceiptWhileSharingTheTransport() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			mailer.async().sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two"))).getCompletion().get(10, TimeUnit.SECONDS);
 			mailer.withOpenConnection(sender -> {
 				final MailSubmissionReceipt first = sender.sendMailAndGetReceipt(email("accepted-open-one"));

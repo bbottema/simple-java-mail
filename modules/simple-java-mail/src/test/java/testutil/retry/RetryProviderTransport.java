@@ -41,6 +41,8 @@ public final class RetryProviderTransport extends Transport {
         properties.put(STATE, state);
         properties.setProperty("mail.transport.protocol", "retry-test");
         properties.setProperty("mail.retry-test.host", "fixture");
+        // The synthetic provider performs no network work; MIME Message-ID generation must not introduce workstation DNS lookups either.
+        properties.setProperty("mail.host", "localhost");
         final Session session = Session.getInstance(properties);
         session.setProvider(new Provider(Provider.Type.TRANSPORT, "retry-test", RetryProviderTransport.class.getName(), "fixture", "1"));
         return session;

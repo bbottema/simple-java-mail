@@ -27,7 +27,7 @@ class MailSendObserverDispatchTest {
         final List<Runnable> scheduled = new ArrayList<>();
         final List<MailSendOutcome> outcomes = new ArrayList<>();
         final MailSubmissionReceipt receipt;
-        try (Mailer mailer = builder().withMailSendObserver(outcomes::add, scheduled::add).buildMailer()) {
+        try (Mailer mailer = builder().withMailSendResultObserver(outcomes::add, scheduled::add).buildMailer()) {
             receipt = mailer.sync().sendMail(email());
             assertThat(scheduled).hasSize(1);
             assertThat(outcomes).isEmpty();
@@ -39,7 +39,7 @@ class MailSendObserverDispatchTest {
     @Test
     void rejectedHandoffDoesNotReplaceSuccessfulOrFailedSends() throws Exception {
         final AtomicInteger calls = new AtomicInteger();
-        try (Mailer mailer = builder().withMailSendObserver(outcome -> calls.incrementAndGet(), action -> {
+        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> calls.incrementAndGet(), action -> {
             throw new RejectedExecutionException("application executor full");
         }).buildMailer()) {
             assertThat(mailer.sync().sendMail(email())).isNotNull();
@@ -55,8 +55,8 @@ class MailSendObserverDispatchTest {
         final List<Runnable> abandonedExecutor = new ArrayList<>();
         final AtomicInteger abandonedObserver = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new ArrayList<>();
-        try (Mailer mailer = builder().withMailSendObserver(outcome -> abandonedObserver.incrementAndGet(), abandonedExecutor::add)
-                .withMailSendObserver(outcomes::add).buildMailer()) {
+        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> abandonedObserver.incrementAndGet(), abandonedExecutor::add)
+                .withMailSendResultObserver(outcomes::add).buildMailer()) {
             mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);
             assertThat(abandonedExecutor).isEmpty();
@@ -67,7 +67,7 @@ class MailSendObserverDispatchTest {
     @Test
     void directExecutorRunsInlineAndCallbackRuntimeExceptionsRemainIsolated() throws Exception {
         final AtomicInteger calls = new AtomicInteger();
-        try (Mailer mailer = builder().withMailSendObserver(outcome -> {
+        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> {
             calls.incrementAndGet();
             throw new IllegalStateException("observer failure");
         }, Runnable::run).buildMailer()) {
@@ -80,9 +80,9 @@ class MailSendObserverDispatchTest {
     @Test
     void nullReplacementDoesNotDiscardTheExistingRegistration() throws Exception {
         final List<MailSendOutcome> outcomes = new ArrayList<>();
-        final MailerRegularBuilder<?> builder = builder().withMailSendObserver(outcomes::add);
-        assertThatThrownBy(() -> builder.withMailSendObserver(null, Runnable::run)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> builder.withMailSendObserver(outcome -> { }, null)).isInstanceOf(NullPointerException.class);
+        final MailerRegularBuilder<?> builder = builder().withMailSendResultObserver(outcomes::add);
+        assertThatThrownBy(() -> builder.withMailSendResultObserver(null, Runnable::run)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> builder.withMailSendResultObserver(outcome -> { }, null)).isInstanceOf(NullPointerException.class);
         try (Mailer mailer = builder.buildMailer()) {
             mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);

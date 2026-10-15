@@ -578,7 +578,8 @@ class SmtpContentNegotiationCharacterizationTest {
     static MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // These scripts expect a fixed set of connections; idle expiry during caller-thread MIME preparation is a different concern.
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", server.port())
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
+                // MIME Message-ID generation must not spend the script's timeout resolving the workstation hostname.
+                .withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(5000)
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000)
                 .withConnectionPoolExpireAfterMillis(0);
     }

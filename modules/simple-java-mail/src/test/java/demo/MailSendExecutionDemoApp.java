@@ -32,7 +32,7 @@ public final class MailSendExecutionDemoApp extends DemoAppBase {
         final ExecutorService observations = Executors.newFixedThreadPool(2);
         final CountDownLatch observed = new CountDownLatch(EMAIL_COUNT);
         final AtomicInteger successes = new AtomicInteger();
-        try (Mailer mailer = mailerTLSBuilder.withMailSendObserver(outcome -> {
+        try (Mailer mailer = mailerTLSBuilder.withMailSendResultObserver(outcome -> {
             try {
                 report(outcome, successes);
             } finally {

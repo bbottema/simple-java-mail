@@ -32,7 +32,7 @@ public final class ConnectionFailoverConsumer {
         try (Mailer failoverMailer = simpleJavaMail.mailerBuilder(refusingSession(connectionAttempts)).buildMailer();
              Mailer initiatingMailer = simpleJavaMail.mailerBuilder(refusingSession(connectionAttempts))
                      .withFailoverMailer(failoverMailer, FailoverPolicy.builder().build())
-                     .withMailSendObserver(outcomes::add)
+                     .withMailSendResultObserver(outcomes::add)
                      .buildMailer()) {
             try {
                 initiatingMailer.sync().sendMail(email);

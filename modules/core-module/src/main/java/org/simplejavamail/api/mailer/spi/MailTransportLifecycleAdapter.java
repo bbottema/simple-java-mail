@@ -4,12 +4,15 @@ import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
 /**
- * Optional provider integration for stopping connection and SMTP I/O without waiting for the transport's send monitor.
- * Unlike {@link MailTransportAdapter}, this boundary is consulted before connecting. Implementations are discovered through ServiceLoader.
+ * Lets a provider observe connection setup or stop network I/O without waiting for the transport's send monitor.
+ * These capabilities are independent: a provider can support progress, aborting, both or neither.
+ * <p>
+ * Unlike {@link MailTransportAdapter}, this adapter is consulted before connecting. Implementations are discovered through ServiceLoader.
  * Registrations are cached per thread-context class loader, but each lookup invokes the registered constructor or provider factory again.
  * Abort actions are never cached between operations.
  */
@@ -35,4 +38,31 @@ public interface MailTransportLifecycleAdapter {
      * so later socket creation cannot escape it. The owner must fence the action against lease reuse; it is not proof of SMTP non-acceptance.
      */
     @NotNull Optional<Runnable> createAbortAction(@NotNull Transport transport);
+
+    /**
+     * Attaches progress reporting just before this transport connects. This method is not called when borrowing an already connected transport,
+     * since its earlier setup is not work performed for the current email. Return {@code null} if your provider cannot observe setup;
+     * connecting must remain possible without progress or abort support.
+     * <p>
+     * Use the supplied sink to report setup work; it records progress without running application callbacks. Attaching observation must not
+     * connect, close or replace the transport, or wait for network work. Keep the sink out of Session properties and release it when the
+     * registration closes so it cannot follow the transport into a later use.
+     *
+     * @param transport The transport about to establish a physical connection.
+     * @param progress The sink for this connection setup only.
+     * @return A registration that detaches observation, or {@code null} when setup observation is unsupported.
+     */
+    @Nullable
+    default ConnectionProgressRegistration observeConnectionSetup(@NotNull Transport transport, @NotNull MailTransportProgress progress) {
+        return null;
+    }
+
+    /** Detaches connection-setup observation when it is no longer needed, without taking ownership of the transport. */
+    interface ConnectionProgressRegistration extends AutoCloseable {
+        /**
+         * Stops observing setup without closing the transport or waiting for network I/O.
+         * Calling this more than once must be harmless, and it must not throw.
+         */
+        @Override void close();
+    }
 }

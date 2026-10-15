@@ -91,7 +91,7 @@ public final class MailSendPerformanceAudit {
                 .withThreadPoolSize(WORKERS).withThreadPoolKeepAliveTime(3600000).withAsyncQueueCapacity(64)
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(WORKERS)
                 .withConnectionPoolExpireAfterMillis(3600000)
-                .withConnectionPoolClaimTimeoutMillis(30000).withMailSendObserver(measurements::observe);
+                .withConnectionPoolClaimTimeoutMillis(30000).withMailSendResultObserver(measurements::observe);
         if (scenario.startsWith("limit-")) {
             builder.withMaximumEmailSize(AuditSmtpServer.MAXIMUM_MESSAGE_BYTES);
         }

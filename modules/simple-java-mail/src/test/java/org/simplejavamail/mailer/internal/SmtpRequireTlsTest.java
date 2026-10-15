@@ -65,7 +65,7 @@ class SmtpRequireTlsTest {
                 assertThat(content.getBytes(StandardCharsets.US_ASCII)).containsExactly(eml);
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final MailSubmissionReceipt receipt = send(mailer, email, asynchronous);
 
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -82,7 +82,7 @@ class SmtpRequireTlsTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls("250 localhost");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable thrown = catchThrowable(() -> send(mailer, email(true), asynchronous));
             final Throwable failure = asynchronous ? thrown.getCause() : thrown;
 

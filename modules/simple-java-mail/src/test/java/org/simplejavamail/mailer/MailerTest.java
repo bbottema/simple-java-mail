@@ -862,7 +862,7 @@ public class MailerTest {
 		final List<Integer> activeConnectionsDuringCallbacks = new ArrayList<>();
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendObserver(outcome -> {
+				.withMailSendResultObserver(outcome -> {
 					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
 					outcomes.add(outcome);
 				})
@@ -996,7 +996,7 @@ public class MailerTest {
 		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendObserver(outcome -> {
+				.withMailSendResultObserver(outcome -> {
 					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
 					outcomes.add(outcome);
 				})
@@ -1031,7 +1031,7 @@ public class MailerTest {
 
 		final List<MailSendOutcome> outcomes = new ArrayList<>();
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendObserver(outcomes::add)
+				.withMailSendResultObserver(outcomes::add)
 				.buildMailer()) {
 			try {
 				mailer.withOpenConnection(sender -> sender.sendMailAndGetReceipt(

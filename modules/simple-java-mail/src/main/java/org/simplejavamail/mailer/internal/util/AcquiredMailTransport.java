@@ -46,22 +46,17 @@ public final class AcquiredMailTransport implements AutoCloseable {
 		this.activeControl = activeControl;
 	}
 
-	public static AcquiredMailTransport acquire(final Session session, @Nullable final SelectedPoolTransport selected, final MailSendControl control)
-			throws MessagingException {
-		return acquire(session, selected, control, PoolConnectionObserver.NONE);
-	}
-
 	public static AcquiredMailTransport acquire(final Session session, @Nullable final SelectedPoolTransport selected, final MailSendControl control,
-			final PoolConnectionObserver observer) throws MessagingException {
+			final PoolConnectionObserver observer, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
 		control.checkStopped();
-		return selected != null ? acquirePooled(selected, control, observer) : acquireDirect(session, control, observer);
+		return selected != null ? acquirePooled(selected, control, observer, diagnostics) : acquireDirect(session, control, observer, diagnostics);
 	}
 
 	private static AcquiredMailTransport acquirePooled(final SelectedPoolTransport selected, final MailSendControl control,
-			final PoolConnectionObserver observer) throws MessagingException {
+			final PoolConnectionObserver observer, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
 		final PoolConnectionObserver.Attempt observation = new ConnectionObservation(observer.connectionStarting());
 		try {
-			final LifecycleDelegatingTransport pooledLease = selected.acquireTransport(control, observePhysicalSetup(observation));
+			final LifecycleDelegatingTransport pooledLease = selected.acquireTransport(control, observePhysicalSetup(observation, diagnostics, control));
 			final AcquiredMailTransport acquiredConnection = new AcquiredMailTransport(pooledLease.getSessionUsedToObtainTransport(),
 					pooledLease.getTransport(), pooledLease, null, control);
 			try {
@@ -86,26 +81,33 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	}
 
 	/** Physical success is provisional until the pool and cancellation checks accept the lease; failure remains setup evidence. */
-	private static PoolConnectionObserver observePhysicalSetup(final PoolConnectionObserver.Attempt observation) {
+	private static PoolConnectionObserver observePhysicalSetup(final PoolConnectionObserver.Attempt observation,
+			final MailSendDiagnosticsRecorder diagnostics, final MailSendControl control) {
 		return new PoolConnectionObserver() {
 			@Override
-			public Attempt connectionStarting() {
+			public Attempt connectionStarting(final Transport transport) {
+				final ConnectionProgressObservation progress = ConnectionProgressObservation.start(transport, diagnostics, control);
 				return new Attempt() {
-					@Override public void failed(final Throwable failure) { observation.failed(failure); }
-					@Override public void abandoned() { observation.abandoned(); }
+					@Override public void connected() { closeProgress(); }
+					@Override public void failed(final Throwable failure) { closeProgress(); observation.failed(failure); }
+					@Override public void abandoned() { closeProgress(); observation.abandoned(); }
+
+					private void closeProgress() {
+						if (progress != null) { progress.close(); }
+					}
 				};
 			}
 		};
 	}
 
 	private static AcquiredMailTransport acquireDirect(final Session session, final MailSendControl control,
-			final PoolConnectionObserver observer) throws MessagingException {
+			final PoolConnectionObserver observer, final MailSendDiagnosticsRecorder diagnostics) throws MessagingException {
 		final Transport transport = TransportRunner.transportFor(session);
 		MailSendControl.Registration abortRegistration = null;
 		try {
 			abortRegistration = MailTransportLifecycleResolver.registerAbort(transport, control);
 			control.checkStopped();
-			connectAndObserve(transport, session, control, observer);
+			connectAndObserve(transport, session, control, observer, diagnostics);
 			return new AcquiredMailTransport(session, transport, null, abortRegistration, control);
 		} catch (RuntimeException | Error failure) {
 			try {
@@ -122,9 +124,9 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	}
 
 	private static void connectAndObserve(final Transport transport, final Session session, final MailSendControl control,
-			final PoolConnectionObserver observer) {
+			final PoolConnectionObserver observer, final MailSendDiagnosticsRecorder diagnostics) {
 		final PoolConnectionObserver.Attempt observation = new ConnectionObservation(observer.connectionStarting());
-		try {
+		try (ConnectionProgressObservation ignored = ConnectionProgressObservation.start(transport, diagnostics, control)) {
 			TransportConnectionHelper.connectForSending(transport, session);
 			control.checkStopped();
 			observation.connected();

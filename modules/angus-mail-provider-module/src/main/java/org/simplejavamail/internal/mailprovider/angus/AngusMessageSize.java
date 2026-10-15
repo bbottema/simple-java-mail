@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongConsumer;
 
 /** Measures prepared SMTP content without retaining a second copy or counting DATA framing and dot transparency. */
 @UtilityClass
@@ -44,12 +45,21 @@ final class AngusMessageSize {
     }
 
     static long measure(final MimeMessage message, final BooleanSupplier stopped) throws MessagingException {
+        return measure(message, stopped, null);
+    }
+
+    /** Optional input count shares this pass but precedes CRLF normalization; progress must not compare raw stream input with canonical SMTP SIZE. */
+    static long measure(final MimeMessage message, final BooleanSupplier stopped, @Nullable final LongConsumer inputSize) throws MessagingException {
         final CountingStream counter = new CountingStream(stopped);
         final CanonicalContentStream canonicalContent = new CanonicalContentStream(counter);
+        final AngusContentCountingStream inputCounter = inputSize == null ? null : new AngusContentCountingStream(canonicalContent, null);
         try {
-            message.writeTo(canonicalContent, OMITTED_HEADERS);
+            message.writeTo(inputCounter == null ? canonicalContent : inputCounter, OMITTED_HEADERS);
             canonicalContent.finish();
             counter.checkStopped();
+            if (inputCounter != null) {
+                inputSize.accept(inputCounter.getCount());
+            }
             return counter.count;
         } catch (IOException failure) {
             throw new MessagingException("Could not finish reading this email to check its size. Check that its attachments and other content "

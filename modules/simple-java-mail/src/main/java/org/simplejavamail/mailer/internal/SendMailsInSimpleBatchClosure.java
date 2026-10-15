@@ -110,9 +110,11 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
 				currentDiagnostics().startMimePreparation();
 				final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				currentDiagnostics().effectiveMessageId(email.getId());
 				control.checkStopped();
 				currentDiagnostics().startSubmission();
 				allowance.commit(control);
+				currentDiagnostics().submissionInvoked();
 				customMailer.sendMessage(operationalConfig, session, email, message);
 			}
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));

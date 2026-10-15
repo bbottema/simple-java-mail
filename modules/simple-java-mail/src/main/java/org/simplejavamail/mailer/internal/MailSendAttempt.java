@@ -11,6 +11,7 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Objects.requireNonNull;
@@ -21,6 +22,8 @@ import static java.util.Objects.requireNonNull;
 final class MailSendAttempt {
 
 	@Nullable private final MailSendObserverNotifier notifier;
+	@Nullable private final UUID observationId;
+	@Nullable private final MailSendProgressRecorder progress;
 	@Nullable private final String initialMessageId;
 	@Nullable private final Instant requestedAt;
 	private boolean loggingOnly;
@@ -40,7 +43,10 @@ final class MailSendAttempt {
 		this.requestedAt = requestedAt;
 		this.loggingOnly = loggingOnly;
 		this.control = control;
-		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved() : MailSendDiagnosticsRecorder.observed();
+		this.observationId = notifier == null ? null : UUID.randomUUID();
+		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId);
+		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved()
+				: MailSendDiagnosticsRecorder.forObservers(notifier.observesResults(), progress);
 		if (loggingOnly) {
 			diagnostics.useLoggingOnly();
 		}
@@ -64,6 +70,9 @@ final class MailSendAttempt {
 			return;
 		}
 		effectiveEmail = email;
+		if (progress != null) {
+			progress.effectiveMessageId(email.getId());
+		}
 		diagnostics.prepared();
 	}
 
@@ -134,9 +143,18 @@ final class MailSendAttempt {
 		if (notifier == null || !completed.compareAndSet(false, true)) {
 			return;
 		}
+		final String effectiveId = effectiveMessageId(submissionReceipt);
+		if (progress != null) {
+			progress.finish(effectiveId);
+		}
+		if (!notifier.observesResults()) {
+			effectiveEmail = null;
+			return;
+		}
 		final MailSendOutcome outcome = MailSendOutcomeImpl.builder()
+			.observationId(observationId)
 			.initialMessageId(initialMessageId)
-			.effectiveMessageId(effectiveMessageId(submissionReceipt))
+			.effectiveMessageId(effectiveId)
 			.requestedAt(requireNonNull(requestedAt, "requestedAt"))
 			.readyAt(readyAt)
 			.startedAt(startedAt)

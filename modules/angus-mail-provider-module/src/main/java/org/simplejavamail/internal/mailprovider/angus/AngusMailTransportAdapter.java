@@ -18,6 +18,7 @@ import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.DeliveryEnvelope;
 import org.simplejavamail.api.mailer.spi.MailTransportAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
@@ -207,6 +208,14 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     @NotNull
     public MailTransportResult sendMessage(@NotNull final Transport transport,
                                            @NotNull final PreparedMail preparedMail) {
+        return sendMessage(transport, preparedMail, null);
+    }
+
+    /** @see MailTransportAdapter#sendMessage(Transport, PreparedMail, MailTransportProgress) */
+    @Override
+    @NotNull
+    public MailTransportResult sendMessage(@NotNull final Transport transport, @NotNull final PreparedMail preparedMail,
+            @Nullable final MailTransportProgress progress) {
         final SMTPTransport smtpTransport = (SMTPTransport) transport;
         // Use Angus's own monitor to keep reporting changes, sending and response capture atomic.
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
@@ -241,6 +250,9 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                         mailExtensionWithRequireTls, existingMailExtension.sourceDescription, expandedEnvelopeRecipients);
                 final MimeMessage message = resolveMessageForTransport(preparedMail, mailFromParameters, envelopeId, recipientCommands,
                         requireTlsSelected, smtpTransport instanceof ManagedAngusTransport);
+                if (message instanceof AngusSmtpMessage && smtpTransport instanceof ManagedAngusTransport) {
+                    ((AngusSmtpMessage) message).progress = progress;
+                }
                 final MailTransportResult result = sendWithRecipientReporting(smtpTransport, message, preparedMail, expandedEnvelopeRecipients);
                 if (!(message instanceof AngusSmtpMessage)) {
                     return result;
@@ -543,6 +555,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         private boolean requireTlsUsed;
         private final Address[] recipients;
         @Nullable private Long messageSize;
+        @Nullable private Long progressContentSize;
+        @Nullable private MailTransportProgress progress;
 
         AngusSmtpMessage(@NotNull final PreparedMail preparedMail, @NotNull final AngusMailFromParameters mailFromParameters,
                 @Nullable final String envelopeId, @Nullable final AngusRecipientCommands recipientCommands,
@@ -592,7 +606,7 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         /** Publish only a complete count. A rejection retains that count, but does not consume the selected submission options. */
         void prepareMessageSize(@Nullable final Long serverMaximum, final boolean sizeAdvertised, final BooleanSupplier stopped)
                 throws MessagingException {
-            messageSize = AngusMessageSize.measure(this, stopped);
+            messageSize = AngusMessageSize.measure(this, stopped, progress == null ? null : count -> progressContentSize = count < 0 ? null : count);
             if (serverMaximum != null && messageSize > serverMaximum) {
                 throw new MailTransportCompatibilityException(String.format(Locale.ROOT,
                         "This email is %,d bytes, but the SMTP server advertises a limit of %,d bytes. "
@@ -607,6 +621,20 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         @Nullable
         Long getMessageSize() {
             return messageSize;
+        }
+
+        @Nullable
+        MailTransportProgress getProgress() {
+            return progress;
+        }
+
+        @Nullable
+        Long getProgressContentSize() {
+            return progressContentSize;
+        }
+
+        void clearProgress() {
+            progress = null;
         }
 
         /**

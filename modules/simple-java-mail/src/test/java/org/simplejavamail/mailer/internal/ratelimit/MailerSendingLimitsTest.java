@@ -183,7 +183,8 @@ class MailerSendingLimitsTest {
 			@Override public boolean hasNext() { return supplied.get() < 2; }
 			@Override public Email next() { return email("retained " + supplied.incrementAndGet()); }
 		};
-		try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withMessageRateLimit(1, PERIOD).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withMessageRateLimit(1, PERIOD)
+				.withMailSendResultObserver(outcomes::add).buildMailer()) {
 			mailer.sync().sendMail(email("exhaust allowance"));
 			clock.reads.drainPermits();
 			final MailSend<Void> batch = mailer.async().sendMailsInSimpleBatch(emails);
@@ -208,7 +209,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			mailer.sync().sendMail(email("first"));
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("waiting"));
@@ -317,7 +318,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendObserver(outcome -> {
+		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendResultObserver(outcome -> {
 			outcomes.add(outcome);
 			clock.now.addAndGet(PERIOD.toNanos());
 		}).buildMailer()) {
@@ -441,7 +442,7 @@ class MailerSendingLimitsTest {
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 			try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withRecipientRateLimit(1, PERIOD)
-					.withMailSendObserver(outcomes::add).buildMailer()) {
+					.withMailSendResultObserver(outcomes::add).buildMailer()) {
 				final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("too many"))
 						.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
 				assertThatThrownBy(() -> mailer.sync().sendMail(oversized)).hasMessageContaining("2 envelope recipients");
@@ -470,7 +471,7 @@ class MailerSendingLimitsTest {
 		final AtomicReference<Mailer> owner = new AtomicReference<>();
 		final AtomicInteger observations = new AtomicInteger();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), state).withMessageRateLimit(2, PERIOD).withMailSendObserver(outcome -> {
+		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), state).withMessageRateLimit(2, PERIOD).withMailSendResultObserver(outcome -> {
 			outcomes.add(outcome);
 			if (observations.incrementAndGet() == 1) {
 				owner.get().sync().sendMail(email("reentrant"));
@@ -513,7 +514,7 @@ class MailerSendingLimitsTest {
 			@Override public Email next() { return email("batch " + supplied.incrementAndGet()); }
 		};
 		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), new State()).withMessageRateLimit(2, PERIOD)
-				.withCustomMailer(custom).withMailSendObserver(outcomes::add).buildMailer()) {
+				.withCustomMailer(custom).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(emails)).isInstanceOf(RuntimeException.class);
 			assertThat(supplied.get()).isEqualTo(2);
 			assertThat(invoked.get()).isEqualTo(2);

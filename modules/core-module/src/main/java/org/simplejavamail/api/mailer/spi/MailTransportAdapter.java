@@ -96,6 +96,22 @@ public interface MailTransportAdapter {
     MailTransportResult sendMessage(@NotNull Transport transport, @NotNull PreparedMail preparedMail);
 
     /**
+     * Submits the email as usual, with an opportunity to report progress through {@link MailTransportProgress}. Report the sender and recipient
+     * exchanges, DATA permission, content writes and final-response waiting that your provider can actually observe; missing detail does not
+     * prevent sending. The default implementation calls the ordinary submission method, so existing adapters need no changes.
+     *
+     * @param transport Selected connected transport.
+     * @param preparedMail Authoritative content and envelope for this submission.
+     * @param progress Progress sink for this invocation only; do not retain it beyond this call or put it in reusable prepared mail.
+     * @return The same submission facts as the ordinary invocation.
+     */
+    @NotNull
+    default MailTransportResult sendMessage(@NotNull final Transport transport, @NotNull final PreparedMail preparedMail,
+            @NotNull final MailTransportProgress progress) {
+        return sendMessage(transport, preparedMail);
+    }
+
+    /**
      * Opts into mandatory shared DSN requests from locked configuration. When
      * {@link DeliveryEnvelope#isDeliveryStatusNotificationRequired()} is true, check the actual connection's DSN capability and reject before MAIL FROM
      * if unavailable; otherwise apply the configured NOTIFY/RET without silently weakening it. Existing adapters are not opted in by an older

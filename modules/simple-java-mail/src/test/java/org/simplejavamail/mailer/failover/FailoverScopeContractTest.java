@@ -128,7 +128,7 @@ class FailoverScopeContractTest {
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withFailoverMailer(selected,
                      FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofNanos(1)).build())
-                     .withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Iterable<Email> batch = trackedBatch(iterators, reached);
             if (asynchronous) {
                 initiating.async().sendMailsInSimpleBatch(batch).getCompletion().get(12, SECONDS);
@@ -153,7 +153,7 @@ class FailoverScopeContractTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer, count -> count == 1 ? "250 queued" : "554 rejected");
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(selected, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(selected, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             assertThat(catchThrowable(() -> initiating.sync().sendMailsInSimpleBatch(trackedBatch(iterators, reached))))
                     .isInstanceOf(MailSubmissionException.class);
             assertThat(iterators).hasValue(1);
@@ -221,7 +221,7 @@ class FailoverScopeContractTest {
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withMessageRateLimit(1, Duration.ofHours(1))
-                     .withFailoverMailer(selected, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withFailoverMailer(selected, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             initiating.sync().sendMail(email());
             final var waiting = initiating.async().sendMail(email());
             try {
@@ -247,7 +247,8 @@ class FailoverScopeContractTest {
              Mailer seed = builder(factory, primary.port()).withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared").buildMailer();
              Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(factory, primary.port()).withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared")
-                     .withMailSendTimeout(Duration.ofSeconds(1)).withFailoverMailer(selected, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withMailSendTimeout(Duration.ofSeconds(1)).withFailoverMailer(selected, policy())
+                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
             // Spend the shared allowance without imposing the waiting send's deadline on the initial connection setup.
             seed.sync().sendMail(email());
             final Throwable failure = catchThrowable(() -> initiating.sync().sendMail(email()));
@@ -344,7 +345,7 @@ class FailoverScopeContractTest {
                 return "250 queued";
             });
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(selected, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(selected, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final var batch = initiating.async().sendMailsInSimpleBatch(trackedBatch(iterators, reached));
             try {
                 await(secondMessageReceived);

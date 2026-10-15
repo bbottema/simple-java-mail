@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 
@@ -18,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 public final class MailSendOutcomeImpl implements MailSendOutcome {
 
 	private static final long serialVersionUID = 1L;
+	@Nullable private final UUID observationId;
 
 	@Nullable private final String initialMessageId;
 	@Nullable private final String effectiveMessageId;
@@ -33,10 +35,11 @@ public final class MailSendOutcomeImpl implements MailSendOutcome {
 
 	/** Copies and validates the supplied observations; it performs no send work. */
 	@Builder
-	private MailSendOutcomeImpl(@Nullable final String initialMessageId, @Nullable final String effectiveMessageId,
+	private MailSendOutcomeImpl(@Nullable final UUID observationId, @Nullable final String initialMessageId, @Nullable final String effectiveMessageId,
 			@NotNull final Instant requestedAt, @Nullable final Instant readyAt, @Nullable final Instant startedAt, @NotNull final Instant completedAt,
 			final boolean successful, final boolean loggingOnly, @Nullable final MailSubmissionReceipt submissionReceipt,
 			@Nullable final Throwable failure, @Nullable final MailSendDiagnostics diagnostics) {
+		this.observationId = observationId;
 		this.initialMessageId = initialMessageId;
 		this.effectiveMessageId = effectiveMessageId;
 		this.requestedAt = requireNonNull(requestedAt, "requestedAt");
@@ -64,6 +67,13 @@ public final class MailSendOutcomeImpl implements MailSendOutcome {
 		if (startedAt != null && readyAt == null) {
 			throw new IllegalArgumentException("A started mail send outcome requires a ready timestamp");
 		}
+	}
+
+	/** @see MailSendOutcome#getObservationId() */
+	@Override
+	@Nullable
+	public UUID getObservationId() {
+		return observationId;
 	}
 
 	/** @see MailSendOutcome#getInitialMessageId() */

@@ -151,7 +151,7 @@ public final class ThirdPartyProbeConsumer {
 
     private static Mailer mailer(final Session source, final AtomicInteger observerCalls) {
         return SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(source)
-                .withDebugLogging(true).withMailSendObserver(outcome -> observerCalls.incrementAndGet()).buildMailer();
+                .withDebugLogging(true).withMailSendResultObserver(outcome -> observerCalls.incrementAndGet()).buildMailer();
     }
 
     private static Session sourceSession(final AtomicInteger authenticationCalls) throws Exception {

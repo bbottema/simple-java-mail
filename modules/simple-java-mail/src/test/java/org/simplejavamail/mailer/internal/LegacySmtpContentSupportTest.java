@@ -114,7 +114,7 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
                 finishConnection(peer);
             }
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(message(INTERNATIONAL_RECIPIENT));
             assertThat(mailCommandReceived.await(10, SECONDS)).isTrue();
             send.requestCancellation();
@@ -158,7 +158,7 @@ class LegacySmtpContentSupportTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(legacy).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(legacy).withMailSendResultObserver(outcomes::add).buildMailer()) {
             if (permitted) {
                 final MailSubmissionReceipt receipt = mailer.async().sendMail(email).getCompletion().get(10, SECONDS);
                 assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -275,7 +275,7 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
                 finishConnection(peer);
             }
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(
                     composedEmail("séndér@example.test", INTERNATIONAL_RECIPIENT, "Test", "Body")));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);

@@ -60,7 +60,7 @@ class FailoverProviderContractTest {
         try (RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer()) {
             final var configured = FailoverTestProvider.builder(state).withFailoverMailer(alternative, policy());
             if (observed) {
-                configured.withMailSendObserver(outcomes::add);
+                configured.withMailSendResultObserver(outcomes::add);
             }
             try (Mailer initiating = configured.buildMailer()) {
                 try {
@@ -106,7 +106,7 @@ class FailoverProviderContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = FailoverTestProvider.builder(state).withFailoverMailer(selected, policy())
-                     .withMailSendObserver(outcomes::add).buildMailer()) {
+                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable failure = catchThrowable(() -> initiating.sync().sendMail(email()));
             assertThat(failure).isInstanceOf(MailSubmissionException.class).hasCause(state.submissionFailure);
             assertThat(outcomes).hasSize(1);
@@ -153,7 +153,7 @@ class FailoverProviderContractTest {
         state.cleanupFailure = new MessagingException("scope cleanup failed");
         final AtomicReference<Throwable> caughtSubmission = new AtomicReference<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (Mailer mailer = FailoverTestProvider.builder(state).withMailSendObserver(outcomes::add).buildMailer()) {
+        try (Mailer mailer = FailoverTestProvider.builder(state).withMailSendResultObserver(outcomes::add).buildMailer()) {
             try {
                 final Throwable scopeFailure = catchThrowable(() -> mailer.withOpenConnection(sender ->
                         caughtSubmission.set(catchThrowable(() -> sender.sendMail(email())))));
@@ -186,7 +186,7 @@ class FailoverProviderContractTest {
         };
         try (RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
              Mailer invoking = builder(secondary.port()).withCustomMailer(custom).withFailoverMailer(selected, policy())
-                     .withMailSendObserver(outcomes::add).buildMailer();
+                     .withMailSendResultObserver(outcomes::add).buildMailer();
              Mailer loggingOnly = builder(secondary.port()).withTransportModeLoggingOnly(true).withFailoverMailer(selected, policy()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> invoking.sync().sendMail(email()));
             assertThat(failure).isInstanceOf(MailException.class).hasCause(callbackFailure);

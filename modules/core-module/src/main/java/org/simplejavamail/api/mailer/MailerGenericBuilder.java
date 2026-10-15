@@ -958,33 +958,91 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
 
 	/**
-	 * Configures the callback that receives one terminal outcome for every individual email send attempt handled by the built {@link Mailer}.
+	 * Calls your observer once each individual email send has finished, so you can record its result and inspect any SMTP acceptance facts.
 	 * <p>
-	 * The observer runs inline on the thread completing each send and may be called concurrently. Calling this method again replaces the previously
-	 * configured observer and restores inline execution, including after configuring an observer executor.
+	 * The callback runs on the thread completing the send, before completion is reported to the caller. Keep it quick and thread-safe: slow callbacks
+	 * delay completion, and different sends may call the observer concurrently. If it throws a {@link RuntimeException}, the exception is logged
+	 * without changing the send's result.
+	 * <p>
+	 * Calling this method again replaces the result observer and restores inline execution, even if you previously supplied an observer executor.
+	 * It leaves your progress observer unchanged.
 	 *
-	 * @param mailSendObserver Thread-safe, quick and non-blocking terminal send observer.
-	 * @see MailSendObserver
+	 * @param mailSendResultObserver Thread-safe, quick and non-blocking terminal send observer.
+	 * @see MailSendResultObserver
 	 */
 	@Cli.ExcludeApi(reason = "Mail send observers are runtime Java callbacks and cannot be represented as CLI values")
-	T withMailSendObserver(@NotNull MailSendObserver mailSendObserver);
+	T withMailSendResultObserver(@NotNull MailSendResultObserver mailSendResultObserver);
 
 	/**
-	 * Dispatches terminal outcomes through an application-owned executor, replacing any previous observer registration.
-	 * With asynchronous execution, send completion does not await the callback; the notification is submitted before completion
-	 * and can run before or after it. Callback RuntimeExceptions and rejected submissions are logged without changing the send result.
-	 * Rejected notifications are not retried or run inline. Mailer close does not shut down or drain this executor.
+	 * Sends final outcomes to your observer through the supplied executor, allowing you to process results separately from sending emails.
+	 * The Mailer submits each notification before completing the send, but does not wait for an asynchronously executed callback to finish.
+	 * Your observer can therefore run before or after the caller sees completion.
 	 * <p>
-	 * Choose an executor that actually dispatches work and explicitly rejects tasks it cannot accept. Direct execution, caller-runs
-	 * or blocking admission can block the send thread; silent-discard policies can lose notifications without reporting rejection.
-	 * Finishing a callback only means that callback finished, not that a broker or downstream system processed the event.
+	 * Choose an executor that actually moves work off the sending thread and explicitly rejects tasks it cannot accept. A direct or caller-runs executor
+	 * can run the callback on the sending thread, and an executor that blocks when full can delay sending too. Silent-discard policies can lose
+	 * notifications without reporting rejection. Callback {@link RuntimeException}s and executor rejections are logged without changing the send result;
+	 * rejected notifications are neither retried nor run inline as a fallback.
+	 * <p>
+	 * You manage this executor's capacity and shutdown; closing the Mailer neither drains nor shuts it down. A completed callback only tells you that
+	 * your callback finished, not that any broker or downstream system processed the event.
+	 * <p>
+	 * Calling this method again replaces the result observer and its executor without changing your progress observer.
 	 *
-	 * @param mailSendObserver Thread-safe terminal send observer; callbacks for different sends may run concurrently or out of order.
+	 * @param mailSendResultObserver Thread-safe terminal send observer; callbacks for different sends may run concurrently or out of order.
 	 * @param observerExecutor Application-owned executor; the application owns capacity, draining and shutdown.
-	 * @see #withMailSendObserver(MailSendObserver)
+	 * @see #withMailSendResultObserver(MailSendResultObserver)
 	 */
 	@Cli.ExcludeApi(reason = "Observers and executors are runtime Java integrations and cannot be represented as CLI values")
-	T withMailSendObserver(@NotNull MailSendObserver mailSendObserver, @NotNull Executor observerExecutor);
+	T withMailSendResultObserver(@NotNull MailSendResultObserver mailSendResultObserver, @NotNull Executor observerExecutor);
+
+	/**
+	 * Keeps you informed while an email is being sent, for example when it is waiting for a connection or uploading an attachment.
+	 * To learn how the send finished, also register a {@link #withMailSendResultObserver(MailSendResultObserver) result observer}:
+	 * even {@link MailSendProgressStage#FINISHED FINISHED} means only that sending has ended, not that the server accepted or delivered the email.
+	 * <p>
+	 * Think of progress as the latest available view, rather than a log of every step. Updates can be combined or dropped, so you may not see every stage.
+	 * The detail available also depends on the provider; missing upload counts remain empty and do not prevent sending.
+	 * <p>
+	 * The Mailer starts its own daemon dispatcher when progress is first needed and calls your observer one update at a time, never on a sending thread.
+	 * This lets slow callbacks delay reporting without holding up sending. A callback {@link RuntimeException} is logged and ignored.
+	 * To keep pending reporting bounded, the dispatcher retains only the newest snapshot for each observation ID, up to 1,024 pending IDs plus one callback
+	 * in flight. If another ID would exceed that limit, the oldest pending snapshot is discarded. Updates that change only the upload count are published
+	 * at most once every 250 milliseconds per email; stage changes and final counts can be published sooner, but can still be combined before delivery.
+	 * <p>
+	 * Progress and final results are delivered independently. Once your result observer receives the final outcome for an observation ID, ignore any later
+	 * progress for that ID so an older snapshot cannot make a completed send appear active again.
+	 * <p>
+	 * Closing the Mailer waits for sends, not progress callbacks: pending updates may be discarded, and a running callback is neither awaited nor interrupted.
+	 * Calling this method again replaces the progress observer and restores execution on the Mailer's dispatcher, without changing your result observer.
+	 *
+	 * @param progressObserver Non-null progress callback; it must tolerate snapshots already superseded by a final result.
+	 * @return This builder.
+	 * @see MailSendProgress
+	 */
+	@Cli.ExcludeApi(reason = "A Java progress callback cannot be represented as a CLI value")
+	T withMailSendProgressObserver(@NotNull MailSendProgressObserver progressObserver);
+
+	/**
+	 * Delivers progress through your own executor, with the same latest-state behavior and reporting limits as
+	 * {@link #withMailSendProgressObserver(MailSendProgressObserver) the default registration}.
+	 * <p>
+	 * The Mailer's dispatcher submits the callbacks, rather than a sending thread, and waits for each callback before handing off another.
+	 * Even a direct or caller-runs executor therefore cannot run a callback inline in the sending call. Keep this executor separate from your sending workers,
+	 * though: sharing their executor lets slow progress callbacks occupy threads that could otherwise send mail.
+	 * <p>
+	 * Choose an executor that explicitly rejects work it cannot accept. Rejections are logged and the update is discarded, without retrying or calling
+	 * the observer inline as a fallback. An executor that silently discards a task can leave the dispatcher waiting and stall further progress reporting.
+	 * <p>
+	 * You own this executor; the Mailer never shuts it down or waits for progress callbacks during close. Calling this method again replaces only the
+	 * progress observer and its executor, leaving your result observer unchanged.
+	 *
+	 * @param progressObserver Non-null progress callback.
+	 * @param progressExecutor Non-null application-owned callback executor.
+	 * @return This builder.
+	 * @see #withMailSendProgressObserver(MailSendProgressObserver)
+	 */
+	@Cli.ExcludeApi(reason = "Java callbacks and executors cannot be represented as CLI values")
+	T withMailSendProgressObserver(@NotNull MailSendProgressObserver progressObserver, @NotNull Executor progressExecutor);
 
 	/**
 	 * @see CustomMailer

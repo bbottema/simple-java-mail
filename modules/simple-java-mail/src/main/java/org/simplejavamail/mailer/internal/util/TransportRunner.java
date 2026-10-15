@@ -30,6 +30,7 @@ import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.MailSendDiagnosticsRecorder;
+import org.simplejavamail.mailer.internal.MailSendProgressScope;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.slf4j.Logger;
 
@@ -68,10 +69,16 @@ public class TransportRunner {
 			control.checkStopped();
 			diagnostics.startMimePreparation();
 			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
+			diagnostics.effectiveMessageId(email.getId());
 			control.checkStopped();
 			diagnostics.startSubmission();
-			final MailTransportResult transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> allowance.commit(control))
-					.withEnvelopeRecipients(preparedMail.getRecipients());
+			final MailTransportResult transportResult;
+			try (MailSendProgressScope progress = diagnostics.openProgressScope(false, control)) {
+				transportResult = MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> {
+					allowance.commit(control);
+					diagnostics.submissionInvoked();
+				}, progress).withEnvelopeRecipients(preparedMail.getRecipients());
+			}
 			if (!transportResult.isSuccessful()) {
 				throw buildSubmissionException(email, transportResult);
 			}
@@ -108,6 +115,7 @@ public class TransportRunner {
 			@Nullable final String messageId, @Nullable final String subject, final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics,
 			final SendingAllowance.Reservation allowance, final Runnable invocationStarted) throws MessagingException {
 		try {
+			diagnostics.effectiveMessageId(messageId);
 			final MailTransportResult result = invokePreparedSubmission(transport, preparedMail, control, diagnostics, allowance, invocationStarted);
 			final MailSubmissionReceipt receipt = recordSubmissionReceipt(messageId, preparedMail, result, diagnostics);
 			if (!result.isSuccessful()) {
@@ -133,12 +141,14 @@ public class TransportRunner {
 			throws MessagingException {
 		control.checkStopped();
 		diagnostics.startSubmission();
-		return MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> {
-			// Charge allowance and the attempt count at provider entry, not for resolver failures before an invocation starts.
-			allowance.commit(control);
-			diagnostics.submissionInvoked();
-			invocationStarted.run();
-		}).withEnvelopeRecipients(preparedMail.getRecipients());
+		try (MailSendProgressScope progress = diagnostics.openProgressScope(false, control)) {
+			return MailTransportAdapterResolver.sendMessage(transport, preparedMail, () -> {
+				// Charge allowance and the attempt count at provider entry, not for resolver failures before an invocation starts.
+				allowance.commit(control);
+				diagnostics.submissionInvoked();
+				invocationStarted.run();
+			}, progress).withEnvelopeRecipients(preparedMail.getRecipients());
+		}
 	}
 
 	private static MailSubmissionReceipt recordSubmissionReceipt(@Nullable final String messageId, final PreparedMail preparedMail,

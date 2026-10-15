@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendProgress;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
@@ -24,12 +25,33 @@ public final class CoreOnlyConsumer {
         groupBuilder.withRecipient("archive@example.org", RecipientType.BCC).buildRecipients();
         final Email email = emails.startingBlank().from("sender@example.org").withRecipients(recipient)
                 .dontApplyDefaultValueFor(EmailProperty.SUBJECT).withSubject("Core API consumer").buildEmail();
-        final Mailer mailer = mailers.withMailSendObserver(CoreOnlyConsumer::inspect).buildMailer();
+        final Mailer mailer = mailers.withMailSendResultObserver(CoreOnlyConsumer::inspect)
+                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress).buildMailer();
         return mailer.async().sendMail(email);
     }
 
     public static String inspect(final MailSendOutcome outcome) {
+        final java.util.UUID observationId = outcome.getObservationId();
         return outcome.getDiagnostics().map(CoreOnlyConsumer::inspect).orElse("No diagnostics");
+    }
+
+    private static void inspectProgress(final MailSendProgress progress) {
+        progress.getObservationId().toString();
+        progress.getObservedAt().toEpochMilli();
+        progress.getElapsed().toNanos();
+        progress.getStage().name();
+        // A dashboard can label known details while still displaying future categories without an exhaustive switch.
+        switch (progress.getStage()) {
+            case WAITING_FOR_GREETING:
+            case AUTHENTICATING:
+            case SUBMITTING_RECIPIENTS:
+                progress.getElapsed().toMillis();
+                break;
+            default:
+                progress.getStage().toString();
+        }
+        progress.getBytesWritten().ifPresent(Object::toString);
+        progress.getTotalBytes().ifPresent(Object::toString);
     }
 
     private static String inspect(final MailSendDiagnostics report) {

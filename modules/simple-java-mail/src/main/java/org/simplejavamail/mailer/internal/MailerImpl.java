@@ -16,7 +16,7 @@ import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
 import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.MailSend;
-import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendResultObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
@@ -150,8 +150,7 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildProxyConfig(),
 				fromSessionBuilder.getSession(),
 				fromSessionBuilder.buildOperationalConfig(),
-				fromSessionBuilder.getMailSendObserver(),
-				fromSessionBuilder.getMailSendObserverExecutor(),
+				fromSessionBuilder.buildObserverNotifier(),
 				true, fromSessionBuilder.getFactorySendingLimits(), fromSessionBuilder.getDefinition(),
 				fromSessionBuilder.getFailoverMailer(), fromSessionBuilder.ownsFailoverMailer());
 	}
@@ -163,8 +162,7 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildProxyConfig(),
 				null,
 				regularBuilder.buildOperationalConfig(),
-				regularBuilder.getMailSendObserver(),
-				regularBuilder.getMailSendObserverExecutor(),
+				regularBuilder.buildObserverNotifier(),
 				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits(), regularBuilder.getDefinition(),
 				regularBuilder.getFailoverMailer(), regularBuilder.ownsFailoverMailer());
 	}
@@ -181,14 +179,15 @@ public class MailerImpl implements Mailer {
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
-			@Nullable final MailSendObserver mailSendObserver, final boolean opportunisticTLS) {
-		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig, mailSendObserver, null, opportunisticTLS,
+			@Nullable final MailSendResultObserver mailSendResultObserver, final boolean opportunisticTLS) {
+		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig,
+				new MailSendObserverNotifier(mailSendResultObserver, operationalConfig.isTransportModeLoggingOnly()), opportunisticTLS,
 				new FactorySendingLimits(), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false);
 	}
 
 	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
-			@Nullable MailSendObserver mailSendObserver, @Nullable Executor observerExecutor, final boolean opportunisticTLS,
+			@NotNull MailSendObserverNotifier observerNotifier, final boolean opportunisticTLS,
 			@NotNull final FactorySendingLimits factorySendingLimits, final FactoryMailerRuntime.Definition definition,
 			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer) {
 		this.definition = definition;
@@ -221,7 +220,7 @@ public class MailerImpl implements Mailer {
 		if (!ownsSession) {
 			lockedSmtpConfiguration.verifyCallerOwnedSession(session);
 		}
-		this.mailSendObserverNotifier = new MailSendObserverNotifier(mailSendObserver, observerExecutor, operationalConfig.isTransportModeLoggingOnly());
+		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		boolean poolRegistrationBegun = false;
 		try {
@@ -330,6 +329,7 @@ public class MailerImpl implements Mailer {
 		}
 		try {
 			mailSendOperations.shutdown().get();
+			mailSendObserverNotifier.closeProgress();
 			if (poolRegistrationBegun) {
 				closeConnectionPools().get();
 			}
@@ -995,6 +995,8 @@ public class MailerImpl implements Mailer {
 		try {
 			// Accepted operations may still be parked for retry. Keep their executor open until every logical operation has finished.
 			mailSendOperations.shutdown().get();
+			// Reporting is not part of graceful draining. Discard pending progress without waiting for an application callback or executor.
+			mailSendObserverNotifier.closeProgress();
 			if (!operationalConfig.isExecutorServiceIsUserProvided()) { operationalConfig.getExecutorService().shutdown(); }
 			while (!operationalConfig.isExecutorServiceIsUserProvided() && !operationalConfig.getExecutorService().awaitTermination(1, TimeUnit.DAYS)) {
 				// Graceful shutdown retains accepted work; a capacity timeout is not a send timeout.

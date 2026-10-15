@@ -76,7 +76,7 @@ class RecipientDsnSubmissionTest {
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "DELAY")); // Same lease; no previous explicit NEVER/SUCCESS.
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add)
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add)
                 .withEmailOverrides(mail.emailBuilder().startingBlank().withDeliveryStatusNotificationNotifyOptions(DELAY).buildEmail()).buildMailer()) {
             final Email email = email(recipient(RecipientType.BCC), recipient(RecipientType.CC, SUCCESS), recipient(RecipientType.TO, NEVER));
             final MailSubmissionReceipt first = send(mailer, email, async);
@@ -212,7 +212,7 @@ class RecipientDsnSubmissionTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withMailSendResultObserver(outcomes::add).buildMailer()) {
             for (int round = 0; round < 3; round++) {
                 final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
                 for (final NotifyOption option : List.of(NEVER, SUCCESS)) {
@@ -255,7 +255,7 @@ class RecipientDsnSubmissionTest {
             expectCommand(peer, MAIL_FROM);
             acceptRecipients(peer, "RCPT TO:<" + ADDRESS + ">");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable failure = catchThrowable(() -> {
                 if (async) {
                     mailer.async().sendMailsInSimpleBatch(emailsVisitedOnIteration).getCompletion().get(10, SECONDS);
@@ -359,7 +359,7 @@ class RecipientDsnSubmissionTest {
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "SUCCESS"));
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcome -> {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcome -> {
             if (completed.incrementAndGet() == 1) {
                 final Throwable failure = catchThrowable(() -> holder[0].sync().sendMail(email(recipient(RecipientType.TO, SUCCESS))));
                 if (failure != null) {

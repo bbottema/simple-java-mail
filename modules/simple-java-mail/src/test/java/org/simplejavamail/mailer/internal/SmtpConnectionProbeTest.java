@@ -263,7 +263,8 @@ class SmtpConnectionProbeTest {
         final AtomicInteger observations = new AtomicInteger();
         session.getProperties().setProperty("mail.mime.allowutf8", "true");
         try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.quit(); });
-             Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).withMailSendObserver(outcome -> observations.incrementAndGet()).buildMailer()) {
+             Mailer mailer = factory().mailerBuilder(atEndpoint(session, server))
+                     .withMailSendResultObserver(outcome -> observations.incrementAndGet()).buildMailer()) {
             final Properties before = (Properties) session.getProperties().clone();
             final Provider provider = session.getProvider("smtp");
             final SmtpConnectionReport report = async ? mailer.async().probeConnection().get(10, SECONDS) : mailer.sync().probeConnection();

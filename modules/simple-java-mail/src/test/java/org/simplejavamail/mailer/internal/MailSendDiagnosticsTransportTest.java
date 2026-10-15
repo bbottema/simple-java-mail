@@ -20,6 +20,8 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendProgress;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -36,6 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -52,6 +56,39 @@ import static org.mockito.Mockito.when;
 
 
 class MailSendDiagnosticsTransportTest {
+	@ParameterizedTest
+	@ValueSource(strings = {"acquisition", "submission", "cleanup"})
+	void progressCannotChangeTheFailureOrReceiptOfAnUnsupportedProvider(final String failureStage) throws Exception {
+		final TransportState state = new TransportState();
+		final MessagingException injected = new MessagingException("failure during " + failureStage);
+		if (failureStage.equals("acquisition")) { state.connectFailure = injected; }
+		if (failureStage.equals("submission")) { state.sendFailure = injected; }
+		if (failureStage.equals("cleanup")) { state.closeFailure = injected; }
+		final List<MailSendOutcome> outcomes = new ArrayList<>();
+		final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
+						.withMailSendResultObserver(outcomes::add).withMailSendProgressObserver(progress::add).buildMailer()) {
+			final Throwable callerFailure = sendFailure(mailer, email(failureStage), false);
+			assertThat(callerFailure).isNotNull();
+			assertThat(outcomes.get(0).getFailure()).containsSame(callerFailure);
+			assertThat(outcomes.get(0).isSuccessful()).isFalse();
+			MailSendProgress terminal;
+			do {
+				terminal = MailSendProgressDispatcherTest.take(progress);
+				assertThat(terminal.getBytesWritten()).isEmpty();
+				assertThat(terminal.getTotalBytes()).isEmpty();
+			} while (terminal.getStage() != MailSendProgressStage.FINISHED);
+			assertThat(terminal.getObservationId()).isEqualTo(outcomes.get(0).getObservationId());
+			assertThat(terminal.getSubmissionAttempt()).isEqualTo(failureStage.equals("acquisition") ? 0 : 1);
+			if (failureStage.equals("cleanup")) {
+				assertThat(outcomes.get(0).getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+			} else if (failureStage.equals("acquisition")) {
+				assertThat(outcomes.get(0).getSubmissionReceipt()).isEmpty();
+			}
+		}
+	}
+
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
 	void directCloseFailureRetainsAcceptanceAndTheCallerFacingFailure(final boolean asynchronous) throws Exception {
@@ -228,7 +265,7 @@ class MailSendDiagnosticsTransportTest {
 			return null;
 		}).when(executor).execute(any());
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-				.withExecutorService(executor).withMailSendObserver(outcomes::add).buildMailer();
+				.withExecutorService(executor).withMailSendResultObserver(outcomes::add).buildMailer();
 	}
 
 	private static Throwable sendFailure(final Mailer mailer, final Email email, final boolean asynchronous) {

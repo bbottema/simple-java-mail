@@ -19,7 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendResultObserver;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendRejectedException;
 import org.simplejavamail.api.mailer.MailSubmissionException;
@@ -379,7 +379,7 @@ class MailSubmissionPoolingTest {
 		state.plan("outer send", Attempt.success(250, "250 queued outer"));
 		state.plan("nested send", Attempt.success(250, "250 queued nested"));
 
-		final MailSendObserver observer = outcome -> {
+		final MailSendResultObserver observer = outcome -> {
 			outcomes.add(outcome);
 			if ("outer-send@example.org".equals(outcome.getInitialMessageId())) {
 				try {
@@ -493,7 +493,7 @@ class MailSubmissionPoolingTest {
 	}
 
 	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize,
-			@Nullable final MailSendObserver mailSendObserver) {
+			@Nullable final MailSendResultObserver mailSendResultObserver) {
 		final MailerFromSessionBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 				.withClusterKey(clusterKey)
 				.withConnectionPoolCoreSize(0)
@@ -501,8 +501,8 @@ class MailSubmissionPoolingTest {
 				.withConnectionPoolClaimTimeoutMillis(5000)
 				.withConnectionPoolExpireAfterMillis(0)
 				.withThreadPoolSize(threadPoolSize);
-		if (mailSendObserver != null) {
-			builder.withMailSendObserver(mailSendObserver);
+		if (mailSendResultObserver != null) {
+			builder.withMailSendResultObserver(mailSendResultObserver);
 		}
 		return builder.buildMailer();
 	}

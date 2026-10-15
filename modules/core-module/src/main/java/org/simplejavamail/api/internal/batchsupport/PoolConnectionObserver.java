@@ -1,5 +1,7 @@
 package org.simplejavamail.api.internal.batchsupport;
 
+import jakarta.mail.Transport;
+
 /**
  * Lets a factory observe physical connection setup in an optional connection pool. It can defer background replenishment after an
  * observed outage, but does not select destinations, retry submissions or alter pool capacity.
@@ -18,14 +20,19 @@ public interface PoolConnectionObserver {
 	}
 
 	/**
-	 * Starts observing one physical connection setup. The pool calls exactly one terminal method when setup completes or fails.
-	 * Implementations must keep these callbacks short because pool allocation invokes them synchronously.
+	 * Starts one acquisition observation. Recovery uses this entry point for the logical lease handoff; physical setup uses
+	 * {@link #connectionStarting(Transport)}. The owner reports exactly one terminal outcome. Keep callbacks short and do not perform I/O.
 	 */
 	default Attempt connectionStarting() {
 		return Attempt.NONE;
 	}
 
-	/** One physical connection setup observed by {@link PoolConnectionObserver}. */
+	/** Supplies the actual physical transport immediately before setup; logical lease observations keep the parameterless entry point. */
+	default Attempt connectionStarting(final Transport transport) {
+		return connectionStarting();
+	}
+
+	/** One physical setup or logical acquisition observed by {@link PoolConnectionObserver}. */
 	interface Attempt {
 		/** Performs no observation for this setup. */
 		Attempt NONE = new Attempt() { };

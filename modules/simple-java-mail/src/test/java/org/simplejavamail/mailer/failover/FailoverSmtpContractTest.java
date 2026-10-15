@@ -40,7 +40,7 @@ class FailoverSmtpContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final MailSubmissionReceipt receipt = send(initiating, email(), asynchronous);
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
             assertSuccessfulOutcome(outcomes, receipt);
@@ -57,7 +57,7 @@ class FailoverSmtpContractTest {
              Mailer destination = builder(factory(), secondary.port()).buildMailer()) {
             final var configured = builder(primary.port()).withFailoverMailer(destination, policy());
             if (observed) {
-                configured.withMailSendObserver(outcomes::add);
+                configured.withMailSendResultObserver(outcomes::add);
             }
             try (Mailer initiating = configured.buildMailer()) {
                 final MailSubmissionReceipt receipt = send(initiating, email(), asynchronous);
@@ -98,7 +98,7 @@ class FailoverSmtpContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = unavailableServer(); RecordingSmtpServer secondary = unavailableServer();
              Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable failure = catchThrowable(() -> send(initiating, email(), asynchronous));
             assertThat(failure).isInstanceOf(MailException.class);
             assertThat(outcomes).hasSize(1);
@@ -141,7 +141,7 @@ class FailoverSmtpContractTest {
             peer.reply("550 no such mailbox");
             connection.acceptMessages(peer);
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Email message = MAIL.emailBuilder().copying(email()).withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("rejected@example.test").withType(RecipientType.TO).build())
                     .withSendingToAcceptedRecipients(partial).buildEmail();
             final Throwable failure = catchThrowable(() -> send(initiating, message, asynchronous));

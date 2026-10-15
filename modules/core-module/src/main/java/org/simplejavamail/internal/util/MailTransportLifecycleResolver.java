@@ -6,15 +6,73 @@ import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
+import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter.ConnectionProgressRegistration;
+import org.simplejavamail.api.mailer.spi.MailTransportProgress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.Optional;
 
-/** Selects the optional connection-abort integration shared by the Mailer and its pool module. Never connects a transport. */
+/** Selects optional setup observation and connection-abort integration for the Mailer and its pool. Never connects a transport. */
 public final class MailTransportLifecycleResolver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MailTransportLifecycleResolver.class);
 
     private MailTransportLifecycleResolver() {
+    }
+
+    /** Optional reporting cannot change connection compatibility. Abort discovery and its mandatory-timeout checks remain independent. */
+    @Nullable
+    public static ConnectionProgressRegistration observeConnectionSetup(final Transport transport, final MailTransportProgress progress) {
+        try {
+            return observeConnectionSetup(transport, progress, MailProviderDiscovery.newProviders(MailTransportLifecycleAdapter.class));
+        } catch (RuntimeException failure) {
+            warnProgressFailure("discovery", failure);
+            return null;
+        }
+    }
+
+    @Nullable
+    static ConnectionProgressRegistration observeConnectionSetup(final Transport transport, final MailTransportProgress progress,
+            final Iterable<MailTransportLifecycleAdapter> adapters) {
+        ConnectionProgressRegistration selected = null;
+        try {
+            for (final MailTransportLifecycleAdapter adapter : adapters) {
+                final ConnectionProgressRegistration candidate = adapter.observeConnectionSetup(transport, progress);
+                if (candidate != null) {
+                    if (selected != null) {
+                        closeProgressRegistration(candidate);
+                        closeProgressRegistration(selected);
+                        LOGGER.warn("Multiple connection-progress adapters matched; continuing without setup detail");
+                        return null;
+                    }
+                    selected = candidate;
+                }
+            }
+            return selected;
+        } catch (RuntimeException failure) {
+            closeProgressRegistration(selected);
+            warnProgressFailure("registration", failure);
+            return null;
+        }
+    }
+
+    /** Optional reporting cleanup must not replace a successful send or its original exception. */
+    public static void closeProgressRegistration(@Nullable final ConnectionProgressRegistration registration) {
+        if (registration != null) {
+            try {
+                registration.close();
+            } catch (RuntimeException failure) {
+                warnProgressFailure("cleanup", failure);
+            }
+        }
+    }
+
+    private static void warnProgressFailure(final String operation, final RuntimeException failure) {
+        // Provider exception messages can contain connection URLs or credentials. Keep only the exception class.
+        LOGGER.warn("Connection-progress {} failed ({}); leaving the connection result unchanged", operation, failure.getClass().getName());
     }
 
     /** Configure only a Session just created by the Mailer, before any consumer can start using it. */

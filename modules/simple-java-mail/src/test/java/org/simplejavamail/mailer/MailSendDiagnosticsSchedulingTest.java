@@ -11,6 +11,8 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendProgress;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
@@ -21,6 +23,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
@@ -40,9 +44,11 @@ class MailSendDiagnosticsSchedulingTest {
 		final CountDownLatch occupied = new CountDownLatch(1);
 		final CountDownLatch release = new CountDownLatch(1);
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+		final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
-		final MailerRegularBuilder<?> builder = builder().withExecutorService(executor).withMailSendObserver(outcomes::add);
+		final MailerRegularBuilder<?> builder = builder().withExecutorService(executor)
+				.withMailSendResultObserver(outcomes::add).withMailSendProgressObserver(progress::add);
 		if (timeout) {
 			builder.withMailSendTimeout(Duration.ofSeconds(1));
 		}
@@ -60,6 +66,15 @@ class MailSendDiagnosticsSchedulingTest {
 			assertThat(outcome.getSubmissionReceipt()).isEmpty();
 			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().isFailureObservedHere()).isTrue();
 			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isEmpty();
+			MailSendProgress terminal;
+			do {
+				terminal = progress.poll(5, SECONDS);
+				assertThat(terminal).isNotNull();
+				assertThat(terminal.getStage()).isIn(MailSendProgressStage.WAITING_FOR_EXECUTION, MailSendProgressStage.FINISHED);
+			} while (terminal.getStage() != MailSendProgressStage.FINISHED);
+			assertThat(terminal.getObservationId()).isEqualTo(outcome.getObservationId());
+			assertThat(terminal.getSubmissionAttempt()).isZero();
+			assertThat(terminal.getBytesWritten()).isEmpty();
 		} finally {
 			release.countDown();
 			executor.shutdownNow();
@@ -75,7 +90,7 @@ class MailSendDiagnosticsSchedulingTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
-		try (Mailer mailer = builder().withExecutorService(executor).withMailSendObserver(outcome -> {
+		try (Mailer mailer = builder().withExecutorService(executor).withMailSendResultObserver(outcome -> {
 			callbackThread.set(Thread.currentThread());
 			outcomes.add(outcome);
 		}).buildMailer()) {

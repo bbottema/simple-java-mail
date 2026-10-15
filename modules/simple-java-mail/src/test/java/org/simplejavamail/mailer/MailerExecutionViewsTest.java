@@ -74,7 +74,7 @@ class MailerExecutionViewsTest {
 	void simultaneousModesAndAllOperationFamiliesShareTheSameOwner() throws Exception {
 		final RecordingMailer transport = new RecordingMailer();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(transport).withMailSendObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(transport).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			transport.owner.set(mailer);
 			final Mailer.Sync sync = mailer.sync();
 			final Mailer.Async async = mailer.async();

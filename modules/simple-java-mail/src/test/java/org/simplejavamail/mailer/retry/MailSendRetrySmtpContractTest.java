@@ -61,8 +61,9 @@ class MailSendRetrySmtpContractTest {
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 
     private MailerRegularBuilder<?> builder(final int port) {
+        // Retry barriers measure sending, not a workstation DNS lookup while generating the MIME Message-ID.
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
+                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(5000)
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000).withThreadPoolSize(1);
     }
 
@@ -84,7 +85,7 @@ class MailSendRetrySmtpContractTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer, ignored -> submissions.incrementAndGet() < 3 ? "451 retry later" : "250 queued");
         }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5)))
-                .withMailSendObserver(outcomes::add).buildMailer()) {
+                .withMailSendResultObserver(outcomes::add).buildMailer()) {
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(email());
             assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             assertThat(server.messages()).hasSize(3);
@@ -144,7 +145,7 @@ class MailSendRetrySmtpContractTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer, ignored -> submissions.incrementAndGet() == 1 ? "451 retry later" : "250 queued");
         }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5)))
-                .withMailSendObserver(outcomes::add).buildMailer()) {
+                .withMailSendResultObserver(outcomes::add).buildMailer()) {
             mailer.sync().sendMailsInSimpleBatch(List.of(email(), email()));
             assertThat(server.connectionCount()).isEqualTo(1);
             assertThat(server.messages()).hasSize(3);
@@ -166,7 +167,7 @@ class MailSendRetrySmtpContractTest {
                     return "451 not now";
                 });
             }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofHours(1)))
-                    .withMailSendTimeout(Duration.ofSeconds(8)).withMailSendObserver(outcomes::add).buildMailer()) {
+                    .withMailSendTimeout(Duration.ofSeconds(8)).withMailSendResultObserver(outcomes::add).buildMailer()) {
                 final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
                 assertThat(refused.await(12, SECONDS)).as("commands=%s; outcomes=%s", server.commands(),
                         outcomes.stream().map(outcome -> outcome.getFailure().map(Throwable::toString).orElse("success")).toArray()).isTrue();
@@ -388,7 +389,7 @@ class MailSendRetrySmtpContractTest {
                 return "451 temporarily refused";
             });
         }); Mailer mailer = builder(server.port()).withThreadPoolSize(4).withConnectionPoolMaxSize(2)
-                .withMailSendRetryPolicy(policy(Duration.ofMillis(5))).withMailSendObserver(outcomes::add).buildMailer()) {
+                .withMailSendRetryPolicy(policy(Duration.ofMillis(5))).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
             for (int index = 0; index < 8; index++) { sends.add(mailer.async().sendMail(original)); }
             for (MailSend<MailSubmissionReceipt> send : sends) {
@@ -415,7 +416,7 @@ class MailSendRetrySmtpContractTest {
         try (RecordingSmtpServer server = new RecordingSmtpServer((peer, connection) -> {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer, ignored -> submissions.incrementAndGet() == 1 ? "451 refused" : "250 queued");
-        }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5))).withMailSendObserver(outcome -> {
+        }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5))).withMailSendResultObserver(outcome -> {
             assertThat(outcome.isSuccessful()).isTrue();
             if (observed.incrementAndGet() == 1) { nested.set(owner.get().sync().sendMail(email())); }
         }).buildMailer()) {
@@ -465,7 +466,7 @@ class MailSendRetrySmtpContractTest {
                 connection.greet(peer, "250 localhost");
                 connection.acceptMessages(peer, "451 still refused");
             }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(1)))
-                    .withMailSendObserver(outcomes::add).buildMailer()) {
+                    .withMailSendResultObserver(outcomes::add).buildMailer()) {
                 final Throwable failure = asynchronous
                         ? mailer.async().sendMail(email()).getCompletion().handle((value, cause) -> cause).get(10, SECONDS)
                         : catchThrowable(() -> mailer.sync().sendMail(email()));

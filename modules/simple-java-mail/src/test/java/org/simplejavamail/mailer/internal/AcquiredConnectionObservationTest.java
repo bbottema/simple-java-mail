@@ -37,12 +37,13 @@ class AcquiredConnectionObservationTest {
 		try (MailSendControl control = new MailSendControl(null, mock(ScheduledExecutorService.class))) {
 			when(selected.acquireTransport(any(), any())).thenAnswer(invocation -> {
 				final PoolConnectionObserver scoped = invocation.getArgument(1);
-				scoped.connectionStarting().connected();
+				scoped.connectionStarting(lease.getTransport()).connected();
 				verify(observation, never()).connected(); // Physical success alone does not establish a usable handoff.
 				control.requestCancellation();
 				return lease;
 			});
-			final Throwable failure = catchThrowable(() -> AcquiredMailTransport.acquire(session, selected, control, observer(observation)));
+			final Throwable failure = catchThrowable(() -> AcquiredMailTransport.acquire(session, selected, control, observer(observation),
+					MailSendDiagnosticsRecorder.unobserved()));
 			assertThat(failure).isInstanceOf(MailSendCancelledException.class);
 			if (releaseFails) {
 				assertThat(failure.getSuppressed()).containsExactly(cleanupFailure);
@@ -65,7 +66,8 @@ class AcquiredConnectionObservationTest {
 		final PoolConnectionObserver.Attempt observation = mock(PoolConnectionObserver.Attempt.class);
 		when(selected.acquireTransport(any(), any())).thenReturn(lease);
 		try (MailSendControl control = new MailSendControl(null, mock(ScheduledExecutorService.class))) {
-			final AcquiredMailTransport acquired = AcquiredMailTransport.acquire(session, selected, control, observer(observation));
+			final AcquiredMailTransport acquired = AcquiredMailTransport.acquire(session, selected, control, observer(observation),
+					MailSendDiagnosticsRecorder.unobserved());
 			verify(observation).connected();
 			verify(observation, never()).failed(any());
 			verify(observation, never()).abandoned();

@@ -15,7 +15,8 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOpti
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
-import org.simplejavamail.api.mailer.MailSendObserver;
+import org.simplejavamail.api.mailer.MailSendResultObserver;
+import org.simplejavamail.api.mailer.MailSendProgressObserver;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -180,12 +181,17 @@ public class BuilderApiToPicocliCommandsMapperTest {
 				.containsExactly(Duration.ofMillis(12500));
 		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("30 seconds")), timeout))
 				.isInstanceOf(RuntimeException.class);
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendObserver", MailSendObserver.class)).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendObserver", MailSendObserver.class, Executor.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendResultObserver", MailSendResultObserver.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendResultObserver", MailSendResultObserver.class, Executor.class))
+				.isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class)).isCompatible())
+				.isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class, Executor.class))
+				.isCompatible()).isFalse();
 		assertThat(BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(new Class<?>[]{MailerRegularBuilder.class, MailerFromSessionBuilder.class}))
 				.extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withMailSendTimeout", "--mailer:resetMailSendTimeout")
-				.doesNotContain("--mailer:withMailSendObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
+				.doesNotContain("--mailer:withMailSendResultObserver", "--mailer:withMailSendProgressObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
 	}
 
 	@Test

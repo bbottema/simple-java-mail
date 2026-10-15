@@ -10,6 +10,7 @@ import org.simplejavamail.api.mailer.MailSendConnectionStep;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendProgress;
 import org.simplejavamail.api.mailer.MailSendSubmissionStep;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -40,8 +41,8 @@ class PublicApiBoundaryTest {
     private String compilationDetails;
 
     private static final List<Class<?>> READ_CONTRACTS = List.of(MailSendDiagnostics.class, MailSendMeasurement.class, MailSendOutcome.class,
-            MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class, AsyncQueueSnapshot.class,
-            OutlookMessageData.class, OutlookEmailConversionResult.class, ConfiguredEmailConverter.class, SimpleJavaMailConfig.class);
+            MailSendProgress.class, MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class,
+            AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, ConfiguredEmailConverter.class, SimpleJavaMailConfig.class);
 
     @Test
     void libraryProducedResultsHaveNoApplicationConstructionSurface() {
@@ -68,6 +69,7 @@ class PublicApiBoundaryTest {
     void resultAssemblyAndRemovedImplementationEntryPointsDoNotCompile() throws Exception {
         for (final String expression : List.of(
                 "org.simplejavamail.api.mailer.MailSendDiagnostics.builder()",
+                "org.simplejavamail.api.mailer.MailSendProgress.builder()",
                 "new org.simplejavamail.api.mailer.MailSendMeasurement(null, null, false)",
                 "new org.simplejavamail.api.mailer.MailSubmissionReceipt(null, null, null)",
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",

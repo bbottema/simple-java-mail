@@ -14,6 +14,8 @@ import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendProgress;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
@@ -34,6 +36,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -108,7 +112,7 @@ class SmtpServerConformanceIT {
 		final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
 		final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
 		final List<Properties> deliveries = new ArrayList<>();
-		try (Mailer mailer = server.mailer().withMailSendObserver(observed::add).buildMailer()) {
+		try (Mailer mailer = server.mailer().withMailSendResultObserver(observed::add).buildMailer()) {
 			for (int index = 0; index < 6; index++) {
 				sends.add(mailer.async().sendMail(server.email("parallel-" + index).buildEmail()));
 			}
@@ -260,6 +264,7 @@ class SmtpServerConformanceIT {
 	@ParameterizedTest
 	@EnumSource(RealSmtpServer.class)
 	void deliversProtectedFixturesForIndependentVerification(final RealSmtpServer server) throws Exception {
+		final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
 		final Path fixture = RealSmtpServer.runDirectory().resolve("private");
 		final Path openPgp = Path.of("src/test/resources/openpgpjs");
 		final OpenPgpSigningConfig signing = OpenPgpSigningConfig.builder().secretKeyRing(Files.readAllBytes(openPgp.resolve("private-key.asc")))
@@ -274,10 +279,18 @@ class SmtpServerConformanceIT {
 				server.email("pgp-signed").signWithOpenPgp(signing).buildEmail(),
 				server.email("pgp-encrypted").signWithOpenPgp(signing).encryptWithOpenPgp(OpenPgpEncryptionConfig.builder()
 						.addRecipientPublicKeyRing(Files.readAllBytes(openPgp.resolve("public-key.asc"))).build()).buildEmail());
-		try (Mailer mailer = server.mailer().buildMailer()) {
+		// Independent signature/decryption checks also verify content sent through the progress-counting stream.
+		try (Mailer mailer = server.mailer().withMailSendProgressObserver(progress::add).buildMailer()) {
 			for (final Email email : emails) {
 				assertThat(mailer.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
 				server.awaitDeliveries(email.getId(), 1);
+				MailSendProgress terminal;
+				do {
+					terminal = progress.poll(10, SECONDS);
+					assertThat(terminal).isNotNull();
+				} while (terminal.getStage() != MailSendProgressStage.FINISHED);
+				assertThat(terminal.getEffectiveMessageId()).isEqualTo(email.getId());
+				assertThat(terminal.getBytesWritten()).isPresent().isEqualTo(terminal.getTotalBytes());
 			}
 		}
 	}

@@ -82,6 +82,19 @@ public final class SmtpConversation implements AutoCloseable {
         return reader.readLine();
     }
 
+    /** BDAT fixtures use ISO-8859-1, so one character preserves one octet without crossing into the following command. */
+    public byte[] readOctets(final int count) throws IOException {
+        assertThat(charset).isEqualTo(StandardCharsets.ISO_8859_1);
+        final char[] content = new char[count];
+        int offset = 0;
+        while (offset < count) {
+            final int received = reader.read(content, offset, count - offset);
+            assertThat(received).as("complete BDAT chunk").isPositive();
+            offset += received;
+        }
+        return new String(content).getBytes(charset);
+    }
+
     /** Barrier-driven tests need their socket watchdog to outlive the controlled pause. */
     public void setReadTimeoutMillis(final int timeoutMillis) throws IOException {
         socket.setSoTimeout(timeoutMillis);

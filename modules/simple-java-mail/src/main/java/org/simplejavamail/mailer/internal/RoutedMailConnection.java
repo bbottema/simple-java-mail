@@ -123,9 +123,11 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 		diagnostics.useCustomMailer();
 		diagnostics.startMimePreparation();
 		final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(selectedDestination.getSession(), prepared);
+		diagnostics.effectiveMessageId(prepared.getId());
 		control.checkStopped();
 		diagnostics.startSubmission();
 		reservation.commit(control);
+		diagnostics.submissionInvoked();
 		selectedDestination.getOperationalConfig().getCustomMailer()
 				.sendMessage(selectedDestination.getOperationalConfig(), selectedDestination.getSession(), prepared, message);
 		final MailSubmissionReceipt result = TransportRunner.buildReceipt(prepared, null);

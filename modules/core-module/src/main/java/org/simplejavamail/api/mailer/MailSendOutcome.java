@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Immutable terminal facts for one logical email send attempt.
@@ -13,9 +14,18 @@ import java.util.Optional;
  * This type describes the complete Simple Java Mail operation, including preparation and scheduling. When SMTP submission was reached, the optional
  * {@link MailSubmissionReceipt} provides the transport-neutral acceptance facts. It does not describe final mailbox delivery.
  * <p>
- * Applications normally receive instances through a configured {@link MailSendObserver}.
+ * Applications normally receive instances through a configured {@link MailSendResultObserver}.
  */
 public interface MailSendOutcome extends Serializable {
+
+	/**
+	 * Lets you match this result to its progress updates, including updates from failover or retries of the same send.
+	 * Simple Java Mail generates a new ID for each observed send and never transmits it with the email; it is not a Message-ID, ENVID or telemetry trace ID.
+	 *
+	 * @return The observation ID, or {@code null} in older serialized outcomes that did not include one.
+	 */
+	@Nullable
+	UUID getObservationId();
 
 	/**
 	 * @return The Message-ID present when the individual attempt began, or {@code null} when none was fixed by the caller.

@@ -34,7 +34,8 @@ import java.util.concurrent.Future;
  * includes preparation, queue admission, execution and cleanup, but not observer work. Cancellation and timeout describe why work stopped,
  * not whether SMTP accepted the message: inspect any receipt on {@link MailSendCancelledException} or {@link MailSendTimeoutException}.
  * <p>
- * An inline observer runs before completion. With {@link MailerGenericBuilder#withMailSendObserver(MailSendObserver, java.util.concurrent.Executor)},
+ * An inline result observer runs before completion. With
+ * {@link MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, java.util.concurrent.Executor)},
  * only the handoff is attempted before completion; the application owns callback execution and its executor.
  *
  * @see MailerRegularBuilder
@@ -110,7 +111,7 @@ public interface Mailer extends AutoCloseable {
 		 * connection/proxy cleanup finishes before the failure is thrown. An empty iterable opens no connection.
 		 * <p>
 		 * This is a streaming, completion-only operation: receipts are not collected or retained as batch history.
-		 * A configured {@link MailSendObserver} receives each attempted email's outcome while the shared connection is still open.
+		 * A configured {@link MailSendResultObserver} receives each attempted email's outcome while the shared connection is still open.
 		 * Untouched emails have no outcomes. The total timeout covers the whole batch, excluding inline observer work between emails.
 		 * <p>
 		 * For concurrent pooled sending, submit separate emails through {@link Async#sendMail(Email)} with the optional batch-module.

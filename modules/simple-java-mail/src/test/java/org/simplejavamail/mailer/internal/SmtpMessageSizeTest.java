@@ -61,7 +61,7 @@ class SmtpMessageSizeTest {
             peer.greet("250-localhost\r\n250 SIZE " + content.length);
             assertThat(acceptSizedMessage(peer, (long) content.length).getBytes(UTF_8)).containsExactly(content);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final MailSubmissionReceipt receipt = asynchronous
                     ? mailer.async().sendMail(exactEmail(content)).getCompletion().get(10, SECONDS) : mailer.sync().sendMail(exactEmail(content));
             assertThat(receipt.getMessageSize()).isEqualTo((long) content.length);
@@ -84,7 +84,7 @@ class SmtpMessageSizeTest {
             // No MAIL, RCPT, DATA or RSET for the oversized attempt; only the following small message arrives.
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             mailer.sync().sendMail(exactEmail(small));
             final Throwable thrown = catchThrowable(() -> mailer.sync().sendMail(exactEmail(large)));
             assertThat(thrown).isInstanceOf(MailSubmissionException.class).hasCauseInstanceOf(MailTransportCompatibilityException.class);
@@ -237,7 +237,7 @@ class SmtpMessageSizeTest {
             peer.greet("250-localhost\r\n250 SIZE " + small.length);
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final Throwable failure = catchThrowable(() -> {
                 if (asynchronous) {
                     mailer.async().sendMailsInSimpleBatch(emails).getCompletion().get(10, SECONDS);
@@ -286,7 +286,7 @@ class SmtpMessageSizeTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withMailSendObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withMailSendResultObserver(outcomes::add).buildMailer()) {
             final List<byte[]> content = new ArrayList<>();
             final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
             for (int index = 0; index < 16; index++) {
