@@ -137,7 +137,7 @@ For cross-cutting audit and metrics code, configure one terminal observer on the
 ```java
 Mailer mailer = mail.mailerBuilder()
     .withSMTPServer("smtp.example.org", 587, "user", "password")
-    .withMailSendObserver(outcome -> {
+    .withMailSendResultObserver(outcome -> {
         Duration totalTime = Duration.between(
             outcome.getRequestedAt(), outcome.getCompletedAt());
 
@@ -149,7 +149,13 @@ Mailer mailer = mail.mailerBuilder()
     .buildMailer();
 ```
 
-`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and concurrent sends can invoke it on different threads. The default observer returns before send completion. `withMailSendObserver(observer, applicationExecutor)` instead attempts handoff before completion, without waiting for callback or downstream work; the application owns the executor and its rejection policy. See [observing completed mail sends](https://www.simplejavamail.org/sending-and-execution.html#section-mail-send-observer) and the manually runnable [streaming progress demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and concurrent sends can invoke it on different threads. The default observer returns before send completion. `withMailSendResultObserver(observer, applicationExecutor)` instead attempts handoff before completion, without waiting for callback or downstream work; the application owns the executor and its rejection policy.
+
+For a dashboard that shows what an email is doing now, also register `withMailSendProgressObserver(progress -> log.info("{}", progress))`. Progress reports waiting, preparation, submission, upload where supported, retries and cleanup, without waiting for your callback. Its observation UUID matches `outcome.getObservationId()` across failover and retries; a separate send gets a new ID. Upload completion is not SMTP acceptance, and progress may be coalesced or delivered after the final result. See [live progress and final results](https://www.simplejavamail.org/analyzing-send-results.html#section-live-progress) and the manually runnable [observer demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+
+Managed Angus connections can also show a slow greeting, STARTTLS or authentication exchange, followed by sender/recipient handling and DATA permission.
+Only setup caused by this email is reported; reused connections do not replay old work. Providers without those hooks keep coarse progress and send normally.
+DNS, TCP, proxy and implicit-TLS work remain under acquisition where separate boundaries are unavailable.
 
 ## Submit already-finalized EML exactly
 

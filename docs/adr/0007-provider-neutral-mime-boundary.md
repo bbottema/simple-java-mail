@@ -54,6 +54,14 @@ Connected SIZE checks scan the complete EHLO reply and retain only support and a
 
 The count belongs to the per-attempt message facade and flows through the existing result/receipt boundary. Counting observes the existing abort flag; incomplete counts remain absent. No new lock, pool, spool file or connection probe is introduced. Caller-owned ordinary Angus transports are not replaced, and other providers can supply reliable size facts through their adapter without inheriting Angus-specific behavior. See [accepted SIZE contract, #748](https://github.com/bbottema/simple-java-mail/issues/748) and [RFC 1870](https://www.rfc-editor.org/rfc/rfc1870.html#section-5).
 
+### Optional live progress (#760, #761)
+
+[ADR 0032](0032-live-mail-send-progress.md) supplies an optional per-invocation submission sink; [ADR 0033](0033-detailed-mail-send-progress.md)
+adds a separate optional physical-setup registration. Providers can support either independently, including without abort support. Missing hooks
+leave coarse observations available and never make a provider unsuitable for sending. Registration/cleanup RuntimeExceptions produce safe warnings,
+not replacement send failures. Generation-fenced sinks accept only provider-owned categories, run no application callbacks and expire with their scope.
+No discovery or binding is added when progress is disabled. The normal transport lifecycle and submission-capability checks remain authoritative.
+
 ## Rationale and evidence
 
 [883814aa](https://github.com/bbottema/simple-java-mail/commit/883814aadcf65252f3163d3a04ed4846f2a98dd6) implemented the provider-neutral OpenPGP pipeline. The [completion comment](https://github.com/bbottema/simple-java-mail/issues/704#issuecomment-5320304898) confirms that Angus remains the default runtime dependency but no longer belongs to the facade's compile or JPMS API. It also records independent OpenPGP interoperability and transport checks; these are historical results, not tests rerun for this ADR.

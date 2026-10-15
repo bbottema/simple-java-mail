@@ -756,7 +756,7 @@ operation from cached facts that explain a skipped destination; never present an
 
 ### Operational visibility without application handlers
 
-Log relay incidents through the existing logging mechanism even when no `MailSendObserver` is configured. Applications may route their
+Log relay incidents through the existing logging mechanism even when no `MailSendResultObserver` is configured. Applications may route their
 ordinary logs into alerts without having to write SMTP recovery code. Library logging is not guaranteed delivery of an operations alert;
 the application's logging backend still controls collection, levels and retention.
 
@@ -784,7 +784,7 @@ level distinction, suppressed repeats and the unresolved-primary wording in the 
 ### Show application-owned retry handling in the website
 
 The failover walkthrough must distinguish finding a connection from retrying a completed submission attempt. Include a concrete
-`withMailSendObserver(...)` recipe, job/envelope handling and illustrative output, using the existing receipt's `getRetryDisposition()`
+`withMailSendResultObserver(...)` recipe, job/envelope handling and illustrative output, using the existing receipt's `getRetryDisposition()`
 and `getRetryableRecipients()` rather than treating every unsuccessful outcome as unsent mail.
 
 The observer should hand eligible work to an application-owned queue or scheduler. Do not sleep or recursively resend inside the callback;

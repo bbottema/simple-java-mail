@@ -14,11 +14,15 @@ The whole library attempt is also broader than SMTP submission. Governance, vali
 
 ## Decision
 
-Register one `MailSendObserver` on a Mailer and report one terminal `MailSendOutcome` per reached individual email attempt. Reuse the optional `MailSubmissionReceipt` for SMTP facts and preserve the exact caller-facing failure for unsuccessful attempts. Do not invent a competing submission-result hierarchy.
+[ADR 0032](0032-live-mail-send-progress.md) names this terminal API `MailSendResultObserver` and adds an independent, lossy live-progress observer.
+Both share an observation UUID for one logical email send, including failover and retries. Old serialized outcomes have no UUID.
+Progress dispatch neither delays terminal publication nor participates in its ordering; a result can precede stale queued progress.
+
+Register one `MailSendResultObserver` on a Mailer and report one terminal `MailSendOutcome` per reached individual email attempt. Reuse the optional `MailSubmissionReceipt` for SMTP facts and preserve the exact caller-facing failure for unsuccessful attempts. Do not invent a competing submission-result hierarchy.
 
 An outcome contains initial and effective Message-IDs, request/ready/start/completion timestamps, configured logging-only mode and whole-attempt success/failure. Preparation and scheduling failures have no receipt; unstarted work has no start timestamp. `isSuccessful()` describes completion of the configured operation, not final delivery or even observed SMTP acceptance.
 
-Keep the public event small and terminal. Do not expose the Email, rendered content, Transport, lease, pool, proxy or executor. Do not publish a phase-event stream. Timestamps permit latency analysis without promising callbacks for every internal transition. Message-IDs are correlation hints, not unique attempt identifiers: repeated or concurrent sends can use the same Email/Message-ID, and exact EML may omit one. Applications own any stronger business correlation.
+Keep the public result event small and terminal. Do not expose the Email, rendered content, Transport, lease, pool, proxy or executor. Do not turn this result callback into a phase-event stream; ADR 0032 defines a separate best-effort progress view without promising every transition. Timestamps permit latency analysis. Message-IDs are correlation hints, not unique attempt identifiers: repeated or concurrent sends can use the same Email/Message-ID, and exact EML may omit one. The observation UUID identifies the logical invocation, while applications own stronger business correlation.
 
 ## Recorded rationale and evidence
 

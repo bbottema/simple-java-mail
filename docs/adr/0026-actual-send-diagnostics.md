@@ -86,6 +86,10 @@ Verify isolation, exact receipt/throwable identity, serialization and observed/u
 
 ## Related decisions
 
+- [ADR 0032](0032-live-mail-send-progress.md): live progress is a separate opt-in, not a replacement for terminal measurements.
+  Result-only registration does not enable upload instrumentation; progress-only registration does not build terminal diagnostic histories.
+  A shared observation UUID correlates both without becoming a Message-ID or telemetry trace ID.
+
 - [ADR 0030](0030-safe-bounded-mail-send-retries.md): explains intermediate
   refusals, delays and exhaustion through one final outcome. Retry measurements distinguish waiting from
   scheduling and connection acquisition without presenting an intermediate failure as the logical operation's terminal failure.

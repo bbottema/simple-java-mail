@@ -10,6 +10,12 @@ An ordinary send follows `MailConnectionRoute` → `RoutedConnectionScope.acquir
 
 The [BatchModule contract](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java) handles registration, acquisition, and pool closure; it does not schedule async work. [BatchSupport.registerToCluster](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) registers the Session with `SmtpConnectionPoolClustered`, overlaying the matching immutable `simplejavamail.defaults.connectionpool.clusters.*` defaults on the general pool settings. Without the optional module, `AcquiredMailTransport.acquireDirect()` owns the `Session.getTransport()` connection. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) explains that separation and the first-configuration boundary for a shared cluster key.
 
+After the last Session leaves a cluster, its shutdown future also waits for disposal before the bridge forgets the empty cluster and its settings.
+The removal check shares the engine's registration monitor: a new participant arriving during disposal keeps the existing cluster alive. Upstream
+removal additionally fences a registration that had already captured the retired cluster, so it cannot initialize an orphan pool. Captured selections
+remain tied to their original retired registration. No network operation or wait runs inside the empty-cluster removal check. This keeps the cached
+batch module bounded by active/retiring clusters rather than every Mailer ever constructed; factory-scoped sending-limit/recovery history is separate.
+
 Before either control is used, `MailerImpl` atomically claims the Session's actual Properties object. One live Mailer owns that Session and its conversion/governance context, even across factories or different Sessions sharing the same Properties. Rejected construction does not change Session settings or register/close another owner's pool. The guard is retired only after successful construction rollback or completed graceful shutdown; unresolved cleanup keeps it reserved. See [Session ownership](#session-ownership-before-registration).
 
 There are two different controls, with a deliberate handoff between them:

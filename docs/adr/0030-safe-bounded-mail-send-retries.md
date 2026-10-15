@@ -80,7 +80,7 @@ and its preparation costs.
 
 ### Keep one logical operation and a bounded waiting collection
 
-One public send remains one logical operation, with one completion and one final `MailSendObserver` callback. Intermediate
+One public send remains one logical operation, with one completion and one final `MailSendResultObserver` callback. Intermediate
 submission failures are not terminal outcomes. Record attempts, delays and exhaustion in bounded history and useful logging;
 do not introduce per-attempt callbacks or publish the Email, content or transport through observation.
 

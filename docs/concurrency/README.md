@@ -6,6 +6,8 @@ The first collection covers the Phase 2 execution-control implementation on `cod
 
 ## Start with the overview
 
+For live dashboards, see [live send progress](12-live-send-progress.md). Its dispatcher is separate from the terminal-result and send-draining contracts.
+
 [![Inside a mail send: five implementation layers and the outcome-reporting path.](assets/inside-a-mail-send.png)](assets/inside-a-mail-send.png)
 
 The infographic shows the pooled asynchronous path with configured connection failover and managed Angus transport. It maps responsibilities, not monitor nesting or every possible send path. Outcome reporting follows the email across those layers; it is not another transport layer. Open the image for the full-size view, then use the pages below for transitions and locking rules.

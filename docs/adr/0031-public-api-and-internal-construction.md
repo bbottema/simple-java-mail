@@ -144,6 +144,9 @@ Add a regression for removed builder factories/overload chains so a future refac
 
 ## Related decisions and workflow
 
+- [ADR 0032](0032-live-mail-send-progress.md): `MailSendProgress` is a core read interface; its immutable implementation and Lombok assembly builder
+  remain in the sending implementation's internal package. Provider progress is a separate, narrow callback SPI, not an application snapshot builder.
+
 - [ADR 0006](0006-optional-modules.md): shared contracts and implementation placement across modules.
 - [ADR 0024](0024-builder-interfaces-are-not-extension-spis.md): application builders are library-owned contracts, not extension SPIs.
 - [ADR 0026](0026-actual-send-diagnostics.md): public observations and internal report construction.

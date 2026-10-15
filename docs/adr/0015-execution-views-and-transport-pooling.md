@@ -25,6 +25,11 @@ The standalone [BatchTransportExecutor](../../modules/batch-module/src/main/java
 
 Keep worker count, queue capacity and connection-pool capacity distinct. Cluster keys identify reusable routing groups. Different keys may have different pool defaults; Mailers sharing a key use the first configuration established for that cluster. The Mailer closes its owned executor and pool registration, while caller-provided executors remain application-owned. The drain and cancellation contracts are recorded in [ADR 0016](0016-bounded-async-admission-and-shutdown.md) and [ADR 0017](0017-deadlines-and-physical-cancellation.md).
 
+That first-registration ownership lasts while the cluster is in use or still retiring resources. Once its final Session has been unregistered and disposal
+has finished, the shared batch bridge forgets the empty upstream cluster and its settings. A later registration of the same key starts a fresh cluster.
+Closing one member must not discard another member's settings, and a captured selection must never become a selection of a replacement registration.
+The globally cached batch module must not accumulate metadata for every short-lived Mailer ever constructed.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |
