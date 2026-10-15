@@ -1,0 +1,4 @@
+# Diagnostic-only TLS 1.3 stress. This lowers the number of encrypted bytes
+# before key updates so the protocol interaction can be tested quickly.
+# Never change application security defaults to work around a transport hang.
+jdk.tls.keyLimits=AES/GCM/NoPadding KeyUpdate 16384, ChaCha20-Poly1305 KeyUpdate 16384
