@@ -19,6 +19,7 @@
     <properties>
         <automaticModuleName>org.simplejavamail.batch</automaticModuleName>
         <smtp-connection-pool.version>4.4.0</smtp-connection-pool.version>
+        <clustered-object-pool.version>4.4.0</clustered-object-pool.version>
     </properties>
 
     <dependencies>
@@ -32,9 +33,20 @@
 
         <!-- needed for pooling SMTP (JavaMail Transport) connections -->
         <dependency>
+            <groupId>com.github.bbottema</groupId>
+            <artifactId>clustered-object-pool</artifactId>
+            <version>${clustered-object-pool.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>smtp-connection-pool</artifactId>
             <version>${smtp-connection-pool.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.bbottema</groupId>
+                    <artifactId>clustered-object-pool</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 		<!-- Tests instantiate Jakarta Mail Sessions directly; production remains provider-neutral. -->

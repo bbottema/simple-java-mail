@@ -20,18 +20,110 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 class BatchSupportTest {
+
+	@Test
+	void shortLivedClustersLeaveNoSettingsBehindWhileOtherMailersRemainRegistered() throws Exception {
+		final BatchSupport batch = new BatchSupport();
+		final UUID longLivedCluster = UUID.randomUUID();
+		final Session longLivedSession = session();
+		final OperationalConfig configuration = operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN);
+		batch.registerToCluster(configuration, longLivedCluster, longLivedSession, mock(SendingAllowance.class));
+		try {
+			for (int index = 0; index < 40; index++) {
+				final UUID transientCluster = UUID.randomUUID();
+				final Session transientSession = session();
+				batch.registerToCluster(configuration, transientCluster, transientSession, mock(SendingAllowance.class));
+				batch.shutdownConnectionPools(transientSession).get();
+				assertThat(smtpConnectionPool(batch).isClusterRegistered(transientCluster)).isFalse();
+				assertThat(clusterSettings(batch)).containsOnlyKeys(longLivedCluster);
+			}
+		} finally {
+			batch.shutdownConnectionPools(longLivedSession).get();
+		}
+		assertThat(clusterSettings(batch)).isEmpty();
+		assertThat(smtpConnectionPool(batch).isClusterRegistered(longLivedCluster)).isFalse();
+	}
+
+	@Test
+	void clusterSettingsRemainUntilTheLastParticipantClosesAndLaterRegistrationStartsFresh() throws Exception {
+		final BatchSupport batch = new BatchSupport();
+		final UUID cluster = UUID.randomUUID();
+		final Session first = session();
+		final Session second = session();
+		batch.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, first, mock(SendingAllowance.class));
+		batch.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), cluster, second, mock(SendingAllowance.class));
+		batch.shutdownConnectionPools(first).get();
+		assertPoolConfig(smtpConnectionPool(batch).getClusterConfig(cluster), 0, 2, 100, "RoundRobinLoadBalancing");
+		batch.shutdownConnectionPools(second).get();
+		assertThat(clusterSettings(batch)).isEmpty();
+		batch.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), cluster, second, mock(SendingAllowance.class));
+		try {
+			assertPoolConfig(smtpConnectionPool(batch).getClusterConfig(cluster), 0, 7, 200, "RandomAccessLoadBalancing");
+		} finally {
+			batch.shutdownConnectionPools(second).get();
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<UUID, PoolSettings> clusterSettings(final BatchSupport batch) throws Exception {
+		final Field engineField = BatchSupport.class.getDeclaredField("batchTransportEngine");
+		engineField.setAccessible(true);
+		final Field settingsField = BatchTransportEngine.class.getDeclaredField("clusterSettings");
+		settingsField.setAccessible(true);
+		return (Map<UUID, PoolSettings>) settingsField.get(engineField.get(batch));
+	}
+
+	@Test
+	void completedRetirementDoesNotForgetAParticipantRegisteredDuringDisposal() throws Exception {
+		final BatchSupport batch = new BatchSupport();
+		final UUID cluster = UUID.randomUUID();
+		final Session retiring = mock(Session.class);
+		final Transport transport = mock(Transport.class);
+		when(retiring.getProperties()).thenReturn(new Properties());
+		when(retiring.getTransport()).thenReturn(transport);
+		when(transport.isConnected()).thenReturn(true);
+		final CountDownLatch disposing = new CountDownLatch(1);
+		final CountDownLatch finishDisposal = new CountDownLatch(1);
+		doAnswer(invocation -> {
+			disposing.countDown();
+			assertThat(finishDisposal.await(5, SECONDS)).isTrue();
+			return null;
+		}).when(transport).close();
+		final Session replacement = session();
+		batch.registerToCluster(operationalConfig(0, 2, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, retiring, mock(SendingAllowance.class));
+		batch.acquireTransport(cluster, retiring, true, null).signalTransportUsed();
+		final Future<Void> shutdown = batch.shutdownConnectionPools(retiring);
+		try {
+			assertThat(disposing.await(5, SECONDS)).isTrue();
+			assertThat(shutdown.isDone()).isFalse();
+			batch.registerToCluster(operationalConfig(0, 7, 200, 6000, LoadBalancingStrategy.RANDOM_ACCESS), cluster, replacement, mock(SendingAllowance.class));
+			finishDisposal.countDown();
+			shutdown.get(5, SECONDS);
+			assertThat(clusterSettings(batch)).containsOnlyKeys(cluster);
+			assertPoolConfig(smtpConnectionPool(batch).getClusterConfig(cluster), 0, 2, 100, "RoundRobinLoadBalancing");
+		} finally {
+			finishDisposal.countDown();
+			shutdown.get(5, SECONDS);
+			batch.shutdownConnectionPools(replacement).get(5, SECONDS);
+		}
+		assertThat(clusterSettings(batch)).isEmpty();
+	}
 
 	@Test
 	void registerToClusterDoesNotInstantiateAProbeTransportForTheMailerAdapter() throws Exception {

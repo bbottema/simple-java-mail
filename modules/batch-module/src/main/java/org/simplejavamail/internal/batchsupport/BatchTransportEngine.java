@@ -5,6 +5,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import org.bbottema.clusteredobjectpool.core.api.ResourceKey.ResourceClusterAndPoolKey;
+import org.bbottema.clusteredobjectpool.util.CompositeFuturesAsFutureTask;
 import org.bbottema.genericobjectpool.ClaimControl;
 import org.bbottema.genericobjectpool.ClaimOptions;
 import org.bbottema.genericobjectpool.AllocationContext;
@@ -389,7 +390,15 @@ public final class BatchTransportEngine<K> {
 					clusters.remove();
 				}
 			}
-			return shutdown;
+			// Disposal can outlive registration removal. Forget settings only after upstream retirement has actually finished.
+			return CompositeFuturesAsFutureTask.ofFutures(Collections.singletonList(shutdown), this::forgetRetiredClusters);
+		}
+	}
+
+	private void forgetRetiredClusters() {
+		synchronized (lifecycleMonitor) {
+			clusterSettings.keySet().removeIf(clusterKey -> !registeredSessions.containsKey(clusterKey)
+					&& smtpConnectionPool.removeEmptyCluster(clusterKey));
 		}
 	}
 
