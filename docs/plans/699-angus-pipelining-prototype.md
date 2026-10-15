@@ -21,8 +21,8 @@ Opt-in MAIL FROM / RCPT TO pipelining, disabled by default. All replies must be 
 | Checkout | Branch | Starting commit |
 | --- | --- | --- |
 | `C:\workstation\angus-mail-pipelining-baseline` | detached upstream master | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
-| `C:\workstation\angus-mail-pipelining-prototype` | `codex/213-pipelining-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
-| `C:\workstation\angus-mail-sslengine-prototype` | `codex/213-sslengine-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
+| `C:\workstation\angus-mail-pipelining-prototype` | `213-pipelining-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
+| `C:\workstation\angus-mail-sslengine-prototype` | `213-sslengine-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
 | `C:\workstation\simple-java-mail-pipelining-integration` | `codex/699-pipelining-integration` | `ff73530421bd1c4766f7c3232d766705d61244c9` |
 | `C:\workstation\simple-java-mail-pipelining-baseline` | detached SJM control, alignment profile only | `ff73530421bd1c4766f7c3232d766705d61244c9` |
 

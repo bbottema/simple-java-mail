@@ -23,7 +23,7 @@ socket-factory and Transport contract.
 ## Angus worktree and test entry point (2026-10-15)
 
 The separate experiment is now in `C:\workstation\angus-mail-sslengine-prototype`,
-on `codex/213-sslengine-prototype`. It starts from
+on `213-sslengine-prototype`. It starts from
 `a7bd3fed964d9c9bc2981d4b2c9867358453c571`, the same upstream commit as the
 reader-thread worktree. It does not include the latter's production changes.
 
