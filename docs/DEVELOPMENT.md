@@ -96,6 +96,10 @@ For the separate mail-send/content audit, see [the manual performance harness](.
 It uses a loopback SMTP sink, repeated JVM runs and separate JFR recordings. Its experimental
 classpath overlays are only for known-safe synthetic inputs, never production mail or CI timing gates.
 
+For sustained send-memory investigation, see [the memory pressure runner](../tools/memory/README.md).
+It uses isolated sender/server JVMs, bounded workloads and retained-heap checkpoints across observer, retry, failover and Mailer-lifetime profiles.
+These manual runs remain separate from the ordinary test suite and throughput audit.
+
 ### Generated license headers
 
 After any build that ran `license:format`, clean up auto-generated headers before committing:
