@@ -68,6 +68,11 @@ Applications receive outcomes rather than construct them; the accepted report-fo
 
 The observer registration is Java behavior attached directly to the builder and Mailer; it does not belong in OperationalConfig, configuration files, Spring property binding, CLI generation or redacted configuration diagnostics. Validation, rehearsal, probes/connection tests, shutdown and standalone `BatchTransportExecutor` operations are not email attempts.
 
+[ADR 0034](0034-optional-opentelemetry-integration.md) adds a separate optional telemetry registration at the existing authoritative
+attempt boundary. It must finish spans/accounting before result-observer delivery rather than depend on this callback reaching an
+application executor. Runtime registration remains Java behavior; its independent endpoint-permission Boolean follows normal
+property/lock configuration. It does not change result-observer ordering.
+
 Ordinary cleanup failures can produce whole-attempt failure even after useful SMTP work. [ADR 0026](0026-actual-send-diagnostics.md) extends this boundary under #750:
 retain an already captured receipt even when a later generic release/close failure prevents its return. This does not manufacture a receipt for work that never
 produced one. Do not infer rejection from `isSuccessful() == false` or a missing receipt. A successful logging-only/custom-mailer outcome need not establish SMTP acceptance.

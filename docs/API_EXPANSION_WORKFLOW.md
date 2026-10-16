@@ -18,7 +18,8 @@ Read [ADR 0001: Email configuration scopes and inheritance](adr/0001-email-confi
 ### Public API versus internal cross-module types
 
 Follow [ADR 0031](adr/0031-public-api-and-internal-construction.md). Classify the consumer first: application configuration, inspection of a
-library-produced result, supported provider SPI, or library-internal construction. A returned result does not automatically need a public builder.
+library-produced result, typed adaptation of an existing foreign instance, supported provider SPI, or library-internal construction.
+A returned result does not automatically need a public builder.
 `core-module` is the API-bearing artifact; `simple-java-mail` is the main implementation. There is no separate current `api-module`.
 
 Check module ownership before package visibility. Put application contracts, builder interfaces and public result/value types in core. Put concrete
@@ -26,6 +27,28 @@ main-runtime builders, recording and orchestration in `simple-java-mail`; put op
 necessary shared utilities and internal cross-module contracts, but is not a home for main-only machinery just because it has internal packages.
 After bootstrap, continuing application calls and their parameter/return/callback types should need only core and its declared API dependencies
 to compile. Keep the implementation available at runtime. A contract with one library-owned implementation still earns this module boundary.
+
+For optional features, keep ordinary configuration in core contracts and the main builder API. Main-runtime bootstrap belongs in
+`simple-java-mail`; existing core value builders are not module-runtime entry points. Load the optional implementation through `ModuleLoader`
+when the requested behavior needs it. Missing requested modules must produce the focused module-loading error at that boundary. Applications
+must not construct runtime support classes or supply internal bridges.
+
+Classify inputs using [ADR 0006](adr/0006-optional-modules.md#choose-the-input-boundary-for-the-caller-accepted-2026-10-16):
+
+1. **Plain configuration data:** accept primitives, strings, bytes or neutral values; let the module construct its library-specific objects.
+2. **Already accepted types:** use JDK/SJM types or existing foundational dependencies directly. Do not promote an optional library into core/main
+   merely to make its foreign type fit this category.
+3. **Existing foreign runtime objects:** expose a narrow typed adapter in the optional module that accepts the foreign public type and returns a
+   core-owned SJM wrapper contract. Prefer compiler/IDE guidance over a public `Object`, `Supplier<Object>` or interface hiding an untyped input.
+
+The third case is a deliberate exception to module-independent setup. The application needs the adapter module and foreign API for that call;
+continuing configuration and sending use core contracts. Keep the adapter limited to wrapping the supplied instance, without initialization,
+global installation or ownership transfer. Defaults, setting methods, properties and locks stay with their existing core/main owners.
+Do not add foreign API/context/SDK dependencies to core/main, even as optional API-only dependencies. Document the adapter's accepted type,
+returned contract and lifecycle boundary; do not turn it into another configuration builder or public runtime support object.
+
+A deliberately exposed feature-specific result is a separate, documented exception. Prefer a core result read contract when sufficient, as
+current Outlook conversion does; exposing a result does not justify moving ordinary configuration into its module.
 
 Java `public` visibility does not by itself make a type supported application API. Implementation types that need to cross module boundaries belong in a package containing an `internal` segment, such as `org.simplejavamail.internal.config.ConfigurationLocks`. Keep them package-private when cross-package access is unnecessary.
 
@@ -70,6 +93,7 @@ New fields must be accessible through the fluent Builder API.
 - **Discoverable Java Choices**: Use enums or cohesive typed values for a closed set of choices; do not make Java callers discover protocol tokens such as `"SUCCESS"`, `"NEVER"`, or `"HDRS"`. Explain enum values in user terms and use typed values in Java examples. Parse text at configuration/CLI boundaries. Do not add or retain String builder overloads just for CLI conversion: register a converter for the typed parameter instead. Any retained text-input overload needs an independent compatibility or Java-use justification.
 - **Javadoc Source of Truth**: For application configuration, put the complete behavior contract on the public builder interface. Document convenience overloads well enough to stand on their own and link them to the full overload. Builder implementations, factories, Spring support, and other entry points should use `@see` links to the public builder method instead of maintaining a second copy of its semantics. This convention does not apply to provider-SPI builders.
 - **Public Configuration Getters**: Link each configuration getter to its corresponding public builder method with `@see`. Keep Lombok for value semantics where appropriate, but declare application-facing configuration getters explicitly so the source-based Javadoc build includes them. Describe getter-specific absence or defensive-copy behavior locally; do not repeat the feature contract. Check the generated HTML for both the getter and its builder link rather than treating a successful Javadoc build as proof that generated accessors are documented.
+- **Immutable Fluent Configuration**: A small immutable configuration API may omit a separate mutable builder, but its supported public fluent setter still owns the contract and its getter/reset/clear companions link to it. Preserve explicit-choice versus inherited-property semantics and central defaults. Its contract belongs in core and any main-runtime bootstrap belongs in `simple-java-mail`; avoiding a `build()` call does not permit ordinary configuration APIs in an optional module. A typed foreign-instance adapter wraps an existing object only; it is not a configuration-builder exception.
 - **CLI Compatibility Rules**:
   - **Parameter Types**: For CLI-exposed methods, use supported scalars, enums, or types with a `ValueInterpreter` in the `cli-module` (e.g., `X509Certificate`, `File`, `URL`, `Date`). CLI conversion must not dictate an untyped Java API; use a converter or an explicitly documented text-input boundary where necessary.
   - **Avoid Collections**: Picocli mapping works best with individual values or arrays. Avoid `Collection` or `Map` in signatures intended for CLI use. Provide overloads if necessary.
@@ -114,6 +138,14 @@ For a new optional feature module, follow [ADR 0006](adr/0006-optional-modules.m
 1. Put its contract and shared types in `core-module`, with implementation classes in the optional module. Main-module code must depend on that contract rather than import the optional implementation.
 2. Add a `ModuleLoader.loadXxxModule()` entry using the implementation class name and, where needed, a classpath-availability check. Cached module instances can be shared concurrently; availability recheck/force-disable hooks are for tests, not hot-plugging.
 3. Keep the dependency optional in `modules/simple-java-mail/pom.xml`. Add it to the CLI assembly when the CLI distribution should include that runtime feature, and verify both module-present and module-absent paths.
+
+Keep supplied configuration separate from module execution. [ADR 0034](adr/0034-optional-opentelemetry-integration.md) applies ordinary
+ModuleLoader resolution to OpenTelemetry. Applications use core configuration through the main builder API; a narrow optional-module adapter
+may wrap their existing OpenTelemetry instance into that core contract. Module support implementations remain internal. Builders read public
+configuration methods and must not demand a concrete implementation or additional internal lifecycle interface from that object. The loaded
+module creates the runtime bridge. Never cache application SDKs in shared ModuleLoader state.
+Runtime SDK instances can remain Java-only dependencies, but activation and other property-friendly behavior still need factory inheritance,
+normal scalar/property, Spring, CLI and lock support. A supplied object is not a reason to require per-Mailer Java activation.
 
 - **S/MIME (`smime-module`)**:
   - Update `SMIMEModule` interface in `core-module`.
@@ -185,6 +217,7 @@ Always verify the following areas:
 
 - **Builder Chain**: Verify the field is preserved across multiple builder calls.
 - **Public/Internal Boundary**: Check module ownership as well as package visibility. Compile continuing builder/send/result calls against core and its declared dependencies without the main implementation on the compile path; test bootstrap/runtime separately. Check returned-result construction separately from public configuration builders and provider SPIs. Inspect generated Javadocs for leaked builders/bridges, and keep application classpath/JPMS fixtures on supported inspection methods rather than internal construction helpers.
+- **Typed Foreign-Instance Adapters**: Use a separate optional-module consumer to verify the typed input, core-owned return contract and rejection of wrong input types at compile time. Check preservation of instance identity, no initialization or ownership side effects, no module-specific subtype needed for continuing calls, and no foreign feature dependency in core/main. Core/property activation must still exercise normal ModuleLoader presence/absence behavior; a direct typed adapter call explicitly requires that module.
 - **Opt-in Runtime Behavior**: Exercise both configured and unconfigured behavior through the actual factory/builder. Testing a policy or state object directly does not verify who enables it during construction. For background behavior, demonstrate recovery without a foreground operation hiding the failure.
 - **Concurrent Transitions**: Write down who owns each state transition and when pending results become stale. Test both completion orders of overlapping success/failure, cancellation followed by replacement, and work begun after recovery. Pair focused state tests with real send-path regressions; a routing fix must also preserve public exception families, exact observer/completion failures, receipt retention and resource ownership.
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Decision date: 2026-10-13
+- Typed foreign-instance adaptation clarification: Accepted, 2026-10-16.
 - Target: 10.0.0
 - Related issue: [#756](https://github.com/bbottema/simple-java-mail/issues/756)
 
@@ -40,11 +41,26 @@ Use the existing artifacts; this decision does not rename `core-module` or intro
 | --- | --- | --- |
 | `core-module` | Application-facing contracts, shared values and narrow cross-module contracts. | `Mailer`, Email/Mailer/recipient builder interfaces, `Email`, `Recipient`, `MailSendMeasurement`, `MailSendDiagnostics`. |
 | `simple-java-mail` | Bootstrap and the main implementation, including runtime-only construction and orchestration. | `SimpleJavaMail`, Email/Mailer builder implementations, `MailerImpl`, diagnostic recording and assembly. |
-| Optional/provider modules | Implement their feature against core contracts without making that implementation mandatory for other features. | Angus transport adapter, S/MIME, OpenPGP and batch support. |
+| Optional/provider modules | Implement their feature against core contracts; expose a narrow typed foreign-instance adapter only when needed. | Angus transport adapter, S/MIME, OpenPGP, batch support and OpenTelemetry adaptation. |
 
 After bootstrap, application code should be able to configure an Email/Mailer, send through its public contract and inspect the results using
 types from core and its declared API dependencies. Do not make a fluent return type or result accessor require a concrete implementation type
 from `simple-java-mail`. This is a compile-time boundary, not a claim that sending works without the implementation at runtime.
+
+Keep optional-feature configuration in core and its main-runtime bootstrap/builders in `simple-java-mail`. The main implementation invokes the
+optional module through `ModuleLoader` when it needs the requested behavior. Module support classes and runtime bridges remain internal;
+applications never have to construct or supply them. Existing core value builders are not runtime module entry points.
+
+[ADR 0006](0006-optional-modules.md#choose-the-input-boundary-for-the-caller-accepted-2026-10-16) distinguishes plain configuration data,
+already accepted types and application-owned foreign runtime objects. The third category permits a small typed adapter in the optional module
+that returns a core-owned SJM wrapper contract. This one adaptation call requires the module and foreign API at compile time; continuing SJM
+calls use core contracts. It does not permit foreign dependencies in core/main, a module-owned configuration builder or a public `Object` escape
+hatch. Caller clarity and compile-time checking take precedence over making every setup call originate from the same artifact.
+
+A separately justified feature-specific result may expose an underlying library type when callers need to inspect that representation. That is
+a result contract with an explicit dependency, not a precedent for configuration or construction. A producer's concrete result implementation can
+also live in its optional module while applications only see the core read interface. Current Outlook conversion uses that arrangement with
+`OutlookEmailConversionResult` and `OutlookMessageData`; the parser and concrete implementations remain in `outlook-module`.
 
 Core is not restricted to Java interfaces or to JDK-only dependencies. Lightweight concrete models such as `Email` and `Recipient` have long
 belonged there. Keep their public reading/value behavior there, while keeping runtime collection and implementation-only assembly in the owning
@@ -68,6 +84,7 @@ or keep main-only machinery in core merely to satisfy a constructor signature.
 | Role | Supported external use | Placement and construction |
 | --- | --- | --- |
 | Application configuration | Build Emails, Mailers and explicitly supported policy/configuration values. | Public contracts in core; concrete main-runtime builders in `simple-java-mail` internal packages. |
+| Foreign-instance adaptation | Supply an existing application-owned object without losing its type or identity. | A narrow public adapter in its optional module accepts the foreign type and returns a core contract; ordinary configuration and runtime machinery stay separate. |
 | Library-produced result | Inspect the returned observations, rendering and defined value semantics. | Public read API in core; runtime recording and assembly in the implementation module. |
 | Supported provider SPI | Implement adapters and create the facts the SPI requires them to return. | Public SPI contracts with Lombok-generated builders where construction is needed. |
 | Cross-module implementation detail | No application dependency on the type or member. | Package-private where possible; otherwise an `.internal` package with `@ApiStatus.Internal`. |
@@ -101,6 +118,12 @@ Public application configuration builders are written explicitly: the setter own
 to that setter with `@see`. Implementation methods refer to their public interface. Lombok may still provide value semantics; it must not hide the
 application builder contract. Public visibility alone does not decide which builder convention applies; the intended consumer does.
 
+Small immutable fluent configuration can use the same setter/getter/reset/clear documentation discipline without introducing a separate mutable
+builder. This does not change module ownership: its supported contract belongs in core and any main-runtime bootstrap belongs in `simple-java-mail`.
+The typed adapter exception wraps an already supplied instance, not a parallel configuration surface. Its public method documents the accepted
+foreign type, returned core contract and ownership; it does not need unrelated setting/reset methods. [ADR 0034](0034-optional-opentelemetry-integration.md)
+applies this distinction to telemetry, replacing the earlier module-owned `OtelSupport.using(...)` configuration design with adaptation alone.
+
 Multiple constructors are not automatically telescoping configuration. Keep deliberate dependency/clock injection, distinct input representations
 and test seams when they clarify ownership. In particular, `MailerImpl` retains its production builder constructors and package-private test
 constructors; a separate builder only for those tests would add indirection without improving the application API.
@@ -126,6 +149,8 @@ snapshot contract. A relocated public field selector retains its historic serial
 - **Hide all report construction:** breaks supported provider adapters that must supply probe or transport facts. SPI construction is a separate role.
 - **Apply application-builder conventions to every public SPI builder:** adds repetitive methods and documentation for adapter authors who already
   work against the provider contract. Generated builders are sufficient when invariants and field meanings remain clear.
+- **Forbid every application call into an optional module:** would force an untyped input or another core dependency for existing foreign objects.
+  A typed adapter is a clearer, deliberately limited boundary; it does not expose module runtime machinery or relocate ordinary configuration.
 
 ## Consequences and verification
 
@@ -138,6 +163,10 @@ internal unit tests may construct them through the internal builder. Provider fi
 Add a separate consumer check that compiles the continuing builder/send/result calls against core and its declared dependencies, without the main
 implementation on the compile path. Supply the entry contracts as parameters; bootstrap and runtime integration belong in a separate check.
 Check public generic arguments and callback types as well as direct return types.
+
+Test foreign-instance adaptation in a separate optional-module consumer. Its public input must be typed, its return type must belong to core,
+and the subsequent configuration/send calls must not need a module-specific subtype. Check wrong-type compilation failures, unchanged resource
+ownership and absence of feature-library dependencies from core/main. Property-based activation remains a separate module-present/absent check.
 
 Preserve immutable results, validation, collection copying and serialization. Verify that unobserved sends still avoid diagnostic construction.
 Add a regression for removed builder factories/overload chains so a future refactor cannot quietly make them application API again.

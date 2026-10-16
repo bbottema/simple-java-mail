@@ -45,7 +45,7 @@ Unsupported and caller-owned providers retain coarse progress, never fail sendin
 - Unbounded event queue: retains every update by retaining unbounded application backlog.
 - Reuse Message-ID: absent or shared by repeated/concurrent sends; cannot identify a logical invocation reliably.
 - Promise every stage or percentage: misleading for pooled, custom and third-party transports and incompatible with bounded coalescing.
-- Add OpenTelemetry to core: couples ordinary observation to one ecosystem; [#762](https://github.com/bbottema/simple-java-mail/issues/762) remains optional-module research.
+- Add OpenTelemetry to core: couples ordinary observation to one ecosystem. [ADR 0034](0034-optional-opentelemetry-integration.md) keeps the optional integration under [#762](https://github.com/bbottema/simple-java-mail/issues/762) separate.
 
 ## Consequences and boundaries
 
@@ -60,6 +60,10 @@ Detailed supported setup and SMTP categories are specified by [ADR 0033](0033-de
 that caused it. Isolated DNS/TCP/proxy/implicit-TLS hooks remain separate research. Raw protocol transcripts remain excluded.
 
 ## Verification obligations and relationships
+
+The optional [OpenTelemetry integration](0034-optional-opentelemetry-integration.md) shares observation identity and authoritative send
+boundaries, not this lossy dispatcher. Telemetry-only sends must not enable progress snapshots/upload counting; progress-only sends
+remain independent of telemetry. The integration generates correlation IDs for telemetry-observed sends without transmitting them.
 
 Test deterministic throttling, bounds, ordering, late updates, callback/executor failures, reentrancy, shutdown, serialization and observation isolation.
 Use real loopback SMTP for bytes, final-reply waits, retries, failover and disabled-path cost. Preserve all content and result contracts.

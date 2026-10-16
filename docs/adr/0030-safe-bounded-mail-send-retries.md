@@ -237,6 +237,11 @@ The implementation record contains commands and results. This ADR records the ar
 
 ## Implementation obligations
 
+[ADR 0034](0034-optional-opentelemetry-integration.md) places optional telemetry around this existing lifecycle: one logical-send span
+and metric count, with children for actual provider invocations. Captured context survives retry suspension; no thread-bound scope
+stays open while waiting. A recovered refusal does not fail an ultimately successful logical span. This extension
+cannot alter replay eligibility, receipt identity or the one-final-outcome contract.
+
 The accepted implementation plan settles policy signatures, property names/defaults, pending capacity and replay-storage limits.
 Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Verification requires tests for:
 

@@ -33,6 +33,18 @@ Direct `spring-module` use in a Boot application can now activate auto-configura
 
 The metadata-only `SimpleJavaMailProperties` model supplies IDE hints; it is not a parallel runtime configuration binder. New scalar properties flow through the canonical schema and Environment adapter, with packaging tests checking metadata coverage. See [ADR 0003](0003-immutable-configuration-snapshots.md) and the [API expansion workflow](../API_EXPANSION_WORKFLOW.md).
 
+## Optional telemetry integration
+
+[ADR 0034](0034-optional-opentelemetry-integration.md) adds a use of the shared construction route: an explicitly supplied
+framework-neutral `MailSendTelemetry` bean configures the default Mailer. An OpenTelemetry SDK/API bean alone does not activate it,
+and Spring acquires no OpenTelemetry dependency. Alternatively, `simplejavamail.telemetry.enabled` enables every Mailer from the captured
+factory using the application-global instance. Activation, endpoint permission and their locked counterparts use the existing Environment
+loader and metadata-only model. The existing bean lifecycle and replacement rules remain intact.
+
+When application configuration supplies an existing OpenTelemetry instance, it uses the optional module's typed adapter to create that core
+bean. This adaptation belongs in the application wiring, not in SJM's Spring integration. It adds no foreign API dependency or SDK discovery
+to the Spring module and does not create another owner for ordinary settings, defaults or locks.
+
 ## Implementation evidence
 
 [ADR 0025](0025-factory-scoped-locked-configuration.md) adds the `simplejavamail.locked.` namespace through the same Environment loader.

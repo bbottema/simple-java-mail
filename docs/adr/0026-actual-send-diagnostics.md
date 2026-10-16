@@ -86,6 +86,10 @@ Verify isolation, exact receipt/throwable identity, serialization and observed/u
 
 ## Related decisions
 
+- [ADR 0034](0034-optional-opentelemetry-integration.md): optional telemetry reuses lightweight measurement
+  boundaries and authoritative terminal completion without requiring a result observer or constructing public diagnostic histories.
+  Unavailable timings remain absent; metrics do not imply CPU time, exact network timing or final delivery.
+
 - [ADR 0032](0032-live-mail-send-progress.md): live progress is a separate opt-in, not a replacement for terminal measurements.
   Result-only registration does not enable upload instrumentation; progress-only registration does not build terminal diagnostic histories.
   A shared observation UUID correlates both without becoming a Message-ID or telemetry trace ID.

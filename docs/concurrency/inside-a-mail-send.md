@@ -147,3 +147,9 @@ Add a dated row for each completed step. Record the change, or explicitly say wh
 ## Retry review, 2026-10-13
 
 Reviewed for #756: the five resource layers still apply. Retry coordination adds one lazy dispatcher within execution control, bounded pending tickets and attempt-owned replay bytes; it is not another transport layer or a durable job queue. The current overview is intentionally non-exhaustive, so use [retry concurrency](11-mail-send-retries.md) for these new actors and the updated [operation](01-send-operation.md) and [shutdown](02-mailer-lifecycle.md) diagrams. No raster regeneration or concurrent website artwork changes were made.
+
+## Telemetry review, 2026-10-15
+
+Reviewed for #762: the optional integration observes existing operation, submission and terminal boundaries. SDK resources stay application-owned;
+context scopes are local to execution turns and do not add another worker, connection, lock owner or state machine. The overview remains accurate.
+See [telemetry concurrency](13-mail-send-telemetry.md) for scope retirement, retry suspension and independent observer delivery. No image changes.

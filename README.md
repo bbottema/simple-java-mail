@@ -9,6 +9,12 @@
 
 Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, OpenPGP/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
 
+For application traces and metrics, add the optional `open-telemetry-module` and register
+`mailerBuilder.withMailSendTelemetry(OtelAdapter.wrap(openTelemetry))`, or set `simplejavamail.telemetry.enabled=true` to use the
+application-global instance for Mailers from the configured factory. Your application owns the SDK and exporters;
+the library records logical sends and actual submission attempts without depending on observer delivery. Endpoint attributes are opt-in.
+See [OpenTelemetry setup, privacy and illustrative output](https://www.simplejavamail.org/opentelemetry.html).
+
 Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
 [Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)
@@ -271,6 +277,7 @@ Optional modules extend the same API and add their dependencies only when select
 | [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
 | [Spring Boot auto-configuration](https://www.simplejavamail.org/spring.html) | `simple-java-mail-spring-boot-starter` |
 | [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
+| [Application-owned OpenTelemetry traces and metrics](https://www.simplejavamail.org/opentelemetry.html) | `open-telemetry-module` |
 | [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the other modules require Java 11+) |
 | [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
 

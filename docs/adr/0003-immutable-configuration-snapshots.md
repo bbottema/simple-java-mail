@@ -46,6 +46,12 @@ count and initial delay, stay required; centralizing defaults does not invent th
 These are library fallback constants, not application-owned Email defaults/overrides or configured snapshot entries. Their central placement
 does not change precedence, lock handling, optional-policy enablement, serialization, or the runtime owner of the setting.
 
+[ADR 0034](0034-optional-opentelemetry-integration.md) applies this convention to the optional OpenTelemetry integration: its
+activation and endpoint-reporting Booleans resolve from the initiating Mailer's captured configuration, with centralized key-builder defaults.
+The loaded module binds a supplied or application-global SDK without reopening sources. A shared immutable integration receives separate
+per-Mailer bindings. The typed adapter from [ADR 0006](0006-optional-modules.md#choose-the-input-boundary-for-the-caller-accepted-2026-10-16)
+only wraps an existing foreign instance; neither it nor configuration getters resolve defaults or own SDK resources.
+
 [ADR 0027](0027-factory-scoped-sending-limits.md) adds factory-local sending-limit history alongside, not inside, this immutable snapshot.
 Named groups can coordinate participating Mailers without sharing their executors or connections. Two factories built from the same
 snapshot still have independent histories; the snapshot and `OperationalConfig` contain settings, never mutable usage counters.

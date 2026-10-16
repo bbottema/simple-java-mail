@@ -217,6 +217,7 @@ The following records retain their existing unlocked behavior. This ADR adds an 
 | [0028: Per-email recipient rejection handling](0028-per-email-recipient-rejection-handling.md) | Implemented under #754: lock either Boolean choice at the existing Email owner, preserve exact bytes, and reject conflicting advanced settings or unsupported providers. |
 | [0029: SMTP submission failover](0029-smtp-submission-failover.md) | The accepted addendum above defines lock ownership during delegated sends; ADR 0029 supplies the route-specific matrices, boundaries and implementation obligations. The #755 implementation is accepted for unreleased 10.0.0. |
 | [0030: Safe mail-send retries](0030-safe-bounded-mail-send-retries.md) | The local #756 candidate retains applicable locks across stable same-destination replay and reuses locked counterparts for policy settings. Retry is not an escape around a conflict; verification is complete; production-only review remains pending. |
+| [0034: Optional OpenTelemetry](0034-optional-opentelemetry-integration.md) | Lock activation and endpoint-reporting permission separately. Allow equal choices and reject conflicts through reset/clear. A local activation lock does not install an SDK or guarantee export. |
 
 ## Implementation status and verification obligations
 

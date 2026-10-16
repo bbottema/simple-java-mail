@@ -45,7 +45,9 @@ No progress registration means no added discovery, bindings or clocks.
 Applications get finer explanations where supported and honest coarse fallback elsewhere. The cost is carefully scoped observation across pooled
 setup and submission, not another routing engine. There is no promise of every event or per-phase duration. DATA permission and final SMTP reply
 waiting remain distinct; BDAT has no DATA-permission exchange. No content, address, credential, raw command or response text is published.
-Separate upstream-hook research may improve the remaining setup visibility. PIPELINING/CHUNKING and OpenTelemetry remain independent work.
+Separate upstream-hook research may improve the remaining setup visibility. PIPELINING/CHUNKING remains independent work.
+[ADR 0034](0034-optional-opentelemetry-integration.md) accepts a separate OpenTelemetry integration. It must not infer
+authoritative span completion or exact accounting from these coalescible stages, or enable provider detail merely to report telemetry.
 
 ## Verification obligations
 
