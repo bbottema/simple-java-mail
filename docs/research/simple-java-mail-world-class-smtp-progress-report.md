@@ -1,13 +1,13 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
-- Assessment date: 2026-10-15.
+- Assessment date: 2026-10-16.
 - Implementation refresh: 2026-10-15, adding accepted live progress under [#760](https://github.com/bbottema/simple-java-mail/issues/760), detailed connection/SMTP stages under [#761](https://github.com/bbottema/simple-java-mail/issues/761), retention corrections and a repeatable memory-pressure workbench. Safe retries under #756, connection failover under #755, selected-Mailer ownership corrections under #757 and earlier recipient-rejection/managed-transport updates remain part of the assessment.
-- Optional OpenTelemetry [#762](https://github.com/bbottema/simple-java-mail/issues/762) remains separate research.
+- Optional OpenTelemetry [#762](https://github.com/bbottema/simple-java-mail/issues/762) is implemented and accepted after production-only and holistic review on 2026-10-16. This is development-branch work for 10.0.0, not a released capability.
 - Competitor baseline: 2026-10-04. Symfony failover, Nodemailer pooling, MailKit SMTP capabilities and Vert.x PIPELINING documentation were rechecked on 2026-10-12 for this refresh; the wider comparison was not repeated.
 - Original research: [The World-Class SMTP Framework](simple-java-mail-world-class-smtp-research.pdf), dated 2026-08-29.
-- Implementation baseline: [`b0e5228d`](https://github.com/bbottema/simple-java-mail/commit/b0e5228d3f3ed4d38908dbc3e09b1f1a467341c5) on `codex/10.0.0`, containing reviewed #760/#761 progress, retention corrections and the memory workbench, following the earlier retries and failover delivery. The implementation and evidence records linked below identify the reviewed scope.
+- Implementation baseline: [`e0fd0ac6`](https://github.com/bbottema/simple-java-mail/commit/e0fd0ac62394a652d2d617ba08e6ed9311436b0a) on `codex/10.0.0`, containing accepted #762 telemetry runtime/configuration integration on top of reviewed #760/#761 progress, retention corrections and the memory workbench, following the earlier retries and failover delivery. The implementation and evidence records linked below identify the reviewed scope.
 - Release status: development of 10.0.0 continues. The assessed capabilities are present on the development branch, not in a published release. This does not describe the capabilities of the published 9.x libraries.
-- Method: repository and recorded verification review, including the #756, #760 and #761 verification sequences. Competitor documentation was not re-researched on 2026-10-15; those comparisons retain their recorded dates. No cross-library benchmark or new competitive black-box comparison was run.
+- Method: repository and recorded verification review, including the #756, #760, #761 and #762 verification sequences. Competitor documentation was not re-researched for the 2026-10-16 telemetry refresh; those comparisons retain their recorded dates. No cross-library benchmark or new competitive black-box comparison was run.
 
 This is the companion to the original PDF. Keep the two together: the PDF records the initial comparison and research agenda; this report explains what has changed, where Simple Java Mail now compares well, and where the original gaps remain. Its comparisons are assessments, not independently measured rankings.
 
@@ -44,6 +44,7 @@ The PDF described a broad and approachable library with important operational an
 | Message integrity | Exact EML submission through the ordinary infrastructure, offline rehearsal, and independent checks of DKIM, S/MIME and OpenPGP content. | [#713](https://github.com/bbottema/simple-java-mail/issues/713), [#709](https://github.com/bbottema/simple-java-mail/issues/709), [#747](https://github.com/bbottema/simple-java-mail/issues/747) |
 | Configuration and integration | Immutable snapshots, redacted value provenance, Spring/Boot integration, and factory-scoped configuration locks. | [#715](https://github.com/bbottema/simple-java-mail/issues/715), [#714](https://github.com/bbottema/simple-java-mail/issues/714), [#740](https://github.com/bbottema/simple-java-mail/issues/740) |
 | Operating a mail workload | Measurements of actual sends, configurable message/recipient sending limits, and internal content-inspection/provider-discovery optimizations. | [#750](https://github.com/bbottema/simple-java-mail/issues/750), [#751](https://github.com/bbottema/simple-java-mail/issues/751), [#749](https://github.com/bbottema/simple-java-mail/issues/749) |
+| Optional application telemetry | Typed adaptation of the application's SDK, ordinary Mailer/property configuration, request-linked logical/invocation spans, portable phase timings/failure location, useful duration histograms and sampling-independent metrics. Accepted for unreleased 10.0.0, with private-by-default endpoint reporting. | [#762](https://github.com/bbottema/simple-java-mail/issues/762) |
 
 These capabilities work together. An application can configure and rehearse mail, submit it through managed resources, inspect what SMTP accepted, and decide what to do after a failure without treating every exception as proof that nothing was sent.
 
@@ -97,9 +98,31 @@ and result model. It does not close the protocol-efficiency gap or establish fea
 other providers can remain coarse. The #761 extension adds safe categories for greeting, capability exchange, STARTTLS, authentication, sender/recipients
 and DATA permission without debug transcripts. It attributes setup only to the email that caused it; reused/background/shared connections do not replay
 historical work. This improves live explanations around an already integrated sending workflow, not protocol throughput or final-delivery guarantees.
-Isolated DNS/TCP/proxy/implicit-TLS observations and packaged telemetry remain separate research.
+Isolated DNS/TCP/proxy/implicit-TLS observations remain separate research. Packaged telemetry is the accepted #762 implementation below.
 No competitor capabilities were re-researched for this local implementation update. See [ADR 0032](../adr/0032-live-mail-send-progress.md),
 [ADR 0033](../adr/0033-detailed-mail-send-progress.md), and the [hook research and verification record](mail-send-progress-verification.md).
+
+### Optional OpenTelemetry integration
+
+Applications can register their existing OpenTelemetry instance instead of rebuilding trace and metric adapters around callbacks, or enable
+the optional module through factory properties using the application's global instance. Logical-send spans retain request parentage through
+async work, failover and retries, while invocation children preserve failed intermediate attempts and
+accepted submissions followed by cleanup failure. Counts and portable timings are recorded at authoritative lifecycle boundaries, not inferred
+from lossy progress or an observer executor that may reject a callback.
+
+The logical span now explains where that send spent its time, using the same eight portable measurements as result diagnostics, with the
+primary failure's location when known. Duration histogram advice preserves sub-second distinctions and longer sending/retry waits; the
+application still owns aggregation, collection/export intervals and sampling. Progress, final outcomes and telemetry remain independent
+facilities with one observation ID for optional correlation, not three competing lifecycle owners.
+
+This closes the comparison track's packaged application-observability gap: applications can connect SMTP work to existing operational tooling
+without translating lossy callbacks or rebuilding retry/failover correlation. Its contribution is integrated operation/attempt semantics,
+convenient factory configuration and explicit SDK ownership, not a claim to more SMTP extensions or uniquely available tracing. Endpoints are opt-in,
+metric labels remain bounded, no message identities/content are exported, and SMTP bytes are unchanged. Agent coexistence follows public
+OpenTelemetry guidance and is tested separately; lower-level spans from other instrumentation are not universally suppressed.
+
+See [ADR 0034](../adr/0034-optional-opentelemetry-integration.md) and its
+[research and verification record](762-opentelemetry-integration-verification.md). No competitor capability was re-researched for this update.
 
 ### Message and recipient sending limits
 
@@ -177,7 +200,7 @@ Failover extends the same approach to outages. Routing, primary recovery, cancel
 ## Remaining differences and limits
 
 1. **Protocol breadth and efficiency remain incomplete.** Negotiated PIPELINING and CHUNKING are unresolved under [#699](https://github.com/bbottema/simple-java-mail/issues/699), and BINARYMIME must not be presented as delivered. MailKit remains ahead on this axis. No gain from these extensions is included in this assessment.
-2. **Diagnostics do not yet explain every protocol step.** Portable measurements and the accepted #760/#761 progress work cover live upload and supported SMTP categories, not a complete command timeline or per-phase authentication/TLS durations. DNS/TCP/proxy/implicit-TLS detail still needs upstream hooks. Optional OpenTelemetry remains research under #762. [MailKit telemetry](https://github.com/jstedfast/MailKit/blob/master/Telemetry.md) and [protocol logging](https://mimekit.net/docs/html/T_MailKit_ProtocolLogger.htm) remain relevant comparisons; credential redaction alone does not make a transcript content-free.
+2. **Diagnostics do not yet explain every protocol step.** Portable measurements and the accepted #760/#761 progress work cover live upload and supported SMTP categories, not a complete command timeline or per-phase authentication/TLS durations. DNS/TCP/proxy/implicit-TLS detail still needs upstream hooks. Accepted OpenTelemetry integration under #762 packages existing portable timings and authoritative lifecycle facts; it does not invent these missing measurements. [MailKit telemetry](https://github.com/jstedfast/MailKit/blob/master/Telemetry.md) and [protocol logging](https://mimekit.net/docs/html/T_MailKit_ProtocolLogger.htm) remain relevant comparisons; credential redaction alone does not make a transcript content-free.
 3. **Available safeguards are not universal defaults.** Bounded async queues and total deadlines are opt-in. The default SMTP strategy remains opportunistic TLS, including when credentials are supplied; mandatory TLS requires an explicit strategy or applicable lock. These deliberate compatibility choices prevent claiming universally strongest security or overload defaults. See [TransportStrategy](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/config/TransportStrategy.java) and [AsyncQueueConfig](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/config/AsyncQueueConfig.java).
 4. **Providers determine the available facts and controls.** Public outcomes are provider-neutral, but the bundled managed Angus integration supplies the richest protocol observations and physical-abort support. Caller-owned Sessions, custom socket factories, CustomMailer and third-party adapters retain explicit boundaries. Missing information is not filled with invented facts.
 5. **Evidence does not establish universal superiority.** Interoperability and fault-injection results support the tested configurations. They do not establish that SJM is faster than competitors, compatible with every server, free from all scheduling races, or guaranteed to preserve downstream delivery. Cancellation is not SMTP rollback, and a total deadline cannot impose a hard completion bound on arbitrary non-cooperative application code.
@@ -216,6 +239,12 @@ dated evidence for live reporting and retention. The observed pooled-success soa
 message/operation objects; deliberate-retention controls demonstrated that the workbench can expose growth. That strengthens confidence in this
 integration, not a claim of leak-freedom across every path or competitive throughput leadership.
 
+The [OpenTelemetry verification record](762-opentelemetry-integration-verification.md) adds SDK/loopback, real Java-agent, configuration,
+privacy and module-boundary evidence. It distinguishes the original full reactors/conformance run from later targeted revision checks.
+The final holistic lane passed 101 focused tests; delivery verification then passed 118 Java 21 tests and 114 real-Java-11 tests after
+correcting a stale reflective test helper. Packaged consumers, Javadocs, all 84 website checks and 4,240 internal links passed. This is
+local evidence, not a new hosted run, competitive benchmark or heap-profile proof.
+
 Use the PDF as the historical baseline and this report as the dated progress assessment. The PDF's original priorities and proposed API shapes are not all current decisions; consult the accepted ADRs, source, release history and live GitHub tracking before treating a research proposal as approved or complete.
 
 For a future refresh:
@@ -226,4 +255,4 @@ For a future refresh:
 - Keep implemented capabilities, comparative judgments, reproducible results and remaining research separate. Do not turn absent information into an unsupported feature or an established deficiency.
 - Decide subsequent product priorities separately. The report informs that decision; it does not prescribe it.
 
-The conclusion at this baseline is that 10.0.0 has moved beyond a particularly comprehensive Java mail library into serious contention on cross-language SMTP usability and operability. Connection failover closes another useful application-plumbing gap, while selected-Mailer ownership makes recovery compatible with destination-specific behavior and mandatory message requirements. Live progress now connects current waiting/upload/SMTP stages with the same logical send's final result, rather than leaving applications to assemble that feedback themselves. MailKit still has the stronger protocol engine; SJM's increasingly distinctive strength is giving applications useful configuration, control, recovery and trustworthy explanations around SMTP submission. That is meaningful progress toward the best SMTP client experience, not a declaration that the work is finished.
+The conclusion at this baseline is that 10.0.0 has moved beyond a particularly comprehensive Java mail library into serious contention on cross-language SMTP usability and operability. Connection failover closes another useful application-plumbing gap, while selected-Mailer ownership makes recovery compatible with destination-specific behavior and mandatory message requirements. Live progress connects current waiting/upload/SMTP stages with the same logical send's final result; optional OpenTelemetry carries those authoritative send/attempt boundaries and portable timings into the application's existing traces and aggregate metrics. MailKit still has the stronger protocol engine at the recorded comparison baseline. SJM's increasingly distinctive strength is giving applications useful configuration, control, recovery and trustworthy explanations around SMTP submission, now with packaged operational integration instead of callback glue. PIPELINING/CHUNKING remains separate work. That is meaningful progress toward the best SMTP client experience, not a declaration that the work is finished.
