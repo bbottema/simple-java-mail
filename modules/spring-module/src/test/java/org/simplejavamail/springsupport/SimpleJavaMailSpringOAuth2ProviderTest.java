@@ -3,6 +3,7 @@ package org.simplejavamail.springsupport;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
@@ -23,7 +24,8 @@ class SimpleJavaMailSpringOAuth2ProviderTest {
 	void noProviderBeanShouldLeaveDefaultMailerWithoutAProvider() throws Exception {
 		final DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 
-		try (Mailer mailer = springSupport().defaultMailer(factory(false), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class))) {
+		try (Mailer mailer = springSupport().defaultMailer(factory(false), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class),
+				beanFactory.getBeanProvider(MailSendTelemetry.class))) {
 			assertThat(mailer.getOperationalConfig().getOAuth2AccessTokenProvider()).isNull();
 		}
 	}
@@ -34,7 +36,8 @@ class SimpleJavaMailSpringOAuth2ProviderTest {
 		final OAuth2AccessTokenProvider provider = () -> "token";
 		registerProvider(beanFactory, "provider", provider, false);
 
-		try (Mailer mailer = springSupport().defaultMailer(factory(true), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class))) {
+		try (Mailer mailer = springSupport().defaultMailer(factory(true), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class),
+				beanFactory.getBeanProvider(MailSendTelemetry.class))) {
 			assertThat(mailer.getOperationalConfig().getOAuth2AccessTokenProvider()).isSameAs(provider);
 		}
 	}
@@ -45,7 +48,8 @@ class SimpleJavaMailSpringOAuth2ProviderTest {
 		registerProvider(beanFactory, "first", () -> "one", false);
 		registerProvider(beanFactory, "second", () -> "two", false);
 
-		assertThatThrownBy(() -> springSupport().defaultMailer(factory(false), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class)))
+		assertThatThrownBy(() -> springSupport().defaultMailer(factory(false), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class),
+				beanFactory.getBeanProvider(MailSendTelemetry.class)))
 				.isInstanceOf(NoUniqueBeanDefinitionException.class);
 	}
 
@@ -56,7 +60,8 @@ class SimpleJavaMailSpringOAuth2ProviderTest {
 		registerProvider(beanFactory, "primary", primary, true);
 		registerProvider(beanFactory, "secondary", () -> "secondary", false);
 
-		try (Mailer mailer = springSupport().defaultMailer(factory(true), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class))) {
+		try (Mailer mailer = springSupport().defaultMailer(factory(true), beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class),
+				beanFactory.getBeanProvider(MailSendTelemetry.class))) {
 			assertThat(mailer.getOperationalConfig().getOAuth2AccessTokenProvider()).isSameAs(primary);
 		}
 	}

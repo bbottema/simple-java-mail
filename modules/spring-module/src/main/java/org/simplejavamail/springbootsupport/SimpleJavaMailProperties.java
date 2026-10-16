@@ -30,6 +30,7 @@ public class SimpleJavaMailProperties {
     private Failover failover;
 
     private Smtp smtp;
+    private Telemetry telemetry;
     private Proxy proxy;
     private Defaults defaults;
     private Smime smime;
@@ -40,6 +41,23 @@ public class SimpleJavaMailProperties {
     private Custom custom;
     private Transport transport;
     private Opportunistic opportunistic;
+
+    /** @deprecated Metadata only; runtime values are read through Spring's Environment. */
+    @Getter
+    @Setter
+    public static class Telemetry {
+        /** Enables the optional OpenTelemetry module using a supplied integration or the application's global instance. */
+        private Boolean enabled;
+        private Smtp smtp;
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Smtp {
+            /** Allows a registered telemetry integration to include the SMTP relay's host and port in traces, never metric labels. */
+            private Boolean endpointattributes;
+        }
+    }
 
     /**
      * @deprecated Metadata-only shape for IDE configuration hints. Runtime configuration is read from Spring's Environment.

@@ -26,6 +26,7 @@ public class LockedSimpleJavaMailProperties {
     private Map<String, SimpleJavaMailProperties> mailers;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Failover failover;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Smtp smtp;
+    @NestedConfigurationProperty private SimpleJavaMailProperties.Telemetry telemetry;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Proxy proxy;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Defaults defaults;
     @NestedConfigurationProperty private SimpleJavaMailProperties.Smime smime;

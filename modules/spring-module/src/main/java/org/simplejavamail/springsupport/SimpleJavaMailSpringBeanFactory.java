@@ -3,6 +3,7 @@ package org.simplejavamail.springsupport;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.ConfigLoader;
@@ -41,11 +42,16 @@ final class SimpleJavaMailSpringBeanFactory {
 	}
 
 	Mailer createDefaultMailer(@NotNull final SimpleJavaMail simpleJavaMail,
-			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider) {
+			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider,
+			@NotNull final ObjectProvider<MailSendTelemetry> mailSendTelemetry) {
 		final MailerRegularBuilder<?> builder = simpleJavaMail.mailerBuilder();
 		final OAuth2AccessTokenProvider configuredAccessTokenProvider = oauth2AccessTokenProvider.getIfAvailable();
 		if (configuredAccessTokenProvider != null) {
 			builder.withOAuth2AccessTokenProvider(configuredAccessTokenProvider);
+		}
+		final MailSendTelemetry configuredTelemetry = mailSendTelemetry.getIfAvailable();
+		if (configuredTelemetry != null) {
+			builder.withMailSendTelemetry(configuredTelemetry);
 		}
 		return builder.buildMailer();
 	}

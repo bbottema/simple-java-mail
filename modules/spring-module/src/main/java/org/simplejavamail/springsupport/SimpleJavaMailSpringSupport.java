@@ -5,6 +5,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.SimpleJavaMailConfig;
@@ -59,11 +60,15 @@ public class SimpleJavaMailSpringSupport {
 	}
 
 	/**
-	 * Builds the context's default Mailer from a fresh {@link MailerRegularBuilder}. Spring closes the Mailer with the application context.
+	 * Builds the context's default Mailer from a fresh {@link MailerRegularBuilder}, using any selected OAuth2 and mail-send telemetry beans.
+	 * Spring closes the Mailer with the application context; the application keeps ownership of its telemetry SDK.
+	 *
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)
 	 */
 	@Bean(destroyMethod = "close")
 	public Mailer defaultMailer(@NotNull final SimpleJavaMail simpleJavaMail,
-			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider) {
-		return springBeanFactory.createDefaultMailer(simpleJavaMail, oauth2AccessTokenProvider);
+			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider,
+			@NotNull final ObjectProvider<MailSendTelemetry> mailSendTelemetry) {
+		return springBeanFactory.createDefaultMailer(simpleJavaMail, oauth2AccessTokenProvider, mailSendTelemetry);
 	}
 }

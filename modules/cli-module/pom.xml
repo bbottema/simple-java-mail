@@ -96,6 +96,13 @@
         <!-- dependencies that should be included in the assembly for the stand-alone jar -->
         <dependency>
             <groupId>org.simplejavamail</groupId>
+            <artifactId>open-telemetry-module</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
             <artifactId>authenticated-socks-module</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>

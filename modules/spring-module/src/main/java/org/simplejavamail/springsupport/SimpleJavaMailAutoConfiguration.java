@@ -3,6 +3,7 @@ package org.simplejavamail.springsupport;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.springframework.beans.factory.ObjectProvider;
@@ -54,14 +55,17 @@ public class SimpleJavaMailAutoConfiguration {
 	}
 
 	/**
-	 * Supplies and owns the default Mailer unless the application defines one. Spring closes only the Mailer created by this method.
+	 * Supplies the default Mailer unless the application defines its own, using any selected OAuth2 and mail-send telemetry beans.
+	 * Spring closes the Mailer created here, but it does not take ownership of an application's telemetry SDK.
 	 *
 	 * @return The context's default Mailer.
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)
 	 */
 	@Bean(destroyMethod = "close")
 	@ConditionalOnMissingBean(Mailer.class)
 	public Mailer defaultMailer(@NotNull final SimpleJavaMail simpleJavaMail,
-			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider) {
-		return springBeanFactory.createDefaultMailer(simpleJavaMail, oauth2AccessTokenProvider);
+			@NotNull final ObjectProvider<OAuth2AccessTokenProvider> oauth2AccessTokenProvider,
+			@NotNull final ObjectProvider<MailSendTelemetry> mailSendTelemetry) {
+		return springBeanFactory.createDefaultMailer(simpleJavaMail, oauth2AccessTokenProvider, mailSendTelemetry);
 	}
 }
