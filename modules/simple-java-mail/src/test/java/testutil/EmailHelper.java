@@ -43,6 +43,8 @@ import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_RATE_LIMIT_BURSTS_ALLOWED;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_ENABLED;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES;
 import static org.simplejavamail.api.mailer.config.LoadBalancingStrategy.ROUND_ROBIN;
 import static org.simplejavamail.converter.EmailConverter.emlToEmailBuilder;
 import static org.simplejavamail.converter.EmailConverter.outlookMsgToEmailBuilderWithOutlookData;
@@ -212,35 +214,37 @@ public class EmailHelper {
 					/*3*/localBindPort,
 					/*4*/smtpClientHostname,
 					/*5*/false,
-					/*6*/threadPoolSize,
-					/*7*/threadPoolKeepAliveTime,
-					/*8*/clusterKey,
-					/*9*/connectionPoolCoreSize,
-					/*10*/connectionPoolMaxSize,
-					/*11*/connectionPoolClaimTimeoutMillis,
-					/*12*/connectionPoolExpireAfterMillis,
-					/*13*/null,
-					/*14*/connectionPoolLoadBalancingStrategy,
-					/*15*/connectionPoolClusterConfigs,
-					/*16*/transportModeLoggingOnly,
-					/*17*/debugLogging,
-					/*18*/debugPrinter,
-					/*19*/disableAllClientValidation,
-					/*20*/sslHostsToTrust,
-					/*21*/trustAllSSLHost,
-					/*22*/verifyingServerIdentity,
-					/*23*/executorService,
-					/*24*/isExecutorServiceUserProvided,
-					/*25*/customMailer,
-					/*26*/oauth2AccessTokenProvider,
-					/*27*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
-					/*28*/null,
-					/*29*/null,
+					/*6*/DEFAULT_MAIL_SEND_TELEMETRY_ENABLED,
+					/*7*/DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
+					/*8*/threadPoolSize,
+					/*9*/threadPoolKeepAliveTime,
+					/*10*/clusterKey,
+					/*11*/connectionPoolCoreSize,
+					/*12*/connectionPoolMaxSize,
+					/*13*/connectionPoolClaimTimeoutMillis,
+					/*14*/connectionPoolExpireAfterMillis,
+					/*15*/null,
+					/*16*/connectionPoolLoadBalancingStrategy,
+					/*17*/connectionPoolClusterConfigs,
+					/*18*/transportModeLoggingOnly,
+					/*19*/debugLogging,
+					/*20*/debugPrinter,
+					/*21*/disableAllClientValidation,
+					/*22*/sslHostsToTrust,
+					/*23*/trustAllSSLHost,
+					/*24*/verifyingServerIdentity,
+					/*25*/executorService,
+					/*26*/isExecutorServiceUserProvided,
+					/*27*/customMailer,
+					/*28*/oauth2AccessTokenProvider,
+					/*29*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
 					/*30*/null,
 					/*31*/null,
-					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
+					/*32*/null,
 					/*33*/null,
-					/*34*/MailSendRetryPolicy.builder().build());
+					/*34*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
+					/*35*/null,
+					/*36*/MailSendRetryPolicy.builder().build());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

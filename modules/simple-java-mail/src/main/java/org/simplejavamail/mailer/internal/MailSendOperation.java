@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.time.Duration;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 
 /** Arbitrates execution versus removal without completing a future or invoking application code on a deadline thread. */
 final class MailSendOperation<T> implements Runnable {
@@ -27,6 +28,24 @@ final class MailSendOperation<T> implements Runnable {
     @Nullable private RetryingWork<T> retryingWork;
     @Nullable private MailSendRetryCoordinator.Ticket retryTicket;
     @Nullable private Duration retryDelay;
+    @Nullable private Supplier<MailSendTelemetryBridge.Scope> telemetryScope;
+
+    void observeWith(final MailSendAttempt attempt) {
+        if (attempt.observesTelemetry()) {
+            telemetryScope = attempt::attachTelemetry;
+        }
+    }
+
+    void observeWith(@Nullable final MailSendTelemetryBridge.CapturedContext context) {
+        if (context != null) {
+            telemetryScope = () -> MailSendTelemetryRecorder.attach(context);
+        }
+    }
+
+    @Nullable
+    private MailSendTelemetryBridge.Scope attachTelemetry() {
+        return telemetryScope == null ? null : telemetryScope.get();
+    }
 
     /** One physical submission per execution turn. A refused turn is parked only after its ordinary resources have been released. */
     interface RetryingWork<T> extends AutoCloseable {
@@ -110,7 +129,7 @@ final class MailSendOperation<T> implements Runnable {
 
     private T executeAndComplete() {
         final T result;
-        try {
+        try (MailSendTelemetryBridge.Scope ignored = attachTelemetry()) {
             control.checkStopped();
             result = work.get();
         } catch (RuntimeException | Error cause) {
@@ -244,7 +263,11 @@ final class MailSendOperation<T> implements Runnable {
         state.set(State.FINISHING);
         releaseRetryTicket();
         work = null;
-        final Throwable terminalFailure = closeRetryingWork(cause);
+        final Throwable terminalFailure;
+        try (MailSendTelemetryBridge.Scope ignored = attachTelemetry()) {
+            terminalFailure = closeRetryingWork(cause);
+        }
+        telemetryScope = null;
         control.close();
         owner.withinOperation(() -> publishOutcomeAndComplete(result, terminalFailure));
         return terminalFailure;

@@ -129,7 +129,7 @@ final class MailConnectionRoute<T extends RoutedConnectionScope> {
 		lastFailure = failure;
 		cachedSkips++;
 		unavailableDestinations.add(destination);
-		if (diagnostics.isObserved()) {
+		if (diagnostics.retainsConnectionHistory()) {
 			diagnostics.skippedConnection(destination.definition().name, destination.logicalHost(), destination.logicalPort(),
 					"Skipped after an earlier connection failure; the next recheck is not due or is already running.");
 		}

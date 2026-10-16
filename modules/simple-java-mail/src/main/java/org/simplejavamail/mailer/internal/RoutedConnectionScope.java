@@ -63,7 +63,7 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 			control.checkStopped();
 			if (selectedDestination.usesSmtpConnection()) {
 				diagnostics.startConnectionAcquisition();
-				if (diagnostics.isObserved()) {
+				if (diagnostics.retainsConnectionHistory()) {
 					diagnostics.beginConnectionStep(selectedDestination.definition().name, selectedDestination.logicalHost(), selectedDestination.logicalPort());
 				}
 				proxyScope = selectedDestination.openProxy();

@@ -31,6 +31,7 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.internal.mimemessage.SpecializedMimeMessageProducer;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
@@ -662,6 +663,7 @@ public class MailerImpl implements Mailer {
 		try {
 			final MailSendOperation<MailSubmissionReceipt> operation = mailSendOperations.begin(attempt::completeSuccessfully, attempt::completeWithFailure);
 			attempt.attachControl(operation.control());
+			operation.observeWith(attempt);
 			return operation;
 		} catch (RuntimeException failure) {
 			attempt.completeWithFailure(failure);
@@ -885,7 +887,9 @@ public class MailerImpl implements Mailer {
 	/** @see Mailer.Sync#sendMailsInSimpleBatch(Iterable) */
 	private void sendSimpleBatchSynchronously(final Iterable<Email> emails) {
 		final Iterable<Email> checkedEmails = verifyNonnull(emails);
+		final MailSendTelemetryBridge.CapturedContext telemetry = mailSendObserverNotifier.captureTelemetryContext();
 		final MailSendOperation<Void> operation = mailSendOperations.begin(unused -> { }, failure -> { });
+		operation.observeWith(telemetry);
 		operation.executeSync(() -> {
 			sendSimpleBatch(checkedEmails, operation.control());
 			return null;
@@ -895,9 +899,11 @@ public class MailerImpl implements Mailer {
 	/** @see Mailer.Async#sendMailsInSimpleBatch(Iterable) */
 	private MailSend<Void> sendSimpleBatchAsynchronously(final Iterable<Email> emails) {
 		final Iterable<Email> checkedEmails = verifyNonnull(emails);
+		final MailSendTelemetryBridge.CapturedContext telemetry = mailSendObserverNotifier.captureTelemetryContext();
 		final MailSendOperation<Void> operation;
 		try {
 			operation = mailSendOperations.begin(unused -> { }, failure -> { });
+			operation.observeWith(telemetry);
 		} catch (final RuntimeException failure) {
 			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
 		}

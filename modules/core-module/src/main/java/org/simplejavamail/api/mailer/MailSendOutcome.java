@@ -20,7 +20,9 @@ public interface MailSendOutcome extends Serializable {
 
 	/**
 	 * Lets you match this result to its progress updates, including updates from failover or retries of the same send.
-	 * Simple Java Mail generates a new ID for each observed send and never transmits it with the email; it is not a Message-ID, ENVID or telemetry trace ID.
+	 * When telemetry is registered, the logical-send span carries the same ID, so you can also match it to this result.
+	 * Simple Java Mail generates a new ID for each observed send but never transmits it with the email or uses it as a metric label.
+	 * It is separate from the Message-ID, ENVID and telemetry trace ID.
 	 *
 	 * @return The observation ID, or {@code null} in older serialized outcomes that did not include one.
 	 */

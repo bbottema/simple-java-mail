@@ -5,6 +5,7 @@ import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.modules.DKIMModule;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.modules.OpenPgpModule;
+import org.simplejavamail.internal.modules.OpenTelemetryModule;
 import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.util.MiscUtil;
 
@@ -68,6 +69,14 @@ public class ModuleLoader {
 					"OpenPGP",
 					"org.simplejavamail.internal.openpgpsupport.OpenPgpSupport",
 					"https://github.com/bbottema/simple-java-mail/tree/develop/modules/openpgp-module");
+	}
+
+	public static OpenTelemetryModule loadOpenTelemetryModule() {
+		return loadModule(
+				OpenTelemetryModule.class,
+				"OpenTelemetry",
+				"org.simplejavamail.internal.telemetry.otel.OpenTelemetrySupport",
+				"https://github.com/bbottema/simple-java-mail/tree/develop/modules/open-telemetry-module");
 	}
 
 	public static BatchModule loadBatchModule() {

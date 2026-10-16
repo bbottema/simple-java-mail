@@ -5,10 +5,12 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendOutcome;
+import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -24,6 +26,7 @@ final class MailSendAttempt {
 	@Nullable private final MailSendObserverNotifier notifier;
 	@Nullable private final UUID observationId;
 	@Nullable private final MailSendProgressRecorder progress;
+	@Nullable private final MailSendTelemetryRecorder telemetry;
 	@Nullable private final String initialMessageId;
 	@Nullable private final Instant requestedAt;
 	private boolean loggingOnly;
@@ -45,8 +48,9 @@ final class MailSendAttempt {
 		this.control = control;
 		this.observationId = notifier == null ? null : UUID.randomUUID();
 		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId);
+		this.telemetry = notifier == null ? null : MailSendTelemetryRecorder.begin(notifier.captureTelemetryContext(), observationId);
 		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved()
-				: MailSendDiagnosticsRecorder.forObservers(notifier.observesResults(), progress);
+				: MailSendDiagnosticsRecorder.forObservers(notifier.observesResults(), progress, telemetry);
 		if (loggingOnly) {
 			diagnostics.useLoggingOnly();
 		}
@@ -95,6 +99,15 @@ final class MailSendAttempt {
 	@NotNull
 	MailSendDiagnosticsRecorder diagnostics() {
 		return diagnostics;
+	}
+
+	boolean observesTelemetry() {
+		return telemetry != null;
+	}
+
+	@Nullable
+	MailSendTelemetryBridge.Scope attachTelemetry() {
+		return telemetry == null ? null : telemetry.attach();
 	}
 
 	void attachControl(@NotNull final MailSendControl control) {
@@ -147,8 +160,14 @@ final class MailSendAttempt {
 		if (progress != null) {
 			progress.finish(effectiveId);
 		}
+		final MailSendDiagnostics report = notifier.observesResults() ? diagnostics.finish(successful) : null;
+		final Instant completedAt = Instant.now();
+		if (telemetry != null) {
+			telemetry.complete(diagnostics.telemetryReport(successful, loggingOnly, submissionReceipt, failure));
+		}
 		if (!notifier.observesResults()) {
 			effectiveEmail = null;
+			diagnostics.releaseReceipt();
 			return;
 		}
 		final MailSendOutcome outcome = MailSendOutcomeImpl.builder()
@@ -158,12 +177,12 @@ final class MailSendAttempt {
 			.requestedAt(requireNonNull(requestedAt, "requestedAt"))
 			.readyAt(readyAt)
 			.startedAt(startedAt)
-			.completedAt(Instant.now())
+			.completedAt(completedAt)
 			.successful(successful)
 			.loggingOnly(loggingOnly)
 			.submissionReceipt(submissionReceipt)
 			.failure(failure)
-			.diagnostics(diagnostics.finish(successful))
+			.diagnostics(report)
 			.build();
 		effectiveEmail = null;
 		diagnostics.releaseReceipt();

@@ -127,9 +127,7 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 		control.checkStopped();
 		diagnostics.startSubmission();
 		reservation.commit(control);
-		diagnostics.submissionInvoked();
-		selectedDestination.getOperationalConfig().getCustomMailer()
-				.sendMessage(selectedDestination.getOperationalConfig(), selectedDestination.getSession(), prepared, message);
+		TransportRunner.invokeCustomMailer(selectedDestination.getOperationalConfig(), selectedDestination.getSession(), prepared, message, diagnostics);
 		final MailSubmissionReceipt result = TransportRunner.buildReceipt(prepared, null);
 		diagnostics.receiptProduced(result);
 		return result;

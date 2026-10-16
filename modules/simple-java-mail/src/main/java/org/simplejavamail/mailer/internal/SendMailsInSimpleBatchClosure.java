@@ -16,6 +16,7 @@ import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 
@@ -44,6 +45,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private final boolean transportModeLoggingOnly;
 	@Nullable private Email currentEmail;
 	@Nullable private MailSendAttempt currentMailSendAttempt;
+	@Nullable private MailSendTelemetryBridge.Scope currentTelemetryScope;
 	@NotNull private final MailSendControl control;
 	@NotNull private final SendingAllowance sendingAllowance;
 
@@ -103,7 +105,6 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	private void sendEmailsUsingCustomMailer(@NotNull final Iterator<Email> emailIterator)
 			throws MessagingException {
-		val customMailer = checkNonEmptyArgument(operationalConfig.getCustomMailer(), "customMailer");
 		while (emailIterator.hasNext()) {
 			val email = prepareNextEmail(emailIterator);
 			control.checkStopped();
@@ -114,8 +115,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 				control.checkStopped();
 				currentDiagnostics().startSubmission();
 				allowance.commit(control);
-				currentDiagnostics().submissionInvoked();
-				customMailer.sendMessage(operationalConfig, session, email, message);
+				TransportRunner.invokeCustomMailer(operationalConfig, session, email, message, currentDiagnostics());
 			}
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
 		}
@@ -160,6 +160,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		control.checkStopped();
 		final Email userProvidedEmail = verifyNonnull(emailIterator.next());
 		currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail, control);
+		currentTelemetryScope = currentMailSendAttempt.attachTelemetry();
 		currentMailSendAttempt.readyForAdmission();
 		currentMailSendAttempt.started();
 		currentMailSendAttempt.preparationStarted();
@@ -182,12 +183,21 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	private void completeCurrentSendSuccessfully(@NotNull final MailSubmissionReceipt submissionReceipt) {
 		currentDiagnostics().receiptProduced(submissionReceipt);
+		closeCurrentTelemetryScope();
 		checkNonEmptyArgument(currentMailSendAttempt, "currentMailSendAttempt").completeSuccessfully(submissionReceipt);
 	}
 
 	private void completeCurrentSendWithFailure(@NotNull final Throwable failure) {
+		closeCurrentTelemetryScope();
 		if (currentMailSendAttempt != null) {
 			currentMailSendAttempt.completeWithFailure(failure);
+		}
+	}
+
+	private void closeCurrentTelemetryScope() {
+		if (currentTelemetryScope != null) {
+			currentTelemetryScope.close();
+			currentTelemetryScope = null;
 		}
 	}
 

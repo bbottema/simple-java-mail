@@ -64,6 +64,12 @@ class OperationalConfigImpl implements OperationalConfig {
 	/** @see OperationalConfig#isLegacySmtpContentSupportEnabled() */
 	private final boolean legacySmtpContentSupportEnabled;
 
+	/** @see OperationalConfig#isMailSendTelemetryEnabled() */
+	private final boolean mailSendTelemetryEnabled;
+
+	/** @see OperationalConfig#isMailSendTelemetrySmtpEndpointAttributesEnabled() */
+	private final boolean mailSendTelemetrySmtpEndpointAttributesEnabled;
+
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */

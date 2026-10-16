@@ -12,6 +12,7 @@ import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendProgress;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
@@ -19,6 +20,19 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static Mailer configureTelemetry(final MailerRegularBuilder<?> builder, final MailSendTelemetry telemetry) {
+        builder.withMailSendTelemetry(telemetry);
+        builder.withMailSendTelemetryEnabled(true);
+        builder.withMailSendTelemetrySmtpEndpointAttributes(true);
+        builder.isMailSendTelemetrySmtpEndpointAttributesEnabled();
+        builder.resetMailSendTelemetrySmtpEndpointAttributes();
+        builder.clearMailSendTelemetrySmtpEndpointAttributes();
+        final Mailer mailer = builder.buildMailer();
+        mailer.getOperationalConfig().isMailSendTelemetryEnabled();
+        mailer.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled();
+        return mailer;
+    }
+
     public static MailSend<MailSubmissionReceipt> composeAndSend(final EmailStartingBuilder emails, final MailerRegularBuilder mailers,
             final IRecipientBuilder recipientBuilder, final IRecipientsBuilder groupBuilder) {
         final Recipient recipient = recipientBuilder.withName("Reader").withAddress("reader@example.org").withType(RecipientType.TO).build();

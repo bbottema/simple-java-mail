@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.simplejavamail</groupId>
+        <artifactId>maven-master-project</artifactId>
+        <version>9.3.5</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>open-telemetry-module</artifactId>
+    <name>Simple Java Mail - OpenTelemetry module</name>
+    <description>Explicit, application-owned OpenTelemetry traces and metrics for mail sends</description>
+    <properties>
+        <automaticModuleName>org.simplejavamail.otel</automaticModuleName>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-module</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>${opentelemetry.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>simple-java-mail</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.simplejavamail</groupId>
+            <artifactId>core-test-module</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk-testing</artifactId>
+            <version>${opentelemetry.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry.proto</groupId>
+            <artifactId>opentelemetry-proto</artifactId>
+            <version>1.11.1-alpha</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <io.opentelemetry.context.enableStrictContext>true</io.opentelemetry.context.enableStrictContext>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.11.0</version>
+                <executions>
+                    <execution>
+                        <id>telemetry-consumer-path</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>build-classpath</goal></goals>
+                        <configuration>
+                            <includeScope>compile</includeScope>
+                            <outputFile>${project.build.directory}/telemetry-consumer-path.txt</outputFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>telemetry-agent-coexistence-fixture</id>
+                        <phase>generate-test-resources</phase>
+                        <goals><goal>copy</goal></goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>io.opentelemetry.javaagent</groupId>
+                                    <artifactId>opentelemetry-javaagent</artifactId>
+                                    <version>2.32.0</version>
+                                    <outputDirectory>${project.build.directory}/agent</outputDirectory>
+                                    <destFileName>opentelemetry-javaagent.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-telemetry-consumers</id>
+                        <phase>verify</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <loadfile property="otelConsumerPath" srcFile="${project.build.directory}/telemetry-consumer-path.txt" />
+                                <mkdir dir="${project.build.directory}/consumer-classpath" />
+                                <javac srcdir="${project.basedir}/src/test/otel-consumer" destdir="${project.build.directory}/consumer-classpath"
+                                       classpath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelConsumerPath}"
+                                       excludes="module-info.java" sourcepath="" release="${library.java.release}" includeantruntime="false" />
+                                <java classname="org.simplejavamail.otelconsumer.OtelConsumer" fork="true" failonerror="true"
+                                      classpath="${project.build.directory}/consumer-classpath${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelConsumerPath}" />
+                                <mkdir dir="${project.build.directory}/consumer-jpms" />
+                                <!-- As with the main module's consumers, expose multi-release descriptors directly for JDK 11 javac. -->
+                                <javac srcdir="${project.basedir}/src/test/otel-consumer" destdir="${project.build.directory}/consumer-jpms"
+                                       modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${project.basedir}/../core-module/target/classes/META-INF/versions/9${path.separator}${otelConsumerPath}"
+                                       release="${library.java.release}" includeantruntime="false">
+                                    <compilerarg value="--patch-module" />
+                                    <compilerarg value="org.simplejavamail.otel=${project.build.directory}/${project.build.finalName}.jar" />
+                                    <compilerarg value="--patch-module" />
+                                    <compilerarg value="org.simplejavamail.core=${project.basedir}/../core-module/target/core-module-${project.version}.jar" />
+                                </javac>
+                                <exec executable="${java.home}/bin/java" failonerror="true">
+                                    <arg value="--module-path" />
+                                    <arg path="${project.build.directory}/consumer-jpms${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelConsumerPath}" />
+                                    <arg value="--module" />
+                                    <arg value="org.simplejavamail.otel.consumer/org.simplejavamail.otelconsumer.OtelConsumer" />
+                                </exec>
+                                <!-- Use the main module's curated provider path, not test-only/non-modular dependencies or SDK JARs. -->
+                                <loadfile property="otelSmtpPath" srcFile="${project.basedir}/../simple-java-mail/target/managed-angus-runtime-path.txt" />
+                                <property name="otelRuntimePath" value="${otelConsumerPath}${path.separator}${project.basedir}/../simple-java-mail/target/simple-java-mail-${project.version}.jar${path.separator}${otelSmtpPath}" />
+                                <mkdir dir="${project.build.directory}/runtime-consumer-classpath" />
+                                <javac srcdir="${project.basedir}/src/test/otel-runtime-consumer" destdir="${project.build.directory}/runtime-consumer-classpath"
+                                       classpath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelRuntimePath}"
+                                       excludes="module-info.java" sourcepath="" release="${library.java.release}" includeantruntime="false" />
+                                <java classname="org.simplejavamail.otelconsumer.OtelRuntimeConsumer" fork="true" failonerror="true"
+                                      classpath="${project.build.directory}/runtime-consumer-classpath${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelRuntimePath}" />
+                                <mkdir dir="${project.build.directory}/runtime-consumer-jpms" />
+                                <javac srcdir="${project.basedir}/src/test/otel-runtime-consumer" destdir="${project.build.directory}/runtime-consumer-jpms"
+                                       modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${project.basedir}/../core-module/target/classes/META-INF/versions/9${path.separator}${project.basedir}/../simple-java-mail/target/classes/META-INF/versions/9${path.separator}${otelRuntimePath}"
+                                       release="${library.java.release}" includeantruntime="false">
+                                    <compilerarg value="--patch-module" />
+                                    <compilerarg value="org.simplejavamail.otel=${project.build.directory}/${project.build.finalName}.jar" />
+                                    <compilerarg value="--patch-module" />
+                                    <compilerarg value="org.simplejavamail.core=${project.basedir}/../core-module/target/core-module-${project.version}.jar" />
+                                    <compilerarg value="--patch-module" />
+                                    <compilerarg value="org.simplejavamail=${project.basedir}/../simple-java-mail/target/simple-java-mail-${project.version}.jar" />
+                                </javac>
+                                <exec executable="${java.home}/bin/java" failonerror="true">
+                                    <arg value="--module-path" />
+                                    <arg path="${project.build.directory}/runtime-consumer-jpms${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${otelRuntimePath}" />
+                                    <arg value="--add-modules" />
+                                    <arg value="org.simplejavamail.mailprovider.angus" />
+                                    <arg value="--module" />
+                                    <arg value="org.simplejavamail.otel.runtimeconsumer/org.simplejavamail.otelconsumer.OtelRuntimeConsumer" />
+                                </exec>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

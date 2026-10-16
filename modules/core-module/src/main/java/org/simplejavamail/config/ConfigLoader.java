@@ -72,6 +72,8 @@ public final class ConfigLoader {
 		SMTP_PASSWORD("simplejavamail.smtp.password"),
 		SMTP_CLIENT_HOSTNAME("simplejavamail.smtp.clienthostname"),
 		SMTP_LEGACY_CONTENT_SUPPORT("simplejavamail.smtp.legacycontentsupport"),
+		TELEMETRY_ENABLED("simplejavamail.telemetry.enabled"),
+		TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES("simplejavamail.telemetry.smtp.endpointattributes"),
 		SMTP_RATE_LIMIT_GROUP("simplejavamail.smtp.ratelimit.group"),
 		SMTP_MESSAGE_RATE_LIMIT("simplejavamail.smtp.ratelimit.messages.limit"),
 		SMTP_MESSAGE_RATE_PERIOD("simplejavamail.smtp.ratelimit.messages.period"),

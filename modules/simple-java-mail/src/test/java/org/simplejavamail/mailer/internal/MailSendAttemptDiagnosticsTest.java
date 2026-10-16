@@ -45,7 +45,7 @@ class MailSendAttemptDiagnosticsTest {
 			pending.add(notification);
 		}, true);
 		try (MockedStatic<MailSendDiagnosticsRecorder> recorders = mockStatic(MailSendDiagnosticsRecorder.class, CALLS_REAL_METHODS)) {
-			recorders.when(() -> MailSendDiagnosticsRecorder.forObservers(true, null)).thenReturn(recorder);
+			recorders.when(() -> MailSendDiagnosticsRecorder.forObservers(true, null, null)).thenReturn(recorder);
 			final MailSendAttempt attempt = notifier.beginAttempt(mock(Email.class));
 			attempt.readyForAdmission();
 			attempt.prepared(mock(Email.class));

@@ -140,6 +140,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			throw failure;
 		}
 		mailSendAttempt.attachControl(operation.control());
+		operation.observeWith(mailSendAttempt);
 		mailSendAttempt.readyForAdmission();
 		return operation.executeSync(() -> sendOnOpenConnection(checkedEmail, mailSendAttempt, operation.control()));
 	}

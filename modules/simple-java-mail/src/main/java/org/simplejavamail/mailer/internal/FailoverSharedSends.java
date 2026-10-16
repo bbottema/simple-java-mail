@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -53,12 +54,14 @@ final class FailoverSharedSends {
 	private void sendObservedEmail(final RoutedMailConnection routedConnection, final Email email, final MailSendControl control) {
 		final MailSendAttempt attempt = observerNotifier.beginAttempt(email, control);
 		attempt.readyForAdmission();
-		try {
-			attempt.completeSuccessfully(routedConnection.send(email, attempt, control));
+		final MailSubmissionReceipt receipt;
+		try (MailSendTelemetryBridge.Scope ignored = attempt.attachTelemetry()) {
+			receipt = routedConnection.send(email, attempt, control);
 		} catch (RuntimeException | Error failure) {
 			attempt.completeWithFailure(failure);
 			throw failure;
 		}
+		attempt.completeSuccessfully(receipt);
 	}
 
 	<E extends Exception> void withOpenConnection(final OpenConnectionCallback<E> callback) throws E {
@@ -122,6 +125,7 @@ final class FailoverSharedSends {
 				throw failure;
 			}
 			attempt.attachControl(operation.control());
+			operation.observeWith(attempt);
 			attempt.readyForAdmission();
 			return operation.executeSync(() -> connection.send(checked, attempt, operation.control()));
 		}

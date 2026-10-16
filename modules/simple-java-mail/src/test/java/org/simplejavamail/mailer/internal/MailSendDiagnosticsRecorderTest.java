@@ -24,6 +24,15 @@ import static org.mockito.Mockito.when;
 
 class MailSendDiagnosticsRecorderTest {
 	@Test
+	void replacementWithoutEndpointMetadataDoesNotRetainEarlierConnectionFacts() {
+		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(() -> 0);
+		recorder.connectionAcquired(transport("first.example.test", 2525));
+		recorder.connectionAcquired(mock(Transport.class));
+		final MailSendDiagnostics report = recorder.finish(true);
+		assertThat(report.getSmtpHost()).isEmpty();
+		assertThat(report.getSmtpPort()).isEmpty();
+	}
+	@Test
 	void providerSentinelCodesDoNotBecomeDiagnosticFailuresOrFakeReplyFacts() {
 		final AtomicLong clock = new AtomicLong();
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);

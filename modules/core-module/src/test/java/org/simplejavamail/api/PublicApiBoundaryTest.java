@@ -12,6 +12,8 @@ import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendProgress;
 import org.simplejavamail.api.mailer.MailSendSubmissionStep;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
@@ -39,6 +41,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PublicApiBoundaryTest {
     @TempDir Path output;
     private String compilationDetails;
+
+    @Test
+    void telemetryConfigurationDoesNotExposeRecordingOrFrameworkTypes() {
+        assertThat(MailSendTelemetry.class.getMethods()).isEmpty();
+        assertThat(MailerGenericBuilder.class.getMethods())
+                .allSatisfy(method -> assertThat(method.toGenericString()).doesNotContain("io.opentelemetry"));
+    }
 
     private static final List<Class<?>> READ_CONTRACTS = List.of(MailSendDiagnostics.class, MailSendMeasurement.class, MailSendOutcome.class,
             MailSendProgress.class, MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class,
@@ -74,7 +83,10 @@ class PublicApiBoundaryTest {
                 "new org.simplejavamail.api.mailer.MailSubmissionReceipt(null, null, null)",
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",
                 "new org.simplejavamail.recipient.RecipientBuilder()",
-                "new org.simplejavamail.converter.ConfiguredEmailConverter(null)")) {
+                "new org.simplejavamail.converter.ConfiguredEmailConverter(null)",
+                "((org.simplejavamail.api.mailer.MailSendTelemetry) null).bind(false)",
+                "io.opentelemetry.api.OpenTelemetry.noop()",
+                "org.simplejavamail.otel.OtelAdapter.wrap(null)")) {
             final Path source = output.resolve("Forbidden.java");
             Files.writeString(source, "class Forbidden { Object result = " + expression + "; }");
             assertThat(compile(source)).as(expression).isFalse();

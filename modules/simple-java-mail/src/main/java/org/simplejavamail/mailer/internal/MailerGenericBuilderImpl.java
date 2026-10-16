@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendResultObserver;
 import org.simplejavamail.api.mailer.MailSendProgressObserver;
+import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
@@ -316,6 +317,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable private MailSendProgressObserver mailSendProgressObserver;
 	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver, Executor) */
 	@Nullable private Executor mailSendProgressExecutor;
+	/** @see MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry) */
+	@Nullable private MailSendTelemetry mailSendTelemetry;
+	private final boolean configuredTelemetryEnabled;
+	private boolean mailSendTelemetryEnabled;
+	private final boolean configuredTelemetryEndpointAttributes;
+	/** @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean) */
+	private boolean mailSendTelemetrySmtpEndpointAttributesEnabled;
 
 	/**
 	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
@@ -347,6 +355,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		this.rateLimitBurstsAllowed = config.valueOrProperty(null, Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
 		this.legacySmtpContentSupportEnabled = config.valueOrProperty(null, Property.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
+		this.configuredTelemetryEnabled = config.valueOrProperty(null, Property.TELEMETRY_ENABLED, DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
+		this.mailSendTelemetryEnabled = configuredTelemetryEnabled;
+		this.configuredTelemetryEndpointAttributes = config.valueOrProperty(null, Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
+				DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES);
+		this.mailSendTelemetrySmtpEndpointAttributesEnabled = configuredTelemetryEndpointAttributes;
 		this.mailSendTimeout = config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
 		if (mailSendTimeout != null) {
 			MailSendControl.positiveTimeoutNanos(mailSendTimeout);
@@ -554,6 +567,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Check the finished builder before executor, proxy or pool initialization can make a rejected build observable. */
 	void validateLockedConfiguration() {
+		resolveTelemetrySettings();
 		final ConfigurationLocks locks = locksOf(config);
 		if (locks.isEmpty()) {
 			return;
@@ -816,6 +830,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 * For internal use.
 	 */
 	OperationalConfig buildOperationalConfig() {
+		resolveTelemetrySettings();
 		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
 		}
@@ -826,6 +841,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				getLocalBindPort(),
 				getSmtpClientHostname(),
 				isLegacySmtpContentSupportEnabled(),
+				mailSendTelemetryEnabled,
+				mailSendTelemetrySmtpEndpointAttributesEnabled,
 				getThreadPoolSize(),
 				getThreadPoolKeepAliveTime(),
 				getClusterKey(),
@@ -1383,6 +1400,88 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.mailSendResultObserver = requireNonNull(mailSendResultObserver, "mailSendResultObserver");
 		this.mailSendResultObserverExecutor = null;
 		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry) */
+	@Override
+	public T withMailSendTelemetry(@NotNull final MailSendTelemetry telemetry) {
+		mailSendTelemetry = requireNonNull(telemetry, "telemetry");
+		mailSendTelemetryEnabled = true;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withMailSendTelemetryEnabled(boolean) */
+	@Override
+	public T withMailSendTelemetryEnabled(final boolean enabled) {
+		mailSendTelemetryEnabled = enabled;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#isMailSendTelemetryEnabled() */
+	@Override
+	public boolean isMailSendTelemetryEnabled() {
+		return mailSendTelemetryEnabled;
+	}
+
+	/** @see MailerGenericBuilder#resetMailSendTelemetryEnabled() */
+	@Override
+	public T resetMailSendTelemetryEnabled() {
+		return withMailSendTelemetryEnabled(DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
+	}
+
+	/** @see MailerGenericBuilder#getMailSendTelemetry() */
+	@Override
+	@Nullable
+	public MailSendTelemetry getMailSendTelemetry() {
+		return mailSendTelemetry;
+	}
+
+	/** @see MailerGenericBuilder#clearMailSendTelemetry() */
+	@Override
+	public T clearMailSendTelemetry() {
+		mailSendTelemetry = null;
+		mailSendTelemetryEnabled = configuredTelemetryEnabled;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean) */
+	@Override
+	public T withMailSendTelemetrySmtpEndpointAttributes(final boolean enabled) {
+		mailSendTelemetrySmtpEndpointAttributesEnabled = enabled;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#isMailSendTelemetrySmtpEndpointAttributesEnabled() */
+	@Override
+	public boolean isMailSendTelemetrySmtpEndpointAttributesEnabled() {
+		return mailSendTelemetrySmtpEndpointAttributesEnabled;
+	}
+
+	/** @see MailerGenericBuilder#resetMailSendTelemetrySmtpEndpointAttributes() */
+	@Override
+	public T resetMailSendTelemetrySmtpEndpointAttributes() {
+		return withMailSendTelemetrySmtpEndpointAttributes(DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES);
+	}
+
+	/** @see MailerGenericBuilder#clearMailSendTelemetrySmtpEndpointAttributes() */
+	@Override
+	public T clearMailSendTelemetrySmtpEndpointAttributes() {
+		return withMailSendTelemetrySmtpEndpointAttributes(configuredTelemetryEndpointAttributes);
+	}
+
+	/** Validate the builder's resolved choices before requesting optional runtime resources. */
+	private void resolveTelemetrySettings() {
+		locksOf(config).verify(Property.TELEMETRY_ENABLED, mailSendTelemetryEnabled,
+				"This factory fixes mail-send telemetry through simplejavamail.locked.telemetry.enabled. "
+						+ "Use the same enabled value, clear your local telemetry configuration, or change that locked property at its source.");
+		locksOf(config).verify(Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, mailSendTelemetrySmtpEndpointAttributesEnabled,
+				"This factory fixes whether SMTP host and port may be included in telemetry through "
+						+ "simplejavamail.locked.telemetry.smtp.endpointattributes. Use the same permission, call "
+						+ "clearMailSendTelemetrySmtpEndpointAttributes() to restore the configured value, or change that locked property at its source.");
+		if (mailSendTelemetryEnabled) {
+			// Verify availability before construction creates executors or pool resources; the cached module itself is stateless.
+			ModuleLoader.loadOpenTelemetryModule();
+		}
 	}
 
 	/**
@@ -2022,13 +2121,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return oauth2AccessTokenProvider;
 	}
 
-	/** Captures both registrations without starting a progress thread or resolving any further configuration. */
+	/** Captures observer registrations and binds the already-resolved telemetry permission; no progress dispatcher is started here. */
 	MailSendObserverNotifier buildObserverNotifier() {
 		return MailSendObserverNotifier.builder()
-			.mailSendResultObserver(mailSendResultObserver)
-			.observerExecutor(mailSendResultObserverExecutor)
+			.resultObserver(mailSendResultObserver)
+			.resultExecutor(mailSendResultObserverExecutor)
 			.progressObserver(mailSendProgressObserver)
 			.progressExecutor(mailSendProgressExecutor)
+			.telemetry(MailSendTelemetryRecorder.bind(mailSendTelemetry, mailSendTelemetryEnabled, mailSendTelemetrySmtpEndpointAttributesEnabled))
 			.loggingOnly(transportModeLoggingOnly)
 			.build();
 	}

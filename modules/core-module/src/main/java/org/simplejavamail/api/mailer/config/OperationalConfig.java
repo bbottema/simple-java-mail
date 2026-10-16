@@ -87,6 +87,17 @@ public interface OperationalConfig {
 	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
 	boolean isLegacySmtpContentSupportEnabled();
 
+	/** @see MailerGenericBuilder#withMailSendTelemetryEnabled(boolean) */
+	boolean isMailSendTelemetryEnabled();
+
+	/**
+	 * Returns whether this Mailer permits SMTP host and port in telemetry after applying configuration and explicit choices.
+	 * The permission can be present without an integration; it does not enable telemetry by itself.
+	 *
+	 * @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean)
+	 */
+	boolean isMailSendTelemetrySmtpEndpointAttributesEnabled();
+
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
 	 */

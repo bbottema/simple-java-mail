@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
@@ -12,6 +13,8 @@ import org.simplejavamail.api.mailer.MailSendSubmissionStep;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.internal.telemetry.MailSendTelemetryReport;
+import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -20,7 +23,8 @@ import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
- * Owns optional terminal measurements and forwards observed boundaries to the independently enabled live-progress recorder.
+ * Measures one email's work for terminal results and telemetry, while forwarding stage changes to live progress.
+ * Telemetry-only sends collect timings without retaining the public connection or submission histories.
  * Passed explicitly through send helpers; never attached to a Session or shared transport.
  * Admission hands it to execution or terminal completion through the operation's existing boundaries; they do not mutate it concurrently.
  */
@@ -34,15 +38,19 @@ public final class MailSendDiagnosticsRecorder {
 
 	@Nullable private final LongSupplier clock;
 	@Nullable private final MailSendProgressRecorder progress;
+	@Nullable private final MailSendTelemetryRecorder telemetry;
+	private final boolean retainHistory;
 	private final long requestedAt;
-	private final Measurement preparation = new Measurement(NOT_REACHED);
-	private final Measurement scheduling = new Measurement("This email has no separate asynchronous scheduling step.");
-	private final Measurement rateLimitWait = new Measurement(NOT_REACHED);
-	private final Measurement connectionAcquisition = new Measurement(NOT_REACHED);
-	private final Measurement mimePreparation = new Measurement(NOT_REACHED);
-	private final Measurement submission = new Measurement(NOT_REACHED);
-	private final Measurement cleanup = new Measurement(NOT_REACHED);
-	private final Measurement retryWait = new Measurement("Automatic retries are not enabled for this send.");
+	private long terminalNanos;
+	private boolean terminalCaptured;
+	private final Measurement preparation = new Measurement("preparation", NOT_REACHED);
+	private final Measurement scheduling = new Measurement("scheduling", "This email has no separate asynchronous scheduling step.");
+	private final Measurement rateLimitWait = new Measurement("rate_limit_wait", NOT_REACHED);
+	private final Measurement connectionAcquisition = new Measurement("connection_acquisition", NOT_REACHED);
+	private final Measurement mimePreparation = new Measurement("mime_preparation", NOT_REACHED);
+	private final Measurement submission = new Measurement("submission", NOT_REACHED);
+	private final Measurement cleanup = new Measurement("cleanup", NOT_REACHED);
+	private final Measurement retryWait = new Measurement("retry_wait", "Automatic retries are not enabled for this send.");
 	@Nullable private List<MailSendSubmissionStep> submissionHistory;
 	private long omittedSubmissionSteps;
 	private long submissionStepStarted;
@@ -70,19 +78,40 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** Existing orchestration boundaries forward progress independently; a progress-only send collects no diagnostic histories or measurements. */
 	MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock, @Nullable final MailSendProgressRecorder progress) {
+		this(clock, progress, null, clock != null);
+	}
+
+	@Builder
+	private MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock, @Nullable final MailSendProgressRecorder progress,
+			@Nullable final MailSendTelemetryRecorder telemetry, final boolean retainHistory) {
 		this.clock = clock;
 		this.progress = progress;
+		this.telemetry = telemetry;
+		this.retainHistory = retainHistory;
 		requestedAt = clock == null ? 0 : clock.getAsLong();
 	}
 
 	@NotNull
 	static MailSendDiagnosticsRecorder forObservers(final boolean observeResults, @Nullable final MailSendProgressRecorder progress) {
-		return !observeResults && progress == null ? UNOBSERVED
-				: new MailSendDiagnosticsRecorder(observeResults ? System::nanoTime : null, progress);
+		return forObservers(observeResults, progress, null);
 	}
 
-	boolean isObserved() {
-		return clock != null;
+	@NotNull
+	static MailSendDiagnosticsRecorder forObservers(final boolean observeResults, @Nullable final MailSendProgressRecorder progress,
+			@Nullable final MailSendTelemetryRecorder telemetry) {
+		if (!observeResults && progress == null && telemetry == null) {
+			return UNOBSERVED;
+		}
+		return MailSendDiagnosticsRecorder.builder()
+			.clock(observeResults || telemetry != null ? System::nanoTime : null)
+			.progress(progress)
+			.telemetry(telemetry)
+			.retainHistory(observeResults)
+			.build();
+	}
+
+	boolean retainsConnectionHistory() {
+		return retainHistory;
 	}
 
 	/** Shared stateless fast path: every mutating method returns before reading the clock or writing fields. */
@@ -164,6 +193,9 @@ public final class MailSendDiagnosticsRecorder {
 			return;
 		}
 		finishActive();
+		// A replacement provider can omit endpoint metadata. Do not carry the previous connection's facts into this invocation.
+		smtpHost = null;
+		smtpPort = null;
 		try {
 			final URLName endpoint = transport.getURLName();
 			if (endpoint != null) {
@@ -181,7 +213,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void beginConnectionStep(@Nullable final String configurationName, @Nullable final String host, @Nullable final Integer port) {
-		if (clock != null) {
+		if (retainHistory) {
 			connectionStepStarted = clock.getAsLong();
 			hasActiveConnectionStep = true;
 			connectionConfigurationName = configurationName;
@@ -195,7 +227,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	private void finishConnectionStep(final boolean acquired, @Nullable final String explanation) {
-		if (clock != null && hasActiveConnectionStep) {
+		if (retainHistory && hasActiveConnectionStep) {
 			final String host = acquired && smtpHost != null ? smtpHost : configuredConnectionHost;
 			final Integer port = acquired && smtpPort != null ? smtpPort : configuredConnectionPort;
 			addConnectionStep(MailSendConnectionStepImpl.builder()
@@ -215,7 +247,7 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	void skippedConnection(final String configurationName, final String host, final Integer port, final String explanation) {
-		if (clock != null) {
+		if (retainHistory) {
 			addConnectionStep(MailSendConnectionStepImpl.builder()
 				.configuredName(configurationName)
 				.smtpHost(host)
@@ -279,14 +311,23 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** History measures the invocation itself; resolver checks and rate commitment still belong to the broader submission measurement. */
 	public void submissionInvoked() {
+		submissionInvoked(false);
+	}
+
+	public void submissionInvoked(final boolean customMailer) {
 		if (progress != null) {
 			progress.submissionInvoked();
 		}
-		if (clock != null && submissionHistory != null) { submissionStepStarted = clock.getAsLong(); }
+		if (clock != null && submissionHistory != null) {
+			submissionStepStarted = clock.getAsLong();
+		}
+		if (telemetry != null) {
+			telemetry.submissionInvoked(customMailer);
+		}
 	}
 
 	void enableSubmissionHistory() {
-		if (clock != null) {
+		if (retainHistory) {
 			submissionHistory = new ArrayList<>();
 			retryWait.unavailableReason = "This email did not need to wait for a retry.";
 		}
@@ -359,12 +400,49 @@ public final class MailSendDiagnosticsRecorder {
 		}
 	}
 
+	/** Invocation success and SMTP acceptance are distinct: an unsuccessful invocation can carry an UNKNOWN acceptance receipt. */
+	public void submissionReturned(final MailSubmissionReceipt receipt, final boolean successful) {
+		// Save the location before receipt capture finishes the active measurement. Ending telemetry must still retain the receipt's actual status.
+		if (!successful) {
+			recordFailureLocation();
+		}
+		receiptProduced(receipt);
+		if (telemetry != null) {
+			telemetry.submissionCompleted(successful, receipt.getStatus(), null, safeSmtpHost(), smtpPort);
+		}
+	}
+
 	/** Freeze the first observed failure before switching to cleanup, which can fail independently. */
 	public void failed() {
+		recordFailureLocation();
+		if (telemetry != null) {
+			telemetry.submissionCompleted(false, null, null, safeSmtpHost(), smtpPort);
+		}
+	}
+
+	private void recordFailureLocation() {
 		if (clock != null && !failureObserved) {
 			failureObserved = true;
 			failureMeasurement = activeMeasurement;
 		}
+	}
+
+	/** Retains the actual operation failure only long enough to classify the active provider child; no exception text is exported. */
+	public void submissionFailed(final Throwable failure) {
+		if (telemetry != null) {
+			telemetry.submissionCompleted(false, null, failure, safeSmtpHost(), smtpPort);
+		}
+	}
+
+	public void customSubmissionReturned() {
+		if (telemetry != null) {
+			telemetry.submissionCompleted(true, MailSubmissionStatus.UNKNOWN, null, null, null);
+		}
+	}
+
+	@Nullable
+	private String safeSmtpHost() {
+		return smtpHost == null ? null : SmtpDiagnosticText.display(smtpHost);
 	}
 
 	/** Includes ordinary transport cleanup and subsequent proxy teardown; shared-scope cleanup is deliberately not measured here. */
@@ -420,8 +498,7 @@ public final class MailSendDiagnosticsRecorder {
 		if (!successful) {
 			failed();
 		}
-		final long completedAt = clock.getAsLong();
-		finishActive(completedAt);
+		final long completedAt = finishMeasurements();
 		final Measurement failurePoint = successful ? null : failureMeasurement;
 		return MailSendDiagnosticsImpl.builder()
 			.elapsed(Duration.ofNanos(completedAt - requestedAt))
@@ -446,6 +523,41 @@ public final class MailSendDiagnosticsRecorder {
 		if (clock != null) {
 			receipt = null;
 		}
+	}
+
+	/** A lightweight supplied-data report, not a public diagnostics snapshot or a copy of its bounded histories. */
+	MailSendTelemetryReport telemetryReport(final boolean successful, final boolean loggingOnly,
+			@Nullable final MailSubmissionReceipt submissionReceipt, @Nullable final Throwable failure) {
+		if (!successful) {
+			// Telemetry-only sends do not build the public report, which normally captures unstarted or late terminal failures.
+			recordFailureLocation();
+		}
+		final long completedAt = finishMeasurements();
+		return MailSendTelemetryReport.builder()
+			.successful(successful)
+			.loggingOnly(loggingOnly)
+			.submissionStatus(submissionReceipt == null ? null : submissionReceipt.getStatus())
+			.failure(failure)
+			.failurePhase(successful || failureMeasurement == null ? null : failureMeasurement.phase)
+			.elapsed(Duration.ofNanos(completedAt - requestedAt))
+			.preparation(preparation.elapsedOrAbsent())
+			.scheduling(scheduling.elapsedOrAbsent())
+			.rateLimitWait(rateLimitWait.elapsedOrAbsent())
+			.connectionAcquisition(connectionAcquisition.elapsedOrAbsent())
+			.mimePreparation(mimePreparation.elapsedOrAbsent())
+			.submission(submission.elapsedOrAbsent())
+			.retryWait(retryWait.elapsedOrAbsent())
+			.cleanup(cleanup.elapsedOrAbsent())
+			.build();
+	}
+
+	private long finishMeasurements() {
+		if (!terminalCaptured) {
+			terminalNanos = clock.getAsLong();
+			finishActive(terminalNanos);
+			terminalCaptured = true;
+		}
+		return terminalNanos;
 	}
 
 	private void start(final Measurement measurement) {
@@ -473,12 +585,14 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** A fixed recorder field, not a configurable step or a second operation state machine. */
 	private static final class Measurement {
+		private final String phase;
 		private String unavailableReason;
 		private boolean reached;
 		private long startedAt;
 		private long elapsed;
 
-		private Measurement(final String unavailableReason) {
+		private Measurement(final String phase, final String unavailableReason) {
+			this.phase = phase;
 			this.unavailableReason = unavailableReason;
 		}
 
@@ -493,6 +607,11 @@ public final class MailSendDiagnosticsRecorder {
 				.unavailableReason(reached ? null : unavailableReason)
 				.failureObservedHere(this == failurePoint)
 				.build();
+		}
+
+		@Nullable
+		private Duration elapsedOrAbsent() {
+			return reached ? Duration.ofNanos(elapsed) : null;
 		}
 	}
 }

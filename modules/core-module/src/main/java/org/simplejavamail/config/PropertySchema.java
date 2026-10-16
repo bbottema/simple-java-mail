@@ -88,6 +88,8 @@ final class PropertySchema {
 		}
 
 		set(ValueType.BOOLEAN,
+				Property.TELEMETRY_ENABLED,
+				Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
 				Property.FAILOVER_ON_AUTHENTICATION_FAILURE,
 				Property.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE,
 				Property.SMTP_RATE_LIMIT_ALLOW_BURSTS,
@@ -163,6 +165,8 @@ final class PropertySchema {
 		// Individual named leaves use their ordinary schema's group and sensitivity; never render the aggregate's raw credentials.
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.REDACT, Property.NAMED_MAILERS);
 		setDiagnostics(DIAGNOSTICS_AND_VALIDATION, SensitivityPolicy.VISIBLE,
+				Property.TELEMETRY_ENABLED,
+				Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
 				Property.JAVAXMAIL_DEBUG,
 				Property.JAVAXMAIL_DEBUG_OUTPUT,
 				Property.DISABLE_ALL_CLIENTVALIDATION);

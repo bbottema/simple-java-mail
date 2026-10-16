@@ -33,6 +33,7 @@ module org.simplejavamail.core {
 	exports org.simplejavamail.config;
 	exports org.simplejavamail.internal.config;
 	exports org.simplejavamail.internal.modules;
+	exports org.simplejavamail.internal.telemetry;
 	exports org.simplejavamail.internal.util;
 	exports org.simplejavamail.internal.util.concurrent;
 }

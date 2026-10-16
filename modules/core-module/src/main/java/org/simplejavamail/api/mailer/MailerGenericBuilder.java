@@ -222,6 +222,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean DEFAULT_JAVAXMAIL_DEBUG = false;
 	/** Defaults to {@value}: require advertised support for internationalized addresses and raw 8-bit content. */
 	boolean DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT = false;
+	/** Defaults to {@value}: mail-send telemetry is opt-in through Java configuration or properties. */
+	boolean DEFAULT_MAIL_SEND_TELEMETRY_ENABLED = false;
+	/** Defaults to {@value}: do not include SMTP host/port in mail-send telemetry unless permitted explicitly or by properties. */
+	boolean DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES = false;
 	/**
 	 * Defaults to <code>{@value}</code>, validating emailaddresses (can be configured seperately, but this does override it) and CRLF injection detection (will arn instead).
 	 */
@@ -956,6 +960,103 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Cli.ExcludeApi(reason = "OAuth2 access-token providers are runtime Java integrations and cannot be represented as CLI values")
 	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
+
+	/**
+	 * Lets you trace email sends and collect sending metrics with the OpenTelemetry instance your application already uses.
+	 * Supply the handle returned by {@code OtelAdapter.wrap(openTelemetry)} from the optional telemetry module. This also enables telemetry;
+	 * calling the method again replaces the previous handle without changing the supplied instance.
+	 * <p>
+	 * The integration follows each email from admission through retries, failover and ordinary cleanup, with separate observations of
+	 * each provider invocation. The send span includes the same phase timings as {@link MailSendDiagnostics} and identifies the primary
+	 * failure's phase when known. It records completion independently of result and progress callbacks, so delayed or coalesced callbacks
+	 * do not affect span completion or send counts. As with submission receipts, SMTP acceptance does not establish final delivery.
+	 * <p>
+	 * To keep infrastructure names private, SMTP host and port attributes default to {@value #DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES}.
+	 * Use {@link #withMailSendTelemetrySmtpEndpointAttributes(boolean)} or {@code simplejavamail.telemetry.smtp.endpointattributes} to allow them.
+	 * Each Mailer resolves its own permission without modifying the handle you supplied.
+	 * <p>
+	 * Your application remains responsible for SDK processing, sampling, buffering and shutdown; closing the Mailer never closes the SDK
+	 * or exporters. Prefer batched export for normal operation, because synchronous SDK processors can delay the sending thread.
+	 * If the integration throws a {@link RuntimeException}, Simple Java Mail logs a warning and preserves the send result.
+	 *
+	 * @param telemetry A handle returned by the optional telemetry module's typed adapter.
+	 * @see #getMailSendTelemetry()
+	 * @see #clearMailSendTelemetry()
+	 */
+	@Cli.ExcludeApi(reason = "Telemetry integrations contain application-owned runtime SDK instances, not CLI values")
+	T withMailSendTelemetry(@NotNull MailSendTelemetry telemetry);
+
+	/**
+	 * Lets you turn mail-send tracing and metrics on or off without configuring each Mailer separately.
+	 * Set {@code simplejavamail.telemetry.enabled=true} in a factory's captured configuration to enable it for Mailers created by that factory,
+	 * or use this method to replace the captured choice. The built-in default is {@value #DEFAULT_MAIL_SEND_TELEMETRY_ENABLED}.
+	 * <p>
+	 * Enabling requires {@code open-telemetry-module}. Unless {@link #withMailSendTelemetry(MailSendTelemetry)} supplies a specific instance,
+	 * the module uses the application's global OpenTelemetry instance. Set that instance up before building the Mailer, including its SDK,
+	 * sampling and exporters; Simple Java Mail neither creates nor closes them. An unconfigured global instance provides no-op reporting.
+	 * <p>
+	 * Disabling keeps any supplied configuration for later reuse, but creates no telemetry runtime or per-send telemetry work.
+	 * A conflicting {@code simplejavamail.locked.telemetry.enabled} value rejects construction rather than silently changing the choice.
+	 *
+	 * @param enabled Whether mail sends should produce telemetry through the optional module.
+	 * @see #withMailSendTelemetry(MailSendTelemetry)
+	 */
+	T withMailSendTelemetryEnabled(boolean enabled);
+
+	/** @see #withMailSendTelemetryEnabled(boolean) */
+	boolean isMailSendTelemetryEnabled();
+
+	/** @see #withMailSendTelemetryEnabled(boolean) */
+	T resetMailSendTelemetryEnabled();
+
+	/**
+	 * Lets traces identify which SMTP relay handled a submission by including its logical host and port.
+	 * Leave this disabled if infrastructure names should stay private. Even when enabled, those details never become metric labels,
+	 * and email addresses, content, credentials, message identifiers and raw exception text remain excluded.
+	 * <p>
+	 * This choice replaces {@code simplejavamail.telemetry.smtp.endpointattributes} from the factory's captured configuration.
+	 * Without either choice, the default is {@value #DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES}. If the configuration owner fixes
+	 * a different value through {@code simplejavamail.locked.telemetry.smtp.endpointattributes}, building the Mailer fails with that conflict.
+	 * <p>
+	 * Clear the choice to restore the captured property, or reset it to explicitly select the built-in default. Replacing or clearing a telemetry
+	 * handle does not change this permission. The setting does not install an SDK or enable telemetry by itself; use
+	 * {@link #withMailSendTelemetryEnabled(boolean)} or {@link #withMailSendTelemetry(MailSendTelemetry)} to enable reporting.
+	 *
+	 * @param enabled Whether the selected logical SMTP host and port may appear in trace attributes.
+	 */
+	T withMailSendTelemetrySmtpEndpointAttributes(boolean enabled);
+
+	/** @see #withMailSendTelemetrySmtpEndpointAttributes(boolean) */
+	boolean isMailSendTelemetrySmtpEndpointAttributesEnabled();
+
+	/** @see #withMailSendTelemetrySmtpEndpointAttributes(boolean) */
+	T resetMailSendTelemetrySmtpEndpointAttributes();
+
+	/**
+	 * Restores the endpoint permission from this factory's captured configuration.
+	 *
+	 * @see #withMailSendTelemetrySmtpEndpointAttributes(boolean)
+	 */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders already inherit the endpoint permission; use withMailSendTelemetrySmtpEndpointAttributes")
+	T clearMailSendTelemetrySmtpEndpointAttributes();
+
+	/**
+	 * Returns the integration you supplied, or {@code null} when none is registered. Mailer-specific property resolution does not modify it.
+	 *
+	 * @see #withMailSendTelemetry(MailSendTelemetry)
+	 */
+	@Nullable
+	MailSendTelemetry getMailSendTelemetry();
+
+	/**
+	 * Removes the supplied handle and restores activation from the captured properties, without closing its SDK or changing endpoint permission.
+	 * If those properties enable telemetry, the module uses the application's global instance instead.
+	 * Use {@link #withMailSendTelemetryEnabled(boolean)} with {@code false} to disable it explicitly.
+	 *
+	 * @see #withMailSendTelemetry(MailSendTelemetry)
+	 */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders have no supplied runtime integration to clear; use withMailSendTelemetryEnabled")
+	T clearMailSendTelemetry();
 
 	/**
 	 * Calls your observer once each individual email send has finished, so you can record its result and inspect any SMTP acceptance facts.

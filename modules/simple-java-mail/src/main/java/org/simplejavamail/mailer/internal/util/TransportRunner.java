@@ -22,6 +22,7 @@ import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
@@ -79,23 +80,27 @@ public class TransportRunner {
 					diagnostics.submissionInvoked();
 				}, progress).withEnvelopeRecipients(preparedMail.getRecipients());
 			}
+			final MailSubmissionReceipt receipt = buildReceipt(email, transportResult);
+			diagnostics.submissionReturned(receipt, transportResult.isSuccessful());
 			if (!transportResult.isSuccessful()) {
-				throw buildSubmissionException(email, transportResult);
+				throw buildSubmissionException(email.getId(), email.getSubject(), transportResult, receipt);
 			}
 			LOGGER.trace("...email sent");
-			final MailSubmissionReceipt receipt = buildReceipt(email, transportResult);
-			diagnostics.receiptProduced(receipt);
 			return receipt;
 		} catch (final MailSubmissionException failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw control.translateFailure(failure);
 		} catch (final MessagingException failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw control.translateFailure(buildSubmissionException(email, MailTransportResult.failed(failure, null)));
 		} catch (final RuntimeException failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw control.translateFailure(failure);
 		} catch (final Error failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw failure;
 		}
@@ -123,15 +128,31 @@ public class TransportRunner {
 			}
 			return receipt;
 		} catch (MailSubmissionException failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw failure;
 		} catch (MessagingException failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			final MailTransportResult result = MailTransportResult.failed(failure, null).withEnvelopeRecipients(preparedMail.getRecipients());
 			final MailSubmissionReceipt receipt = recordSubmissionReceipt(messageId, preparedMail, result, diagnostics);
 			throw buildSubmissionException(messageId, subject, result, receipt);
 		} catch (RuntimeException | Error failure) {
+			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
+			throw failure;
+		}
+	}
+
+	/** Observe the opaque callback itself, without inventing SMTP acceptance or connection details for its implementation. */
+	public static void invokeCustomMailer(final OperationalConfig operationalConfig, final Session session, final Email email,
+			final MimeMessage message, final MailSendDiagnosticsRecorder diagnostics) {
+		diagnostics.submissionInvoked(true);
+		try {
+			operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
+			diagnostics.customSubmissionReturned();
+		} catch (RuntimeException | Error failure) {
+			diagnostics.submissionFailed(failure);
 			throw failure;
 		}
 	}
@@ -154,7 +175,7 @@ public class TransportRunner {
 	private static MailSubmissionReceipt recordSubmissionReceipt(@Nullable final String messageId, final PreparedMail preparedMail,
 			final MailTransportResult result, final MailSendDiagnosticsRecorder diagnostics) {
 		final MailSubmissionReceipt receipt = buildReceipt(messageId, preparedMail.getRecipients(), result);
-		diagnostics.receiptProduced(receipt);
+		diagnostics.submissionReturned(receipt, result.isSuccessful());
 		return receipt;
 	}
 

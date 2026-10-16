@@ -78,8 +78,7 @@ class SendMailClosure implements Runnable {
 				control.checkStopped();
 				diagnostics.startSubmission();
 				requireNonNull(allowance, "allowance").commit(control);
-				diagnostics.submissionInvoked();
-				operationalConfig.getCustomMailer().sendMessage(operationalConfig, session, email, message);
+				TransportRunner.invokeCustomMailer(operationalConfig, session, email, message, diagnostics);
 				receipt = TransportRunner.buildReceipt(email, null);
 				diagnostics.receiptProduced(receipt);
 			} else {
