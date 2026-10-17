@@ -6,7 +6,7 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>9.3.5</version>
+    <version>9.3.6</version>
     <inceptionYear>2009</inceptionYear>
 
     <name>Simple Java Mail - Maven master project</name>
@@ -380,7 +380,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.15.0</version>
+                    <version>3.16.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -415,17 +415,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.6</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>3.1.4</version>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.1.4</version>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>
@@ -707,12 +707,9 @@
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                                     </compileSourceRoots>
+                                    <!-- Compiler Plugin 3.16+ patches the module with the base classes automatically. -->
                                     <multiReleaseOutput>true</multiReleaseOutput>
                                     <proc>none</proc>
-                                    <compilerArgs>
-                                        <arg>--patch-module</arg>
-                                        <arg>${automaticModuleName}=${project.build.outputDirectory}</arg>
-                                    </compilerArgs>
                                 </configuration>
                             </execution>
                         </executions>

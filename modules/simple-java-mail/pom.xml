@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <version>9.3.5</version>
+        <version>9.3.6</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -114,7 +114,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.6</version>
+                <version>3.6.0</version>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <!-- Conformance CI overrides this for its two-core VM; avoid starving bounded socket fixtures during JVM startup. -->
@@ -164,7 +164,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.5.6</version>
 						<configuration>
 							<argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
 						</configuration>

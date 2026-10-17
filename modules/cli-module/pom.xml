@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.simplejavamail</groupId>
         <artifactId>maven-master-project</artifactId>
-        <version>9.3.5</version>
+        <version>9.3.6</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -186,7 +186,7 @@
                         <!-- always trigger CliListAllSupportedOptionsDemoApp when packaging CLI artifacts, generating cli data files -->
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.6.3</version>
+                        <version>3.6.4</version>
                         <executions>
                             <execution>
                                 <id>generateCliData</id>
