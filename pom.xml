@@ -659,12 +659,9 @@
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                                     </compileSourceRoots>
+                                    <!-- Compiler Plugin 3.16+ patches the module with the base classes automatically. -->
                                     <multiReleaseOutput>true</multiReleaseOutput>
                                     <proc>none</proc>
-                                    <compilerArgs>
-                                        <arg>--patch-module</arg>
-                                        <arg>${automaticModuleName}=${project.build.outputDirectory}</arg>
-                                    </compilerArgs>
                                 </configuration>
                             </execution>
                         </executions>
