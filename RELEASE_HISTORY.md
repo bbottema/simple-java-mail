@@ -2,6 +2,12 @@
 
 Full Simple Java Mail release history. The [README](README.md#current-release) links to the current release without duplicating these notes.
 
+## Unreleased (9.x)
+
+- Updated [utils-mail-dkim to 3.3.1](https://github.com/simple-java-mail/java-utils-mail-dkim/releases/tag/3.3.1), correcting Unicode MIME body hashing and byte counts, header canonicalization, Ed25519 signatures and DNS keys, concurrent signing, and DNS cache handling through the existing API.
+- Updated [utils-mail-smime to 2.3.13](https://github.com/simple-java-mail/java-utils-mail-smime/releases/tag/2.3.13), preserving MIME content and SMTP options, rejecting signatures with no signers or invalid signers, repairing RSA-OAEP SHA-224 and key initialization, and correcting its automatic module name to `org.simplejavamail.utils.mail.smime`.
+- Java 8-compatible build-tool maintenance: updated Maven Compiler Plugin to 3.16.0 ([#728](https://github.com/bbottema/simple-java-mail/pull/728)), Maven Surefire Plugin to 3.6.0 ([#731](https://github.com/bbottema/simple-java-mail/pull/731)), Exec Maven Plugin to 3.6.4 ([#744](https://github.com/bbottema/simple-java-mail/pull/744)), and Maven Install/Deploy Plugins to 3.2.0 ([#745](https://github.com/bbottema/simple-java-mail/pull/745), [#746](https://github.com/bbottema/simple-java-mail/pull/746)); adapted Java 9+ module compilation to the compiler's automatic module patching.
+
 ## [v9.3.0](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.0) - [v9.3.1](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.1) - [v9.3.2](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.2) - [v9.3.3](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.3) - [v9.3.4](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.4) - [v9.3.5](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.5) - [Maven Central](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.5/)
 
 - **v9.3.5:** [#743](https://github.com/bbottema/simple-java-mail/issues/743): **Connection creation-age retirement:** added optional creation-age expiration across Mailer, standalone batch, property, Spring, and CLI configuration. It remains disabled unless a positive duration is supplied; per-cluster settings can inherit or override it, and only available connections become eligible for asynchronous retirement.
