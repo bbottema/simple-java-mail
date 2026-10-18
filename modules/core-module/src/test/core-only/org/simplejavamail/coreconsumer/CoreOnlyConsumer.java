@@ -20,6 +20,43 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static String inspectDeliveryReport(final Email notification) {
+        final org.simplejavamail.api.email.DeliveryStatusReport report = notification.getDeliveryStatusReport();
+        if (report == null) return "No delivery report";
+        final org.simplejavamail.api.email.ReportedMailServer server = report.getReportingServer();
+        if (server != null) {
+            server.getType();
+            server.getName();
+        }
+        for (final org.simplejavamail.api.email.RecipientDeliveryReport recipient : report.getRecipients()) {
+            final org.simplejavamail.api.email.ReportedRecipient address = recipient.getFinalRecipient();
+            if (address != null) {
+                address.getType();
+                address.getAddress();
+                final Recipient mailbox = address.getMailbox();
+                if (mailbox != null) mailbox.getName();
+            }
+            final org.simplejavamail.api.email.EnhancedStatusCode status = recipient.getStatusCode();
+            if (status != null) {
+                status.getStatusClass();
+                status.getSubject();
+                status.getDetail();
+                status.isSuccess();
+                status.isTemporaryFailure();
+                status.isPermanentFailure();
+            }
+            final org.simplejavamail.api.email.DeliveryDiagnostic diagnostic = recipient.getDiagnostic();
+            if (diagnostic != null) {
+                diagnostic.getType();
+                diagnostic.getText();
+                diagnostic.getSmtpResponse();
+            }
+            recipient.getAction();
+            recipient.getRetryUntil();
+        }
+        return report.toString();
+    }
+
     public static Mailer configureTelemetry(final MailerRegularBuilder<?> builder, final MailSendTelemetry telemetry) {
         builder.withMailSendTelemetry(telemetry);
         builder.withMailSendTelemetryEnabled(true);

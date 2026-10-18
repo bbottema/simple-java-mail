@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
@@ -34,4 +35,5 @@ public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, 
 	@NotNull InternalEmailPopulatingBuilder withSmimeSignedEmail(@NotNull Email smimeSignedEmail);
 	@NotNull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@NotNull OriginalSmimeDetails originalSmimeDetails);
 	@NotNull InternalEmailPopulatingBuilder withOriginalOpenPgpDetails(@NotNull OriginalOpenPgpDetails originalOpenPgpDetails);
+	@NotNull InternalEmailPopulatingBuilder withDeliveryStatusReport(@Nullable DeliveryStatusReport deliveryStatusReport);
 }

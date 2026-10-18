@@ -227,6 +227,8 @@ public class Email implements Serializable {
 	 */
 	@Nullable
 	private final DeliveryStatusNotification deliveryStatusNotification;
+	@Nullable
+	private final DeliveryStatusReport deliveryStatusReport;
 	private final boolean tlsRequiredForOnwardDelivery;
 	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
 	@Nullable
@@ -343,6 +345,7 @@ public class Email implements Serializable {
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
 		deliveryStatusNotification = builder.getDeliveryStatusNotification();
+		deliveryStatusReport = builder.getDeliveryStatusReport();
 		tlsRequiredForOnwardDelivery = builder.isTlsRequiredForOnwardDelivery();
 		sendingToAcceptedRecipients = builder.getSendingToAcceptedRecipients();
 		overrideReceivers = builder.getOverrideReceivers();
@@ -682,6 +685,22 @@ public class Email implements Serializable {
 	@Nullable
 	public Boolean getSendingToAcceptedRecipients() {
 		return sendingToAcceptedRecipients;
+	}
+
+	/**
+	 * Returns delivery feedback extracted from this Email's original notification, or {@code null} when no accessible outer delivery report was found.
+	 * For example, convert a received bounce with the usual MIME/EML converter, then inspect its recipients and envelope identifier here.
+	 *
+	 * <p>This immutable snapshot describes the source notification, not a changing delivery tracker on the Email originally sent. Copies retain it
+	 * even if their content is edited; new replies and forwards do not inherit it. The getter performs no parsing or I/O. Ordinary outgoing templates
+	 * do not supply it, and conversion back to MIME does not synthesize a delivery report from it.</p>
+	 *
+	 * <p>Received claims are not authenticated delivery proof or permission to retry. If protected content could not be opened, inspect the existing
+	 * protection results as well: {@code null} does not establish that encrypted content contains no report.</p>
+	 */
+	@Nullable
+	public DeliveryStatusReport getDeliveryStatusReport() {
+		return deliveryStatusReport;
 	}
 	
 	/**

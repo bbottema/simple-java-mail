@@ -287,6 +287,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		}
 		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
 		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
+		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(email.getDeliveryStatusReport());
 
 		if (!(email instanceof InternalEmail)) {
 			throw new AssertionError("Email is not of type InternalEmail, this should not be possible");

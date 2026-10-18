@@ -137,6 +137,27 @@ class OpenPgpMimeTest {
     }
 
 	@Test
+	void interpretsDeliveryReportsOnlyAfterOpeningProtectedMail() throws Exception {
+		final String notification = "From: postmaster@example.test\r\nMIME-Version: 1.0\r\n"
+				+ "Content-Type: multipart/report; report-type=delivery-status; boundary=dsn\r\n\r\n"
+				+ "--dsn\r\nContent-Type: text/plain\r\n\r\nDelivery failed\r\n"
+				+ "--dsn\r\nContent-Type: message/delivery-status\r\n\r\n"
+				+ "Reporting-MTA: dns; relay.example.test\r\nOriginal-Envelope-Id: protected-attempt\r\n\r\n"
+				+ "Final-Recipient: rfc822; reader@example.test\r\nAction: failed\r\nStatus: 5.1.1\r\n\r\n--dsn--\r\n";
+		final Session session = Session.getInstance(new Properties());
+		final MimeMessage clear = new MimeMessage(session, new ByteArrayInputStream(notification.getBytes(StandardCharsets.UTF_8)));
+		final Email identity = basicEmail("unused").buildEmail();
+		final MimeMessage encrypted = new OpenPgpSupport().encryptMessage(session, identity, clear, encryption(firstKey));
+		final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(encrypted);
+		final Email opaque = EmailConverter.mimeMessageToEmail(encrypted);
+		assertThat(opaque.getDeliveryStatusReport()).isNull();
+		final Email opened = EmailConverter.mimeMessageToEmail(encrypted, null, receiving(firstKey));
+		assertThat(opened.getDeliveryStatusReport().getEnvelopeId()).isEqualTo("protected-attempt");
+		assertThat(opened.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(opened.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+	}
+
+	@Test
 	void signsAndVerifiesComplexNestedMimeEntity() throws Exception {
 		final byte[] attachmentBytes = new byte[]{0, 1, 2, 3, (byte) 0xff};
 		final byte[] embeddedBytes = new byte[]{(byte) 0x89, 'P', 'N', 'G'};

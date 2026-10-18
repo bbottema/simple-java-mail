@@ -4,6 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.email.EmailProperty;
+import org.simplejavamail.api.email.DeliveryStatusReport;
+import org.simplejavamail.api.email.RecipientDeliveryReport;
+import org.simplejavamail.api.email.EnhancedStatusCode;
+import org.simplejavamail.api.email.ReportedRecipient;
+import org.simplejavamail.api.email.ReportedMailServer;
+import org.simplejavamail.api.email.DeliveryDiagnostic;
 import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
 import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.MailSendConnectionStep;
@@ -51,7 +57,9 @@ class PublicApiBoundaryTest {
 
     private static final List<Class<?>> READ_CONTRACTS = List.of(MailSendDiagnostics.class, MailSendMeasurement.class, MailSendOutcome.class,
             MailSendProgress.class, MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class,
-            AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, ConfiguredEmailConverter.class, SimpleJavaMailConfig.class);
+            AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, ConfiguredEmailConverter.class, SimpleJavaMailConfig.class,
+            DeliveryStatusReport.class, RecipientDeliveryReport.class, EnhancedStatusCode.class, ReportedRecipient.class,
+            ReportedMailServer.class, DeliveryDiagnostic.class);
 
     @Test
     void libraryProducedResultsHaveNoApplicationConstructionSurface() {
@@ -79,6 +87,12 @@ class PublicApiBoundaryTest {
         for (final String expression : List.of(
                 "org.simplejavamail.api.mailer.MailSendDiagnostics.builder()",
                 "org.simplejavamail.api.mailer.MailSendProgress.builder()",
+                "org.simplejavamail.api.email.DeliveryStatusReport.builder()",
+                "org.simplejavamail.api.email.RecipientDeliveryReport.builder()",
+                "org.simplejavamail.api.email.EnhancedStatusCode.builder()",
+                "org.simplejavamail.api.email.ReportedRecipient.builder()",
+                "org.simplejavamail.api.email.ReportedMailServer.builder()",
+                "org.simplejavamail.api.email.DeliveryDiagnostic.builder()",
                 "new org.simplejavamail.api.mailer.MailSendMeasurement(null, null, false)",
                 "new org.simplejavamail.api.mailer.MailSubmissionReceipt(null, null, null)",
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",

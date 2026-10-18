@@ -176,6 +176,13 @@ public interface ExactEmailBuilder {
 	Boolean getSendingToAcceptedRecipients();
 
 	/**
+	 * Returns any clear delivery report parsed from the authoritative EML. This does not decrypt or rewrite the original message.
+	 * @see Email#getDeliveryStatusReport()
+	 */
+	@Nullable
+	DeliveryStatusReport getDeliveryStatusReport();
+
+	/**
 	 * Builds an {@link Email} whose existing getters expose the parsed EML fields while the original bytes remain authoritative for conversion,
 	 * rehearsal, and sending. At least one explicit envelope recipient is required.
 	 *

@@ -1771,6 +1771,12 @@ public interface EmailPopulatingBuilder {
 	OriginalSmimeDetails getOriginalSmimeDetails();
 
 	/**
+	 * @see Email#getDeliveryStatusReport()
+	 */
+	@Nullable
+	DeliveryStatusReport getDeliveryStatusReport();
+
+	/**
 	 * If the Email instance currently being built was the result of a conversion in which the source message was S/MIME
 	 * signed / encrypted, this field will contain the decrypted MimeMessage instance.
 	 * <p>

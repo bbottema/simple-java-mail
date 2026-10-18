@@ -28,6 +28,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 
 import java.util.Collection;
@@ -347,6 +348,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (provided != null) {
 			ofNullable(provided.getOpenPgpSigningConfig()).ifPresent(builder::signWithOpenPgp);
 			ofNullable(provided.getOpenPgpEncryptionConfig()).ifPresent(builder::encryptWithOpenPgp);
+			// Source facts follow the supplied Email, never a defaults/overrides template.
+			((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(provided.getDeliveryStatusReport());
 		}
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));

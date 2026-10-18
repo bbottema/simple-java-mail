@@ -101,6 +101,9 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getDeliveryStatusNotification(), email2.getDeliveryStatusNotification(), "deliveryStatusNotification")) {
             return false;
         }
+        if (!fieldIsEqual(email1.getDeliveryStatusReport(), email2.getDeliveryStatusReport(), "deliveryStatusReport")) {
+            return false;
+        }
         if (!fieldIsEqual(email1.getSendingToAcceptedRecipients(), email2.getSendingToAcceptedRecipients(), "sendingToAcceptedRecipients")) {
             return false;
         }

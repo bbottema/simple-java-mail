@@ -17,6 +17,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.OpenPgpDetails;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
@@ -354,6 +355,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@NotNull
 	private OriginalSmimeDetails originalSmimeDetails = new PlainSmimeDetails();
+	@Nullable
+	private DeliveryStatusReport deliveryStatusReport;
 
 	@NotNull
 	private OriginalOpenPgpDetails originalOpenPgpDetails = OpenPgpDetails.plain();
@@ -2352,6 +2355,20 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public OriginalSmimeDetails getOriginalSmimeDetails() {
 		return originalSmimeDetails;
+	}
+
+	/** @see Email#getDeliveryStatusReport() */
+	@Override
+	@Nullable
+	public DeliveryStatusReport getDeliveryStatusReport() {
+		return deliveryStatusReport;
+	}
+
+	@Override
+	@NotNull
+	public InternalEmailPopulatingBuilder withDeliveryStatusReport(@Nullable final DeliveryStatusReport deliveryStatusReport) {
+		this.deliveryStatusReport = deliveryStatusReport;
+		return this;
 	}
 
 	/**

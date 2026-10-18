@@ -177,6 +177,7 @@ class EmailSerializationTest {
 		assertThat(restored.getSubject()).isEqualTo("9.1.7 serialized email");
 		assertThat(restored.getSendingToAcceptedRecipients()).isNull();
 		assertThat(restored.getPlainText()).isEqualTo("legacy body remains inspectable");
+		assertThat(restored.getDeliveryStatusReport()).isNull();
 		assertThat(restored.getHeaders()).containsEntry("X-Legacy-Fixture", singletonList("9.1.7"));
 		assertThat(restored.getFromRecipient().getAddress()).isEqualTo("legacy-sender@example.org");
 		assertThat(restored.getRecipients()).extracting(Recipient::getAddress)

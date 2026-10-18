@@ -13,6 +13,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.converter.internal.mimemessage.MimeDataSource;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -33,6 +34,7 @@ class MimeMessageEmailMapper {
 	static EmailPopulatingBuilder populate(@NotNull final EmailPopulatingBuilder builder, @NotNull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
+		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(parsed.getDeliveryStatusReport());
 		if (parsed.getSentDate() != null) {
 			builder.fixingSentDate(parsed.getSentDate());
 		}

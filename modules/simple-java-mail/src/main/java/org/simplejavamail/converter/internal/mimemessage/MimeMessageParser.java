@@ -14,6 +14,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.general.MessageHeader;
+import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.internal.util.Preconditions;
@@ -64,12 +65,22 @@ public final class MimeMessageParser {
 		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
 		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
+		final boolean reportContainer = DeliveryStatusReportParser.isReportContainer(mimeMessage);
+		if (DeliveryStatusReportParser.isStatusPart(mimeMessage)) {
+			parsedComponents.deliveryStatusPart = mimeMessage;
+		}
 		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData);
+		if (reportContainer && parsedComponents.deliveryStatusReport == null) {
+			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport("The notification has no readable delivery-status part.");
+		}
+		parsedComponents.deliveryStatusPart = null;
+		parsedComponents.deliveryStatusWarning = null;
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		return parsedComponents;
 	}
 
-	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents, final boolean fetchAttachmentData) {
+	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
+			final boolean fetchAttachmentData) {
 		for (final Header header : retrieveAllHeaders(currentPart)) {
 			parseHeader(header, parsedComponents);
 		}
@@ -94,17 +105,50 @@ public final class MimeMessageParser {
 			}
 		} else if (isMimeType(currentPart, "multipart/*")) {
 			final Multipart mp = parseContent(currentPart);
+			selectOuterDeliveryStatusPart(currentPart, mp, parsedComponents);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
-				parseMimePartTree(getBodyPartAtIndex(mp, i), parsedComponents, fetchAttachmentData);
+				final MimeBodyPart child = getBodyPartAtIndex(mp, i);
+				parseMimePartTree(child, parsedComponents, fetchAttachmentData);
 			}
 		} else {
 			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition);
 		}
 	}
 
-	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents, boolean fetchAttachmentData, String disposition) {
+	private static void selectOuterDeliveryStatusPart(final MimePart currentPart, final Multipart parts,
+			final ParsedMimeMessageComponents parsedComponents) {
+		if (!(currentPart instanceof MimeMessage) || !DeliveryStatusReportParser.isReportContainer(currentPart)) {
+			return;
+		}
+		int selectedIndex = -1;
+		for (int index = 0, count = countBodyParts(parts); index < count; index++) {
+			if (DeliveryStatusReportParser.isStatusPart(getBodyPartAtIndex(parts, index))) {
+				if (selectedIndex != -1) {
+					parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport(
+							"The notification contains multiple delivery-status parts; their results were left unavailable because there is no single report to use.");
+					return;
+				}
+				selectedIndex = index;
+			}
+		}
+		if (selectedIndex != -1) {
+			// Recover a uniquely identifiable direct child, never a status part inside an attached or nested message.
+			parsedComponents.deliveryStatusPart = getBodyPartAtIndex(parts, selectedIndex);
+			if (selectedIndex != 1) {
+				parsedComponents.deliveryStatusWarning = "The notification's delivery-status part is out of order; the only matching part was recovered.";
+			}
+		}
+	}
+
+	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents,
+			boolean fetchAttachmentData, String disposition) {
         final String contentID = parseContentID(currentPart);
-		final MimeDataSource mimeDataSource = parseAttachment(contentID, currentPart, createDataSource(currentPart, fetchAttachmentData));
+		final boolean statusPart = currentPart == parsedComponents.deliveryStatusPart;
+		final MimeDataSource mimeDataSource = parseAttachment(contentID, currentPart, createDataSource(currentPart, fetchAttachmentData, statusPart));
+		if (statusPart) {
+			// Reuse bytes already cached for attachment conversion; do not fetch the original status body again.
+			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.parse(mimeDataSource.getDataSource(), parsedComponents.deliveryStatusWarning);
+		}
 		final boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition);
 		final boolean isInline = Part.INLINE.equalsIgnoreCase(disposition);
 
@@ -353,8 +397,9 @@ public final class MimeMessageParser {
 	 * @return the DataSource
 	 */
 	@NotNull
-	private static DataSource createDataSource(@NotNull final MimePart part, final boolean fetchAttachmentData) {
-		final DataSource dataSource = retrieveDataHandler(part).getDataSource();
+	private static DataSource createDataSource(@NotNull final MimePart part, final boolean fetchAttachmentData, final boolean statusPart) {
+		final DataSource supplied = retrieveDataHandler(part).getDataSource();
+		final DataSource dataSource = statusPart ? DeliveryStatusReportParser.decodedStatusSource(part, supplied) : supplied;
 		final String dataSourceName = parseDataSourceName(part, dataSource);
 
 		if (fetchAttachmentData) {
@@ -572,6 +617,9 @@ public final class MimeMessageParser {
 		@Nullable private String calendarMethod;
 		@Nullable private String calendarContent;
 		@Nullable private Date sentDate;
+		@Nullable private DeliveryStatusReport deliveryStatusReport;
+		@Nullable private MimePart deliveryStatusPart;
+		@Nullable private String deliveryStatusWarning;
 
 		@Nullable
 		public String getPlainContent() {

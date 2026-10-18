@@ -6,6 +6,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
@@ -47,11 +48,13 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	private boolean tlsRequiredForOnwardDelivery;
 	@Nullable
 	private Boolean sendingToAcceptedRecipients;
+	@Nullable
+	private final DeliveryStatusReport deliveryStatusReport;
 
 	public ExactEmailBuilderImpl(@NotNull final SimpleJavaMailConfig config, final byte @NotNull [] emlBytes) {
 		this.config = requireNonNull(config, "config");
 		this.emlBytes = ExactEmlValidator.copyAndValidateEml(emlBytes);
-		verifyEmlCanBeParsed();
+		deliveryStatusReport = parseEmlIntoEmailBuilder().getDeliveryStatusReport();
 	}
 
 	/**
@@ -195,8 +198,11 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return new InternalEmail(parsedEmailBuilder, emlBytes);
 	}
 
-	private void verifyEmlCanBeParsed() {
-		parseEmlIntoEmailBuilder();
+	/** @see ExactEmailBuilder#getDeliveryStatusReport() */
+	@Override
+	@Nullable
+	public DeliveryStatusReport getDeliveryStatusReport() {
+		return deliveryStatusReport;
 	}
 
 	@NotNull
