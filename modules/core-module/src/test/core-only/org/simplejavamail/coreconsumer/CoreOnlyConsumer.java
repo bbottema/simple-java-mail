@@ -20,6 +20,14 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static Integer inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
+        return configuration.getSessionTimeout();
+    }
+
+    public static java.util.Collection<Recipient> resetGroupPolicies(final IRecipientsBuilder group) {
+        return group.resetSmimeCertificatePolicy().resetDeliveryStatusNotificationNotifyPolicy().buildRecipients();
+    }
+
     public static void fluentConversion(final ConfiguredEmailConverter converter, final Email email,
             final jakarta.mail.Session session, final jakarta.mail.internet.MimeMessage message) {
         converter.fromEml("From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody")

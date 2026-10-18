@@ -264,11 +264,20 @@ class MailSendProgressSmtpTest {
     @Test
     void resultCanArriveBeforeLateProgressAndReportingDoesNotOwnCompletion() throws Exception {
         final BlockingQueue<Runnable> progressExecutor = new LinkedBlockingQueue<>();
+        final CountDownLatch progressQueued = new CountDownLatch(1);
         final List<MailSendProgress> progress = new CopyOnWriteArrayList<>();
         final List<MailSendOutcome> results = new CopyOnWriteArrayList<>();
-        try (RecordingSmtpServer server = new RecordingSmtpServer();
+        try (RecordingSmtpServer server = new RecordingSmtpServer((peer, connection) -> {
+            // ADR 0032 permits coalescing straight to FINISHED; capture a nonterminal handoff before letting SMTP complete.
+            await(progressQueued);
+            connection.greet(peer, "250 localhost");
+            connection.acceptMessages(peer);
+        });
                 Mailer mailer = builder(server.port()).withMailSendResultObserver(results::add)
-                        .withMailSendProgressObserver(progress::add, progressExecutor::add).buildMailer()) {
+                        .withMailSendProgressObserver(progress::add, notification -> {
+                            progressExecutor.add(notification);
+                            progressQueued.countDown();
+                        }).buildMailer()) {
             final Email email = email();
             mailer.sync().sendMail(email);
             mailer.async().sendMail(email).getCompletion().get(5, SECONDS);
