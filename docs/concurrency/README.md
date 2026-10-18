@@ -36,6 +36,10 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 
 ## Entry points and adjacent mechanisms
 
+Incoming delivery-status interpretation is conversion work, not another send lifecycle. A converted Email retains an immutable source snapshot;
+it adds no observer, dispatcher, connection, shared state or background mail retrieval. Application jobs/brokers/workflows own any later transitions.
+The shared infographic's resource layers remain unchanged. See [ADR 0008](../adr/0008-minimal-mime-structures-and-protection-order.md).
+
 Optional [mail-send telemetry](13-mail-send-telemetry.md) follows the existing operation and provider invocation boundaries. Context scopes belong
 to execution turns, not suspended retries; SDK/exporter ownership remains with the application. It adds no send state machine or executor.
 

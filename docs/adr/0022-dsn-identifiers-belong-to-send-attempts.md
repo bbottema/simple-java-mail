@@ -35,6 +35,10 @@ No configuration property or Spring metadata default is added for a per-send ide
 
 ## Implementation evidence and limits
 
+[ADR 0008's source-facts addendum](0008-minimal-mime-structures-and-protection-order.md#interpreted-mail-facts-remain-part-of-email-accepted-2026-10-16)
+keeps interpretation of a supplied notification on the converted Email. This does not move mail retrieval, trust, correlation or business actions into
+SJM, or turn the original submission receipt into a final-delivery tracker.
+
 [ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Generated ENVID
 remains transaction-specific on each replay, while explicitly fixed IDs remain fixed. A stable Message-ID or ENVID is not a server
 deduplication guarantee; retry safety still comes from submission facts.

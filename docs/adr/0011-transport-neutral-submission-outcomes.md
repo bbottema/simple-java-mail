@@ -79,4 +79,8 @@ Absence of a receipt must never be interpreted as proof that no message was acce
 
 Recipients and raw server replies can contain personal information and untrusted text; they are not redacted configuration diagnostics. SMTP acceptance is not mailbox delivery. DSNs, bounces and application reconciliation remain separate concerns. Pending ENVID work adds correlation metadata but does not change these meanings.
 
+[ADR 0008's interpreted-source-facts decision](0008-minimal-mime-structures-and-protection-order.md#interpreted-mail-facts-remain-part-of-email-accepted-2026-10-16)
+adds reading of a supplied delivery notification through its converted Email. This is distinct from the original send result: a received report does
+not mutate a receipt, authenticate delivery or authorize automatic replay. Mail retrieval, correlation and business reconciliation remain application-owned.
+
 Existing regression landmarks include [AngusSubmissionResultTest](../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSubmissionResultTest.java) and [MailSubmissionReceiptTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSubmissionReceiptTest.java). This retrospective documentation pass did not rerun Java tests.

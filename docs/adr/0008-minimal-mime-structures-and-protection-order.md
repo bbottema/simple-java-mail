@@ -61,6 +61,58 @@ Simple messages stay simple and clients see multipart containers that correspond
 
 Security and conversion must preserve Message-ID and exact protected bytes across repeated serialization. Missing optional modules must not silently downgrade requested outbound protection. On incoming mail, accessible content and unavailable verification/decryption facts remain distinct; successful parsing alone is not evidence of trust. Exact EML bypasses this composition pipeline and uses its own preservation contract.
 
+## Interpreted mail facts remain part of Email (accepted 2026-10-16)
+
+This addendum is implemented under [#763](https://github.com/bbottema/simple-java-mail/issues/763), verified and accepted in production review on 2026-10-18;
+the earlier MIME/protection decisions remain implemented. The independent integration programme is [#764](https://github.com/bbottema/simple-java-mail/issues/764).
+
+### Context and decision drivers
+
+An application already converts MIME/EML into Email to inspect bodies, addresses and protection results. Delivery-status notifications are specialized
+mail content, not a second transport outcome. Exposing their interpreted facts through another converter facade would fragment the gateway without
+changing who owns the content. Turning those facts into workflow transitions, however, requires application-specific persistence, trust and business rules.
+
+### Decision
+
+Enrich the common Email read model with immutable source facts during existing inbound conversion. Apply the established protection-before-interpretation
+order: inspect the effective outer notification, retain authoritative protected/exact bytes and do not promote an attached report into its parent's facts.
+Keep source metadata separate from outgoing configuration, SMTP submission results and application state. Ordinary templates, locks and outbound MIME
+producers must not manufacture source facts. Copies preserve provenance, while new replies/forwards describe their own source rather than their subject.
+
+Core owns the reading contracts; the main conversion implementation owns parsing and assembly. Reuse Jakarta Mail's MIME/header machinery without an
+optional experimental DSN dependency. Missing/unusable facts remain absent; a recognized malformed notification can retain usable facts and warnings.
+[ADR 0035](0035-tolerant-reading-and-strict-production.md) makes the inbound tolerance boundary explicit: recover unambiguous formatting and retain
+completed facts when optional interpretation fails, with warnings. Failure to obtain required content still fails conversion rather than returning
+silently truncated content. Received claims are not authenticated delivery proof or permission to retry.
+
+Use cohesive read types for interpreted values rather than leaving applications to split status strings or keep parallel type/value getters aligned.
+An enhanced status exposes checked numeric components and broad classification while preserving unfamiliar subject/detail combinations. Reported
+addresses, servers and diagnostics retain their extensible format identifiers alongside their values; only recognized usable formats offer optional
+Internet-mailbox or SMTP-response views. Those conveniences must not invent absent names, outgoing preferences or delivery evidence. Their construction
+stays internal to conversion, and automatic rendering excludes reported identities and prose.
+
+### Alternatives considered
+
+- **A parallel delivery-report extractor API:** explicit, but forces callers to select another gateway for facts that belong to the converted Email.
+- **Application-only raw parsing:** avoids library work but duplicates mail-format/protection knowledge across integrations.
+- **An SJM handler registry, dispatcher or durable workflow:** convenient for one example, but makes mail interpretation own application persistence,
+  scheduling, correlation and business state. Teach those integrations instead, using their existing platforms.
+
+### Consequences and boundaries
+
+Specialized interpretation is discoverable through the same Email object, without getter-side I/O or new configuration layers. It does not turn Email
+into a mutable delivery tracker. Callers choose correlation, trust, serialization, logging and downstream action; no missing-report success inference or
+automatic retry follows. Metadata must survive copying and supported serialization without retaining MIME objects or changing wire bytes.
+
+Related: [optional modules](0006-optional-modules.md), [provider-neutral MIME](0007-provider-neutral-mime-boundary.md),
+[DSN identifiers](0022-dsn-identifiers-belong-to-send-attempts.md), [safe retries](0030-safe-bounded-mail-send-retries.md),
+and [public/internal boundaries](0031-public-api-and-internal-construction.md). Acceptance tests and feature contracts belong in the implementation plan,
+not this decision record. Sending ownership, state machines and the shared concurrency infographic's resource layers remain unchanged.
+
 ## Implementation anchors
+
+[DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)
+implements interpreted notification facts within the shared MIME pass. [DeliveryStatusReportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/DeliveryStatusReportTest.java)
+and the [dated verification record](../research/763-delivery-status-verification.md) cover this extension separately from the historical evidence below.
 
 [MimeMessageProducerHelper](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java), [builder validation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/EmailPopulatingBuilderImpl.java), and [EmailConverter](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/EmailConverter.java) implement these boundaries. [OpenPgpMimeTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/openpgp/OpenPgpMimeTest.java) and [OpenSSL S/MIME interoperability tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/internal/smimesupport/OpenSslSmimeInteroperabilityTest.java) are existing verification anchors, not newly executed tests for this record.

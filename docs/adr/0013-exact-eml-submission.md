@@ -18,6 +18,9 @@ Keep `Email` as the public message type. `startingFromExactEml(...)` returns a c
 
 Make the input bytes the sole authority for MIME content. The parsed Email getters are an inspection view; they are not the recipe used to reconstruct the message. Internally, `InternalEmail` owns an `EmailSource`: composed sources apply governance and render MIME, while `ExactEmlSource` returns a `FinalizedMimeMessage` from copied bytes and declares `PRESERVE_ALL_BYTES`. Keep this distinction at the source boundary rather than scattering exact/composed checks through every send mode.
 
+[ADR 0035](0035-tolerant-reading-and-strict-production.md) permits recovery in that inspection view without changing authoritative bytes.
+Tolerant reading does not relax this explicit submission mode's validation, content-preservation or transport-safety requirements.
+
 Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 
 [ADR 0028](0028-per-email-recipient-rejection-handling.md) records the explicit recipient-rejection choice on ExactEmailBuilder under #754.
