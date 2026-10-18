@@ -17,6 +17,8 @@ retry decisions and resource cleanup remain more important than delivering every
 Keep two independent registrations: `withMailSendResultObserver` for the existing final outcome and `withMailSendProgressObserver` for live snapshots.
 Rename the terminal callback to `MailSendResultObserver`; retain its callback method, payload and existing dispatch contracts.
 Implicit lambdas would make same-name overloads for the two unrelated callback types ambiguous, so distinct names are intentional.
+Each registration can be removed independently with its corresponding `clearMailSendResultObserver()` or `clearMailSendProgressObserver()` method.
+Clearing removes that callback and its dispatch choice from the builder, without altering already-built Mailers or another observation facility.
 
 One observation UUID identifies a logical individual-email send across progress, failover, retries and final result. It is not Message-ID, ENVID,
 a business deduplication key or telemetry trace context. Neither the Email nor transmitted bytes acquire this ID. Unobserved sends generate none.

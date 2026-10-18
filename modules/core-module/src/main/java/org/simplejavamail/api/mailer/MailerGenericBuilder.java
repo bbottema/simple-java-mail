@@ -1066,7 +1066,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * without changing the send's result.
 	 * <p>
 	 * Calling this method again replaces the result observer and restores inline execution, even if you previously supplied an observer executor.
-	 * It leaves your progress observer unchanged.
+	 * Use {@link #clearMailSendResultObserver()} to remove the result observer and its executor from this builder. Neither operation changes your
+	 * progress observer or any Mailer already built from this builder.
 	 *
 	 * @param mailSendResultObserver Thread-safe, quick and non-blocking terminal send observer.
 	 * @see MailSendResultObserver
@@ -1097,6 +1098,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withMailSendResultObserver(@NotNull MailSendResultObserver mailSendResultObserver, @NotNull Executor observerExecutor);
 
 	/**
+	 * @see #withMailSendResultObserver(MailSendResultObserver)
+	 */
+	@Cli.ExcludeApi(reason = "Result observers are Java-only registrations; a fresh CLI builder has none to clear")
+	T clearMailSendResultObserver();
+
+	/**
 	 * Keeps you informed while an email is being sent, for example when it is waiting for a connection or uploading an attachment.
 	 * To learn how the send finished, also register a {@link #withMailSendResultObserver(MailSendResultObserver) result observer}:
 	 * even {@link MailSendProgressStage#FINISHED FINISHED} means only that sending has ended, not that the server accepted or delivered the email.
@@ -1115,6 +1122,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * Closing the Mailer waits for sends, not progress callbacks: pending updates may be discarded, and a running callback is neither awaited nor interrupted.
 	 * Calling this method again replaces the progress observer and restores execution on the Mailer's dispatcher, without changing your result observer.
+	 * Use {@link #clearMailSendProgressObserver()} to remove the progress observer and its executor from this builder. Clearing either registration
+	 * leaves the other observer and any Mailer already built from this builder unchanged.
 	 *
 	 * @param progressObserver Non-null progress callback; it must tolerate snapshots already superseded by a final result.
 	 * @return This builder.
@@ -1144,6 +1153,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Cli.ExcludeApi(reason = "Java callbacks and executors cannot be represented as CLI values")
 	T withMailSendProgressObserver(@NotNull MailSendProgressObserver progressObserver, @NotNull Executor progressExecutor);
+
+	/**
+	 * @see #withMailSendProgressObserver(MailSendProgressObserver)
+	 */
+	@Cli.ExcludeApi(reason = "Progress observers are Java-only registrations; a fresh CLI builder has none to clear")
+	T clearMailSendProgressObserver();
 
 	/**
 	 * @see CustomMailer

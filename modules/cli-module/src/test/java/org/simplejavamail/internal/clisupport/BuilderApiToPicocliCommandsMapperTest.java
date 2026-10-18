@@ -188,10 +188,13 @@ public class BuilderApiToPicocliCommandsMapperTest {
 				.isFalse();
 		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class, Executor.class))
 				.isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearMailSendResultObserver")).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearMailSendProgressObserver")).isCompatible()).isFalse();
 		assertThat(BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(new Class<?>[]{MailerRegularBuilder.class, MailerFromSessionBuilder.class}))
 				.extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withMailSendTimeout", "--mailer:resetMailSendTimeout")
-				.doesNotContain("--mailer:withMailSendResultObserver", "--mailer:withMailSendProgressObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
+				.doesNotContain("--mailer:withMailSendResultObserver", "--mailer:withMailSendProgressObserver",
+						"--mailer:clearMailSendResultObserver", "--mailer:clearMailSendProgressObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
 	}
 
 	@Test

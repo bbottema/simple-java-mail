@@ -1496,6 +1496,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
+	/** @see MailerGenericBuilder#clearMailSendResultObserver() */
+	@Override
+	public T clearMailSendResultObserver() {
+		this.mailSendResultObserver = null;
+		this.mailSendResultObserverExecutor = null;
+		return (T) this;
+	}
+
 	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver) */
 	@Override
 	public T withMailSendProgressObserver(@NotNull final MailSendProgressObserver progressObserver) {
@@ -1511,6 +1519,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		requireNonNull(progressExecutor, "progressExecutor");
 		this.mailSendProgressObserver = progressObserver;
 		this.mailSendProgressExecutor = progressExecutor;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#clearMailSendProgressObserver() */
+	@Override
+	public T clearMailSendProgressObserver() {
+		this.mailSendProgressObserver = null;
+		this.mailSendProgressExecutor = null;
 		return (T) this;
 	}
 

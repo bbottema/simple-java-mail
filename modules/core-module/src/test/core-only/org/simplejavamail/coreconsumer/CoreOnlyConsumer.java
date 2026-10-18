@@ -77,12 +77,24 @@ public final class CoreOnlyConsumer {
         final Email email = emails.startingBlank().from("sender@example.org").withRecipients(recipient)
                 .dontApplyDefaultValueFor(EmailProperty.SUBJECT).withSubject("Core API consumer").buildEmail();
         final Mailer mailer = mailers.withMailSendResultObserver(CoreOnlyConsumer::inspect)
-                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress).buildMailer();
+                .clearMailSendResultObserver()
+                .withMailSendResultObserver(CoreOnlyConsumer::inspect)
+                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress)
+                .clearMailSendProgressObserver()
+                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress)
+                .buildMailer();
         return mailer.async().sendMail(email);
     }
 
     public static String inspect(final MailSendOutcome outcome) {
         final java.util.UUID observationId = outcome.getObservationId();
+        outcome.getSubmissionReceipt().flatMap(MailSubmissionReceipt::getSmtpResponse)
+                .flatMap(org.simplejavamail.api.mailer.SmtpServerResponse::getEnhancedStatusCode)
+                .ifPresent(status -> {
+                    status.isTemporaryFailure();
+                    status.getSubject();
+                    status.getDetail();
+                });
         return outcome.getDiagnostics().map(CoreOnlyConsumer::inspect).orElse("No diagnostics");
     }
 
