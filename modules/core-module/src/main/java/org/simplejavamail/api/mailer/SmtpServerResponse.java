@@ -2,6 +2,8 @@ package org.simplejavamail.api.mailer;
 
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.email.EnhancedStatusCode;
+import org.simplejavamail.internal.email.EnhancedStatusCodeImpl;
 
 import java.io.Serializable;
 import java.util.Optional;
@@ -56,9 +58,10 @@ public final class SmtpServerResponse implements Serializable {
 	 * Returns an RFC 3463 enhanced status such as {@code 5.1.1}, when it appears at the start of the reply text.
 	 * Malformed, conflicting or primary-code-mismatched statuses remain absent. Every line of a multiline enhanced reply
 	 * must agree, as required by RFC 2034. Unknown but syntactically valid subject/detail values are preserved.
+	 * The complete provider reply remains available through {@link #getResponse()}, even when no enhanced status can be interpreted.
 	 */
 	@NotNull
-	public Optional<String> getEnhancedStatusCode() {
+	public Optional<EnhancedStatusCode> getEnhancedStatusCode() {
 		if (response == null || response.isEmpty()) {
 			return Optional.empty();
 		}
@@ -72,6 +75,16 @@ public final class SmtpServerResponse implements Serializable {
 			}
 			enhancedStatus = reply.group(2);
 		}
-		return Optional.ofNullable(enhancedStatus);
+		return Optional.ofNullable(enhancedStatus).map(SmtpServerResponse::toEnhancedStatusCode);
+	}
+
+	private static EnhancedStatusCode toEnhancedStatusCode(final String status) {
+		// The reply parser has already checked the format and agreement; retain all numeric values, not just registered combinations.
+		final String[] components = status.split("\\.");
+		return EnhancedStatusCodeImpl.builder()
+				.statusClass(Integer.parseInt(components[0]))
+				.subject(Integer.parseInt(components[1]))
+				.detail(Integer.parseInt(components[2]))
+				.build();
 	}
 }

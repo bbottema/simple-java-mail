@@ -22,6 +22,7 @@ import org.simplejavamail.api.email.DeliveryDiagnostic;
 import org.simplejavamail.api.email.EnhancedStatusCode;
 import org.simplejavamail.api.email.ReportedMailServer;
 import org.simplejavamail.api.email.ReportedRecipient;
+import org.simplejavamail.internal.email.EnhancedStatusCodeImpl;
 
 import java.io.IOException;
 import java.io.InputStream;

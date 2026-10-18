@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.internal.email.EnhancedStatusCodeImpl;
 
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -57,12 +58,14 @@ class ReportedDeliveryValuesTest {
 
 	@Test
 	void reportValueInstancesHaveOnlyFinalStateAndNoPublicConstruction() {
-		for (final Class<?> type : List.of(EnhancedStatusCodeImpl.class, ReportedRecipientImpl.class, ReportedMailServerImpl.class,
+		for (final Class<?> type : List.of(ReportedRecipientImpl.class, ReportedMailServerImpl.class,
 				DeliveryDiagnosticImpl.class)) {
 			assertThat(Modifier.isPublic(type.getModifiers())).isFalse();
 			assertThat(type.getConstructors()).isEmpty();
 			assertThat(Arrays.stream(type.getDeclaredFields()).filter(field -> !Modifier.isStatic(field.getModifiers())))
 					.allSatisfy(field -> assertThat(Modifier.isFinal(field.getModifiers())).isTrue());
 		}
+		assertThat(EnhancedStatusCodeImpl.class.getPackageName()).contains(".internal.");
+		assertThat(EnhancedStatusCodeImpl.class.getConstructors()).isEmpty();
 	}
 }

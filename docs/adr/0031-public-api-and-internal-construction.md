@@ -66,6 +66,11 @@ Core is not restricted to Java interfaces or to JDK-only dependencies. Lightweig
 belonged there. Keep their public reading/value behavior there, while keeping runtime collection and implementation-only assembly in the owning
 implementation module. Necessary shared utilities and supported SPI construction remain separate, justified cases.
 
+`EnhancedStatusCode` is a shared reading contract for SMTP responses and received delivery reports. Its immutable implementation belongs in core's
+internal shared-value package because core's `SmtpServerResponse` and the main MIME parser both produce it. It has no application-facing assembly
+entry point. The two source parsers keep their own interpretation rules; sharing the numeric value does not require sharing SMTP reply parsing with
+tolerant notification parsing, or restricting the complete raw provider response.
+
 The existing `OperationalConfig` / `OperationalConfigImpl` and builder-interface / builder-implementation splits are precedents for a real module
 boundary even when Simple Java Mail deliberately supplies the only implementation. A second implementation is not required to justify that boundary.
 Conversely, do not turn every small value class into an interface mechanically. Choose the clean contract first, then its implementation placement.

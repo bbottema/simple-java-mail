@@ -216,7 +216,10 @@ class DeliveryStatusReportTest {
 		assertThat(diagnostic.getType()).isEqualTo("SMtP");
 		assertThat(diagnostic.getText()).isEqualTo("550 5.1.1 No such mailbox");
 		assertThat(diagnostic.getSmtpResponse().getReturnCode()).isEqualTo(550);
-		assertThat(diagnostic.getSmtpResponse().getEnhancedStatusCode()).contains("5.1.1");
+		assertThat(diagnostic.getSmtpResponse().getEnhancedStatusCode()).hasValueSatisfying(status -> {
+			assertThat(status.isPermanentFailure()).isTrue();
+			assertThat(status.toString()).isEqualTo("5.1.1");
+		});
 		assertThat(diagnostic.getSmtpResponse().getResponse()).isEqualTo(diagnostic.getText());
 		for (final String supplied : new String[]{"smtp; remote said 550 unavailable", "smtp; 5500 invalid", "smtp; 600 invalid",
 				"x400; 550 foreign reply"}) {

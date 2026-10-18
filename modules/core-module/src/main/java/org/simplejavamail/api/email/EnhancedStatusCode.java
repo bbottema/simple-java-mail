@@ -5,9 +5,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serializable;
 
 /**
- * A delivery status such as {@code 5.1.1}, already checked and split into its three numeric parts.
+ * An enhanced mail status such as {@code 5.1.1}, already checked and split into its three numeric parts.
+ * SMTP replies and received delivery notifications use the same value type.
  * The status class has three possible values; unfamiliar subject/detail combinations remain readable rather than being discarded.
- * Read the recipient's {@link DeliveryAction} too: a temporary problem can end in either delay or abandoned delivery.
+ * For a delivery notification, read the recipient's {@link DeliveryAction} too: a temporary problem can end in either delay or abandoned delivery.
  */
 public interface EnhancedStatusCode extends Serializable {
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EnhancedStatusCode;
 import org.simplejavamail.api.mailer.MailRecipientDisposition;
 import org.simplejavamail.api.mailer.MailRecipientResult;
 import org.simplejavamail.api.mailer.MailRetryDisposition;
@@ -108,7 +109,13 @@ class MailSubmissionReceiptTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"550 5.1.1 unknown", "550 5.1.1 unknown\r\n", "550-5.1.1 first\r\n550 5.1.1 last\r\n"})
 	void extractsConsistentEnhancedStatus(final String reply) {
-		assertThat(new SmtpServerResponse(550, reply).getEnhancedStatusCode()).contains("5.1.1");
+		assertThat(new SmtpServerResponse(550, reply).getEnhancedStatusCode()).hasValueSatisfying(status -> {
+			assertThat(status.getStatusClass()).isEqualTo(5);
+			assertThat(status.getSubject()).isEqualTo(1);
+			assertThat(status.getDetail()).isEqualTo(1);
+			assertThat(status.isPermanentFailure()).isTrue();
+			assertThat(status.toString()).isEqualTo("5.1.1");
+		});
 	}
 
 	@ParameterizedTest
@@ -121,8 +128,37 @@ class MailSubmissionReceiptTest {
 
 	@Test
 	void preservesUnregisteredEnhancedStatusAndAbsence() {
-		assertThat(new SmtpServerResponse(450, "450 4.999.999 future status").getEnhancedStatusCode()).contains("4.999.999");
+		assertThat(new SmtpServerResponse(450, "450 4.999.999 future status").getEnhancedStatusCode()).hasValueSatisfying(status -> {
+			assertThat(status.getSubject()).isEqualTo(999);
+			assertThat(status.getDetail()).isEqualTo(999);
+			assertThat(status.isTemporaryFailure()).isTrue();
+			assertThat(status.isSuccess()).isFalse();
+			assertThat(status.toString()).isEqualTo("4.999.999");
+		});
 		assertThat(new SmtpServerResponse(250, null).getEnhancedStatusCode()).isEmpty();
+	}
+
+	@Test
+	void preservesCustomProviderRepliesWithoutReinterpretingThem() {
+		final String reply = "vendor-specific queue-id=ABC-123\r\nnot an enhanced status";
+		final SmtpServerResponse response = new SmtpServerResponse(799, reply);
+		assertThat(response.getReturnCode()).isEqualTo(799);
+		assertThat(response.getResponse()).isEqualTo(reply);
+		assertThat(response.getEnhancedStatusCode()).isEmpty();
+	}
+
+	@Test
+	void typedEnhancedStatusSurvivesReceiptSerialization() throws Exception {
+		final MailSubmissionReceipt receipt = MailSubmissionReceiptImpl.builder()
+				.status(MailSubmissionStatus.REJECTED)
+				.recipientResults(List.of())
+				.smtpResponse(new SmtpServerResponse(550, "550 5.999.999 provider-specific condition"))
+				.submittedAt(Instant.now())
+				.retryDisposition(MailRetryDisposition.DO_NOT_RETRY)
+				.build();
+		final EnhancedStatusCode before = receipt.getSmtpResponse().orElseThrow().getEnhancedStatusCode().orElseThrow();
+		final EnhancedStatusCode after = roundTrip(receipt).getSmtpResponse().orElseThrow().getEnhancedStatusCode().orElseThrow();
+		assertThat(after).isEqualTo(before).hasSameHashCodeAs(before);
 	}
 
 	@Test

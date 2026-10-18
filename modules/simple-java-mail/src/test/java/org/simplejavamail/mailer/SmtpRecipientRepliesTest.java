@@ -385,7 +385,10 @@ class SmtpRecipientRepliesTest {
 				assertThat(recipient.getRcptAttempted()).contains(true);
 				assertThat(recipient.getRcptResponse()).hasValueSatisfying(reply -> {
 					assertThat(reply.getReturnCode()).isEqualTo(250);
-					assertThat(reply.getEnhancedStatusCode()).contains("2.1.5");
+					assertThat(reply.getEnhancedStatusCode()).hasValueSatisfying(status -> {
+						assertThat(status.isSuccess()).isTrue();
+						assertThat(status.toString()).isEqualTo("2.1.5");
+					});
 					assertThat(reply.getResponse()).contains(recipient.getEnvelopeAddress().orElseThrow());
 				});
 			});

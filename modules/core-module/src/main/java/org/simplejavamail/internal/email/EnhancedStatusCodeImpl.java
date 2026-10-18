@@ -1,12 +1,14 @@
-package org.simplejavamail.converter.internal.mimemessage;
+package org.simplejavamail.internal.email;
 
 import lombok.Builder;
 import lombok.Value;
+import org.jetbrains.annotations.ApiStatus;
 import org.simplejavamail.api.email.EnhancedStatusCode;
 
-/** Checked numeric components; unfamiliar but well-formed subject/detail combinations remain usable. */
+/** Shared value behind SMTP replies and received delivery reports; unfamiliar numeric subject/detail combinations remain usable. */
+@ApiStatus.Internal
 @Value
-class EnhancedStatusCodeImpl implements EnhancedStatusCode {
+public class EnhancedStatusCodeImpl implements EnhancedStatusCode {
 
 	private static final long serialVersionUID = 1L;
 

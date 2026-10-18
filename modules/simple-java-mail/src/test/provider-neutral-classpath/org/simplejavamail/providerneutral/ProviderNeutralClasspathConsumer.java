@@ -458,7 +458,8 @@ public final class ProviderNeutralClasspathConsumer {
 		}
 		if (result.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
 				|| !recipient.getRcptAttempted().orElse(false)
-				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElse(null))) {
+				|| !recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElseThrow().isTemporaryFailure()
+				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElseThrow().toString())) {
 			throw new AssertionError("Recipient reply API is unavailable");
 		}
 	}
