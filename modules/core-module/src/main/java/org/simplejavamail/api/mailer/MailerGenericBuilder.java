@@ -1168,7 +1168,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Uses another configured Mailer when this destination cannot establish a usable SMTP connection and the policy permits failover.
 	 * For example, a connection refusal can immediately move the send to a second relay while the primary is reconsidered later.
-	 * A busy connection pool or sending-limit wait keeps its normal waiting behavior. Once message submission starts, no email is replayed.
+	 * A busy connection pool or sending-limit wait keeps its normal waiting behavior. Failover never replays an email once provider submission begins.
+	 * A separately configured {@link #withMailSendRetryPolicy(MailSendRetryPolicy) retry policy} may repeat a safely refused submission on the selected
+	 * destination; that retry does not switch to a failover destination.
 	 * <p>
 	 * The selected Mailer supplies its own SMTP settings, email defaults/overrides, validation and message protection. This Mailer still
 	 * owns the executor, observer, completion and overall deadline. Mandatory message settings configured through

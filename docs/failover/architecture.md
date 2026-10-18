@@ -264,7 +264,7 @@ The diagram shows a successful fallback. If provider invocation, conversion or l
 | Busy pool/claim-capacity timeout, queue pressure or rate-limit wait | Keep the ordinary waiting/failure contract; do not mark an outage. |
 | Cancellation, interruption, shutdown or total deadline | Stop under the operation/lifecycle contract. |
 | Setup failure with unresolved cleanup | Stop before starting another destination. |
-| Provider/CustomMailer invocation or later submission/cleanup failure | Complete using existing failure/receipt semantics; do not replay. |
+| Provider/CustomMailer invocation or later submission/cleanup failure | Stop routing to other destinations. Separately configured safe retries remain governed by [ADR 0030](../adr/0030-safe-bounded-mail-send-retries.md); preserve final failure/receipt semantics. |
 
 `ConnectionSetupFailure` inspects both causes and Jakarta Mail `nextException` chains, guards against cycles, and gives certificate/authentication evidence precedence over nested network symptoms. It extends `MailException`, preserving that public catch boundary even when no failover is configured or continuation is forbidden. The managed Angus hook is enabled only during `protocolConnect`, so a later SMTP `421` does not become setup evidence. Its empty-EOF handling depends on Angus 2.0.5's exact `[EOF]` sentinel.
 

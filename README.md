@@ -32,6 +32,11 @@ Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, t
 ### Maven
 
 ```xml
+**Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.6** dependency below.
+For examples you can use with that published release, see the [9.3.6 README](https://github.com/bbottema/simple-java-mail/blob/9.3.6/README.md).
+Until 10.0.0 is released, trying these examples requires artifacts built and installed from this branch, using the version declared in its root POM.
+That development version can still be 9.3.6; Maven Central's published 9.3.6 binaries do not contain this branch's API.
+
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
@@ -71,7 +76,7 @@ mailer.sync().sendMail(email);
 
 The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Choose `mailer.sync().sendMail(email)` to finish on the caller thread or `mailer.async().sendMail(email)` to schedule SMTP work. Both produce a submission receipt, which you can ignore when only completion matters; asynchronous sends expose it through `MailSend.getCompletion()`. Sync failures throw directly, while async operational failures complete exceptionally. Destination selection, Email templates and validation run during executor execution for async sends. The two cached views share the same Mailer, pool and lifecycle. There is no Mailer-wide async default in 10.0.0; see the [execution-view migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#explicit-send-mode).
 
-For an approved alternative SMTP route, configure `.withFailoverMailer(alternative, FailoverPolicy.builder().build())`. [Connection failover](https://www.simplejavamail.org/smtp-connection-failover.html) works for sync/async sends with or without pooling, returns to the primary after recovery, and never automatically replays a message after provider invocation. The selected Mailer owns ordinary Email templates and SMTP settings; mandatory message locks remain binding along the route. Busy pools still wait normally rather than triggering failover.
+For an approved alternative SMTP route, configure `.withFailoverMailer(alternative, FailoverPolicy.builder().build())`. [Connection failover](https://www.simplejavamail.org/smtp-connection-failover.html) works for sync/async sends with or without pooling and returns to the primary after recovery. Failover never replays a message after provider invocation. A separately configured [retry policy](https://www.simplejavamail.org/mail-send-retries.html) may retry a safely refused submission on the selected destination, without reopening failover. The selected Mailer owns ordinary Email templates and SMTP settings; mandatory message locks remain binding along the route. Busy pools still wait normally rather than triggering failover.
 
 On managed Angus connections, sending also checks the prepared email against the server's advertised SIZE limit before submitting it. `receipt.getMessageSize()` and `receipt.getServerMaximumMessageSize()` show the measured content size and reliable server limit in bytes, or `null` when unavailable. An oversized email fails locally with these facts in its failure receipt. This is separate from your own `withMaximumEmailSize(...)` limit and offline rehearsal. See [message size diagnostics](https://www.simplejavamail.org/analyzing-send-results.html#section-message-size).
 
@@ -83,7 +88,7 @@ Before sending, `mailer.sync().testConnection()` checks the SMTP path. For a str
 
 The CLI exposes the same report through `sjm probe`, optionally with `--authenticate`, for both one-shot and daemon execution. Failed and unsupported reports remain on stdout with exit code 3; successful probes return 0. See the [CLI probe examples](https://www.simplejavamail.org/cli.html#section-probe).
 
-To match a later delivery-status notification to a particular send, retain `receipt.getEnvelopeId()`. The bundled Angus adapter generates a fresh UUID on each DSN-capable send; otherwise the value is `null` and sending continues normally. Use `.fixingEnvelopeId("order-42-attempt-1")` to supply a fixed value instead; that explicit request fails before submission if DSN is unsupported. ENVID is separate from Message-ID and leaves MIME bytes unchanged. Simple Java Mail does not read later notifications for you. See the [ENVID usage and sample report](https://www.simplejavamail.org/features.html#section-dsn-envelope-id).
+To match a later delivery-status notification to a particular send, retain `receipt.getEnvelopeId()`. The bundled Angus adapter generates a fresh UUID on each DSN-capable send; otherwise the value is `null` and sending continues normally. Use `.fixingEnvelopeId("order-42-attempt-1")` to supply a fixed value instead; that explicit request fails before submission if DSN is unsupported. ENVID is separate from Message-ID and leaves MIME bytes unchanged. Your application fetches later notifications; Simple Java Mail interprets their delivery reports when you convert them to Email. See the [ENVID usage and sample report](https://www.simplejavamail.org/features.html#section-dsn-envelope-id).
 
 For a message whose later SMTP hops must also use TLS, add `.withTlsRequiredForOnwardDelivery()`. The bundled Angus adapter sends it only when the actual first-hop connection uses authenticated TLS and advertises RFC 8689 REQUIRETLS after TLS negotiation; otherwise the attempt fails before `MAIL FROM`. `receipt.isRequireTlsUsed()` confirms that the parameter was actually issued, not that every later relay complied or that delivery occurred. Use `simplejavamail.defaults.requiretls=true` for an ordinary suppressible Email default. See [first-hop TLS versus onward REQUIRETLS](https://www.simplejavamail.org/security.html#section-requiretls).
 
@@ -226,7 +231,8 @@ This template replaces the factory's property-derived message defaults. To retai
 
 Spring Boot 2.7 and 3.x applications can add the dedicated starter. It brings in `spring-module`, discovers the integration automatically, and creates
 one `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` bean without an `@Import`. The application supplies its own Boot line and therefore keeps its
-Boot-managed Spring Framework and SLF4J versions:
+Boot-managed Spring Framework and SLF4J versions. The starter coordinates below also target the unreleased current branch; build them locally until
+10.0.0 is published:
 
 ```xml
 <dependency>

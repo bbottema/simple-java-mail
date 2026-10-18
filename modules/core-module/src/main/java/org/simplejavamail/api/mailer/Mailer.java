@@ -118,7 +118,9 @@ public interface Mailer extends AutoCloseable {
 		 * This simple batch intentionally sends one email at a time. Without configured failover it uses a dedicated connection, outside the pool.
 		 * With failover configured, it retains a lease from the selected pool when the batch-module is available; otherwise it owns a direct connection.
 		 * A retained lease counts against pool capacity until released and need not close its socket on release. Between emails, the batch may move to
-		 * a recovered earlier destination; it never replays an email whose submission has started.
+		 * a recovered earlier destination. Failover never replays an email whose provider submission has started. A separately configured
+		 * {@link org.simplejavamail.api.mailer.config.MailSendRetryPolicy retry policy} may retry a safely refused email on its selected destination;
+		 * the batch proceeds to the next email only after that email finishes successfully.
 		 *
 		 * @param emails The lazy source of emails, in send order.
 		 * @throws IllegalArgumentException If {@code emails} is {@code null}.

@@ -14,7 +14,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#756](https://github.com/bbottema/simple-java-mail/issues/756): added opt-in bounded retries of safely refused temporary SMTP submissions, with selected-Mailer schedules, immutable in-memory replay, cancellation-aware waits and one final completion/observer outcome. Ordinary async waits release their worker and connection; partial or uncertain acceptance is never replayed automatically.
 
-- [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. No replay occurs after provider invocation, and ordinary capacity/rate waiting does not trigger failover.
+- [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. Failover does not replay after provider invocation; separately enabled safe retries stay on the selected destination. Ordinary capacity/rate waiting does not trigger failover.
 
 - [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration.
 
@@ -31,6 +31,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
 ### Enhancements
+
+- OpenPGP signing and encryption participate in Email defaults/overrides with the same whole-policy replacement and suppression rules as S/MIME and DKIM. Result and progress observers can be cleared independently on the Mailer builder. SMTP enhanced status codes use the same typed value as received delivery reports, without restricting raw provider replies or unfamiliar numeric combinations.
 
 - [#761](https://github.com/bbottema/simple-java-mail/issues/761): added supported connection and SMTP-stage progress for greeting, capabilities, TLS upgrades, authentication, envelope exchange and DATA permission. Scoped provider hooks preserve coarse fallback and prevent old pooled/retry observations from leaking into another send; no extra network or content work is performed.
 
@@ -52,6 +54,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
 
 ### Bug fixes
+
+- Email copies retain their choices to skip ordinary defaults/overrides, including per-field suppression. Earlier releases lost these choices while copying, which could reapply templates the original Email had excluded. See the [copying migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#copied-template-suppression).
 
 - [#757](https://github.com/bbottema/simple-java-mail/issues/757): restored selected-member Email defaults, overrides and validation in clustered sends, including without failover. Destination preparation starts from the original Email; the invoking Mailer's ordinary templates no longer contaminate another member's submission. A second live Mailer sharing a Session or its Properties is rejected before it can replace the first owner's configuration. Individual async preparation now runs on executor execution, with consistent scheduling/preparation diagnostics. See the migration notes for applications depending on the previous behavior.
 

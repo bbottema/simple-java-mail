@@ -39,7 +39,7 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
  * Static conversion methods that produce an email builder use the conventional immutable configuration from {@link SimpleJavaMail#fromDefaults()}.
  * Use {@link SimpleJavaMail#converter()} when conversion must use an explicit factory snapshot.
  * <br>
- * If you use the Outlook parsing API, make sure you load the following dependency: <em>org.simplejavamail::outlook-message-parser</em>
+ * For Outlook conversion, add <em>org.simplejavamail:outlook-module</em> using the same version as Simple Java Mail.
  */
 @SuppressWarnings("WeakerAccess")
 @UtilityClass

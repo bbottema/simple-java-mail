@@ -27,7 +27,8 @@ such as copying maintainers whenever the failover Mailer is used. Treating compo
 ## Decision summary
 
 On 2026-10-07 the maintainer selected **connection failover first**: try an explicitly configured failover destination when the primary cannot provide
-a usable connection. Once provider submission invocation begins, retain the existing failure and receipt behavior without automatic replay.
+a usable connection. Once provider submission invocation begins, failover cannot replay that email through another destination.
+The separately configured same-destination retry contract is defined by [ADR 0030](0030-safe-bounded-mail-send-retries.md).
 This applies to ordinary synchronous/asynchronous sends, with or without pooling. The architectural decisions below are accepted;
 concrete signatures, property names and verification obligations are fixed in the implementation plan.
 
@@ -65,7 +66,7 @@ observer diagnostics, not a new failure handler or send-result wrapper. `MailSen
 
 The website must explain how applications can handle later retry decisions through the existing observer and receipt APIs.
 General mail-send retry policies were separate research under [#756](https://github.com/bbottema/simple-java-mail/issues/756) when
-this failover decision was accepted. [ADR 0030](0030-safe-bounded-mail-send-retries.md) subsequently accepts that direction for
+this failover decision was accepted. [ADR 0030](0030-safe-bounded-mail-send-retries.md) subsequently defines that implemented direction for
 10.0.0. It does not expand #755's delivered connection-only scope: initial failover selects a destination,
 then any eligible submission retries stay with that selected Mailer rather than reopening route traversal.
 
@@ -320,7 +321,7 @@ against classified connection facts at each boundary. Direct calls on B retain B
 
 All stages still belong to one logical send. The initiating Mailer owns execution, admission, terminal observation, cancellation,
 completion and the remaining overall deadline. Nested setup attempts share the operation's finite traversal budget. They cannot reset
-the deadline, revive stopped work, multiply independent retry loops or continue after any provider submission invocation has begun.
+the deadline, revive stopped work, multiply independent retry loops or continue failover traversal after provider submission invocation has begun.
 Reject cyclic failover configurations clearly; explicit bounded connection retries are distinct from following a cycle.
 
 #### Ownership matrix
@@ -613,9 +614,9 @@ The agreed traffic shape is:
    preserve B's normal sending behavior and update only A's applicable retry timing.
 4. When a policy-permitted attempt obtains a usable A connection, later individual sends prefer A again, under A's configured limits.
    A simple batch finishes its current email on B, then can move the untouched remainder to A at the next email boundary.
-   An email already being submitted and an explicitly retained open-connection scope stay on B; never replay either.
+   An email already being submitted and an explicitly retained open-connection scope stay on B; primary recovery never moves that email to A.
 
-If B also fails, B has its own retry eligibility and any further eligible destination can be considered. Backoff controls reconsideration
+If B's connection setup also fails, B has its own retry eligibility and any further eligible destination can be considered. Backoff controls reconsideration
 of a failed destination; attempt limits and the remaining deadline separately bound the operation. No scheduled health probe discovers
 recovery: an actual operation obtains the usable connection. This records observed setup behavior, not server health, SMTP acceptance or
 successful final delivery.
@@ -645,8 +646,8 @@ Here, primary retry/backoff means **connection setup before provider submission 
 repeated setup attempts share the operation's cancellation, deadline and finite attempt budget; do not nest unbounded retry loops or restart
 the overall timeout. The agreed baseline prefers a failover destination after one failed primary setup attempt. Primary reconsideration defaults to a
 configurable fixed interval; optional increasing backoff has a configured cap. Concrete periods, repeat controls and destination-identity
-representation still require agreement. General submission retry/backoff remains separate under #756 and
-[ADR 0030](0030-safe-bounded-mail-send-retries.md), accepted but not implemented.
+representation are fixed by the implemented policy. General submission retry/backoff remains separate under #756 and
+[ADR 0030](0030-safe-bounded-mail-send-retries.md), implemented for unreleased 10.0.0.
 
 ### Factory-local connection history
 
@@ -664,10 +665,11 @@ the invoking policy against retained facts, including its independent authentica
 not make a stricter one silently bypass a recorded failure. Sharing failure history does not transfer sending-limit counters, reset
 deadlines, revive cancelled operations or make a successful connection prove SMTP acceptance or final delivery.
 
-### Accepted initial scope: find a usable connection, submit once
+### Accepted failover scope: find a usable connection, never replay through another destination
 
 For classified availability failure before submission invocation, clean up the failed candidate and try the next eligible destination.
-Once provider submission invocation begins, preserve the current result/failure behavior and do not automatically replay the Email.
+Once provider submission invocation begins, stop failover traversal. Any separately configured safe submission retry remains on the selected
+destination under ADR 0030; it does not reopen routing or change acceptance and receipt semantics.
 This conservative portable boundary includes provider-internal preflight in submission, even if that preflight sends no SMTP commands.
 
 Enforce this boundary structurally: route traversal returns an owned, ready-to-send scope. Governance, locks and allowance preparation
@@ -719,9 +721,9 @@ lease occupies capacity throughout the scope and is released or invalidated at c
 work, inline observers and sending-limit waits do not release it between emails.
 
 With failover enabled, a simple batch reuses its connection for successive emails but may change destination between them. Finish the
-current email's submission and required per-email observer handoff before switching. A failed email still stops the batch; recovery must
-not hide that failure or replay it. Reconsider A only when the policy permits, and switch the untouched remainder only after obtaining
-a usable connection that passes the applicable checks. A permitted failed A recheck leaves B eligible without imposing A's backoff on B.
+current email, including any separately configured safe retries and required per-email observer handoff, before switching. A final email failure
+still stops the batch; failover recovery must not hide that failure or replay it. Reconsider A only when the policy permits, and switch the untouched
+remainder only after obtaining a usable connection that passes the applicable checks. A permitted failed A recheck leaves B eligible without imposing A's backoff on B.
 
 For example, after emails 1–414 finish on B, a due recovery check obtains a usable A connection; emails 415 onward use A. Keep one
 lazy iterator, operation, completion handle, cancellation control and overall deadline. Do not reopen, pre-consume, clone or restart the
@@ -794,7 +796,8 @@ of a job event, and reusing a Message-ID does not provide server-side deduplicat
 
 Show whole-envelope and safe-unaccepted-recipient decisions without replaying accepted or permanently rejected recipient occurrences.
 Absent receipts, unknown acceptance, cancellation, logging-only mode and acceptance followed by cleanup failure must not trigger blind
-resends. Application code owns delays, attempt limits, persistence and any address/message corrections until a separate retry policy is accepted.
+resends. Application code owns persistence, recipient-subset retries and any address/message corrections. The separately configured policy in
+ADR 0030 handles bounded, safely refused whole-email retries on the selected destination without reopening failover.
 
 ## Alternatives considered
 
@@ -832,8 +835,9 @@ A policy-enabled simple batch can reuse connections across successive destinatio
 for its whole lifetime. A recovery connection attempt can pause that batch at an email boundary and consumes its remaining deadline;
 this does not impose the primary's backoff on other work using B. No zero-cost or instantaneous recovery guarantee follows.
 
-The accepted initial scope deliberately stops on a lost connection after provider invocation, including cases managed Angus may know
-are unsent. It is useful but not general automatic SMTP retry. Broader replay is possible only after its additional contract is chosen.
+Failover deliberately stops on a lost connection after provider invocation, including cases managed Angus may know are unsent.
+It is not a general SMTP retry mechanism. The separate implemented contract in ADR 0030 permits bounded same-destination retries only
+when the submission receipt proves that replaying the whole email is safe.
 
 Different relays can have different sender authorization, routing, privacy, quotas, provider capabilities and downstream behavior.
 Explicit configuration cannot guarantee equivalent delivery. SMTP acceptance remains different from final delivery.
@@ -966,7 +970,7 @@ remains version-neutral; release notes describe additions and migration notes co
 | Documentation home | Required treatment |
 | --- | --- |
 | Public Mailer and builder Javadocs | Complete paired-setter, nested fallback, selected-only templates, suppression, ownership and scope contracts. Distinguish borrowed supplied instances from privately constructed owned failover Mailers. Implementation Javadocs refer to the interface source of truth. Explain ordinary versus exact Email and one initiating operation/observer. |
-| README and canonical failover walkthrough | Small primary/failover setup, pooling-independent sending, independent permissions, bounded primary rechecks, logs/history and no post-invocation replay. Include the canonical ownership matrix comparing A-through-B, A-through-nested-C and direct-B calls, including scoped locks and approved relationships. Examples use agreed APIs. |
+| README and canonical failover walkthrough | Small primary/failover setup, pooling-independent sending, independent permissions, bounded primary rechecks, logs/history and no post-invocation replay through failover. Distinguish separately configured safe same-destination retries. Include the canonical ownership matrix comparing A-through-B, A-through-nested-C and direct-B calls, including scoped locks and approved relationships. Examples use agreed APIs. |
 | [Configuration defaults/overrides](../../simplejavamail.org/src/pages/configuration.hbs) | Extend the canonical section without a new template hierarchy. Show unchanged selected-Mailer precedence, headers/additive values, failover BCC, suppression and clearing/replacement. Ordinary A-only settings do not carry to B; mandatory message locks do. Explain snapshot defaults, approved failover relationships and conflicts requiring the configuration owner's help. Reconcile the clustered-template claim with verified runtime behavior. |
 | [Cross-cutting use cases](../../simplejavamail.org/src/pages/use-cases.hbs) | Add a discoverable resilient-sending route linking configuration, execution, security, pooling and diagnostics. Distinguish authorized failover routes from load balancing or another customer's healthy relay. Review affected batch/throughput wording. |
 | [Email workload field guide](../../simplejavamail.org/src/guides/email-workloads.md) | Add concrete independent scenarios for primary outage, a failover-specific header/BCC, centrally approved failover Mailers preserving a mandatory archive copy, certificate expiry with a verified failover Mailer, and return-to-primary within a large lazy batch. Reconcile existing approved-relay, customer-isolation, backlog, quotas and shutdown scenarios; don't turn automatic connection fallback into automatic message retries. |
