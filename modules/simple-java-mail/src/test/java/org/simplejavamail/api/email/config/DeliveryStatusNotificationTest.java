@@ -49,4 +49,34 @@ public class DeliveryStatusNotificationTest {
 		assertThat(DeliveryStatusNotification.parseReturnOption("headers-only")).isEqualTo(HEADERS_ONLY);
 		assertThat(DeliveryStatusNotification.parseReturnOption("FULL")).isEqualTo(FULL_MESSAGE);
 	}
+
+	@Test
+	public void clearingReturnOptionRetainsOtherOptionsAndDoesNotChangeTheOriginal() {
+		final DeliveryStatusNotification original = DeliveryStatusNotification.builder()
+				.returnOption(HEADERS_ONLY)
+				.notifyOptions(FAILURE, DELAY)
+				.envelopeId("order-42")
+				.build();
+		final DeliveryStatusNotification.DeliveryStatusNotificationBuilder builder = original.toBuilder();
+
+		assertThat(builder.clearReturnOption()).isSameAs(builder);
+		final DeliveryStatusNotification cleared = builder.clearReturnOption().build();
+
+		assertThat(cleared.getReturnOption()).isNull();
+		assertThat(cleared.getNotifyOptions()).containsExactly(FAILURE, DELAY);
+		assertThat(cleared.getEnvelopeId()).isEqualTo("order-42");
+		assertThat(original.getReturnOption()).isEqualTo(HEADERS_ONLY);
+		assertThat(builder.returnOption("FULL").build().getReturnOption()).isEqualTo(FULL_MESSAGE);
+	}
+
+	@Test
+	public void clearingTheOnlyOptionStillRequiresAUsefulNotificationRequest() {
+		final DeliveryStatusNotification.DeliveryStatusNotificationBuilder builder = DeliveryStatusNotification.builder()
+				.returnOption(FULL_MESSAGE)
+				.clearReturnOption();
+
+		assertThatThrownBy(builder::build)
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("At least one delivery status notification option");
+	}
 }

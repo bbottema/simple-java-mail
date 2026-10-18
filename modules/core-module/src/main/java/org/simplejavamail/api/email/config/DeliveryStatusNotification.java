@@ -247,10 +247,19 @@ public final class DeliveryStatusNotification implements Serializable {
 			return this;
 		}
 
-		/** Chooses how much of the original email a failure notification may return; {@code null} leaves the choice to the server. */
+		/**
+		 * Chooses how much of the original email a failure notification may return. Use {@link #clearReturnOption()} to remove this preference without
+		 * changing the requested notification events or envelope identifier. Server or advanced-provider defaults can still apply.
+		 * The typed overload also accepts {@code null} for clearing this preference.
+		 */
 		public DeliveryStatusNotificationBuilder returnOption(@Nullable final ReturnOption returnOption) {
 			this.returnOption = returnOption;
 			return this;
+		}
+
+		/** @see #returnOption(ReturnOption) */
+		public DeliveryStatusNotificationBuilder clearReturnOption() {
+			return returnOption((ReturnOption) null);
 		}
 
 		/** Parses external text; Java callers should use {@link #returnOption(ReturnOption)} for discoverable choices. */
