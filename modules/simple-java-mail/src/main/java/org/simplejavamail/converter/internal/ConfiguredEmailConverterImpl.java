@@ -184,6 +184,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			final boolean fetchAttachmentData) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
+		requireSmimeForExplicitDecryption(pkcs12Config);
 		final InboundProtectionResult<OriginalOpenPgpDetails> openPgpResult = preprocessOpenPgp(mimeMessage, openPgpReceiveConfig);
 		final SmimePreprocessingResult smimeResult = openPgpResult.isRecognized()
 				? null
@@ -250,6 +251,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final String msgFileName,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFileName, "msgFile");
+		requireSmimeForExplicitDecryption(pkcs12Config);
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFileName, emailStartingBuilder, emailPopulatingBuilderFactory, InternalEmailConverterImpl.INSTANCE);
 		return toOutlookEmailConversionResult(result, pkcs12Config);
@@ -260,6 +262,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFile, "msgFile");
+		requireSmimeForExplicitDecryption(pkcs12Config);
 		EmailFromOutlookMessage result = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgFile, emailStartingBuilder, emailPopulatingBuilderFactory, InternalEmailConverterImpl.INSTANCE);
 		return toOutlookEmailConversionResult(result, pkcs12Config);
@@ -398,10 +401,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@NotNull
 	private EmailFromOutlookMessage loadOutlookMessage(@NotNull final InputStream msgInputStream,
 			@Nullable final Pkcs12Config pkcs12Config) {
+		requireSmimeForExplicitDecryption(pkcs12Config);
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgInputStream, emailStartingBuilder, emailPopulatingBuilderFactory, InternalEmailConverterImpl.INSTANCE);
 		decryptAttachments(fromMsgBuilder.getEmailBuilder(), fromMsgBuilder.getOutlookMessage(), pkcs12Config);
 		return fromMsgBuilder;
+	}
+
+	private static void requireSmimeForExplicitDecryption(@Nullable final Pkcs12Config pkcs12Config) {
+		if (pkcs12Config != null) {
+			// Explicit decryption is a requested feature, not the optional inspection attempted when its module happens to be present.
+			loadSmimeModule();
+		}
 	}
 
 	@NotNull

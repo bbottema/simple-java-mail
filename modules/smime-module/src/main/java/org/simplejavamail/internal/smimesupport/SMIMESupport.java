@@ -572,6 +572,7 @@ public class SMIMESupport implements SMIMEModule {
 		List<AttachmentDecryptionResult> decryptedAttachments = decryptAttachments(attachments, pkcs12Config, smimeBuilder.getOriginalSmimeDetails(),
 				smimeBuilder.getOriginalSmimeDetails());
 		smimeBuilder.addDecryptedAttachments(decryptedAttachments);
+		completeMessageDecryptionStatus(smimeBuilder, pkcs12Config);
 
 		if (attachments.size() == 1) {
 			final AttachmentResource onlyAttachment = attachments.get(0);
@@ -581,6 +582,29 @@ public class SMIMESupport implements SMIMEModule {
 				smimeBuilder.setSmimeSignedOrEncryptedEmail(onlyAttachmentDecrypted.getAttachmentResource());
 			}
 		}
+	}
+
+	private void completeMessageDecryptionStatus(final SmimeParseResultBuilder smimeBuilder, @Nullable final Pkcs12Config pkcs12Config) {
+		final OriginalSmimeDetailsImpl details = smimeBuilder.getOriginalSmimeDetails();
+		// Outlook represents a message-level S/MIME envelope as an attachment. Independent encrypted files do not change their plain parent's status.
+		if (!isEncryptedMode(details.getSmimeMode())) {
+			return;
+		}
+		if (pkcs12Config == null) {
+			details.completeWith(OriginalSmimeDetailsImpl.builder()
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING)
+					.failureReason("No PKCS12 decryption key was provided for the S/MIME message")
+					.build());
+		} else if (smimeBuilder.getDecryptedAttachmentResults().stream().anyMatch(result -> isEncryptedMode(result.getSmimeMode()))) {
+			// Only completed decryption establishes this result. A wrong key, bad password or content-read failure still propagates normally.
+			details.completeWith(OriginalSmimeDetailsImpl.builder()
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
+					.build());
+		}
+	}
+
+	private static boolean isEncryptedMode(@Nullable final SmimeMode mode) {
+		return mode == SmimeMode.ENCRYPTED || mode == SmimeMode.SIGNED_ENCRYPTED;
 	}
 
 	private boolean isMimeMessageAttachment(final AttachmentResource attachment) {

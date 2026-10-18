@@ -19,6 +19,11 @@ On input, recognize protection and verify/decrypt the original representation be
 
 ## MIME producer selection
 
+Protection facts describe the owning Email's represented layers, not an aggregate of unrelated attachments. Successful envelope decryption
+is independent of signature validity; recognizing encryption without keys does not report plain content. Explicit requests require the module
+under [ADR 0006](0006-optional-modules.md). Metadata ownership follows
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md), without cloning arbitrary borrowed resources.
+
 The selector's three booleans map to these producers. Mixed content means attachments or a forwarded email; related content means embedded images; alternative content means more than one body variant among plain text, HTML, and calendar text.
 
 | Producer | Mixed | Related | Alternative |

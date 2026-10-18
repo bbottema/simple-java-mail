@@ -1,8 +1,6 @@
 package org.simplejavamail.api.email;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -14,7 +12,6 @@ import java.util.Arrays;
  * @see "StreamProvider.EncoderTypes"
  */
 @RequiredArgsConstructor
-@Getter
 public enum ContentTransferEncoding {
 
 	BASE_64("base64"),
@@ -29,6 +26,12 @@ public enum ContentTransferEncoding {
 	X_UUE("x-uue");
 
 	private final String encoder;
+
+	/** Returns the MIME transfer-encoding name used when writing the content. */
+	@NotNull
+	public String getEncoder() {
+		return encoder;
+	}
 
 	public static ContentTransferEncoding byEncoder(@NotNull final String encoder) {
 		try {

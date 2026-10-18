@@ -281,13 +281,15 @@ public interface Mailer extends AutoCloseable {
 	<E extends Exception> void withOpenConnection(@NotNull OpenConnectionCallback<E> openConnectionCallback) throws E;
 
 	/**
-	 * Prepares the supplied {@link Email} through this mailer's normal send-time pipeline without opening an SMTP connection.
+	 * Previews how this Mailer prepares the supplied {@link Email}, without opening an SMTP connection.
 	 * <p>
 	 * For a composed email, defaults and overrides are applied to a separate effective Email, ordinary client-side validation runs, the complete MIME
 	 * message is rendered, configured S/MIME, OpenPGP and DKIM processing runs, and the final encoded size is checked against the configured maximum. For
 	 * an exact email, those transforming steps are deliberately bypassed: its explicit envelope is validated, its authoritative EML is parsed without
 	 * alteration, and its supplied byte length is checked against the configured maximum. The returned snapshot
 	 * exposes the effective Email, defensive EML bytes, encoded size, Message-ID and transport envelope addresses.
+	 * This offline preview uses the Mailer you call. It does not choose a cluster or failover destination; an actual send through another member
+	 * can therefore apply different defaults, overrides, validation or security settings.
 	 * <p>
 	 * <strong>When to use:</strong> choose rehearsal when the caller will inspect or retain any of those prepared facts, for example for a preview, EML
 	 * export, size diagnostics or transport-envelope inspection. A successful rehearsal already performs the same preparation and checks as
@@ -316,6 +318,7 @@ public interface Mailer extends AutoCloseable {
 	 * encoded size describe the unsecured base MIME message and the configured maximum size is not enforced. All other snapshot fields remain available.
 	 * Exact email is never transformed in either mode; the flag controls only validation of its supplied byte length against the configured maximum.
 	 * Neither mode invokes transport-mode logging or a custom mailer.
+	 * Both use this Mailer's configuration, without selecting or validating a future cluster/failover route.
 	 * <p>
 	 * Choose this result-returning overload instead of {@link #validate(Email, boolean)} when the caller needs the base or final EML, size, effective
 	 * Email, Message-ID or envelope facts. A successful call has already validated to the requested depth.

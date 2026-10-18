@@ -101,6 +101,10 @@ Moving all feature configuration into that adapter was rejected: adaptation of a
 
 ## Consequences
 
+An explicit inbound decryption request uses the same module boundary as outbound protection: resolve the requested module when conversion
+needs it, rather than importing as though no decryption was requested. Ordinary inspection without an explicit request remains tolerant.
+A missing requested module is a configuration failure, not a fabricated cryptographic status.
+
 The ordinary runtime stays small and feature-specific failures occur at use. The cost is reflective class-name coupling, runtime rather than compile-time detection of missing modules, and shared implementation instances that require thread-safe behavior. Cached availability is not a hot-plugging API; the force-disable/recheck hooks exist for tests.
 
 The typed adapter is the explicit exception to runtime-only module availability: callers using it need its artifact at compile time as well.

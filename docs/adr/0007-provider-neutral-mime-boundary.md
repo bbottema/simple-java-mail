@@ -76,6 +76,9 @@ The archived plan explicitly avoids **another provider/security subclass matrix*
 
 ## Consequences
 
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) separates detached metadata from borrowed DataSources and forwarded
+messages. Finalizing submission content does not require eager content reads during ordinary Email construction.
+
 Conversion can run without an SMTP provider, and cryptography no longer requires Angus types. Sending still needs a Jakarta Mail provider. The default `simple-java-mail` dependency supplies Angus at runtime; another provider must supply adapters for stronger content or envelope requirements.
 
 Protected representations cost memory because their authoritative bytes must remain repeatable. Ordinary conversion does not acquire an additional full protected snapshot merely for using this API. Public adapters must make honest preservation claims, preserve exceptions and recipient facts, and remain separate from transport ownership. The uncommitted fixed-ENVID capability extension present while this ADR was recorded follows the envelope seam but is separate work, not evidence that all DSN options or providers are complete.

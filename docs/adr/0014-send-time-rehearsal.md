@@ -47,6 +47,11 @@ Full validation becomes more expensive and can fail for missing requested securi
 
 ## Implementation limits and current boundaries
 
+Rehearsal uses the invoking Mailer's governance and Session. It does not select a cluster/failover destination, rehearse all routes, or promise
+the selected member's eventual templates. [ADR 0029](0029-smtp-submission-failover.md) assigns actual-send governance to the selected destination;
+an offline preview deliberately does not acquire that route. Snapshot ownership follows
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+
 Rehearsal does not acquire a Transport or pool lease, start a proxy, call a CustomMailer, produce a send observer outcome, or run normal Session/Email logging. It does not test credentials, connectivity, server capabilities or delivery. The no-network boundary here means no mail transport activity; configured content sources and application-provided data sources still have their own I/O behavior during MIME construction. Logging-only/custom-mailer configuration does not replace the normal preparation described by the snapshot.
 
 For composed messages, a later send prepares again: dates, boundaries, Message-IDs and cryptographic output can differ. A rehearsal through this Mailer is not a frozen reservation of a pooled Session or future server transaction. The snapshot's envelope sender is the explicit override, or absent when a provider will derive its default. Do not claim it has predicted every provider choice.

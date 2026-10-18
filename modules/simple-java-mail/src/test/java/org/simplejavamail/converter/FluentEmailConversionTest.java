@@ -193,18 +193,13 @@ class FluentEmailConversionTest {
 		final Email fromMime = converter.fromMimeMessage(EmailConverter.emlToMimeMessage(eml)).withSmimeDecryption(keys).toEmail();
 		final Email fromOutlook = converter.fromOutlookMsg(fixtures.resolve("S_MIME test message encrypted.msg"))
 				.withSmimeDecryption(keys).toEmail();
-		for (final Email result : new Email[] {fromEml, fromMime}) {
+		for (final Email result : new Email[] {fromEml, fromMime, fromOutlook}) {
 			assertThat(result.getOriginalSmimeDetails().getDecryptionStatus())
 					.isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
 			assertThat(result.getPlainText()).contains("For testing purposes");
 		}
-		// Outlook's established attachment-decryption route records its mode rather than the newer top-level MIME decryption status.
-		final Email existingOutlook = EmailConverter.outlookMsgToEmail(fixtures.resolve("S_MIME test message encrypted.msg").toFile(), keys);
 		assertThat(fromOutlook.getOriginalSmimeDetails().getSmimeMode())
 				.isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-		assertThat(fromOutlook.getOriginalSmimeDetails().getDecryptionStatus())
-				.isEqualTo(existingOutlook.getOriginalSmimeDetails().getDecryptionStatus());
-		assertThat(fromOutlook.getPlainText()).contains("For testing purposes");
 	}
 
 	@Test
