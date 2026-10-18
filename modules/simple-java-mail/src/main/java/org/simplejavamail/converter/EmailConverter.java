@@ -21,11 +21,13 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.converter.internal.EmailConverterException;
+import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 
@@ -74,7 +76,7 @@ public class EmailConverter {
 	public static Email mimeMessageToEmail(@NotNull final MimeMessage mimeMessage,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig) {
-		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, true).buildEmail();
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA).buildEmail();
 	}
 
 	/**
@@ -90,7 +92,7 @@ public class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage, @Nullable final Pkcs12Config pkcs12Config) {
-		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, true);
+		return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
 	}
 
 	/**
@@ -110,7 +112,7 @@ public class EmailConverter {
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			final boolean fetchAttachmentData) {
-		return SimpleJavaMail.fromDefaults().converter()
+		return conventionalConverter()
 				.mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, fetchAttachmentData);
 	}
 
@@ -157,7 +159,7 @@ public class EmailConverter {
 	@NotNull
 	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final String msgFileName,
 			@Nullable final Pkcs12Config pkcs12Config) {
-		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgFileName, pkcs12Config);
+		return conventionalConverter().outlookMsgToEmailBuilderWithOutlookData(msgFileName, pkcs12Config);
 	}
 
 	/**
@@ -222,7 +224,7 @@ public class EmailConverter {
 	@SuppressWarnings("deprecation")
 	@NotNull
 	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile, @Nullable final Pkcs12Config pkcs12Config) {
-		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgFile, pkcs12Config);
+		return conventionalConverter().outlookMsgToEmailBuilderWithOutlookData(msgFile, pkcs12Config);
 	}
 
 	/**
@@ -270,7 +272,7 @@ public class EmailConverter {
 	@NotNull
 	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath,
 			@Nullable final Pkcs12Config pkcs12Config) {
-		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgPath, pkcs12Config);
+		return conventionalConverter().outlookMsgToEmailBuilderWithOutlookData(msgPath, pkcs12Config);
 	}
 
 	/**
@@ -338,7 +340,7 @@ public class EmailConverter {
 	@NotNull
 	public static OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final InputStream msgInputStream,
 			@Nullable final Pkcs12Config pkcs12Config) {
-		return SimpleJavaMail.fromDefaults().converter().outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config);
+		return conventionalConverter().outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config);
 	}
 
 	/**
@@ -467,7 +469,7 @@ public class EmailConverter {
 
 	/**
 	 * Parses the EML file at the supplied path and builds the resulting email. Use
-	 * {@link ConfiguredEmailConverter#emlToEmailBuilder(Path, Pkcs12Config, OpenPgpReceiveConfig, Session)} when receive-side security configuration or a
+	 * {@link ConfiguredEmailConverter#fromEml(Path)} when receive-side security configuration or a
 	 * specific Session is required.
 	 *
 	 * @param emlPath Path to the EML file.
@@ -486,7 +488,7 @@ public class EmailConverter {
 	 */
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath) {
-		return SimpleJavaMail.fromDefaults().converter().emlToEmailBuilder(emlPath);
+		return conventionalConverter().emlToEmailBuilder(emlPath);
 	}
 
 	/**
@@ -527,7 +529,7 @@ public class EmailConverter {
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			@NotNull final Session session) {
-		return SimpleJavaMail.fromDefaults().converter()
+		return conventionalConverter()
 				.emlToEmailBuilder(emlInputStream, pkcs12Config, openPgpReceiveConfig, session);
 	}
 
@@ -835,6 +837,11 @@ public class EmailConverter {
 	public static String outlookMsgToEML(@NotNull final InputStream outlookMsgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(outlookMsgInputStream, "outlookMsgInputStream");
 		return emailToEML(outlookMsgToEmail(outlookMsgInputStream, pkcs12Config));
+	}
+
+	private static ConfiguredEmailConverterImpl conventionalConverter() {
+		// Keep released static parsing/ownership semantics while the configured public surface remains the fluent from... API.
+		return new ConfiguredEmailConverterImpl(SimpleJavaMail.fromDefaults().getConfig());
 	}
 
 	private static Session createDummySession() {

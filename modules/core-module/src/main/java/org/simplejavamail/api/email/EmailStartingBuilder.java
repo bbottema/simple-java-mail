@@ -20,6 +20,12 @@ import static java.util.regex.Pattern.compile;
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {
 	/**
+	 * Whether conversion to Email eagerly reads attachment content. Disabling this retains lazy data sources for later reading.
+	 * @see org.simplejavamail.api.converter.ConfiguredEmailConverter.IncomingConversion#withFetchAttachmentData(boolean)
+	 */
+	boolean DEFAULT_FETCH_ATTACHMENT_DATA = true;
+
+	/**
 	 * Used for replying to email, when quoting the original email. Matches the beginning of every line.
 	 * <p>
 	 * <strong>Pattern used</strong>: {@code "(?m)^"}

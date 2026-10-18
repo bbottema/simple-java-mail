@@ -96,8 +96,8 @@ class Java11ApiConvenienceTest {
 			assertThat(EmailConverter.emlToEmail(ordinaryEml).getSubject()).isEqualTo("Path input");
 			assertThat(EmailConverter.emlToEmailBuilder(ordinaryEml).buildEmail().getPlainText()).contains("body");
 			assertThat(EmailConverter.emlToMimeMessage(ordinaryEml).getSubject()).isEqualTo("Path input");
-			assertThat(simpleJavaMail.converter().emlToEmailBuilder(
-					ordinaryEml, null, null, Session.getInstance(new Properties())).buildEmail().getSubject()).isEqualTo("Path input");
+			assertThat(simpleJavaMail.converter().fromEml(ordinaryEml).withSession(Session.getInstance(new Properties()))
+					.toEmail().getSubject()).isEqualTo("Path input");
 
 			Files.delete(exactEml);
 			Files.delete(ordinaryEml);
@@ -115,8 +115,8 @@ class Java11ApiConvenienceTest {
 			assertThat(conversion.buildEmail().getSubject()).isEqualTo("Test E-Mail");
 			assertThat(EmailConverter.outlookMsgToEmail(msgPath).getSubject()).isEqualTo("Test E-Mail");
 			assertThat(EmailConverter.outlookMsgToEmailBuilder(msgPath).buildEmail().getSubject()).isEqualTo("Test E-Mail");
-			assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).converter()
-					.outlookMsgToEmailBuilderWithOutlookData(msgPath, null).buildEmail().getSubject()).isEqualTo("Test E-Mail");
+			assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).converter().fromOutlookMsg(msgPath)
+					.toEmailBuilderWithOutlookData().buildEmail().getSubject()).isEqualTo("Test E-Mail");
 			assertThat(Files.deleteIfExists(msgPath)).isTrue();
 		}
 	}

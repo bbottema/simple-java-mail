@@ -59,6 +59,13 @@ class FactoryBuilderBoundaryTest {
         final ConfiguredEmailConverter converter = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).converter();
         final byte[] eml = ("From: sender@example.org\r\nTo: reader@example.org\r\nSubject: Example\r\n\r\nHello\r\n")
                 .getBytes(StandardCharsets.US_ASCII);
-        assertThat(converter.emlToEmailBuilder(new ByteArrayInputStream(eml)).buildEmail().getSubject()).isEqualTo("Example");
+        assertThat(converter.fromEml(new ByteArrayInputStream(eml)).toEmail().getSubject()).isEqualTo("Example");
+    }
+
+    @Test
+    void configuredConversionHasOneSourceSelectionVocabulary() {
+        assertThat(java.util.Arrays.stream(ConfiguredEmailConverter.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName).distinct())
+                .containsExactlyInAnyOrder("fromEmail", "fromMimeMessage", "fromEml", "fromOutlookMsg");
     }
 }

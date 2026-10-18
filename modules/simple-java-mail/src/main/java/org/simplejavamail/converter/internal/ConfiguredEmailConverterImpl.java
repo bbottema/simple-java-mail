@@ -5,6 +5,8 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
 import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OpenPgpDetails;
@@ -39,6 +42,7 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.email.internal.EmailPopulatingBuilderFactoryImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
@@ -48,6 +52,7 @@ import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
@@ -81,15 +86,98 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		this.emailPopulatingBuilderFactory = new EmailPopulatingBuilderFactoryImpl(requiredConfig);
 	}
 
-	/** @see ConfiguredEmailConverter#mimeMessageToEmailBuilder(MimeMessage) */
+	/** @see ConfiguredEmailConverter#fromEmail(Email) */
 	@Override
-	@NotNull
-	public EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage) {
-		return mimeMessageToEmailBuilder(mimeMessage, null, null, true);
+	public EmailConversion fromEmail(@NotNull final Email email) {
+		return new FluentEmailConversions.FromEmail(requireNonNull(email, "email"));
 	}
 
-	/** @see ConfiguredEmailConverter#mimeMessageToEmailBuilder(MimeMessage, Pkcs12Config, OpenPgpReceiveConfig, boolean) */
+	/** @see ConfiguredEmailConverter#fromMimeMessage(MimeMessage) */
 	@Override
+	public MimeMessageConversion fromMimeMessage(@NotNull final MimeMessage message) {
+		return new FluentEmailConversions.FromMimeMessage(this, requireNonNull(message, "message"));
+	}
+
+	/** @see ConfiguredEmailConverter#fromEml(String) */
+	@Override
+	public EmlConversion fromEml(@NotNull final String eml) {
+		return fromEml(requireNonNull(eml, "eml").getBytes(UTF_8));
+	}
+
+	/** @see ConfiguredEmailConverter#fromEml(byte[]) */
+	@Override
+	public EmlConversion fromEml(@NotNull final byte[] eml) {
+		final byte[] captured = requireNonNull(eml, "eml").clone();
+		return new FluentEmailConversions.FromEml(this, session -> EmailConverter.emlToMimeMessage(new ByteArrayInputStream(captured), session));
+	}
+
+	/** @see ConfiguredEmailConverter#fromEml(File) */
+	@Override
+	public EmlConversion fromEml(@NotNull final File emlFile) {
+		return fromEml(requireNonNull(emlFile, "emlFile").toPath());
+	}
+
+	/** @see ConfiguredEmailConverter#fromEml(Path) */
+	@Override
+	public EmlConversion fromEml(@NotNull final Path emlPath) {
+		final Path captured = requireNonNull(emlPath, "emlPath");
+		return new FluentEmailConversions.FromEml(this, session -> parseEmlPath(captured, session));
+	}
+
+	/** @see ConfiguredEmailConverter#fromEml(InputStream) */
+	@Override
+	public EmlConversion fromEml(@NotNull final InputStream emlInputStream) {
+		final InputStream captured = requireNonNull(emlInputStream, "emlInputStream");
+		return new FluentEmailConversions.FromEml(this, session -> EmailConverter.emlToMimeMessage(captured, session));
+	}
+
+	/** @see ConfiguredEmailConverter#fromOutlookMsg(String) */
+	@Override
+	public OutlookConversion fromOutlookMsg(@NotNull final String msgFileName) {
+		final String captured = requireNonNull(msgFileName, "msgFileName");
+		return new FluentEmailConversions.FromOutlook(pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+	}
+
+	/** @see ConfiguredEmailConverter#fromOutlookMsg(File) */
+	@Override
+	public OutlookConversion fromOutlookMsg(@NotNull final File msgFile) {
+		final File captured = requireNonNull(msgFile, "msgFile");
+		return new FluentEmailConversions.FromOutlook(pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+	}
+
+	/** @see ConfiguredEmailConverter#fromOutlookMsg(Path) */
+	@Override
+	public OutlookConversion fromOutlookMsg(@NotNull final Path msgPath) {
+		final Path captured = requireNonNull(msgPath, "msgPath");
+		return new FluentEmailConversions.FromOutlook(pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+	}
+
+	/** @see ConfiguredEmailConverter#fromOutlookMsg(InputStream) */
+	@Override
+	public OutlookConversion fromOutlookMsg(@NotNull final InputStream msgInputStream) {
+		final InputStream captured = requireNonNull(msgInputStream, "msgInputStream");
+		return new FluentEmailConversions.FromOutlook(pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(leavingOpen(captured), pkcs12));
+	}
+
+	private static InputStream leavingOpen(final InputStream input) {
+		// The Outlook parser closes its input. A fluent conversion borrows the caller's stream rather than transferring its ownership.
+		return new FilterInputStream(input) {
+			@Override
+			public void close() {
+				// The application that supplied the stream remains responsible for closing it.
+			}
+		};
+	}
+
+	private static MimeMessage parseEmlPath(final Path path, final Session session) {
+		try (InputStream input = Files.newInputStream(path)) {
+			return EmailConverter.emlToMimeMessage(input, session);
+		} catch (IOException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_PATH, path, e.getMessage()), e);
+		}
+	}
+
+	/** Internal import shared by the fluent source stages and the released static conversion API. */
 	@NotNull
 	public EmailPopulatingBuilder mimeMessageToEmailBuilder(@NotNull final MimeMessage mimeMessage,
 			@Nullable final Pkcs12Config pkcs12Config,
@@ -116,24 +204,21 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		return decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config);
 	}
 
-	/** @see ConfiguredEmailConverter#emlToEmailBuilder(InputStream) */
-	@Override
+	/** Internal EML import retaining the static API's existing input handling. */
 	@NotNull
-	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream) {
+	private EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream) {
 		return emlToEmailBuilder(emlInputStream, null, null, createDummySession());
 	}
 
-	/** @see ConfiguredEmailConverter#emlToEmailBuilder(Path) */
-	@Override
+	/** Internal Path import retaining the static API's existing input handling. */
 	@NotNull
 	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath) {
 		return emlToEmailBuilder(emlPath, null, null, createDummySession());
 	}
 
-	/** @see ConfiguredEmailConverter#emlToEmailBuilder(Path, Pkcs12Config, OpenPgpReceiveConfig, Session) */
-	@Override
+	/** Reads a Path for the compatibility entry points and closes only the stream opened here. */
 	@NotNull
-	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath,
+	private EmailPopulatingBuilder emlToEmailBuilder(@NotNull final Path emlPath,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			@NotNull final Session session) {
@@ -144,8 +229,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		}
 	}
 
-	/** @see ConfiguredEmailConverter#emlToEmailBuilder(InputStream, Pkcs12Config, OpenPgpReceiveConfig, Session) */
-	@Override
+	/** Reads caller-owned EML into the existing byte-preserving parsing path. */
 	@NotNull
 	public EmailPopulatingBuilder emlToEmailBuilder(@NotNull final InputStream emlInputStream,
 			@Nullable final Pkcs12Config pkcs12Config,
@@ -155,14 +239,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			final byte[] emlBytes = readInputStreamToBytes(checkNonEmptyArgument(emlInputStream, "emlInputStream"));
 			final MimeMessage mimeMessage = FinalizedMimeMessage.fromMessageBytes(
 					checkNonEmptyArgument(session, "session"), emlBytes, FinalizedMimeMessage.ProtectionState.NONE);
-			return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, true);
+			return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
 		} catch (IOException | MessagingException e) {
 			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
 		}
 	}
 
-	/** @see ConfiguredEmailConverter#outlookMsgToEmailBuilderWithOutlookData(String, Pkcs12Config) */
-	@Override
+	/** Internal Outlook import shared by fluent conversion and the released static entry points. */
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final String msgFileName,
 			@Nullable final Pkcs12Config pkcs12Config) {
@@ -172,8 +255,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		return toOutlookEmailConversionResult(result, pkcs12Config);
 	}
 
-	/** @see ConfiguredEmailConverter#outlookMsgToEmailBuilderWithOutlookData(File, Pkcs12Config) */
-	@Override
+	/** Internal Outlook import shared by fluent conversion and the released static entry points. */
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final File msgFile,
 			@Nullable final Pkcs12Config pkcs12Config) {
@@ -183,8 +265,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		return toOutlookEmailConversionResult(result, pkcs12Config);
 	}
 
-	/** @see ConfiguredEmailConverter#outlookMsgToEmailBuilderWithOutlookData(Path, Pkcs12Config) */
-	@Override
+	/** Internal Outlook Path import; closes the stream opened here. */
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath,
 			@Nullable final Pkcs12Config pkcs12Config) {
@@ -195,8 +276,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		}
 	}
 
-	/** @see ConfiguredEmailConverter#outlookMsgToEmailBuilderWithOutlookData(InputStream, Pkcs12Config) */
-	@Override
+	/** Internal Outlook stream import. The fluent facade shields caller streams from the parser's established close behavior. */
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final InputStream msgInputStream,
 			@Nullable final Pkcs12Config pkcs12Config) {

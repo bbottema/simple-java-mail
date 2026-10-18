@@ -20,6 +20,14 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static void fluentConversion(final ConfiguredEmailConverter converter, final Email email,
+            final jakarta.mail.Session session, final jakarta.mail.internet.MimeMessage message) {
+        converter.fromEml("From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody")
+                .withFetchAttachmentData(false).toEmail();
+        converter.fromEmail(email).withSession(session).toEmlBytes();
+        converter.fromMimeMessage(message).toEml();
+    }
+
     public static String inspectDeliveryReport(final Email notification) {
         final org.simplejavamail.api.email.DeliveryStatusReport report = notification.getDeliveryStatusReport();
         if (report == null) return "No delivery report";
@@ -72,7 +80,7 @@ public final class CoreOnlyConsumer {
 
     public static MailSend<MailSubmissionReceipt> composeAndSend(final EmailStartingBuilder emails, final MailerRegularBuilder mailers,
             final IRecipientBuilder recipientBuilder, final IRecipientsBuilder groupBuilder) {
-        final Recipient recipient = recipientBuilder.withName("Reader").withAddress("reader@example.org").withType(RecipientType.TO).build();
+        final Recipient recipient = recipientBuilder.to("Reader", "reader@example.org");
         groupBuilder.withRecipient("archive@example.org", RecipientType.BCC).buildRecipients();
         final Email email = emails.startingBlank().from("sender@example.org").withRecipients(recipient)
                 .dontApplyDefaultValueFor(EmailProperty.SUBJECT).withSubject("Core API consumer").buildEmail();
@@ -125,7 +133,6 @@ public final class CoreOnlyConsumer {
 
     public static Email convert(final ConfiguredEmailConverter converter, final SimpleJavaMailConfig config) {
         config.getDiagnostics().getGroups().forEach(group -> config.getDiagnostics().getProperties(group));
-        return converter.emlToEmailBuilder(new java.io.ByteArrayInputStream(
-                "From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody".getBytes(java.nio.charset.StandardCharsets.US_ASCII))).buildEmail();
+        return converter.fromEml("From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody").toEmail();
     }
 }

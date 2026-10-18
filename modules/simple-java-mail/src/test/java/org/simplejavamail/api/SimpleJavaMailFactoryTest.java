@@ -164,10 +164,10 @@ class SimpleJavaMailFactoryTest {
 		mimeMessage.setContent("<html><img src=\"missing.png\"></html>", "text/html; charset=UTF-8");
 		mimeMessage.saveChanges();
 
-		assertThatThrownBy(() -> strictFactory.converter().mimeMessageToEmailBuilder(mimeMessage).buildEmail())
+		assertThatThrownBy(() -> strictFactory.converter().fromMimeMessage(mimeMessage).toEmail())
 				.isInstanceOf(MailException.class)
 				.hasMessageContaining("missing.png");
-		final Email converted = passiveFactory.converter().mimeMessageToEmailBuilder(mimeMessage).buildEmail();
+		final Email converted = passiveFactory.converter().fromMimeMessage(mimeMessage).toEmail();
 		assertThat(converted.getEmbeddedImages()).isEmpty();
 
 		assertThatThrownBy(() -> strictFactory.emailBuilder().copying(converted).buildEmail())

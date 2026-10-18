@@ -251,7 +251,7 @@ class DeliveryStatusReportTest {
 		final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(signed);
 		// Model received wire bytes, rather than a mutable, freshly generated provider object whose cached headers may still change.
 		final MimeMessage received = new MimeMessage(clear.getSession(), new ByteArrayInputStream(protectedBytes));
-		final Email parsed = SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(received).buildEmail();
+		final Email parsed = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(received).toEmail();
 		assertThat(parsed.getDeliveryStatusReport().getEnvelopeId()).isEqualTo("order-123");
 		assertThat(parsed.getDeliveryStatusReport().getRecipients().get(0).getStatusCode().toString()).isEqualTo("5.1.1");
 		assertThat(parsed.getDeliveryStatusReport().getWarnings()).singleElement().asString().contains("zero-padded");
@@ -321,7 +321,7 @@ class DeliveryStatusReportTest {
 			extra.setText("Additional explanation");
 			final MimeBodyPart status = part(source("message/delivery-status", MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT, new AtomicInteger()));
 			final MimeMessage message = position == 0 ? notificationWithParts(status, text, extra) : notificationWithParts(text, extra, status);
-			final Email notification = SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(message).buildEmail();
+			final Email notification = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).toEmail();
 			assertThat(notification.getDeliveryStatusReport().getEnvelopeId()).isEqualTo("order-123");
 			assertThat(notification.getDeliveryStatusReport().getRecipients()).hasSize(1);
 			assertThat(notification.getDeliveryStatusReport().getWarnings()).singleElement().asString().contains("out of order");
@@ -336,7 +336,7 @@ class DeliveryStatusReportTest {
 		text.setText("Readable explanation");
 		final MimeBodyPart first = part(source("message/delivery-status", MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT, new AtomicInteger()));
 		final MimeBodyPart second = part(source("message/delivery-status", MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT, new AtomicInteger()));
-		final Email notification = SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(notificationWithParts(text, first, second)).buildEmail();
+		final Email notification = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(notificationWithParts(text, first, second)).toEmail();
 		assertThat(notification.getDeliveryStatusReport().getRecipients()).isEmpty();
 		assertThat(notification.getDeliveryStatusReport().getEnvelopeId()).isNull();
 		assertThat(notification.getDeliveryStatusReport().getWarnings()).singleElement().asString().contains("multiple delivery-status parts");
@@ -425,12 +425,12 @@ class DeliveryStatusReportTest {
 		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
 		message.setDataHandler(new DataHandler(broken));
 		message.setSubject("Still readable");
-		final Email recovered = SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(message, null, null, false).buildEmail();
+		final Email recovered = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail();
 		assertThat(recovered.getSubject()).isEqualTo("Still readable");
 		assertThat(recovered.getDeliveryStatusReport().getRecipients()).isEmpty();
 		assertThat(recovered.getDeliveryStatusReport().getWarnings()).anyMatch(warning -> warning.contains("may be incomplete"));
 		assertThat(recovered.getDeliveryStatusReport().getWarnings()).allSatisfy(warning -> assertThat(warning).doesNotContain("fixture read failure"));
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(message, null, null, true))
+		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(true).toEmailBuilder())
 				.hasRootCause(failure);
 	}
 
@@ -486,7 +486,8 @@ class DeliveryStatusReportTest {
 		};
 		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
 		message.setDataHandler(new DataHandler(broken));
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(message, null, null, false)).isSameAs(failure);
+		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmailBuilder())
+				.isSameAs(failure);
 	}
 
 	@Test
@@ -503,7 +504,7 @@ class DeliveryStatusReportTest {
 		final org.simplejavamail.api.converter.ConfiguredEmailConverter converter = SimpleJavaMail.fromDefaults().converter();
 		Thread.currentThread().interrupt();
 		try {
-			assertThatThrownBy(() -> converter.mimeMessageToEmailBuilder(message, null, null, false)).hasRootCause(failure);
+			assertThatThrownBy(() -> converter.fromMimeMessage(message).withFetchAttachmentData(false).toEmailBuilder()).hasRootCause(failure);
 			assertThat(Thread.currentThread().isInterrupted()).isTrue();
 		} finally {
 			Thread.interrupted();
@@ -525,8 +526,8 @@ class DeliveryStatusReportTest {
 		};
 		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
 		message.setDataHandler(new DataHandler(closeFailure));
-		final DeliveryStatusReport report = SimpleJavaMail.fromDefaults().converter().mimeMessageToEmailBuilder(message, null, null, false)
-				.buildEmail().getDeliveryStatusReport();
+		final DeliveryStatusReport report = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(false)
+				.toEmail().getDeliveryStatusReport();
 		assertThat(report.getEnvelopeId()).isEqualTo("order-123");
 		assertThat(report.getRecipients()).hasSize(1);
 		assertThat(report.getRecipients().get(0).getStatusCode().toString()).isEqualTo("5.1.1");
@@ -560,7 +561,7 @@ class DeliveryStatusReportTest {
 	}
 
 	private static Email convert(final String eml) {
-		return SimpleJavaMail.fromDefaults().converter().emlToEmailBuilder(new ByteArrayInputStream(eml.getBytes(UTF_8))).buildEmail();
+		return SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(eml.getBytes(UTF_8))).toEmail();
 	}
 
 	private static MimeMessage message(final String eml) throws Exception {

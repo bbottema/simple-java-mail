@@ -154,8 +154,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
 
-		final Email repliedTo = converter().mimeMessageToEmailBuilder(emailMessage).buildEmail();
-		final Email generatedReply = converter().mimeMessageToEmailBuilder(replyMessage).buildEmail();
+		final Email repliedTo = converter().fromMimeMessage(emailMessage).toEmail();
+		final Email generatedReply = converter().fromMimeMessage(replyMessage).toEmail();
 
 		return startingBlank()
 				.withSubject(generatedReply.getSubject())
@@ -189,7 +189,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final MimeMessage message) {
-		return copying(converter().mimeMessageToEmailBuilder(message).buildEmail());
+		return copying(converter().fromMimeMessage(message).toEmail());
 	}
 	
 	/**

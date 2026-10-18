@@ -160,6 +160,24 @@ class OpenPgpMimeTest {
     }
 
     @Test
+    void fluentConversionRetainsOpenPgpReceiveOptionsAndProtectedBytes() throws Exception {
+        final SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
+        final Email source = basicEmail("Fluent protected body")
+                .signWithOpenPgp(signing(firstKey)).encryptWithOpenPgp(encryption(firstKey)).buildEmail();
+        final MimeMessage protectedMessage = mail.converter().fromEmail(source).toMimeMessage();
+        final byte[] originalBytes = mail.converter().fromMimeMessage(protectedMessage).toEmlBytes();
+        final Email fromMime = mail.converter().fromMimeMessage(protectedMessage).withOpenPgpReceiveConfig(receiving(firstKey)).toEmail();
+        final Email fromEml = mail.converter().fromEml(originalBytes).withOpenPgpReceiveConfig(receiving(firstKey)).toEmail();
+
+        for (final Email result : new Email[] {fromMime, fromEml}) {
+            assertThat(result.getPlainText()).isEqualTo("Fluent protected body");
+            assertThat(result.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+            assertThat(result.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        }
+        assertThat(mail.converter().fromMimeMessage(protectedMessage).toEmlBytes()).containsExactly(originalBytes);
+    }
+
+    @Test
     void exactEmlBypassesOpenPgpTemplatesWithoutChangingItsBytes() throws Exception {
         final byte[] exactBytes = ("From: sender@example.com\r\nTo: receiver@example.com\r\n"
                 + "Subject: Exact source\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nOriginal content\r\n")

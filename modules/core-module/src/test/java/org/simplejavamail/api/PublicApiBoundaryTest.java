@@ -57,7 +57,7 @@ class PublicApiBoundaryTest {
 
     private static final List<Class<?>> READ_CONTRACTS = List.of(MailSendDiagnostics.class, MailSendMeasurement.class, MailSendOutcome.class,
             MailSendProgress.class, MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class,
-            AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, ConfiguredEmailConverter.class, SimpleJavaMailConfig.class,
+            AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, SimpleJavaMailConfig.class,
             DeliveryStatusReport.class, RecipientDeliveryReport.class, EnhancedStatusCode.class, ReportedRecipient.class,
             ReportedMailServer.class, DeliveryDiagnostic.class);
 
@@ -74,6 +74,43 @@ class PublicApiBoundaryTest {
         assertThat(EmailProperty.class.getMethods()).noneMatch(method -> method.getName().equals("getGetter"));
         assertThat(MailSender.class.getMethods()).filteredOn(method -> method.getName().equals("sendMailAndGetReceipt"))
                 .allMatch(method -> !method.isDefault());
+    }
+
+    @Test
+    void conversionEntryPointsExposeSourceContractsRatherThanResultAssembly() {
+        final List<Class<?>> sourceContracts = List.of(ConfiguredEmailConverter.IncomingConversion.class,
+                ConfiguredEmailConverter.EmlConversion.class, ConfiguredEmailConverter.MimeMessageConversion.class,
+                ConfiguredEmailConverter.EmailConversion.class, ConfiguredEmailConverter.OutlookConversion.class);
+        assertThat(ConfiguredEmailConverter.class.isInterface()).isTrue();
+        assertThat(ConfiguredEmailConverter.class.getConstructors()).isEmpty();
+        assertThat(ConfiguredEmailConverter.class.getDeclaredClasses()).containsExactlyInAnyOrderElementsOf(sourceContracts);
+        assertThat(ConfiguredEmailConverter.class.getMethods()).extracting(java.lang.reflect.Method::getName)
+                .containsOnly("fromEmail", "fromMimeMessage", "fromEml", "fromOutlookMsg");
+        Stream.concat(Stream.of(ConfiguredEmailConverter.class), sourceContracts.stream()).forEach(type -> {
+            assertThat(type.isInterface()).as(type.getName()).isTrue();
+            assertThat(Modifier.isPublic(type.getModifiers())).as(type.getName()).isTrue();
+            assertThat(type.getConstructors()).isEmpty();
+            assertThat(type.getMethods()).noneMatch(method -> Modifier.isStatic(method.getModifiers()));
+            assertThat(type.getMethods()).noneMatch(method -> method.toGenericString().contains(".internal."));
+        });
+        sourceContracts.forEach(type -> assertThat(type.getDeclaredClasses()).isEmpty());
+    }
+
+    @Test
+    void flatConfiguredConversionEntryPointsDoNotCompile() throws Exception {
+        for (final String invocation : List.of(
+                "mimeMessageToEmailBuilder((jakarta.mail.internet.MimeMessage) null)",
+                "emlToEmailBuilder((java.io.InputStream) null)",
+                "emlToEmailBuilder((java.nio.file.Path) null)",
+                "outlookMsgToEmailBuilderWithOutlookData(\"source.msg\", null)",
+                "outlookMsgToEmailBuilderWithOutlookData((java.io.File) null, null)",
+                "outlookMsgToEmailBuilderWithOutlookData((java.nio.file.Path) null, null)",
+                "outlookMsgToEmailBuilderWithOutlookData((java.io.InputStream) null, null)")) {
+            final Path source = output.resolve("FlatConversion.java");
+            Files.writeString(source, "class FlatConversion { Object result = ((org.simplejavamail.api.converter.ConfiguredEmailConverter) null)."
+                    + invocation + "; }");
+            assertThat(compile(source)).as(invocation).withFailMessage(compilationDetails).isFalse();
+        }
     }
 
     @Test
