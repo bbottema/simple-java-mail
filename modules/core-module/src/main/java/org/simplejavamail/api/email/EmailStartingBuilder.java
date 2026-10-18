@@ -216,6 +216,7 @@ public interface EmailStartingBuilder {
 	
 	/**
 	 * Preconfigures the builder with all the properties from the given email that are non-null.
+	 * This includes its choices to ignore defaults or overrides and its per-property suppression settings.
 	 */
 	EmailPopulatingBuilder copying(@NotNull Email email);
 }

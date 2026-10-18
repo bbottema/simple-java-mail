@@ -49,6 +49,7 @@ import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -134,6 +135,57 @@ class OpenPgpMimeTest {
         assertThat(parsed.getOriginalOpenPgpDetails().getSignerFingerprint()).hasSize(40);
         assertThat(parsed.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA256");
         assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(firstWrite);
+    }
+
+    @Test
+    void mailerTemplatesProtectTheActualMimeOutputWithTheResolvedKeys() throws Exception {
+        final Email defaults = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .signWithOpenPgp(signing(firstKey))
+                .encryptWithOpenPgp(encryption(firstKey))
+                .buildEmail();
+        final Email overrides = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .signWithOpenPgp(signing(secondKey))
+                .encryptWithOpenPgp(encryption(secondKey))
+                .buildEmail();
+        final Email source = basicEmail("template-protected content").ignoringDefaults(false).buildEmail();
+
+        try (Mailer defaultMailer = SimpleJavaMail.fromDefaults().mailerBuilder().withEmailDefaults(defaults).buildMailer();
+             Mailer overrideMailer = SimpleJavaMail.fromDefaults().mailerBuilder()
+                     .withEmailDefaults(defaults).withEmailOverrides(overrides).buildMailer()) {
+            assertRehearsedProtection(defaultMailer.rehearse(source), firstKey);
+            assertRehearsedProtection(overrideMailer.rehearse(source), secondKey);
+        }
+        assertThat(source.getOpenPgpSigningConfig()).isNull();
+        assertThat(source.getOpenPgpEncryptionConfig()).isNull();
+    }
+
+    @Test
+    void exactEmlBypassesOpenPgpTemplatesWithoutChangingItsBytes() throws Exception {
+        final byte[] exactBytes = ("From: sender@example.com\r\nTo: receiver@example.com\r\n"
+                + "Subject: Exact source\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nOriginal content\r\n")
+                .getBytes(StandardCharsets.US_ASCII);
+        final Email exact = SimpleJavaMail.fromDefaults().emailBuilder().startingFromExactEml(exactBytes)
+                .withEnvelopeRecipients("receiver@example.com")
+                .buildEmail();
+        final Email defaults = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .signWithOpenPgp(signing(firstKey))
+                .encryptWithOpenPgp(encryption(firstKey))
+                .buildEmail();
+
+        try (Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withEmailDefaults(defaults).buildMailer()) {
+            final MailRehearsal rehearsal = mailer.rehearse(exact);
+            assertThat(rehearsal.getEmlBytes()).containsExactly(exactBytes);
+            assertThat(rehearsal.getEffectiveEmail().getOpenPgpSigningConfig()).isNull();
+            assertThat(rehearsal.getEffectiveEmail().getOpenPgpEncryptionConfig()).isNull();
+        }
+    }
+
+    private static void assertRehearsedProtection(final MailRehearsal rehearsal, final TestKey expectedKey) {
+        final Email parsed = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(rehearsal.getEmlBytes()), receiving(expectedKey));
+        assertThat(parsed.getPlainText()).isEqualTo("template-protected content");
+        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
+        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
     }
 
 	@Test

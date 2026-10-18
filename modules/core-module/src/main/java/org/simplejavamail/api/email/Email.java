@@ -838,11 +838,13 @@ public class Email implements Serializable {
 		return smimeSigningConfig;
 	}
 
+	/** @see EmailPopulatingBuilder#signWithOpenPgp(OpenPgpSigningConfig) */
 	@Nullable
 	public OpenPgpSigningConfig getOpenPgpSigningConfig() {
 		return openPgpSigningConfig;
 	}
 
+	/** @see EmailPopulatingBuilder#encryptWithOpenPgp(OpenPgpEncryptionConfig) */
 	@Nullable
 	public OpenPgpEncryptionConfig getOpenPgpEncryptionConfig() {
 		return openPgpEncryptionConfig;

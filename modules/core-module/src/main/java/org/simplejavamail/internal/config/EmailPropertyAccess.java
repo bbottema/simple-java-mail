@@ -45,6 +45,8 @@ public enum EmailPropertyAccess {
     OVERRIDE_RECEIVERS(Email::getOverrideReceivers),
     SMIME_SIGNING_CONFIG(Email::getSmimeSigningConfig),
     SMIME_ENCRYPTION_CONFIG(Email::getSmimeEncryptionConfig),
+    OPENPGP_SIGNING_CONFIG(Email::getOpenPgpSigningConfig),
+    OPENPGP_ENCRYPTION_CONFIG(Email::getOpenPgpEncryptionConfig),
     DKIM_SIGNING_CONFIG(Email::getDkimConfig),
     SENT_DATE(Email::getSentDate),
     ID(Email::getId),

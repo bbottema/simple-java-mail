@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
@@ -206,6 +207,14 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
 		EmailPopulatingBuilder builder = newPopulatingBuilder();
+		builder.ignoringDefaults(email.isIgnoreDefaults());
+		builder.ignoringOverrides(email.isIgnoreOverrides());
+		if (email.getPropertiesNotToApplyDefaultValueFor() != null) {
+			builder.dontApplyDefaultValueFor(email.getPropertiesNotToApplyDefaultValueFor().toArray(new EmailProperty[0]));
+		}
+		if (email.getPropertiesNotToApplyOverrideValueFor() != null) {
+			builder.dontApplyOverrideValueFor(email.getPropertiesNotToApplyOverrideValueFor().toArray(new EmailProperty[0]));
+		}
 
 		if (email.getId() != null) {
 			builder.fixingMessageId(email.getId());

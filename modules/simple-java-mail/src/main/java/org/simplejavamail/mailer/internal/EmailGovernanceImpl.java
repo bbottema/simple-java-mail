@@ -17,6 +17,8 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
@@ -345,9 +347,11 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(builder::withCalendarTextContentTransferEncoding);
 		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
 		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
+		ofNullable(this.<OpenPgpSigningConfig>resolveEmailProperty(provided, EmailProperty.OPENPGP_SIGNING_CONFIG))
+				.ifPresent(builder::signWithOpenPgp);
+		ofNullable(this.<OpenPgpEncryptionConfig>resolveEmailProperty(provided, EmailProperty.OPENPGP_ENCRYPTION_CONFIG))
+				.ifPresent(builder::encryptWithOpenPgp);
 		if (provided != null) {
-			ofNullable(provided.getOpenPgpSigningConfig()).ifPresent(builder::signWithOpenPgp);
-			ofNullable(provided.getOpenPgpEncryptionConfig()).ifPresent(builder::encryptWithOpenPgp);
 			// Source facts follow the supplied Email, never a defaults/overrides template.
 			((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(provided.getDeliveryStatusReport());
 		}

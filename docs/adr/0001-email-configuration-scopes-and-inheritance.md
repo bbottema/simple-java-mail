@@ -53,6 +53,7 @@ The following table records the accepted scopes, now represented by the local im
 | S/MIME content-encryption and key-encapsulation algorithms | Shared encryption settings | Not exposed by this design |
 | S/MIME encryption certificate | Fallback certificate | Group defaults/fixed certificates and individual certificates |
 | DKIM signing domain, selector, key, and signing options | Message-wide signing configuration | Not exposed |
+| OpenPGP signing material and encryption key rings | Message-wide signing/encryption configuration | Not exposed; no automatic recipient-key lookup |
 | DSN NOTIFY preferences | Default preferences for the email's recipients | Group defaults/fixed/clear policies and individual preferences |
 | DSN RET choice | One choice for the SMTP transaction | Not exposed |
 | Fixed ENVID | Caller-selected transaction identifier | Not exposed |

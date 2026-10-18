@@ -1596,12 +1596,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#signWithOpenPgp(OpenPgpSigningConfig) */
 	@Override
 	public EmailPopulatingBuilder signWithOpenPgp(@NotNull final OpenPgpSigningConfig openPgpSigningConfig) {
 		this.openPgpSigningConfig = checkNonEmptyArgument(openPgpSigningConfig, "openPgpSigningConfig");
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#encryptWithOpenPgp(OpenPgpEncryptionConfig) */
 	@Override
 	public EmailPopulatingBuilder encryptWithOpenPgp(@NotNull final OpenPgpEncryptionConfig openPgpEncryptionConfig) {
 		this.openPgpEncryptionConfig = checkNonEmptyArgument(openPgpEncryptionConfig, "openPgpEncryptionConfig");
@@ -2018,6 +2020,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#clearOpenPgp() */
 	@Override
 	public EmailPopulatingBuilder clearOpenPgp() {
 		this.openPgpSigningConfig = null;
@@ -2406,12 +2409,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return smimeEncryptionConfig;
 	}
 
+	/** @see EmailPopulatingBuilder#getOpenPgpSigningConfig() */
 	@Override
 	@Nullable
 	public OpenPgpSigningConfig getOpenPgpSigningConfig() {
 		return openPgpSigningConfig;
 	}
 
+	/** @see EmailPopulatingBuilder#getOpenPgpEncryptionConfig() */
 	@Override
 	@Nullable
 	public OpenPgpEncryptionConfig getOpenPgpEncryptionConfig() {

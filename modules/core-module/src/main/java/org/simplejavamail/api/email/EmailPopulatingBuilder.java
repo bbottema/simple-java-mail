@@ -1210,6 +1210,12 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Signs this email as RFC 3156 {@code multipart/signed}. OpenPGP and S/MIME cannot be configured on the same email.
 	 * The optional {@value org.simplejavamail.internal.modules.OpenPgpModule#NAME} must be present when converting or sending.
+	 * <p>
+	 * To reuse this choice, put it on an Email supplied through {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailDefaults(Email)} or
+	 * {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailOverrides(Email)}. The complete signing configuration is replaced, not combined:
+	 * overrides win over this email, followed by defaults. Suppress incoming signing configuration with
+	 * {@link #dontApplyDefaultValueFor(EmailProperty...)} or {@link #dontApplyOverrideValueFor(EmailProperty...)} and
+	 * {@link EmailProperty#OPENPGP_SIGNING_CONFIG}.
 	 */
 	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
 	EmailPopulatingBuilder signWithOpenPgp(@NotNull OpenPgpSigningConfig openPgpSigningConfig);
@@ -1217,6 +1223,11 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Encrypts this email as RFC 3156 {@code multipart/encrypted}, including all configured recipient keys.
 	 * OpenPGP and S/MIME cannot be configured on the same email.
+	 * <p>
+	 * Email defaults and overrides can supply this choice too. They replace the complete encryption configuration, including its recipient keys;
+	 * keys from different configurations are never combined. Overrides win over this email, followed by defaults. Suppress incoming encryption
+	 * configuration with {@link #dontApplyDefaultValueFor(EmailProperty...)} or {@link #dontApplyOverrideValueFor(EmailProperty...)} and
+	 * {@link EmailProperty#OPENPGP_ENCRYPTION_CONFIG}.
 	 */
 	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
 	EmailPopulatingBuilder encryptWithOpenPgp(@NotNull OpenPgpEncryptionConfig openPgpEncryptionConfig);
@@ -1521,7 +1532,13 @@ public interface EmailPopulatingBuilder {
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearSmime();
 
-	/** Clears email-level OpenPGP signing and encryption configuration. */
+	/**
+	 * Removes this email's OpenPGP signing and encryption choices. Defaults or overrides can still supply them when the email is prepared.
+	 * To prevent that, suppress {@link EmailProperty#OPENPGP_SIGNING_CONFIG} and {@link EmailProperty#OPENPGP_ENCRYPTION_CONFIG} instead.
+	 *
+	 * @see #signWithOpenPgp(OpenPgpSigningConfig)
+	 * @see #encryptWithOpenPgp(OpenPgpEncryptionConfig)
+	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearOpenPgp();
 
@@ -1807,9 +1824,11 @@ public interface EmailPopulatingBuilder {
 	@Nullable
 	SmimeEncryptionConfig getSmimeEncryptionConfig();
 
+	/** @see #signWithOpenPgp(OpenPgpSigningConfig) */
 	@Nullable
 	OpenPgpSigningConfig getOpenPgpSigningConfig();
 
+	/** @see #encryptWithOpenPgp(OpenPgpEncryptionConfig) */
 	@Nullable
 	OpenPgpEncryptionConfig getOpenPgpEncryptionConfig();
 

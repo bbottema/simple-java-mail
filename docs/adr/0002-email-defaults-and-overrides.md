@@ -53,6 +53,13 @@ For example, Email's `DeliveryStatusNotification` resolves as one value. Its NOT
 
 ### Clear, disable, and override are different operations
 
+OpenPGP signing and encryption follow the same whole-value resolution as S/MIME and DKIM: an override wins over the supplied Email, which wins over
+a default. Encryption key-ring lists are part of that policy value, not additive Email recipients. Clearing a supplied OpenPGP configuration permits
+fallback; `OPENPGP_SIGNING_CONFIG` and `OPENPGP_ENCRYPTION_CONFIG` select the ordinary per-field suppression controls. OpenPGP key configuration remains
+transient across Email serialization; template participation does not authorize persisting key material.
+
+Copying an Email retains its global and per-property suppression choices. Rebuilding a draft must not silently re-enable templates it opted out of.
+
 - Clearing a local setting removes that choice and permits a fallback where one exists. It is not a universal "disable" operation.
 - Explicit disabling is a value or a documented suppression operation, not a synonym for absence. DSN `NEVER`, for example, is an explicit notification preference.
 - `ignoringDefaults(...)` and `dontApplyDefaultValueFor(...)` suppress incoming defaults for the submitted Email. The corresponding override controls suppress incoming overrides. Flags on a reference template are not another nested policy layer.
