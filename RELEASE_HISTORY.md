@@ -6,6 +6,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#763](https://github.com/bbottema/simple-java-mail/issues/763): expose structured delivery-status reports through the converted notification Email, with ordered recipient actions, strongly typed status codes, reported recipients/servers, diagnostics, correlation facts and parsing warnings. Internet-mailbox and SMTP-response views are available when interpretable. Existing MIME/protection conversion remains the gateway; reports are received claims, not final-delivery proof or automatic retry instructions.
+
 - [#762](https://github.com/bbottema/simple-java-mail/issues/762): added explicit optional OpenTelemetry integration for logical-send and provider-invocation spans, sampling-independent metrics and portable phase measurements. Applications supply and own their SDK; privacy-safe defaults exclude endpoints unless permitted, and telemetry stays independent of progress/result callbacks.
 
 - [#760](https://github.com/bbottema/simple-java-mail/issues/760): added optional live mail-send progress beside the terminal result observer, with bounded non-blocking reporting, logical-send observation IDs, retry-aware stages and managed Angus upload counts. Progress is best-effort; receipts and final results remain authoritative. Renamed the unreleased terminal callback to `MailSendResultObserver` to distinguish the two registrations.

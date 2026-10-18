@@ -15,6 +15,12 @@ application-global instance for Mailers from the configured factory. Your applic
 the library records logical sends and actual submission attempts without depending on observer delivery. Endpoint attributes are opt-in.
 See [OpenTelemetry setup, privacy and illustrative output](https://www.simplejavamail.org/opentelemetry.html).
 
+For received delivery notifications, use the ordinary MIME/EML converter and inspect `notificationEmail.getDeliveryStatusReport()`.
+Its recipient reports expose checked status-code components, reported addresses with optional `Recipient` views, and diagnostics with optional
+`SmtpServerResponse` views. Unknown formats remain readable without asking application code to split protocol strings.
+It exposes correlation and recipient facts without turning the notification into an instruction to resend.
+See [Reading delivery reports](https://www.simplejavamail.org/delivery-reports.html).
+
 Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
 [Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)

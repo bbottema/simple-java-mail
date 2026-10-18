@@ -1,13 +1,14 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
-- Assessment date: 2026-10-16.
+- Assessment date: 2026-10-18.
 - Implementation refresh: 2026-10-15, adding accepted live progress under [#760](https://github.com/bbottema/simple-java-mail/issues/760), detailed connection/SMTP stages under [#761](https://github.com/bbottema/simple-java-mail/issues/761), retention corrections and a repeatable memory-pressure workbench. Safe retries under #756, connection failover under #755, selected-Mailer ownership corrections under #757 and earlier recipient-rejection/managed-transport updates remain part of the assessment.
 - Optional OpenTelemetry [#762](https://github.com/bbottema/simple-java-mail/issues/762) is implemented and accepted after production-only and holistic review on 2026-10-16. This is development-branch work for 10.0.0, not a released capability.
+- Incoming delivery-status interpretation [#763](https://github.com/bbottema/simple-java-mail/issues/763) is implemented, verified and accepted in production review on 2026-10-18. The [delivery-report verification](763-delivery-status-verification.md) records typed facts, tolerant recovery and preserved source/security boundaries.
 - Competitor baseline: 2026-10-04. Symfony failover, Nodemailer pooling, MailKit SMTP capabilities and Vert.x PIPELINING documentation were rechecked on 2026-10-12 for this refresh; the wider comparison was not repeated.
 - Original research: [The World-Class SMTP Framework](simple-java-mail-world-class-smtp-research.pdf), dated 2026-08-29.
-- Implementation baseline: [`e0fd0ac6`](https://github.com/bbottema/simple-java-mail/commit/e0fd0ac62394a652d2d617ba08e6ed9311436b0a) on `codex/10.0.0`, containing accepted #762 telemetry runtime/configuration integration on top of reviewed #760/#761 progress, retention corrections and the memory workbench, following the earlier retries and failover delivery. The implementation and evidence records linked below identify the reviewed scope.
+- Implementation baseline: [`53eeb9ab`](https://github.com/bbottema/simple-java-mail/commit/53eeb9ab) on `codex/10.0.0`, adding accepted #763 typed delivery-report interpretation and tolerant reading to the earlier telemetry, live progress, retries and failover work. The implementation and evidence records linked below identify the reviewed scope.
 - Release status: development of 10.0.0 continues. The assessed capabilities are present on the development branch, not in a published release. This does not describe the capabilities of the published 9.x libraries.
-- Method: repository and recorded verification review, including the #756, #760, #761 and #762 verification sequences. Competitor documentation was not re-researched for the 2026-10-16 telemetry refresh; those comparisons retain their recorded dates. No cross-library benchmark or new competitive black-box comparison was run.
+- Method: repository and recorded verification review, including the #756, #760, #761, #762 and #763 verification sequences. Competitor documentation was not re-researched for the 2026-10-18 delivery-report refresh; those comparisons retain their recorded dates. No cross-library benchmark or new competitive black-box comparison was run.
 
 This is the companion to the original PDF. Keep the two together: the PDF records the initial comparison and research agenda; this report explains what has changed, where Simple Java Mail now compares well, and where the original gaps remain. Its comparisons are assessments, not independently measured rankings.
 
@@ -45,6 +46,7 @@ The PDF described a broad and approachable library with important operational an
 | Configuration and integration | Immutable snapshots, redacted value provenance, Spring/Boot integration, and factory-scoped configuration locks. | [#715](https://github.com/bbottema/simple-java-mail/issues/715), [#714](https://github.com/bbottema/simple-java-mail/issues/714), [#740](https://github.com/bbottema/simple-java-mail/issues/740) |
 | Operating a mail workload | Measurements of actual sends, configurable message/recipient sending limits, and internal content-inspection/provider-discovery optimizations. | [#750](https://github.com/bbottema/simple-java-mail/issues/750), [#751](https://github.com/bbottema/simple-java-mail/issues/751), [#749](https://github.com/bbottema/simple-java-mail/issues/749) |
 | Optional application telemetry | Typed adaptation of the application's SDK, ordinary Mailer/property configuration, request-linked logical/invocation spans, portable phase timings/failure location, useful duration histograms and sampling-independent metrics. Accepted for unreleased 10.0.0, with private-by-default endpoint reporting. | [#762](https://github.com/bbottema/simple-java-mail/issues/762) |
+| Incoming delivery feedback | Structured DSN facts through the ordinary converted Email: ENVID, ordered recipient actions, checked status-code components, reported recipients/servers, typed diagnostics and dates. Optional mailbox/SMTP views avoid caller-side parsing without losing unfamiliar formats. Tolerant reading recovers clear formatting defects and retains completed facts after optional extraction fails, with warnings; ambiguous facts remain unavailable. Applications retain trust, correlation and business decisions. | [#763](https://github.com/bbottema/simple-java-mail/issues/763) |
 
 These capabilities work together. An application can configure and rehearse mail, submit it through managed resources, inspect what SMTP accepted, and decide what to do after a failure without treating every exception as proof that nothing was sent.
 
@@ -129,6 +131,18 @@ See [ADR 0034](../adr/0034-optional-opentelemetry-integration.md) and its
 Users can express their service's restrictions as counts over periods instead of coordinating sleeps across workers, Mailers and batches. Named groups share allowance within a factory, and optional spreading avoids bursts. Ordinary waits happen before borrowing a connection; dedicated batch/open-connection scopes retain their intentional shared connection.
 
 These count local attempted provider submissions. They do not establish account-wide quota compliance across processes, persistent history, server-observed arrival timing or final delivery. See [ADR 0027](../adr/0027-factory-scoped-sending-limits.md) and the [verification record](sending-limits-verification.md).
+
+### Received delivery feedback
+
+The accepted #763 feature closes the gap between SMTP submission evidence and later machine-readable delivery feedback. A converted incoming Email
+exposes its own immutable delivery-status report, without a second parsing entry point or application code that walks MIME/header blocks. The same
+Email gateway already used for content and protection now supplies typed notification facts. It does not retroactively change the originally sent
+Email or claim to be a receiving service, authenticated delivery proof, mailbox monitor or read-receipt tracker.
+
+Competitively, this extends the existing construction/submission/diagnostics gateway into received delivery feedback, including typed conveniences and
+tolerant recovery of imperfect notifications. DSN parsing itself is not unique to SJM. The advantage is the integrated Email API and preservation of
+content/security boundaries, without requiring applications to assemble a separate parsing pipeline. No competitor research or cross-library
+measurements were repeated for this addition; PIPELINING/CHUNKING remains a separate protocol track.
 
 ### Per-email recipient rejection handling
 
