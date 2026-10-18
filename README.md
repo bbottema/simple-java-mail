@@ -123,6 +123,10 @@ Choose message preflight by what your code needs back:
 
 Both full calls perform the same no-SMTP preparation. `validate` is a success-or-exception convenience that discards the rehearsal result; it never reports invalid input by returning `false`. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
+Rehearsal uses the Mailer you call, not a future cluster or failover destination. A selected destination can apply different message rules.
+Built Emails own their recipient/header metadata and copy supplied content arrays; later builder changes do not change an earlier Email.
+Application-owned attachment data sources and forwarded MIME messages remain borrowed, so keep them stable while an operation consumes them.
+
 When the application needs a durable checkpoint after SMTP submission, inspect the provider-neutral receipt returned by every single-email send:
 
 ```java

@@ -357,6 +357,11 @@ git commit -m "fix(scope): concise summary"
 
 Use semantic commit subjects: `action(subject): summary, multiline allowed`
 
+For architecture-conformance changes, name the governing ADRs in the body and explain the alignment, for example:
+`Architecture: ADR 0002, ADR 0031.` Include implementation and documentation companions, also in the separate website repository.
+Reference the accepted decision accurately: do not imply that a retrospective clarification historically preceded its code.
+Keep test-first red/green evidence in the plan or verification record, not the ADR. Do not add sign-offs.
+
 Keep unrelated changes out of the commit. Split docs, release notes, build fixes, and implementation work when they are independently meaningful.
 
 Use `[skip ci]` only when every changed file is excluded from the produced artifacts and the commit does not need to trigger required CI. Do not infer this from file extensions: inspect Maven resources, assembly descriptors, and other packaging configuration first. For example, `RELEASE_HISTORY.md` is copied into the standalone CLI archives, so a commit that changes it must not use `[skip ci]`.

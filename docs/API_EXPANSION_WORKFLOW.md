@@ -8,6 +8,12 @@ For architectural decisions and source anchors, see the [architecture topic inde
 
 ## Ownership and design gate
 
+Map each architectural correction to its governing ADR before implementation. Amend an existing record when clarification is sufficient;
+create a new ADR only for a distinct architectural choice. Keep implementation checklists and verification evidence in the plan, not the ADR.
+Use test-first development: reproduce the intended defect, confirm red, implement and refactor while green. A missing-method compilation
+failure is only an initial red; assert the behavior too. Record passing controls for behavior that must remain unchanged.
+Architecture-conformance commit bodies name the relevant ADRs and explain the alignment. Keep semantic subjects and omit sign-offs.
+
 Read [ADR 0001: Email configuration scopes and inheritance](adr/0001-email-configuration-scopes-and-inheritance.md) for ownership and [ADR 0002: Email defaults and overrides](adr/0002-email-defaults-and-overrides.md) for reusable policy and resolution. Their accepted architectural direction is separate from implementation status.
 
 - Put message configuration on Email. Mailer-wide message policy uses `withEmailDefaults(...)` / `withEmailOverrides(...)`; do not duplicate an Email feature with dedicated Mailer default/override methods or backing state. The dedicated DKIM route is being removed in the 10.0.0 migration, not retained as a precedent for new APIs.
@@ -196,6 +202,11 @@ Mailer configuration API changes are separate from Email model/defaults/override
 - **Property Defaults**: If the setting is property-friendly, add a `ConfigLoader.Property` entry and resolve it when creating the builder/config object. This keeps property-file driven projects configurable without Java code.
 - **Typed Schema**: Register the property's declared value type in `PropertySchema`. Do not infer a type from the text shape or parse values independently at individual read points.
 - **Transport Strategy Mapping**: When a Mailer setting maps to Jakarta Mail properties, keep the `mail.smtp.*` / `mail.smtps.*` names behind `TransportStrategy` helper methods and apply them only after the effective strategy is known.
+- **Caller-Session Baseline**: Follow [ADR 0015](adr/0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline). Preserve supplied
+  connection settings instead of applying inherited ordinary SJM defaults, regardless of a historical strategy marker. Resolve explicit choices
+  and locks without invoking custom Session-property mutation hooks; apply them only after exclusive ownership is claimed. Effective getters must
+  describe the resulting values, including absence of a common timeout. Test marked/unmarked Sessions, property defaults, explicit clears,
+  unsupported protocols and unchanged managed initialization.
 - **Spring Mapping**: If the property belongs to the public configuration surface, represent it in the metadata-only `SimpleJavaMailProperties` model. Runtime scalar discovery follows `ConfigLoader.Property` automatically; only compatibility aliases and new wildcard namespaces require changes in `SpringEnvironmentConfigSource`.
 - **Verification**: Test the Java builder path, property/config path, Spring mapping when applicable, and the final `Session` properties. For a built-in default, verify that construction and reset use the published constant and that property loading agrees; check derived fallbacks separately.
 - **Governance Boundary**: Do not wire Mailer connection/session settings into Email defaults/overrides. That mechanism applies to Email/message state and related model values.
@@ -225,6 +236,9 @@ Always verify the following areas:
 - **Opt-in Runtime Behavior**: Exercise both configured and unconfigured behavior through the actual factory/builder. Testing a policy or state object directly does not verify who enables it during construction. For background behavior, demonstrate recovery without a foreground operation hiding the failure.
 - **Concurrent Transitions**: Write down who owns each state transition and when pending results become stale. Test both completion orders of overlapping success/failure, cancellation followed by replacement, and work begun after recovery. Pair focused state tests with real send-path regressions; a routing fix must also preserve public exception families, exact observer/completion failures, receipt retention and resource ownership.
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.
+- **Message Snapshot Ownership**: Follow [ADR 0036](adr/0036-structural-message-snapshots-and-borrowed-content.md). Copy owned collection structure,
+  nested headers, dates and supplied arrays; verify builder/getter/serialization aliases cannot change existing messages. Borrow arbitrary
+  DataSources and forwarded MimeMessages without eager reads. Keep exact/retry freezing separate and test unchanged content-read counts.
 - **CLI Help**: Run the CLI with `--help` for the relevant command to ensure the new option is documented and has the correct parameter labels.
 - **CLI Metadata**: Follow [Generated CLI Metadata](DEVELOPMENT.md#generated-cli-metadata) to regenerate both `cli.data` and `therapi.data` before asserting changed help text, then run normal verification with tests enabled. Include the cold-cache concurrency regression and daemon send/probe tests: an API change can invalidate the prepared caches while concurrent requests are using the CLI.
 - **Migration Notes**: Maintain migration guidance only on the website, starting from its [migration index](https://www.simplejavamail.org/migration-notes.html). Document only broken backwards compatibility or changed behavior for existing callers. Compare against released versions, not intermediate APIs introduced during the current unreleased work. Put additive features and their usage examples in feature documentation and release notes instead.

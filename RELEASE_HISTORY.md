@@ -32,6 +32,13 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- Added independent recipient-group certificate/NOTIFY policy resets. Resetting preserves each original recipient's metadata; clearing still
+  removes it from produced recipients and permits the Email fallback.
+
+- Completed clear/reset and inspection companions for exact/composed envelope settings, SMTP credentials, optional Mailer callbacks, retry
+  schedules and OpenPGP algorithms. Defaults remain centralized; clearing a retry schedule preserves its resource limits. Public value getters
+  are explicitly included in generated API documentation.
+
 - [#705](https://github.com/bbottema/simple-java-mail/issues/705): provide compact named single-recipient construction through `mail.recipientBuilder().to(name, address)`, `.cc(...)` and `.bcc(...)`, retaining the dedicated builders for richer recipient configuration.
 
 - Added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining existing static methods and factory snapshots. DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
@@ -58,6 +65,14 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
 
 ### Bug fixes
+
+- Caller-supplied Sessions now retain their connection baseline consistently, with or without an SJM strategy marker. Explicit connection
+  builder choices and locks apply without importing unrelated defaults. Operational timeout inspection reports a nullable common configured
+  connect/read/write value instead of claiming a default that the Session does not use; integrations must recompile and handle absence.
+
+- Built Emails and recipient groups detach their metadata collections, including nested header values; supplied attachment/image arrays are
+  copied. Builder/getter aliases no longer change earlier messages. Address-only recipient imports preserve configured names consistently.
+  Explicit inbound S/MIME decryption requests now report a missing module instead of silently ignoring the request. See the migration guide.
 
 - Email copies retain their choices to skip ordinary defaults/overrides, including per-field suppression. Earlier releases lost these choices while copying, which could reapply templates the original Email had excluded. See the [copying migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#copied-template-suppression).
 
