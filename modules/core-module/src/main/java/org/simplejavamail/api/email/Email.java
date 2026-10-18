@@ -17,6 +17,7 @@ import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,6 +30,8 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +55,9 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 /**
  * Email message with all necessary data for an effective mailing action, including attachments etc.
  * Exclusively created through the email builder API obtained from a configured {@code SimpleJavaMail} factory.
+ * Collection structure and dates are detached from their builder. Stored message collections are unmodifiable;
+ * filtered To/Cc/Bcc lists are independent copies whose changes do not affect this Email.
+ * Attachment data sources and forwarded MIME messages remain borrowed: building an Email does not read or freeze their content.
  *
  * <h2>Java serialization</h2>
  * Since 9.2.0, Java serialization produces a send-ready snapshot. Attachment, embedded-image and decrypted-attachment data is read into
@@ -107,7 +113,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withReplyTo(Recipient)
 	 */
 	@NotNull
-	private final List<Recipient> replyToRecipients;
+	private List<Recipient> replyToRecipients;
 
 	/**
 	 * @see EmailPopulatingBuilder#withBounceTo(Recipient)
@@ -168,33 +174,33 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withRecipients(Collection)
 	 */
 	@NotNull
-	private final List<Recipient> recipients;
+	private List<Recipient> recipients;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
 	 */
 	@NotNull
-	private final List<AttachmentResource> embeddedImages;
+	private List<AttachmentResource> embeddedImages;
 
 	/**
 	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
 	 */
 	@NotNull
-	private final List<AttachmentResource> attachments;
+	private List<AttachmentResource> attachments;
 
 	/**
 	 * If the S/MIME module is loaded, this list will contain the same attachments as {@link #attachments},
 	 * but with any S/MIME signed attachments decrypted.
 	 */
 	@NotNull
-	private final List<AttachmentResource> decryptedAttachments;
+	private List<AttachmentResource> decryptedAttachments;
 
 	/**
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, Collection<String>> headers;
+	private Map<String, Collection<String>> headers;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
@@ -237,7 +243,7 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
 	 */
-	private final List<Recipient> overrideReceivers;
+	private List<Recipient> overrideReceivers;
 	
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
@@ -292,7 +298,7 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
 	 */
 	@Nullable
-	private final Date sentDate;
+	private Date sentDate;
 
 	/**
 	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
@@ -314,22 +320,22 @@ public class Email implements Serializable {
 		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
 
 		wasMergedWithSmimeSignedMessage = smimeMerge;
-		recipients = unmodifiableList(builder.getRecipients());
-		embeddedImages = unmodifiableList((smimeMerge)
+		recipients = builder.getRecipients();
+		embeddedImages = (smimeMerge)
 				? merge(builder.getEmbeddedImages(), smimeSignedEmail.getEmbeddedImages())
-				: builder.getEmbeddedImages());
-		attachments = unmodifiableList((smimeMerge)
+				: builder.getEmbeddedImages();
+		attachments = (smimeMerge)
 				? merge(builder.getAttachments(), smimeSignedEmail.getAttachments())
-				: builder.getAttachments());
-		decryptedAttachments = unmodifiableList((smimeMerge)
+				: builder.getAttachments();
+		decryptedAttachments = (smimeMerge)
 				? merge(builder.getDecryptedAttachments(), smimeSignedEmail.getDecryptedAttachments())
-				: builder.getDecryptedAttachments());
-		headers = unmodifiableMap((smimeMerge)
+				: builder.getDecryptedAttachments();
+		headers = (smimeMerge)
 				? merge(builder.getHeaders(), smimeSignedEmail.getHeaders())
-				: builder.getHeaders());
+				: builder.getHeaders();
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
-		replyToRecipients = unmodifiableList(builder.getReplyToRecipients());
+		replyToRecipients = builder.getReplyToRecipients();
 		bounceToRecipient = builder.getBounceToRecipient();
 		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getText();
 		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
@@ -358,6 +364,32 @@ public class Email implements Serializable {
 		openPgpSigningConfig = builder.getOpenPgpSigningConfig();
 		openPgpEncryptionConfig = builder.getOpenPgpEncryptionConfig();
 		dkimConfig = builder.getDkimConfig();
+		detachMessageMetadata();
+	}
+
+	/** Copy metadata, not borrowed content sources. The same boundary repairs shared collections in older serialized Emails. */
+	private void detachMessageMetadata() {
+		recipients = immutableListSnapshot(recipients);
+		replyToRecipients = immutableListSnapshot(replyToRecipients);
+		overrideReceivers = immutableListSnapshot(overrideReceivers);
+		attachments = immutableListSnapshot(attachments);
+		embeddedImages = immutableListSnapshot(embeddedImages);
+		decryptedAttachments = immutableListSnapshot(decryptedAttachments);
+		headers = immutableHeaderSnapshot(headers);
+		sentDate = sentDate == null ? null : new Date(sentDate.getTime());
+	}
+
+	@NotNull
+	private static <T> List<T> immutableListSnapshot(@NotNull final Collection<T> values) {
+		// List.copyOf would also reject legacy null elements; this boundary copies structure without tightening value validation.
+		return unmodifiableList(new ArrayList<>(values));
+	}
+
+	@NotNull
+	private static Map<String, Collection<String>> immutableHeaderSnapshot(@NotNull final Map<String, Collection<String>> source) {
+		final Map<String, Collection<String>> snapshot = new LinkedHashMap<>();
+		source.forEach((name, values) -> snapshot.put(name, immutableListSnapshot(values)));
+		return unmodifiableMap(snapshot);
 	}
 
 	/**
@@ -375,9 +407,10 @@ public class Email implements Serializable {
 	private void readObject(@NotNull final ObjectInputStream inputStream)
 			throws IOException, ClassNotFoundException {
 		inputStream.defaultReadObject();
+		detachMessageMetadata();
 		restorePropertySelectors();
 		if (originalOpenPgpDetails == null) {
-			originalOpenPgpDetails = OpenPgpDetails.plain();
+			originalOpenPgpDetails = OpenPgpDetailsImpl.plain();
 		}
 		if (serializationFormatVersion == 0) {
 			emailToForward = null;

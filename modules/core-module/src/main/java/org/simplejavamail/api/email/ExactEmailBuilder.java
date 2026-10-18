@@ -9,6 +9,7 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Constrained builder for an {@link Email} whose complete, existing EML representation must be submitted without rebuilding its MIME content.
@@ -59,12 +60,45 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder withEnvelopeRecipients(@NotNull Recipient @NotNull ... recipients);
 
 	/**
+	 * Removes the configured envelope recipients without changing any recipient headers in the preserved EML.
+	 * Supply at least one new envelope recipient before building another Email. Previously built Emails remain unchanged.
+	 * @return This builder.
+	 * @see #withEnvelopeRecipients(String...)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no envelope recipients to clear")
+	ExactEmailBuilder clearEnvelopeRecipients();
+
+	/**
+	 * Returns a detached, modifiable copy of the configured envelope recipients, including their preferences, order and duplicates.
+	 * Changing this list does not configure the builder or change previously built Emails.
+	 * @see #withEnvelopeRecipients(Recipient...)
+	 */
+	@NotNull
+	List<Recipient> getEnvelopeRecipients();
+
+	/**
 	 * Sets the optional SMTP-envelope sender, which must contain exactly one valid mailbox. Calling this method again replaces the previous value.
 	 *
 	 * @param senderAddress Mailbox address to use as the SMTP envelope sender.
 	 * @return This builder.
 	 */
 	ExactEmailBuilder withEnvelopeSender(@NotNull String senderAddress);
+
+	/**
+	 * Removes the explicit envelope sender so the transport can use its normal Session or message-sender fallback.
+	 * This does not request an empty SMTP sender and does not restore a historical Return-Path header as an explicit sender.
+	 * @return This builder.
+	 * @see #withEnvelopeSender(String)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no explicit envelope sender to clear")
+	ExactEmailBuilder clearEnvelopeSender();
+
+	/**
+	 * Returns the explicit envelope sender, or {@code null} when the transport will choose its fallback.
+	 * @see #withEnvelopeSender(String)
+	 */
+	@Nullable
+	Recipient getEnvelopeSender();
 
 	/**
 	 * Sets the SMTP Delivery Status Notification (DSN) options for this exact email. These transport-level options do not change the authoritative EML
@@ -81,6 +115,22 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder withDeliveryStatusNotification(@NotNull DeliveryStatusNotification deliveryStatusNotification);
 
 	/**
+	 * Removes the shared notification request, including its fixed envelope identifier. Recipient-specific preferences are retained.
+	 * Configured locks still apply when the Email is prepared; this does not change its preserved bytes.
+	 * @return This builder.
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no shared notification request to clear")
+	ExactEmailBuilder clearDeliveryStatusNotification();
+
+	/**
+	 * Returns the configured shared request, or {@code null} when no shared option or fixed identifier remains.
+	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+	 */
+	@Nullable
+	DeliveryStatusNotification getDeliveryStatusNotification();
+
+	/**
 	 * Chooses which delivery notifications to request, replacing the previous shared preference while retaining the return option and envelope identifier.
 	 * Explicit recipient preferences still win. This does not change the exact EML bytes or guarantee that a notification will arrive.
 	 * {@link NotifyOption#NEVER} requests no notifications and cannot be combined with other events. An empty array removes the shared preference;
@@ -95,6 +145,15 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ...notifyOptions);
 
 	/**
+	 * Removes the shared notification-event preference, retaining the return option, fixed identifier and recipient preferences.
+	 * If no shared DSN component remains, the request becomes absent rather than requesting NEVER.
+	 * @return This builder.
+	 * @see #withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no shared notification events to clear")
+	ExactEmailBuilder clearDeliveryStatusNotificationNotifyOptions();
+
+	/**
 	 * Chooses how much of the original email a delivery-failure notification may return, retaining notification events and the envelope identifier.
 	 * This does not change the exact EML bytes. The request is best-effort and depends on server support.
 	 *
@@ -107,10 +166,20 @@ public interface ExactEmailBuilder {
 	ExactEmailBuilder withDeliveryStatusNotificationReturnOption(@NotNull ReturnOption returnOption);
 
 	/**
+	 * Removes the return preference while retaining shared notification events and the fixed identifier.
+	 * If no shared DSN component remains, the request becomes absent. Server or provider defaults may still apply.
+	 * @return This builder.
+	 * @see #withDeliveryStatusNotificationReturnOption(ReturnOption)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no notification return preference to clear")
+	ExactEmailBuilder clearDeliveryStatusNotificationReturnOption();
+
+	/**
 	 * Fixes the unencoded SMTP transaction identifier (ENVID) without changing the exact EML bytes or other DSN options.
 	 * The value follows the validation, correlation and required-server-support contract of
 	 * {@link EmailPopulatingBuilder#fixingEnvelopeId(String)}.
-	 * A supplied identifier is validated when {@link #buildEmail()} creates the Email; {@code null} resumes automatic generation on each send.
+	 * A supplied identifier is validated when inspecting {@link #getDeliveryStatusNotification()} or when {@link #buildEmail()} creates the Email;
+	 * {@code null} resumes automatic generation on each send.
 	 *
 	 * @param envelopeId A fixed printable ASCII identifier, at most 94 characters after SMTP encoding (100 including {@code ENVID=}), or {@code null}.
 	 * @return This builder.
@@ -118,6 +187,14 @@ public interface ExactEmailBuilder {
 	 */
 	@Cli.OptionNameOverride("fixingExactEnvelopeId")
 	ExactEmailBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
+
+	/**
+	 * Removes the fixed identifier, allowing automatic per-send generation where supported. Other notification options remain unchanged.
+	 * @return This builder.
+	 * @see #fixingEnvelopeId(String)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no fixed envelope identifier to clear")
+	ExactEmailBuilder clearEnvelopeId();
 
 	/**
 	 * Requires supporting mail servers to keep using TLS for this exact email's onward delivery, without changing its EML bytes. Normally, TLS protects
@@ -142,6 +219,12 @@ public interface ExactEmailBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "A fresh exact-email CLI builder has no REQUIRETLS value to clear")
 	ExactEmailBuilder clearTlsRequiredForOnwardDelivery();
+
+	/**
+	 * Returns whether this builder requests TLS for onward delivery; locks may additionally require it when sending.
+	 * @see #withTlsRequiredForOnwardDelivery()
+	 */
+	boolean isTlsRequiredForOnwardDelivery();
 
 	/**
 	 * Chooses whether this exact email may still be submitted for accepted recipients when another envelope recipient is rejected.

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pgpainless.exception.KeyException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
@@ -104,7 +104,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         return OpenPgpParseResultImpl.builder()
             .recognized(false)
             .effectiveMimeMessage(message)
-            .details(OpenPgpDetails.plain())
+            .details(OpenPgpDetailsImpl.plain())
             .build();
     }
 
@@ -123,7 +123,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             readableMessageBytes = MimeEntitySupport.restoreMessage(protectedMessage, signedEntity);
             final MimeMessage readableMessage = FinalizedMimeMessage.fromMessageBytes(session, readableMessageBytes,
                     FinalizedMimeMessage.ProtectionState.NONE);
-            final OpenPgpDetails details = pgpainlessAdapter.verifyDetachedSignature(
+            final OpenPgpDetailsImpl details = pgpainlessAdapter.verifyDetachedSignature(
                     MimeEntitySupport.normalizeCrlf(signedEntity), MimeEntitySupport.partBody(mimeParts.get(1)),
                     receiveConfig, protectedMessage);
             return OpenPgpParseResultImpl.builder()
@@ -194,7 +194,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         return OpenPgpParseResultImpl.builder()
             .recognized(true)
             .effectiveMimeMessage(clearMessage)
-            .details(OpenPgpDetails.builder()
+            .details(OpenPgpDetailsImpl.builder()
                 .openPgpMode(OpenPgpMode.ENCRYPTED)
                 .signatureStatus(SignatureStatus.NOT_PRESENT)
                 .decryptionStatus(DecryptionStatus.DECRYPTED)
@@ -211,7 +211,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         final boolean containsSignature = nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED
                 || nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED_ENCRYPTED;
         final DecryptionStatus nestedDecryption = nestedDetails.getDecryptionStatus();
-        final OpenPgpDetails combined = OpenPgpDetails.builder()
+        final OpenPgpDetailsImpl combined = OpenPgpDetailsImpl.builder()
                 .openPgpMode(containsSignature ? OpenPgpMode.SIGNED_ENCRYPTED : OpenPgpMode.ENCRYPTED)
                 .signatureStatus(nestedDetails.getSignatureStatus())
                 .decryptionStatus(nestedDecryption == DecryptionStatus.NOT_ENCRYPTED
@@ -238,7 +238,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         return OpenPgpParseResultImpl.builder()
             .recognized(true)
             .effectiveMimeMessage(originalMessage)
-            .details(OpenPgpDetails.builder()
+            .details(OpenPgpDetailsImpl.builder()
                 .openPgpMode(OpenPgpMode.ENCRYPTED)
                 .signatureStatus(SignatureStatus.NOT_PRESENT)
                 .decryptionStatus(DecryptionStatus.KEY_MISSING)
@@ -271,7 +271,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         return OpenPgpParseResultImpl.builder()
             .recognized(mode != OpenPgpMode.PLAIN)
             .effectiveMimeMessage(effectiveMessage)
-            .details(OpenPgpDetails.builder()
+            .details(OpenPgpDetailsImpl.builder()
                 .openPgpMode(mode)
                 .signatureStatus(signatureStatus)
                 .decryptionStatus(decryptionStatus)

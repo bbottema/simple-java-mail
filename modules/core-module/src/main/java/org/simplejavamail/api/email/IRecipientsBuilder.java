@@ -28,6 +28,8 @@ public interface IRecipientsBuilder {
      * <p>
      * This is mutually exclusive with {@link #withFixedSmimeCertificate(X509Certificate)} and {@link #clearingSmimeCertificates()}; the last group S/MIME
      * policy configured on this builder wins.
+     * Use {@link #resetSmimeCertificatePolicy()} to stop applying a group rule and keep each original recipient's certificate instead, even after
+     * a clear policy. Resetting does not strip certificates or change the group's notification rule, source recipients or already built lists.
      *
      * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
      */
@@ -59,14 +61,27 @@ public interface IRecipientsBuilder {
      *
      * @see IRecipientBuilder#clearingSmimeCertificate()
      * @see EmailPopulatingBuilder#clearSmime()
+     * @see #resetSmimeCertificatePolicy()
      */
     @NotNull
     IRecipientsBuilder clearingSmimeCertificates();
 
     /**
+     * Restores the original recipients' certificates rather than stripping them. Repeating the reset has no additional effect.
+     *
+     * @see #withDefaultSmimeCertificate(X509Certificate)
+     * @see #withFixedSmimeCertificate(X509Certificate)
+     */
+    @NotNull
+    IRecipientsBuilder resetSmimeCertificatePolicy();
+
+    /**
      * Fills missing recipient NOTIFY preferences when building the flat group. Existing recipient preferences win; a complete set replaces
      * the Email fallback rather than merging events. The last default/fixed/clear group NOTIFY policy wins, independently of S/MIME policy.
      * An empty array supplies no default. See the recipient method for validation and provider-support requirements.
+     * Use {@link #resetDeliveryStatusNotificationNotifyPolicy()} to stop applying a group rule and keep the original recipient preferences,
+     * even after a clear policy. Resetting does not replace those preferences with the Email fallback or change the group's certificate rule,
+     * source recipients or already built lists.
      * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
      */
     @NotNull IRecipientsBuilder withDefaultDeliveryStatusNotificationNotifyOptions(@NotNull NotifyOption @NotNull ... notifyOptions);
@@ -81,8 +96,18 @@ public interface IRecipientsBuilder {
     /**
      * Strips copied recipient preferences and any group default/fixed NOTIFY policy from the produced recipients, restoring the Email fallback.
      * Source recipients remain unchanged. This is not NEVER and does not clear S/MIME certificates.
+     * @see #resetDeliveryStatusNotificationNotifyPolicy()
      */
     @NotNull IRecipientsBuilder clearingDeliveryStatusNotificationNotifyOptions();
+
+    /**
+     * Restores the original recipients' notification preferences rather than stripping them. Repeating the reset has no additional effect.
+     *
+     * @see #withDefaultDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     * @see #withFixedDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     */
+    @NotNull
+    IRecipientsBuilder resetDeliveryStatusNotificationNotifyPolicy();
 
     /**
      * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} with the name omitted.

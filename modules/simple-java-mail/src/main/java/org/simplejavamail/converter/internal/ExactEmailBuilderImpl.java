@@ -10,7 +10,6 @@ import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
-import org.simplejavamail.api.email.config.DeliveryStatusNotification.DeliveryStatusNotificationBuilder;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
@@ -20,14 +19,17 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.ExactEmlValidator;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
+import org.simplejavamail.internal.util.DsnNotifyOptions;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -40,11 +42,14 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	private final SimpleJavaMailConfig config;
 	private final byte[] emlBytes;
 	private final List<Recipient> envelopeRecipients = new ArrayList<>();
-	private DeliveryStatusNotificationBuilder notificationBuilder = DeliveryStatusNotification.builder();
+	private Set<NotifyOption> notificationEvents = emptySet();
+	@Nullable
+	private ReturnOption notificationReturnOption;
+	@Nullable
+	private String envelopeId;
 	@Nullable
 	private Recipient envelopeSender;
 	private boolean notificationOptionsConfigured;
-	private boolean envelopeIdentifierFixed;
 	private boolean tlsRequiredForOnwardDelivery;
 	@Nullable
 	private Boolean sendingToAcceptedRecipients;
@@ -89,6 +94,20 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
+	/** @see ExactEmailBuilder#clearEnvelopeRecipients() */
+	@Override
+	public ExactEmailBuilder clearEnvelopeRecipients() {
+		envelopeRecipients.clear();
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#getEnvelopeRecipients() */
+	@Override
+	@NotNull
+	public List<Recipient> getEnvelopeRecipients() {
+		return new ArrayList<>(envelopeRecipients);
+	}
+
 	/**
 	 * @see ExactEmailBuilder#withEnvelopeSender(String)
 	 */
@@ -98,15 +117,55 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
+	/** @see ExactEmailBuilder#clearEnvelopeSender() */
+	@Override
+	public ExactEmailBuilder clearEnvelopeSender() {
+		envelopeSender = null;
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#getEnvelopeSender() */
+	@Override
+	@Nullable
+	public Recipient getEnvelopeSender() {
+		return envelopeSender;
+	}
+
 	/**
 	 * @see ExactEmailBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
-		notificationBuilder = requireNonNull(deliveryStatusNotification, "deliveryStatusNotification").toBuilder();
-		notificationOptionsConfigured = deliveryStatusNotification.getReturnOption() != null || !deliveryStatusNotification.getNotifyOptions().isEmpty();
-		envelopeIdentifierFixed = deliveryStatusNotification.getEnvelopeId() != null;
+		requireNonNull(deliveryStatusNotification, "deliveryStatusNotification");
+		notificationEvents = deliveryStatusNotification.getNotifyOptions();
+		notificationReturnOption = deliveryStatusNotification.getReturnOption();
+		envelopeId = deliveryStatusNotification.getEnvelopeId();
+		notificationOptionsConfigured = hasSharedNotificationPreference();
 		return this;
+	}
+
+	/** @see ExactEmailBuilder#clearDeliveryStatusNotification() */
+	@Override
+	public ExactEmailBuilder clearDeliveryStatusNotification() {
+		notificationEvents = emptySet();
+		notificationReturnOption = null;
+		envelopeId = null;
+		notificationOptionsConfigured = false;
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#getDeliveryStatusNotification() */
+	@Override
+	@Nullable
+	public DeliveryStatusNotification getDeliveryStatusNotification() {
+		if (!notificationOptionsConfigured && envelopeId == null) {
+			return null;
+		}
+		return DeliveryStatusNotification.builder()
+				.notifyOptions(notificationEvents.toArray(new NotifyOption[0]))
+				.returnOption(notificationReturnOption)
+				.envelopeId(envelopeId)
+				.build();
 	}
 
 	/**
@@ -114,8 +173,16 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final NotifyOption @NotNull ...notifyOptions) {
-		notificationBuilder.notifyOptions(notifyOptions);
+		notificationEvents = DsnNotifyOptions.copyOf(asList(notifyOptions));
 		notificationOptionsConfigured = true;
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#clearDeliveryStatusNotificationNotifyOptions() */
+	@Override
+	public ExactEmailBuilder clearDeliveryStatusNotificationNotifyOptions() {
+		notificationEvents = emptySet();
+		notificationOptionsConfigured = hasSharedNotificationPreference();
 		return this;
 	}
 
@@ -124,9 +191,21 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotificationReturnOption(@NotNull final ReturnOption returnOption) {
-		notificationBuilder.returnOption(requireNonNull(returnOption, "returnOption"));
+		notificationReturnOption = requireNonNull(returnOption, "returnOption");
 		notificationOptionsConfigured = true;
 		return this;
+	}
+
+	/** @see ExactEmailBuilder#clearDeliveryStatusNotificationReturnOption() */
+	@Override
+	public ExactEmailBuilder clearDeliveryStatusNotificationReturnOption() {
+		notificationReturnOption = null;
+		notificationOptionsConfigured = hasSharedNotificationPreference();
+		return this;
+	}
+
+	private boolean hasSharedNotificationPreference() {
+		return notificationReturnOption != null || !notificationEvents.isEmpty();
 	}
 
 	/**
@@ -134,8 +213,15 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	 */
 	@Override
 	public ExactEmailBuilder fixingEnvelopeId(@Nullable final String envelopeId) {
-		notificationBuilder.envelopeId(envelopeId);
-		envelopeIdentifierFixed = envelopeId != null;
+		this.envelopeId = envelopeId;
+		return this;
+	}
+
+	/** @see ExactEmailBuilder#clearEnvelopeId() */
+	@Override
+	public ExactEmailBuilder clearEnvelopeId() {
+		envelopeId = null;
+		notificationOptionsConfigured = hasSharedNotificationPreference();
 		return this;
 	}
 
@@ -151,6 +237,12 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	public ExactEmailBuilder clearTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = false;
 		return this;
+	}
+
+	/** @see ExactEmailBuilder#isTlsRequiredForOnwardDelivery() */
+	@Override
+	public boolean isTlsRequiredForOnwardDelivery() {
+		return tlsRequiredForOnwardDelivery;
 	}
 
 	/** @see ExactEmailBuilder#withSendingToAcceptedRecipients(boolean) */
@@ -186,9 +278,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		if (envelopeSender != null) {
 			parsedEmailBuilder.withBounceTo(envelopeSender);
 		}
-		if (notificationOptionsConfigured || envelopeIdentifierFixed) {
-			parsedEmailBuilder.withDeliveryStatusNotification(notificationBuilder.build());
-		}
+		parsedEmailBuilder.withDeliveryStatusNotification(getDeliveryStatusNotification());
 		if (tlsRequiredForOnwardDelivery) {
 			parsedEmailBuilder.withTlsRequiredForOnwardDelivery();
 		}

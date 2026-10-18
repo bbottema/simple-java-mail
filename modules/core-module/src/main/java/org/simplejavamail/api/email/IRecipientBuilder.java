@@ -75,12 +75,17 @@ public interface IRecipientBuilder {
     IRecipientBuilder withAddress(@NotNull String address);
 
     /**
-     * Delegates to {@link #withAddress(String)}, using the {@link InternetAddress} to set the address field, ignoring the name part.
+     * Sets only the address from the supplied value, leaving this builder's configured name and other options unchanged.
+     * An embedded display name is ignored.
+     * @see #withAddress(String)
      */
     IRecipientBuilder withAddressOnlyFrom(@NotNull InternetAddress address);
 
     /**
-     * Delegates to {@link #withAddress(String)}, using the provided address to set the address field, extracting only the email address part.
+     * Extracts only the email address, leaving this builder's configured name and other options unchanged.
+     * For example, {@code "Alice <alice@example.org>"} supplies {@code alice@example.org}, not the name Alice.
+     * If the source cannot be parsed, it is retained for the normal send-time validator rather than rejected while constructing a recipient.
+     * @see #withAddressOnlyFrom(InternetAddress)
      */
     IRecipientBuilder withAddressOnlyFrom(@NotNull String address);
 

@@ -250,8 +250,11 @@ class ExactEmailBuilderTest {
 		final Email different = exactEmail(differentlyFolded);
 
 		assertThat(first).isEqualTo(same).isNotEqualTo(different);
-		assertThat(roundTrip(first)).isEqualTo(first);
-		assertThat(EmailConverter.emailToEMLByteArray(roundTrip(first))).containsExactly(EXACT_EML);
+		final Email restored = roundTrip(first);
+		assertThat(restored).isEqualTo(first).isInstanceOf(InternalEmail.class);
+		assertThat(((InternalEmail) restored).isExactEml()).isTrue();
+		assertThatThrownBy(() -> restored.getOverrideReceivers().clear()).isInstanceOf(UnsupportedOperationException.class);
+		assertThat(EmailConverter.emailToEMLByteArray(restored)).containsExactly(EXACT_EML);
 	}
 
 	private Email exactEmail(final byte[] emlBytes) {

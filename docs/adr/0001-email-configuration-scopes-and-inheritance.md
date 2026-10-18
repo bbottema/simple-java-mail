@@ -54,7 +54,7 @@ The following table records the accepted scopes, now represented by the local im
 | S/MIME encryption certificate | Fallback certificate | Group defaults/fixed certificates and individual certificates |
 | DKIM signing domain, selector, key, and signing options | Message-wide signing configuration | Not exposed |
 | OpenPGP signing material and encryption key rings | Message-wide signing/encryption configuration | Not exposed; no automatic recipient-key lookup |
-| DSN NOTIFY preferences | Default preferences for the email's recipients | Group defaults/fixed/clear policies and individual preferences |
+| DSN NOTIFY preferences | Default preferences for the email's recipients | Group defaults/fixed/clear/reset policies and individual preferences |
 | DSN RET choice | One choice for the SMTP transaction | Not exposed |
 | Fixed ENVID | Caller-selected transaction identifier | Not exposed |
 | Automatic ENVID | Generated per supported send attempt; reported on the result | Not recipient configuration |
@@ -65,6 +65,11 @@ S/MIME signing protects shared message content; our encryption path also produce
 DKIM's signing domain identifies a party taking responsibility for a message, not its recipients. Email-level configuration is useful when messages are signed for different organizations; a common signing configuration belongs in Email defaults. See [RFC 6376](https://datatracker.ietf.org/doc/html/rfc6376#section-1).
 
 NOTIFY and ORCPT are recipient parameters; RET and ENVID belong to the transaction. Do not put the entire existing `DeliveryStatusNotification` object on Recipient just to share a type. See [RFC 3461 parameter scopes](https://datatracker.ietf.org/doc/html/rfc3461#section-4).
+
+Group policy reset differs from clearing recipient metadata. `resetSmimeCertificatePolicy()` and
+`resetDeliveryStatusNotificationNotifyPolicy()` stop applying that group's corresponding rule and preserve the original recipients' values.
+The existing `clearing...` operations deliberately strip those values from the produced recipients, allowing the Email fallback instead.
+S/MIME and NOTIFY policies remain independent; no operation mutates original recipients or lists already built from the group.
 
 ## Recipient fallback and override boundaries
 
@@ -133,6 +138,9 @@ Not required by this decision. Keep cohesive, typed configuration values and rea
 Rejected as the target. Different recipients can legitimately need different notification preferences. The existing recipient/group model is the appropriate place to express them once the provider path is implemented.
 
 ## Consequences
+
+Reusable message/group metadata follows [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md): governance must not mutate
+its sources, while arbitrary content resources remain borrowed rather than eagerly copied.
 
 - Users get one place to configure a message feature and one way to establish Mailer-wide policy for it.
 - Recipient builders remain useful for recipient metadata without becoming copies of the Email builder.

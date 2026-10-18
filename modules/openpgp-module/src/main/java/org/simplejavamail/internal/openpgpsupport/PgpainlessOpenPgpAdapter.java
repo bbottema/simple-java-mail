@@ -27,7 +27,7 @@ import org.pgpainless.key.protection.SecretKeyRingProtector;
 import org.pgpainless.key.protection.passphrase_provider.SecretKeyPassphraseProvider;
 import org.pgpainless.signature.SignatureUtils;
 import org.pgpainless.util.Passphrase;
-import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
@@ -98,12 +98,12 @@ final class PgpainlessOpenPgpAdapter {
         return encryptedContent.toByteArray();
     }
 
-    OpenPgpDetails verifyDetachedSignature(final byte[] content, final byte[] encodedSignature,
+    OpenPgpDetailsImpl verifyDetachedSignature(final byte[] content, final byte[] encodedSignature,
             @Nullable final OpenPgpReceiveConfig receiveConfig, final byte[] originalProtectedMessage)
             throws IOException, PGPException {
         final PGPSignature signature = SignatureUtils.readSignatures(encodedSignature).get(0);
         final String signerKeyId = keyId(signature.getKeyID());
-        final OpenPgpDetails.Builder detailBuilder = OpenPgpDetails.builder()
+        final OpenPgpDetailsImpl.OpenPgpDetailsImplBuilder detailBuilder = OpenPgpDetailsImpl.builder()
                 .openPgpMode(OpenPgpMode.SIGNED)
                 .decryptionStatus(DecryptionStatus.NOT_ENCRYPTED)
                 .signerKeyId(signerKeyId)

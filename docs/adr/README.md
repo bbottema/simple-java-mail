@@ -43,6 +43,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0033](0033-detailed-mail-send-progress.md) | Attribute supported setup and SMTP stages to their live email observation, with coarse provider fallback. | Accepted, 2026-10-14 | Implemented and accepted for unreleased 10.0.0 under #761. |
 | [0034](0034-optional-opentelemetry-integration.md) | Use typed adaptation for supplied OpenTelemetry instances, core/main configuration and authoritative send telemetry with locked privacy settings. | Accepted, 2026-10-15; adapter revision, 2026-10-16 | Implemented, verified locally and reviewed for unreleased 10.0.0; #762. |
 | [0035](0035-tolerant-reading-and-strict-production.md) | Recover usable inbound mail facts without inventing evidence; keep outgoing production and exact/protected boundaries strict. | Accepted, 2026-10-17 | Established import philosophy; apply and verify recovery at the boundary being changed. |
+| [0036](0036-structural-message-snapshots-and-borrowed-content.md) | Own message metadata while borrowing external content; keep stronger exact/retry byte boundaries separate. | Accepted, 2026-10-18 | Verification belongs in the implementation plan. |
 
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
@@ -52,6 +53,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 
 | Topic | Architectural decisions and supporting documentation |
 | --- | --- |
+| Message reuse, metadata immutability and borrowed content | [0036](0036-structural-message-snapshots-and-borrowed-content.md): detached metadata, copied value arrays and serialization guarantees without eager content I/O. |
 | Tolerant MIME/EML/Outlook import and partial source facts | [0035](0035-tolerant-reading-and-strict-production.md): recover unambiguous information, explain incomplete interpretation and preserve outgoing/security boundaries; source-fact ownership follows [0008](0008-minimal-mime-structures-and-protection-order.md). |
 | Optional OpenTelemetry traces and metrics | [0034](0034-optional-opentelemetry-integration.md): typed SDK adaptation, core/main settings, properties/locks, authoritative completion and privacy. The [research and verification record](../research/762-opentelemetry-integration-verification.md) retains source findings and dated evidence, including the typed-adapter revision. |
 | Live send progress and observation IDs | [0032](0032-live-mail-send-progress.md), detailed provider stages [0033](0033-detailed-mail-send-progress.md), terminal results [0012](0012-terminal-send-observation.md), measurements [0026](0026-actual-send-diagnostics.md), [dispatcher concurrency](../concurrency/12-live-send-progress.md), and [hook research and verification](../research/mail-send-progress-verification.md). |

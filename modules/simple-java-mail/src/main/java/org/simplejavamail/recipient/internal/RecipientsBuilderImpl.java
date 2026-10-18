@@ -99,6 +99,15 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
         return this;
     }
 
+    /** @see IRecipientsBuilder#resetSmimeCertificatePolicy() */
+    @Override
+    @NotNull
+    public IRecipientsBuilder resetSmimeCertificatePolicy() {
+        groupSmimeCertificate = null;
+        groupSmimeCertificateMode = GroupPolicyMode.PRESERVE;
+        return this;
+    }
+
     /** @see IRecipientsBuilder#withDefaultDeliveryStatusNotificationNotifyOptions(NotifyOption...) */
     @Override
     @NotNull
@@ -123,6 +132,15 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     public IRecipientsBuilder clearingDeliveryStatusNotificationNotifyOptions() {
         groupNotifyOptions = emptySet();
         groupNotifyMode = GroupPolicyMode.CLEAR;
+        return this;
+    }
+
+    /** @see IRecipientsBuilder#resetDeliveryStatusNotificationNotifyPolicy() */
+    @Override
+    @NotNull
+    public IRecipientsBuilder resetDeliveryStatusNotificationNotifyPolicy() {
+        groupNotifyOptions = emptySet();
+        groupNotifyMode = GroupPolicyMode.PRESERVE;
         return this;
     }
 

@@ -39,6 +39,10 @@ The source-strategy rationale is an architectural interpretation of the checked-
 
 ## Input and transport boundaries
 
+Envelope choices can be cleared without rewriting authoritative content. Clearing recipients requires a new explicit envelope before building;
+clearing the sender restores the existing provider fallback, not an empty SMTP reverse path. Structural ownership follows
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+
 Copy byte-array input. Consume InputStream input immediately but leave that caller-owned stream open. Require nonempty input, canonical CRLF line endings, a terminating CRLF and successful Jakarta Mail parsing. These are preservation and usability checks, not a promise of exhaustive RFC validation. Do not require a visible From, recipient, Date, Subject, body or Message-ID, and never synthesize a missing Message-ID.
 
 The generated CLI exposes the byte-array construction overload; its existing converter reads the argument from a file. It does not expose the caller-owned InputStream overload. Existing third-party adapters default to `NORMAL` content support until they opt in to stronger requirements; the deprecated boolean `PreparedMail` API remains a compatibility shim.

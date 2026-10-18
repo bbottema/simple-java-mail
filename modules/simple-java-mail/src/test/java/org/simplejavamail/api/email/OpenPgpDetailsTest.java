@@ -1,6 +1,7 @@
 package org.simplejavamail.api.email;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 
 import java.util.Arrays;
 
@@ -12,7 +13,7 @@ class OpenPgpDetailsTest {
     void retainsLargeProtectedMessagesInMemoryWithoutExposingItsInternalArray() {
         final byte[] protectedMessage = new byte[2 * 1024 * 1024];
         Arrays.fill(protectedMessage, (byte) 42);
-        final OpenPgpDetails details = OpenPgpDetails.builder()
+        final OpenPgpDetailsImpl details = OpenPgpDetailsImpl.builder()
                 .originalProtectedMessage(protectedMessage)
                 .build();
 

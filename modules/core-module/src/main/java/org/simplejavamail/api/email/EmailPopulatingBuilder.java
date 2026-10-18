@@ -41,6 +41,8 @@ import static java.util.regex.Pattern.compile;
  * Default/override suppression controls ordinary templates, not factory-scoped {@code simplejavamail.locked.} settings. Those restrictions are checked
  * when governance prepares the email, even after completing it early or disabling ordinary validation. Required recipients remain additive; conflicting
  * single-value settings are rejected. Locks on embedded-image resolution are checked before this builder reads files or URLs.
+ * Collection getters return detached, modifiable copies: changing those copies does not configure this builder or change an Email already built.
+ * Data sources and forwarded MIME messages remain borrowed resources; their contents are not copied by building an Email.
  * <p>
  * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
@@ -834,7 +836,7 @@ public interface EmailPopulatingBuilder {
 	 * mimetype.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (e.g. 'signature').
-	 * @param data     The byte data of the image to be embedded.
+	 * @param data     The byte data of the image to be embedded; copied immediately so later array changes do not alter the image.
 	 * @param mimetype The content type of the given data (e.g. "image/gif" or "image/jpeg").
 	 */
 	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, byte@NotNull[] data, @NotNull String mimetype);
@@ -944,6 +946,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
+	 * The supplied array is copied immediately; later changes to it do not change the attachment.
 	 *
 	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                using {@link java.util.UUID}.
@@ -973,6 +976,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding)} with a named {@link ByteArrayDataSource}
 	 * created using the provided name, data and mimetype.
+	 * The supplied array is copied immediately; later changes to it do not change the attachment.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                          using {@link java.util.UUID}.
@@ -1399,6 +1403,32 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearDeliveryStatusNotification();
+
+	/**
+	 * Removes the shared notification-event preference while retaining the return option and fixed envelope identifier.
+	 * Recipient-specific preferences are unchanged. If no shared DSN component remains, the request becomes absent and ordinary templates can apply.
+	 * @return This builder.
+	 * @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh CLI builder has no shared notification preference to clear")
+	EmailPopulatingBuilder clearDeliveryStatusNotificationNotifyOptions();
+
+	/**
+	 * Removes only the return preference, retaining notification events and the fixed envelope identifier.
+	 * If no shared DSN component remains, the request becomes absent and ordinary templates can apply.
+	 * @return This builder.
+	 * @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh CLI builder has no notification return preference to clear")
+	EmailPopulatingBuilder clearDeliveryStatusNotificationReturnOption();
+
+	/**
+	 * Removes the fixed identifier, allowing automatic per-send generation where supported. Other notification options remain unchanged.
+	 * @return This builder.
+	 * @see #fixingEnvelopeId(String)
+	 */
+	@Cli.ExcludeApi(reason = "A fresh CLI builder has no fixed envelope identifier to clear")
+	EmailPopulatingBuilder clearEnvelopeId();
 
 	/**
 	 * Stops this builder from directly requiring TLS for this email's onward delivery. Configured Email defaults and overrides can still supply the

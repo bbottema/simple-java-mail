@@ -135,6 +135,22 @@ Public application configuration builders are written explicitly: the setter own
 to that setter with `@see`. Implementation methods refer to their public interface. Lombok may still provide value semantics; it must not hide the
 application builder contract. Public visibility alone does not decide which builder convention applies; the intended consumer does.
 
+Provide named companions for optional choices: clear removes the supplied choice and permits established fallback; reset restores the published
+built-in default. Neither clears unrelated settings. Overloads accepting different representations preserve the same unrelated values: a method
+described as changing only an address must not also replace its name.
+
+For recipient groups, the initial certificate/NOTIFY behavior preserves original recipient metadata. The named `reset...Policy()` operations
+restore that preserving behavior. Existing `clearing...` operations deliberately strip the corresponding metadata and permit Email fallback;
+they cannot serve as policy reset without changing their meaning. [ADR 0001](0001-email-configuration-scopes-and-inheritance.md) owns that scope
+distinction. Resetting either policy must leave the other policy and previously built snapshots unchanged.
+
+Declare application-facing getters explicitly when source-based Javadocs cannot discover generated accessors. Retain Lombok value semantics,
+but verify freshly generated public HTML, setter links and exclusion of internal assembly. Compilation alone is not publication. OpenPGP
+protection details use this same read-contract/internal-assembly boundary, even when several modules need to construct them.
+
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) defines message metadata snapshots and borrowed content. Builder cleanup
+must preserve that ownership, serialized subtype and content-read boundary.
+
 Small immutable fluent configuration can use the same setter/getter/reset/clear documentation discipline without introducing a separate mutable
 builder. This does not change module ownership: its supported contract belongs in core and any main-runtime bootstrap belongs in `simple-java-mail`.
 The typed adapter exception wraps an already supplied instance, not a parallel configuration surface. Its public method documents the accepted

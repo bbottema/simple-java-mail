@@ -128,7 +128,13 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressOnlyFrom(@NotNull String address) {
-        return interpretAddressData(null, false, checkNonEmptyArgument(address, "address"));
+        checkNonEmptyArgument(address, "address");
+        try {
+            return withAddress(InternetAddress.parse(address, false)[0].getAddress());
+        } catch (final AddressException invalidAddress) {
+            // Keep lenient input for the normal send-time validator, without replacing the caller's chosen name.
+            return withAddress(address);
+        }
     }
 
     /**

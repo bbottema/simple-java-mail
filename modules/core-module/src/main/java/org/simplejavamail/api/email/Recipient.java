@@ -72,6 +72,51 @@ public class Recipient implements Serializable {
         this.deliveryStatusNotificationNotifyOptions = DsnNotifyOptions.copyOf(notifyOptions);
     }
 
+    /**
+     * Returns the supplied display name, or null when no name was provided.
+     * @see IRecipientBuilder#withName(String)
+     */
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the recipient's email address.
+     * @see IRecipientBuilder#withAddress(String)
+     */
+    @NotNull
+    public String getAddress() {
+        return address;
+    }
+
+    /**
+     * Returns the recipient's To, Cc or Bcc role, if one was specified.
+     * @see IRecipientBuilder#withType(Message.RecipientType)
+     */
+    @Nullable
+    public RecipientType getType() {
+        return type;
+    }
+
+    /**
+     * Returns the supplied encryption certificate, or null when no recipient-specific certificate was provided.
+     * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
+     */
+    @Nullable
+    public X509Certificate getSmimeCertificate() {
+        return smimeCertificate;
+    }
+
+    /**
+     * Returns the immutable notification preference; an empty set leaves the Email fallback in effect.
+     * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+     */
+    @NotNull
+    public Set<NotifyOption> getDeliveryStatusNotificationNotifyOptions() {
+        return deliveryStatusNotificationNotifyOptions;
+    }
+
     /** Older serialized recipients have no NOTIFY field and continue to inherit the Email fallback. */
     private Object readResolve() {
         return new Recipient(name, address, type, smimeCertificate,

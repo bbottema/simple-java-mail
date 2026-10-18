@@ -25,7 +25,7 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
@@ -363,7 +363,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 				return UnprocessedOpenPgpMail.builder()
 						.recognized(true)
 						.effectiveMimeMessage(mimeMessage)
-						.details(OpenPgpDetails.builder()
+					.details(OpenPgpDetailsImpl.builder()
 								.openPgpMode(signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED)
 								.signatureStatus(signed ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT)
 								.decryptionStatus(signed ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.FAILED)
@@ -375,13 +375,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			return UnprocessedOpenPgpMail.builder()
 					.recognized(false)
 					.effectiveMimeMessage(mimeMessage)
-					.details(OpenPgpDetails.plain())
+				.details(OpenPgpDetailsImpl.plain())
 					.build();
 		} catch (MessagingException e) {
 			return UnprocessedOpenPgpMail.builder()
 					.recognized(false)
 					.effectiveMimeMessage(mimeMessage)
-					.details(OpenPgpDetails.plain())
+				.details(OpenPgpDetailsImpl.plain())
 					.build();
 		}
 	}

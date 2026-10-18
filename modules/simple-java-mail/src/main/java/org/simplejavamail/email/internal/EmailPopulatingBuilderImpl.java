@@ -18,7 +18,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.DeliveryStatusReport;
-import org.simplejavamail.api.email.OpenPgpDetails;
+import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -359,7 +359,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private DeliveryStatusReport deliveryStatusReport;
 
 	@NotNull
-	private OriginalOpenPgpDetails originalOpenPgpDetails = OpenPgpDetails.plain();
+	private OriginalOpenPgpDetails originalOpenPgpDetails = OpenPgpDetailsImpl.plain();
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
@@ -1223,7 +1223,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 		
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
 		dataSource.setName(name);
 		return withEmbeddedImage(name, dataSource);
 	}
@@ -1238,7 +1238,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
 
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
 		dataSource.setName(name);
 		return withPreEncodedEmbeddedImage(name, dataSource, preEncodedContentTransferEncoding);
 	}
@@ -1378,7 +1378,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
 		requireNonNull(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
 		dataSource.setName(name);
 		withAttachment(name, dataSource, description, contentTransferEncoding);
 		return this;
@@ -1401,7 +1401,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 														  @Nullable final String description, @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
 		requireNonNull(data, "data");
 		checkNonEmptyArgument(mimetype, "mimetype");
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data, mimetype);
+		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
 		dataSource.setName(name);
 		return withPreEncodedAttachment(name, dataSource, description, preEncodedContentTransferEncoding);
 	}
@@ -1845,6 +1845,30 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	/** @see EmailPopulatingBuilder#clearDeliveryStatusNotificationNotifyOptions() */
+	@Override
+	public EmailPopulatingBuilder clearDeliveryStatusNotificationNotifyOptions() {
+		if (deliveryStatusNotification == null) {
+			return this;
+		}
+		if (deliveryStatusNotification.getReturnOption() == null && deliveryStatusNotification.getEnvelopeId() == null) {
+			return clearDeliveryStatusNotification();
+		}
+		return withDeliveryStatusNotification(deliveryStatusNotification.toBuilder().notifyOptions().build());
+	}
+
+	/** @see EmailPopulatingBuilder#clearDeliveryStatusNotificationReturnOption() */
+	@Override
+	public EmailPopulatingBuilder clearDeliveryStatusNotificationReturnOption() {
+		return withDeliveryStatusNotificationReturnOption(null);
+	}
+
+	/** @see EmailPopulatingBuilder#clearEnvelopeId() */
+	@Override
+	public EmailPopulatingBuilder clearEnvelopeId() {
+		return fixingEnvelopeId(null);
+	}
+
 	/** @see EmailPopulatingBuilder#clearTlsRequiredForOnwardDelivery() */
 	@Override
 	public EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery() {
@@ -2088,7 +2112,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
-		return propertiesNotToApplyDefaultValueFor;
+		return propertiesNotToApplyDefaultValueFor == null ? null : new HashSet<>(propertiesNotToApplyDefaultValueFor);
 	}
 
 	/**
@@ -2097,7 +2121,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
-		return propertiesNotToApplyOverrideValueFor;
+		return propertiesNotToApplyOverrideValueFor == null ? null : new HashSet<>(propertiesNotToApplyOverrideValueFor);
 	}
 	
 	/*
@@ -2128,7 +2152,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@NotNull
 	public List<Recipient> getReplyToRecipients() {
-		return replyToRecipients;
+		return new ArrayList<>(replyToRecipients);
 	}
 	
 	/**
@@ -2276,7 +2300,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	@Override
 	public List<AttachmentResource> getDecryptedAttachments() {
-		return decryptedAttachments;
+		return new ArrayList<>(decryptedAttachments);
 	}
 
 	/**
@@ -2285,7 +2309,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	@Override
 	public Map<String, Collection<String>> getHeaders() {
-		return new HashMap<>(headers);
+		final Map<String, Collection<String>> snapshot = new HashMap<>();
+		headers.forEach((name, values) -> snapshot.put(name, new ArrayList<>(values)));
+		return snapshot;
 	}
 	
 	/**
@@ -2339,7 +2365,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@NotNull
 	public List<Recipient> getOverrideReceivers() {
-		return overrideReceivers;
+		return new ArrayList<>(overrideReceivers);
 	}
 	
 	/**
