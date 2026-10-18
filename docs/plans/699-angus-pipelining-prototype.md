@@ -2,17 +2,28 @@
 
 Implementation plan, 2026-10-14. Start with the [Angus contribution guide](../research/699-angus-contribution-conventions.md) and use it again for the final diff review. The [posted proposal](699-angus-pipelining-proposal.md) remains the scope agreement; this file tracks the local experiment. [Results and reproduction commands](../research/699-angus-pipelining-prototype-results.md).
 
-**Current status: two separate prototypes, awaiting a direction decision.** The reader-thread Angus integration can stall under valid-command TLS pressure. A standalone SSLEngine client avoids the reproduced stall without reconnecting; it is not yet an Angus transport replacement. Bounded reconnect-and-sequential recovery has also been tested separately, not added to Angus. The sections below retain the sequence of investigations. No upstream publication is authorized.
+**Current status: two integrated feature alternatives, tested locally.** The reader-thread Angus integration can stall under valid-command TLS pressure. The SSLEngine branch now uses the same Angus envelope construction, delivery state, properties and subclass hooks, with channel I/O replacing the reader. The user approved an engine factory hook with sequential fallback for existing factories. The [integration and parity report](../research/699-angus-prototype-parity.md) records current verification separately from the historical standalone experiment. These remain prototypes, not release-ready patches. No upstream publication is authorized.
+
+The stale-capability fix was merged as
+[PR #218](https://github.com/eclipse-ee4j/angus-mail/pull/218) on 2026-10-18,
+closing [bug #217](https://github.com/eclipse-ee4j/angus-mail/issues/217).
+Both prototype worktrees now use upstream
+`a1d842dd46debe84fb05f7343151974ba78ca5b4` as their base. Their feature diffs
+inherit the fix and its tests rather than proposing the cache change again.
+The [refresh report](../research/699-angus-upstream-refresh.md) records the new
+verification, patch review and recovery snapshots. The reader prototype is a
+local commit; the SSLEngine prototype remains an uncommitted diff for review.
+Publication remains a separate step.
 
 The [repeated-measurement round](../research/699-angus-tls-stall-rate-measurements.md) is now recorded separately: no stalls in fifty ordinary pipelined connection windows (740 messages, including Postfix and Exim), versus six of ten under the established pressure configuration. Other boundary cases and shared Exim key-update rejections are documented there. This distinguishes tested conditions; it does not estimate a production failure rate or resolve the recovery-policy decision.
 
 The [bounded recovery spike](../research/699-angus-tls-recovery-and-io-models.md) subsequently recovered nine confirmed stalls, then reused each new sequential connection. It also checked no replay after content and a strict one-retry limit. Recovery remains test-side, with caller-owned timeout scheduling; default timeout-executor cleanup, public events and integration policy still need work.
 
-The separate [SSLEngine experiment](../research/699-angus-sslengine-prototype.md) is now complete: eighteen matching pressure trials completed with the engine, versus nine stalls with the existing reader-thread client; sequential controls passed all eighteen. Fragmented-I/O and failure checks also completed as expected. The engine demonstrated continued input processing while writes were blocked, without reconnecting. This proves the tested approach in a standalone client; a production Angus TLS adapter remains unimplemented. The [reuse survey](../research/699-angus-reusable-tls-io.md) records external alternatives and their integration costs. The existing upstream patch and user-edited public-comment draft were left unchanged.
+The earlier standalone [SSLEngine experiment](../research/699-angus-sslengine-prototype.md) completed eighteen matching pressure trials with the engine, versus nine stalls with the existing reader-thread client; sequential controls passed all eighteen. Fragmented-I/O and failure checks also completed as expected. The engine demonstrated continued input processing while writes were blocked, without reconnecting. At that stage it was a standalone client, not an Angus TLS adapter. The later integration and its own tests are recorded in the parity report above. The [reuse survey](../research/699-angus-reusable-tls-io.md) records external alternatives and their integration costs. The user-edited public-comment draft remains unchanged.
 
 The user authorized committing #699 planning and research to SJM on 2026-10-15. These documents stay out of both Angus patches. Raw results, local harnesses, downloaded references and private Maven artifacts remain under the excluded `.local/angus-pipelining` directory. Keep reproducible tests and their running instructions in the Angus patches. Draft communications in the chat first; nothing is published automatically.
 
-The SSLEngine experiment now has its own Angus worktree and a portable, opt-in JUnit entry point. Its patch changes test code/resources only, plus the fixture's copyright exclusion. It does not inherit the reader-thread production changes. The [engine report](../research/699-angus-sslengine-prototype.md) records packaging and validation separately from the original measurements. PR drafts: [reader-thread integration](699-angus-pipelining-prototype-pr-draft.md) and [SSLEngine experiment](699-angus-sslengine-prototype-pr-draft.md). The user-edited progress-comment draft is retained unchanged and is not ready to post without reconciling the later experiments.
+The SSLEngine experiment was first packaged in its own Angus worktree as a test-only patch. That stage is retained in the [engine report](../research/699-angus-sslengine-prototype.md). The subsequent user request supersedes that restriction: both branches must independently implement the feature contract. PR drafts: [reader-thread integration](699-angus-pipelining-prototype-pr-draft.md) and [SSLEngine integration](699-angus-sslengine-prototype-pr-draft.md). The user-edited progress-comment draft is retained unchanged and is not ready to post without reconciling the later experiments.
 
 ## Scope and baselines
 
@@ -20,9 +31,10 @@ Opt-in MAIL FROM / RCPT TO pipelining, disabled by default. All replies must be 
 
 | Checkout | Branch | Starting commit |
 | --- | --- | --- |
-| `C:\workstation\angus-mail-pipelining-baseline` | detached upstream master | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
-| `C:\workstation\angus-mail-pipelining-prototype` | `213-pipelining-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
-| `C:\workstation\angus-mail-sslengine-prototype` | `213-sslengine-prototype` | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
+| `C:\workstation\angus-mail-pipelining-baseline` | detached historical control, retained | `a7bd3fed964d9c9bc2981d4b2c9867358453c571` |
+| `C:\workstation\angus-mail-pipelining-merged-baseline` | detached current upstream control | `a1d842dd46debe84fb05f7343151974ba78ca5b4` |
+| `C:\workstation\angus-mail-pipelining-prototype` | `213-pipelining-prototype` | `a1d842dd46debe84fb05f7343151974ba78ca5b4` |
+| `C:\workstation\angus-mail-sslengine-prototype` | `213-sslengine-prototype` | `a1d842dd46debe84fb05f7343151974ba78ca5b4` |
 | `C:\workstation\simple-java-mail-pipelining-integration` | `codex/699-pipelining-integration` | `ff73530421bd1c4766f7c3232d766705d61244c9` |
 | `C:\workstation\simple-java-mail-pipelining-baseline` | detached SJM control, alignment profile only | `ff73530421bd1c4766f7c3232d766705d61244c9` |
 
@@ -64,11 +76,11 @@ Keep new private Maven repositories and logs under `.local/angus-pipelining` in 
 - [x] Actual-transport TLS follow-up and clean-artifact checks on JDK 11/17/21. Existing timeout behavior is now distinguished from the standalone fixture's wrapper order.
 - [x] Local-only research exclusions and fresh separate Angus/SJM patch exports. No communication posted.
 
-Offer a more isolated sequential implementation if maintainers prefer it. The
-observed SIZE/AUTH differences also support a narrower option: track fresh
-PIPELINING permission separately and review legacy capability-cache cleanup in
-its own change. Neither alternative has been implemented. Keep release-readiness
-test expansion behind agreement on the current direction.
+Offer a more isolated sequential implementation if maintainers prefer it.
+The SIZE/AUTH changes were reviewed and merged separately in #218, so the
+PIPELINING-only capability workaround is no longer needed on this base.
+The isolated sequential implementation remains an option, not implemented work.
+Keep release-readiness test expansion behind agreement on the current direction.
 
 The SJM pool characterization found a separate existing policy mismatch:
 ordinary partial submission exceptions invalidate a healthy connection, with

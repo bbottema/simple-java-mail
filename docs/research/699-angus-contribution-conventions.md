@@ -2,7 +2,7 @@
 
 Internal working guide, 2026-10-14. Use this before editing and when reviewing the final diff. This is not a new policy for Angus. Related: [prototype plan](../plans/699-angus-pipelining-prototype.md), [proposal review](699-angus-pipelining-proposal-review.md), and [upstream discussion](https://github.com/eclipse-ee4j/angus-mail/issues/213).
 
-Inspected upstream `master`: [`a7bd3fed964d9c9bc2981d4b2c9867358453c571`](https://github.com/eclipse-ee4j/angus-mail/commit/a7bd3fed964d9c9bc2981d4b2c9867358453c571), refreshed on 2026-10-14. References below describe this revision, not a future release.
+Initially inspected upstream `master`: [`a7bd3fed964d9c9bc2981d4b2c9867358453c571`](https://github.com/eclipse-ee4j/angus-mail/commit/a7bd3fed964d9c9bc2981d4b2c9867358453c571), refreshed on 2026-10-14. On 2026-10-18 both prototypes were brought onto [`a1d842dd46debe84fb05f7343151974ba78ca5b4`](https://github.com/eclipse-ee4j/angus-mail/commit/a1d842dd46debe84fb05f7343151974ba78ca5b4), which adds only the reviewed capability-cache fix, its tests and notes. The source links below retain the original inspection revision. The [refresh report](699-angus-upstream-refresh.md) records the later diff and checks.
 
 ## Documented requirements
 
@@ -32,6 +32,7 @@ The root contribution file and `www/Build-Instructions.md` contain legacy Jakart
 - Tests use JUnit 4, its existing assertions and timeouts. Extend [SMTPHandler](https://github.com/eclipse-ee4j/angus-mail/blob/a7bd3fed964d9c9bc2981d4b2c9867358453c571/providers/angus-mail/src/test/java/org/eclipse/angus/mail/smtp/SMTPHandler.java) and `TestServer` where useful. A fixture must deliberately control replies to prove pipelining; the default immediate-reply fixture alone cannot do that.
 - Use bounded waits and clear cleanup paths. Close owned sockets and join owned helpers in `finally`; preserve interruption. Do not shut down a caller-owned executor.
 - `WriteTimeoutSocket` is an important adjacent lifecycle example. Test the actual stream wrappers and TLS paths, not only an in-memory queue.
+- In hash-commented test resources, separate the license header from explanatory comments with a blank line. The configured copyright checker reads contiguous hash comments as one header; the 2026-10-18 refresh verified this with the diagnostic key-update fixture without changing its license or runtime properties.
 - The [CI workflow](https://github.com/eclipse-ee4j/angus-mail/blob/a7bd3fed964d9c9bc2981d4b2c9867358453c571/.github/workflows/maven.yml) verifies on JDK 11, 17 and 21 with the release/staging/build-only profiles, GPG skipped, copyright checking and enforcer skipped. Match that invocation when reporting CI-equivalent verification.
 - SpotBugs is configured but `spotbugs.skip` defaults to true. Explicitly enable it and confirm analysis output exists. Compare findings with the unmodified baseline; merely running `verify` is not a SpotBugs result.
 
@@ -71,10 +72,32 @@ Review completed for the local prototype on 2026-10-14. See the [per-file review
 
 Follow-up review on 2026-10-15 covers the actual-transport TLS fixture, corrected compatibility notes and removal of temporary measurement hooks. The full SJM on/off comparison, clean-artifact checks and narrower TLS conclusion are in the [updated local results](699-angus-pipelining-prototype-results.md#clean-artifact-confirmation-and-diff-hygiene). Research was initially excluded from Git; the user subsequently authorized committing it in SJM, but not in either Angus patch. Normal code, reproducible tests and API/lifecycle documentation remain in the proposed patches.
 
-The separate SSLEngine branch is a test-only experiment. Use JUnit 4 and Java 11,
-with child-process isolation for diagnostic TLS properties and bounded process
-cleanup. Keep its server, certificate and run instructions self-contained. Do
-not label the independent client as an integrated Angus Transport, or the
-absence of reproduced stalls as proof of general progress. No production
-provider source, dependency, release note or public API changes belong in this
-experiment's patch.
+The SSLEngine branch started as a test-only experiment. On 2026-10-15 the user
+requested two independently usable feature alternatives, with the same SMTP
+contract and only the I/O implementation differing. Production integration,
+property and compatibility documentation now belong in that branch too.
+Existing custom TLS factories keep sequential sending unless an explicit engine
+hook supplies their equivalent TLS configuration. This fallback and hook were
+approved separately; never substitute default trust for a caller's factory.
+
+Use the same envelope contract tests in both branches. Keep JUnit 4, Java 11,
+child-process isolation for diagnostic TLS properties and bounded cleanup.
+The independent engine client remains a comparison fixture, not evidence that
+the actual Transport has passed a test. Report its results separately from the
+integrated transport arm, and do not turn an absence of observed stalls into a
+general progress guarantee. Research remains in SJM, not either Angus patch.
+
+The parity follow-up also checked the shared SMTP source and tests, hook and
+factory fallback, generated documentation, clean build output and explicit
+SpotBugs analysis. Generate combined-provider Javadoc in the matching reactor:
+a standalone documentation goal can unpack cached sources from the other
+prototype. Use a clean build after switching those inputs. The
+[parity report](699-angus-prototype-parity.md) records the corrected output and
+remaining review limits.
+
+The #218 review preferred reusing the shared test TLS setup and relaxing
+validation for a capability-cache test. That test now uses the existing
+`TestServer.createSSLContext()` helper, which is public within the test sources.
+The PIPELINING fixtures still need their valid localhost certificate to test
+hostname and certificate rejection; do not remove those checks merely to reuse
+the older shared certificate. No production TLS policy changes were requested.

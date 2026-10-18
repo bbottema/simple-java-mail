@@ -1,30 +1,44 @@
 # [Draft] Add opt-in SMTP envelope PIPELINING with a reply reader
 
-Related to #213. This is the smaller, stream-based implementation for discussion,
-not a ready-to-merge change. The separate SSLEngine draft explores the alternative.
+Related to #213. This is a working prototype for discussion, not a ready-to-merge
+change.
 
 SMTP currently waits for each MAIL FROM and RCPT TO reply before sending the next
 command. With many recipients, those waits can dominate sending time. This draft
 allows those commands to travel in groups when the server supports PIPELINING.
 
-## What changes
+## Behavior
 
-- `mail.smtp.pipelining` / `mail.smtps.pipelining`, disabled by default.
-- Groups of up to 32 commands or 32 KiB, with a reply-reading thread during the
-  envelope. The sending thread keeps ownership of callbacks and delivery state.
-- All envelope replies are processed before DATA or BDAT. BDAT chunks remain
-  sequential.
-- Existing subclasses stay sequential unless they opt in. No new dependency.
+- Set `mail.smtp.pipelining=true` or `mail.smtps.pipelining=true` to enable it;
+  both default to `false` for sequential sending. Set these before creating the Transport.
+- Require fresh EHLO support, including after reconnect and STARTTLS. Missing
+  support or HELO fallback means sequential sending.
+- Group MAIL FROM and RCPT TO only, up to 32 commands or 32 KiB. An oversized
+  command travels alone. Process every envelope reply before DATA or BDAT;
+  BDAT chunks remain sequential.
+- Keep synchronous `sendMessage`, envelope parameters, partial-recipient results,
+  `sendpartial`, `reportsuccess`, exceptions and listener events.
+- Existing subclasses remain sequential unless they opt in through
+  `isPipeliningCompatible()`. `sendEnvelope()` provides common preparation;
+  command/reply callbacks stay on the sending thread, with deferred replies.
+- Validate customized commands, drain before resetting healthy connections,
+  close broken connections and never automatically replay a message.
 
-Focused tests pass on JDK 11, 17 and 21 and cover reply ordering, partial delivery,
-rejections, subclass behavior, TLS verification and cleanup. A separate
-2,380-test consumer-suite comparison produced matching outcomes with pipelining
-off and on; shared capability-cache differences remain, so this is not a claim
-that every test passed.
+## Implementation
+
+A short-lived thread reads replies while the sending thread writes commands.
+It does not call subclass hooks or change delivery state, and is stopped and
+joined before DATA, BDAT, RSET or reuse. There is no new runtime dependency.
+
+## Checks
+
+The shared envelope tests pass on JDK 11, 17 and 21, including runs over STARTTLS.
+They check the switches, grouping, DATA/BDAT boundaries, partial delivery,
+exceptions/events, subclass callbacks, hostname-verifier rejection and cleanup.
 
 On a reused connection with an effective 10-15 ms reply delay, median send times
 fell from 31 to 15 ms for one recipient, 171 to 16 ms for ten, and 1,565 to 62 ms
-for 100. This is a small latency benchmark, not a production-throughput estimate.
+for 100. This measures plain-SMTP envelope latency, not production throughput.
 
 ## Decisions before proceeding
 
@@ -35,13 +49,7 @@ aborts the tested stall. A separate experiment recovered nine such stalls by
 reconnecting once and sending sequentially, strictly before DATA/BDAT. That
 recovery policy is not included here.
 
-Two other boundaries need agreement: the current draft shares envelope-building
-and reply-handling code with the sequential path; I can leave the original path
-untouched instead. The working diff also clears stale EHLO capabilities. That
-fix affects SIZE/AUTH with pipelining disabled and needs its own issue and PR
-before this contribution proceeds.
-
-I propose choosing between this smaller change with an agreed failure/recovery
-policy and the SSLEngine direction before expanding either to release readiness.
-
-Developed with AI assistance; implementation and test results reviewed locally.
+Both modes share command construction and reply handling, so this also refactors
+the sequential implementation. I can leave its existing methods untouched and
+put pipelining in a separate path if preferred, at the cost of some duplication.
+CHUNKING optimization and release-readiness coverage remain separate.

@@ -1,53 +1,67 @@
-# [Draft] Explore SMTP PIPELINING with SSLEngine and nonblocking I/O
+# [Draft] Add opt-in SMTP envelope PIPELINING with SSLEngine
 
-Related to #213 and the reader-thread draft. This is a runnable experiment, not
-an integrated replacement for Angus's TLS transport. It adds test code, a fixture
-and running instructions; production code and dependencies are unchanged.
+Related to #213. This is a working prototype for discussion, not a ready-to-merge
+change.
 
-The reader-thread implementation can stall when TLS 1.3 processing needs to
-write a key update while both peers are blocked writing. This alternative uses
-Java's existing SSLEngine with a nonblocking channel, so incoming replies can
-still be processed while output is pending.
+SMTP currently waits for each MAIL FROM and RCPT TO reply before sending the next
+command. With many recipients, those waits can dominate sending time. This draft
+allows those commands to travel in groups when the server supports PIPELINING.
+
+## Behavior
+
+- Set `mail.smtp.pipelining=true` or `mail.smtps.pipelining=true` to enable it;
+  both default to `false` for sequential sending. Set these before creating the Transport.
+- Require fresh EHLO support, including after reconnect and STARTTLS. Missing
+  support or HELO fallback means sequential sending.
+- Group MAIL FROM and RCPT TO only, up to 32 commands or 32 KiB. An oversized
+  command travels alone. Process every envelope reply before DATA or BDAT;
+  BDAT chunks remain sequential.
+- Keep synchronous `sendMessage`, envelope parameters, partial-recipient results,
+  `sendpartial`, `reportsuccess`, exceptions and listener events.
+- Existing subclasses remain sequential unless they opt in through
+  `isPipeliningCompatible()`. `sendEnvelope()` provides common preparation;
+  command/reply callbacks stay on the sending thread, with deferred replies.
+- Validate customized commands, drain before resetting healthy connections,
+  close broken connections and never automatically replay a message.
+
+## Implementation
+
+Under specific backpressure conditions, SSLSocket can stall when a TLS 1.3 key
+update needs to write while output is blocked. This uses Java's SSLEngine with
+a nonblocking channel, so incoming replies can still be processed.
 
 One calling thread owns the connection and SMTP state. There is no separate SMTP
-reader thread to coordinate or join. Delegated TLS tasks use a worker. This
-would be a larger change to Angus's I/O handling, but a simpler SMTP concurrency
-model, not a new TLS or cryptographic implementation.
+reader thread to coordinate or join. Delegated TLS tasks use a worker. This is
+a larger change to Angus's I/O handling, but a simpler SMTP concurrency model,
+not a new TLS or cryptographic implementation. There is no new runtime dependency.
 
-## Results and reproduction
+The default TLS context and stock MailSSLSocketFactory work directly. Custom
+TLS factories retain sequential sending unless `mail.smtp.ssl.engineFactory`
+(or `mail.smtps.ssl.engineFactory`) supplies a matching engine. Sockets without
+a channel, including SOCKS and caller-supplied sockets, also remain sequential.
+Existing factories and trust settings are never silently replaced. Disabling
+pipelining retains the original socket implementation.
 
-In the original matched pressure tests on JDK 11, 17 and 21, the engine completed
-18/18 trials, the reader-thread implementation completed 9/18, and sequential
-sending completed 18/18. The engine continued processing replies during blocked
-writes. Including fragmented-I/O cases, it delivered 40 messages on 20 reused
-connections without reconnecting. Ten failure checks behaved as expected,
-including timeout, disconnect, unacknowledged content and certificate/hostname
-rejection. These are deliberately demanding test conditions, not production
-failure-rate estimates or an additional performance benchmark.
+## Checks
 
-The packaged runner also passes on JDK 11/17/21. All six optional reader
-comparisons completed in the latest run; reproducing the stall depends on timing.
+The shared envelope tests pass on JDK 11, 17 and 21, including runs over STARTTLS.
+They check the switches, grouping, DATA/BDAT boundaries, partial delivery,
+exceptions/events, subclass callbacks, hostname-verifier rejection and cleanup.
+Additional tests check TLS settings, the engine hook and legacy-factory fallback.
+The actual SMTPTransport completed all eighteen pressure test runs across those
+JDKs without stalls or reconnects; thirty negative cases failed as expected.
+These results cover the tested conditions, not every possible TLS exchange.
 
-The optional JUnit entry point includes STARTTLS and implicit TLS, frequent key
-updates, restricted buffers and complete, valid SMTP commands:
+On a reused connection with an effective 10-15 ms reply delay, median send times
+fell from 31 to 15 ms for one recipient, 170 to 15 ms for ten, and 1,564 to 62 ms
+for 100. This measures plain-SMTP envelope latency, not production throughput.
 
-```text
-mvn -B -pl providers/angus-mail -am -Poss-release,staging,build-only -Dgpg.skip=true -Denforcer.skip -Dtest=SMTPSSLEngineTest -Dsurefire.failIfNoSpecifiedTests=false -Dangus.sslengine.prototype=true package
-```
+## Decisions before proceeding
 
-Each case runs in a bounded child JVM. The fixture README explains how to include
-the reader-thread comparison and where to find the output.
+I propose reviewing whether the broader I/O change is worth pursuing. Reusing
+TLS Channel or Netty remains an option, but neither has been tested here.
 
-## Direction to decide
-
-The experiment does not yet preserve Angus's full Transport contract, including
-subclass hooks, events, partial recipients, BDAT, cancellation, proxies and
-custom socket factories. Avoiding the reproduced stall is not proof that every
-possible exchange will progress.
-
-I propose deciding whether this broader I/O change is worth pursuing before
-integrating it. TLS Channel and Netty are also possible reuse options if an
-additional dependency is acceptable; neither has been tested against this
-reproducer. The current experiment needs neither.
-
-Developed with AI assistance; implementation and test results reviewed locally.
+Both modes share command construction and reply handling, so this also refactors
+the sequential implementation. I can leave its existing methods untouched and
+put pipelining in a separate path if preferred, at the cost of some duplication.
+CHUNKING optimization and release-readiness coverage remain separate.
