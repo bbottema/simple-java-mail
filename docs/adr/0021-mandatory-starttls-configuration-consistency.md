@@ -21,6 +21,11 @@ Fail with an actionable message that names the conflicting key and correction wi
 
 Retain the existing ownership boundary for caller-supplied Sessions and `CustomMailer`. Keep `SMTP` opportunistic, including password authentication, and retain existing strategy/port and explicit trust/identity settings. A failed mandatory TLS upgrade must not become a plaintext retry.
 
+Caller-Session connection customization follows [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline):
+only explicit generic choices, configured additional Jakarta Mail properties and applicable locks replace supplied settings. Recognizing a
+transport-strategy marker is not permission to apply ordinary SJM TLS/trust defaults or initialize a caller-owned transport as a managed one.
+This does not weaken the mandatory-STARTTLS guard on Sessions created by the regular builder.
+
 ## Alternatives and consequences
 
 Silently forcing the override back to true would conceal contradictory configuration. Rejecting it makes the chosen strategy meaningful and lets the caller correct their intent. Changing every authenticated `SMTP` connection into mandatory TLS would be a broader compatibility and policy change; the issue explicitly excludes it.

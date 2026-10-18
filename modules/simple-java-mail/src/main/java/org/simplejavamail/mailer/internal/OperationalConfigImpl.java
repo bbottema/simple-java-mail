@@ -40,7 +40,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
-	private final int sessionTimeout;
+	@Nullable
+	private final Integer sessionTimeout;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withLocalBindAddress(String)

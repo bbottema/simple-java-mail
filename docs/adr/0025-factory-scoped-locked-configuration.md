@@ -156,6 +156,14 @@ Application code can use a different factory, another library, or a transport di
 
 At this boundary, the previously discussed names "locked" and "enforced" describe equivalent behavior: conflicting customization is rejected and the configured requirement remains applicable. The chosen name describes a local configuration restriction without suggesting organization-wide control. Renaming it does not make it stronger or weaker.
 
+### Caller-supplied Session settings
+
+The Session baseline in [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline) does not suppress locks.
+An applicable locked timeout, local binding, EHLO or TLS choice is resolved explicitly, then verified against the effective Session settings.
+Ordinary SJM defaults are not mandatory overlays. A standard SMTP/SMTPS Session does not need SJM's historical marker for those checks;
+an opaque protocol or hidden credentials still requires rejection where the lock cannot be honored reliably. Validate conflicting explicit
+customization before changing the Session, and retain the existing post-initialization check for managed-provider safeguards.
+
 ### Existing settings, not a new compliance framework
 
 The namespace applies to existing Simple Java Mail configuration. It does not justify duplicating Angus settings or expanding provider-specific configuration merely to offer more locks. Do not introduce a general-purpose compliance evaluator or duplicate message settings on Mailer.

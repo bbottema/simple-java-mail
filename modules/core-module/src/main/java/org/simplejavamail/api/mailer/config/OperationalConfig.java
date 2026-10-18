@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
  * Contains the effective configuration that affects how one built {@link Mailer} operates. This includes connection settings such as timeouts, debug mode
  * and which hosts to trust. Unlike factory configuration diagnostics, these values include Mailer builder overrides and generated defaults, but do not
  * describe where a property-backed value originally came from.
+ * They describe construction-time configuration; later direct changes to the exposed Session are not tracked by this snapshot.
  * <p>
  * All of these settings are configured on the {@link MailerGenericBuilder}.
  *
@@ -55,9 +56,14 @@ public interface OperationalConfig {
 	AsyncQueueConfig getAsyncQueueConfig();
 
 	/**
+	 * Returns the common configured connection, read and write timeout, or {@code null} when these settings differ or no common value is known.
+	 * In particular, {@code null} does not mean unlimited: a caller-supplied Session may configure three different timeouts, omit some of them,
+	 * or leave their interpretation to its provider. The snapshot does not guess provider defaults.
+	 *
 	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
 	 */
-	int getSessionTimeout();
+	@Nullable
+	Integer getSessionTimeout();
 
 	/**
 	 * @return Total send budget, or {@code null} when disabled.

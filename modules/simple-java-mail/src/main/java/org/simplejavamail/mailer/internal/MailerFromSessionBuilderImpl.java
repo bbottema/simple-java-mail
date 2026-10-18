@@ -8,6 +8,8 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
+import java.util.Properties;
+
 /**
  * @see MailerFromSessionBuilder
  */
@@ -62,6 +64,10 @@ public class MailerFromSessionBuilderImpl
 
 	@Override
 	TransportStrategy transportStrategyForLocks() {
-		return TransportStrategy.findStrategyForSession(session);
+		final Properties effective = new Properties(session.getProperties());
+		effective.putAll(getProperties());
+		final TransportStrategy protocol = MailerSessionSettings.transportStrategy(effective);
+		final TransportStrategy marked = TransportStrategy.findStrategyForSession(session);
+		return protocol == TransportStrategy.SMTP && marked != null && marked != TransportStrategy.SMTPS ? marked : protocol;
 	}
 }

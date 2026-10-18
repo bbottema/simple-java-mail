@@ -471,8 +471,8 @@ class ConnectionFailoverTest {
         try (Mailer established = new MailerRegularBuilderImpl(config, runtime).clearFailoverMailer().withTransportModeLoggingOnly(true)
                 .withRateLimitGroup("shared").withMessageRateLimit(1, Duration.ofSeconds(1)).buildMailer()) {
             final MailerRegularBuilderImpl failing = new MailerRegularBuilderImpl(config, runtime) {
-                @Override OperationalConfig buildOperationalConfig() {
-                    final OperationalConfig supplied = super.buildOperationalConfig();
+                @Override OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
+                    final OperationalConfig supplied = super.buildOperationalConfig(sessionSettings);
                     failedConfiguration.set(supplied);
                     owned.set(getFailoverMailer());
                     return supplied;

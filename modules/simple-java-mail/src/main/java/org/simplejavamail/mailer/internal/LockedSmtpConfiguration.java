@@ -164,7 +164,7 @@ final class LockedSmtpConfiguration {
 			put(OPPORTUNISTIC_TLS, "mail.smtp.starttls.enable", config.getBooleanProperty(OPPORTUNISTIC_TLS));
 		}
 		if (Boolean.TRUE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key())) || locks.contains(DEFAULT_TRUSTED_HOSTS)) {
-			final boolean trustAll = Boolean.TRUE.equals(config.getBooleanProperty(DEFAULT_TRUST_ALL_HOSTS));
+			final boolean trustAll = operational.isTrustAllSSLHost();
 			final String trusted = config.getStringProperty(DEFAULT_TRUSTED_HOSTS);
 			if (trustAll && locks.contains(DEFAULT_TRUSTED_HOSTS) && !"*".equals(trusted)) {
 				throw locks.conflict(DEFAULT_TRUSTED_HOSTS, "The SMTP configuration trusts every server certificate, but this lock requires the trusted-host list. "
@@ -179,6 +179,8 @@ final class LockedSmtpConfiguration {
 	/** Strategy defaults are not all restrictions: SMTP's opportunistic TLS and SMTPS's QUIT waiting remain separately customizable. */
 	private static Properties transportRequirements(final TransportStrategy strategy) {
 		final Properties requirements = strategy.generateProperties();
+		// The SJM marker identifies a construction choice; the actual SMTP settings, not that marker, must satisfy the lock.
+		requirements.remove(TRANSPORT_STRATEGY.key());
 		if (strategy == TransportStrategy.SMTP) {
 			requirements.remove("mail.smtp.starttls.enable");
 			requirements.remove("mail.smtp.starttls.required");
@@ -244,7 +246,7 @@ final class LockedSmtpConfiguration {
 	}
 
 	void verifyCallerOwnedSession(final Session session) {
-		final TransportStrategy strategy = TransportStrategy.findStrategyForSession(session);
+		final TransportStrategy strategy = MailerSessionSettings.transportStrategy(session.getProperties());
 		if (strategy != null) {
 			verifyCustomSocketFactory(locks, hasCustomSocketFactory(session.getProperties(), strategy));
 		}
@@ -258,7 +260,7 @@ final class LockedSmtpConfiguration {
 		for (Map.Entry<String, Property> entry : sessionProperties.entrySet()) {
 			if (entry.getValue() == SMTP_HOST || entry.getValue() == SMTP_PORT || entry.getValue() == SMTP_USERNAME
 					|| entry.getValue() == TRANSPORT_STRATEGY || entry.getValue() == CUSTOM_SSLFACTORY_CLASS || entry.getValue() == OPPORTUNISTIC_TLS) {
-				verifySessionValue(entry.getKey(), session.getProperties().get(entry.getKey()));
+				verifySessionValue(entry.getKey(), MailerSessionSettings.propertyValue(session.getProperties(), entry.getKey()));
 			}
 		}
 	}
@@ -280,8 +282,8 @@ final class LockedSmtpConfiguration {
 		for (Property property : Property.values()) {
 			if (locks.contains(property) && (property == TRANSPORT_STRATEGY || property.name().startsWith("PROXY_")
 					|| !sessionKeys(property, TransportStrategy.SMTP).isEmpty())) {
-				throw locks.conflict(property, "You supplied a Session with no recognized Simple Java Mail transport strategy, while this factory locks an SMTP setting. "
-						+ "Without a recognized strategy, Simple Java Mail cannot determine which Session properties must satisfy that lock. "
+				throw locks.conflict(property, "You supplied a Session whose mail.transport.protocol is neither smtp nor smtps, while this factory locks an SMTP setting. "
+						+ "Simple Java Mail cannot map that custom protocol's connection properties to this SMTP lock reliably. "
 						+ "Call this factory's mailerBuilder() without a Session, or remove this lock from the configuration source.");
 			}
 		}
@@ -293,10 +295,10 @@ final class LockedSmtpConfiguration {
 			return;
 		}
 		for (String key : requiredSessionValues.keySet()) {
-			verifySessionValue(key, session.getProperties().get(key));
+			verifySessionValue(key, MailerSessionSettings.propertyValue(session.getProperties(), key));
 		}
 		if (Boolean.FALSE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key()))) {
-			final TransportStrategy strategy = TransportStrategy.findStrategyForSession(session);
+			final TransportStrategy strategy = MailerSessionSettings.transportStrategy(session.getProperties());
 			if (strategy != null && "*".equals(session.getProperty(strategy.propertyNameSSLTrust()))) {
 				throw locks.conflict(DEFAULT_TRUST_ALL_HOSTS, "The selected SMTP Session trusts every server certificate, but this locked setting disables trust-all. "
 						+ "Remove the trust-all customization from the selected SMTP configuration, or change this lock in its configuration source.");

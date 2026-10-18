@@ -4,6 +4,7 @@ import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import com.sanctionco.jmail.EmailValidator;
 import com.sanctionco.jmail.JMail;
+import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
@@ -826,20 +827,61 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				getMaximumEmailSize());
 	}
 
-	/**
-	 * For internal use.
-	 */
-	OperationalConfig buildOperationalConfig() {
+	/** Resolve connection facts once, without changing or claiming a caller-owned Session. */
+	MailerSessionSettings buildSessionSettings(@Nullable final Session suppliedSession) {
+		final Map<Property, Object> connectionChoices = suppliedSession == null
+				? ownedConnectionChoices() : new LinkedHashMap<>(explicitSessionSettings);
+		final ConfigurationLocks locks = locksOf(config);
+		final TransportStrategy strategy = transportStrategyForLocks();
+		addLockedConnectionChoices(connectionChoices, strategy, locks);
+		return MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), connectionChoices, locks.getValues());
+	}
+
+	private void addLockedConnectionChoices(final Map<Property, Object> connectionChoices, @Nullable final TransportStrategy strategy,
+			final ConfigurationLocks locks) {
+		if (strategy == null) {
+			return; // The caller-Session lock check explains why an opaque protocol cannot satisfy an SMTP restriction.
+		}
+		for (final Property property : List.of(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT,
+				Property.SMTP_CLIENT_HOSTNAME, Property.DEFAULT_TRUSTED_HOSTS, Property.DEFAULT_TRUST_ALL_HOSTS, Property.DEFAULT_VERIFY_SERVER_IDENTITY)) {
+			if (locks.contains(property)) {
+				final Object value = config.getProperty(property);
+				// SJM's configured host list uses semicolons; Jakarta Mail expects spaces between the same host names.
+				connectionChoices.put(property, property == Property.DEFAULT_TRUSTED_HOSTS ? String.join(" ", ((String) value).split(";")) : value);
+			}
+		}
+	}
+
+	private Map<Property, Object> ownedConnectionChoices() {
+		final Map<Property, Object> choices = new LinkedHashMap<>();
+		choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
+		choices.put(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust));
+		choices.put(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
+		choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
+		if (!valueNullOrEmpty(localBindAddress)) {
+			choices.put(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
+		}
+		if (localBindPort != null) {
+			choices.put(Property.SMTP_LOCAL_PORT, localBindPort);
+		}
+		if (!valueNullOrEmpty(smtpClientHostname)) {
+			choices.put(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
+		}
+		return choices;
+	}
+
+	/** Assemble supplied configuration; default resolution and caller-Session ownership have already been settled by the builder. */
+	OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
 		resolveTelemetrySettings();
 		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
 		}
 		return new OperationalConfigImpl(
 				getProperties(),
-				getSessionTimeout(),
-				getLocalBindAddress(),
-				getLocalBindPort(),
-				getSmtpClientHostname(),
+				sessionSettings.getSessionTimeout(),
+				sessionSettings.getLocalBindAddress(),
+				sessionSettings.getLocalBindPort(),
+				sessionSettings.getSmtpClientHostname(),
 				isLegacySmtpContentSupportEnabled(),
 				mailSendTelemetryEnabled,
 				mailSendTelemetrySmtpEndpointAttributesEnabled,
@@ -857,9 +899,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				isDebugLogging(),
 				getDebugPrinter(),
 				isDisableAllClientValidation(),
-				getSslHostsToTrust(),
-				isTrustAllSSLHost(),
-				isVerifyingServerIdentity(),
+				sessionSettings.getSslHostsToTrust(),
+				sessionSettings.isTrustAllSSLHost(),
+				sessionSettings.isVerifyingServerIdentity(),
 				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
 				isExecutorServiceUserProvided(),
 				getCustomMailer(),

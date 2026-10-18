@@ -19,6 +19,11 @@ Use an ordered, instance-based `ConfigLoader` to sample configured sources and p
 
 Pass the snapshot to `SimpleJavaMail.withConfig(...)`. That factory supplies fresh builders and a configured converter while retaining one configuration identity. Propagate the captured configuration through Email governance, Mailers, Sessions and optional modules instead of reopening a global loader in each consumer. Explicit builder values override captured defaults.
 
+A caller-supplied Session provides its own connection baseline. Inherited ordinary SJM connection defaults do not replace it; explicit builder
+customizations, configured additional Jakarta Mail properties and mandatory locks retain their respective roles. Resolve that distinction at
+construction rather than using a strategy marker as an ownership flag. Effective inspection is supplied data too: a common socket timeout
+can be absent when the Session's connect/read/write values differ or are unspecified. See [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline).
+
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
 ### Built-in defaults stay together on the key builders

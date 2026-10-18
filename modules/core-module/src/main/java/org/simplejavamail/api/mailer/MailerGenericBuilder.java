@@ -363,10 +363,14 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
 
 	/**
-	 * Controls the timeout to use when sending emails (affects socket connect-, read- and write timeouts).
+	 * Sets the same socket timeout for connecting, reading and writing, in milliseconds. This is not a deadline for the whole send.
 	 * <p>
-	 * Will configure a set of properties on the Session instance with the given value, of which the names
-	 * depend on the transport strategy:
+	 * When you supply your own Session, its existing timeouts remain unchanged until you call this method or a factory lock requires a value.
+	 * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(1000)} deliberately replaces
+	 * all three socket timeouts with one second. Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session
+	 * previously belonged to another Mailer. Additional Jakarta Mail properties retain their configured overlay behavior.
+	 * <p>
+	 * The property names follow the selected {@code smtp} or {@code smtps} protocol:
 	 * <ul>
 	 *     <li>{@link TransportStrategy#propertyNameConnectionTimeout()}</li>
 	 *     <li>{@link TransportStrategy#propertyNameTimeout()}</li>
@@ -376,6 +380,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * last physical connection is disposed; returning a pooled lease or aborting a raw socket is not disposal. A supplied
 	 * {@code mail.smtp.executor.writetimeout} (or {@code mail.smtps} equivalent) remains application-owned and is not shut down by the Mailer.
 	 * Caller-owned Sessions and other providers keep their existing timeout-resource ownership. This is not a total-send deadline.
+	 * <p>
+	 * The builder getter reports its configured choice. After construction, {@link OperationalConfig#getSessionTimeout()} reports the common
+	 * configured timeout, or {@code null} if a caller-supplied Session or locked raw properties leave different, missing or unusable values.
+	 * A custom protocol cannot use these SMTP convenience mappings; configure its provider-specific settings through {@link #withProperty(String, Object)}.
 	 *
 	 * @param sessionTimeout Socket timeout in milliseconds.
 	 */
@@ -530,6 +538,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
 	 * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
 	 * the proxy server's own outbound socket.
+	 * <p>
+	 * A caller-supplied Session keeps its local binding unless you use this setter. A null argument removes that direct Session property;
+	 * an inherited Properties default cannot be removed this way. See {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
 	 *
 	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to.
 	 * @param localBindPort Optional local/source port to bind the SMTP socket to.

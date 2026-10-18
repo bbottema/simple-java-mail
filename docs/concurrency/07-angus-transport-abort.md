@@ -224,7 +224,9 @@ physical-transport layer. Finite controlled tests establish these interleavings,
 
 - `MailTransportAdapter` provides submission facts; `MailTransportLifecycleAdapter` provides connection-abort capability. Supporting one does not imply supporting the other.
 - A different provider can implement the same SPI contract. The managed-Angus hooks and their detailed boundary observations are not automatically available when swapping providers.
-- Caller-owned Sessions are not rewritten. A timeout is allowed only if their selected transport genuinely exposes an abort action; a stock caller-created Angus Session does not automatically become managed.
+- Caller-owned Sessions are not rewritten to install managed abort/resource machinery. Explicit connection builder customizations and factory
+  locks still apply, as recorded in [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline). A total send
+  timeout is allowed only if their selected transport genuinely exposes an abort action; a stock caller-created Angus Session does not automatically become managed.
 - An SJM-owned stock Angus Session retains custom factory selection and explicit settings, with fail-closed defaults and failed TLS-handoff cleanup
   as described above. Opaque factories do not gain physical-abort support. Unsupported total-timeout configurations fail before connecting.
   Untimed cooperative sending remains possible.

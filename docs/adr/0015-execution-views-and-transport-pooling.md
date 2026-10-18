@@ -30,6 +30,23 @@ has finished, the shared batch bridge forgets the empty upstream cluster and its
 Closing one member must not discard another member's settings, and a captured selection must never become a selection of a replacement registration.
 The globally cached batch module must not accumulate metadata for every short-lived Mailer ever constructed.
 
+### Caller-supplied Session baseline
+
+A supplied Jakarta Mail Session retains its connection configuration unless the application explicitly customizes those settings on the
+Mailer builder or a factory lock requires a value. Do not apply ordinary SJM timeout, local-binding, EHLO or certificate-trust defaults to it.
+A Session's historical transport-strategy marker can help identify its settings, but never transfers ownership to SJM. Standard `smtp` and
+`smtps` protocol selection suffices to apply explicit connection customizations; an opaque protocol requires its provider's raw properties
+instead of a silently ignored convenience setter. Configured additional Jakarta Mail properties retain their explicit overlay behavior.
+
+Resolve both the connection overlay and the corresponding inspection snapshot before allocating resources, then apply the overlay only
+after exclusive Session ownership is claimed. `OperationalConfig.getSessionTimeout()` reports a nullable common configured connect/read/write
+timeout. Missing, unusable or different values have no common value; they must not be presented as SJM's default or as unlimited. Getters do
+not rediscover settings or resolve provider defaults. This follows [ADR 0003](0003-immutable-configuration-snapshots.md); mandatory restrictions
+remain subject to [ADR 0025](0025-factory-scoped-locked-configuration.md).
+
+This distinction does not change proxy routing's documented override, managed-provider initialization, conversion-context ownership,
+exclusive Session reuse, pooling or shutdown. A Session may be reused by another Mailer only after its former owner's successful shutdown.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |
