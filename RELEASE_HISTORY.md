@@ -32,6 +32,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- [#705](https://github.com/bbottema/simple-java-mail/issues/705): provide compact named single-recipient construction through `mail.recipientBuilder().to(name, address)`, `.cc(...)` and `.bcc(...)`, retaining the dedicated builders for richer recipient configuration.
+
+- Added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining existing static methods and factory snapshots. DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
+
 - OpenPGP signing and encryption participate in Email defaults/overrides with the same whole-policy replacement and suppression rules as S/MIME and DKIM. Result and progress observers can be cleared independently on the Mailer builder. SMTP enhanced status codes use the same typed value as received delivery reports, without restricting raw provider replies or unfamiliar numeric combinations.
 
 - [#761](https://github.com/bbottema/simple-java-mail/issues/761): added supported connection and SMTP-stage progress for greeting, capabilities, TLS upgrades, authentication, envelope exchange and DATA permission. Scoped provider hooks preserve coarse fallback and prevent old pooled/retry observations from leaking into another send; no extra network or content work is performed.

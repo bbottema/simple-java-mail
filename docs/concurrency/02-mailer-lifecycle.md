@@ -9,8 +9,8 @@ This lets shutdown wait for the work the Mailer still owns without making a send
 | Source | Relevant methods |
 | --- | --- |
 | [MailSendOperations](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperations.java) | `begin`, `openScope`, `withinOperation`, `finished`, `shutdown`, `finishShutdownIfDrained`, `completeUnstarted`. |
-| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `withOpenConnection`, `shutdownConnectionPool`, `drainExecutorAndCloseConnectionPools`, `close`. |
-| [SendMailsWithOpenConnectionClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java) | `runOpenConnectionCallback`, `openSmtpTransport`, `sendMailAndGetReceipt`, `closeTransportIfOpened`. |
+| [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) | `withOpenConnection`, `closeAsync`, `drainExecutorAndCloseConnectionPools`, `close`. |
+| [SendMailsWithOpenConnectionClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/SendMailsWithOpenConnectionClosure.java) | `runOpenConnectionCallback`, `openSmtpTransport`, `sendMail`, `closeTransportIfOpened`. |
 | [MailSendOperation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailSendOperation.java) | `executeWork` and `finish` install context and release lifetime bookkeeping. |
 
 `MailSendOperations` owns a scheduled deadline worker (`sjm-deadline-*`) and a serial terminal-reporting worker (`sjm-control-completion-*`), both lazily started. Retry-enabled work additionally starts one bounded-ledger dispatcher on demand. Normal SMTP work uses the configured send executor; timer signals never invoke observers or perform executor admission. The separate terminal worker handles sends retired before execution so a slow observer cannot occupy the deadline watcher.
@@ -42,7 +42,7 @@ stateDiagram-v2
 | `finished()` | Under owner monitor, `active--`; if `closing && active == 0`, initiate private-worker shutdown and complete `drained`. | Completing send thread, private completion worker, or scope owner. |
 | `shutdown()` | Under owner monitor, set `closing = true`; perform the same zero-active check. | Shutdown initiator and dedicated shutdown thread. |
 | `Scope.close()` | A scope-local `closed` flag prevents sequential double release, then calls `finished`. | Thread leaving the lexical open-connection scope. |
-| `MailerImpl.shutdownConnectionPool()` | Under Mailer monitor, reuse `shutdownFuture` if present; otherwise stop owned executor admission, close operation admission, start dedicated cleanup thread. | Any caller, including one initiating shutdown without blocking. |
+| `MailerImpl.closeAsync()` | Under Mailer monitor, reuse the owned `shutdownFuture` if present; otherwise close operation admission and start the dedicated cleanup thread. Return a detached completion view. | Any caller, including one initiating shutdown without blocking. |
 | `MailerImpl.close()` | Reject self-wait when current-operation or owned-worker marker matches; otherwise wait on the shutdown future. | Owning application thread. |
 
 ## Lock and ownership map
@@ -50,7 +50,7 @@ stateDiagram-v2
 | Mechanism | Protects / owns | Nesting and waiting rules |
 | --- | --- | --- |
 | `synchronized (MailSendOperations)` | `active`, `closing`, and the decision to complete `drained`. | `begin` constructs a control under this monitor, acquiring that new control's monitor. No send I/O or observer is invoked here. |
-| `synchronized (MailerImpl)` | Publication and reuse of `shutdownFuture`. | `shutdownConnectionPool` stops logical admission through the owner while holding this monitor; it does not wait there or shut down the executor before retry drain. |
+| `synchronized (MailerImpl)` | Publication and reuse of the owned `shutdownFuture`. | `closeAsync` stops logical admission through the owner while holding this monitor; it does not wait there or shut down the executor before retry drain. |
 | Session Properties monitor | Exclusive construction ownership token and converter retirement. | Claim before configuration; retire only the exact owner's token after drain/cleanup succeeds. No configuration, pool callbacks, I/O or waiting while held. Distinct Sessions sharing Properties still conflict. |
 | `CURRENT_OPERATION` | Per-thread stack of participating Mailer-operation owners, including required inline callbacks. | No lock. Push owner, run immediately, restore/remove in `finally`. Self-wait checks inspect the complete stack. |
 | Executor `CURRENT_WORKER` | Identity of the SJM-owned executor whose task is on this thread. | Set in `beforeExecute`, removed in `afterExecute`; covers non-send tasks too. |
@@ -73,7 +73,7 @@ sequenceDiagram
     participant S as Shutdown<br/>thread
     W->>W: Send work and transport<br/>cleanup return
     W->>W: Begin inline observer
-    A->>M: Acquire for<br/>shutdownConnectionPool
+    A->>M: Acquire for<br/>closeAsync
     M->>M: Stop new logical<br/>send admission
     M->>O: Acquire, set closing<br/>active remains positive
     O-->>M: Release<br/>drained still pending
@@ -121,7 +121,7 @@ The marker also surrounds synchronous sends, sends running on caller executors, 
 
 This is a local self-wait guard, not a general dependency-graph detector. Delegated failover work retains all participating owners on the stack.
 For a retained batch, this includes the inline observer: closing its selected Mailer would otherwise wait for the batch holding that connection.
-The guard cannot detect arbitrary cross-thread cycles involving application locks or futures. Calling `shutdownConnectionPool().get()` explicitly
+The guard cannot detect arbitrary cross-thread cycles involving application locks or futures. Calling `closeAsync().get()` explicitly
 from one's own callback also bypasses the convenience `close()` guard; initiating shutdown and waiting for it are different actions.
 
 ## What counts as active

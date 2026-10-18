@@ -80,6 +80,18 @@ to move implementation text into an `.internal` package: that adds forwarding me
 surface. Keep the static conversion work in `EmailConverter`, factory-dependent work in `ConfiguredEmailConverterImpl`, and extract only genuinely
 shared internal mapping. Internal packages identify implementation types; they do not require supported classes to become empty facades.
 
+Configured conversion exposes the same supported conversion routes through source-specific core contracts, obtained from the main factory's
+`converter()` entry point. Choosing a source and then a target makes those routes discoverable without a generic target-class lookup or unchecked
+casts. This is the configured converter's single public surface; the separately supported static `EmailConverter` methods remain available.
+The selected stage retains the factory snapshot; concrete conversion stages remain internal to the main module. Delegate direct MIME/EML
+paths to their established implementations rather than forcing a roundtrip through the editable Email model. Export does not silently apply Email
+templates: callers explicitly supply governance when wanted, and exact/protected-byte contracts remain separate from editable conversion.
+
+Moving concrete recipient builders behind the factory must preserve their supported convenience behavior, not only their low-level setting methods.
+The compact named single-recipient methods from [#705](https://github.com/bbottema/simple-java-mail/issues/705) belong on the core builder contract
+returned by `recipientBuilder()`. They use the same name/address/type settings and validation as the explicit chain and retain other configured
+recipient options. An internalization refactor must keep tests calling those conveniences instead of replacing the calls with longer chains.
+
 Putting a builder in an `.internal` package is not enough if it still lives in the wrong module. In particular, a core result must not depend on
 a concrete main-module assembly builder. Use a core-owned contract or a result implementation behind the read API; do not reverse the dependency
 or keep main-only machinery in core merely to satisfy a constructor signature.

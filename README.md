@@ -21,22 +21,26 @@ Its recipient reports expose checked status-code components, reported addresses 
 It exposes correlation and recipient facts without turning the notification into an instruction to resend.
 See [Reading delivery reports](https://www.simplejavamail.org/delivery-reports.html).
 
+Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, or request `toEmailBuilder()` when you want to edit it.
+The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
+Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
+
 Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
 [Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)
 
 ## Send a first email
 
-Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. The 10.x libraries require Java 11 or newer; 9.x is the last line that runs on Java 8. After 10.0.0, 9.x is maintenance-only: new work goes to 10.x, while critical fixes may be backported when that can be done safely without dropping Java 8 support.
-
-### Maven
-
-```xml
 **Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.6** dependency below.
 For examples you can use with that published release, see the [9.3.6 README](https://github.com/bbottema/simple-java-mail/blob/9.3.6/README.md).
 Until 10.0.0 is released, trying these examples requires artifacts built and installed from this branch, using the version declared in its root POM.
 That development version can still be 9.3.6; Maven Central's published 9.3.6 binaries do not contain this branch's API.
 
+Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. The 10.x libraries require Java 11 or newer; 9.x is the last line that runs on Java 8. After 10.0.0, 9.x is maintenance-only: new work goes to 10.x, while critical fixes may be backported when that can be done safely without dropping Java 8 support.
+
+### Maven
+
+```xml
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
@@ -57,8 +61,7 @@ SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
 
 Email email = mail.emailBuilder().startingBlank()
     .from("Sender", "sender@example.org")
-    .withRecipients(mail.recipientBuilder().withName("Recipient").withAddress("recipient@example.net")
-        .withType(Message.RecipientType.TO).build())
+    .withRecipients(mail.recipientBuilder().to("Recipient", "recipient@example.net"))
     .withSubject("It works")
     .withPlainText("Your first Simple Java Mail message.")
     .buildEmail();

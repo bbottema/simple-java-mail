@@ -17,7 +17,11 @@ Keep this queue policy independent of worker and SMTP connection counts. As refi
 
 Preserve caller-executor policy and ownership. A caller-supplied executor cannot be combined with non-default built-in queue settings; the application configures its own capacity and overflow behavior. SJM does not insert a second capacity-permit system around shared caller executors. Queue diagnostics are available for the owned executor and are detached, content-free estimates with rejection counters, not a coherent snapshot on which to base correctness.
 
-Track accepted Mailer operations separately from executor termination. Starting shutdown closes send admission, drains accepted operations and observer handoffs, then closes the pool registration. Repeated shutdown calls return the same future. Synchronous sends and external-executor sends participate in this tracking; application executors are never shut down or awaited as a whole. An open-connection scope remains active across application gaps until its transport and proxy cleanup finish.
+Track accepted Mailer operations separately from executor termination. Starting shutdown closes send admission, drains accepted operations and observer handoffs, then closes the pool registration. Repeated shutdown calls join the same cleanup operation. Synchronous sends and external-executor sends participate in this tracking; application executors are never shut down or awaited as a whole. An open-connection scope remains active across application gaps until its transport and proxy cleanup finish.
+
+Expose that lifetime through blocking `close()` and non-blocking `closeAsync()`, whether or not pooling is present. The latter returns a detached
+`CompletableFuture<Void>` for composition: completing or cancelling a caller's view cannot alter resource cleanup or another caller's completion view.
+The historical `shutdownConnectionPool()` name is removed because it misleadingly names one resource instead of the Mailer being closed.
 
 Use a dedicated daemon cleanup thread to wait outside the Mailer monitor. Reject blocking `close()` from the Mailer's own operation or owned worker to prevent a direct self-wait. Graceful shutdown does not request cancellation. Inline observer work is part of draining; accepted offloaded observer callbacks are application-owned after handoff and are not joined.
 
@@ -38,7 +42,7 @@ Keeping only the old custom-executor escape hatch would work for advanced applic
 
 Waiting only for owned executor termination would miss synchronous and caller-executor operations. Conversely, shutting down an external executor could disrupt unrelated work. Separate operation accounting allows the Mailer to drain the work it owns without claiming ownership of the scheduler.
 
-Draining is not instantaneous and has no independent forced-completion guarantee. Slow inline observers, synchronous future continuations, blocked custom code or an external executor that never executes accepted work can delay it. An offloaded callback may still run after shutdown completes. An explicit `shutdownConnectionPool().get()` inside one's own callback bypasses the `close()` guard; cross-Mailer dependency cycles are not generally detected. Connection-test/probe tasks are separate helper paths and do not automatically acquire the complete send-operation contract.
+Draining is not instantaneous and has no independent forced-completion guarantee. Slow inline observers, synchronous future continuations, blocked custom code or an external executor that never executes accepted work can delay it. An offloaded callback may still run after shutdown completes. An explicit `closeAsync().get()` inside one's own callback bypasses the `close()` guard; cross-Mailer dependency cycles are not generally detected. Connection-test/probe tasks are separate helper paths and do not automatically acquire the complete send-operation contract.
 
 ## Implementation and regression anchors
 
