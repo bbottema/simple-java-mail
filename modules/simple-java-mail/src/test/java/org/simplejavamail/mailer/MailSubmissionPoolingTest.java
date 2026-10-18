@@ -95,7 +95,7 @@ class MailSubmissionPoolingTest {
 					.hasCauseInstanceOf(MailSendRejectedException.class);
 			assertThat(state.createdTransportCount).hasValue(Math.min(connectionPoolSize, 2));
 			assertThat(state.submittedSubjects).doesNotContain("rejected");
-			final Future<Void> closing = mailer.shutdownConnectionPool();
+			final Future<Void> closing = mailer.closeAsync();
 			assertThat(closing.isDone()).isFalse();
 			release.countDown();
 			closing.get(5, TimeUnit.SECONDS);

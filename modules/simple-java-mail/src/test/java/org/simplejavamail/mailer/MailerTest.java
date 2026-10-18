@@ -960,7 +960,7 @@ public class MailerTest {
 	}
 
 	@Test
-	public void testOpenConnection_sendMailAndGetReceipt_returnsSmtpServerResponses() throws Exception {
+	public void testOpenConnection_sendMail_returnsSmtpServerResponses() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final List<MailSubmissionReceipt> receipts = new ArrayList<>();
 
@@ -969,8 +969,8 @@ public class MailerTest {
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session).buildMailer()) {
 			mailer.withOpenConnection(sender -> {
-				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("First database email", "first@example.com")));
-				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("Second database email", "second@example.com")));
+				receipts.add(sender.sendMail(createBatchEmail("First database email", "first@example.com")));
+				receipts.add(sender.sendMail(createBatchEmail("Second database email", "second@example.com")));
 			});
 		}
 
@@ -1002,11 +1002,11 @@ public class MailerTest {
 				})
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
-				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("First observed email", "first@example.com")));
+				receipts.add(sender.sendMail(createBatchEmail("First observed email", "first@example.com")));
 				assertThat(outcomes).hasSize(1);
 				assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipts.get(0));
 
-				receipts.add(sender.sendMailAndGetReceipt(createBatchEmail("Second observed email", "second@example.com")));
+				receipts.add(sender.sendMail(createBatchEmail("Second observed email", "second@example.com")));
 				assertThat(outcomes).hasSize(2);
 				assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(receipts.get(1));
 			});
@@ -1034,7 +1034,7 @@ public class MailerTest {
 				.withMailSendResultObserver(outcomes::add)
 				.buildMailer()) {
 			try {
-				mailer.withOpenConnection(sender -> sender.sendMailAndGetReceipt(
+				mailer.withOpenConnection(sender -> sender.sendMail(
 						createBatchEmail("Open partial email", "accepted@example.com", "unsent@example.com")));
 				throw new AssertionError("Expected open-connection submission to fail");
 			} catch (final MailSubmissionException failure) {

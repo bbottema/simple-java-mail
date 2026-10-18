@@ -193,7 +193,7 @@ class MailerSessionOwnershipTest {
 			state.beforeSend = () -> { submitting.countDown(); await(finish); };
 			final CompletableFuture<?> send = first.async().sendMail(email()).getCompletion();
 			assertThat(submitting.await(5, SECONDS)).isTrue();
-			final Future<Void> shutdown = first.shutdownConnectionPool();
+			final Future<Void> shutdown = first.closeAsync();
 			try {
 				assertThat(shutdown.isDone()).isFalse();
 				assertThatThrownBy(() -> builder(session, "owner-b").buildMailer()).isInstanceOf(IllegalArgumentException.class);

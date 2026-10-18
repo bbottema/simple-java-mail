@@ -18,16 +18,9 @@ final class ScopedMailSender implements MailSender {
 
 	/** @see MailSender#sendMail(Email) */
 	@Override
-	public void sendMail(final Email email) {
+	public MailSubmissionReceipt sendMail(final Email email) {
 		verifyUsable();
-		delegate.sendMail(email);
-	}
-
-	/** @see MailSender#sendMailAndGetReceipt(Email) */
-	@Override
-	public MailSubmissionReceipt sendMailAndGetReceipt(final Email email) {
-		verifyUsable();
-		return delegate.sendMailAndGetReceipt(email);
+		return delegate.sendMail(email);
 	}
 
 	private void verifyUsable() {

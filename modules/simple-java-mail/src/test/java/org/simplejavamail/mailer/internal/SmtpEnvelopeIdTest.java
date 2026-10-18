@@ -90,8 +90,8 @@ class SmtpEnvelopeIdTest {
                 final Email withoutRecipients = mail.emailBuilder().startingBlank().from("sender@example.test")
                         .withPlainText("Synthetic local failure.").fixingEnvelopeId(identifier).buildEmail();
                 mailer.withOpenConnection(sender -> {
-                    final MailSubmissionReceipt first = sender.sendMailAndGetReceipt(email(identifier));
-                    final Throwable failure = catchThrowable(() -> sender.sendMailAndGetReceipt(withoutRecipients));
+                    final MailSubmissionReceipt first = sender.sendMail(email(identifier));
+                    final Throwable failure = catchThrowable(() -> sender.sendMail(withoutRecipients));
                     assertThat(failure).isInstanceOf(MailSubmissionException.class);
                     assertThat(failure.getCause()).hasMessage("No recipient addresses");
                     final MailSubmissionReceipt notSubmitted = ((MailSubmissionException) failure).getSubmissionReceipt();
@@ -99,7 +99,7 @@ class SmtpEnvelopeIdTest {
                     assertThat(notSubmitted.getSmtpResponse()).isEmpty();
                     assertThat(notSubmitted.getRecipientResults()).isEmpty();
                     assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(notSubmitted);
-                    final MailSubmissionReceipt last = sender.sendMailAndGetReceipt(email(identifier));
+                    final MailSubmissionReceipt last = sender.sendMail(email(identifier));
                     assertThat(List.of(first, last)).extracting(MailSubmissionReceipt::getEnvelopeId).containsExactlyElementsOf(wireIdentifiers);
                 });
                 assertThat(outcomes).hasSize(3);
@@ -232,8 +232,8 @@ class SmtpEnvelopeIdTest {
             finishConnection(peer);
         }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
             mailer.withOpenConnection(sender -> {
-                final MailSubmissionReceipt first = sender.sendMailAndGetReceipt(original);
-                final MailSubmissionReceipt second = sender.sendMailAndGetReceipt(original);
+                final MailSubmissionReceipt first = sender.sendMail(original);
+                final MailSubmissionReceipt second = sender.sendMail(original);
                 assertThat(identifiers).hasSize(2).doesNotHaveDuplicates();
                 assertThat(List.of(first, second)).extracting(MailSubmissionReceipt::getEnvelopeId).containsExactlyElementsOf(identifiers);
                 assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(first);

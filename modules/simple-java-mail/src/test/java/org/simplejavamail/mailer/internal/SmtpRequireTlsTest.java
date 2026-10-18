@@ -152,8 +152,8 @@ class SmtpRequireTlsTest {
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
             mailer.withOpenConnection(sender -> {
-                assertThat(sender.sendMailAndGetReceipt(email(true)).isRequireTlsUsed()).isTrue();
-                assertThat(sender.sendMailAndGetReceipt(email(false)).isRequireTlsUsed()).isFalse();
+                assertThat(sender.sendMail(email(true)).isRequireTlsUsed()).isTrue();
+                assertThat(sender.sendMail(email(false)).isRequireTlsUsed()).isFalse();
             });
         }
     }

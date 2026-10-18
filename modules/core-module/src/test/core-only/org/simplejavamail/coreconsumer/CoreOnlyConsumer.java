@@ -28,6 +28,16 @@ public final class CoreOnlyConsumer {
         converter.fromMimeMessage(message).toEml();
     }
 
+    public static void sendInScopeAndClose(final Mailer mailer, final Email email) throws Exception {
+        mailer.withOpenConnection(sender -> {
+            sender.sendMail(email);
+            final MailSubmissionReceipt receipt = sender.sendMail(email);
+            receipt.getStatus();
+        });
+        final java.util.concurrent.CompletableFuture<Void> closing = mailer.closeAsync();
+        closing.thenRun(() -> { });
+    }
+
     public static String inspectDeliveryReport(final Email notification) {
         final org.simplejavamail.api.email.DeliveryStatusReport report = notification.getDeliveryStatusReport();
         if (report == null) return "No delivery report";

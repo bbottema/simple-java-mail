@@ -178,7 +178,7 @@ class ExactEmailSendingTest {
 		try (Mailer mailer = smtpMailer()) {
 			mailer.withOpenConnection(sender -> {
 				sender.sendMail(exactEmail(firstEml, "first@example.org", null));
-				sender.sendMailAndGetReceipt(exactEmail(secondEml, "second@example.org", null));
+				sender.sendMail(exactEmail(secondEml, "second@example.org", null));
 			});
 		}
 

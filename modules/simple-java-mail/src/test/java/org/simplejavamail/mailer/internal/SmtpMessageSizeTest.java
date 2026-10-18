@@ -263,7 +263,7 @@ class SmtpMessageSizeTest {
             mailer.withOpenConnection(sender -> {
                 assertThat(catchThrowable(() -> sender.sendMail(exactEmail(eml("huge".repeat(100) + "\r\n")))))
                         .hasCauseInstanceOf(MailTransportCompatibilityException.class);
-                assertThat(sender.sendMailAndGetReceipt(exactEmail(small)).getMessageSize()).isEqualTo((long) small.length);
+                assertThat(sender.sendMail(exactEmail(small)).getMessageSize()).isEqualTo((long) small.length);
             });
         }
     }

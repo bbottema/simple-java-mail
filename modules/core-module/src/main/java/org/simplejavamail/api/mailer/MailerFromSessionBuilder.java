@@ -38,7 +38,7 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * {@link Session#getDefaultInstance(java.util.Properties)}, which can return an existing Session.
 	 * <p>
 	 * The Session becomes available for another Mailer after successful, completed shutdown of its previous owner. Starting shutdown is not enough:
-	 * wait for {@link Mailer#close()} or the future returned by {@link Mailer#shutdownConnectionPool()}. If cleanup fails, use a fresh Session.
+	 * wait for {@link Mailer#close()} or the future returned by {@link Mailer#closeAsync()}. If cleanup fails, use a fresh Session.
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.
 	 */

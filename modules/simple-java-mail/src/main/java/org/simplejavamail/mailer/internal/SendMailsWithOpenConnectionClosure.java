@@ -117,14 +117,10 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		}
 	}
 
-	@Override
-	public void sendMail(@NotNull final Email userProvidedEmail) {
-		sendMailAndGetReceipt(userProvidedEmail);
-	}
-
+	/** @see MailSender#sendMail(Email) */
 	@Override
 	@NotNull
-	public MailSubmissionReceipt sendMailAndGetReceipt(@NotNull final Email userProvidedEmail) {
+	public MailSubmissionReceipt sendMail(@NotNull final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
 		final MailSendAttempt mailSendAttempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
 		if (!transportModeLoggingOnly) {

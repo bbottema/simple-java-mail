@@ -234,12 +234,14 @@ class MailSendQueueTest {
             final CompletableFuture<MailSubmissionReceipt> first = mailer.async().sendMail(email("first")).getCompletion();
             transport.awaitStarted();
             final CompletableFuture<MailSubmissionReceipt> queued = mailer.async().sendMail(email("second")).getCompletion();
-            final Future<Void> closing = mailer.shutdownConnectionPool();
+            final CompletableFuture<Void> closing = mailer.closeAsync();
             assertThat(closing.isDone()).isFalse();
-            assertThat(mailer.shutdownConnectionPool()).isSameAs(closing);
+            final CompletableFuture<Void> sameCleanup = mailer.closeAsync();
+            assertThat(sameCleanup).isNotSameAs(closing).isNotDone();
             assertReason(failure(mailer.async().sendMail(email("after-close")).getCompletion()), AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN);
             transport.release.countDown();
             closing.get(5, TimeUnit.SECONDS);
+            sameCleanup.get(5, TimeUnit.SECONDS);
             assertThat(first).isCompleted();
             assertThat(queued).isCompleted();
             assertThat(transport.subjects).containsExactly("first", "second");

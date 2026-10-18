@@ -129,7 +129,7 @@ class MailSendRetrySmtpContractTest {
             final MailSubmissionReceipt unrelated = mailer.async().sendMail(email()).getCompletion().get(5, SECONDS);
             assertThat(unrelated.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             assertThat(delayed.getCompletion()).isNotDone();
-            final Future<Void> closing = mailer.shutdownConnectionPool();
+            final Future<Void> closing = mailer.closeAsync();
             assertThat(closing.isDone()).isFalse();
             assertThat(delayed.getCompletion().get(10, SECONDS).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             closing.get(5, SECONDS);
@@ -262,7 +262,7 @@ class MailSendRetrySmtpContractTest {
         }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5))).buildMailer()) {
             mailer.withOpenConnection(sender -> {
                 callbacks.incrementAndGet();
-                assertThat(sender.sendMailAndGetReceipt(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+                assertThat(sender.sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
                 sender.sendMail(email());
             });
             assertThat(callbacks).hasValue(1);

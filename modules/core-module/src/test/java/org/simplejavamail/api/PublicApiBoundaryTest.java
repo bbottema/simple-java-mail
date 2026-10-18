@@ -72,8 +72,7 @@ class PublicApiBoundaryTest {
         });
         assertThat(SimpleJavaMailConfig.class.getMethods()).noneMatch(method -> method.getName().equals("getLocks"));
         assertThat(EmailProperty.class.getMethods()).noneMatch(method -> method.getName().equals("getGetter"));
-        assertThat(MailSender.class.getMethods()).filteredOn(method -> method.getName().equals("sendMailAndGetReceipt"))
-                .allMatch(method -> !method.isDefault());
+        assertThat(MailSender.class.getMethods()).extracting(java.lang.reflect.Method::getName).containsExactly("sendMail");
     }
 
     @Test
@@ -114,6 +113,16 @@ class PublicApiBoundaryTest {
     }
 
     @Test
+    void scopedSendingAndLifecycleUseTheUnifiedPublicContracts() throws Exception {
+        assertThat(MailSender.class.getMethod("sendMail", org.simplejavamail.api.email.Email.class).getReturnType())
+                .isEqualTo(MailSubmissionReceipt.class);
+        assertThat(org.simplejavamail.api.mailer.Mailer.class.getMethod("closeAsync").getReturnType())
+                .isEqualTo(java.util.concurrent.CompletableFuture.class);
+        assertThat(org.simplejavamail.api.mailer.Mailer.class.getMethods()).extracting(java.lang.reflect.Method::getName)
+                .doesNotContain("shutdownConnectionPool");
+    }
+
+    @Test
     void continuingApplicationCodeCompilesWithoutMainImplementation() throws Exception {
         final boolean compiled = compile(Path.of("src/test/core-only/org/simplejavamail/coreconsumer/CoreOnlyConsumer.java"));
         assertThat(compiled).withFailMessage(compilationDetails).isTrue();
@@ -135,6 +144,8 @@ class PublicApiBoundaryTest {
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",
                 "new org.simplejavamail.recipient.RecipientBuilder()",
                 "new org.simplejavamail.converter.ConfiguredEmailConverter(null)",
+                "((org.simplejavamail.api.mailer.MailSender) null).sendMailAndGetReceipt(null)",
+                "((org.simplejavamail.api.mailer.Mailer) null).shutdownConnectionPool()",
                 "((org.simplejavamail.api.mailer.MailSendTelemetry) null).bind(false)",
                 "io.opentelemetry.api.OpenTelemetry.noop()",
                 "org.simplejavamail.otel.OtelAdapter.wrap(null)")) {

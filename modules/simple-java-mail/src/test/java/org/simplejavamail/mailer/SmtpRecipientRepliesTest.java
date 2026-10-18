@@ -299,7 +299,7 @@ class SmtpRecipientRepliesTest {
 						() -> sender.sendMail(emailWithChoice(false, "accepted-second", "temporary-second")),
 						MailSubmissionException.class);
 				assertThat(stopped.getSubmissionReceipt().getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
-				assertThat(sender.sendMailAndGetReceipt(email("accepted-last")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+				assertThat(sender.sendMail(email("accepted-last")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 			});
 			assertThat(server.connections).hasValue(1);
 			assertThat(server.messages).hasValue(2);
@@ -583,7 +583,7 @@ class SmtpRecipientRepliesTest {
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendResultObserver(outcomes::add).buildMailer()) {
 			mailer.async().sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two"))).getCompletion().get(10, TimeUnit.SECONDS);
 			mailer.withOpenConnection(sender -> {
-				final MailSubmissionReceipt first = sender.sendMailAndGetReceipt(email("accepted-open-one"));
+				final MailSubmissionReceipt first = sender.sendMail(email("accepted-open-one"));
 				assertThat(outcomes).hasSize(3);
 				assertThat(outcomes.get(2).getSubmissionReceipt()).containsSame(first);
 				sender.sendMail(email("accepted-open-two"));

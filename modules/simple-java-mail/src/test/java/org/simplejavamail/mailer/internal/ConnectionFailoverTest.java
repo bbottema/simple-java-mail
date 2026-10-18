@@ -500,7 +500,7 @@ class ConnectionFailoverTest {
             final var send = a.async().sendMail(email());
             try {
                 assertThat(submitting.await(5, TimeUnit.SECONDS)).isTrue();
-                final var shutdown = b.shutdownConnectionPool();
+                final var shutdown = b.closeAsync();
                 assertThat(shutdown.isDone()).isFalse();
                 assertThat(send.getCompletion()).isNotDone();
                 release.countDown();
@@ -933,12 +933,12 @@ class ConnectionFailoverTest {
                         worker.submit(() -> {
                             assertThatThrownBy(() -> sender.sendMail(null)).isInstanceOf(IllegalStateException.class)
                                     .hasMessageContaining("thread running its callback");
-                            assertThatThrownBy(() -> sender.sendMailAndGetReceipt(null)).isInstanceOf(IllegalStateException.class)
+                            assertThatThrownBy(() -> sender.sendMail(null)).isInstanceOf(IllegalStateException.class)
                                     .hasMessageContaining("thread running its callback");
                         }).get(5, TimeUnit.SECONDS);
                         assertThat(outcomes).isEmpty();
                         assertThat(selected.messages).isEmpty();
-                        final var receipt = sender.sendMailAndGetReceipt(email());
+                        final var receipt = sender.sendMail(email());
                         assertThat(outcomes).hasSize(1);
                         assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipt);
                     });
@@ -946,7 +946,7 @@ class ConnectionFailoverTest {
                     assertThat(closes).hasValue(usePooling ? 0 : 1);
                     assertThatThrownBy(() -> escaped.get().sendMail(null)).isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("callback has ended");
-                    assertThatThrownBy(() -> escaped.get().sendMailAndGetReceipt(null)).isInstanceOf(IllegalStateException.class)
+                    assertThatThrownBy(() -> escaped.get().sendMail(null)).isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("callback has ended");
                     assertThat(outcomes).hasSize(1);
                     assertThat(selected.messages).hasSize(1);
@@ -988,7 +988,7 @@ class ConnectionFailoverTest {
                         escaped.set(sender);
                         throw original;
                     })).isSameAs(original);
-                    assertThatThrownBy(() -> escaped.get().sendMailAndGetReceipt(null)).isInstanceOf(IllegalStateException.class)
+                    assertThatThrownBy(() -> escaped.get().sendMail(null)).isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("callback has ended");
                     assertThat(closes).hasValue(usePooling ? 0 : 1);
                     assertThat(primary.messages).isEmpty();

@@ -83,7 +83,7 @@ public class BatchSupport implements BatchModule {
 
 	private void ensureEngineInitialized(@NotNull OperationalConfig operationalConfig) {
 		if (batchTransportEngine == null) {
-			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.shutdownConnectionPool() "
+			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.closeAsync() "
 					+ "(for each mailer in the cluster)");
 			batchTransportEngine = new BatchTransportEngine<>(PoolSettings.from(operationalConfig, null));
 			smtpConnectionPool = batchTransportEngine.getSmtpConnectionPool();

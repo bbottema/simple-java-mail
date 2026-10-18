@@ -159,7 +159,7 @@ class MailerSendingLimitsTest {
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("drain me"));
 			try {
 				assertThat(clock.reads.tryAcquire(5, SECONDS)).isTrue();
-				final Future<Void> shutdown = mailer.shutdownConnectionPool();
+				final Future<Void> shutdown = mailer.closeAsync();
 				assertThat(shutdown.isDone()).isFalse();
 				assertThat(state.submissions.get()).isEqualTo(1);
 				clock.now.set(PERIOD.toNanos());

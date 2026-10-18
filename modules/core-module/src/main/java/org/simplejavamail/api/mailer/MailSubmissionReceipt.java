@@ -20,7 +20,7 @@ import java.util.Optional;
  *
  * @see Mailer.Sync#sendMail(org.simplejavamail.api.email.Email)
  * @see Mailer.Async#sendMail(org.simplejavamail.api.email.Email)
- * @see MailSender#sendMailAndGetReceipt(org.simplejavamail.api.email.Email)
+ * @see MailSender#sendMail(org.simplejavamail.api.email.Email)
  */
 public interface MailSubmissionReceipt extends Serializable {
 

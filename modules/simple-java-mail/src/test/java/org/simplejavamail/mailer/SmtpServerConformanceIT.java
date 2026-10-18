@@ -139,8 +139,8 @@ class SmtpServerConformanceIT {
 			mailer.async().sendMailsInSimpleBatch(Arrays.asList(server.email("async-batch-1").buildEmail(), server.email("async-batch-2").buildEmail()))
 					.getCompletion().get(20, SECONDS);
 			mailer.withOpenConnection(sender -> {
-				assertThat(sender.sendMailAndGetReceipt(server.email("open-1").buildEmail()).getStatus()).isEqualTo(ACCEPTED);
-				assertThat(sender.sendMailAndGetReceipt(server.email("open-2").buildEmail()).getStatus()).isEqualTo(ACCEPTED);
+				assertThat(sender.sendMail(server.email("open-1").buildEmail()).getStatus()).isEqualTo(ACCEPTED);
+				assertThat(sender.sendMail(server.email("open-2").buildEmail()).getStatus()).isEqualTo(ACCEPTED);
 			});
 		}
 		for (final String name : Arrays.asList("batch-1", "batch-2", "async-batch-1", "async-batch-2", "open-1", "open-2")) {

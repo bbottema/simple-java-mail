@@ -142,7 +142,7 @@ public class MailerImpl implements Mailer {
 	private final Sync synchronousView = new SynchronousView();
 	private final Async asynchronousView = new AsynchronousView();
 
-	@Nullable private Future<Void> shutdownFuture;
+	@Nullable private CompletableFuture<Void> shutdownFuture;
 
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
 		this(null,
@@ -985,16 +985,16 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * @see Mailer#shutdownConnectionPool()
+	 * @see Mailer#closeAsync()
 	 */
 	@Override
-	public synchronized Future<Void> shutdownConnectionPool() {
-		if (shutdownFuture != null) {
-			return shutdownFuture;
+	public synchronized CompletableFuture<Void> closeAsync() {
+		if (shutdownFuture == null) {
+			mailSendOperations.shutdown();
+			shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
 		}
-		mailSendOperations.shutdown();
-		shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
-		return shutdownFuture;
+		// Callers may compose, cancel or complete their view, but only the owned shutdown task can complete actual cleanup.
+		return shutdownFuture.copy();
 	}
 
 	private void drainExecutorAndCloseConnectionPools() {
@@ -1136,7 +1136,7 @@ public class MailerImpl implements Mailer {
 		if (mailSendOperations.isCurrentOperation() || (ownsMailSendExecutor() && MailSendExecutor.isCurrentWorker(operationalConfig.getExecutorService()))) {
 			throw new IllegalStateException("A Mailer worker cannot wait for its own shutdown; close the Mailer from its owning application thread");
 		}
-		shutdownConnectionPool().get();
+		closeAsync().get();
 	}
 
 	/** Fixed execution choices over this Mailer's existing paths; owns no resources or locks. */

@@ -13,7 +13,6 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 /**
  * Mailing tool created exclusively using {@link MailerRegularBuilder}. This class is the facade to most Simple Java Mail functionality
@@ -268,7 +267,7 @@ public interface Mailer extends AutoCloseable {
 	 * Do not wait inside the callback for an independent send that needs the same exhausted pool; use this callback's sender or finish the scope first.
 	 * The delegate does not queue emails and does not run asynchronously. Each {@link MailSender#sendMail(Email)} call
 	 * applies the same defaults, validation, MIME conversion, and transport mode behavior as {@link Sync#sendMail(Email)}.
-	 * Use {@link MailSender#sendMailAndGetReceipt(Email)} inside the callback when caller code needs the SMTP submission receipt before checkpointing.
+	 * Use the receipt returned by {@link MailSender#sendMail(Email)} when caller code needs the SMTP submission result before checkpointing.
 	 * Use the sender only on the callback's thread and while the callback is running. Calls from another thread or after the callback ends are rejected;
 	 * use {@link #async()} for independent asynchronous sends rather than passing the scoped sender to an executor.
 	 * A custom mailer cannot be used with this API because Simple Java Mail does not own the underlying connection in that configuration.
@@ -413,8 +412,7 @@ public interface Mailer extends AutoCloseable {
 	void close() throws Exception;
 
 	/**
-	 * Starts cleanup of the resources associated with this {@link Mailer}. Despite the historical method name, this always initiates an orderly shutdown
-	 * of an internally created executor service, including when the {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent.
+	 * Gracefully closes this Mailer without waiting for its accepted sends and resource cleanup to finish.
 	 * <p>
 	 * The returned future represents draining this Mailer's accepted sends (including those on a caller-owned executor), observer handoffs, and
 	 * connection-pool cleanup. It also waits for termination of the built-in executor. New sends are rejected as soon as shutdown begins; running
@@ -425,11 +423,15 @@ public interface Mailer extends AutoCloseable {
 	 * {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.
 	 * <p>
 	 * Prefer {@link #close()} for normal application lifecycle management.
+	 * <p>
+	 * Each call returns a separate completion view of the same cleanup operation. Cancelling or completing that view cannot interrupt cleanup,
+	 * reopen this Mailer, or change what {@link #close()} waits for.
 	 *
-	 * @return A future representing this Mailer's graceful resource cleanup; repeated calls return the same cleanup operation.
+	 * @return A non-null future completed when this Mailer's graceful resource cleanup finishes, exceptionally if cleanup fails.
 	 * @see <a href="https://www.simplejavamail.org/sending-and-execution.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
-	Future<Void> shutdownConnectionPool();
+	@NotNull
+	CompletableFuture<Void> closeAsync();
 
 	/**
 	 * @return The server connection details. Will be {@code null} in case a custom fixed {@link Session} instance is used.

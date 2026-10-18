@@ -310,7 +310,7 @@ class FailoverScopeContractTest {
             try {
                 final var sending = initiating.async().sendMail(email());
                 await(receivingData);
-                final var closing = selected.shutdownConnectionPool();
+                final var closing = selected.closeAsync();
                 assertThat(closing.isDone()).isFalse();
                 acknowledge.countDown();
                 sending.getCompletion().get(10, SECONDS);

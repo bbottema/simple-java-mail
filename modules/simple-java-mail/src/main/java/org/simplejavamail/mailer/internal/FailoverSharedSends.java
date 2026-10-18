@@ -108,13 +108,9 @@ final class FailoverSharedSends {
 			this.connection = connection;
 		}
 
+		/** @see MailSender#sendMail(Email) */
 		@Override
-		public void sendMail(final Email email) {
-			sendMailAndGetReceipt(email);
-		}
-
-		@Override
-		public MailSubmissionReceipt sendMailAndGetReceipt(final Email email) {
+		public MailSubmissionReceipt sendMail(final Email email) {
 			final Email checked = verifyNonnull(email);
 			final MailSendAttempt attempt = observerNotifier.beginAttempt(checked);
 			final MailSendOperation<MailSubmissionReceipt> operation;
