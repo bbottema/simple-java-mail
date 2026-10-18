@@ -16,6 +16,47 @@ import java.util.Set;
 public interface IRecipientBuilder {
 
     /**
+     * Creates one TO recipient directly from a name and an address.
+     * <p>
+     * This is a shortcut for setting the name, address and type on this builder and calling {@link #build()}. Any S/MIME certificate or delivery
+     * notification preference already configured on the builder is retained. A null name removes a previously configured name. The address is kept
+     * as one value; comma- or semicolon-separated address lists are not split. Use {@link IRecipientsBuilder} for multiple addresses.
+     *
+     * @param name Optional explicit display name.
+     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @return The completed TO recipient.
+     * @see #cc(String, String)
+     * @see #bcc(String, String)
+     */
+    @NotNull Recipient to(@Nullable String name, @NotNull String address);
+
+    /**
+     * Creates one CC recipient directly from a name and an address.
+     * <p>
+     * Like {@link #to(String, String)}, this replaces the builder's name, address and type, retains its other configured options and returns the
+     * completed recipient. A null name removes a previously configured name; address lists are not split.
+     *
+     * @param name Optional explicit display name.
+     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @return The completed CC recipient.
+     * @see #to(String, String)
+     */
+    @NotNull Recipient cc(@Nullable String name, @NotNull String address);
+
+    /**
+     * Creates one BCC recipient directly from a name and an address.
+     * <p>
+     * Like {@link #to(String, String)}, this replaces the builder's name, address and type, retains its other configured options and returns the
+     * completed recipient. A null name removes a previously configured name; address lists are not split.
+     *
+     * @param name Optional explicit display name.
+     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @return The completed BCC recipient.
+     * @see #to(String, String)
+     */
+    @NotNull Recipient bcc(@Nullable String name, @NotNull String address);
+
+    /**
      * @param type The recipient type (e.g. {@link Message.RecipientType#TO}), optional for {@code from} and {@code replyTo} fields.
      */
     IRecipientBuilder withType(@NotNull Message.RecipientType type);

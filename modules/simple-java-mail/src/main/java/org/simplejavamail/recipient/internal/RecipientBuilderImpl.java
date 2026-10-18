@@ -55,6 +55,27 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @NotNull
     private Set<NotifyOption> deliveryStatusNotificationNotifyOptions = emptySet();
 
+    /** @see IRecipientBuilder#to(String, String) */
+    @Override
+    @NotNull
+    public Recipient to(@Nullable final String name, @NotNull final String address) {
+        return withName(name).withAddress(address).withType(RecipientType.TO).build();
+    }
+
+    /** @see IRecipientBuilder#cc(String, String) */
+    @Override
+    @NotNull
+    public Recipient cc(@Nullable final String name, @NotNull final String address) {
+        return withName(name).withAddress(address).withType(RecipientType.CC).build();
+    }
+
+    /** @see IRecipientBuilder#bcc(String, String) */
+    @Override
+    @NotNull
+    public Recipient bcc(@Nullable final String name, @NotNull final String address) {
+        return withName(name).withAddress(address).withType(RecipientType.BCC).build();
+    }
+
     /**
      * @see IRecipientBuilder#build()
      */
