@@ -1,6 +1,5 @@
 package org.simplejavamail.api.mailer;
 
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,10 +18,10 @@ public final class MailRecipientResult implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/** The original transport address, retaining its display name when supplied. */
-	@Getter @NotNull private final String originalAddress;
+	@NotNull private final String originalAddress;
 	@Nullable private final String envelopeAddress;
 	/** Final submission knowledge, independent of the RCPT reply. */
-	@Getter @NotNull private final MailRecipientDisposition disposition;
+	@NotNull private final MailRecipientDisposition disposition;
 	@Nullable private final Boolean rcptAttempted;
 	@Nullable private final SmtpServerResponse rcptResponse;
 
@@ -42,6 +41,18 @@ public final class MailRecipientResult implements Serializable {
 		}
 		this.rcptAttempted = rcptAttempted;
 		this.rcptResponse = rcptResponse;
+	}
+
+	/** Returns the original transport address, including its display name when supplied. */
+	@NotNull
+	public String getOriginalAddress() {
+		return originalAddress;
+	}
+
+	/** Returns what is known about submission for this recipient, independently of its RCPT reply. */
+	@NotNull
+	public MailRecipientDisposition getDisposition() {
+		return disposition;
 	}
 
 	/** @return The normalized mailbox used in the envelope, when the provider exposes it. */

@@ -80,6 +80,10 @@ and its preparation costs.
 
 ### Keep one logical operation and a bounded waiting collection
 
+Clearing a retry schedule removes its attempt/delay choices and resets schedule modifiers, but preserves configured storage/waiting budgets.
+Clearing the whole policy remains a separate Mailer operation. Partial schedules are invalid rather than gaining an invented default. Both
+initialization and resets use the published key-builder defaults under [ADR 0003](0003-immutable-configuration-snapshots.md).
+
 One public send remains one logical operation, with one completion and one final `MailSendResultObserver` callback. Intermediate
 submission failures are not terminal outcomes. Record attempts, delays and exhaustion in bounded history and useful logging;
 do not introduce per-attempt callbacks or publish the Email, content or transport through observation.

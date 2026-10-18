@@ -79,14 +79,14 @@ public class MailSendRetryPolicy implements Serializable {
     private static void requireCompleteSchedule(@Nullable final Integer attempts, @Nullable final Duration delay) {
         if (attempts == null || delay == null) {
             throw new IllegalArgumentException("Supply both withMaximumAttempts(...) and withRetryDelay(...) to enable retries. "
-                    + "To configure only resource limits, leave the schedule, backoff and jitter unset.");
+                    + "Use clearRetrySchedule() on the retry-policy builder to remove the schedule, backoff and jitter while retaining resource limits.");
         }
     }
 
     private static void validateAttemptCount(final int attempts) {
         if (attempts < 2) {
             throw new IllegalArgumentException("Allow at least two submission attempts, including the first. "
-                    + "Use clearMailSendRetryPolicy() on the Mailer builder if you do not want automatic retries.");
+                    + "Use clearRetrySchedule() on the retry-policy builder to disable automatic retries while retaining its resource limits.");
         }
     }
 
@@ -196,18 +196,56 @@ public class MailSendRetryPolicy implements Serializable {
         /**
          * Limits provider invocations for one email, including the first. For example, three allows at most two retries.
          * Supply a retry delay too to enable retries; at least two. Connection setup attempts are governed separately by failover configuration.
+         * {@link #clearMaximumAttempts()} removes only the count; use {@link #clearRetrySchedule()} to disable the complete schedule.
          * @param attempts Maximum total provider invocations for one logical email send.
          */
         @NotNull
         public Builder withMaximumAttempts(final int attempts) { maximumAttempts = attempts; return this; }
 
         /**
+         * Removes only the attempt count. A remaining delay or schedule modifier still requires a complete schedule when building.
+         * @see #withMaximumAttempts(int)
+         */
+        @NotNull
+        public Builder clearMaximumAttempts() {
+            maximumAttempts = null;
+            return this;
+        }
+
+        /**
          * Waits this long after a refused attempt has finished cleanup before trying again. Supply an attempt count too; positive.
          * Pick a delay appropriate for the SMTP service rather than assuming all services recover on the same schedule.
+         * {@link #clearRetryDelay()} removes only the delay; use {@link #clearRetrySchedule()} to disable the complete schedule.
          * @param delay Initial retry delay; for example, thirty seconds.
          */
         @NotNull
         public Builder withRetryDelay(@NotNull final Duration delay) { retryDelay = requireNonNull(delay, "retryDelay"); return this; }
+
+        /**
+         * Removes only the initial delay. A remaining attempt count or schedule modifier still requires a complete schedule when building.
+         * @see #withRetryDelay(Duration)
+         */
+        @NotNull
+        public Builder clearRetryDelay() {
+            retryDelay = null;
+            return this;
+        }
+
+        /**
+         * Disables retries by removing the attempt count, delay, backoff and jitter together. Waiting and replay-resource limits remain unchanged.
+         * Unlike clearing one required field, this leaves a complete, disabled policy ready to build. Previously built policies are not changed.
+         *
+         * @see #withMaximumAttempts(int)
+         * @see #withRetryDelay(Duration)
+         */
+        @NotNull
+        public Builder clearRetrySchedule() {
+            clearMaximumAttempts();
+            clearRetryDelay();
+            resetRetryBackoff();
+            resetRetryJitter();
+            return this;
+        }
 
         /**
          * Increases the base delay after each refused attempt, capped at the supplied maximum. Disabled by default.

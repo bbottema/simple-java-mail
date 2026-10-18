@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
+import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
 
 /** Public-key material and algorithm preference for an RFC 3156 encrypted message. */
 public final class OpenPgpEncryptionConfig {
@@ -36,6 +37,7 @@ public final class OpenPgpEncryptionConfig {
         return mutableDeepCopy(recipientPublicKeyRings);
     }
 
+    /** @see OpenPgpEncryptionConfigBuilder#symmetricAlgorithm(SymmetricAlgorithm) */
     @NotNull
     public SymmetricAlgorithm getSymmetricAlgorithm() {
         return symmetricAlgorithm;
@@ -90,7 +92,7 @@ public final class OpenPgpEncryptionConfig {
 
     public static final class OpenPgpEncryptionConfigBuilder {
         private final List<byte[]> recipientPublicKeyRings = new ArrayList<>();
-        private SymmetricAlgorithm symmetricAlgorithm = SymmetricAlgorithm.AES_256;
+        private SymmetricAlgorithm symmetricAlgorithm = DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
 
         public OpenPgpEncryptionConfigBuilder addRecipientPublicKeyRing(final byte[] publicKeyRing) {
             recipientPublicKeyRings.add(requireNonNull(publicKeyRing, "publicKeyRing").clone());
@@ -103,9 +105,21 @@ public final class OpenPgpEncryptionConfig {
             return this;
         }
 
+        /**
+         * Chooses the cipher used to encrypt the message content for the configured recipients. The default is
+         * {@link org.simplejavamail.api.email.EmailStartingBuilder#DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM AES-256}.
+         * Calling this method again replaces the algorithm; {@link #resetSymmetricAlgorithm()} restores the default without replacing recipient keys.
+         *
+         * @param symmetricAlgorithm Supported content-encryption cipher.
+         */
         public OpenPgpEncryptionConfigBuilder symmetricAlgorithm(final SymmetricAlgorithm symmetricAlgorithm) {
             this.symmetricAlgorithm = requireNonNull(symmetricAlgorithm, "symmetricAlgorithm");
             return this;
+        }
+
+        /** @see #symmetricAlgorithm(SymmetricAlgorithm) */
+        public OpenPgpEncryptionConfigBuilder resetSymmetricAlgorithm() {
+            return symmetricAlgorithm(DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM);
         }
 
         public OpenPgpEncryptionConfig build() {

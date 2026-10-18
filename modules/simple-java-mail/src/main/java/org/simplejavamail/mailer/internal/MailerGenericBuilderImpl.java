@@ -1174,6 +1174,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
+	/** @see MailerGenericBuilder#resetLegacySmtpContentSupport() */
+	@Override
+	public T resetLegacySmtpContentSupport() {
+		return withLegacySmtpContentSupport(DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
+	}
+
 	/**
 	 * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
@@ -1383,12 +1389,26 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
+	/** @see MailerGenericBuilder#clearCustomMailer() */
+	@Override
+	public T clearCustomMailer() {
+		customMailer = null;
+		return (T) this;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider)
 	 */
 	@Override
 	public T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider) {
 		this.oauth2AccessTokenProvider = accessTokenProvider;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#clearOAuth2AccessTokenProvider() */
+	@Override
+	public T clearOAuth2AccessTokenProvider() {
+		oauth2AccessTokenProvider = null;
 		return (T) this;
 	}
 

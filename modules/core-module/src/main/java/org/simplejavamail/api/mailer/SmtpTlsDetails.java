@@ -1,7 +1,5 @@
 package org.simplejavamail.api.mailer;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.SmtpDiagnosticText;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
  * at most 32 identities, including the certificate subject; the enclosing {@link SmtpConnectionReport} notes omissions in
  * {@code getWarnings()}. This reporting limit does not affect certificate verification.
  */
-@Getter
 public final class SmtpTlsDetails implements Serializable {
     private static final long serialVersionUID = 1L;
     @NotNull private final String protocol;
@@ -28,7 +25,6 @@ public final class SmtpTlsDetails implements Serializable {
     /** Public certificate identity labels; the enclosing report warns if this list was limited. */
     @NotNull private final List<String> peerIdentities;
     private final boolean serverIdentityCheckEnabled;
-    @Getter(AccessLevel.NONE)
     @Nullable
     private final Boolean customHostnameVerifierAccepted;
 
@@ -41,6 +37,29 @@ public final class SmtpTlsDetails implements Serializable {
         this.peerIdentities = peerIdentities.stream().map(SmtpDiagnosticText::display).collect(Collectors.toUnmodifiableList());
         this.serverIdentityCheckEnabled = serverIdentityCheckEnabled;
         this.customHostnameVerifierAccepted = customHostnameVerifierAccepted;
+    }
+
+    /** Returns the negotiated TLS protocol, such as TLSv1.3. */
+    @NotNull
+    public String getProtocol() {
+        return protocol;
+    }
+
+    /** Returns the cipher suite negotiated for this connection. */
+    @NotNull
+    public String getCipherSuite() {
+        return cipherSuite;
+    }
+
+    /** Returns an immutable list of public certificate identity labels, subject to the report's diagnostic limits. */
+    @NotNull
+    public List<String> getPeerIdentities() {
+        return peerIdentities;
+    }
+
+    /** Returns whether server-identity checking was configured; this flag alone is not a successful verification result. */
+    public boolean isServerIdentityCheckEnabled() {
+        return serverIdentityCheckEnabled;
     }
 
     /** Empty when no caller-supplied hostname verifier returned a result; this is not a certificate-trust verdict. */

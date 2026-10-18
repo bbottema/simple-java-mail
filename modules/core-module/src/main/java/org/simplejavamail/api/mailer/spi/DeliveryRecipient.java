@@ -35,4 +35,16 @@ public class DeliveryRecipient implements Serializable {
         this.address = requireNonNull(address, "address");
         this.notifyOptions = DsnNotifyOptions.copyOf(notifyOptions);
     }
+
+    /** Returns the mailbox or RFC address group for this envelope occurrence, without a display name. */
+    @NotNull
+    public String getAddress() {
+        return address;
+    }
+
+    /** Returns the immutable notification preference; empty retains the shared Email/provider fallback. */
+    @NotNull
+    public Set<NotifyOption> getNotifyOptions() {
+        return notifyOptions;
+    }
 }

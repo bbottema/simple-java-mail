@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 import static java.util.Objects.requireNonNull;
+import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM;
 
 /**
  * In-memory OpenPGP signing material. This type intentionally is not serializable: the secret key ring and
@@ -49,11 +50,16 @@ public final class OpenPgpSigningConfig {
         return passphrase.clone();
     }
 
+    /**
+     * Returns the selected signing key, or null when a suitable key is selected automatically.
+     * @see OpenPgpSigningConfigBuilder#signingKeyId(long)
+     */
     @Nullable
     public Long getSigningKeyId() {
         return signingKeyId;
     }
 
+    /** @see OpenPgpSigningConfigBuilder#hashAlgorithm(HashAlgorithm) */
     @NotNull
     public HashAlgorithm getHashAlgorithm() {
         return hashAlgorithm;
@@ -94,7 +100,7 @@ public final class OpenPgpSigningConfig {
         private byte[] secretKeyRing;
         private char[] passphrase = new char[0];
         private Long signingKeyId;
-        private HashAlgorithm hashAlgorithm = HashAlgorithm.SHA256;
+        private HashAlgorithm hashAlgorithm = DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM;
 
         public OpenPgpSigningConfigBuilder secretKeyRing(final byte[] secretKeyRing) {
             this.secretKeyRing = requireNonNull(secretKeyRing, "secretKeyRing").clone();
@@ -110,14 +116,38 @@ public final class OpenPgpSigningConfig {
             return passphrase(requireNonNull(passphrase, "passphrase").toCharArray());
         }
 
+        /**
+         * Chooses a particular signing key from the supplied secret key ring instead of selecting a suitable key automatically.
+         * Clear the preference with {@link #clearSigningKeyId()} to return to automatic selection without replacing the key ring or passphrase.
+         *
+         * @param signingKeyId Identifier of the signing key to use.
+         */
         public OpenPgpSigningConfigBuilder signingKeyId(final long signingKeyId) {
             this.signingKeyId = signingKeyId;
             return this;
         }
 
+        /** @see #signingKeyId(long) */
+        public OpenPgpSigningConfigBuilder clearSigningKeyId() {
+            signingKeyId = null;
+            return this;
+        }
+
+        /**
+         * Chooses the hash used to create the OpenPGP signature. The default is
+         * {@link org.simplejavamail.api.email.EmailStartingBuilder#DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM SHA-256}.
+         * Calling this method again replaces the algorithm; {@link #resetHashAlgorithm()} restores the default without changing signing material.
+         *
+         * @param hashAlgorithm Supported hash to use for signing.
+         */
         public OpenPgpSigningConfigBuilder hashAlgorithm(final HashAlgorithm hashAlgorithm) {
             this.hashAlgorithm = requireNonNull(hashAlgorithm, "hashAlgorithm");
             return this;
+        }
+
+        /** @see #hashAlgorithm(HashAlgorithm) */
+        public OpenPgpSigningConfigBuilder resetHashAlgorithm() {
+            return hashAlgorithm(DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM);
         }
 
         public OpenPgpSigningConfig build() {

@@ -2,6 +2,8 @@ package org.simplejavamail.api.email;
 
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
@@ -19,6 +21,18 @@ import static java.util.regex.Pattern.compile;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {
+	/**
+	 * Hash used for OpenPGP signatures unless another supported algorithm is selected.
+	 * @see OpenPgpSigningConfig.OpenPgpSigningConfigBuilder#hashAlgorithm(OpenPgpSigningConfig.HashAlgorithm)
+	 */
+	OpenPgpSigningConfig.HashAlgorithm DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM = OpenPgpSigningConfig.HashAlgorithm.SHA256;
+
+	/**
+	 * Cipher used for OpenPGP message encryption unless another supported algorithm is selected.
+	 * @see OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder#symmetricAlgorithm(OpenPgpEncryptionConfig.SymmetricAlgorithm)
+	 */
+	OpenPgpEncryptionConfig.SymmetricAlgorithm DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM = OpenPgpEncryptionConfig.SymmetricAlgorithm.AES_256;
+
 	/**
 	 * Whether conversion to Email eagerly reads attachment content. Disabling this retains lazy data sources for later reading.
 	 * @see org.simplejavamail.api.converter.ConfiguredEmailConverter.IncomingConversion#withFetchAttachmentData(boolean)

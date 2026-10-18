@@ -26,7 +26,8 @@ import javax.net.ssl.SSLSocketFactory;
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends MailerGenericBuilder<T> {
 	/**
-	 * Controls whether plain {@link TransportStrategy#SMTP} attempts an optional STARTTLS upgrade when the server offers it. It defaults to {@code true};
+	 * Controls whether plain {@link TransportStrategy#SMTP} attempts an optional STARTTLS upgrade when the server offers it.
+	 * It defaults to {@value MailerGenericBuilder#DEFAULT_OPPORTUNISTIC_TLS};
 	 * setting it to {@code false} is an escape hatch for SMTP servers that break during STARTTLS negotiation.
 	 * <p>
 	 * A configured snapshot supplies the initial value when this builder is created. Calling this method afterwards overrides that value for the Mailer
@@ -34,10 +35,20 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * This setting is deliberately limited to plain SMTP. It has no effect on mandatory TLS in {@link TransportStrategy#SMTP_TLS}, OAuth2 transport, or
 	 * implicit TLS in {@link TransportStrategy#SMTPS}.
+	 * {@link #resetOpportunisticTLS()} restores the built-in default rather than the captured property; configuration locks still apply.
 	 *
 	 * @param opportunisticTLS Whether plain SMTP should attempt STARTTLS when offered.
 	 */
 	T withOpportunisticTLS(boolean opportunisticTLS);
+
+	/** @see #withOpportunisticTLS(boolean) */
+	boolean isOpportunisticTLS();
+
+	/**
+	 * Restores the built-in opportunistic TLS setting rather than the captured property.
+	 * @see #withOpportunisticTLS(boolean)
+	 */
+	T resetOpportunisticTLS();
 
 	/**
 	 * Selects how the Mailer connects and whether TLS is optional or required. See {@link TransportStrategy} for the protocols,
@@ -55,68 +66,108 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withTransportStrategy(@NotNull TransportStrategy transportStrategy);
 
 	/**
-	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)}, {@link #withSMTPServerUsername(String)} and {@link
-	 * #withSMTPServerPassword(String)}.
+	 * Replaces the host, port, username and password together, including values initially loaded from properties.
+	 * A null argument clears that field; it does not restore a captured property. Empty username and password strings also clear their fields.
+	 * A cleared port uses the selected transport strategy's default when building; an ordinary SMTP Mailer still needs a host.
+	 * <p>
+	 * Shorter overloads leave the fields they do not accept unchanged. For a host-only change that retains the configured port and credentials, use
+	 * {@link #withSMTPServerHost(String)}. To remove stored credentials explicitly, pass null for both username and password here, or call their
+	 * named clear methods. Runtime credential providers remain separate. All supplied values and clear operations remain subject to configuration locks.
 	 *
-	 * @param host Optional host that defaults to pre-configured property if left empty.
-	 * @param port Optional port number that defaults to pre-configured property if left empty.
-	 * @param username Optional SMTP server username that defaults to pre-configured property if left empty.
-	 * @param password Optional SMTP server password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2)
-	 *                    that defaults to pre-configured property if left empty.
+	 * @param host SMTP host to use, or null to remove it.
+	 * @param port SMTP port to use, or null to use the transport strategy's default.
+	 * @param username SMTP username to use, or null/empty to remove it.
+	 * @param password SMTP password or OAuth2 token to use, or null/empty to remove it.
 	 */
-	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port, @Nullable @Cli.Optional String username, @Nullable @Cli.Optional String password);
+	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port,
+			@Nullable @Cli.Optional String username, @Nullable @Cli.Optional String password);
 
 	/**
-	 * Delegates to {@link #withSMTPServerHost(String)}, {@link #withSMTPServerPort(Integer)} and {@link #withSMTPServerUsername(String)}.
+	 * Replaces the host, port and username, leaving the existing password unchanged.
+	 * Null arguments clear the corresponding fields rather than restoring captured properties; a null port selects the transport strategy's default.
+	 * Unlike the four-argument overload, this overload passes an empty username through unchanged. To change or remove credentials together,
+	 * use {@link #withSMTPServer(String, Integer, String, String)}.
 	 *
-	 * @param host Optional host that defaults to pre-configured property if left empty.
-	 * @param port Optional port number that defaults to pre-configured property if left empty.
-	 * @param username Optional username that defaults to pre-configured property if left empty.
+	 * @param host SMTP host to use, or null to remove it.
+	 * @param port SMTP port to use, or null to use the transport strategy's default.
+	 * @param username SMTP username to use, or null to remove it without removing the password.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port, @Nullable @Cli.Optional String username);
 	
 	/**
-	 * Delegates to {@link #withSMTPServerHost(String)} and {@link #withSMTPServerPort(Integer)}.
+	 * Replaces the host and port, leaving the existing username and password unchanged.
+	 * Null arguments clear those fields rather than restoring captured properties; a null port selects the transport strategy's default.
+	 * See {@link #withSMTPServer(String, Integer, String, String)} when credentials should change with the destination.
 	 *
-	 * @param host Optional host that defaults to pre-configured property if left empty.
-	 * @param port Optional port number that defaults to pre-configured property if left empty.
+	 * @param host SMTP host to use, or null to remove it.
+	 * @param port SMTP port to use, or null to use the transport strategy's default.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServer(@Nullable @Cli.Optional String host, @Nullable @Cli.Optional Integer port);
 	
 	/**
-	 * Sets the optional SMTP host. Will default to pre-configured property if left empty.
+	 * Changes only the SMTP host, retaining the configured port and credentials.
+	 * Passing null or calling {@link #clearSMTPServerHost()} removes the host; it does not restore a captured property.
+	 * An ordinary SMTP Mailer needs a host when built. Configuration locks still apply, and previously built Mailers remain unchanged.
 	 *
-	 * @param host Optional host that defaults to pre-configured property if left empty.
+	 * @param host SMTP host to use, or null to remove it.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerHost(@Nullable @Cli.Optional String host);
+
+	/**
+	 * Removes the configured SMTP host without restoring a property value.
+	 * @see #withSMTPServerHost(String)
+	 */
+	T clearSMTPServerHost();
 	
 	/**
-	 * Sets the optional SMTP port. Will default to pre-configured property if not overridden. If left empty,
-	 * the default will be determined based on the transport strategy.
+	 * Changes only the SMTP port. Passing null or calling {@link #clearSMTPServerPort()} removes the configured value so the selected transport strategy
+	 * supplies its default port when building. This does not restore a captured property or change any other SMTP setting. Configuration locks still apply.
 	 *
-	 * @param port Optional port number that defaults to pre-configured property if left empty.
+	 * @param port SMTP port to use, or null to use the transport strategy's default.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerPort(@Nullable @Cli.Optional Integer port);
+
+	/**
+	 * Removes the configured port so the transport strategy supplies its default.
+	 * @see #withSMTPServerPort(Integer)
+	 */
+	T clearSMTPServerPort();
 	
 	/**
-	 * Sets the optional SMTP username. Will default to pre-configured property if left empty.
+	 * Changes only the SMTP username, leaving the password unchanged. Passing null or calling {@link #clearSMTPServerUsername()} removes the username,
+	 * not its password or runtime token provider. Remove both stored credentials when neither should be used; a password without a username is invalid.
+	 * This does not restore a captured property or normalize an empty string. Configuration locks still apply.
 	 *
-	 * @param username Optional username that defaults to pre-configured property if left empty.
+	 * @param username SMTP username to use, or null to remove it.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerUsername(@Nullable @Cli.Optional String username);
 
 	/**
-	 * Sets the optional SMTP password or OAUTH2 token (in case of TransportStrategy.SMTP_OAUTH2). Will default to pre-configured property if left empty.
+	 * Removes only the stored SMTP username.
+	 * @see #withSMTPServerUsername(String)
+	 */
+	T clearSMTPServerUsername();
+
+	/**
+	 * Changes only the SMTP password or fixed OAuth2 token. Passing null or calling {@link #clearSMTPServerPassword()} removes that stored value,
+	 * leaving the username and any runtime token provider unchanged. This does not restore a captured property or normalize an empty string.
+	 * Use {@link #clearOAuth2AccessTokenProvider()} separately if a runtime token provider should also be removed. Configuration locks still apply.
 	 *
-	 * @param password Optional password or OAUTH2 token that defaults to pre-configured property if left empty.
+	 * @param password SMTP password or fixed OAuth2 token to use, or null to remove it.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of another API method")
 	T withSMTPServerPassword(@Nullable @Cli.Optional String password);
+
+	/**
+	 * Removes only the stored SMTP password or fixed OAuth2 token.
+	 * @see #withSMTPServerPassword(String)
+	 */
+	T clearSMTPServerPassword();
 
 	/**
 	 * Uses your SSL socket factory class, for example to supply a client certificate or a private trust store.

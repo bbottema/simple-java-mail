@@ -38,7 +38,8 @@ public interface MailSubmissionReceipt extends Serializable {
 	MailRetryDisposition getRetryDisposition();
 
 	/**
-	 * @return The known unsubmitted recipients for a SAFE_TO_RETRY disposition, excluding permanent RCPT rejections.
+	 * @return The known unsubmitted recipients for {@link MailRetryDisposition#SAFE_TO_RETRY_ALL} or
+	 * {@link MailRetryDisposition#SAFE_TO_RETRY_UNACCEPTED}, excluding permanent RCPT rejections.
 	 * Empty for all other dispositions, including permanent message rejection and ambiguous acceptance.
 	 */
 	@NotNull

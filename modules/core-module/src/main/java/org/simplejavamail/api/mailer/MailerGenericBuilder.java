@@ -139,6 +139,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	boolean DEFAULT_VERIFY_SERVER_IDENTITY = true;
 	/**
+	 * Plain SMTP attempts STARTTLS when the server offers it unless explicitly disabled.
+	 * @see MailerRegularBuilder#withOpportunisticTLS(boolean)
+	 */
+	boolean DEFAULT_OPPORTUNISTIC_TLS = true;
+	/**
 	 * The default maximum timeout value for the transport socket is <code>{@value}</code> milliseconds (affects socket connect-,
 	 * read- and write timeouts). Can be overridden from a config file or through System variable.
 	 */
@@ -584,6 +589,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * This does not rewrite addresses or exact/signed content, bypass malformed/binary-content checks, weaken TLS or REQUIRETLS, or relax explicit DSN
 	 * requirements. It does not override explicitly disabled UTF-8 encoding. Repeated calls replace the choice; {@code false} disables the opt-in.
+	 * {@link #resetLegacySmtpContentSupport()} restores the built-in default, not a captured property value. Configuration locks still apply.
 	 * In a shared connection pool, the selected server's Mailer configuration applies. CustomMailer and third-party providers retain their own behavior.
 	 * Caller-owned ordinary Angus Sessions retain their Session-wide SMTPUTF8 declaration behavior. Library-owned stock Angus Sessions negotiate
 	 * per message, also with custom socket factories; the factories and their settings are preserved without adding physical-abort support.
@@ -594,6 +600,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see <a href="https://www.rfc-editor.org/rfc/rfc6152.html#section-3">8BITMIME negotiation</a>
 	 */
 	T withLegacySmtpContentSupport(boolean enabled);
+
+	/**
+	 * Restores the built-in legacy-content setting rather than the captured property.
+	 * @see #withLegacySmtpContentSupport(boolean)
+	 */
+	T resetLegacySmtpContentSupport();
 
 	/**
 	 * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
@@ -955,11 +967,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * The provider can be called concurrently and should normally cache a valid token, refreshing it only when necessary. For a
 	 * short-lived fixed token, the existing SMTP password configuration remains available.
 	 * A caller-supplied {@link jakarta.mail.Session} must declare {@code mail.smtp.auth.mechanisms=XOAUTH2}.
+	 * <p>
+	 * Calling this method again replaces the provider. {@link #clearOAuth2AccessTokenProvider()} removes it without closing an application object,
+	 * changing the transport strategy, or removing a separately configured SMTP password or token. Previously built Mailers remain unchanged.
 	 *
 	 * @param accessTokenProvider Thread-safe provider of current, nonblank OAuth2 access tokens.
 	 */
 	@Cli.ExcludeApi(reason = "OAuth2 access-token providers are runtime Java integrations and cannot be represented as CLI values")
 	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
+
+	/** @see #withOAuth2AccessTokenProvider(OAuth2AccessTokenProvider) */
+	@Cli.ExcludeApi(reason = "Runtime token providers are Java-only registrations; fresh CLI builders have none to clear")
+	T clearOAuth2AccessTokenProvider();
 
 	/**
 	 * Lets you trace email sends and collect sending metrics with the OpenTelemetry instance your application already uses.
@@ -1161,9 +1180,21 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearMailSendProgressObserver();
 
 	/**
+	 * Lets your callback deliver the prepared email instead of using Simple Java Mail's SMTP transport.
+	 * The callback receives the governed Email and prepared MIME message; see {@link CustomMailer} for its transport responsibilities.
+	 * <p>
+	 * Calling this method again replaces the callback. {@link #clearCustomMailer()} removes it without closing an application object or changing
+	 * SMTP configuration. The next Mailer built from this builder uses its remaining SMTP settings, so it needs a host unless logging-only mode applies.
+	 * Previously built Mailers retain their own callback. Factory configuration locks are still checked when building the next Mailer.
+	 *
+	 * @param customMailer Application-owned delivery callback.
 	 * @see CustomMailer
 	 */
 	T withCustomMailer(@NotNull CustomMailer customMailer);
+
+	/** @see #withCustomMailer(CustomMailer) */
+	@Cli.ExcludeApi(reason = "Custom mailers are Java-only callbacks; fresh CLI builders have none to clear")
+	T clearCustomMailer();
 
 	/**
 	 * Uses another configured Mailer when this destination cannot establish a usable SMTP connection and the policy permits failover.

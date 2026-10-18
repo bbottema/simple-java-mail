@@ -33,8 +33,6 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 @Slf4j
 public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerRegularBuilderImpl> implements MailerRegularBuilder<MailerRegularBuilderImpl> {
 
-	private static final boolean DEFAULT_OPPORTUNISTIC_TLS = true;
-	
 	/**
 	 * @see MailerRegularBuilder#withSMTPServerHost(String)
 	 */
@@ -114,8 +112,16 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		return this;
 	}
 
-	boolean isOpportunisticTLS() {
+	/** @see MailerRegularBuilder#isOpportunisticTLS() */
+	@Override
+	public boolean isOpportunisticTLS() {
 		return opportunisticTLS;
+	}
+
+	/** @see MailerRegularBuilder#resetOpportunisticTLS() */
+	@Override
+	public MailerRegularBuilderImpl resetOpportunisticTLS() {
+		return withOpportunisticTLS(DEFAULT_OPPORTUNISTIC_TLS);
 	}
 	
 	/**
@@ -132,7 +138,8 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see MailerRegularBuilder#withSMTPServer(String, Integer, String, String)
 	 */
 	@Override
-	public MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port, @Nullable final String username, @Nullable final String password) {
+	public MailerRegularBuilderImpl withSMTPServer(@Nullable final String host, @Nullable final Integer port,
+			@Nullable final String username, @Nullable final String password) {
 		return withSMTPServerHost(host)
 				.withSMTPServerPort(port)
 				.withSMTPServerUsername(emptyAsNull(username))
@@ -167,6 +174,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		customizedSessionSetting(SMTP_HOST, host);
 		return this;
 	}
+
+	/** @see MailerRegularBuilder#clearSMTPServerHost() */
+	@Override
+	public MailerRegularBuilderImpl clearSMTPServerHost() {
+		return withSMTPServerHost(null);
+	}
 	
 	/**
 	 * @see MailerRegularBuilder#withSMTPServerPort(Integer)
@@ -176,6 +189,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		this.port = port;
 		customizedSessionSetting(SMTP_PORT, port);
 		return this;
+	}
+
+	/** @see MailerRegularBuilder#clearSMTPServerPort() */
+	@Override
+	public MailerRegularBuilderImpl clearSMTPServerPort() {
+		return withSMTPServerPort(null);
 	}
 	
 	/**
@@ -188,6 +207,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		return this;
 	}
 
+	/** @see MailerRegularBuilder#clearSMTPServerUsername() */
+	@Override
+	public MailerRegularBuilderImpl clearSMTPServerUsername() {
+		return withSMTPServerUsername(null);
+	}
+
 	/**
 	 * @see MailerRegularBuilder#withSMTPServerPassword(String)
 	 */
@@ -195,6 +220,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public MailerRegularBuilderImpl withSMTPServerPassword(@Nullable final String password) {
 		this.password = password;
 		return this;
+	}
+
+	/** @see MailerRegularBuilder#clearSMTPServerPassword() */
+	@Override
+	public MailerRegularBuilderImpl clearSMTPServerPassword() {
+		return withSMTPServerPassword(null);
 	}
 
 	/**
