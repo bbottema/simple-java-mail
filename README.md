@@ -77,6 +77,10 @@ Mailer mailer = mail.mailerBuilder().withSMTPServer(
 mailer.sync().sendMail(email);
 ```
 
+Create an Email with `buildEmail()` rather than its internal constructor. To edit a built message, use
+`mail.emailBuilder().copying(email)` and build a replacement. Copies retain delivery-recipient overrides, so a message redirected to a test inbox
+keeps that routing when you change its subject or content.
+
 The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Choose `mailer.sync().sendMail(email)` to finish on the caller thread or `mailer.async().sendMail(email)` to schedule SMTP work. Both produce a submission receipt, which you can ignore when only completion matters; asynchronous sends expose it through `MailSend.getCompletion()`. Sync failures throw directly, while async operational failures complete exceptionally. Destination selection, Email templates and validation run during executor execution for async sends. The two cached views share the same Mailer, pool and lifecycle. There is no Mailer-wide async default in 10.0.0; see the [execution-view migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#explicit-send-mode).
 
 For an approved alternative SMTP route, configure `.withFailoverMailer(alternative, FailoverPolicy.builder().build())`. [Connection failover](https://www.simplejavamail.org/smtp-connection-failover.html) works for sync/async sends with or without pooling and returns to the primary after recovery. Failover never replays a message after provider invocation. A separately configured [retry policy](https://www.simplejavamail.org/mail-send-retries.html) may retry a safely refused submission on the selected destination, without reopening failover. The selected Mailer owns ordinary Email templates and SMTP settings; mandatory message locks remain binding along the route. Busy pools still wait normally rather than triggering failover.

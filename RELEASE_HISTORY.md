@@ -39,6 +39,12 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   schedules and OpenPGP algorithms. Defaults remain centralized; clearing a retry schedule preserves its resource limits. Public value getters
   are explicitly included in generated API documentation.
 
+- Completed stored-choice inspection for DSN, PKCS12 and OpenPGP configuration builders, with detached mutable data and independent optional-choice
+  clears. Incomplete builders remain inspectable without invoking validation or loading security modules.
+
+- Restricted Email construction to the documented builders and removed the obsolete defaults/overrides marker interface. Direct constructor
+  callers must migrate to `buildEmail()` and recompile; the Email serialization format is retained. See the migration notes.
+
 - [#705](https://github.com/bbottema/simple-java-mail/issues/705): provide compact named single-recipient construction through `mail.recipientBuilder().to(name, address)`, `.cc(...)` and `.bcc(...)`, retaining the dedicated builders for richer recipient configuration.
 
 - Added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining existing static methods and factory snapshots. DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
@@ -66,6 +72,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.
+- Recipient interpretation retains comment-only or whitespace-only source strings for normal sending validation instead of throwing an array-index error.
 - Email copying preserves address-free receipt requests and explicit disabling; governance retains disabling through subsequent template application.
 - Attachment convenience readers close the streams they open, including on failure. DKIM builder rendering no longer exposes private-key bytes.
 - Pool sizes and durations are validated consistently across Mailer, cluster and standalone configuration, after applicable inheritance for size pairs.
