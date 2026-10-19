@@ -126,49 +126,33 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * <p>Configuration for S/MIME signing, including the certificate chain and private key information,
-         * along with the signature algorithm. The choice of signature algorithm affects the security
-         * and compatibility of the S/MIME signature.</p>
+         * Chooses the algorithm used to sign the message, for example {@code SHA256withRSA}. Use a name supported by the S/MIME module.
+         * Null leaves the choice to that module. Calling again replaces the preference; {@link #clearSignatureAlgorithm()}
+         * removes it without replacing the PKCS12 store or signing key.
          *
-         * <p><strong>Default Algorithm:</strong> SHA256withRSA. This is widely supported and recommended
-         * for most use cases due to its balance of security and performance.</p>
-         *
-         * <p><strong>Allowed Signature Algorithms:</strong> This following list focuses on the most commonly used
-         * and secure algorithms. Algorithms like MD5 and SHA1 are not included due to their known security
-         * vulnerabilities and are not recommended for new applications. For a comprehensive and up-to-date
-         * list, including less common algorithms, refer to the Bouncy Castle's {@code DefaultSignatureAlgorithmIdentifierFinder}
-         * class to find an exhaustive list.</p>
-         *
-         * <ul>
-         *     <li>SHA256withRSA (Recommended)</li>
-         *     <li>SHA384withRSA</li>
-         *     <li>SHA512withRSA</li>
-         *     <li>SHA256withECDSA</li>
-         *     <li>SHA384withECDSA</li>
-         *     <li>SHA512withECDSA</li>
-         *     <li>SHA256withDSA</li>
-         *     <li>SHA384withDSA</li>
-         *     <li>SHA512withDSA</li>
-         *     <li>SHA256withRSAandMGF1</li>
-         *     <li>SHA384withRSAandMGF1</li>
-         *     <li>SHA512withRSAandMGF1</li>
-         *     <li>SHA3-256withRSA</li>
-         *     <li>SHA3-384withRSA</li>
-         *     <li>SHA3-512withRSA</li>
-         *     <li>SHA3-256withECDSA</li>
-         *     <li>SHA3-384withECDSA</li>
-         *     <li>SHA3-512withECDSA</li>
-         *     <li>SHA256withSM2</li>
-         *     <li>SHA3-256withSM2</li>
-         *     <li>SHA3-384withSM2</li>
-         *     <li>SHA3-512withSM2</li>
-         * </ul>
-         *
+         * @param signatureAlgorithm S/MIME signature algorithm name, or null for the module's default.
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-         * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
          */
         public SmimeSigningConfigBuilder signatureAlgorithm(@Nullable String signatureAlgorithm) {
             this.signatureAlgorithm = signatureAlgorithm;
+            return this;
+        }
+
+        /** @see #pkcs12Config(Pkcs12Config) */
+        @Nullable
+        public Pkcs12Config getPkcs12Config() {
+            return pkcs12Config;
+        }
+
+        /** @see #signatureAlgorithm(String) */
+        @Nullable
+        public String getSignatureAlgorithm() {
+            return signatureAlgorithm;
+        }
+
+        /** @see #signatureAlgorithm(String) */
+        public SmimeSigningConfigBuilder clearSignatureAlgorithm() {
+            signatureAlgorithm = null;
             return this;
         }
 

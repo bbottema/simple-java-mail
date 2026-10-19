@@ -19,6 +19,10 @@ Return an immutable, deterministically grouped report from `SimpleJavaMailConfig
 
 Declare type, diagnostic group and sensitivity in the central `PropertySchema`. Known sensitive properties are redacted; extra-property names are normalized and checked against sensitive markers. The schema rejects missing diagnostic metadata for a declared property. Composite sources may identify the underlying winner per property; Spring skips its synthetic aggregate when locating the diagnostic source without taking over Spring's value resolution.
 
+Configuration rendering must protect known secrets before and after construction. Builders must not expose private-key bytes or passwords
+through automatic rendering merely because the completed value already excludes them. Explicit programmatic accessors remain separate;
+redaction is not a substitute for protecting configuration objects or serialized key material.
+
 ## Alternatives and consequences
 
 Re-reading the environment when logging could describe a different state from the snapshot used to build a Mailer. Capturing provenance during resolution keeps those facts together. This causal explanation is derived from the resolver design and the issue's immutability requirement.

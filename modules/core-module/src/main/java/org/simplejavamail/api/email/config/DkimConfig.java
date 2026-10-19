@@ -144,7 +144,7 @@ public class DkimConfig implements Serializable {
         return new DkimConfigBuilder();
     }
 
-    @ToString
+    @ToString(exclude = "dkimPrivateKeyData")
     public static class DkimConfigBuilder {
         private byte[] dkimPrivateKeyData;
         private String dkimSigningDomain;
@@ -237,17 +237,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Controls the inclusion of the l= parameter (body length tag) in the DKIM signature. The l= parameter specifies the exact length of the body
-         * content that was signed.
-         * <p>
-         * <strong>Default Value:</strong> null (indicating that the default behavior is determined by the library, which typically excludes the l= parameter).
-         * </p>
-         * <p>
-         * <strong>Warning:</strong> Exercise caution when enabling this parameter. Its inclusion can enhance robustness in scenarios where emails undergo
-         * legitimate alterations after sending (such as the addition of footers by mailing lists). However, it also poses security risks by allowing
-         * attackers to append malicious content to the message without compromising the integrity of the DKIM signature. It is advisable to disable
-         * this option (set to false) unless a specific scenario necessitates its use.
-         * </p>
+         * Chooses whether the DKIM signature includes a body-length tag. Enabling it leaves content appended after that length unsigned,
+         * so use it only for a known relay that appends content. False explicitly disables the tag; null leaves the module's choice in place.
+         * Calling again replaces the choice. {@link #clearUseLengthParam()} restores absence without changing the key or domain.
+         *
+         * @param useLengthParam Whether to include the length tag, or null to use the module's default.
          */
         public DkimConfigBuilder useLengthParam(@Nullable Boolean useLengthParam) {
             this.useLengthParam = useLengthParam;
@@ -255,13 +249,14 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Excludes selected headers from the DKIM library's default signing list for a known downstream relay that rewrites them.
-         * {@code From} is mandatory in DKIM and cannot be excluded.
+         * Leaves selected headers out of the DKIM module's default signing list, for example when a known relay rewrites them.
+         * {@code From} is mandatory and cannot be excluded. Calling again replaces the exclusions rather than adding to them.
+         * Null or {@link #clearExcludedHeadersFromDkimDefaultSigningList()} restores the module's default list without replacing key material.
          *
-         * @throws IllegalArgumentException when {@code From} is excluded, case-insensitively
+         * @param excludedHeadersFromDkimDefaultSigningList Headers to exclude, or null for no supplied exclusion choice.
+         * @throws IllegalArgumentException When From is excluded, ignoring case and surrounding whitespace.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
-        */
+         */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
             validateExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
             this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
@@ -282,18 +277,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Specifies the canonicalization algorithm for header fields in the DKIM signature. Canonicalization is the process of standardizing data
-         * into a consistent format before signing. This affects the processing and signing of email headers.
-         * <p>
-         * <strong>Available Values:</strong><br>
-         * - <strong>SIMPLE:</strong> Applies minimal canonicalization, aiming to preserve the original form of headers as closely as possible.<br> -
-         * <strong>RELAXED:</strong> Implements a more forgiving canonicalization, accommodating minor alterations in whitespace and case sensitivity.
-         * </p>
-         * <p><strong>Default Value:</strong> RELAXED</p>
-         * <p>
-         * <strong>NOTE:</strong> The choice between SIMPLE and RELAXED can impact the success rate of DKIM verification across different mail servers.
-         * The RELAXED option tends to normalize minor discrepancies in headers, offering broader compatibility.
-         * </p>
+         * Chooses how the DKIM module normalizes headers before signing. SIMPLE preserves their form more closely; RELAXED tolerates
+         * certain whitespace and case changes. Null leaves the choice to the module. Calling again replaces the preference;
+         * {@link #clearHeaderCanonicalization()} removes it without changing body normalization or key material.
+         *
+         * @param headerCanonicalization Header-normalization preference, or null for the module's default.
          */
         public DkimConfigBuilder headerCanonicalization(@Nullable Canonicalization headerCanonicalization) {
             this.headerCanonicalization = headerCanonicalization;
@@ -301,8 +289,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Defines the canonicalization algorithm for the email body, mirroring the functionality described for
-         * {@link #headerCanonicalization(Canonicalization)}. It dictates the standardization process for the body content before signing.
+         * Chooses how the DKIM module normalizes the message body before signing. Null leaves the choice to the module.
+         * Calling again replaces this preference; {@link #clearBodyCanonicalization()} removes it without changing header normalization or the key.
+         *
+         * @param bodyCanonicalization Body-normalization preference, or null for the module's default.
+         * @see #headerCanonicalization(Canonicalization)
          */
         public DkimConfigBuilder bodyCanonicalization(@Nullable Canonicalization bodyCanonicalization) {
             this.bodyCanonicalization = bodyCanonicalization;
@@ -310,22 +301,100 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Selects the cryptographic algorithm for generating the DKIM signature. This choice influences the security and interoperability of your
-         * DKIM signature.
-         * <p>
-         * <strong>Default Value:</strong> SHA256withRSA, which balances robust security with good performance and is broadly supported across platforms.
-         * </p>
-         * <p>
-         * <strong>Supported Signature Algorithms:</strong><br>
-         * - <strong>SHA256_WITH_RSA</strong> (Recommended)<br> - <strong>SHA1_WITH_RSA</strong><br> - <strong>SHA256_WITH_ED25519</strong><br>
-         * </p>
-         * <p>
-         * <strong>NOTE:</strong> The rsa-sha256 algorithm (or another algorithm offering similar security) is strongly recommended. Weaker algorithms, such as
-         * rsa-sha1, are no longer deemed secure against contemporary cryptographic threats.
-         * </p>
+         * Chooses the signing algorithm understood by the DKIM module, for example {@code SHA256_WITH_RSA}.
+         * Null leaves the choice to that module. Calling again replaces the preference; {@link #clearSigningAlgorithm()}
+         * removes it without replacing the key, domain or selector.
+         *
+         * @param signingAlgorithm DKIM module algorithm name, or null for its default.
          */
         public DkimConfigBuilder signingAlgorithm(@Nullable String signingAlgorithm) {
             this.signingAlgorithm = signingAlgorithm;
+            return this;
+        }
+
+        /**
+         * Returns a copy of the supplied private-key bytes, or null when none have been supplied.
+         *
+         * @see #dkimPrivateKeyData(byte[])
+         */
+        @Nullable
+        public byte[] getDkimPrivateKeyData() {
+            return dkimPrivateKeyData == null ? null : dkimPrivateKeyData.clone();
+        }
+
+        /** @see #dkimSigningDomain(String) */
+        @Nullable
+        public String getDkimSigningDomain() {
+            return dkimSigningDomain;
+        }
+
+        /** @see #dkimSelector(String) */
+        @Nullable
+        public String getDkimSelector() {
+            return dkimSelector;
+        }
+
+        /** @see #useLengthParam(Boolean) */
+        @Nullable
+        public Boolean getUseLengthParam() {
+            return useLengthParam;
+        }
+
+        /**
+         * Returns a detached set of supplied exclusions, or null when no exclusion choice is configured.
+         *
+         * @see #excludedHeadersFromDkimDefaultSigningList(Set)
+         */
+        @Nullable
+        public Set<String> getExcludedHeadersFromDkimDefaultSigningList() {
+            return excludedHeadersFromDkimDefaultSigningList == null ? null : new HashSet<>(excludedHeadersFromDkimDefaultSigningList);
+        }
+
+        /** @see #headerCanonicalization(Canonicalization) */
+        @Nullable
+        public Canonicalization getHeaderCanonicalization() {
+            return headerCanonicalization;
+        }
+
+        /** @see #bodyCanonicalization(Canonicalization) */
+        @Nullable
+        public Canonicalization getBodyCanonicalization() {
+            return bodyCanonicalization;
+        }
+
+        /** @see #signingAlgorithm(String) */
+        @Nullable
+        public String getSigningAlgorithm() {
+            return signingAlgorithm;
+        }
+
+        /** @see #useLengthParam(Boolean) */
+        public DkimConfigBuilder clearUseLengthParam() {
+            useLengthParam = null;
+            return this;
+        }
+
+        /** @see #excludedHeadersFromDkimDefaultSigningList(Set) */
+        public DkimConfigBuilder clearExcludedHeadersFromDkimDefaultSigningList() {
+            excludedHeadersFromDkimDefaultSigningList = null;
+            return this;
+        }
+
+        /** @see #headerCanonicalization(Canonicalization) */
+        public DkimConfigBuilder clearHeaderCanonicalization() {
+            headerCanonicalization = null;
+            return this;
+        }
+
+        /** @see #bodyCanonicalization(Canonicalization) */
+        public DkimConfigBuilder clearBodyCanonicalization() {
+            bodyCanonicalization = null;
+            return this;
+        }
+
+        /** @see #signingAlgorithm(String) */
+        public DkimConfigBuilder clearSigningAlgorithm() {
+            signingAlgorithm = null;
             return this;
         }
 
