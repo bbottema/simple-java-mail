@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CliBuilderCompanionsTest {
 
     private static final List<String> MAILER_OPTIONS = List.of("clearSMTPServerHost", "clearSMTPServerPort", "clearSMTPServerUsername",
-            "clearSMTPServerPassword", "resetOpportunisticTLS", "resetLegacySmtpContentSupport");
+            "clearSMTPServerPassword", "clearCustomSSLFactoryClass", "resetOpportunisticTLS", "resetLegacySmtpContentSupport");
 
     @Test
     void newScalarCompanionsHaveUniqueZeroArgumentOptionsAndReadableHelp() throws Exception {
@@ -48,6 +48,8 @@ class CliBuilderCompanionsTest {
             assertThat(BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(MailerGenericBuilder.class.getMethod(method))
                     .isCompatible()).as(method).isFalse();
         }
+        assertThat(BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(
+                MailerRegularBuilder.class.getMethod("clearCustomSSLFactoryInstance")).isCompatible()).isFalse();
         for (Class<?> builder : List.of(EmailPopulatingBuilder.class, ExactEmailBuilder.class)) {
             for (String method : List.of("clearDeliveryStatusNotificationNotifyOptions", "clearDeliveryStatusNotificationReturnOption", "clearEnvelopeId")) {
                 assertThat(BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(builder.getMethod(method)).isCompatible())
@@ -74,6 +76,7 @@ class CliBuilderCompanionsTest {
             }
             assertThat(help.stdout()).doesNotContain("--mailer:clearCustomMailer", "--mailer:clearOAuth2AccessTokenProvider",
                     "--mailer:resetDebugLogging", "--mailer:clearDebugPrinter", "--mailer:clearDebugOutput", "--mailer:getDebugOutput",
+                    "--mailer:clearCustomSSLFactoryInstance", "--mailer:getCustomSSLFactoryInstance",
                     "--email:clearEnvelopeRecipients", "--email:clearEnvelopeSender", "--email:clearEnvelopeId");
         }
     }
@@ -89,18 +92,21 @@ class CliBuilderCompanionsTest {
         });
         final Map<String, Object> properties = Map.of("simplejavamail.smtp.host", "relay.example.org", "simplejavamail.smtp.port", 2525,
                 "simplejavamail.smtp.username", "user", "simplejavamail.smtp.password", "secret",
-                "simplejavamail.opportunistic.tls", false, "simplejavamail.smtp.legacycontentsupport", true);
+                "simplejavamail.opportunistic.tls", false, "simplejavamail.smtp.legacycontentsupport", true,
+                "simplejavamail.custom.sslfactory.class", "javax.net.ssl.SSLSocketFactory");
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().withMap(properties).load(), provider)) {
             final CliExecutionResult result = execute(environment, "send", "--email:startingBlank", "--email:from", "sender@example.test",
                     "--email:to", "receiver@example.test", "--mailer:withTransportModeLoggingOnly", "true",
                     "--mailer:clearSMTPServerHost", "--mailer:clearSMTPServerPort", "--mailer:clearSMTPServerUsername",
-                    "--mailer:clearSMTPServerPassword", "--mailer:resetOpportunisticTLS", "--mailer:resetLegacySmtpContentSupport");
+                    "--mailer:clearSMTPServerPassword", "--mailer:clearCustomSSLFactoryClass", "--mailer:resetOpportunisticTLS",
+                    "--mailer:resetLegacySmtpContentSupport");
             assertThat(result.exitCode()).as(result.stderr()).isZero();
             final Mailer mailer = selected.get();
             assertThat(mailer).isNotNull();
             assertThat(mailer.getServerConfig()).isNull();
             assertThat(mailer.getSession().getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
             assertThat(mailer.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isFalse();
+            assertThat(mailer.getSession().getProperty("mail.smtp.ssl.socketFactory.class")).isNull();
         }
     }
 
