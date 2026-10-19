@@ -2,6 +2,8 @@ package org.simplejavamail.email.internal;
 
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import jakarta.activation.DataSource;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -14,7 +16,9 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -22,6 +26,10 @@ import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
@@ -60,6 +68,33 @@ public class EmailStartingBuilderImplTest {
 		assertThat(copyingEmailBuilder.getHeaders()).isEmpty(); // when copying S/MIME generated message id should be ignored
 		copyingEmailBuilder.withHeaders(emailParsedFromMsg.getHeaders()); // but for the equals check, manually add them
 		EmailAssert.assertThat(copyingEmailBuilder.buildEmail()).isEqualTo(emailParsedFromMsg);
+	}
+
+	@Test
+	public void copyingMergedSmimeResourcesPreservesOccurrencesWithoutReadingContent() throws Exception {
+		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final DataSource source = mock(DataSource.class);
+		when(source.getInputStream()).thenThrow(new IOException("Borrowed content must not be consumed while copying"));
+		final AttachmentResource resource = new AttachmentResource("shared.txt", source, null, null);
+		final InternalEmailPopulatingBuilder signed = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
+		signed.withAttachments(List.of(resource)).withEmbeddedImages(List.of(resource)).withPlainText("signed body");
+		signed.withDecryptedAttachments(List.of(resource));
+		final InternalEmailPopulatingBuilder outer = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
+		outer.withAttachments(List.of(resource, resource)).withEmbeddedImages(List.of(resource, resource));
+		outer.withDecryptedAttachments(List.of(resource, resource));
+		outer.withSmimeSignedEmail(signed.buildEmail());
+		final Email original = outer.buildEmail();
+		Email copy = original;
+
+		for (int i = 0; i < 3; i++) {
+			copy = mail.emailBuilder().copying(copy).buildEmail();
+			assertThat(copy.getAttachments()).containsExactly(resource, resource, resource);
+			assertThat(copy.getEmbeddedImages()).containsExactly(resource, resource, resource);
+			assertThat(copy.getDecryptedAttachments()).containsExactly(resource, resource, resource);
+			assertThat(copy.getPlainText()).isEqualTo("signed body");
+		}
+		assertThat(original.getAttachments()).containsExactly(resource, resource, resource);
+		verify(source, never()).getInputStream();
 	}
 
 	@Test
