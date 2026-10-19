@@ -923,7 +923,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable @Cli.Optional Object value);
 
 	/**
-	 * Adds a header which will be included in the email. The value is stored as a <code>String</code>. Can be directed to replace the headers collection of values.
+	 * Adds a custom header to the email. Names ignore capitalization, so {@code X-Route} and {@code x-route} refer to the same header.
+	 * Pass {@code true} for {@code replaceHeader} when the new value should replace all earlier values for that header; otherwise it is added
+	 * to the existing collection if it is not already present. The value is stored as a {@code String}.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
 	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.

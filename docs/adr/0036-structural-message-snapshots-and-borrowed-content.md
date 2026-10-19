@@ -22,6 +22,9 @@ sets and both the header map and its value collections. Preserve ordering, dupli
 unmodifiable owned collections; builder collection getters return detached copies that callers may modify without changing the builder.
 Existing convenience getters that already return detached lists need not become unmodifiable.
 
+Recipient occurrences also matter when comparing Emails: equality must account for repeated entries and remain symmetric. Preserve the
+established order-insensitive recipient comparison while distinguishing different occurrence counts; structural copying does not redefine that order rule.
+
 Copying an Email preserves its delivery-recipient override independently from its visible recipients. Keep ordered occurrences and per-recipient
 metadata, so a copy used for testing remains directed to the configured test inbox. Copying structure does not consume borrowed attachment content.
 

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -138,22 +139,15 @@ public final class EqualsHelper {
             log.debug("Email unqual for [{}] recipients: {} vs {}", recipientType, recipients, otherRecipients);
             return false;
         }
+        // Preserve order-insensitive equality, but let each recipient occurrence satisfy only one counterpart.
+        final List<Recipient> unmatchedRecipients = new ArrayList<>(recipients);
         for (final Recipient otherRecipient : otherRecipients) {
-            if (!containsRecipient(recipients, otherRecipient)) {
+            if (!unmatchedRecipients.remove(otherRecipient)) {
                 log.debug("Email unqual for recipients: {} vs {}", recipients, otherRecipients);
                 return false;
             }
         }
         return true;
-    }
-
-    private static boolean containsRecipient(final List<Recipient> recipients, @Nullable final Recipient otherRecipient) {
-        for (final Recipient recipient : recipients) {
-            if (Objects.equals(recipient, otherRecipient)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static ContentTransferEncoding effectiveContentTransferEncoding(final Email email) {
