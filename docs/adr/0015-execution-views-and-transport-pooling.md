@@ -49,10 +49,15 @@ exclusive Session reuse, pooling or shutdown. A Session may be reused by another
 
 ### Validate settings before creating pools
 
-All application entry points use the same pool constraints. Core size is non-negative, maximum size is positive, claim timeout and idle expiry
+The batch module owns the pool constraints for both Mailer registration and the standalone pool API. Core size is non-negative, maximum size is positive, claim timeout and idle expiry
 are non-negative, and optional creation-age expiry is positive. Zero retains its established meaning for each setting. Validate the effective
 core/maximum pair after cluster overrides resolve; an intermediate setter order is not a completed configuration. Invalid settings must be
 reported in Simple Java Mail terms before constructing pool resources, rather than accepted or diagnosed differently by an upstream pool.
+
+Core configuration objects and the main builder only collect these choices. Property loading parses their numeric types, not pool semantics.
+The existing `BatchModule.registerToCluster` boundary validates effective settings before engine initialization; it is not called when batch support
+is absent. Unselected cluster settings and values replaced by selected-cluster overrides are not effective pool configuration and are not validated.
+This preserves the optional-module ownership recorded in [ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation).
 
 ## Recorded reasoning and evolution
 

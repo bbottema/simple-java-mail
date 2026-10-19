@@ -98,6 +98,11 @@ or keep main-only machinery in core merely to satisfy a constructor signature.
 
 ### Classify the consumer before exposing construction
 
+Putting a class in an internal package does not correct the wrong module owner. Core configuration values may enforce structural invariants
+and defensive copying, but must not interpret optional-module behavior. Move feature validation with its implementation and invoke it through
+the core module contract when needed. Several call sites needing the same rule is not justification for core owning that rule; see
+[ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation).
+
 | Role | Supported external use | Placement and construction |
 | --- | --- | --- |
 | Application configuration | Build Emails, Mailers and explicitly supported policy/configuration values. | Public contracts in core; concrete main-runtime builders in `simple-java-mail` internal packages. |

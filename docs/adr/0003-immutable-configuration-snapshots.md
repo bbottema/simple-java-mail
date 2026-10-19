@@ -92,8 +92,10 @@ Spring's normal default-Mailer lifecycle and CLI cleanup follow the same owner. 
 and future verification; this extension is not evidence that those paths are already implemented.
 
 Application builder inspection reads stored choices, including absence, without constructing a throwaway configuration to resolve defaults.
-Clearing an optional provider-resolved choice restores absence; it does not introduce a new hard-coded algorithm. Construction validates the
-supplied configuration and any inherited combinations before creating resources. Setting order remains independent of final validation.
+Clearing an optional provider-resolved choice restores absence; it does not introduce a new hard-coded algorithm. Configuration construction
+checks representation invariants. The owning runtime validates feature semantics and effective inherited combinations when that feature is used,
+before creating its resources. Setting order remains independent of final validation. An optional module's rules must not run just because its
+configuration is captured; [ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation) defines that boundary.
 
 ## Alternatives and consequences
 

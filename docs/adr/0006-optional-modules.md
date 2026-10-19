@@ -31,6 +31,21 @@ module contract. If that requested module is missing, let the focused module-loa
 load the runtime module themselves or supply its internal bridge.
 Collecting configuration does not by itself require constructing a module runtime.
 
+### Feature semantics stay with the feature implementation
+
+Shared configuration is not shared implementation ownership. Core may check representation invariants, copy input data and parse property
+types, but optional-feature rules belong in the feature module. Pool size relationships, expiration semantics, permitted signing-header
+exclusions and cryptographic compatibility are not core configuration rules merely because several entry points need them.
+
+Invoke those checks through the existing internal module contract when the feature is used, before that feature creates resources or processes
+content. For pooling this is batch registration after effective cluster settings are resolved; for DKIM it is the signing boundary.
+Absent batch support continues to mean direct sending, so unused pool settings cannot prevent construction. An unused cluster override
+does not invalidate a different cluster. Malformed property types still fail during loading, with their source information.
+
+Do not move a validator into core to avoid a dependency cycle. Keep the implementation in its feature module and put only a necessary
+intermediary contract in core. Reuse an existing contract before adding another. Core-owned JDK conversions, such as reading an X.509
+certificate, must not imply a dependency on a particular optional cryptographic provider.
+
 ### Choose the input boundary for the caller (accepted 2026-10-16)
 
 Prefer an API that makes the required input clear and catches mistakes at compile time. A single-looking builder surface is not worth hiding
