@@ -84,6 +84,21 @@ class MailerRehearsalTest {
 	}
 
 	@Test
+	void rehearsingACopiedEmailUsesItsDeliveryOverrideWithoutChangingVisibleRecipients() throws Exception {
+		final Email original = simpleJavaMail.emailBuilder().copying(validEmail())
+				.withOverrideReceivers(recipient("test-inbox@example.com"))
+				.buildEmail();
+		final Email copied = simpleJavaMail.emailBuilder().copying(original).withSubject("Copied draft").buildEmail();
+
+		try (Mailer mailer = mailerBuilder().buildMailer()) {
+			final MailRehearsal rehearsal = mailer.rehearse(copied);
+			assertThat(rehearsal.getEnvelopeRecipients()).containsExactly("test-inbox@example.com");
+			assertThat(EmailConverter.emlToMimeMessage(new ByteArrayInputStream(rehearsal.getEmlBytes())).getAllRecipients())
+					.extracting(Object::toString).containsExactly("recipient@example.com");
+		}
+	}
+
+	@Test
 	void rehearsalResultDefensivelyOwnsItsBytesAndRecipientList() throws Exception {
 		final MailRehearsal rehearsal;
 		try (Mailer mailer = mailerBuilder().buildMailer()) {

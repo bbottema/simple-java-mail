@@ -5,6 +5,8 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
@@ -18,6 +20,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,15 +32,64 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static jakarta.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.CC;
+import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.DELAY;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.NEVER;
 
 class MessageSnapshotContractTest {
 
 	private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 	private final Recipient recipient = mail.recipientBuilder().to("Recipient", "recipient@example.org");
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void copyingRetainsDeliveryOverridesAndRecipientMetadata(final boolean copyBuilder) {
+		final X509Certificate certificate = mock(X509Certificate.class);
+		final Recipient first = new Recipient("Test inbox", "test@example.org", BCC, certificate, List.of(FAILURE, DELAY));
+		final Recipient second = new Recipient("Other test inbox", "other@example.org", CC, null, List.of(NEVER));
+		final List<Recipient> deliveryRecipients = List.of(first, second, first);
+		final EmailPopulatingBuilder source = mail.emailBuilder().startingBlank()
+				.withRecipients(recipient)
+				.withOverrideReceivers(deliveryRecipients)
+				.ignoringDefaults()
+				.dontApplyOverrideValueFor(EmailProperty.HEADERS);
+		final Email original = source.buildEmail();
+		final EmailPopulatingBuilder copy = copyBuilder ? mail.emailBuilder().copying(source) : mail.emailBuilder().copying(original);
+		final Email copied = copy.withSubject("Unrelated edit").buildEmail();
+
+		assertThat(copied.getOverrideReceivers()).containsExactly(first, second, first);
+		assertThat(copied.getOverrideReceivers().get(0).getSmimeCertificate()).isSameAs(certificate);
+		assertThat(copied.getOverrideReceivers().get(0).getDeliveryStatusNotificationNotifyOptions()).containsExactly(FAILURE, DELAY);
+		assertThat(copied.getOverrideReceivers().get(1).getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER);
+		assertThat(copied.getRecipients()).containsExactly(recipient);
+		assertThat(copied.isIgnoreDefaults()).isTrue();
+		assertThat(copied.getPropertiesNotToApplyOverrideValueFor()).containsExactly(EmailProperty.HEADERS);
+
+		copy.clearOverrideReceivers().withOverrideReceivers(recipient);
+		source.clearOverrideReceivers();
+		assertThat(copied.getOverrideReceivers()).containsExactlyElementsOf(deliveryRecipients);
+		assertThat(original.getOverrideReceivers()).containsExactlyElementsOf(deliveryRecipients);
+	}
+
+	@Test
+	void copyingADeserializedEmailRetainsItsDeliveryOverride() throws Exception {
+		final Recipient redirect = new Recipient("Test inbox", "test@example.org", TO, null, List.of(FAILURE));
+		final Email restored = roundTrip(mail.emailBuilder().startingBlank()
+				.withRecipients(recipient).withOverrideReceivers(redirect, redirect).buildEmail());
+
+		final Email copied = mail.emailBuilder().copying(restored).withSubject("After deserialization").buildEmail();
+
+		assertThat(copied.getOverrideReceivers()).containsExactly(redirect, redirect);
+		assertThat(copied.getRecipients()).containsExactly(recipient);
+	}
 
 	@Test
 	void buildingDetachesAllMessageCollectionsFromLaterBuilderChanges() {
@@ -158,8 +210,11 @@ class MessageSnapshotContractTest {
 		forwarded.setSubject("Forwarded");
 		forwarded.setText("body");
 		final Email email = mail.emailBuilder().forwarding(forwarded).withAttachment("lazy", lazySource).buildEmail();
+		final Email copied = mail.emailBuilder().copying(email).withSubject("Copied without reading content").buildEmail();
 		assertThat(email.getAttachments().get(0).getDataSource()).isSameAs(lazySource);
 		assertThat(email.getEmailToForward()).isSameAs(forwarded);
+		assertThat(copied.getAttachments().get(0).getDataSource()).isSameAs(lazySource);
+		assertThat(copied.getEmailToForward()).isSameAs(forwarded);
 		assertThat(reads).hasValue(0);
 		borrowedBytes[0] = 2;
 		forwarded.setSubject("Changed by owner");

@@ -77,6 +77,10 @@ Copying preserves absence, explicit disabling and deferred resolution independen
 an enabled flag with no address means resolve the address later, not an absent request. An explicit false remains false through copying
 and governance so a subsequent defaults pass cannot turn the request back on. An explicit address is copied without resolving another one.
 
+The intended delivery-recipient override is part of those choices. A copy retains it independently from visible To/Cc/Bcc headers, including
+ordered duplicate occurrences and recipient-specific metadata. Editing another field must not silently restore delivery to the visible recipients.
+Clearing that override remains an explicit builder operation; normal governance and suppression rules still apply when preparing the copy.
+
 ## Recipient and exact-EML boundaries
 
 Recipient-group defaults are construction-time conveniences. They resolve into the group's produced Recipient objects; governance does not maintain a live group hierarchy. Email-level fallback for a recipient-capable field remains useful, but it is not equivalent to rewriting every recipient field.

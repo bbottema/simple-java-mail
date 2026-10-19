@@ -1729,7 +1729,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
+	 * @see EmailPopulatingBuilder#withOverrideReceivers(Recipient...)
 	 */
 	@Override
 	public EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients) {

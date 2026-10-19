@@ -1,7 +1,10 @@
 package org.simplejavamail.mailer;
 
+import jakarta.mail.Message.RecipientType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -29,6 +32,39 @@ class MessageSnapshotSmtpTest {
 	final SmtpServerExtension smtpServer = new SmtpServerExtension(0, null, null, false);
 
 	private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void copyingKeepsTestDeliverySeparateFromVisibleRecipients(final boolean asynchronous) throws Exception {
+		final Email original = mail.emailBuilder().startingBlank()
+				.from("sender@example.org")
+				.withRecipients(mail.recipientBuilder().to("Visible To", "to@example.org"))
+				.withRecipients(mail.recipientBuilder().cc("Visible Cc", "cc@example.org"))
+				.withRecipients(mail.recipientBuilder().bcc("Hidden Bcc", "bcc@example.org"))
+				.withOverrideReceivers(mail.recipientBuilder().to("Test inbox", "test-inbox@example.org"))
+				.withSubject("Original subject")
+				.withPlainText("Synthetic review data")
+				.buildEmail();
+		final Email copied = mail.emailBuilder().copying(original).withSubject("Copied subject").buildEmail();
+
+		try (Mailer mailer = smtpMailer()) {
+			final MailSubmissionReceipt receipt = asynchronous
+					? mailer.async().sendMail(copied).getCompletion().get(20, TimeUnit.SECONDS)
+					: mailer.sync().sendMail(copied);
+			assertThat(receipt.getAcceptedRecipients()).containsExactly("test-inbox@example.org");
+		}
+
+		assertThat(smtpServer.getMessages()).singleElement().satisfies(received -> {
+			assertThat(received.getEnvelopeReceiver()).isEqualTo("test-inbox@example.org");
+			assertThat(received.getMimeMessage().getRecipients(RecipientType.TO)).extracting(Object::toString)
+					.containsExactly("Visible To <to@example.org>");
+			assertThat(received.getMimeMessage().getRecipients(RecipientType.CC)).extracting(Object::toString)
+					.containsExactly("Visible Cc <cc@example.org>");
+			assertThat(received.getMimeMessage().getRecipients(RecipientType.BCC)).isNull();
+			assertThat(received.getMimeMessage().getSubject()).isEqualTo("Copied subject");
+		});
+		assertThat(copied.getRecipients()).containsExactlyElementsOf(original.getRecipients());
+	}
 
 	@Test
 	void changesToBuilderInputAndGetterCopiesDoNotChangeTheSubmittedMessage() throws Exception {

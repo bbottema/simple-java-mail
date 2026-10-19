@@ -237,6 +237,11 @@ public interface EmailStartingBuilder {
 	/**
 	 * Preconfigures the builder with all the properties from the given email that are non-null.
 	 * This includes its choices to ignore defaults or overrides and its per-property suppression settings.
+	 * Visible recipients and delivery-recipient overrides remain separate; the copy retains their order, repeated recipients and recipient options.
+	 * Attachment content remains borrowed. Copying an exact Email creates a composed message rather than preserving its authoritative bytes.
+	 *
+	 * @see EmailPopulatingBuilder#clearOverrideReceivers()
+	 * @throws IllegalArgumentException If the Email was constructed directly or through an unsupported application subclass instead of the library's builder.
 	 */
 	EmailPopulatingBuilder copying(@NotNull Email email);
 }

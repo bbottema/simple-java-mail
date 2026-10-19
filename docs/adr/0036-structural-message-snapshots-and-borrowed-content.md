@@ -22,6 +22,9 @@ sets and both the header map and its value collections. Preserve ordering, dupli
 unmodifiable owned collections; builder collection getters return detached copies that callers may modify without changing the builder.
 Existing convenience getters that already return detached lists need not become unmodifiable.
 
+Copying an Email preserves its delivery-recipient override independently from its visible recipients. Keep ordered occurrences and per-recipient
+metadata, so a copy used for testing remains directed to the configured test inbox. Copying structure does not consume borrowed attachment content.
+
 Copy mutable values such as dates and supplied byte arrays at the ownership boundary. A library-created byte-array DataSource must not borrow
 the caller's original array. Do not expose owned mutable storage. This does not require cloning immutable Recipients or arbitrary certificates.
 

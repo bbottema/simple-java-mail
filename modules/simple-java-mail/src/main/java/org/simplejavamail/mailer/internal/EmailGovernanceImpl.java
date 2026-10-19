@@ -391,7 +391,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			return email;
 		}
 		lockedEmailConfiguration.verifyExactCompatibility(email);
-		final EmailPopulatingBuilder builder = copyWithSubmissionEnvelope(email);
+		final EmailPopulatingBuilder builder = emailBuilder.copying(email);
 		// Explicit receivers preserve the exact headers while allowing required envelope-only destinations to be added.
 		if (builder.getOverrideReceivers().isEmpty()) {
 			builder.withOverrideReceivers(email.getRecipients());
@@ -416,21 +416,13 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
 			return prepareExactEmail(email);
 		}
-		final EmailPopulatingBuilder builder = copyWithSubmissionEnvelope(email);
+		final EmailPopulatingBuilder builder = emailBuilder.copying(email);
 		lockedEmailConfiguration.apply(builder, email);
 		final Email result = builder.buildEmail();
 		InternalEmail.requireInternalEmail(result).setUserProvidedEmail(email);
 		InternalEmail.requireInternalEmail(result).markAsDefaultsAndOverridesApplied();
 		retainSubmissionRestrictions(email, result);
 		return result;
-	}
-
-	private EmailPopulatingBuilder copyWithSubmissionEnvelope(final Email email) {
-		final EmailPopulatingBuilder builder = emailBuilder.copying(email);
-		if (!email.getOverrideReceivers().isEmpty()) {
-			builder.withOverrideReceivers(email.getOverrideReceivers());
-		}
-		return builder;
 	}
 
 	private void retainSubmissionRestrictions(@Nullable final Email provided, final Email prepared) {

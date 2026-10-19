@@ -245,6 +245,9 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.withSubject(email.getSubject());
 		}
 		builder.withRecipients(email.getRecipients());
+		if (!email.getOverrideReceivers().isEmpty()) {
+			builder.withOverrideReceivers(email.getOverrideReceivers());
+		}
 		builder.withEmbeddedImages(email.getEmbeddedImages());
 		builder.withAttachments(email.getAttachments());
 		if (email.getContentTransferEncoding() != null) {
