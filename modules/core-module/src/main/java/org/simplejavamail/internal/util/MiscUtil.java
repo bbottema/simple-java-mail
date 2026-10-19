@@ -173,7 +173,12 @@ public final class MiscUtil {
 	@NotNull
 	public static Recipient interpretRecipient(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress, @Nullable final RecipientType type) {
 		try {
-			final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
+			final InternetAddress[] parsedAddresses = InternetAddress.parse(emailAddress, false);
+			if (parsedAddresses.length == 0) {
+				// Comments and whitespace can contain no mailbox; preserve the supplied data for normal send-time validation.
+				return new Recipient(name, emailAddress, type, null);
+			}
+			final InternetAddress parsedAddress = parsedAddresses[0];
 			final String relevantName = (fixedName || parsedAddress.getPersonal() == null)
 					? defaultTo(name, parsedAddress.getPersonal())
 					: defaultTo(parsedAddress.getPersonal(), name);

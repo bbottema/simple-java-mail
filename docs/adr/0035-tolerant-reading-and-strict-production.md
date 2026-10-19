@@ -34,6 +34,10 @@ isolate malformed fields or optional interpretation failures instead of discardi
 Use Jakarta Mail and existing specialist importers for their parsing responsibilities. Add narrow recovery at the interpretation boundary, not a
 second general MIME parser, global permissive JVM/Session settings, indiscriminate exception handling or an automatic repair-and-retry pipeline.
 
+Recipient interpretation must also handle a successful parser call that produces no mailbox, such as a comment-only string. Retain the original
+nonempty source under the existing lenient builder contract, just as for a parsing exception, without inventing an address or changing its chosen
+name. Missing-input checks still apply, and ordinary outgoing validation rejects an unusable retained address before submission.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

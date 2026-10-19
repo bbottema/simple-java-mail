@@ -129,12 +129,8 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     public IRecipientBuilder withAddressOnlyFrom(@NotNull String address) {
         checkNonEmptyArgument(address, "address");
-        try {
-            return withAddress(InternetAddress.parse(address, false)[0].getAddress());
-        } catch (final AddressException invalidAddress) {
-            // Keep lenient input for the normal send-time validator, without replacing the caller's chosen name.
-            return withAddress(address);
-        }
+        final InternetAddress parsedAddress = parseFirstMailbox(address);
+        return withAddress(parsedAddress == null ? address : parsedAddress.getAddress());
     }
 
     /**
@@ -184,25 +180,29 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      * @param name         The name to use as fixed name or as default (depending on <code>fixedName</code> flag). Regardless of that flag, if a name
      *                     is <code>null</code>, the other one will be used.
      * @param fixedName    Determines if the given name should be used as override.
-     * @param emailAddress An RFC2822 compliant email address, which can contain a name inside as well.
-     *
-     * @deprecated Temporary use until MiscUtil has a method for this that returns a Pair type of name and address.
+     * @param emailAddress An address source that can contain a name. Unparseable sources are retained for normal send-time validation.
      */
     @NotNull
-    @Deprecated
     private IRecipientBuilder interpretAddressData(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress) {
-        try {
-            final InternetAddress parsedAddress = InternetAddress.parse(emailAddress, false)[0];
-            return withName((fixedName || parsedAddress.getPersonal() == null)
-                    ? defaultTo(name, parsedAddress.getPersonal())
-                    : defaultTo(parsedAddress.getPersonal(), name))
-                    .withAddress(parsedAddress.getAddress());
-        } catch (final AddressException e) {
-            // InternetAddress failed to parse the email address even in non-strict mode
-            // just assume the address was too complex rather than plain wrong, and let our own email validation
-            // library take care of it when sending the email
+        final InternetAddress parsedAddress = parseFirstMailbox(emailAddress);
+        if (parsedAddress == null) {
             return withName(name)
                     .withAddress(emailAddress);
+        }
+        return withName((fixedName || parsedAddress.getPersonal() == null)
+                ? defaultTo(name, parsedAddress.getPersonal())
+                : defaultTo(parsedAddress.getPersonal(), name))
+                .withAddress(parsedAddress.getAddress());
+    }
+
+    @Nullable
+    private static InternetAddress parseFirstMailbox(@NotNull final String source) {
+        try {
+            final InternetAddress[] addresses = InternetAddress.parse(source, false);
+            // Comments and whitespace can parse successfully without a mailbox. Retain their source for send-time validation too.
+            return addresses.length == 0 ? null : addresses[0];
+        } catch (final AddressException invalidAddress) {
+            return null;
         }
     }
 
