@@ -49,6 +49,10 @@ Resolution depends on the shape of the value. The following describes current be
 
 These rules are implemented by [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java), [EmailProperty](../../modules/core-module/src/main/java/org/simplejavamail/internal/config/EmailProperty.java), and the [resolution helpers](../../modules/core-module/src/main/java/org/simplejavamail/internal/util/MiscUtil.java). The rationale column explains the architectural tradeoff; it is not a claim that every original implementation decision had a separate historical design record.
 
+Header identity is case-insensitive: `X-Route` and `x-route` name the same header during composition and template resolution. Explicit replacement
+removes the earlier value collection even when its spelling differs. Retain a useful display spelling rather than requiring callers to normalize
+header names themselves. This concerns composed metadata; exact EML retains its authoritative bytes.
+
 For example, Email's `DeliveryStatusNotification` resolves as one value. Its NOTIFY set is a policy, not an attachment-like collection: an explicit preference must not acquire additional notification events by merging defaults. Recipient NOTIFY is likewise a complete set and takes precedence over the resolved Email fallback. RET/ENVID remain on the transaction-wide value; recipient policy does not split or merge those fields.
 
 ### Clear, disable, and override are different operations

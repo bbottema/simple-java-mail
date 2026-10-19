@@ -611,7 +611,8 @@ public final class MiscUtil {
 
 	@NotNull
 	public static Map<String, Collection<String>> overrideAndOrProvideAndOrDefaultHeaders(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides) {
-		val collectedHeaders = new HashMap<String, Collection<String>>();
+		// The field name is case-insensitive, including when different templates use different display spelling.
+		val collectedHeaders = new TreeMap<String, Collection<String>>(String.CASE_INSENSITIVE_ORDER);
 
 		if (defaults != null && defaultAllowedForProperty(provided, EmailProperty.HEADERS)) {
 			addOrOverrideHeaders(collectedHeaders, defaults.getHeaders());
@@ -638,15 +639,10 @@ public final class MiscUtil {
 						!provided.getPropertiesNotToApplyOverrideValueFor ().contains(emailProperty));
 	}
 
-	private static void addOrOverrideHeaders(HashMap<String, Collection<String>> collectedHeaders, @NotNull Map<String, Collection<String>> headers) {
+	private static void addOrOverrideHeaders(Map<String, Collection<String>> collectedHeaders, @NotNull Map<String, Collection<String>> headers) {
 		headers.forEach((headerKey, headerValues) -> {
-			collectedHeaders.putIfAbsent(headerKey, new ArrayList<>());
-			/*
-				we don't merge header values that have the same key from defaults or overrides;
-				instead, we assume the use will always want to override the entire header
-			 */
-			collectedHeaders.get(headerKey).clear();
-			collectedHeaders.get(headerKey).addAll(headerValues);
+			// A later source replaces this field's complete value collection; unrelated fields still coexist.
+			collectedHeaders.put(headerKey, new ArrayList<>(headerValues));
 		});
 	}
 

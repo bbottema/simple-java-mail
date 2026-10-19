@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
@@ -279,7 +280,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@NotNull
-	private final Map<String, Collection<String>> headers = new HashMap<>();
+	// Header names identify the same field regardless of capitalization; retain the first supplied spelling for display.
+	private final Map<String, Collection<String>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
 	/**
 	 * @see #signWithDomainKey(DkimConfig)
