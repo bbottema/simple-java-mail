@@ -28,6 +28,10 @@ import java.nio.file.Path;
  * Direct MIME/EML conversions do not round-trip through Email. Receive-only options are rejected for those direct targets rather than silently ignored.
  * Exporting an Email does not apply factory templates unless an explicit
  * {@link EmailConversion#withEmailGovernance(EmailGovernance) governance} is supplied.
+ * <p>
+ * EML imports retain the original protected representation, including tolerated header line endings. When required message content cannot be read
+ * or written, conversion fails with a {@link org.simplejavamail.MailException} that retains the original cause. Keep borrowed attachment sources
+ * available until conversion finishes.
  *
  * @see EmailPopulatingBuilder
  */
