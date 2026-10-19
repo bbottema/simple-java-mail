@@ -32,6 +32,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- Failover builders expose the supplied Mailer and stored policy for inspection without constructing named destinations.
+
 - Added independent recipient-group certificate/NOTIFY policy resets. Resetting preserves each original recipient's metadata; clearing still
   removes it from produced recipients and permits the Email fallback.
 
@@ -72,6 +74,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- Recipient-template suppression honors `ALL_RECIPIENTS` for To/Cc/Bcc without removing explicit recipients, delivery-recipient overrides or locks.
+- Email equality includes DKIM configuration and counts repeated attachment/image occurrences without reading their content.
+- Connection tests reject work after Mailer shutdown starts, including asynchronous checks still waiting on an application-owned executor.
 - Mailer and Session-property rendering redact recognized secrets. Operational settings and trusted-host inspection no longer share mutable
   containers with builders or their inputs; reused builders cannot change an earlier Mailer's configuration snapshot.
 - Custom-header replacement and Email-template precedence treat differently capitalized names as the same header. Email equality accounts for
