@@ -192,6 +192,9 @@ For example, a retry attempt count can be inspected before its delay is supplied
 resolves its relationship with the initial interval. Mutable inspection results are defensive copies. Optional provider-resolved choices use
 named clears that restore absence, rather than resets that introduce a new provider default.
 
+Custom SSL-factory class and instance choices follow this same inspection convention. Expose the stored instance and named clears for both
+choices; retain the established rule that a supplied instance takes precedence over a class name. Clearing one choice leaves the other available.
+
 This includes DSN, PKCS12 and OpenPGP application configuration builders. Inspection also works while supplied choices are temporarily invalid;
 copy helpers used by getters must not accidentally run construction-time validation. Collection inspection detaches nested mutable arrays, and
 callback inspection returns the supplied callback without invoking it. Clearing drops the builder's choice without wiping material retained by

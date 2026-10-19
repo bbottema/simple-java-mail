@@ -183,6 +183,9 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * Sets {@code mail.smtp.ssl.socketFactory.class} or {@code mail.smtps.ssl.socketFactory.class}. A custom factory can bypass the provider's
 	 * SOCKS socket creation, so check authenticated-proxy usage with your factory.
+	 * <p>
+	 * Passing null or calling {@link #clearCustomSSLFactoryClass()} removes only the stored class name; a supplied instance stays in place.
+	 * Clearing does not restore a captured property value, and configuration locks still apply.
 	 *
 	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
 	 *
@@ -190,6 +193,12 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	T withCustomSSLFactoryClass(@Nullable @Cli.Optional String factoryClass);
+
+	/**
+	 * Removes only the stored SSL factory class name.
+	 * @see #withCustomSSLFactoryClass(String)
+	 */
+	T clearCustomSSLFactoryClass();
 
 	/**
 	 * Uses your SSL socket factory instance, for example to supply a client certificate or a private trust store.
@@ -203,6 +212,9 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * Sets {@code mail.smtp.ssl.socketFactory} or {@code mail.smtps.ssl.socketFactory}. A custom factory can bypass the provider's SOCKS
 	 * socket creation, so check authenticated-proxy usage with your factory. This does not add physical cancellation support.
 	 * Caller-owned Sessions keep their own settings.
+	 * <p>
+	 * Passing null or calling {@link #clearCustomSSLFactoryInstance()} removes this instance so a configured factory class can be used again.
+	 * This never closes the supplied factory or removes the stored class name.
 	 *
 	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
 	 *
@@ -211,6 +223,13 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	T withCustomSSLFactoryInstance(@Nullable @Cli.Optional SSLSocketFactory sslSocketFactoryInstance);
+
+	/**
+	 * Removes only the supplied SSL factory instance.
+	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
+	 */
+	@Cli.ExcludeApi(reason = "Factory instances are configured only through Java")
+	T clearCustomSSLFactoryInstance();
 	
 	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
@@ -273,8 +292,16 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	TransportStrategy getTransportStrategy();
 
 	/**
+	 * Returns the stored factory class name, even when a supplied instance takes precedence.
 	 * @see #withCustomSSLFactoryClass(String)
 	 */
 	@Nullable
 	String getCustomSSLFactory();
+
+	/**
+	 * Returns the supplied factory instance itself, or null when none is configured.
+	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
+	 */
+	@Nullable
+	SSLSocketFactory getCustomSSLFactoryInstance();
 }

@@ -238,6 +238,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		return this;
 	}
 
+	/** @see MailerRegularBuilder#clearCustomSSLFactoryClass() */
+	@Override
+	public MailerRegularBuilderImpl clearCustomSSLFactoryClass() {
+		return withCustomSSLFactoryClass(null);
+	}
+
 	/**
 	 * @see MailerRegularBuilder#withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
@@ -245,6 +251,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public MailerRegularBuilderImpl withCustomSSLFactoryInstance(@Nullable final SSLSocketFactory customSSLFactoryInstance) {
 		this.customSSLFactoryInstance = customSSLFactoryInstance;
 		return this;
+	}
+
+	/** @see MailerRegularBuilder#clearCustomSSLFactoryInstance() */
+	@Override
+	public MailerRegularBuilderImpl clearCustomSSLFactoryInstance() {
+		return withCustomSSLFactoryInstance(null);
 	}
 
 	/**
@@ -348,5 +360,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Nullable
 	public String getCustomSSLFactory() {
 		return customSSLFactory;
+	}
+
+	/** @see MailerRegularBuilder#getCustomSSLFactoryInstance() */
+	@Override
+	@Nullable
+	public SSLSocketFactory getCustomSSLFactoryInstance() {
+		return customSSLFactoryInstance;
 	}
 }
