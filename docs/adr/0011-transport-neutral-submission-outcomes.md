@@ -74,7 +74,10 @@ Missing provider replies remain absent. EOF or return code zero is not a real SM
 Cleanup is separate from SMTP knowledge. A failed submission normally invalidates the pooled transport; compatibility failure before submission can release a healthy connection.
 A cleanup failure is suppressed onto an existing primary failure. The direct-transport path also preserves observed acceptance when a stop request causes close failure.
 [ADR 0026](0026-actual-send-diagnostics.md) extends observed attempts under #750 to retain their already captured receipt across independent close/release failures.
-The caller-facing exception remains unchanged: a generic cleanup failure does not acquire a new public exception wrapper merely to carry a receipt.
+The accepted 19 October API revision also makes these facts available to the caller without an observer. Public `MailSendException` exposes
+`Optional<MailSubmissionReceipt>`; submission, timeout, cancellation and cleanup failures share that contract. `MailSendCleanupException` retains
+the receipt when submission returned normally but per-email cleanup failed. An existing primary submission failure keeps its original subtype,
+provider cause and receipt; secondary cleanup errors are suppressed. Shared connection-scope cleanup does not invent one receipt for an entire batch.
 Absence of a receipt must never be interpreted as proof that no message was accepted. [ADR 0012](0012-terminal-send-observation.md) describes whole-attempt reporting.
 
 Recipients and raw server replies can contain personal information and untrusted text; they are not redacted configuration diagnostics. SMTP acceptance is not mailbox delivery. DSNs, bounces and application reconciliation remain separate concerns. Pending ENVID work adds correlation metadata but does not change these meanings.

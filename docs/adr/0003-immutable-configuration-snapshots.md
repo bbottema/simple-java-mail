@@ -34,6 +34,22 @@ can be absent when the Session's connect/read/write values differ or are unspeci
 
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
+### Explicit inheritance and cohesive settings (accepted 19 October 2026)
+
+Use `useConfigured...` to restore a captured property choice, `reset...` to select the published library fallback, and `clear...` to remove a
+named optional registration. `useConfiguredEmailDefaults()` restores the captured template; `withoutEmailDefaults()` selects an empty ordinary
+template while preserving mandatory locks. Explicit `withEmailDefaults(...)` remains whole-template replacement.
+
+Keep Jakarta Mail debug and telemetry configuration in immutable core-owned `SessionDebugConfig` and `MailSendTelemetryConfig` values.
+Unset fields inherit the owning factory snapshot; the values themselves do not consult configuration sources. Replacing a group replaces its
+supplied choices and does not merge with the previous group. Value/builder getters expose those choices, including absence; operational
+inspection exposes resolved groups. Track provenance privately so inherited absence does not overwrite a caller Session's baseline.
+Selecting a debug output or telemetry integration does not enable that feature. Borrowed streams and SDKs are never closed by these values.
+
+Represent Java socket/worker/queue/pool durations with `Duration`, including public cluster and standalone-pool configuration. These migrated
+settings retain whole-millisecond precision and existing limits; reject fractional milliseconds and overflow instead of truncating. Property
+keys and numeric millisecond inputs remain unchanged. Convert at the configuration/provider boundary, preserving zero and unset meanings.
+
 ### Built-in defaults stay together on the key builders
 
 Accepted clarification, 13 October 2026: publish Simple Java Mail's built-in fallback values as named constants on the relevant

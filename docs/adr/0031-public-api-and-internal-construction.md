@@ -204,9 +204,14 @@ copy helpers used by getters must not accidentally run construction-time validat
 callback inspection returns the supplied callback without invoking it. Clearing drops the builder's choice without wiping material retained by
 previously built values. Required input material does not acquire an invented reset value or additional validity rules merely to complete inspection.
 
-Debug printers and built-in debug destinations are alternate ways to select one output, not independent registrations. Clearing either
-restores the captured factory selection or absence, without closing a borrowed stream or changing whether logging is enabled. A reset of
-the logging flag selects its centralized library default. Companion Javadocs link to the setter that owns that contract.
+Debug printers and built-in debug destinations are alternate ways to select one output in `SessionDebugConfig`. `useConfiguredOutput()`
+restores captured inheritance; `clearPrinter()` removes only a custom registration, and `resetOutput()` selects standard output. These choices
+never close borrowed streams or change activation. `MailSendTelemetryConfig` similarly separates integration, activation and endpoint permission.
+Both are immutable core-owned application configuration values with explicit builders; their unset fields are resolved by the owning Mailer.
+
+`MailSendHandlers` groups independent observer/executor registrations without owning runtime dispatch. A Mailer-wide factory produces a fresh
+group for each generated send UUID. The generic factory and supplier signatures use only core/JDK contracts; runtime routing and bounded
+delivery remain in the main implementation. Companion Javadocs link to the setter that owns each contract.
 
 ## Alternatives considered
 

@@ -99,7 +99,8 @@ delivery use different mechanisms. A callback already in flight can report PREPA
 must keep terminal state by observation ID and ignore subsequent progress; FINISHED itself says nothing about success or acceptance.
 
 Lazy batches create recorders only when reaching an email. Shared setup/teardown remains outside these recorders. Retry invocations reset bytes and
-increment the attempt counter; connection failover does neither. There is no callback, counter stream, UUID or progress clock on the unobserved path.
+increment the attempt counter; connection failover does neither. Every logical send generates its UUID and invokes any configured handler factory
+before preparation and admission. If the resulting choices enable no reporting, the send allocates no callback, counter stream or progress clock.
 
 ## Regression landmarks
 

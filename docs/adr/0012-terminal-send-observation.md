@@ -68,6 +68,22 @@ Applications receive outcomes rather than construct them; the accepted report-fo
 
 The observer registration is Java behavior attached directly to the builder and Mailer; it does not belong in OperationalConfig, configuration files, Spring property binding, CLI generation or redacted configuration diagnostics. Validation, rehearsal, probes/connection tests, shutdown and standalone `BatchTransportExecutor` operations are not email attempts.
 
+### Handler lifetime and application correlation (accepted 19 October 2026)
+
+Group result/progress registrations and their optional executors in immutable core-owned `MailSendHandlers`. The Mailer builder accepts shared
+handlers with `withSendHandlers` and a `Function<UUID, MailSendHandlers>` with `withSendHandlersFactory`. A configurable `Supplier<UUID>`
+defaults to `UUID::randomUUID`. Generate once and create handlers once for every logical send, before individual-send admission/preparation.
+The initiating Mailer retains that identity and handler set across retry and failover. Reusing an Email does not reuse its send identity.
+
+Factories run on the invoking thread for singles and on the executing thread for each reached lazy-batch email. A setup exception or null return
+aborts the affected send without submission or retry; synchronous calls throw and asynchronous calls expose a failed completion. A factory failure
+has an ID and can reach shared handlers/telemetry; a generator failure has no attempt identity. Untouched batch entries create no handlers.
+Custom generators/factories must tolerate concurrent callers, and custom IDs must be unique. They do not become MIME Message-IDs or ENVIDs.
+
+Shared registrations are delivered before per-send registrations, with separate exception isolation and each registration's existing inline or
+executor semantics. Clearing the factory does not clear shared handlers. Clearing an observer inside a handlers builder leaves the other observer
+and its executor intact. Runtime callbacks and supplied executors remain borrowed; no per-send worker or unbounded registration history is created.
+
 [ADR 0034](0034-optional-opentelemetry-integration.md) adds a separate optional telemetry registration at the existing authoritative
 attempt boundary. It must finish spans/accounting before result-observer delivery rather than depend on this callback reaching an
 application executor. Runtime registration remains Java behavior; its independent endpoint-permission Boolean follows normal

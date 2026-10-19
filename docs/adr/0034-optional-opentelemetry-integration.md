@@ -36,7 +36,10 @@ public API type and whose return type is the core-owned `MailSendTelemetry` cont
 ```java
 MailSendTelemetry telemetry = OtelAdapter.wrap(openTelemetry);
 
-mailerBuilder.withMailSendTelemetry(telemetry);
+mailerBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder()
+    .withIntegration(telemetry)
+    .withEnabled(true)
+    .build());
 ```
 
 The adapter accepts a non-null instance through the public `OpenTelemetry` interface, without requiring a particular SDK implementation.
@@ -54,9 +57,11 @@ supplied handle as permission to select a different instance. The main builder n
 Application setting methods retain explicit contracts and getter/reset/clear references to their setter. Do not move them into a module-owned
 fluent API or expose `getOpenTelemetry()` through core. Internal storage/unwrapping must not become application lifecycle or binding machinery.
 
-On the Mailer builder, repeated `withMailSendTelemetry(...)` calls replace the integration. Provide `getMailSendTelemetry()` and
-`clearMailSendTelemetry()`, with the registration method owning their Javadoc contract. Registration enables telemetry. Clearing removes
-the supplied instance and restores activation from captured properties. This is not an Email setting or a serializable SDK handle.
+The accepted 19 October API revision groups supplied integration, activation and endpoint permission in core-owned `MailSendTelemetryConfig`.
+Mailer exposes `withTelemetryConfig`, `getTelemetryConfig` and `useConfiguredTelemetryConfig`. A replacement replaces the supplied group;
+unset fields inherit captured properties. Its explicit builder provides `withIntegration/getIntegration/clearIntegration`, independent of
+`withEnabled` and `withSmtpEndpointAttributes`. Supplying or clearing integration does not change activation. This is not an Email setting or a
+serializable SDK handle. `builder()` and `toBuilder()` capture choices without reading sources or binding an SDK.
 
 This revision supersedes the earlier module-owned `OtelSupport.using(...).withSmtpEndpointAttributes(...)` design and the subsequent blanket
 ban on module setup entry points. The accepted distinction is typed adaptation versus ordinary configuration, not a less descriptive name for
@@ -65,8 +70,8 @@ the same module-owned configuration API.
 ### Factory-inherited activation and ordinary module loading
 
 Support `simplejavamail.telemetry.enabled`, defaulting to the key builder's `DEFAULT_MAIL_SEND_TELEMETRY_ENABLED = false`.
-Every Mailer from a configured factory inherits its captured value. Java's `withMailSendTelemetryEnabled(boolean)` replaces it;
-`resetMailSendTelemetryEnabled()` selects the central false default. `OperationalConfig.isMailSendTelemetryEnabled()` reports the
+Every Mailer from a configured factory inherits its captured value. The configuration builder's `withEnabled(boolean)` replaces it;
+`resetEnabled()` selects the central false default and `useConfiguredEnabled()` restores inheritance. `OperationalConfig.getTelemetryConfig().getEnabled()` reports the
 effective choice. Ordinary Java customization overrides ordinary properties; a conflicting locked counterpart rejects construction.
 
 When enabled, use `ModuleLoader.loadOpenTelemetryModule()` through the core `OpenTelemetryModule` contract, following ADR 0006.
@@ -107,9 +112,9 @@ property-only activation uses the documented application-global route instead of
 | Locked property | Supply the effective value; reject conflicting explicit choices or resets and allow equal ones. |
 
 The SJM configuration API preserves absence separately from an explicit choice. The owning Mailer builder resolves the effective value and
-supplies it to `OperationalConfig.isMailSendTelemetrySmtpEndpointAttributesEnabled()`. Getters and the typed adapter do not inspect sources or
+supplies it to `OperationalConfig.getTelemetryConfig().getSmtpEndpointAttributes()`. Getters and the typed adapter do not inspect sources or
 resolve defaults. Sharing a wrapped instance across factories never mutates the wrapper or lets one factory's settings reach another.
-Use `withMailSendTelemetrySmtpEndpointAttributes(boolean)` and its getter/reset/clear companions on the Mailer builder. Replacing or clearing
+Use `withSmtpEndpointAttributes(boolean)` and its getter/reset/useConfigured companions on the telemetry configuration builder. Replacing or clearing
 the adapted handle leaves this separately configured permission intact.
 
 Reuse `ConfigLoader.Property`, Boolean schema parsing, per-leaf provenance and the `DIAGNOSTICS_AND_VALIDATION` diagnostic group.
@@ -124,7 +129,7 @@ Spring metadata mirrors both namespaces; runtime loading stays with the shared E
 to every Mailer from the configured factory, not only Spring's default Mailer. An explicitly supplied `MailSendTelemetry` bean can select
 an SDK for the default Mailer. An arbitrary `OpenTelemetry` bean is not discovered by SJM; use the global instance or the integration bean.
 
-The two public setting methods generate `--mailer:withMailSendTelemetryEnabled` and `--mailer:withMailSendTelemetrySmtpEndpointAttributes`. Runtime-object
+Internal CLI adapters preserve `--mailer:withMailSendTelemetryEnabled` and `--mailer:withMailSendTelemetrySmtpEndpointAttributes`, delegating into the grouped Java configuration. Runtime-object
 registration remains Java-only. The standalone CLI includes the optional module but no SDK or exporter; an agent or application supplies those.
 
 ### Optional-module and application API boundaries remain intact

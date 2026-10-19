@@ -45,6 +45,12 @@ Ordinary construction does not read or deep-copy application-owned DataSources, 
 Keep their identity and existing lifetime obligations: applications keep borrowed content available and stable while an operation consumes it.
 This does not promise thread safety for mutable borrowed resources.
 
+The `withAttachment(Path)` and `withAttachment(String, Path)` conveniences follow this same boundary. They retain the path and expose
+fresh read-only streams through `Files.newInputStream` when consumed; construction and copying do not check existence or read content.
+They support non-default filesystems without `Path.toFile()`. The source filename uses Jakarta Activation's existing filename-based MIME
+detection, independently of an optional display name. Applications keep the filesystem open and file content stable during consumption;
+serialization still captures bytes through the established attachment snapshot mechanism. Missing/unreadable content fails at consumption.
+
 Stronger byte boundaries remain explicit: [exact EML](0013-exact-eml-submission.md) owns copied authoritative input;
 [rehearsal](0014-send-time-rehearsal.md) returns its own rendered bytes; [retry preparation](0030-safe-bounded-mail-send-retries.md) freezes the
 content of that retry-enabled operation. Metadata copying does not silently perform any of these operations.

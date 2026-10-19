@@ -60,7 +60,7 @@ stateDiagram-v2
 | --- | --- | --- |
 | Initial handler sees shutdown | Throw `EXECUTOR_SHUT_DOWN`; increment that counter. | Submitting caller. |
 | Policy is `REJECT` | Throw `QUEUE_FULL`; increment that counter. | Submitting caller. |
-| Start a capacity wait | Compute monotonic admission deadline from `waitTimeoutMillis`. | Submitting caller. |
+| Start a capacity wait | Compute monotonic admission deadline from the configured `Duration` wait timeout, checked at whole-millisecond precision. | Submitting caller. |
 | Poll a `MailSendOperation` | `checkStopped`; cap this offer by remaining send budget. | Submitting caller; may synchronously discover expired deadline. |
 | Before each timed offer | `prestartCoreThread` ensures a possible direct-handoff consumer. | Submitting caller requests worker creation; worker runs separately. |
 | Offer waits | Wait at most the smaller of current remaining budget and 50 ms. | Caller waits inside queue implementation, not holding an SJM control/owner monitor. |

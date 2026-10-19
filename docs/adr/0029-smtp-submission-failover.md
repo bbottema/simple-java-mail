@@ -786,7 +786,7 @@ level distinction, suppressed repeats and the unresolved-primary wording in the 
 ### Show application-owned retry handling in the website
 
 The failover walkthrough must distinguish finding a connection from retrying a completed submission attempt. Include a concrete
-`withMailSendResultObserver(...)` recipe, job/envelope handling and illustrative output, using the existing receipt's `getRetryDisposition()`
+`withSendHandlersFactory(sendId -> MailSendHandlers.builder().withResultObserver(...).build())` recipe, job/envelope handling and illustrative output, using the existing receipt's `getRetryDisposition()`
 and `getRetryableRecipients()` rather than treating every unsuccessful outcome as unsent mail.
 
 The observer should hand eligible work to an application-owned queue or scheduler. Do not sleep or recursively resend inside the callback;
