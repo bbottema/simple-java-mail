@@ -47,6 +47,13 @@ remain subject to [ADR 0025](0025-factory-scoped-locked-configuration.md).
 This distinction does not change proxy routing's documented override, managed-provider initialization, conversion-context ownership,
 exclusive Session reuse, pooling or shutdown. A Session may be reused by another Mailer only after its former owner's successful shutdown.
 
+### Validate settings before creating pools
+
+All application entry points use the same pool constraints. Core size is non-negative, maximum size is positive, claim timeout and idle expiry
+are non-negative, and optional creation-age expiry is positive. Zero retains its established meaning for each setting. Validate the effective
+core/maximum pair after cluster overrides resolve; an intermediate setter order is not a completed configuration. Invalid settings must be
+reported in Simple Java Mail terms before constructing pool resources, rather than accepted or diagnosed differently by an upstream pool.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |

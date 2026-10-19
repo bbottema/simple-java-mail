@@ -42,8 +42,9 @@ class CliBuilderCompanionsTest {
     }
 
     @Test
-    void callbackAndFreshEmailClearOperationsStayOutOfTheGeneratedOptions() throws Exception {
-        for (String method : List.of("clearOAuth2AccessTokenProvider", "clearCustomMailer")) {
+    void javaOnlyAndFreshBuilderCompanionsStayOutOfTheGeneratedOptions() throws Exception {
+        for (String method : List.of("clearOAuth2AccessTokenProvider", "clearCustomMailer", "resetDebugLogging", "clearDebugPrinter",
+                "clearDebugOutput", "getDebugOutput")) {
             assertThat(BuilderApiToPicocliCommandsMapper.methodIsCliCompatible(MailerGenericBuilder.class.getMethod(method))
                     .isCompatible()).as(method).isFalse();
         }
@@ -72,6 +73,7 @@ class CliBuilderCompanionsTest {
                 assertThat(individual.stdout()).contains(option);
             }
             assertThat(help.stdout()).doesNotContain("--mailer:clearCustomMailer", "--mailer:clearOAuth2AccessTokenProvider",
+                    "--mailer:resetDebugLogging", "--mailer:clearDebugPrinter", "--mailer:clearDebugOutput", "--mailer:getDebugOutput",
                     "--email:clearEnvelopeRecipients", "--email:clearEnvelopeSender", "--email:clearEnvelopeId");
         }
     }

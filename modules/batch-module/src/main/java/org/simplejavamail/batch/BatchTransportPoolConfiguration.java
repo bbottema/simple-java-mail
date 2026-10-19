@@ -2,6 +2,7 @@ package org.simplejavamail.batch;
 
 import lombok.ToString;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.config.ConnectionPoolValidation;
 
 import java.util.Objects;
 
@@ -234,24 +235,7 @@ public final class BatchTransportPoolConfiguration {
 		 * @throws IllegalArgumentException when a size or duration is invalid
 		 */
 		public BatchTransportPoolConfiguration build() {
-			if (corePoolSize < 0) {
-				throw new IllegalArgumentException("corePoolSize must not be negative");
-			}
-			if (maxPoolSize < 1) {
-				throw new IllegalArgumentException("maxPoolSize must be at least one");
-			}
-			if (corePoolSize > maxPoolSize) {
-				throw new IllegalArgumentException("corePoolSize must not exceed maxPoolSize");
-			}
-			if (claimTimeoutMillis < 0) {
-				throw new IllegalArgumentException("claimTimeoutMillis must not be negative");
-			}
-			if (expireAfterMillis < 0) {
-				throw new IllegalArgumentException("expireAfterMillis must not be negative");
-			}
-			if (expireAfterCreationMillis != null && expireAfterCreationMillis < 1) {
-				throw new IllegalArgumentException("expireAfterCreationMillis must be positive");
-			}
+			ConnectionPoolValidation.validateResolved(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis, expireAfterCreationMillis);
 			Objects.requireNonNull(loadBalancingStrategy, "loadBalancingStrategy");
 			return new BatchTransportPoolConfiguration(this);
 		}

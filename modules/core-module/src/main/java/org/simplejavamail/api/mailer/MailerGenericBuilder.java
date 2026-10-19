@@ -313,12 +313,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withProxyBridgePort(@NotNull Integer proxyBridgePort);
 
 	/**
-	 * This flag is set on the Session instance through {@link Session#setDebug(boolean)} so that it generates debug information. To get more
-	 * information out of the underlying JavaMail framework or out of Simple Java Mail, increase logging config of your chosen logging-framework.
+	 * Turns Jakarta Mail's protocol debug output on or off through {@link Session#setDebug(boolean)}. Use your application's logging configuration
+	 * separately when you want more detail from Simple Java Mail's own loggers.
+	 * Calling again replaces the flag. {@link #resetDebugLogging()} selects the library default, {@value #DEFAULT_JAVAXMAIL_DEBUG},
+	 * without changing the output target or any already built Mailer. A conflicting factory lock still rejects construction.
 	 *
 	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
 	 */
 	T withDebugLogging(@NotNull Boolean debugLogging);
+
+	/** @see #withDebugLogging(Boolean) */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders inherit logging configuration; use withDebugLogging for an explicit choice")
+	T resetDebugLogging();
 
 	/**
 	 * Sets a custom printer for Jakarta Mail debug output.
@@ -328,6 +334,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * Simple Java Mail does not close the supplied stream. Keep it open for as long as the Mailer may write debug output and close it after the Mailer
 	 * is no longer using it.
+	 * Calling again replaces the selected output. {@link #clearDebugPrinter()} restores the factory's captured output setting, or leaves the
+	 * Session's output unchanged when none was configured. This is the same selection as {@link #withDebugOutput(SessionDebugOutput)};
+	 * clearing either does not turn logging off or close a borrowed stream. Previously built Mailers are unchanged.
 	 * <p>
 	 * For property files and CLI usage, use {@link #withDebugOutput(SessionDebugOutput)} or configure {@code simplejavamail.javaxmail.debug.out}.
 	 *
@@ -338,11 +347,17 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	@Cli.ExcludeApi(reason = "PrintStream instances are Java-only; use withDebugOutput(SessionDebugOutput) for CLI-compatible built-in targets")
 	T withDebugPrinter(@NotNull PrintStream debugPrinter);
 
+	/** @see #withDebugPrinter(PrintStream) */
+	@Cli.ExcludeApi(reason = "PrintStream registrations are Java-only; fresh CLI builders already inherit the configured target")
+	T clearDebugPrinter();
+
 	/**
 	 * Sets one of the built-in targets for Jakarta Mail debug output.
 	 * <p>
 	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected
 	 * without providing a custom {@link PrintStream}.
+	 * Calling again replaces the output, including a previous custom printer. {@link #clearDebugOutput()} restores the factory's captured
+	 * output selection or absence, without changing logging or closing any stream. Both output setters select the same setting.
 	 *
 	 * @param debugOutput The built-in output target to use for Jakarta Mail debug output.
 	 *                    Supported values: STDOUT, STDERR, SLF4J.
@@ -350,6 +365,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @see #withDebugPrinter(PrintStream)
 	 */
 	T withDebugOutput(@NotNull SessionDebugOutput debugOutput);
+
+	/** @see #withDebugOutput(SessionDebugOutput) */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders inherit the configured debug target; use withDebugOutput for an explicit choice")
+	T clearDebugOutput();
 
 	/**
 	 * Controls whether client-side validation findings block sending or are reported as warnings.
@@ -790,6 +809,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * Configures the connection pool's core size (default {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), which means the SMTP connection pool will keep X connections open at all times until shut down.
+	 * Use zero to disable core replenishment; negative sizes are invalid. The effective core size cannot exceed the maximum after cluster overrides.
 	 * Note that this also means that if you configure an auto-expiry timeout, these connections die off and new ones are created immediately to maintain core size.
 	 * <p>
 	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
@@ -801,10 +821,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withConnectionPoolCoreSize(@NotNull Integer connectionPoolCoreSize);
 
 	/**
-	 * Configures the connection pool's max size (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}) in case of high thread contention. Note that this
-	 * determines how many connections can be open at
-	 * any one time to a single server. Make sure your server can handle the load coming from all connections. There's no point having a hundred concurrent connections if it degrades your
-	 * server's performance because of CPU throttling and network congestion.
+	 * Sets the maximum number of connections to one server (default {@value DEFAULT_CONNECTIONPOOL_MAX_SIZE}). It must be at least one and no
+	 * smaller than the effective core size after cluster overrides. Make sure your server can handle the load: a hundred concurrent connections
+	 * are not useful if they degrade its performance through CPU throttling or network congestion.
 	 * <p>
 	 * In addition, if your server makes connections wait, it means threads will be waiting on the {@link jakarta.mail.Transport} instance to start their work load, instead of threads being blocked
 	 * on a <em>claim</em> for an available {@code Transport} instance. In other words: by having an oversized connection pool, you inadvertently bypass the blocking claim mechanism of the
@@ -820,6 +839,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * If {@code >0}, configures the connection pool to wait for a limited time after which the attempt to claim a Transport connection errors out.
+	 * Use zero for a non-waiting claim; negative timeouts are invalid.
 	 * The default is {@value #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS} milliseconds, approximately 24.9 days.
 	 * <p>
 	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
@@ -832,6 +852,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * If {@code >0}, configures the connection pool to automatically close connections after some milliseconds (default {@value DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS}) since last usage.
+	 * Use zero to disable idle expiration; negative durations are invalid.
 	 * <p>
 	 * Note that if you combine this with {@link #withConnectionPoolCoreSize(Integer)} also {@code >0} (default is {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), connections will keep
 	 * closing and opening to keep core pool populated until shut down.
@@ -1480,6 +1501,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Nullable
 	PrintStream getDebugPrinter();
+
+	/**
+	 * Returns the selected built-in target, or null for a custom printer or no explicit target.
+	 *
+	 * @see #withDebugOutput(SessionDebugOutput)
+	 * @see #getDebugPrinter()
+	 */
+	@Nullable
+	SessionDebugOutput getDebugOutput();
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)

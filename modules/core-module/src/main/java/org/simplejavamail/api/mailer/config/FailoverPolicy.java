@@ -2,6 +2,7 @@ package org.simplejavamail.api.mailer.config;
 
 import lombok.Value;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 
 import java.io.Serializable;
@@ -161,7 +162,7 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores one setup attempt per candidate. */
+        /** @see #withPrimaryConnectionAttempts(int) */
         @NotNull
         public Builder resetPrimaryConnectionAttempts() {
             return withPrimaryConnectionAttempts(DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS);
@@ -177,7 +178,7 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores zero delay between additional setup attempts. */
+        /** @see #withPrimaryConnectionRetryDelay(Duration) */
         @NotNull
         public Builder resetPrimaryConnectionRetryDelay() {
             return withPrimaryConnectionRetryDelay(DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY);
@@ -195,7 +196,7 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores the initial reconsideration interval to 30 seconds. */
+        /** @see #withPrimaryRecheckInterval(Duration) */
         @NotNull
         public Builder resetPrimaryRecheckInterval() {
             return withPrimaryRecheckInterval(DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
@@ -219,7 +220,7 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores fixed reconsideration intervals, using {@link #withPrimaryRecheckInterval(Duration)}. */
+        /** @see #withPrimaryRecheckBackoff(int, Duration) */
         @NotNull
         public Builder resetPrimaryRecheckBackoff() {
             primaryRecheckBackoffMultiplier = DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER;
@@ -237,7 +238,7 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores stopping on authentication rejection. */
+        /** @see #withFailoverOnAuthenticationFailure(boolean) */
         @NotNull
         public Builder resetFailoverOnAuthenticationFailure() {
             return withFailoverOnAuthenticationFailure(DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE);
@@ -254,10 +255,52 @@ public class FailoverPolicy implements Serializable {
             return this;
         }
 
-        /** Restores stopping on certificate or server-identity verification failure. */
+        /** @see #withFailoverOnCertificateVerificationFailure(boolean) */
         @NotNull
         public Builder resetFailoverOnCertificateVerificationFailure() {
             return withFailoverOnCertificateVerificationFailure(DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE);
+        }
+
+        /** @see #withPrimaryConnectionAttempts(int) */
+        public int getPrimaryConnectionAttempts() {
+            return primaryConnectionAttempts;
+        }
+
+        /** @see #withPrimaryConnectionRetryDelay(Duration) */
+        @NotNull
+        public Duration getPrimaryConnectionRetryDelay() {
+            return primaryConnectionRetryDelay;
+        }
+
+        /** @see #withPrimaryRecheckInterval(Duration) */
+        @NotNull
+        public Duration getPrimaryRecheckInterval() {
+            return primaryRecheckInterval;
+        }
+
+        /** @see #withPrimaryRecheckBackoff(int, Duration) */
+        public int getPrimaryRecheckBackoffMultiplier() {
+            return primaryRecheckBackoffMultiplier;
+        }
+
+        /**
+         * Returns the configured cap, or null until a cap is supplied. Building resolves a missing cap from the initial interval.
+         *
+         * @see #withPrimaryRecheckBackoff(int, Duration)
+         */
+        @Nullable
+        public Duration getPrimaryMaximumRecheckInterval() {
+            return primaryMaximumRecheckInterval;
+        }
+
+        /** @see #withFailoverOnAuthenticationFailure(boolean) */
+        public boolean isFailoverOnAuthenticationFailure() {
+            return failoverOnAuthenticationFailure;
+        }
+
+        /** @see #withFailoverOnCertificateVerificationFailure(boolean) */
+        public boolean isFailoverOnCertificateVerificationFailure() {
+            return failoverOnCertificateVerificationFailure;
         }
 
         @NotNull

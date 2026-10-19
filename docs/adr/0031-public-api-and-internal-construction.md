@@ -171,6 +171,17 @@ For the report classes replaced with read interfaces, 10.0.0 deliberately breaks
 recompile integrations and export persisted observations before upgrading. This does not remove the supported Email, Recipient or attachment
 snapshot contract. A relocated public field selector retains its historic serialized enum names through an internal compatibility representation.
 
+### Inspect incomplete configuration without building it
+
+Application builder getters expose stored choices without validating an incomplete configuration or resolving provider-dependent defaults.
+For example, a retry attempt count can be inspected before its delay is supplied, and an omitted failover cap remains absent until construction
+resolves its relationship with the initial interval. Mutable inspection results are defensive copies. Optional provider-resolved choices use
+named clears that restore absence, rather than resets that introduce a new provider default.
+
+Debug printers and built-in debug destinations are alternate ways to select one output, not independent registrations. Clearing either
+restores the captured factory selection or absence, without closing a borrowed stream or changing whether logging is enabled. A reset of
+the logging flag selects its centralized library default. Companion Javadocs link to the setter that owns that contract.
+
 ## Alternatives considered
 
 - **Treat every public member as supported API:** exposes machinery that is only public for package/module access and makes it needlessly permanent.

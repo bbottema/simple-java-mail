@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.batch.BatchLoadBalancingStrategy;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
+import org.simplejavamail.internal.config.ConnectionPoolValidation;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
@@ -37,9 +38,7 @@ final class PoolSettings {
 	private PoolSettings(final int corePoolSize, final int maxPoolSize, final int claimTimeoutMillis,
 			final int expireAfterMillis, @Nullable final Integer expireAfterCreationMillis,
 			final BatchLoadBalancingStrategy loadBalancingStrategy) {
-		if (expireAfterCreationMillis != null && expireAfterCreationMillis < 1) {
-			throw new IllegalArgumentException("expireAfterCreationMillis must be positive");
-		}
+		ConnectionPoolValidation.validateResolved(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis, expireAfterCreationMillis);
 		this.corePoolSize = corePoolSize;
 		this.maxPoolSize = maxPoolSize;
 		this.claimTimeoutMillis = claimTimeoutMillis;

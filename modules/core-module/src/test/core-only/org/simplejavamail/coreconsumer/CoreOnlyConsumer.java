@@ -20,6 +20,14 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static void inspectIncompleteConfiguration() {
+        org.simplejavamail.api.mailer.config.MailSendRetryPolicy.builder().withMaximumAttempts(3).getRetryDelay();
+        org.simplejavamail.api.mailer.config.FailoverPolicy.builder().getPrimaryMaximumRecheckInterval();
+        org.simplejavamail.api.email.config.DkimConfig.builder().clearSigningAlgorithm().getSigningAlgorithm();
+        org.simplejavamail.api.email.config.SmimeSigningConfig.builder().clearSignatureAlgorithm().getSignatureAlgorithm();
+        org.simplejavamail.api.email.config.SmimeEncryptionConfig.builder().clearCipherAlgorithm().getCipherAlgorithm();
+    }
+
     public static Integer inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
         return configuration.getSessionTimeout();
     }

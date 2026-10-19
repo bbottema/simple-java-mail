@@ -34,6 +34,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.config.ConfigurationLocks;
+import org.simplejavamail.internal.config.ConnectionPoolValidation;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
@@ -872,6 +873,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Assemble supplied configuration; default resolution and caller-Session ownership have already been settled by the builder. */
 	OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
+		validateConnectionPoolConfiguration();
 		resolveTelemetrySettings();
 		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
@@ -1133,6 +1135,26 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withDebugLogging(@NotNull final Boolean debugLogging) {
 		this.debugLogging = debugLogging;
+		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#resetDebugLogging() */
+	@Override
+	public T resetDebugLogging() {
+		return withDebugLogging(DEFAULT_JAVAXMAIL_DEBUG);
+	}
+
+	/** @see MailerGenericBuilder#clearDebugPrinter() */
+	@Override
+	public T clearDebugPrinter() {
+		return clearDebugOutput();
+	}
+
+	/** @see MailerGenericBuilder#clearDebugOutput() */
+	@Override
+	public T clearDebugOutput() {
+		debugOutput = config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT);
+		debugPrinter = resolveDebugPrinter(debugOutput);
 		return (T) this;
 	}
 
@@ -1947,6 +1969,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return debugPrinter;
 	}
 
+	/** @see MailerGenericBuilder#getDebugOutput() */
+	@Override
+	@Nullable
+	public SessionDebugOutput getDebugOutput() {
+		return debugOutput;
+	}
+
 	/**
 	 * @see MailerGenericBuilder#isDisableAllClientValidation()
 	 */
@@ -2120,6 +2149,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable
 	public Integer getConnectionPoolExpireAfterCreationMillis() {
 		return connectionPoolExpireAfterCreationMillis;
+	}
+
+	private void validateConnectionPoolConfiguration() {
+		ConnectionPoolValidation.validateRanges(connectionPoolCoreSize, connectionPoolMaxSize, connectionPoolClaimTimeoutMillis,
+				connectionPoolExpireAfterMillis, connectionPoolExpireAfterCreationMillis);
+		final ConnectionPoolClusterConfig cluster = connectionPoolClusterConfigs.get(clusterKey);
+		final Integer coreSize = cluster != null && cluster.getCoreSize() != null ? cluster.getCoreSize() : connectionPoolCoreSize;
+		final Integer maxSize = cluster != null && cluster.getMaxSize() != null ? cluster.getMaxSize() : connectionPoolMaxSize;
+		ConnectionPoolValidation.validateSizeRelationship(coreSize, maxSize);
 	}
 
 	@Nullable

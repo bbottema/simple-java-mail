@@ -18,10 +18,27 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PoolSettingsTest {
+	@Test
+	void validatesTheEffectivePairAfterClusterInheritance() {
+		final UUID cluster = UUID.randomUUID();
+		final OperationalConfig configuration = mock(OperationalConfig.class);
+		when(configuration.getConnectionPoolCoreSize()).thenReturn(2);
+		when(configuration.getConnectionPoolMaxSize()).thenReturn(1);
+		when(configuration.getConnectionPoolExpireAfterCreationMillis()).thenReturn(null);
+		when(configuration.getConnectionPoolLoadBalancingStrategy()).thenReturn(LoadBalancingStrategy.ROUND_ROBIN);
+		when(configuration.getConnectionPoolClusterConfigs()).thenReturn(Map.of(cluster, ConnectionPoolClusterConfig.builder().coreSize(0).build()));
+		assertThat(PoolSettings.from(configuration, cluster).<String>toSmtpClusterConfig().getConfigBuilder().build().getDefaultCorePoolSize()).isZero();
+		assertThatThrownBy(() -> PoolSettings.from(configuration, UUID.randomUUID())).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("coreSize").hasMessageContaining("maxSize");
+		when(configuration.getConnectionPoolClaimTimeoutMillis()).thenReturn(-1);
+		assertThatThrownBy(() -> PoolSettings.from(configuration, cluster)).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("claimTimeoutMillis");
+	}
 
 	@Test
 	void selectsTheConfiguredExpirationPolicies() {

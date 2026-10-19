@@ -30,6 +30,15 @@ public final class PublicJavadocContractCheck {
         requireText("mailer/MailerGenericBuilder", "a caller-supplied Session");
         requireText("email/Recipient", "IRecipientBuilder.html#withName(java.lang.String)");
         requireText("email/Recipients", "IRecipientsBuilder.html#withRecipient(org.simplejavamail.api.email.Recipient)");
+        requireLinkedCompanions("mailer/config/FailoverPolicy.Builder", "getPrimaryConnectionAttempts", "getPrimaryMaximumRecheckInterval",
+                "resetPrimaryRecheckBackoff");
+        requireLinkedCompanions("mailer/config/MailSendRetryPolicy.Builder", "getMaximumAttempts", "getRetryDelay", "getMemoryLimit");
+        requireLinkedCompanions("email/config/DkimConfig.DkimConfigBuilder", "getDkimPrivateKeyData", "clearSigningAlgorithm",
+                "clearExcludedHeadersFromDkimDefaultSigningList");
+        requireLinkedCompanions("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "getPkcs12Config", "clearSignatureAlgorithm");
+        requireLinkedCompanions("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "getX509Certificate", "clearCipherAlgorithm",
+                "clearKeyEncapsulationAlgorithm");
+        requireLinkedCompanions("mailer/MailerGenericBuilder", "getDebugOutput", "resetDebugLogging", "clearDebugPrinter", "clearDebugOutput");
         if (read("email/Recipients").contains("id=\"&lt;init&gt;()\"")) {
             throw new IllegalStateException("Recipients Javadoc must not advertise a nonexistent no-argument constructor");
         }
@@ -58,6 +67,22 @@ public final class PublicJavadocContractCheck {
     private void requireText(final String type, final String text) throws IOException {
         if (!read(type).contains(text)) {
             throw new IllegalStateException(type + " is missing its builder source-of-truth link: " + text);
+        }
+    }
+
+    private void requireLinkedCompanions(final String type, final String... methods) throws IOException {
+        final String html = read(type);
+        for (final String method : methods) {
+            final String anchor = "id=\"" + method + "()\"";
+            final int start = html.indexOf(anchor);
+            if (start < 0) {
+                throw new IllegalStateException(type + " is missing published companion " + method + " (ADR 0031)");
+            }
+            final Matcher nextMethod = Pattern.compile("id=\"[^\"]+\\([^\"]*\\)\"").matcher(html);
+            final int end = nextMethod.find(start + anchor.length()) ? nextMethod.start() : html.length();
+            if (!html.substring(start, end).contains("href=\"#")) {
+                throw new IllegalStateException(type + "#" + method + " needs a link to its setting contract (ADR 0031)");
+            }
         }
     }
 

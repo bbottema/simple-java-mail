@@ -55,8 +55,9 @@ public class BatchSupport implements BatchModule {
 	public synchronized void registerToCluster(final OperationalConfig operationalConfig, final UUID clusterKey, final Session session,
 			final SendingAllowance sendingAllowance, final PoolConnectionObserver observer) {
 		requireCompatibleAllowance(clusterKey, session, sendingAllowance);
-		ensureEngineInitialized(operationalConfig);
-		if (requireNonNull(batchTransportEngine).register(clusterKey, session, PoolSettings.from(operationalConfig, clusterKey), observer)) {
+		final PoolSettings settings = PoolSettings.from(operationalConfig, clusterKey);
+		ensureEngineInitialized(settings);
+		if (requireNonNull(batchTransportEngine).register(clusterKey, session, settings, observer)) {
 			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster; "
 					+ "ignoring later pool settings",
 					clusterKey);
@@ -81,11 +82,12 @@ public class BatchSupport implements BatchModule {
 		sendingAllowances.put(clusterKey, registered);
 	}
 
-	private void ensureEngineInitialized(@NotNull OperationalConfig operationalConfig) {
+	private void ensureEngineInitialized(@NotNull final PoolSettings initialSettings) {
 		if (batchTransportEngine == null) {
 			LOGGER.warn("Starting SMTP connection pool cluster: JVM won't shutdown until the pool is manually closed with mailer.closeAsync() "
 					+ "(for each mailer in the cluster)");
-			batchTransportEngine = new BatchTransportEngine<>(PoolSettings.from(operationalConfig, null));
+			// Every cluster is registered with explicit resolved settings; initialization must not validate unused global size pairs.
+			batchTransportEngine = new BatchTransportEngine<>(initialSettings);
 			smtpConnectionPool = batchTransportEngine.getSmtpConnectionPool();
 		}
 	}

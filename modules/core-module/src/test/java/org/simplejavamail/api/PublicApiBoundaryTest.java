@@ -183,12 +183,16 @@ class PublicApiBoundaryTest {
 
     @Test
     void applicationValueBuildersHaveExplicitDocumentedCompanionMethods() throws Exception {
-        for (final String relativePath : List.of("api/mailer/config/ConnectionPoolClusterConfig.java")) {
+        for (final String relativePath : List.of("api/mailer/config/ConnectionPoolClusterConfig.java", "api/mailer/config/FailoverPolicy.java",
+                "api/mailer/config/MailSendRetryPolicy.java", "api/email/config/DkimConfig.java", "api/email/config/SmimeSigningConfig.java",
+                "api/email/config/SmimeEncryptionConfig.java")) {
             final String source = Files.readString(Path.of("src/main/java/org/simplejavamail", relativePath));
             assertThat(source).as(relativePath).doesNotContain("import lombok.Builder", "@Builder");
+            final Matcher builderDeclaration = Pattern.compile("public static (?:final )?class \\w*Builder\\b").matcher(source);
+            assertThat(builderDeclaration.find()).as(relativePath).isTrue();
             final Matcher methods = Pattern.compile(
                     "(?s)/\\*\\*((?:(?!\\*/).)*)\\*/\\s*(?:@\\w+(?:\\([^)]*\\))?\\s*)*public [^{};]+? (get\\w+|is\\w+|clear\\w+|reset\\w+)\\(")
-                    .matcher(source.substring(source.indexOf("public static final class")));
+                    .matcher(source.substring(builderDeclaration.start()));
             final List<String> documentedMethods = new ArrayList<>();
             while (methods.find()) {
                 assertThat(methods.group(1)).as(relativePath + "#" + methods.group(2)).contains("@see #");

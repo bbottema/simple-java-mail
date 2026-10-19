@@ -91,6 +91,10 @@ and closes them after admitted work drains. Existing Mailers supplied by the app
 Spring's normal default-Mailer lifecycle and CLI cleanup follow the same owner. ADR 0029 owns the construction/rollback/shutdown details
 and future verification; this extension is not evidence that those paths are already implemented.
 
+Application builder inspection reads stored choices, including absence, without constructing a throwaway configuration to resolve defaults.
+Clearing an optional provider-resolved choice restores absence; it does not introduce a new hard-coded algorithm. Construction validates the
+supplied configuration and any inherited combinations before creating resources. Setting order remains independent of final validation.
+
 ## Alternatives and consequences
 
 The issue explicitly considered retaining a static compatibility facade and passing configuration directly to builders. The selected factory makes ownership visible at the common entry point and reduces the chance that a converter or secondary builder silently uses another configuration. This explanation of the tradeoff follows the implementation; the history does not contain a formal rejection memo for each alternative.

@@ -263,7 +263,7 @@ public class MailSendRetryPolicy implements Serializable {
             return this;
         }
 
-        /** Restores fixed retry delays with no configured cap. */
+        /** @see #withRetryBackoff(int, Duration) */
         @NotNull
         public Builder resetRetryBackoff() {
             retryBackoffMultiplier = DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER;
@@ -280,7 +280,7 @@ public class MailSendRetryPolicy implements Serializable {
         @NotNull
         public Builder withRetryJitter(final double fraction) { retryJitter = fraction; return this; }
 
-        /** Restores zero jitter. */
+        /** @see #withRetryJitter(double) */
         @NotNull
         public Builder resetRetryJitter() { return withRetryJitter(DEFAULT_MAIL_SEND_RETRY_JITTER); }
 
@@ -295,10 +295,7 @@ public class MailSendRetryPolicy implements Serializable {
         @NotNull
         public Builder withWaitingCapacity(final int capacity) { waitingCapacity = capacity; return this; }
 
-        /**
-         * Restores the built-in waiting capacity.
-         * @see #withWaitingCapacity(int)
-         */
+        /** @see #withWaitingCapacity(int) */
         @NotNull
         public Builder resetWaitingCapacity() { return withWaitingCapacity(DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY); }
 
@@ -313,10 +310,7 @@ public class MailSendRetryPolicy implements Serializable {
         @NotNull
         public Builder withMaximumMessageSize(final long bytes) { maximumMessageSize = bytes; return this; }
 
-        /**
-         * Restores the built-in maximum replay-message size.
-         * @see #withMaximumMessageSize(long)
-         */
+        /** @see #withMaximumMessageSize(long) */
         @NotNull
         public Builder resetMaximumMessageSize() { return withMaximumMessageSize(DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE); }
 
@@ -330,12 +324,52 @@ public class MailSendRetryPolicy implements Serializable {
         @NotNull
         public Builder withMemoryLimit(final long bytes) { memoryLimit = bytes; return this; }
 
-        /**
-         * Restores the built-in aggregate replay-content budget.
-         * @see #withMemoryLimit(long)
-         */
+        /** @see #withMemoryLimit(long) */
         @NotNull
         public Builder resetMemoryLimit() { return withMemoryLimit(DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT); }
+
+        /** @see #withMaximumAttempts(int) */
+        @Nullable
+        public Integer getMaximumAttempts() {
+            return maximumAttempts;
+        }
+
+        /** @see #withRetryDelay(Duration) */
+        @Nullable
+        public Duration getRetryDelay() {
+            return retryDelay;
+        }
+
+        /** @see #withRetryBackoff(int, Duration) */
+        public int getRetryBackoffMultiplier() {
+            return retryBackoffMultiplier;
+        }
+
+        /** @see #withRetryBackoff(int, Duration) */
+        @Nullable
+        public Duration getMaximumRetryDelay() {
+            return maximumRetryDelay;
+        }
+
+        /** @see #withRetryJitter(double) */
+        public double getRetryJitter() {
+            return retryJitter;
+        }
+
+        /** @see #withWaitingCapacity(int) */
+        public int getWaitingCapacity() {
+            return waitingCapacity;
+        }
+
+        /** @see #withMaximumMessageSize(long) */
+        public long getMaximumMessageSize() {
+            return maximumMessageSize;
+        }
+
+        /** @see #withMemoryLimit(long) */
+        public long getMemoryLimit() {
+            return memoryLimit;
+        }
 
         /** @throws IllegalArgumentException If the schedule is incomplete or invalid, or the resource limits cannot hold one replay message. */
         @NotNull
