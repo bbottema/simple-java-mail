@@ -44,6 +44,10 @@ Waiting only for owned executor termination would miss synchronous and caller-ex
 
 Draining is not instantaneous and has no independent forced-completion guarantee. Slow inline observers, synchronous future continuations, blocked custom code or an external executor that never executes accepted work can delay it. An offloaded callback may still run after shutdown completes. An explicit `closeAsync().get()` inside one's own callback bypasses the `close()` guard; cross-Mailer dependency cycles are not generally detected. Connection-test/probe tasks are separate helper paths and do not automatically acquire the complete send-operation contract.
 
+Connection tests and probes nevertheless cannot start connection work after shutdown begins. An asynchronous helper checks again when it
+executes, because the Mailer may have closed while it waited on an application-owned executor. This restriction does not turn helper tasks
+into admitted email sends or promise that shutdown drains every scheduled helper.
+
 ## Implementation and regression anchors
 
 [ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Suspended retries have

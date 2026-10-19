@@ -132,9 +132,11 @@ public interface Mailer extends AutoCloseable {
 		 * Connects to the configured SMTP server, including authentication and configured proxy routing, on the calling thread.
 		 * This health check also connects in logging-only mode. It sends no email and does not notify the mail-send observer.
 		 * Connection/proxy cleanup completes before returning or throwing. Provider connection/read timeouts apply, not total send deadlines.
-		 * Coordination uses the owning Mailer, shared with its asynchronous view and shutdown.
+		 * Coordination uses the owning Mailer, shared with its asynchronous view and shutdown. Once shutdown begins, use a new Mailer
+		 * for further connection checks.
 		 *
 		 * @throws MailException If connecting or authenticating fails.
+		 * @throws IllegalStateException If this Mailer has started shutting down.
 		 * @see Async#testConnection()
 		 */
 		void testConnection();
@@ -221,6 +223,7 @@ public interface Mailer extends AutoCloseable {
 		 * Schedules the SMTP health check described by {@link Sync#testConnection()} on this Mailer's executor.
 		 * Scheduling, connection and authentication failures complete the returned future exceptionally.
 		 * Completion follows connection/proxy cleanup; this is not a send operation and does not use observers or total send deadlines.
+		 * If shutdown starts before the check runs, the future fails without opening a connection.
 		 * Cancelling the future does not abort socket I/O; configure provider connection/read timeouts.
 		 *
 		 * @return Completion of the full connection test, or its failure.

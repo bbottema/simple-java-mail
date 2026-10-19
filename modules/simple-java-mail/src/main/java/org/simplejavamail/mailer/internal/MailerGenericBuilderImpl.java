@@ -1056,8 +1056,22 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 	}
 
+	/** @see MailerGenericBuilder#getFailoverMailer() */
+	@Override
 	@Nullable
-	MailerImpl getFailoverMailer() {
+	public Mailer getFailoverMailer() {
+		return failoverMailer;
+	}
+
+	/** @see MailerGenericBuilder#getFailoverPolicy() */
+	@Override
+	@Nullable
+	public FailoverPolicy getFailoverPolicy() {
+		return failoverPolicy;
+	}
+
+	@Nullable
+	MailerImpl getResolvedFailoverMailer() {
 		return failoverMailer;
 	}
 

@@ -53,6 +53,7 @@ public final class PublicJavadocContractCheck {
         requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "DES_EDE3_CBC");
         requireText("email/config/DkimConfig.DkimConfigBuilder", "SHA256_WITH_ED25519");
         requireLinkedCompanions("mailer/MailerGenericBuilder", "getDebugOutput", "resetDebugLogging", "clearDebugPrinter", "clearDebugOutput");
+        requireLinkedCompanions("mailer/MailerGenericBuilder", "getFailoverMailer", "getFailoverPolicy");
         if (read("email/Recipients").contains("id=\"&lt;init&gt;()\"")) {
             throw new IllegalStateException("Recipients Javadoc must not advertise a nonexistent no-argument constructor");
         }

@@ -969,7 +969,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T verifyingServerIdentity(boolean verifyingServerIdentity);
 
 	/**
-	 * Adds the given properties to the total list applied to the {@link Session} when building a mailer.
+	 * Adds extra Jakarta Mail settings to the {@link Session} built for this Mailer. Only entries stored directly in this
+	 * {@link Properties} object are copied; values inherited from its defaults are not. To include an inherited value,
+	 * add it explicitly with {@link #withProperty(String, Object)}.
 	 *
 	 * @see #withProperties(Map)
 	 * @see #withProperty(String, Object)
@@ -1250,6 +1252,23 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	@Cli.ExcludeApi(reason = "Live Mailers and paired policies use the internal named-configuration CLI facade")
 	T withFailoverMailer(@NotNull Mailer failoverMailer, @NotNull FailoverPolicy policy);
+
+	/**
+	 * Returns the Mailer supplied directly to the setter, or {@code null} when none was supplied. A property-configured named
+	 * destination is created only when building the Mailer; inspecting this builder does not create it.
+	 *
+	 * @see #withFailoverMailer(Mailer, FailoverPolicy)
+	 */
+	@Nullable
+	Mailer getFailoverMailer();
+
+	/**
+	 * Returns the policy held by this builder, or {@code null} when no failover relationship is configured.
+	 *
+	 * @see #withFailoverMailer(Mailer, FailoverPolicy)
+	 */
+	@Nullable
+	FailoverPolicy getFailoverPolicy();
 
 	/** Removes the failover relationship and its policy, unless that relationship is fixed by a {@code simplejavamail.locked.*} property. */
 	@Cli.ExcludeApi(reason = "Fresh CLI builders select named configuration rather than clearing live Mailer references")
