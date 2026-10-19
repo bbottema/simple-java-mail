@@ -3,6 +3,8 @@ package org.simplejavamail.springsupport;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.config.ConfigDiagnostics;
 import org.simplejavamail.config.ConfigDiagnosticGroup;
 import org.simplejavamail.config.ConfigLoader;
@@ -70,16 +72,46 @@ class SpringEnvironmentConfigSourceTest {
 		assertThat(clusterDiagnostic.isRedacted()).isFalse();
 	}
 
-	@Test
-	void rejectsNonPositiveCreationAgeExpirationFromSpring() {
+	@ParameterizedTest
+	@ValueSource(ints = {0, -1})
+	void preservesCreationAgeValuesAndSourcesForValidationByTheBatchModule(final int value) {
 		final StandardEnvironment environment = new StandardEnvironment();
-		environment.getPropertySources().addFirst(source("invalid deployment", DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), "0"));
+		final UUID clusterKey = UUID.fromString("00000000-0000-0000-0000-000000000301");
+		final String globalProperty = DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key();
+		final String clusterProperty = "simplejavamail.defaults.connectionpool.clusters." + clusterKey + ".expireaftercreation.millis";
+		environment.getPropertySources().addFirst(new MapPropertySource("pool defaults", Map.of(
+				globalProperty, "450000", clusterProperty, "600000")));
+		environment.getPropertySources().addFirst(new MapPropertySource("deployment values", Map.of(
+				globalProperty, Integer.toString(value), clusterProperty, Integer.toString(value))));
+		ConfigurationPropertySources.attach(environment);
 
-		assertThatThrownBy(() -> loadConfig(environment))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key())
-				.hasMessageContaining("invalid deployment")
-				.hasMessageContaining("positive integer");
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
+		assertThat(clusters.get(clusterKey).getExpireAfterCreationMillis()).isEqualTo(value);
+		for (String property : new String[] {globalProperty, clusterProperty}) {
+			final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), property);
+			assertThat(diagnostic.getDisplayValue()).isEqualTo(Integer.toString(value));
+			assertThat(diagnostic.getSourceName()).isEqualTo("deployment values");
+			assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.EXECUTION_AND_POOLING);
+			assertThat(diagnostic.isRedacted()).isFalse();
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"false", "2147483648"})
+	void rejectsMalformedOrOverflowingCreationAgeValuesWithTheirSpringSources(final String value) {
+		final String globalProperty = DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key();
+		final String clusterProperty = "simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis";
+		for (String property : new String[] {globalProperty, clusterProperty}) {
+			final StandardEnvironment environment = new StandardEnvironment();
+			environment.getPropertySources().addFirst(source("invalid deployment", property, value));
+			assertThatThrownBy(() -> loadConfig(environment))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining(property)
+					.hasMessageContaining("invalid deployment")
+					.hasMessageContaining("integer");
+		}
 	}
 
 	@Test
