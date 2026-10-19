@@ -321,6 +321,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			} else {
 				builder.withReturnReceiptTo();
 			}
+		} else if (Boolean.FALSE.equals(useReturnReceiptTo)) {
+			builder.clearReturnReceiptTo();
 		}
 
 		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
@@ -335,6 +337,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			} else {
 				builder.withDispositionNotificationTo();
 			}
+		} else if (Boolean.FALSE.equals(useDispositionNotificationTo)) {
+			builder.clearDispositionNotificationTo();
 		}
 
 		val overrideReceivers = this.<Recipient>resolveEmailCollectionProperty(provided, EmailProperty.OVERRIDE_RECEIVERS);

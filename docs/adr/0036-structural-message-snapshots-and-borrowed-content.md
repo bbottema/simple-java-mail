@@ -39,6 +39,10 @@ Stronger byte boundaries remain explicit: [exact EML](0013-exact-eml-submission.
 [rehearsal](0014-send-time-rehearsal.md) returns its own rendered bytes; [retry preparation](0030-safe-bounded-mail-send-retries.md) freezes the
 content of that retry-enabled operation. Metadata copying does not silently perform any of these operations.
 
+A convenience reader owns the streams it opens, even when reading from an application-supplied DataSource. It closes each stream,
+including on failure. Direct stream-access methods instead return a caller-owned stream. Neither contract closes the DataSource itself
+or eagerly consumes its content during message construction.
+
 ## Alternatives considered
 
 - **Only wrap builder collections:** cheap, but earlier messages remain changeable through retained aliases.

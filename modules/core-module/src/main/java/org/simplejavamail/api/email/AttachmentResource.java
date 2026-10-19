@@ -222,27 +222,34 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * Delegates to {@link MiscUtil#readInputStreamToBytes(InputStream)} with data source input stream.
+	 * Reads all attachment bytes and closes the stream opened for this call, including when reading fails.
+	 * The DataSource itself remains application-owned.
 	 */
 	@NotNull
 	public byte[] readAllBytes()
 			throws IOException {
-		return MiscUtil.readInputStreamToBytes(getDataSourceInputStream());
+		try (InputStream input = getDataSourceInputStream()) {
+			return MiscUtil.readInputStreamToBytes(input);
+		}
 	}
 
 	/**
-	 * Delegates to {@link MiscUtil#readInputStreamToString(InputStream, Charset)} with data source input stream.
+	 * Reads the attachment using the supplied charset and closes the stream opened for this call, including when reading fails.
+	 * The DataSource itself remains application-owned.
 	 */
 	@SuppressWarnings({"WeakerAccess" })
 	@NotNull
 	public String readAllData(@SuppressWarnings("SameParameterValue") @NotNull final Charset charset)
 			throws IOException {
 		checkNonEmptyArgument(charset, "charset");
-		return MiscUtil.readInputStreamToString(getDataSourceInputStream(), charset);
+		try (InputStream input = getDataSourceInputStream()) {
+			return MiscUtil.readInputStreamToString(input, charset);
+		}
 	}
 
 	/**
-	 * Delegates to {@link DataSource#getInputStream}
+	 * Opens an attachment stream for the caller to consume and close.
+	 * Use {@link #readAllBytes()} or {@link #readAllData()} when the entire content is needed without managing a stream.
 	 */
 	@NotNull
 	public InputStream getDataSourceInputStream() {

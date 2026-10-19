@@ -278,12 +278,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getDkimConfig() != null) {
 			builder.signWithDomainKey(email.getDkimConfig());
 		}
-		if (email.getDispositionNotificationTo() != null) {
-			builder.withDispositionNotificationTo(email.getDispositionNotificationTo());
-		}
-		if (email.getReturnReceiptTo() != null) {
-			builder.withReturnReceiptTo(email.getReturnReceiptTo());
-		}
+		copyDispositionNotification(email, builder);
+		copyReturnReceipt(email, builder);
 		if (email.getCalendarMethod() != null) {
 			builder.withCalendarText(email.getCalendarMethod(), requireNonNull(email.getCalendarText(), "CalendarText"));
 		}
@@ -306,6 +302,26 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.notMergingSingleSMIMESignedAttachment();
 		}
 		return builder;
+	}
+
+	private static void copyDispositionNotification(final Email email, final EmailPopulatingBuilder builder) {
+		if (Boolean.FALSE.equals(email.getUseDispositionNotificationTo())) {
+			builder.clearDispositionNotificationTo();
+		} else if (email.getDispositionNotificationTo() != null) {
+			builder.withDispositionNotificationTo(email.getDispositionNotificationTo());
+		} else if (Boolean.TRUE.equals(email.getUseDispositionNotificationTo())) {
+			builder.withDispositionNotificationTo();
+		}
+	}
+
+	private static void copyReturnReceipt(final Email email, final EmailPopulatingBuilder builder) {
+		if (Boolean.FALSE.equals(email.getUseReturnReceiptTo())) {
+			builder.clearReturnReceiptTo();
+		} else if (email.getReturnReceiptTo() != null) {
+			builder.withReturnReceiptTo(email.getReturnReceiptTo());
+		} else if (Boolean.TRUE.equals(email.getUseReturnReceiptTo())) {
+			builder.withReturnReceiptTo();
+		}
 	}
 
 	private ConfiguredEmailConverter converter() {

@@ -71,6 +71,12 @@ Existing APIs do not all express these distinctions consistently. Record those m
 `null` is unset, explicit `false` is a supplied value, and clearing permits fallback. It does not change template replacement,
 suppression or the ordinary exact-EML bypass.
 
+### Copy configuration choices, not just their resolved values
+
+Copying preserves absence, explicit disabling and deferred resolution independently. Notification requests illustrate the distinction:
+an enabled flag with no address means resolve the address later, not an absent request. An explicit false remains false through copying
+and governance so a subsequent defaults pass cannot turn the request back on. An explicit address is copied without resolving another one.
+
 ## Recipient and exact-EML boundaries
 
 Recipient-group defaults are construction-time conveniences. They resolve into the group's produced Recipient objects; governance does not maintain a live group hierarchy. Email-level fallback for a recipient-capable field remains useful, but it is not equivalent to rewriting every recipient field.
