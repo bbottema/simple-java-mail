@@ -74,6 +74,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- Forwarded messages in Email templates follow ordinary override/submitted/default precedence and suppression, without reading or copying their
+  bodies during governance. Builder-entry Javadocs show the configured factory bootstrap rather than nonexistent static builder calls.
+
 - Recipient-template suppression honors `ALL_RECIPIENTS` for To/Cc/Bcc without removing explicit recipients, delivery-recipient overrides or locks.
 - Email equality includes DKIM configuration and counts repeated attachment/image occurrences without reading their content.
 - Connection tests reject work after Mailer shutdown starts, including asynchronous checks still waiting on an application-owned executor.
