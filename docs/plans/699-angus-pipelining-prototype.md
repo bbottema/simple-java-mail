@@ -1,6 +1,6 @@
 # Angus PIPELINING prototype
 
-Implementation plan, 2026-10-14. Start with the [Angus contribution guide](../research/699-angus-contribution-conventions.md) and use it again for the final diff review. The [posted proposal](699-angus-pipelining-proposal.md) remains the scope agreement; this file tracks the local experiment. [Results and reproduction commands](../research/699-angus-pipelining-prototype-results.md).
+Implementation plan, 2026-10-14. Start with the [Angus contribution guide](../research/699-angus-contribution-conventions.md) and use it again for the final diff review. The [posted proposal](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-proposal.md) remains the scope agreement; this file tracks the local experiment. [Results and reproduction commands](../research/699-angus-pipelining-prototype-results.md).
 
 **Current status: two integrated feature alternatives, tested locally.** The reader-thread Angus integration can stall under valid-command TLS pressure. The SSLEngine branch now uses the same Angus envelope construction, delivery state, properties and subclass hooks, with channel I/O replacing the reader. The user approved an engine factory hook with sequential fallback for existing factories. The [integration and parity report](../research/699-angus-prototype-parity.md) records current verification separately from the historical standalone experiment. These remain prototypes, not release-ready patches. No upstream publication is authorized.
 
@@ -23,7 +23,7 @@ The earlier standalone [SSLEngine experiment](../research/699-angus-sslengine-pr
 
 The user authorized committing #699 planning and research to SJM on 2026-10-15. These documents stay out of both Angus patches. Raw results, local harnesses, downloaded references and private Maven artifacts remain under the excluded `.local/angus-pipelining` directory. Keep reproducible tests and their running instructions in the Angus patches. Draft communications in the chat first; nothing is published automatically.
 
-The SSLEngine experiment was first packaged in its own Angus worktree as a test-only patch. That stage is retained in the [engine report](../research/699-angus-sslengine-prototype.md). The subsequent user request supersedes that restriction: both branches must independently implement the feature contract. PR drafts: [reader-thread integration](699-angus-pipelining-prototype-pr-draft.md) and [SSLEngine integration](699-angus-sslengine-prototype-pr-draft.md). The user-edited progress-comment draft is retained unchanged and is not ready to post without reconciling the later experiments.
+The SSLEngine experiment was first packaged in its own Angus worktree as a test-only patch. That stage is retained in the [engine report](../research/699-angus-sslengine-prototype.md). The subsequent user request supersedes that restriction: both branches must independently implement the feature contract. PR drafts: [reader-thread integration](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-prototype-pr-draft.md) and [SSLEngine integration](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-sslengine-prototype-pr-draft.md). The user-edited progress-comment draft is retained unchanged and is not ready to post without reconciling the later experiments.
 
 ## Scope and baselines
 
@@ -70,7 +70,7 @@ Keep new private Maven repositories and logs under `.local/angus-pipelining` in 
 - [x] Separate SJM integration diff, ordered command tracking and two enabled wire tests.
 - [x] Reproducible results report covering the reader experiment, envelope implementation and separate SJM integration, with limitations and logs.
 - [x] Envelope latency comparison, explicitly scoped to the tested conditions and not evidence that the TLS concern is resolved.
-- [x] Per-file diff review, separate patch exports and local [draft explanation](699-angus-pipelining-prototype-pr-draft.md). This is not a feature PR ready to publish.
+- [x] Per-file diff review, separate patch exports and local [draft explanation](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-prototype-pr-draft.md). This is not a feature PR ready to publish.
 - [x] Local feature hygiene review and generated Javadoc inspection; unresolved protocol and full-CI limitations remain documented.
 - [x] Full SJM default-on/default-off comparison, path counts, unchanged assertions and suite timing; temporary measurement hooks removed afterward.
 - [x] Actual-transport TLS follow-up and clean-artifact checks on JDK 11/17/21. Existing timeout behavior is now distinguished from the standalone fixture's wrapper order.

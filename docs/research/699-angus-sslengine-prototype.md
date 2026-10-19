@@ -1,7 +1,7 @@
 # Separate SSLEngine prototype: result and limits
 
 Local experiment, 2026-10-15. This tests option 3 from the
-[progress-comment draft](../plans/699-angus-pipelining-progress-comment.md).
+[progress-comment draft](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-progress-comment.md).
 The draft itself was left unchanged. No production Angus/SJM sources, dependencies,
 commits or GitHub comments were changed during the original experiment. Its files
 and results were initially Git-excluded. The packaging follow-up below records

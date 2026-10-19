@@ -1,7 +1,7 @@
 # TLS recovery spike and alternatives to the reader thread
 
 Local investigation, 2026-10-15. Git-excluded. Nothing published or committed.
-The user-edited [progress comment](../plans/699-angus-pipelining-progress-comment.md)
+The user-edited [progress comment](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-progress-comment.md)
 was read but not changed in this round. Previous [conditional stall measurements](699-angus-tls-stall-rate-measurements.md)
 remain separate from this recovery experiment.
 
