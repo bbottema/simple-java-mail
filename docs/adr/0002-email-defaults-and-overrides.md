@@ -53,6 +53,10 @@ The `ALL_RECIPIENTS` suppression selector covers To, Cc and Bcc together. Suppre
 neither form suppresses the separately named delivery-recipient override. These controls remove ordinary template contributions, not the
 submitted Email's recipients or mandatory recipients supplied by configuration locks.
 
+The message being forwarded follows single-value precedence too: override, submitted Email, then default. `MAIL_TO_FORWARD` suppresses the
+corresponding template contribution without removing the submitted source; subject and other fields resolve independently. Retain the selected
+MimeMessage as a borrowed reference rather than reading, serializing or copying its body during governance, as defined by [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+
 Header identity is case-insensitive: `X-Route` and `x-route` name the same header during composition and template resolution. Explicit replacement
 removes the earlier value collection even when its spelling differs. Retain a useful display spelling rather than requiring callers to normalize
 header names themselves. This concerns composed metadata; exact EML retains its authoritative bytes.
