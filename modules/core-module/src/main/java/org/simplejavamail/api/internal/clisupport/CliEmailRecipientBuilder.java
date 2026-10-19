@@ -15,6 +15,7 @@ import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType
 /**
  * Internal facade for recipient methods required by the generated CLI and property-backed configuration without exposing that plumbing on
  * {@link EmailPopulatingBuilder}.
+ * The parsed-list method names differ from the public single-recipient shortcuts while their CLI option names remain unchanged.
  */
 @Cli.BuilderApiNode(builderApiType = EMAIL)
 public interface CliEmailRecipientBuilder {
@@ -48,7 +49,8 @@ public interface CliEmailRecipientBuilder {
 	 * @param oneOrMoreAddresses A single RFC2822 address or a comma- or semicolon-delimited list of addresses.
 	 */
 	@NotNull
-	default CliEmailRecipientBuilder to(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
+	@Cli.OptionNameOverride("to")
+	default CliEmailRecipientBuilder toAddresses(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
 		withRecipients(name, true, TO, oneOrMoreAddresses);
 		return this;
 	}
@@ -60,7 +62,8 @@ public interface CliEmailRecipientBuilder {
 	 * @param oneOrMoreAddresses A single RFC2822 address or a comma- or semicolon-delimited list of addresses.
 	 */
 	@NotNull
-	default CliEmailRecipientBuilder cc(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
+	@Cli.OptionNameOverride("cc")
+	default CliEmailRecipientBuilder ccAddresses(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
 		withRecipients(name, true, CC, oneOrMoreAddresses);
 		return this;
 	}
@@ -72,7 +75,8 @@ public interface CliEmailRecipientBuilder {
 	 * @param oneOrMoreAddresses A single RFC2822 address or a comma- or semicolon-delimited list of addresses.
 	 */
 	@NotNull
-	default CliEmailRecipientBuilder bcc(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
+	@Cli.OptionNameOverride("bcc")
+	default CliEmailRecipientBuilder bccAddresses(@Nullable @Cli.Optional String name, @NotNull String oneOrMoreAddresses) {
 		withRecipients(name, true, BCC, oneOrMoreAddresses);
 		return this;
 	}

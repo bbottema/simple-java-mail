@@ -93,12 +93,26 @@ public class RecipientBuilderTest {
     }
 
     @Test
-    public void shortcutsExposeOnlyTheNamedSingleAddressSignatures() {
+    public void addressOnlyShortcutsClearNamesAndRetainMetadata() {
+        final X509Certificate certificate = mock(X509Certificate.class);
+        final IRecipientBuilder builder = SimpleJavaMail.fromDefaults().recipientBuilder()
+                .withName("Previous").withSmimeCertificate(certificate).withDeliveryStatusNotificationNotifyOptions(FAILURE);
+        assertThat(builder.to("alice@example.com"))
+                .isEqualTo(new Recipient(null, "alice@example.com", TO, certificate, singleton(FAILURE)));
+        assertThat(builder.withName("Previous").cc("audit@example.com"))
+                .isEqualTo(new Recipient(null, "audit@example.com", CC, certificate, singleton(FAILURE)));
+        assertThat(builder.withName("Previous").bcc("archive@example.com"))
+                .isEqualTo(new Recipient(null, "archive@example.com", BCC, certificate, singleton(FAILURE)));
+    }
+
+    @Test
+    public void shortcutsExposeNamedAndAddressOnlySingleRecipientSignatures() {
         assertThat(IRecipientBuilder.class.getDeclaredMethods())
                 .filteredOn(method -> asList("to", "cc", "bcc").contains(method.getName()))
-                .hasSize(3)
+                .hasSize(6)
                 .allSatisfy(method -> {
-                    assertThat(method.getParameterTypes()).containsExactly(String.class, String.class);
+                    assertThat(method.getParameterTypes()).allMatch(type -> type == String.class);
+                    assertThat(method.getParameterCount()).isBetween(1, 2);
                     assertThat(method.getReturnType()).isEqualTo(Recipient.class);
                 });
     }

@@ -38,6 +38,7 @@ import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
+import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -564,7 +565,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
-		this.propertiesNotToApplyDefaultValueFor = new HashSet<>(asList(emailProperties));
+		if (emailProperties.length > 0) {
+			if (propertiesNotToApplyDefaultValueFor == null) {
+				propertiesNotToApplyDefaultValueFor = new HashSet<>();
+			}
+			propertiesNotToApplyDefaultValueFor.addAll(asList(emailProperties));
+		}
 		return this;
 	}
 
@@ -573,7 +579,46 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder dontApplyOverrideValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
-		this.propertiesNotToApplyOverrideValueFor = new HashSet<>(asList(emailProperties));
+		if (emailProperties.length > 0) {
+			if (propertiesNotToApplyOverrideValueFor == null) {
+				propertiesNotToApplyOverrideValueFor = new HashSet<>();
+			}
+			propertiesNotToApplyOverrideValueFor.addAll(asList(emailProperties));
+		}
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#allowDefaultValueFor(EmailProperty...) */
+	@Override
+	public EmailPopulatingBuilder allowDefaultValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
+		requireNonNull(emailProperties, "emailProperties");
+		if (propertiesNotToApplyDefaultValueFor != null) {
+			propertiesNotToApplyDefaultValueFor.removeAll(asList(emailProperties));
+		}
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#allowOverrideValueFor(EmailProperty...) */
+	@Override
+	public EmailPopulatingBuilder allowOverrideValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
+		requireNonNull(emailProperties, "emailProperties");
+		if (propertiesNotToApplyOverrideValueFor != null) {
+			propertiesNotToApplyOverrideValueFor.removeAll(asList(emailProperties));
+		}
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#clearDefaultValueSuppressions() */
+	@Override
+	public EmailPopulatingBuilder clearDefaultValueSuppressions() {
+		propertiesNotToApplyDefaultValueFor = new HashSet<>();
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#clearOverrideValueSuppressions() */
+	@Override
+	public EmailPopulatingBuilder clearOverrideValueSuppressions() {
+		propertiesNotToApplyOverrideValueFor = new HashSet<>();
 		return this;
 	}
 
@@ -1105,6 +1150,42 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public InternalEmailPopulatingBuilder withRecipients(@NotNull final Recipient @NotNull ... recipients) {
 		return withRecipients(asList(recipients));
 	}
+
+	/** @see EmailPopulatingBuilder#to(String) */
+	@Override
+	public EmailPopulatingBuilder to(@NotNull final String address) {
+		return to(null, address);
+	}
+
+	/** @see EmailPopulatingBuilder#to(String, String) */
+	@Override
+	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final String address) {
+		return withRecipients(new RecipientBuilderImpl().to(name, address));
+	}
+
+	/** @see EmailPopulatingBuilder#cc(String) */
+	@Override
+	public EmailPopulatingBuilder cc(@NotNull final String address) {
+		return cc(null, address);
+	}
+
+	/** @see EmailPopulatingBuilder#cc(String, String) */
+	@Override
+	public EmailPopulatingBuilder cc(@Nullable final String name, @NotNull final String address) {
+		return withRecipients(new RecipientBuilderImpl().cc(name, address));
+	}
+
+	/** @see EmailPopulatingBuilder#bcc(String) */
+	@Override
+	public EmailPopulatingBuilder bcc(@NotNull final String address) {
+		return bcc(null, address);
+	}
+
+	/** @see EmailPopulatingBuilder#bcc(String, String) */
+	@Override
+	public EmailPopulatingBuilder bcc(@Nullable final String name, @NotNull final String address) {
+		return withRecipients(new RecipientBuilderImpl().bcc(name, address));
+	}
 	
 	private void addParsedRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
 		try {
@@ -1414,6 +1495,19 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata) {
 		return withAttachment(name, filedata, null, null);
+	}
+
+	/** @see EmailPopulatingBuilder#withAttachment(Path) */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@NotNull final Path path) {
+		return withAttachment(null, path);
+	}
+
+	/** @see EmailPopulatingBuilder#withAttachment(String, Path) */
+	@Override
+	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final Path path) {
+		final PathAttachmentDataSource source = new PathAttachmentDataSource(path);
+		return withAttachment(name == null ? source.getName() : name, source);
 	}
 
 	/**
@@ -2041,16 +2135,40 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearSmime() {
-		this.smimeSigningConfig = null;
-		this.smimeEncryptionConfig = null;
+		return clearSmimeSigning().clearSmimeEncryption();
+	}
+
+	/** @see EmailPopulatingBuilder#clearSmimeSigning() */
+	@Override
+	public EmailPopulatingBuilder clearSmimeSigning() {
+		smimeSigningConfig = null;
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#clearSmimeEncryption() */
+	@Override
+	public EmailPopulatingBuilder clearSmimeEncryption() {
+		smimeEncryptionConfig = null;
 		return this;
 	}
 
 	/** @see EmailPopulatingBuilder#clearOpenPgp() */
 	@Override
 	public EmailPopulatingBuilder clearOpenPgp() {
-		this.openPgpSigningConfig = null;
-		this.openPgpEncryptionConfig = null;
+		return clearOpenPgpSigning().clearOpenPgpEncryption();
+	}
+
+	/** @see EmailPopulatingBuilder#clearOpenPgpSigning() */
+	@Override
+	public EmailPopulatingBuilder clearOpenPgpSigning() {
+		openPgpSigningConfig = null;
+		return this;
+	}
+
+	/** @see EmailPopulatingBuilder#clearOpenPgpEncryption() */
+	@Override
+	public EmailPopulatingBuilder clearOpenPgpEncryption() {
+		openPgpEncryptionConfig = null;
 		return this;
 	}
 

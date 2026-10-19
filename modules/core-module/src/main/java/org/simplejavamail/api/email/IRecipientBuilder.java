@@ -16,6 +16,27 @@ import java.util.Set;
 public interface IRecipientBuilder {
 
     /**
+     * Creates one TO recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * The address remains one value; address lists are not split.
+     * @see #to(String, String)
+     */
+    @NotNull Recipient to(@NotNull String address);
+
+    /**
+     * Creates one CC recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * The address remains one value; address lists are not split.
+     * @see #cc(String, String)
+     */
+    @NotNull Recipient cc(@NotNull String address);
+
+    /**
+     * Creates one BCC recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * The address remains one value; address lists are not split.
+     * @see #bcc(String, String)
+     */
+    @NotNull Recipient bcc(@NotNull String address);
+
+    /**
      * Creates one TO recipient directly from a name and an address.
      * <p>
      * This is a shortcut for setting the name, address and type on this builder and calling {@link #build()}. Any S/MIME certificate or delivery
