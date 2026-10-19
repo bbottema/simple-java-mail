@@ -49,6 +49,10 @@ Resolution depends on the shape of the value. The following describes current be
 
 These rules are implemented by [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java), [EmailProperty](../../modules/core-module/src/main/java/org/simplejavamail/internal/config/EmailProperty.java), and the [resolution helpers](../../modules/core-module/src/main/java/org/simplejavamail/internal/util/MiscUtil.java). The rationale column explains the architectural tradeoff; it is not a claim that every original implementation decision had a separate historical design record.
 
+The `ALL_RECIPIENTS` suppression selector covers To, Cc and Bcc together. Suppressing a single recipient type leaves the other types alone;
+neither form suppresses the separately named delivery-recipient override. These controls remove ordinary template contributions, not the
+submitted Email's recipients or mandatory recipients supplied by configuration locks.
+
 Header identity is case-insensitive: `X-Route` and `x-route` name the same header during composition and template resolution. Explicit replacement
 removes the earlier value collection even when its spelling differs. Retain a useful display spelling rather than requiring callers to normalize
 header names themselves. This concerns composed metadata; exact EML retains its authoritative bytes.
