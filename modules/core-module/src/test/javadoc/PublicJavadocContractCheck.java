@@ -50,6 +50,13 @@ public final class PublicJavadocContractCheck {
         if (Files.exists(documentation.resolve("org/simplejavamail/api/email/OpenPgpDetails.html"))) {
             throw new IllegalStateException("OpenPGP result assembly must not appear in the application API");
         }
+        if (read("email/Email").contains("&lt;init&gt;(")) {
+            throw new IllegalStateException("Email Javadoc must direct applications to buildEmail(), not internal construction (ADR 0031)");
+        }
+        if (Files.exists(documentation.resolve("org/simplejavamail/api/email/EmailWithDefaultsAndOverridesApplied.html"))
+                || read("email/EmailPopulatingBuilder").contains("EmailWithDefaultsAndOverridesApplied")) {
+            throw new IllegalStateException("Internal defaults/overrides bookkeeping must not appear in the application API (ADR 0031)");
+        }
     }
 
     private void requireGetters(final String type, final String... methods) throws IOException {

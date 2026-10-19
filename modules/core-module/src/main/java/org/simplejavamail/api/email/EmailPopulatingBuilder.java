@@ -57,8 +57,8 @@ public interface EmailPopulatingBuilder {
 	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
 
 	/**
-	 * Delegates to {@link Email#Email(EmailPopulatingBuilder)} with <code>this</code> as argument. This results in an Email instance with
-	 * just the values set on this builder by the user. An Email can be an incomplete defaults/overrides template, including a signing configuration without
+	 * Builds an Email containing the values supplied to this builder. Use this method instead of constructing or subclassing Email directly.
+	 * An Email can be an incomplete defaults/overrides template, including a signing configuration without
 	 * a sender. Mailer preparation checks the completed message before sending; building a template does not validate its completeness.
 	 * <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
 	 * <p>
@@ -83,9 +83,9 @@ public interface EmailPopulatingBuilder {
 	Email buildEmailCompletedWithDefaultsAndOverrides();
 
 	/**
-	 * Like {@link #buildEmail()}, but returning the final email version right away. Useful if you don't use a Mailer which works with email governance,
-	 * or just want to call a helper method that only accepts {@link EmailWithDefaultsAndOverridesApplied}. For regular cases of just sending with a {@link Mailer}, this
-	 * completion stage happens automatically when converting to MimeMessage. In that case use {@link #buildEmail()} instead.
+	 * Builds an Email with the supplied governance's defaults and overrides already applied. Use this when you need the completed message before
+	 * converting or inspecting it without sending. Ordinary sending applies the selected Mailer's governance automatically; use {@link #buildEmail()}
+	 * for that case.
 	 * <p>
 	 * Why not always apply defaults and overrides? Because it would be a waste of resources to do so, especially when you are sending multiple emails reusing a mailer instance.
 	 * Another use case is that when using a server cluster with the batch-module (multiple mailer instances), defaults set during sending ensure that the defaults set for a

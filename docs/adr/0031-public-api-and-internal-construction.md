@@ -66,6 +66,15 @@ Core is not restricted to Java interfaces or to JDK-only dependencies. Lightweig
 belonged there. Keep their public reading/value behavior there, while keeping runtime collection and implementation-only assembly in the owning
 implementation module. Necessary shared utilities and supported SPI construction remain separate, justified cases.
 
+Applications construct Email through `EmailPopulatingBuilder.buildEmail()` or its documented completion variants. The constructor taking that
+builder is protected and internal so the library's implementation can initialize the core read model. Application subclasses are not an extension
+SPI. The obsolete defaults/overrides marker is removed: preparation bookkeeping remains on InternalEmail rather than an application-facing interface.
+This deliberately retires the public constructor and marker present in released versions; callers must use the builder and recompile.
+
+The construction boundary does not change Email's serialized identity. Released snapshots remain readable under the supported Email format,
+and builder-produced subtypes retain their runtime source. A historical plain Email remains inspectable but is not normalized into a sendable
+implementation; runtime operations reject it with useful builder guidance instead of an impossible-state assertion.
+
 `EnhancedStatusCode` is a shared reading contract for SMTP responses and received delivery reports. Its immutable implementation belongs in core's
 internal shared-value package because core's `SmtpServerResponse` and the main MIME parser both produce it. It has no application-facing assembly
 entry point. The two source parsers keep their own interpretation rules; sharing the numeric value does not require sharing SMTP reply parsing with
@@ -191,6 +200,10 @@ the logging flag selects its centralized library default. Companion Javadocs lin
 
 - **Treat every public member as supported API:** exposes machinery that is only public for package/module access and makes it needlessly permanent.
 - **Leave a public builder and say users normally do not need it:** still advertises unsupported construction through completion, docs and examples.
+- **Only deprecate direct Email construction:** preserves linkage but continues offering plain objects that normal runtime operations cannot use.
+  The major-release boundary is the appropriate point to require the existing supported builder route.
+- **Normalize every plain Email or application subtype at runtime:** would broaden source, protection and generated-value ownership merely to
+  support another construction route. Keep one supported construction path and preserve readable serialized data separately.
 - **Use annotations without internal packages:** useful for the unavoidable bridge, insufficient for a whole implementation type.
 - **Keep adding positional overloads:** hides the meaning of adjacent values and repeats defaults across construction paths.
 - **Convert every result class into an interface immediately:** can introduce needless implementations and serialization changes; classify and correct

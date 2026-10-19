@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.EmailWithDefaultsAndOverridesApplied;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 
@@ -23,7 +22,7 @@ import java.io.UnsupportedEncodingException;
 @Deprecated
 @EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied", "deliveryStatusNotificationRequired"})
 @SuppressWarnings("DeprecatedIsStillUsed")
-public class InternalEmail extends Email implements EmailWithDefaultsAndOverridesApplied {
+public class InternalEmail extends Email {
 
     private static final long serialVersionUID = 1234567L;
 
@@ -50,7 +49,9 @@ public class InternalEmail extends Email implements EmailWithDefaultsAndOverride
     @NotNull
     public static InternalEmail requireInternalEmail(@NotNull final Email email) {
         if (!(email instanceof InternalEmail)) {
-            throw new IllegalArgumentException("Email is not a Simple Java Mail Email implementation");
+            throw new IllegalArgumentException("This operation needs an Email created by Simple Java Mail's builder. "
+                    + "Create or rebuild the message through mail.emailBuilder() and finish with buildEmail(). "
+                    + "Directly constructed Emails and application subclasses are not supported for this operation.");
         }
         return (InternalEmail) email;
     }
@@ -151,12 +152,10 @@ public class InternalEmail extends Email implements EmailWithDefaultsAndOverride
         return wasMergedWithSmimeSignedMessage;
     }
 
-    @Override
     public void markAsDefaultsAndOverridesApplied() {
         this.defaultsAndOverridesApplied = true;
     }
 
-    @Override
     public void verifyDefaultsAndOverridesApplied() {
         if (!defaultsAndOverridesApplied) {
             throw new IllegalStateException("Email was not marked as complete. This is a bug in Simple Java Mail. Please report this issue.");

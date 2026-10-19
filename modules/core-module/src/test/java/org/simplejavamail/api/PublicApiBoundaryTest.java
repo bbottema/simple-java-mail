@@ -3,6 +3,8 @@ package org.simplejavamail.api;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.RecipientDeliveryReport;
@@ -126,6 +128,29 @@ class PublicApiBoundaryTest {
     void continuingApplicationCodeCompilesWithoutMainImplementation() throws Exception {
         final boolean compiled = compile(Path.of("src/test/core-only/org/simplejavamail/coreconsumer/CoreOnlyConsumer.java"));
         assertThat(compiled).withFailMessage(compilationDetails).isTrue();
+    }
+
+    @Test
+    void emailConstructionRequiresThePublicBuilderRoute() throws Exception {
+        final Path source = output.resolve("DirectEmailConstruction.java");
+        Files.writeString(source, "class DirectEmailConstruction { org.simplejavamail.api.email.Email create("
+                + "org.simplejavamail.api.email.EmailPopulatingBuilder builder) { return new org.simplejavamail.api.email.Email(builder); } }");
+        assertThat(compile(source)).withFailMessage("Direct Email construction must be internal: %s", compilationDetails).isFalse();
+
+        Files.writeString(source, "class DirectEmailConstruction { org.simplejavamail.api.email.Email create("
+                + "org.simplejavamail.api.email.EmailPopulatingBuilder builder) { return builder.buildEmail(); } }");
+        assertThat(compile(source)).withFailMessage(compilationDetails).isTrue();
+    }
+
+    @Test
+    void emailConstructorIsProtectedForTheLibraryImplementation() throws Exception {
+        assertThat(Email.class.getConstructors()).isEmpty();
+        assertThat(Modifier.isProtected(Email.class.getDeclaredConstructor(EmailPopulatingBuilder.class).getModifiers())).isTrue();
+    }
+
+    @Test
+    void defaultsAndOverridesBookkeepingIsNotAnApplicationContract() {
+        assertThat(Path.of("src/main/java/org/simplejavamail/api/email/EmailWithDefaultsAndOverridesApplied.java")).doesNotExist();
     }
 
     @Test

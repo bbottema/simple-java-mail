@@ -6,6 +6,7 @@ import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
@@ -301,11 +302,13 @@ public class Email implements Serializable {
 	private Date sentDate;
 
 	/**
-	 * Simply transfers everything from {@link EmailPopulatingBuilder} to this Email instance.
+	 * Initializes the library's Email implementation from its builder. Applications create messages through
+	 * {@link EmailPopulatingBuilder#buildEmail()} rather than calling this constructor or subclassing Email.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
-	public Email(@NotNull final EmailPopulatingBuilder builder) {
+	@ApiStatus.Internal
+	protected Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 		serializationFormatVersion = SERIALIZATION_FORMAT_VERSION;
 

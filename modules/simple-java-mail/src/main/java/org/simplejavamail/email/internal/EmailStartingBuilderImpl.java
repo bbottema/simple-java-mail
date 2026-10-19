@@ -206,6 +206,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@SuppressWarnings({"deprecation" })
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
+		final InternalEmail internalEmail = InternalEmail.requireInternalEmail(email);
 		EmailPopulatingBuilder builder = newPopulatingBuilder();
 		builder.ignoringDefaults(email.isIgnoreDefaults());
 		builder.ignoringOverrides(email.isIgnoreOverrides());
@@ -297,11 +298,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
 		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(email.getDeliveryStatusReport());
 
-		if (!(email instanceof InternalEmail)) {
-			throw new AssertionError("Email is not of type InternalEmail, this should not be possible");
-		}
-
-		if (!((InternalEmail) email).wasMergedWithSmimeSignedMessage()) {
+		if (!internalEmail.wasMergedWithSmimeSignedMessage()) {
 			builder.notMergingSingleSMIMESignedAttachment();
 		}
 		return builder;
