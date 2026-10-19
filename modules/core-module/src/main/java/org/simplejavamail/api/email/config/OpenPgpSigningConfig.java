@@ -42,10 +42,20 @@ public final class OpenPgpSigningConfig {
         return new OpenPgpSigningConfigBuilder();
     }
 
+    /**
+     * Returns a copy of the supplied secret key ring.
+     *
+     * @see OpenPgpSigningConfigBuilder#secretKeyRing(byte[])
+     */
     public byte[] getSecretKeyRing() {
         return secretKeyRing.clone();
     }
 
+    /**
+     * Returns a copy of the supplied passphrase.
+     *
+     * @see OpenPgpSigningConfigBuilder#passphrase(char[])
+     */
     public char[] getPassphrase() {
         return passphrase.clone();
     }
@@ -102,16 +112,65 @@ public final class OpenPgpSigningConfig {
         private Long signingKeyId;
         private HashAlgorithm hashAlgorithm = DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM;
 
+        /**
+         * Returns a copy of the stored key ring, or {@code null} before one is supplied. Inspection does not validate its contents.
+         *
+         * @see #secretKeyRing(byte[])
+         */
+        @Nullable
+        public byte[] getSecretKeyRing() {
+            return secretKeyRing == null ? null : secretKeyRing.clone();
+        }
+
+        /**
+         * Returns a copy of the stored passphrase; an empty array retains the existing unprotected-key choice.
+         *
+         * @see #passphrase(char[])
+         */
+        @NotNull
+        public char[] getPassphrase() {
+            return passphrase.clone();
+        }
+
+        /**
+         * Returns the stored key preference, or {@code null} for automatic selection.
+         *
+         * @see #signingKeyId(long)
+         */
+        @Nullable
+        public Long getSigningKeyId() {
+            return signingKeyId;
+        }
+
+        /** @see #hashAlgorithm(HashAlgorithm) */
+        @NotNull
+        public HashAlgorithm getHashAlgorithm() {
+            return hashAlgorithm;
+        }
+
+        /**
+         * Supplies the secret key ring from which the signing key will be chosen. The builder retains its own copy, and a later call replaces it.
+         * Key interpretation takes place when the OpenPGP module signs the message.
+         */
         public OpenPgpSigningConfigBuilder secretKeyRing(final byte[] secretKeyRing) {
             this.secretKeyRing = requireNonNull(secretKeyRing, "secretKeyRing").clone();
             return this;
         }
 
+        /**
+         * Supplies the signing-key passphrase. An empty array supports an unprotected key and is the existing default.
+         * The builder retains its own copy, and a later call replaces it without changing the key ring.
+         */
         public OpenPgpSigningConfigBuilder passphrase(final char[] passphrase) {
             this.passphrase = requireNonNull(passphrase, "passphrase").clone();
             return this;
         }
 
+        /**
+         * Supplies the signing-key passphrase as text.
+         *
+         * @see #passphrase(char[])
+         */
         public OpenPgpSigningConfigBuilder passphrase(final String passphrase) {
             return passphrase(requireNonNull(passphrase, "passphrase").toCharArray());
         }

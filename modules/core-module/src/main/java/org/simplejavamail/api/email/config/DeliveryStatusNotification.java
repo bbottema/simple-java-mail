@@ -237,7 +237,51 @@ public final class DeliveryStatusNotification implements Serializable {
 		private String envelopeId;
 
 		/**
-		 * Fixes the unencoded transaction identifier; {@code null} resumes automatic generation. Other DSN options are retained.
+		 * Returns the stored preference, or {@code null} when none was supplied.
+		 *
+		 * @see #returnOption(ReturnOption)
+		 */
+		@Nullable
+		public ReturnOption getReturnOption() {
+			return returnOption;
+		}
+
+		/**
+		 * Returns a modifiable copy of the stored events, including a combination not yet checked by {@link #build()}.
+		 *
+		 * @see #notifyOptions(NotifyOption...)
+		 */
+		@NotNull
+		public Set<NotifyOption> getNotifyOptions() {
+			return new LinkedHashSet<>(notifyOptions);
+		}
+
+		/**
+		 * Returns the stored identifier, or {@code null} when none was supplied. Inspection does not validate it.
+		 *
+		 * @see #envelopeId(String)
+		 */
+		@Nullable
+		public String getEnvelopeId() {
+			return envelopeId;
+		}
+
+		/** @see #notifyOptions(NotifyOption...) */
+		@NotNull
+		public DeliveryStatusNotificationBuilder clearNotifyOptions() {
+			notifyOptions.clear();
+			return this;
+		}
+
+		/** @see #envelopeId(String) */
+		@NotNull
+		public DeliveryStatusNotificationBuilder clearEnvelopeId() {
+			return envelopeId(null);
+		}
+
+		/**
+		 * Fixes the unencoded transaction identifier; {@code null} or {@link #clearEnvelopeId()} resumes automatic generation.
+		 * Other DSN options are retained.
 		 * The value is validated when {@link #build()} creates the immutable request.
 		 *
 		 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
@@ -267,7 +311,11 @@ public final class DeliveryStatusNotification implements Serializable {
 			return returnOption(parseReturnOption(returnOption));
 		}
 
-		/** Replaces the requested notification events. {@link NotifyOption#NEVER} must stand alone; validation occurs at {@link #build()}. */
+		/**
+		 * Replaces the requested notification events. {@link NotifyOption#NEVER} must stand alone; validation occurs at {@link #build()}.
+		 * Use {@link #clearNotifyOptions()} to remove this preference without changing the return option or envelope identifier.
+		 * A request still needs at least one DSN option when built.
+		 */
 		public DeliveryStatusNotificationBuilder notifyOptions(@NotNull final NotifyOption @NotNull ...notifyOptions) {
 			this.notifyOptions.clear();
 			this.notifyOptions.addAll(asList(notifyOptions));

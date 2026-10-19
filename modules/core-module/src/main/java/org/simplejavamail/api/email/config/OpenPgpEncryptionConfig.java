@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
@@ -33,6 +34,11 @@ public final class OpenPgpEncryptionConfig {
         return new OpenPgpEncryptionConfigBuilder();
     }
 
+    /**
+     * Returns a modifiable copy of the supplied key rings, with independent arrays.
+     *
+     * @see OpenPgpEncryptionConfigBuilder#recipientPublicKeyRings(List)
+     */
     public List<byte[]> getRecipientPublicKeyRings() {
         return mutableDeepCopy(recipientPublicKeyRings);
     }
@@ -94,11 +100,43 @@ public final class OpenPgpEncryptionConfig {
         private final List<byte[]> recipientPublicKeyRings = new ArrayList<>();
         private SymmetricAlgorithm symmetricAlgorithm = DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
 
+        /**
+         * Returns a modifiable copy of the stored key rings, with independent arrays. Inspection does not validate unfinished key material.
+         *
+         * @see #recipientPublicKeyRings(List)
+         */
+        @NotNull
+        public List<byte[]> getRecipientPublicKeyRings() {
+            return recipientPublicKeyRings.stream().map(byte[]::clone).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        /** @see #recipientPublicKeyRings(List) */
+        @NotNull
+        public OpenPgpEncryptionConfigBuilder clearRecipientPublicKeyRings() {
+            recipientPublicKeyRings.clear();
+            return this;
+        }
+
+        /** @see #symmetricAlgorithm(SymmetricAlgorithm) */
+        @NotNull
+        public SymmetricAlgorithm getSymmetricAlgorithm() {
+            return symmetricAlgorithm;
+        }
+
+        /**
+         * Adds another recipient's public key ring, retaining a copy of the supplied bytes. Other recipients and the selected cipher are retained.
+         *
+         * @see #recipientPublicKeyRings(List)
+         */
         public OpenPgpEncryptionConfigBuilder addRecipientPublicKeyRing(final byte[] publicKeyRing) {
             recipientPublicKeyRings.add(requireNonNull(publicKeyRing, "publicKeyRing").clone());
             return this;
         }
 
+        /**
+         * Replaces the recipient key rings, retaining copies of the list and its arrays. Use {@link #clearRecipientPublicKeyRings()} to remove
+         * them without changing the cipher. At least one nonempty key ring is needed when {@link #build()} creates the configuration.
+         */
         public OpenPgpEncryptionConfigBuilder recipientPublicKeyRings(final List<byte[]> publicKeyRings) {
             recipientPublicKeyRings.clear();
             recipientPublicKeyRings.addAll(mutableDeepCopy(requireNonNull(publicKeyRings, "publicKeyRings")));

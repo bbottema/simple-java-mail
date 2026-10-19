@@ -27,4 +27,27 @@ class SecurityConfigurationRenderingTest {
         assertThat(builder.toString()).doesNotContain("synthetic-store-secret", "synthetic-key-secret", "[11, 22, 33]");
         assertThat(builder.build().toString()).doesNotContain("synthetic-store-secret", "synthetic-key-secret", "[11, 22, 33]");
     }
+
+    @Test
+    void explicitInspectionDoesNotExposeSecretsThroughAutomaticRendering() {
+        final byte[] keyRing = "synthetic-key-ring".getBytes(StandardCharsets.UTF_8);
+        final char[] passphrase = "synthetic-passphrase".toCharArray();
+        final Pkcs12Config.Pkcs12ConfigBuilder store = Pkcs12Config.builder().pkcs12Store(keyRing)
+                .storePassword(passphrase).keyAlias("mail").keyPassword(passphrase);
+        final OpenPgpSigningConfig.OpenPgpSigningConfigBuilder signing = OpenPgpSigningConfig.builder()
+                .secretKeyRing(keyRing).passphrase(passphrase);
+        final OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder encryption = OpenPgpEncryptionConfig.builder()
+                .addRecipientPublicKeyRing(keyRing);
+        final OpenPgpReceiveConfig.OpenPgpReceiveConfigBuilder receive = OpenPgpReceiveConfig.builder()
+                .addVerificationKeyRing(keyRing).addDecryptionKeyRing(keyRing, passphrase);
+
+        assertThat(store.getPkcs12StoreData()).containsExactly(keyRing);
+        assertThat(signing.getPassphrase()).containsExactly(passphrase);
+        assertThat(receive.getDecryptionKeyRings().get(0).getPassphrase()).containsExactly(passphrase);
+        for (Object configuration : new Object[] {store, store.build(), signing, signing.build(), encryption, encryption.build(),
+                receive, receive.build(), receive.getDecryptionKeyRings().get(0)}) {
+            assertThat(configuration.toString()).doesNotContain("synthetic-key-ring", "synthetic-passphrase", Arrays.toString(keyRing),
+                    Arrays.toString(passphrase));
+        }
+    }
 }

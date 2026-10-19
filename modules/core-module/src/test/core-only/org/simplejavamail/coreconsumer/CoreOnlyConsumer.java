@@ -26,6 +26,22 @@ public final class CoreOnlyConsumer {
         org.simplejavamail.api.email.config.DkimConfig.builder().clearSigningAlgorithm().getSigningAlgorithm();
         org.simplejavamail.api.email.config.SmimeSigningConfig.builder().clearSignatureAlgorithm().getSignatureAlgorithm();
         org.simplejavamail.api.email.config.SmimeEncryptionConfig.builder().clearCipherAlgorithm().getCipherAlgorithm();
+        org.simplejavamail.api.email.config.DeliveryStatusNotification.builder().clearNotifyOptions().getNotifyOptions();
+        org.simplejavamail.api.email.config.DeliveryStatusNotification.builder().clearReturnOption().getReturnOption();
+        org.simplejavamail.api.email.config.DeliveryStatusNotification.builder().clearEnvelopeId().getEnvelopeId();
+        org.simplejavamail.api.mailer.config.Pkcs12Config.builder().getPkcs12StoreData();
+        org.simplejavamail.api.mailer.config.Pkcs12Config.builder().getStorePassword();
+        org.simplejavamail.api.mailer.config.Pkcs12Config.builder().getKeyAlias();
+        org.simplejavamail.api.mailer.config.Pkcs12Config.builder().getKeyPassword();
+        org.simplejavamail.api.email.config.OpenPgpSigningConfig.builder().getSecretKeyRing();
+        org.simplejavamail.api.email.config.OpenPgpSigningConfig.builder().getPassphrase();
+        org.simplejavamail.api.email.config.OpenPgpSigningConfig.builder().getSigningKeyId();
+        org.simplejavamail.api.email.config.OpenPgpSigningConfig.builder().getHashAlgorithm();
+        org.simplejavamail.api.email.config.OpenPgpEncryptionConfig.builder().clearRecipientPublicKeyRings().getRecipientPublicKeyRings();
+        org.simplejavamail.api.email.config.OpenPgpEncryptionConfig.builder().getSymmetricAlgorithm();
+        org.simplejavamail.api.email.config.OpenPgpReceiveConfig.builder().clearVerificationKeyRings().getVerificationKeyRings();
+        org.simplejavamail.api.email.config.OpenPgpReceiveConfig.builder().clearDecryptionKeyRings().getDecryptionKeyRings();
+        org.simplejavamail.api.email.config.OpenPgpReceiveConfig.builder().clearPassphraseProvider().getPassphraseProvider();
     }
 
     public static Integer inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {

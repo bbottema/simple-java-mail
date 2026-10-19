@@ -38,6 +38,15 @@ public final class PublicJavadocContractCheck {
         requireLinkedCompanions("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "getPkcs12Config", "clearSignatureAlgorithm");
         requireLinkedCompanions("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "getX509Certificate", "clearCipherAlgorithm",
                 "clearKeyEncapsulationAlgorithm");
+        requireLinkedCompanions("email/config/DeliveryStatusNotification.DeliveryStatusNotificationBuilder", "getReturnOption", "getNotifyOptions",
+                "getEnvelopeId", "clearNotifyOptions", "clearEnvelopeId");
+        requireLinkedCompanions("mailer/config/Pkcs12Config.Pkcs12ConfigBuilder", "getPkcs12StoreData", "getStorePassword", "getKeyAlias", "getKeyPassword");
+        requireLinkedCompanions("email/config/OpenPgpSigningConfig.OpenPgpSigningConfigBuilder", "getSecretKeyRing", "getPassphrase",
+                "getSigningKeyId", "getHashAlgorithm");
+        requireLinkedCompanions("email/config/OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder", "getRecipientPublicKeyRings",
+                "clearRecipientPublicKeyRings", "getSymmetricAlgorithm");
+        requireLinkedCompanions("email/config/OpenPgpReceiveConfig.OpenPgpReceiveConfigBuilder", "getVerificationKeyRings", "clearVerificationKeyRings",
+                "getDecryptionKeyRings", "clearDecryptionKeyRings", "getPassphraseProvider", "clearPassphraseProvider");
         requireText("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "SHA384withRSAandMGF1");
         requireText("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "examples, not a whitelist");
         requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "RSA_OAEP_SHA512");

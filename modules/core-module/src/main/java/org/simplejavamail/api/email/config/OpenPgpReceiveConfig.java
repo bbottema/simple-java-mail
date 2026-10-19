@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -62,14 +63,25 @@ public final class OpenPgpReceiveConfig {
         return new OpenPgpReceiveConfigBuilder();
     }
 
+    /**
+     * Returns a modifiable copy of the verification key rings, with independent arrays.
+     *
+     * @see OpenPgpReceiveConfigBuilder#addVerificationKeyRing(byte[])
+     */
     public List<byte[]> getVerificationKeyRings() {
         return mutableKeyRingCopy(verificationKeyRings);
     }
 
+    /**
+     * Returns a modifiable copy of the decryption-key list. Its entries return copies of their key and passphrase arrays.
+     *
+     * @see OpenPgpReceiveConfigBuilder#addDecryptionKeyRing(byte[], char[])
+     */
     public List<SecretKeyRing> getDecryptionKeyRings() {
         return new ArrayList<>(decryptionKeyRings);
     }
 
+    /** @see OpenPgpReceiveConfigBuilder#passphraseProvider(PassphraseProvider) */
     @Nullable
     public PassphraseProvider getPassphraseProvider() {
         return passphraseProvider;
@@ -102,22 +114,93 @@ public final class OpenPgpReceiveConfig {
         private final List<SecretKeyRing> decryptionKeyRings = new ArrayList<>();
         private PassphraseProvider passphraseProvider;
 
+        /**
+         * Returns a modifiable copy of the stored verification keys, with independent arrays. Inspection does not validate unfinished key material.
+         *
+         * @see #addVerificationKeyRing(byte[])
+         */
+        @NotNull
+        public List<byte[]> getVerificationKeyRings() {
+            return verificationKeyRings.stream().map(byte[]::clone).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        /** @see #addVerificationKeyRing(byte[]) */
+        @NotNull
+        public OpenPgpReceiveConfigBuilder clearVerificationKeyRings() {
+            verificationKeyRings.clear();
+            return this;
+        }
+
+        /**
+         * Returns a modifiable copy of the stored decryption-key list. Its entries return copies of their key and passphrase arrays.
+         *
+         * @see #addDecryptionKeyRing(byte[], char[])
+         */
+        @NotNull
+        public List<SecretKeyRing> getDecryptionKeyRings() {
+            return new ArrayList<>(decryptionKeyRings);
+        }
+
+        /** @see #addDecryptionKeyRing(byte[], char[]) */
+        @NotNull
+        public OpenPgpReceiveConfigBuilder clearDecryptionKeyRings() {
+            decryptionKeyRings.clear();
+            return this;
+        }
+
+        /**
+         * Returns the supplied provider, or {@code null} when none was supplied, without invoking it.
+         *
+         * @see #passphraseProvider(PassphraseProvider)
+         */
+        @Nullable
+        public PassphraseProvider getPassphraseProvider() {
+            return passphraseProvider;
+        }
+
+        /** @see #passphraseProvider(PassphraseProvider) */
+        @NotNull
+        public OpenPgpReceiveConfigBuilder clearPassphraseProvider() {
+            passphraseProvider = null;
+            return this;
+        }
+
+        /**
+         * Adds a public key ring for checking signatures, retaining a copy of its bytes.
+         * Use {@link #clearVerificationKeyRings()} to remove only verification keys, retaining decryption keys and the passphrase provider.
+         */
         public OpenPgpReceiveConfigBuilder addVerificationKeyRing(final byte[] publicKeyRing) {
             verificationKeyRings.add(requireNonNull(publicKeyRing, "publicKeyRing").clone());
             return this;
         }
 
+        /**
+         * Adds a secret key ring and its passphrase for decrypting received messages, retaining copies of both arrays.
+         * Use an empty passphrase for an unprotected key. A configured {@link #passphraseProvider(PassphraseProvider)} may supply another passphrase.
+         * {@link #clearDecryptionKeyRings()} removes only these keys, retaining verification keys and the provider.
+         */
         public OpenPgpReceiveConfigBuilder addDecryptionKeyRing(final byte[] secretKeyRing,
                                                                  final char[] passphrase) {
             decryptionKeyRings.add(new SecretKeyRing(secretKeyRing, passphrase));
             return this;
         }
 
+        /**
+         * Adds a decryption key ring with a passphrase supplied as text.
+         *
+         * @see #addDecryptionKeyRing(byte[], char[])
+         */
         public OpenPgpReceiveConfigBuilder addDecryptionKeyRing(final byte[] secretKeyRing,
                                                                  final String passphrase) {
             return addDecryptionKeyRing(secretKeyRing, requireNonNull(passphrase, "passphrase").toCharArray());
         }
 
+        /**
+         * Obtains a passphrase for each requested key while reading a message. A later call replaces the provider.
+         * Returning {@code null} for a key retains the passphrase supplied with that key ring.
+         * Use {@link #clearPassphraseProvider()} to return to the passphrases supplied with the decryption key rings.
+         * The callback is retained for later use; configuring or inspecting it never invokes it.
+         */
         public OpenPgpReceiveConfigBuilder passphraseProvider(final PassphraseProvider passphraseProvider) {
             this.passphraseProvider = requireNonNull(passphraseProvider, "passphraseProvider");
             return this;

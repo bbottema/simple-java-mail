@@ -192,6 +192,11 @@ For example, a retry attempt count can be inspected before its delay is supplied
 resolves its relationship with the initial interval. Mutable inspection results are defensive copies. Optional provider-resolved choices use
 named clears that restore absence, rather than resets that introduce a new provider default.
 
+This includes DSN, PKCS12 and OpenPGP application configuration builders. Inspection also works while supplied choices are temporarily invalid;
+copy helpers used by getters must not accidentally run construction-time validation. Collection inspection detaches nested mutable arrays, and
+callback inspection returns the supplied callback without invoking it. Clearing drops the builder's choice without wiping material retained by
+previously built values. Required input material does not acquire an invented reset value or additional validity rules merely to complete inspection.
+
 Debug printers and built-in debug destinations are alternate ways to select one output, not independent registrations. Clearing either
 restores the captured factory selection or absence, without closing a borrowed stream or changing whether logging is enabled. A reset of
 the logging flag selects its centralized library default. Companion Javadocs link to the setter that owns that contract.

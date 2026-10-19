@@ -37,6 +37,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -210,7 +211,8 @@ class PublicApiBoundaryTest {
     void applicationValueBuildersHaveExplicitDocumentedCompanionMethods() throws Exception {
         for (final String relativePath : List.of("api/mailer/config/ConnectionPoolClusterConfig.java", "api/mailer/config/FailoverPolicy.java",
                 "api/mailer/config/MailSendRetryPolicy.java", "api/email/config/DkimConfig.java", "api/email/config/SmimeSigningConfig.java",
-                "api/email/config/SmimeEncryptionConfig.java")) {
+                "api/email/config/SmimeEncryptionConfig.java", "api/email/config/DeliveryStatusNotification.java", "api/mailer/config/Pkcs12Config.java",
+                "api/email/config/OpenPgpSigningConfig.java", "api/email/config/OpenPgpEncryptionConfig.java", "api/email/config/OpenPgpReceiveConfig.java")) {
             final String source = Files.readString(Path.of("src/main/java/org/simplejavamail", relativePath));
             assertThat(source).as(relativePath).doesNotContain("import lombok.Builder", "@Builder");
             final Matcher builderDeclaration = Pattern.compile("public static (?:final )?class \\w*Builder\\b").matcher(source);
@@ -232,6 +234,24 @@ class PublicApiBoundaryTest {
                     .collect(Collectors.toList());
             assertThat(documentedMethods).as(relativePath).containsExactlyInAnyOrderElementsOf(companionMethods).isNotEmpty();
         }
+    }
+
+    @Test
+    void configurationCompanionChecksCoverEachReviewedChoice() {
+        final Map<Class<?>, List<String>> companions = Map.of(
+                org.simplejavamail.api.email.config.DeliveryStatusNotification.DeliveryStatusNotificationBuilder.class,
+                List.of("getReturnOption", "clearReturnOption", "getNotifyOptions", "clearNotifyOptions", "getEnvelopeId", "clearEnvelopeId"),
+                org.simplejavamail.api.mailer.config.Pkcs12Config.Pkcs12ConfigBuilder.class,
+                List.of("getPkcs12StoreData", "getStorePassword", "getKeyAlias", "getKeyPassword"),
+                org.simplejavamail.api.email.config.OpenPgpSigningConfig.OpenPgpSigningConfigBuilder.class,
+                List.of("getSecretKeyRing", "getPassphrase", "getSigningKeyId", "clearSigningKeyId", "getHashAlgorithm", "resetHashAlgorithm"),
+                org.simplejavamail.api.email.config.OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder.class,
+                List.of("getRecipientPublicKeyRings", "clearRecipientPublicKeyRings", "getSymmetricAlgorithm", "resetSymmetricAlgorithm"),
+                org.simplejavamail.api.email.config.OpenPgpReceiveConfig.OpenPgpReceiveConfigBuilder.class,
+                List.of("getVerificationKeyRings", "clearVerificationKeyRings", "getDecryptionKeyRings", "clearDecryptionKeyRings",
+                        "getPassphraseProvider", "clearPassphraseProvider"));
+        companions.forEach((type, expected) -> assertThat(type.getDeclaredMethods()).as(type.getName())
+                .extracting(java.lang.reflect.Method::getName).containsAll(expected));
     }
 
     private boolean compile(final Path source) throws Exception {

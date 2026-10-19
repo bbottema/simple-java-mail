@@ -2,6 +2,7 @@ package org.simplejavamail.api.mailer.config;
 
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.File;
@@ -94,10 +95,60 @@ public final class Pkcs12Config implements Serializable {
 		private Pkcs12ConfigBuilder() {
 		}
 
+		/**
+		 * Returns a copy of the stored bytes, or {@code null} before a store is supplied.
+		 *
+		 * @see #pkcs12Store(byte[])
+		 */
+		@Nullable
+		public byte[] getPkcs12StoreData() {
+			return pkcs12StoreData == null ? null : pkcs12StoreData.clone();
+		}
+
+		/**
+		 * Returns a copy of the stored password, or {@code null} when none was supplied.
+		 *
+		 * @see #storePassword(char[])
+		 */
+		@Nullable
+		public char[] getStorePassword() {
+			return storePassword == null ? null : storePassword.clone();
+		}
+
+		/**
+		 * Returns the stored alias, or {@code null} when none was supplied.
+		 *
+		 * @see #keyAlias(String)
+		 */
+		@Nullable
+		public String getKeyAlias() {
+			return keyAlias;
+		}
+
+		/**
+		 * Returns a copy of the stored private-key password, or {@code null} when none was supplied.
+		 *
+		 * @see #keyPassword(char[])
+		 */
+		@Nullable
+		public char[] getKeyPassword() {
+			return keyPassword == null ? null : keyPassword.clone();
+		}
+
+		/**
+		 * Reads the PKCS12 store at the supplied filesystem path.
+		 *
+		 * @see #pkcs12Store(Path)
+		 */
 		public Pkcs12ConfigBuilder pkcs12Store(String pkcs12StorePath) {
 			return pkcs12Store(new File(pkcs12StorePath));
 		}
 
+		/**
+		 * Reads the PKCS12 store from a file.
+		 *
+		 * @see #pkcs12Store(Path)
+		 */
 		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
 			return pkcs12Store(pkcs12StorePath.toPath());
 		}
@@ -116,37 +167,64 @@ public final class Pkcs12Config implements Serializable {
 			}
 		}
 
+		/**
+		 * Reads the store bytes immediately, leaving the supplied stream open for its owner to close.
+		 *
+		 * @see #pkcs12Store(byte[])
+		 */
 		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream)
 				throws IOException {
 			this.pkcs12StoreData = MiscUtil.readInputStreamToBytes(pkcs12StoreStream);
 			return this;
 		}
 
+		/**
+		 * Supplies the PKCS12 store bytes. The builder retains its own copy; supplying another store replaces the bytes without changing passwords or alias.
+		 */
 		public Pkcs12ConfigBuilder pkcs12Store(byte[] pkcs12StoreData) {
 			this.pkcs12StoreData = pkcs12StoreData.clone();
 			return this;
 		}
 
+		/**
+		 * Supplies the password used to open the store. The builder retains its own copy; calling this again replaces the password.
+		 */
 		public Pkcs12ConfigBuilder storePassword(char[] storePassword) {
 			this.storePassword = storePassword.clone();
 			return this;
 		}
 
+		/**
+		 * Supplies the store password as text.
+		 *
+		 * @see #storePassword(char[])
+		 */
 		public Pkcs12ConfigBuilder storePassword(String storePassword) {
 			this.storePassword = storePassword.toCharArray();
 			return this;
 		}
 
+		/**
+		 * Chooses the private-key entry in the store. Calling this again replaces the alias without changing the store or passwords.
+		 */
 		public Pkcs12ConfigBuilder keyAlias(String keyAlias) {
 			this.keyAlias = keyAlias;
 			return this;
 		}
 
+		/**
+		 * Supplies the password for the selected private key. The builder retains its own copy; calling this again replaces the password.
+		 */
 		public Pkcs12ConfigBuilder keyPassword(char[] keyPassword) {
 			this.keyPassword = keyPassword.clone();
 			return this;
 		}
 
+		/**
+		 * Supplies the private-key password as text.
+		 *
+		 * @see #keyPassword(char[])
+		 */
 		public Pkcs12ConfigBuilder keyPassword(String keyPassword) {
 			this.keyPassword = keyPassword.toCharArray();
 			return this;
