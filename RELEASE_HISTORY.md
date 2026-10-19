@@ -72,6 +72,14 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- Mailer and Session-property rendering redact recognized secrets. Operational settings and trusted-host inspection no longer share mutable
+  containers with builders or their inputs; reused builders cannot change an earlier Mailer's configuration snapshot.
+- Custom-header replacement and Email-template precedence treat differently capitalized names as the same header. Email equality accounts for
+  duplicate recipient occurrences symmetrically while retaining its order-insensitive comparison.
+- Fluent EML-to-Email imports preserve original protected input bytes, including tolerated noncanonical header endings. EML export failures retain
+  their cause and identify the conversion operation instead of reporting an impossible internal state.
+- Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
+
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.
 - Recipient interpretation retains comment-only or whitespace-only source strings for normal sending validation instead of throwing an array-index error.
 - Email copying preserves address-free receipt requests and explicit disabling; governance retains disabling through subsequent template application.
