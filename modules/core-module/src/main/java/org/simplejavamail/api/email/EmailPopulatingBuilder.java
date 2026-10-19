@@ -33,10 +33,9 @@ import java.util.regex.Pattern;
 import static java.util.regex.Pattern.compile;
 
 /**
- * Fluent interface Builder for populating {@link Email} instances. An instance of this builder can only be obtained through one of the builder
- * starters on {@link EmailStartingBuilder}.
- * Start with {@code SimpleJavaMail.emailBuilder()}. The resulting {@link EmailStartingBuilder} documents the available blank, copy, reply and forward
- * entry routes.
+ * Fill in an {@link Email} using a builder obtained from {@link EmailStartingBuilder}. For an empty message, start with
+ * {@code SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()}; the starting builder also offers copy, reply and forward routes.
+ * If you have a configured SimpleJavaMail factory, call its {@code emailBuilder()} instead so the builder retains that factory's configuration.
  * <p>
  * Default/override suppression controls ordinary templates, not factory-scoped {@code simplejavamail.locked.} settings. Those restrictions are checked
  * when governance prepares the email, even after completing it early or disabling ordinary validation. Required recipients remain additive; conflicting
