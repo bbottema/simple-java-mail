@@ -474,7 +474,7 @@ class ConnectionFailoverTest {
                 @Override OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
                     final OperationalConfig supplied = super.buildOperationalConfig(sessionSettings);
                     failedConfiguration.set(supplied);
-                    owned.set(getFailoverMailer());
+                    owned.set(getResolvedFailoverMailer());
                     return supplied;
                 }
             };

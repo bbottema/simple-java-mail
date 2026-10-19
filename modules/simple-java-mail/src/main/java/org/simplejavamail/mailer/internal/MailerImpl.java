@@ -155,7 +155,7 @@ public class MailerImpl implements Mailer {
 				fromSessionBuilder.buildOperationalConfig(sessionSettings),
 				fromSessionBuilder.buildObserverNotifier(),
 				true, fromSessionBuilder.getFactorySendingLimits(), fromSessionBuilder.getDefinition(),
-				fromSessionBuilder.getFailoverMailer(), fromSessionBuilder.ownsFailoverMailer(), sessionSettings);
+				fromSessionBuilder.getResolvedFailoverMailer(), fromSessionBuilder.ownsFailoverMailer(), sessionSettings);
 	}
 	
 	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
@@ -171,7 +171,7 @@ public class MailerImpl implements Mailer {
 				regularBuilder.buildOperationalConfig(sessionSettings),
 				regularBuilder.buildObserverNotifier(),
 				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits(), regularBuilder.getDefinition(),
-				regularBuilder.getFailoverMailer(), regularBuilder.ownsFailoverMailer(), sessionSettings);
+				regularBuilder.getResolvedFailoverMailer(), regularBuilder.ownsFailoverMailer(), sessionSettings);
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
@@ -517,19 +517,25 @@ public class MailerImpl implements Mailer {
 
 	/** @see Mailer.Sync#testConnection() */
 	private synchronized void testConnectionSynchronously() {
+		ensureConnectionTestAllowed();
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
 	}
 
 	/** @see Mailer.Async#testConnection() */
-	private synchronized CompletableFuture<Void> testConnectionAsynchronously() {
+	private CompletableFuture<Void> testConnectionAsynchronously() {
 		try {
-			return executeMailOperationAsync("testSMTPConnection process", () -> {
-				SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
-				new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
-			});
+			ensureConnectionTestAllowed();
+			// Hand off outside the Mailer monitor: the executor may wait for its worker, which rechecks shutdown under that monitor.
+			return executeMailOperationAsync("testSMTPConnection process", this::testConnectionSynchronously);
 		} catch (RuntimeException failure) {
 			return AsyncOperationHelper.failedFuture(failure);
+		}
+	}
+
+	private synchronized void ensureConnectionTestAllowed() {
+		if (shutdownFuture != null) {
+			throw new IllegalStateException("This Mailer is shutting down. Build a new Mailer before testing another connection.");
 		}
 	}
 

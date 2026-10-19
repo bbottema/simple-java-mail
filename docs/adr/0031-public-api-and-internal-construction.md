@@ -162,6 +162,10 @@ Declare application-facing getters explicitly when source-based Javadocs cannot 
 but verify freshly generated public HTML, setter links and exclusion of internal assembly. Compilation alone is not publication. OpenPGP
 protection details use this same read-contract/internal-assembly boundary, even when several modules need to construct them.
 
+Paired settings such as a failover Mailer and its policy remain inspectable before building. Return the supplied object and stored policy;
+do not construct a named destination or start its resources just to answer a getter. A named relationship can therefore have a policy while
+its live Mailer getter remains absent. The ordinary construction path resolves that destination internally without changing the supplied-choice contract.
+
 [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) defines message metadata snapshots and borrowed content. Builder cleanup
 must preserve that ownership, serialized subtype and content-read boundary.
 

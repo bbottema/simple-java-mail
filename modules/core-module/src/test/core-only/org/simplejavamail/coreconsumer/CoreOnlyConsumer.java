@@ -20,6 +20,14 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    public static Mailer inspectFailover(final MailerRegularBuilder<?> builder) {
+        final org.simplejavamail.api.mailer.config.FailoverPolicy policy = builder.getFailoverPolicy();
+        if (policy != null) {
+            policy.getPrimaryRecheckInterval();
+        }
+        return builder.getFailoverMailer();
+    }
+
     public static void inspectIncompleteConfiguration() {
         org.simplejavamail.api.mailer.config.MailSendRetryPolicy.builder().withMaximumAttempts(3).getRetryDelay();
         org.simplejavamail.api.mailer.config.FailoverPolicy.builder().getPrimaryMaximumRecheckInterval();
