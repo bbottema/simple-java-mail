@@ -108,7 +108,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@Override
 	public EmlConversion fromEml(@NotNull final byte[] eml) {
 		final byte[] captured = requireNonNull(eml, "eml").clone();
-		return new FluentEmailConversions.FromEml(this, session -> EmailConverter.emlToMimeMessage(new ByteArrayInputStream(captured), session));
+		return new FluentEmailConversions.FromEml(this,
+				session -> EmailConverter.emlToMimeMessage(new ByteArrayInputStream(captured), session),
+				session -> readPreservedEml(new ByteArrayInputStream(captured), session));
 	}
 
 	/** @see ConfiguredEmailConverter#fromEml(File) */
@@ -121,14 +123,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@Override
 	public EmlConversion fromEml(@NotNull final Path emlPath) {
 		final Path captured = requireNonNull(emlPath, "emlPath");
-		return new FluentEmailConversions.FromEml(this, session -> parseEmlPath(captured, session));
+		return new FluentEmailConversions.FromEml(this,
+				session -> parseEmlPath(captured, session),
+				session -> readPreservedEmlPath(captured, session));
 	}
 
 	/** @see ConfiguredEmailConverter#fromEml(InputStream) */
 	@Override
 	public EmlConversion fromEml(@NotNull final InputStream emlInputStream) {
 		final InputStream captured = requireNonNull(emlInputStream, "emlInputStream");
-		return new FluentEmailConversions.FromEml(this, session -> EmailConverter.emlToMimeMessage(captured, session));
+		return new FluentEmailConversions.FromEml(this,
+				session -> EmailConverter.emlToMimeMessage(captured, session),
+				session -> readPreservedEml(captured, session));
 	}
 
 	/** @see ConfiguredEmailConverter#fromOutlookMsg(String) */
@@ -174,6 +180,25 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			return EmailConverter.emlToMimeMessage(input, session);
 		} catch (IOException e) {
 			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_PATH, path, e.getMessage()), e);
+		}
+	}
+
+	private static MimeMessage readPreservedEmlPath(final Path path, final Session session) {
+		try (InputStream input = Files.newInputStream(path)) {
+			return readPreservedEml(input, session);
+		} catch (IOException e) {
+			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_PATH, path, e.getMessage()), e);
+		}
+	}
+
+	private static MimeMessage readPreservedEml(final InputStream input, final Session session) {
+		try {
+			// Protection inspection must retain the received representation, including line endings tolerated by the MIME parser.
+			final byte[] emlBytes = readInputStreamToBytes(checkNonEmptyArgument(input, "emlInputStream"));
+			return FinalizedMimeMessage.fromMessageBytes(
+					checkNonEmptyArgument(session, "session"), emlBytes, FinalizedMimeMessage.ProtectionState.NONE);
+		} catch (IOException | MessagingException e) {
+			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
 		}
 	}
 
@@ -236,14 +261,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			@NotNull final Session session) {
-		try {
-			final byte[] emlBytes = readInputStreamToBytes(checkNonEmptyArgument(emlInputStream, "emlInputStream"));
-			final MimeMessage mimeMessage = FinalizedMimeMessage.fromMessageBytes(
-					checkNonEmptyArgument(session, "session"), emlBytes, FinalizedMimeMessage.ProtectionState.NONE);
-			return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
-		} catch (IOException | MessagingException e) {
-			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
-		}
+		return mimeMessageToEmailBuilder(readPreservedEml(emlInputStream, session),
+				pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
 	}
 
 	/** Internal Outlook import shared by fluent conversion and the released static entry points. */

@@ -58,6 +58,10 @@ class FluentEmailConversions {
 
 		abstract MimeMessage sourceMessage();
 
+		MimeMessage sourceMessageForEmail() {
+			return sourceMessage();
+		}
+
 		/** @see IncomingConversion#withSmimeDecryption(Pkcs12Config) */
 		@Override
 		public final T withSmimeDecryption(final Pkcs12Config value) {
@@ -120,7 +124,7 @@ class FluentEmailConversions {
 		@Override
 		public final EmailPopulatingBuilder toEmailBuilder() {
 			beginConversion();
-			return converter.mimeMessageToEmailBuilder(sourceMessage(), pkcs12Config, openPgpReceiveConfig, fetchAttachmentData);
+			return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchAttachmentData);
 		}
 
 		/** @see IncomingConversion#toEmail() */
@@ -132,11 +136,14 @@ class FluentEmailConversions {
 
 	static final class FromEml extends Incoming<EmlConversion> implements EmlConversion {
 		private final Function<Session, MimeMessage> source;
+		private final Function<Session, MimeMessage> preservedSource;
 		private Session session;
 
-		FromEml(final ConfiguredEmailConverterImpl converter, final Function<Session, MimeMessage> source) {
+		FromEml(final ConfiguredEmailConverterImpl converter, final Function<Session, MimeMessage> source,
+				final Function<Session, MimeMessage> preservedSource) {
 			super(converter);
 			this.source = source;
+			this.preservedSource = preservedSource;
 		}
 
 		@Override
@@ -163,6 +170,11 @@ class FluentEmailConversions {
 		@Override
 		MimeMessage sourceMessage() {
 			return source.apply(session != null ? session : emptySession());
+		}
+
+		@Override
+		MimeMessage sourceMessageForEmail() {
+			return preservedSource.apply(session != null ? session : emptySession());
 		}
 
 		/** @see EmlConversion#toMimeMessage() */

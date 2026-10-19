@@ -624,8 +624,8 @@ public class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)}, using a new empty {@link Session} instance,
-	 * and without email governance - but defaults from (system) prorties (files) are still applied, if provided..
+	 * Converts the supplied Email using a temporary Session. No Email defaults or overrides are added;
+	 * supply {@link #emailToMimeMessage(Email, EmailGovernance) Email governance} to apply reusable templates during conversion.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email) {
 		return emailToMimeMessage(checkNonEmptyArgument(email, "email"), createDummySession(), NO_GOVERNANCE());
@@ -639,8 +639,8 @@ public class EmailConverter {
 	}
 
 	/**
-	 * Delegates to {@link #emailToMimeMessage(Email, Session, EmailGovernance)} with no email governance -
-	 * but defaults from (system) prorties (files) are still applied, if provided.
+	 * Converts the supplied Email using this Session. No Email defaults or overrides are added;
+	 * use {@link #emailToMimeMessage(Email, Session, EmailGovernance)} to apply reusable templates during conversion.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session) {
 		return emailToMimeMessage(email, session, NO_GOVERNANCE());
@@ -648,6 +648,7 @@ public class EmailConverter {
 
 	/**
 	 * Converts composed email through the MIME producer and returns exact EML through its byte-preserving source.
+	 * @throws org.simplejavamail.MailException If message content or settings prevent MIME conversion. The original cause is retained.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
 		try {
@@ -655,8 +656,7 @@ public class EmailConverter {
 			final Email effectiveEmail = internalEmail.prepareForConversion(emailGovernance);
 			return InternalEmail.requireInternalEmail(effectiveEmail).renderMimeMessage(checkNonEmptyArgument(session, "session"), true);
 		} catch (UnsupportedEncodingException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new IllegalStateException(e.getMessage(), e);
+			throw new EmailConverterException(EmailConverterException.ERROR_CREATING_MIME_MESSAGE, e);
 		}
 	}
 
@@ -738,6 +738,7 @@ public class EmailConverter {
 
 	/**
 	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} which should be in the standard EML format.
+	 * @throws org.simplejavamail.MailException If content cannot be read or written. The original cause is retained.
 	 */
 	public static byte[] mimeMessageToEMLByteArray(@NotNull final MimeMessage mimeMessage) {
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -745,23 +746,16 @@ public class EmailConverter {
 			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
 			return os.toByteArray();
 		} catch (IOException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new IllegalStateException("This should never happen", e);
+			throw new EmailConverterException(EmailConverterException.ERROR_WRITING_EML, e);
 		}
 	}
 
 	/**
-	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} with which should be in the standard EML format, to UTF8 string.
+	 * @return The result of {@link MimeMessage#writeTo(OutputStream)} decoded as UTF-8 EML text.
+	 * @throws org.simplejavamail.MailException If content cannot be read or written. The original cause is retained.
 	 */
 	public static String mimeMessageToEML(@NotNull final MimeMessage mimeMessage) {
-		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			checkNonEmptyArgument(mimeMessage, "mimeMessage").writeTo(os);
-			return os.toString(UTF_8.name());
-		} catch (IOException | MessagingException e) {
-			// this should never happen, so we don't acknowledge this exception (and simply bubble up)
-			throw new IllegalStateException("This should never happen", e);
-		}
+		return new String(mimeMessageToEMLByteArray(mimeMessage), UTF_8);
 	}
 
 	/**

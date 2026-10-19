@@ -48,6 +48,13 @@ meaningful Email, cancellation, missing required inputs and programming failures
 Leniency is not proof of authenticity or permission to retry. Continue verifying signatures over the original bytes, reporting inaccessible ciphertext
 honestly, and preserving exact/protected representations. Do not normalize signed bytes to manufacture a successful verification result.
 
+EML-to-Email conversion retains the original protected bytes before a MIME representation can normalize tolerated formatting, including LF or
+mixed header line endings. The configured fluent route and static compatibility route have the same source-preservation obligation. A direct
+MIME export remains a separate representation with its existing serialization behavior.
+
+Required-content failures during export also need an ordinary conversion explanation and their original cause. An unavailable attachment or
+a provider's serialization failure must not be described as an impossible internal state.
+
 Outgoing composition, send-time validation, injection checks, transport requirements and explicit exact-EML submission restrictions keep their existing
 contracts. Successful import does not promise successful sending. Exact submission is a preservation mode, not permission to repair or weaken its byte
 or transport-safety requirements. Retain existing resource/size bounds; reading tolerantly does not authorize unbounded work on hostile input.
