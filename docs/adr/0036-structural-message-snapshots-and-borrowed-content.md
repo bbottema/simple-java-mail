@@ -25,6 +25,10 @@ Existing convenience getters that already return detached lists need not become 
 Recipient occurrences also matter when comparing Emails: equality must account for repeated entries and remain symmetric. Preserve the
 established order-insensitive recipient comparison while distinguishing different occurrence counts; structural copying does not redefine that order rule.
 
+The same occurrence rule applies to attachment and embedded-image lists: one attachment is not equal to two copies of it. Keep their existing
+order-insensitive, metadata-based comparison without reading borrowed content. Equality also includes DKIM configuration, consistently with
+the other message-signing configurations; an unsigned message is not equivalent to one configured for signing.
+
 Copying an Email preserves its delivery-recipient override independently from its visible recipients. Keep ordered occurrences and per-recipient
 metadata, so a copy used for testing remains directed to the configured test inbox. Copying structure does not consume borrowed attachment content.
 
