@@ -1634,9 +1634,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
 
 	/**
+	 * Returns an unmodifiable copy of the configured host names.
 	 * @see #trustingSSLHosts(String...)
 	 */
-	@Nullable
+	@NotNull
 	List<String> getSslHostsToTrust();
 
 	/**
@@ -1655,9 +1656,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean isTransportModeLoggingOnly();
 
 	/**
+	 * Returns a detached property container. Changing it does not change this builder; use the property setters to change the stored choices.
+	 * Objects supplied as property values retain their identity.
 	 * @see #withProperties(Properties)
 	 */
-	@Nullable
+	@NotNull
 	Properties getProperties();
 
 	/**

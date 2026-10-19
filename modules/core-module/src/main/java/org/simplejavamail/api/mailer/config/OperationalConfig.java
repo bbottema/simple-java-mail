@@ -175,6 +175,7 @@ public interface OperationalConfig {
 	boolean isDisableAllClientValidation();
 
 	/**
+	 * Returns the immutable list of host names captured when this Mailer was built.
 	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
 	 */
 	@NotNull
@@ -191,6 +192,8 @@ public interface OperationalConfig {
 	boolean isVerifyingServerIdentity();
 	
 	/**
+	 * Returns a detached copy of the additional properties captured when this Mailer was built. Changing it does not change the Mailer or its Session.
+	 * Property values remain available to explicit callers, including secrets and supplied provider objects; automatic descriptions redact known secrets.
 	 * @see MailerGenericBuilder#withProperties(Properties)
 	 */
 	@NotNull

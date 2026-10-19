@@ -15,6 +15,7 @@ import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
+import org.simplejavamail.internal.util.PropertyDiagnosticText;
 
 import java.io.PrintStream;
 import java.time.Duration;
@@ -35,6 +36,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
 	 */
+	@Getter(AccessLevel.NONE)
+	@ToString.Exclude
 	private final Properties properties;
 
 	/**
@@ -209,6 +212,20 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Nullable private final FailoverPolicy failoverPolicy;
 	/** @see OperationalConfig#getMailSendRetryPolicy() */
 	@NotNull private final MailSendRetryPolicy mailSendRetryPolicy;
+
+	/** @see OperationalConfig#getProperties() */
+	@Override
+	@NotNull
+	public Properties getProperties() {
+		final Properties copy = new Properties();
+		copy.putAll(properties);
+		return copy;
+	}
+
+	@ToString.Include(name = "properties")
+	private String propertiesForDisplay() {
+		return PropertyDiagnosticText.render(properties);
+	}
 
 	@Override
 	@Nullable

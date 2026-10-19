@@ -898,7 +898,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				isDebugLogging(),
 				getDebugPrinter(),
 				isDisableAllClientValidation(),
-				sessionSettings.getSslHostsToTrust(),
+				Collections.unmodifiableList(new ArrayList<>(sessionSettings.getSslHostsToTrust())),
 				sessionSettings.isTrustAllSSLHost(),
 				sessionSettings.isVerifyingServerIdentity(),
 				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
@@ -1381,7 +1381,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T trustingSSLHosts(String... sslHostsToTrust) {
-		this.sslHostsToTrust = Arrays.asList(sslHostsToTrust);
+		this.sslHostsToTrust = new ArrayList<>(Arrays.asList(sslHostsToTrust));
 		customizedSessionSetting(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust));
 		return (T) this;
 	}
@@ -2163,7 +2163,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	@NotNull
 	public List<String> getSslHostsToTrust() {
-		return sslHostsToTrust;
+		return Collections.unmodifiableList(new ArrayList<>(sslHostsToTrust));
 	}
 
 	/**
@@ -2196,7 +2196,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	@NotNull
 	public Properties getProperties() {
-		return properties;
+		final Properties copy = new Properties();
+		copy.putAll(properties);
+		return copy;
 	}
 
 	/**

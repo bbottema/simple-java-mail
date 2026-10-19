@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal.util;
 
 import jakarta.mail.Session;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.internal.util.PropertyDiagnosticText;
 import org.slf4j.Logger;
 
 import java.util.Properties;
@@ -18,7 +19,7 @@ public class SessionLogger {
 	public static void logSession(final Session session, final String activity) {
 		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
 		final Properties properties = session.getProperties();
-		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : properties.toString();
+		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : PropertyDiagnosticText.render(properties);
 		LOGGER.debug("starting {} with {}", activity, sessionDetails);
 	}
 }

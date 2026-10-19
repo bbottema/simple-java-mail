@@ -23,6 +23,10 @@ Configuration rendering must protect known secrets before and after construction
 through automatic rendering merely because the completed value already excludes them. Explicit programmatic accessors remain separate;
 redaction is not a substitute for protecting configuration objects or serialized key material.
 
+Apply the same extra-property sensitivity rules when rendering a Mailer, its builder or its operational configuration, including Session properties.
+Automatic rendering must not expose a known password or token merely because it entered through an advanced Jakarta Mail property. Explicit
+property access remains available for applications that need the actual values; sharing rendering rules does not change those accessors.
+
 ## Alternatives and consequences
 
 Re-reading the environment when logging could describe a different state from the snapshot used to build a Mailer. Capturing provenance during resolution keeps those facts together. This causal explanation is derived from the resolver design and the issue's immutability requirement.

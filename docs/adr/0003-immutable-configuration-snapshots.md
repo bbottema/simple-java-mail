@@ -19,6 +19,14 @@ Use an ordered, instance-based `ConfigLoader` to sample configured sources and p
 
 Pass the snapshot to `SimpleJavaMail.withConfig(...)`. That factory supplies fresh builders and a configured converter while retaining one configuration identity. Propagate the captured configuration through Email governance, Mailers, Sessions and optional modules instead of reopening a global loader in each consumer. Explicit builder values override captured defaults.
 
+A supplied Java `Properties` source includes its inherited string defaults. Sample those defaults at load time, let direct entries win within
+that source, and then apply the usual source ordering, type checks and locks. A typed direct entry still takes precedence over an inherited
+string value. This does not make a general Map source inherit anything.
+
+A built Mailer's operational configuration also owns its collection structures. Reusing a builder or editing an inspection result cannot change
+that captured configuration. Copy property containers and trusted-host lists while retaining the identity of borrowed provider objects stored
+as property values; configuration snapshots do not clone socket factories, callbacks or other application resources.
+
 A caller-supplied Session provides its own connection baseline. Inherited ordinary SJM connection defaults do not replace it; explicit builder
 customizations, configured additional Jakarta Mail properties and mandatory locks retain their respective roles. Resolve that distinction at
 construction rather than using a strategy marker as an ownership flag. Effective inspection is supplied data too: a common socket timeout

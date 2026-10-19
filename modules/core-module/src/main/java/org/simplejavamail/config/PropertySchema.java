@@ -25,6 +25,7 @@ import static org.simplejavamail.config.ConfigDiagnosticGroup.PROXY;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.SMTP_CONNECTION;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.TRANSPORT_SECURITY;
 import static org.simplejavamail.config.ConfigPropertyDiagnostic.REDACTED_VALUE;
+import static org.simplejavamail.internal.util.PropertyDiagnosticText.isSensitiveName;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
 final class PropertySchema {
@@ -55,23 +56,6 @@ final class PropertySchema {
 
 	private static final Map<Property, ValueType> TYPES = new EnumMap<>(Property.class);
 	private static final Map<Property, DiagnosticMetadata> DIAGNOSTIC_METADATA = new EnumMap<>(Property.class);
-	private static final String[] SENSITIVE_EXTRA_PROPERTY_MARKERS = {
-			"password",
-			"passwd",
-			"passphrase",
-			"pwd",
-			"secret",
-			"token",
-			"bearer",
-			"credential",
-			"authorization",
-			"privatekey",
-			"accesskey",
-			"apikey",
-			"keystore",
-			"certificate",
-			"cert"
-	};
 
 	static {
 		registerPropertyTypes();
@@ -378,34 +362,12 @@ final class PropertySchema {
 			case REDACT:
 				return true;
 			case REDACT_WHEN_NAME_LOOKS_SENSITIVE:
-				return isSensitiveExtraProperty(propertyName);
+				return isSensitiveName(propertyName);
 			case VISIBLE:
 				return false;
 			default:
 				throw new IllegalStateException("Unhandled sensitivity policy " + sensitivityPolicy);
 		}
-	}
-
-	private static boolean isSensitiveExtraProperty(final String propertyName) {
-		final String normalizedName = normalizePropertyName(propertyName);
-		for (String marker : SENSITIVE_EXTRA_PROPERTY_MARKERS) {
-			if (normalizedName.contains(marker)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static String normalizePropertyName(final String propertyName) {
-		final String lowerCaseName = propertyName.toLowerCase(Locale.ROOT);
-		final StringBuilder normalizedName = new StringBuilder(lowerCaseName.length());
-		for (int characterIndex = 0; characterIndex < lowerCaseName.length(); characterIndex++) {
-			final char character = lowerCaseName.charAt(characterIndex);
-			if (Character.isLetterOrDigit(character)) {
-				normalizedName.append(character);
-			}
-		}
-		return normalizedName.toString();
 	}
 
 	private static Object parseBoolean(final Object value) {
