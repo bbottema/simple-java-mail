@@ -1,5 +1,6 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -63,8 +64,8 @@ public final class TelemetryAgentFixture {
                     .withProperty("mail.host", "localhost")
                     .withConnectionPoolCoreSize(0);
             if (!propertyActivation) {
-                customBuilder.withMailSendTelemetry(OtelAdapter.wrap(supplied));
-                smtpBuilder.withMailSendTelemetry(OtelAdapter.wrap(supplied));
+                customBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(supplied)).withEnabled(true).build());
+                smtpBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(supplied)).withEnabled(true).build());
             }
             try (Mailer mailer = customBuilder.buildMailer(); Mailer smtpMailer = smtpBuilder.buildMailer(); Scope ignored = request.makeCurrent()) {
                 final Email email = mail.emailBuilder().startingBlank()

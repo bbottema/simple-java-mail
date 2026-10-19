@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal;
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
+import org.simplejavamail.api.mailer.MailSendException;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.concurrent.CompletableFuture;
@@ -156,6 +157,7 @@ final class MailSendOperation<T> implements Runnable {
 
     private Throwable retainRefusalWhenStopped(final Throwable cause) {
         return retryingWork != null && (cause instanceof MailSendCancelledException || cause instanceof MailSendTimeoutException)
+                && ((MailSendException) cause).getSubmissionReceipt().isEmpty()
                 && control.isStopRequested() ? control.stoppedFailure(retryingWork.lastFailure()) : cause;
     }
 

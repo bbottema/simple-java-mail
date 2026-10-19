@@ -1,5 +1,7 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -86,8 +88,8 @@ class MailSendTelemetryTest {
                 .withProperty("mail.host", "localhost")
                 .withConnectionPoolCoreSize(0)
                 .withConnectionPoolMaxSize(2)
-                .withSessionTimeout(5000)
-                .withMailSendTelemetry(OtelAdapter.wrap(telemetry.sdk));
+                .withSessionTimeout(Duration.ofMillis(5000))
+                .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build());
     }
 
     private Email email() {
@@ -107,11 +109,11 @@ class MailSendTelemetryTest {
         try (TelemetrySmtpServer server = new TelemetrySmtpServer(); TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
             final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
             final Span parent = telemetry.sdk.getTracer("application").spanBuilder("request").startSpan();
-            try (Mailer mailer = builder(server.port(), telemetry).withMailSendResultObserver(outcome -> {
+            try (Mailer mailer = builder(server.port(), telemetry).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                 assertThat(telemetry.sends()).hasSize(outcomes.size() + 1);
                 assertThat(Span.current().getSpanContext().getSpanId()).isNotEqualTo(telemetry.sends().get(outcomes.size()).getSpanId());
                 outcomes.add(outcome);
-            }).buildMailer()) {
+            }).build()).buildMailer()) {
                 try (Scope ignored = parent.makeCurrent()) {
                     final MailSubmissionReceipt first = mailer.sync().sendMail(email());
                     assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(first);
@@ -173,8 +175,7 @@ class MailSendTelemetryTest {
         try (TelemetrySmtpServer server = new TelemetrySmtpServer(); TelemetryTestSdk telemetry = new TelemetryTestSdk();
              TelemetryTestSdk unusedDestinationTelemetry = new TelemetryTestSdk();
              Mailer destination = builder(server.port(), unusedDestinationTelemetry).buildMailer();
-             Mailer initiator = builder(unavailablePort, telemetry).withMailSendTelemetry(OtelAdapter.wrap(telemetry.sdk))
-                     .withMailSendTelemetrySmtpEndpointAttributes(true)
+             Mailer initiator = builder(unavailablePort, telemetry).withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).withSmtpEndpointAttributes(true).build())
                      .withFailoverMailer(destination, FailoverPolicy.builder().build()).buildMailer()) {
             initiator.sync().sendMail(email());
             assertBalanced(telemetry, 1, 1);
@@ -224,8 +225,8 @@ class MailSendTelemetryTest {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk();
              MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-            try (Mailer mailer = mail.mailerBuilder(session).withExecutorService(executor).withMailSendTelemetry(OtelAdapter.wrap(telemetry.sdk))
-                    .withMailSendResultObserver(outcome::set).buildMailer()) {
+            try (Mailer mailer = mail.mailerBuilder(session).withExecutorService(executor).withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build())
+                    .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome::set).build()).buildMailer()) {
                 final Throwable failure = asynchronous
                         ? mailer.async().sendMail(email()).getCompletion().handle((receipt, cause) -> cause).get(5, SECONDS)
                         : catchThrowable(() -> mailer.sync().sendMail(email()));
@@ -276,7 +277,7 @@ class MailSendTelemetryTest {
     void partialAcceptanceRetainsTheExactReceiptAndRemainsAFailedSend() throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (TelemetrySmtpServer server = new TelemetrySmtpServer(ignored -> "250 queued", true); TelemetryTestSdk telemetry = new TelemetryTestSdk();
-             Mailer mailer = builder(server.port(), telemetry).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer mailer = builder(server.port(), telemetry).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Email mixed = mail.emailBuilder().copying(email())
                     .withRecipients(mail.recipientBuilder()
                             .withAddress("rejected@example.test")
@@ -286,7 +287,7 @@ class MailSendTelemetryTest {
                     .buildEmail();
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(mixed));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
             assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipt);
@@ -318,11 +319,11 @@ class MailSendTelemetryTest {
                      .withMaximumAttempts(3)
                      .withRetryDelay(Duration.ofMinutes(1))
                      .build())
-                     .withMailSendProgressObserver(progress -> {
+                     .withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress -> {
                          if (progress.getStage() == MailSendProgressStage.WAITING_TO_RETRY) {
                              waiting.countDown();
                          }
-                     }).buildMailer()) {
+                     }).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
             assertThat(waiting.await(5, SECONDS)).isTrue();
             send.requestCancellation();
@@ -473,11 +474,11 @@ class MailSendTelemetryTest {
     void rejectedResultDispatchCannotLoseTelemetryOrOwnSdkShutdown() throws Exception {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
             try (Mailer mailer = builder(0, telemetry).withCustomMailer(callback((email, message) -> { }))
-                    .withMailSendResultObserver(outcome -> {
+                    .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                         throw new AssertionError("must not run");
                     }, task -> {
                         throw new RejectedExecutionException("private executor detail");
-                    }).buildMailer()) {
+                    }).build()).buildMailer()) {
                 mailer.sync().sendMail(email());
             }
             final Span stillUsable = telemetry.sdk.getTracer("application").spanBuilder("after Mailer.close").startSpan();
@@ -514,7 +515,7 @@ class MailSendTelemetryTest {
         final AtomicInteger unobservedReads = new AtomicInteger();
         final AtomicInteger observedReads = new AtomicInteger();
         try (TelemetrySmtpServer server = new TelemetrySmtpServer(); TelemetryTestSdk telemetry = new TelemetryTestSdk();
-             Mailer unobserved = builder(server.port(), telemetry).clearMailSendTelemetry().buildMailer();
+             Mailer unobserved = builder(server.port(), telemetry).withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()).buildMailer();
              Mailer observed = builder(server.port(), telemetry).buildMailer()) {
             unobserved.sync().sendMail(attachmentEmail(unobservedReads));
             observed.sync().sendMail(attachmentEmail(observedReads));
@@ -535,7 +536,7 @@ class MailSendTelemetryTest {
         final Email exact = mail.emailBuilder().startingFromExactEml(exactContent.getBytes(US_ASCII))
                 .withEnvelopeRecipients("receiver@example.test").buildEmail();
         try (TelemetrySmtpServer server = new TelemetrySmtpServer(); TelemetryTestSdk telemetry = new TelemetryTestSdk();
-             Mailer unobserved = builder(server.port(), telemetry).clearMailSendTelemetry().buildMailer();
+             Mailer unobserved = builder(server.port(), telemetry).withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()).buildMailer();
              Mailer observed = builder(server.port(), telemetry).buildMailer()) {
             unobserved.sync().sendMail(exact);
             observed.sync().sendMail(exact);
@@ -554,7 +555,7 @@ class MailSendTelemetryTest {
             final OpenTelemetry broken = mock(OpenTelemetry.class);
             when(broken.getTracer("org.simplejavamail.mail")).thenThrow(new IllegalStateException("private exporter details"));
             try (Mailer mailer = builder(0, telemetry).withCustomMailer(callback((email, message) -> { }))
-                    .withMailSendTelemetry(OtelAdapter.wrap(broken)).buildMailer()) {
+                    .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(broken)).withEnabled(true).build()).buildMailer()) {
                 assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
             }
             final Tracer tracer = mock(Tracer.class);
@@ -565,7 +566,7 @@ class MailSendTelemetryTest {
             try (Mailer mailer = builder(0, telemetry).withCustomMailer(callback((email, message) -> {
                 throw actualFailure;
             }))
-                    .withMailSendTelemetry(OtelAdapter.wrap(broken)).buildMailer()) {
+                    .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(broken)).withEnabled(true).build()).buildMailer()) {
                 // CustomMailer failures already cross SJM's MailerException boundary; SDK failure must not replace that original cause.
                 assertThat(catchThrowable(() -> mailer.sync().sendMail(email())))
                         .isInstanceOf(MailException.class).hasCause(actualFailure);

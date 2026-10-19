@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Address;
@@ -80,9 +82,9 @@ class SelectedMailerPreparationTest {
                 throw new AssertionError(interrupted);
             }
         };
-		try (Mailer primaryMailer = builder(clusterKey, messagesSentByPrimary, waitForBoth).withThreadPoolSize(2).withConnectionPoolExpireAfterMillis(0)
+		try (Mailer primaryMailer = builder(clusterKey, messagesSentByPrimary, waitForBoth).withThreadPoolSize(2).withConnectionPoolExpireAfter(Duration.ofMillis(0))
 						.withEmailOverrides(template("primary")).buildMailer();
-				 Mailer failoverMailer = builder(clusterKey, messagesSentByFailoverMailer, waitForBoth).withConnectionPoolExpireAfterMillis(0)
+				 Mailer failoverMailer = builder(clusterKey, messagesSentByFailoverMailer, waitForBoth).withConnectionPoolExpireAfter(Duration.ofMillis(0))
 						.withEmailOverrides(template("failover")).buildMailer()) {
             final Email original = mail.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("customer@example.org").withType(RecipientType.TO).build())
                     .withPlainText("Original content").buildEmail();
@@ -129,10 +131,10 @@ class SelectedMailerPreparationTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final List<Thread> observers = new CopyOnWriteArrayList<>();
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 25).withTransportModeLoggingOnly(true)
-                .withExecutorService(executor).withMailSendResultObserver(outcome -> {
+                .withExecutorService(executor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                     outcomes.add(outcome);
                     observers.add(Thread.currentThread());
-                }).buildMailer()) {
+                }).build()).buildMailer()) {
             final var send = mailer.async().sendMail(mail.emailBuilder().startingBlank().buildEmail());
             try {
                 assertThat(send.getCompletion()).isNotDone();

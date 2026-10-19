@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -76,7 +78,7 @@ class RecipientDsnSubmissionTest {
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "DELAY")); // Same lease; no previous explicit NEVER/SUCCESS.
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add)
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                 .withEmailOverrides(mail.emailBuilder().startingBlank().withDeliveryStatusNotificationNotifyOptions(DELAY).buildEmail()).buildMailer()) {
             final Email email = email(recipient(RecipientType.BCC), recipient(RecipientType.CC, SUCCESS), recipient(RecipientType.TO, NEVER));
             final MailSubmissionReceipt first = send(mailer, email, async);
@@ -103,7 +105,7 @@ class RecipientDsnSubmissionTest {
             final Throwable thrown = catchThrowable(() -> send(mailer, email(recipient(RecipientType.TO, NEVER)), async));
             final Throwable failure = async ? ((ExecutionException) thrown).getCause() : thrown;
             assertThat(failure).isInstanceOf(MailSubmissionException.class).hasCauseInstanceOf(MailTransportCompatibilityException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(REJECTED);
             assertThat(receipt.getValidUnsentRecipients()).containsExactly(ADDRESS);
             assertThat(receipt.getSmtpResponse()).isEmpty();
@@ -125,6 +127,8 @@ class RecipientDsnSubmissionTest {
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             properties.setProperty("mail.smtp.dsn.notify", "FAILURE");
+            // Keep Message-ID generation local while the compatibility rejection returns the same five-second pooled lease.
+            properties.setProperty("mail.from", "sender@example.test");
             final MailerGenericBuilder<?> mailerBuilder = mail.mailerBuilder(Session.getInstance(properties))
                     .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
             try (Mailer mailer = mailerBuilder.buildMailer()) {
@@ -212,7 +216,7 @@ class RecipientDsnSubmissionTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             for (int round = 0; round < 3; round++) {
                 final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
                 for (final NotifyOption option : List.of(NEVER, SUCCESS)) {
@@ -255,7 +259,7 @@ class RecipientDsnSubmissionTest {
             expectCommand(peer, MAIL_FROM);
             acceptRecipients(peer, "RCPT TO:<" + ADDRESS + ">");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> {
                 if (async) {
                     mailer.async().sendMailsInSimpleBatch(emailsVisitedOnIteration).getCompletion().get(10, SECONDS);
@@ -332,7 +336,7 @@ class RecipientDsnSubmissionTest {
             final Throwable failure = catchThrowable(() ->
                     mailer.sync().sendMail(email(recipient(RecipientType.TO, SUCCESS), recipient(RecipientType.TO, NEVER))));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt rejected = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt rejected = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(rejected.getStatus()).isEqualTo(PARTIALLY_ACCEPTED);
             assertThat(rejected.getAcceptedRecipients()).containsExactly(ADDRESS);
             assertThat(rejected.getInvalidRecipients()).containsExactly(ADDRESS);
@@ -359,14 +363,14 @@ class RecipientDsnSubmissionTest {
             readGeneratedEnvelopeId(peer, MAIL_FROM);
             acceptRecipients(peer, command(ADDRESS, "SUCCESS"));
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcome -> {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             if (completed.incrementAndGet() == 1) {
                 final Throwable failure = catchThrowable(() -> holder[0].sync().sendMail(email(recipient(RecipientType.TO, SUCCESS))));
                 if (failure != null) {
                     failures.add(failure);
                 }
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             holder[0] = mailer;
             mailer.async().sendMail(email(recipient(RecipientType.TO, NEVER))).getCompletion().get(10, SECONDS);
             assertThat(completed).hasValue(2);
@@ -471,7 +475,7 @@ class RecipientDsnSubmissionTest {
             if (exact) {
                 assertThat(rehearsal.getEmlBytes()).containsExactly(eml);
             }
-            assertThat(mailer.validate(email, processSecurity)).isTrue();
+            mailer.validate(email, processSecurity);
         }
     }
 
@@ -479,7 +483,7 @@ class RecipientDsnSubmissionTest {
         // Message-ID generation must not wait for machine-hostname lookup while a reusable lease can expire.
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
                 .withProperty("mail.from", "sender@example.test")
-                .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(10000);
+                .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(10000));
     }
 
     private Email email(final Recipient... recipients) {

@@ -3,11 +3,10 @@ package org.simplejavamail.mailer.internal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendHandlers;
+import org.simplejavamail.api.mailer.MailSendException;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
-import org.simplejavamail.api.mailer.MailSendTimeoutException;
-import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
@@ -25,6 +24,8 @@ final class MailSendAttempt {
 
 	@Nullable private final MailSendObserverNotifier notifier;
 	@Nullable private final UUID observationId;
+	@Nullable private MailSendHandlers generatedHandlers;
+	private final boolean observesResults;
 	@Nullable private final MailSendProgressRecorder progress;
 	@Nullable private final MailSendTelemetryRecorder telemetry;
 	@Nullable private final String initialMessageId;
@@ -37,7 +38,8 @@ final class MailSendAttempt {
 	private final AtomicBoolean completed = new AtomicBoolean();
 	@Nullable private MailSendControl control;
 
-	private MailSendAttempt(@Nullable final MailSendObserverNotifier notifier,
+	private MailSendAttempt(@Nullable final MailSendObserverNotifier notifier, @Nullable final UUID observationId,
+			@Nullable final MailSendHandlers generatedHandlers,
 			@Nullable final String initialMessageId,
 			@Nullable final Instant requestedAt,
 			final boolean loggingOnly, @Nullable final MailSendControl control) {
@@ -46,27 +48,30 @@ final class MailSendAttempt {
 		this.requestedAt = requestedAt;
 		this.loggingOnly = loggingOnly;
 		this.control = control;
-		this.observationId = notifier == null ? null : UUID.randomUUID();
-		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId);
+		this.observationId = observationId;
+		this.generatedHandlers = generatedHandlers;
+		this.observesResults = notifier != null && notifier.observesResults(generatedHandlers);
+		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId, generatedHandlers);
 		this.telemetry = notifier == null ? null : MailSendTelemetryRecorder.begin(notifier.captureTelemetryContext(), observationId);
 		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved()
-				: MailSendDiagnosticsRecorder.forObservers(notifier.observesResults(), progress, telemetry);
+				: MailSendDiagnosticsRecorder.forObservers(observesResults, progress, telemetry);
 		if (loggingOnly) {
 			diagnostics.useLoggingOnly();
 		}
 	}
 
 	@NotNull
-	static MailSendAttempt observed(@NotNull final MailSendObserverNotifier notifier,
+	static MailSendAttempt observed(@NotNull final MailSendObserverNotifier notifier, @NotNull final UUID observationId,
+			@Nullable final MailSendHandlers generatedHandlers,
 			@Nullable final String initialMessageId,
 			@NotNull final Instant requestedAt,
 			final boolean loggingOnly, @Nullable final MailSendControl control) {
-		return new MailSendAttempt(notifier, initialMessageId, requestedAt, loggingOnly, control);
+		return new MailSendAttempt(notifier, observationId, generatedHandlers, initialMessageId, requestedAt, loggingOnly, control);
 	}
 
 	@NotNull
 	static MailSendAttempt unobserved() {
-		return new MailSendAttempt(null, null, null, false, null);
+		return new MailSendAttempt(null, null, null, null, null, false, null);
 	}
 
 	void prepared(@NotNull final Email email) {
@@ -138,14 +143,8 @@ final class MailSendAttempt {
 		if (!diagnostics.hasEnteredSubmission()) {
 			return null;
 		}
-		if (failure instanceof MailSendCancelledException) {
-			return ((MailSendCancelledException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
-		}
-		if (failure instanceof MailSendTimeoutException) {
-			return ((MailSendTimeoutException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
-		}
-		if (failure instanceof MailSubmissionException) {
-			return ((MailSubmissionException) failure).getSubmissionReceipt();
+		if (failure instanceof MailSendException) {
+			return ((MailSendException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
 		return diagnostics.capturedReceipt();
 	}
@@ -160,12 +159,14 @@ final class MailSendAttempt {
 		if (progress != null) {
 			progress.finish(effectiveId);
 		}
-		final MailSendDiagnostics report = notifier.observesResults() ? diagnostics.finish(successful) : null;
+		final MailSendHandlers completedHandlers = generatedHandlers;
+		generatedHandlers = null;
+		final MailSendDiagnostics report = observesResults ? diagnostics.finish(successful) : null;
 		final Instant completedAt = Instant.now();
 		if (telemetry != null) {
 			telemetry.complete(diagnostics.telemetryReport(successful, loggingOnly, submissionReceipt, failure));
 		}
-		if (!notifier.observesResults()) {
+		if (!observesResults) {
 			effectiveEmail = null;
 			diagnostics.releaseReceipt();
 			return;
@@ -187,7 +188,7 @@ final class MailSendAttempt {
 		effectiveEmail = null;
 		diagnostics.releaseReceipt();
 		try (MailSendControl.DeadlinePause ignored = control == null ? null : control.pauseDeadline()) {
-			notifier.notifyCompletion(outcome);
+			notifier.notifyCompletion(outcome, completedHandlers);
 		}
 	}
 

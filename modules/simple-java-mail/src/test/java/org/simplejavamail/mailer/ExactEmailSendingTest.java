@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import com.sanctionco.jmail.EmailValidator;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -78,7 +79,7 @@ class ExactEmailSendingTest {
 		try (Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withTransportModeLoggingOnly(true)
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			receipt = mailer.sync().sendMail(email);
 		}
@@ -134,7 +135,7 @@ class ExactEmailSendingTest {
 		try (Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withTransportModeLoggingOnly(true)
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			receipt = mailer.async().sendMail(email).getCompletion().get(5, TimeUnit.SECONDS);
 		}

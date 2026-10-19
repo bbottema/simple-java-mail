@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.URLName;
@@ -180,9 +181,9 @@ class SmtpDsnCharacterizationTest {
     private static MailerRegularBuilder<?> mailerBuilder(final int port) {
         // Message-ID hostname lookup must not consume the idle lease's lifetime between these pooled sends.
         return factory().mailerBuilder().withSMTPServer("localhost", port)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
+                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
                 .withProperty("mail.from", "sender@example.test")
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000);
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
     }
 
     private static Email email(final boolean requestNotifications) {

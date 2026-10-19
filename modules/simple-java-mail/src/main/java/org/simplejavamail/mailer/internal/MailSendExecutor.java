@@ -81,7 +81,7 @@ final class MailSendExecutor extends ThreadPoolExecutor {
     }
 
     private void enqueueBeforeTimeout(final Runnable operation) throws InterruptedException {
-        final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(configuration.getWaitTimeoutMillis());
+        final long deadline = System.nanoTime() + configuration.getWaitTimeout().toNanos();
         long remaining = deadline - System.nanoTime();
         while (remaining > 0 && !isShutdown()) {
             if (operation instanceof MailSendOperation) {

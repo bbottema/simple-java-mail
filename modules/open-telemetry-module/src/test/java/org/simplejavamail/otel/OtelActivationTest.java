@@ -1,5 +1,6 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,9 @@ class OtelActivationTest {
                  Mailer disabled = other.mailerBuilder().buildMailer()) {
                 first.sync().sendMail(email(configured));
                 second.async().sendMail(email(configured)).getCompletion().get(5, java.util.concurrent.TimeUnit.SECONDS);
-                assertThat(first.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-                assertThat(second.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-                assertThat(disabled.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+                assertThat(first.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+                assertThat(second.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+                assertThat(disabled.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
                 assertThat(sdk.sends()).hasSize(2);
                 global.verify(GlobalOpenTelemetry::get, times(2));
             }
@@ -58,58 +59,61 @@ class OtelActivationTest {
         final SimpleJavaMail mail = factory(Map.of("simplejavamail.telemetry.enabled", true));
         try (MockedStatic<ModuleLoader> loader = mockStatic(ModuleLoader.class, org.mockito.Mockito.CALLS_REAL_METHODS);
              MockedStatic<GlobalOpenTelemetry> global = mockStatic(GlobalOpenTelemetry.class);
-             Mailer disabled = mail.mailerBuilder().withMailSendTelemetryEnabled(false).buildMailer();
-             Mailer reset = mail.mailerBuilder().resetMailSendTelemetryEnabled().buildMailer()) {
-            assertThat(disabled.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
-            assertThat(reset.getOperationalConfig().isMailSendTelemetryEnabled()).isEqualTo(MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
+             Mailer disabled = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()).buildMailer();
+             Mailer reset = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().resetEnabled().build()).buildMailer()) {
+            assertThat(disabled.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
+            assertThat(reset.getOperationalConfig().getTelemetryConfig().getEnabled()).isEqualTo(MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
             loader.verify(ModuleLoader::loadOpenTelemetryModule, org.mockito.Mockito.never());
             global.verifyNoInteractions();
         }
     }
 
     @Test
-    void javaConfigurationEnablesTelemetryAndClearReturnsToTheCapturedActivation() throws Exception {
+    void explicitActivationAndIntegrationClearingRemainIndependent() throws Exception {
         final SimpleJavaMail enabled = factory(Map.of("simplejavamail.telemetry.enabled", true));
         final SimpleJavaMail disabled = factory(Map.of("simplejavamail.telemetry.enabled", false));
         try (TelemetryTestSdk selected = new TelemetryTestSdk(); TelemetryTestSdk inherited = new TelemetryTestSdk();
              MockedStatic<GlobalOpenTelemetry> global = mockStatic(GlobalOpenTelemetry.class)) {
             global.when(GlobalOpenTelemetry::get).thenReturn(inherited.sdk);
             final MailSendTelemetry registration = OtelAdapter.wrap(selected.sdk);
-            try (Mailer direct = disabled.mailerBuilder().withMailSendTelemetry(registration).withTransportModeLoggingOnly(true).buildMailer();
-                 Mailer cleared = enabled.mailerBuilder().withMailSendTelemetry(registration).clearMailSendTelemetry()
+            try (Mailer direct = disabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).build()).withTransportModeLoggingOnly(true).buildMailer();
+                 Mailer cleared = enabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).clearIntegration().build())
                          .withTransportModeLoggingOnly(true).buildMailer();
-                 Mailer stopped = disabled.mailerBuilder().withMailSendTelemetry(registration).withMailSendTelemetryEnabled(false).buildMailer()) {
+                 Mailer stopped = disabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).withEnabled(false).build()).buildMailer()) {
                 direct.sync().sendMail(email(disabled));
                 cleared.sync().sendMail(email(enabled));
-                assertThat(direct.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-                assertThat(stopped.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+                assertThat(direct.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+                assertThat(stopped.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
                 assertThat(selected.sends()).hasSize(1);
                 assertThat(inherited.sends()).hasSize(1);
                 global.verify(GlobalOpenTelemetry::get, times(1));
             }
-            final var builder = disabled.mailerBuilder().withMailSendTelemetry(registration);
-            assertThat(builder.clearMailSendTelemetry().isMailSendTelemetryEnabled()).isFalse();
+            final var builder = disabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).build());
+            builder.withTelemetryConfig(builder.getTelemetryConfig().toBuilder().clearIntegration().build());
+            assertThat(builder.getTelemetryConfig().getEnabled()).isTrue();
+            assertThat(builder.getTelemetryConfig().getIntegration()).isNull();
+            assertThat(builder.useConfiguredTelemetryConfig().getTelemetryConfig().getEnabled()).isNull();
         }
     }
 
     @Test
     void activationLocksApplyToJavaPropertiesClearingAndReset() throws Exception {
         final SimpleJavaMail disabled = factory(Map.of("simplejavamail.locked.telemetry.enabled", false));
-        assertThatIllegalArgumentException().isThrownBy(() -> disabled.mailerBuilder().withMailSendTelemetryEnabled(true).buildMailer())
+        assertThatIllegalArgumentException().isThrownBy(() -> disabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(true).build()).buildMailer())
                 .withMessageContaining("simplejavamail.locked.telemetry.enabled");
         assertThatIllegalArgumentException().isThrownBy(() -> disabled.mailerBuilder()
-                .withMailSendTelemetry(OtelAdapter.wrap(OpenTelemetry.noop())).buildMailer())
+                .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(OpenTelemetry.noop())).withEnabled(true).build()).buildMailer())
                 .withMessageContaining("simplejavamail.locked.telemetry.enabled");
         final SimpleJavaMail enabled = factory(Map.of("simplejavamail.telemetry.enabled", false,
                 "simplejavamail.locked.telemetry.enabled", true));
-        assertThatIllegalArgumentException().isThrownBy(() -> enabled.mailerBuilder().resetMailSendTelemetryEnabled().buildMailer())
+        assertThatIllegalArgumentException().isThrownBy(() -> enabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().resetEnabled().build()).buildMailer())
                 .withMessageContaining("simplejavamail.locked.telemetry.enabled");
         try (MockedStatic<GlobalOpenTelemetry> global = mockStatic(GlobalOpenTelemetry.class)) {
             global.when(GlobalOpenTelemetry::get).thenReturn(OpenTelemetry.noop());
-            try (Mailer inherited = enabled.mailerBuilder().clearMailSendTelemetry().buildMailer();
-                 Mailer equal = enabled.mailerBuilder().withMailSendTelemetryEnabled(true).buildMailer()) {
-                assertThat(inherited.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-                assertThat(equal.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
+            try (Mailer inherited = enabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().clearIntegration().build()).buildMailer();
+                 Mailer equal = enabled.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(true).build()).buildMailer()) {
+                assertThat(inherited.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+                assertThat(equal.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
             }
         }
     }
@@ -120,7 +124,7 @@ class OtelActivationTest {
         try (TelemetryTestSdk sdk = new TelemetryTestSdk(); MockedStatic<GlobalOpenTelemetry> global = mockStatic(GlobalOpenTelemetry.class)) {
             final OpenTelemetry supplied = mock(OpenTelemetry.class, delegatesTo(sdk.sdk));
             final MailSendTelemetry configuration = OtelAdapter.wrap(supplied);
-            try (Mailer mailer = mail.mailerBuilder().withMailSendTelemetry(configuration).withTransportModeLoggingOnly(true).buildMailer()) {
+            try (Mailer mailer = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(configuration).withEnabled(true).build()).withTransportModeLoggingOnly(true).buildMailer()) {
                 mailer.sync().sendMail(email(mail));
                 assertThat(sdk.sends()).hasSize(1);
                 global.verifyNoInteractions();

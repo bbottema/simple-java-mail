@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal.ratelimit;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Address;
@@ -184,7 +185,7 @@ class MailerSendingLimitsTest {
 			@Override public Email next() { return email("retained " + supplied.incrementAndGet()); }
 		};
 		try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withMessageRateLimit(1, PERIOD)
-				.withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.sync().sendMail(email("exhaust allowance"));
 			clock.reads.drainPermits();
 			final MailSend<Void> batch = mailer.async().sendMailsInSimpleBatch(emails);
@@ -209,7 +210,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendResultObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.sync().sendMail(email("first"));
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("waiting"));
@@ -241,7 +242,7 @@ class MailerSendingLimitsTest {
 		final Session session = RetryProviderTransport.session(providerState);
 		try (Mailer mailer = new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session)
 				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-				.withConnectionPoolExpireAfterMillis(60000).withConnectionPoolClaimTimeoutMillis(5000)
+				.withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
 				.withMessageRateLimit(1, PERIOD).withRateLimitGroup("account")
 				.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2).withRetryDelay(Duration.ofNanos(1)).build())
 				.buildMailer()) {
@@ -318,10 +319,10 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMailSendResultObserver(outcome -> {
+		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			outcomes.add(outcome);
 			clock.now.addAndGet(PERIOD.toNanos());
-		}).buildMailer()) {
+		}).build()).buildMailer()) {
 			mailer.async().sendMailsInSimpleBatch(List.of(email("a"), email("b"))).getCompletion().get(5, SECONDS);
 			mailer.withOpenConnection(sender -> {
 				sender.sendMail(email("c"));
@@ -442,7 +443,7 @@ class MailerSendingLimitsTest {
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
 			try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withRecipientRateLimit(1, PERIOD)
-					.withMailSendResultObserver(outcomes::add).buildMailer()) {
+					.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 				final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("too many"))
 						.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
 				assertThatThrownBy(() -> mailer.sync().sendMail(oversized)).hasMessageContaining("2 envelope recipients");
@@ -471,12 +472,12 @@ class MailerSendingLimitsTest {
 		final AtomicReference<Mailer> owner = new AtomicReference<>();
 		final AtomicInteger observations = new AtomicInteger();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), state).withMessageRateLimit(2, PERIOD).withMailSendResultObserver(outcome -> {
+		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), state).withMessageRateLimit(2, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			outcomes.add(outcome);
 			if (observations.incrementAndGet() == 1) {
 				owner.get().sync().sendMail(email("reentrant"));
 			}
-		}).buildMailer()) {
+		}).build()).buildMailer()) {
 			owner.set(mailer);
 			mailer.sync().sendMail(email("original"));
 			assertThat(state.submissions.get()).isEqualTo(2);
@@ -514,7 +515,7 @@ class MailerSendingLimitsTest {
 			@Override public Email next() { return email("batch " + supplied.incrementAndGet()); }
 		};
 		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), new State()).withMessageRateLimit(2, PERIOD)
-				.withCustomMailer(custom).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withCustomMailer(custom).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(emails)).isInstanceOf(RuntimeException.class);
 			assertThat(supplied.get()).isEqualTo(2);
 			assertThat(invoked.get()).isEqualTo(2);
@@ -566,7 +567,7 @@ class MailerSendingLimitsTest {
 		session.addProvider(provider);
 		session.setProvider(provider);
 		return new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session).withClusterKey(UUID.randomUUID())
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(1000).withRateLimitGroup("account");
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(1000)).withRateLimitGroup("account");
 	}
 
 	private static Email email(final String subject) {

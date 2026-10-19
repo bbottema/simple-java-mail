@@ -1,5 +1,7 @@
 package org.simplejavamail.thirdpartyprobe;
 
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Authenticator;
@@ -151,7 +153,7 @@ public final class ThirdPartyProbeConsumer {
 
     private static Mailer mailer(final Session source, final AtomicInteger observerCalls) {
         return SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(source)
-                .withDebugLogging(true).withMailSendResultObserver(outcome -> observerCalls.incrementAndGet()).buildMailer();
+                .withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> observerCalls.incrementAndGet()).build()).buildMailer();
     }
 
     private static Session sourceSession(final AtomicInteger authenticationCalls) throws Exception {

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -23,8 +24,8 @@ class MailSendTelemetryActivationTest {
         try (var modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::loadOpenTelemetryModule).thenThrow(failure);
             assertThatThrownBy(() -> mail.mailerBuilder().buildMailer()).isSameAs(failure);
-            try (Mailer disabled = mail.mailerBuilder().withMailSendTelemetryEnabled(false).buildMailer()) {
-                assertThat(disabled.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+            try (Mailer disabled = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()).buildMailer()) {
+                assertThat(disabled.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
             }
         }
     }
@@ -34,7 +35,7 @@ class MailSendTelemetryActivationTest {
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder()
                 .withMap(Map.of("simplejavamail.smtp.host", "localhost", "simplejavamail.telemetry.enabled", false)).load());
         try (var modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS); Mailer mailer = mail.mailerBuilder().buildMailer()) {
-            assertThat(mailer.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+            assertThat(mailer.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
             modules.verify(ModuleLoader::loadOpenTelemetryModule, never());
         }
         assertThat(mail.getConfig().getDiagnostics().getProperties(org.simplejavamail.config.ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION))

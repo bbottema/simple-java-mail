@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
@@ -85,14 +86,20 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 		if (selectedDestination.usesSmtpConnection() && selectedDestination.getOperationalConfig().getMailSendRetryPolicy().isRetryEnabled()) {
 			return sendWithRetries(prepared, control, diagnostics);
 		}
+		MailSubmissionReceipt receipt = null;
 		try (SendingAllowance.Reservation reservation = EmailSendingAllowance.reserve(allowance, selectedDestination.getSession(), prepared, control, diagnostics)) {
 			if (selectedDestination.getOperationalConfig().getCustomMailer() != null) {
-				return sendUsingCustomMailer(prepared, control, diagnostics, reservation);
+				receipt = sendUsingCustomMailer(prepared, control, diagnostics, reservation);
+				return receipt;
 			}
 			// The retained connection stays open, but cancellation belongs to this email rather than the scope-opening attempt.
 			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport().getTransport(), control)) {
-				return transport().send(prepared, diagnostics, reservation, control);
+				receipt = transport().send(prepared, diagnostics, reservation, control);
+				return receipt;
 			}
+		} catch (MessagingException | RuntimeException failure) {
+			if (receipt != null) { throw new MailSendCleanupException("Individual send cleanup failed on the selected shared connection", failure, receipt); }
+			throw failure;
 		}
 	}
 

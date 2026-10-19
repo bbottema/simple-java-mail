@@ -1,5 +1,6 @@
 package testutil;
 
+import java.time.Duration;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.SneakyThrows;
 import org.assertj.core.util.Lists;
@@ -11,6 +12,9 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
@@ -207,44 +211,46 @@ public class EmailHelper {
 		try {
 			Constructor<?> constructor = Class.forName("org.simplejavamail.mailer.internal.OperationalConfigImpl").getDeclaredConstructors()[0];
 			constructor.setAccessible(true);
+			final SessionDebugConfig debugConfig = debugPrinter == null
+					? SessionDebugConfig.builder().withEnabled(debugLogging).withOutput(SessionDebugOutput.STDOUT).build()
+					: SessionDebugConfig.builder().withEnabled(debugLogging).withPrinter(debugPrinter).build();
 			return (OperationalConfig) constructor.newInstance(
 					/*0*/properties,
-					/*1*/sessionTimeout,
+					/*1*/Duration.ofMillis(sessionTimeout),
 					/*2*/localBindAddress,
 					/*3*/localBindPort,
 					/*4*/smtpClientHostname,
 					/*5*/false,
-					/*6*/DEFAULT_MAIL_SEND_TELEMETRY_ENABLED,
-					/*7*/DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
-					/*8*/threadPoolSize,
-					/*9*/threadPoolKeepAliveTime,
-					/*10*/clusterKey,
-					/*11*/connectionPoolCoreSize,
-					/*12*/connectionPoolMaxSize,
-					/*13*/connectionPoolClaimTimeoutMillis,
-					/*14*/connectionPoolExpireAfterMillis,
-					/*15*/null,
-					/*16*/connectionPoolLoadBalancingStrategy,
-					/*17*/connectionPoolClusterConfigs,
-					/*18*/transportModeLoggingOnly,
-					/*19*/debugLogging,
-					/*20*/debugPrinter,
-					/*21*/disableAllClientValidation,
-					/*22*/sslHostsToTrust,
-					/*23*/trustAllSSLHost,
-					/*24*/verifyingServerIdentity,
-					/*25*/executorService,
-					/*26*/isExecutorServiceUserProvided,
-					/*27*/customMailer,
-					/*28*/oauth2AccessTokenProvider,
-					/*29*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000),
+					/*6*/MailSendTelemetryConfig.builder().withEnabled(DEFAULT_MAIL_SEND_TELEMETRY_ENABLED)
+							.withSmtpEndpointAttributes(DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES).build(),
+					/*7*/threadPoolSize,
+					/*8*/Duration.ofMillis(threadPoolKeepAliveTime),
+					/*9*/clusterKey,
+					/*10*/connectionPoolCoreSize,
+					/*11*/connectionPoolMaxSize,
+					/*12*/Duration.ofMillis(connectionPoolClaimTimeoutMillis),
+					/*13*/Duration.ofMillis(connectionPoolExpireAfterMillis),
+					/*14*/null,
+					/*15*/connectionPoolLoadBalancingStrategy,
+					/*16*/connectionPoolClusterConfigs,
+					/*17*/transportModeLoggingOnly,
+					/*18*/debugConfig,
+					/*19*/disableAllClientValidation,
+					/*20*/sslHostsToTrust,
+					/*21*/trustAllSSLHost,
+					/*22*/verifyingServerIdentity,
+					/*23*/executorService,
+					/*24*/isExecutorServiceUserProvided,
+					/*25*/customMailer,
+					/*26*/oauth2AccessTokenProvider,
+					/*27*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)),
+					/*28*/null,
+					/*29*/null,
 					/*30*/null,
 					/*31*/null,
-					/*32*/null,
+					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
 					/*33*/null,
-					/*34*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
-					/*35*/null,
-					/*36*/MailSendRetryPolicy.builder().build());
+					/*34*/MailSendRetryPolicy.builder().build());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

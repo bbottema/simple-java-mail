@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ class MailSendDiagnosticsSchedulingTest {
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
 		final MailerRegularBuilder<?> builder = builder().withExecutorService(executor)
-				.withMailSendResultObserver(outcomes::add).withMailSendProgressObserver(progress::add);
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).withProgressObserver(progress::add).build());
 		if (timeout) {
 			builder.withMailSendTimeout(Duration.ofSeconds(1));
 		}
@@ -90,10 +91,10 @@ class MailSendDiagnosticsSchedulingTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
-		try (Mailer mailer = builder().withExecutorService(executor).withMailSendResultObserver(outcome -> {
+		try (Mailer mailer = builder().withExecutorService(executor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			callbackThread.set(Thread.currentThread());
 			outcomes.add(outcome);
-		}).buildMailer()) {
+		}).build()).buildMailer()) {
 			final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
 			assertThat(send.getCompletion()).isCompleted();
 			assertThat(callbackThread).hasValue(Thread.currentThread());

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.MailSendOutcome;
@@ -24,7 +25,7 @@ class FailoverDirectProviderContracts {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
              Mailer initiating = FailoverTestProvider.builder(state).withFailoverMailer(selected, policy())
-                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> initiating.sync().sendMail(email()));
             assertThat(failure).hasRootCause(state.cleanupFailure);
             assertThat(outcomes).hasSize(1);

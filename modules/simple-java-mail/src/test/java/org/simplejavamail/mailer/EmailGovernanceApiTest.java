@@ -27,7 +27,7 @@ class EmailGovernanceApiTest {
 				+ "builder.withEmailDefaults(defaults).withEmailOverrides(defaults);"
 				+ "Email configured = mail.emailBuilder().startingBlank().buildEmailCompletedWithDefaultsAndOverrides();"
 				+ "builder.withEmailDefaults(mail.emailBuilder().copying(configured).clearDkim().buildEmail());"
-				+ "builder.clearEmailDefaults();");
+				+ "builder.useConfiguredEmailDefaults();");
 	}
 
 	@ParameterizedTest

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -28,9 +29,9 @@ class PoolConfigurationContractTest {
         switch (field) {
             case "coreSize": builder.coreSize(value); break;
             case "maxSize": builder.maxSize(value); break;
-            case "claimTimeoutMillis": builder.claimTimeoutMillis(value); break;
-            case "expireAfterMillis": builder.expireAfterMillis(value); break;
-            default: builder.expireAfterCreationMillis(value); break;
+            case "claimTimeoutMillis": builder.claimTimeout(Duration.ofMillis(value)); break;
+            case "expireAfterMillis": builder.expireAfter(Duration.ofMillis(value)); break;
+            default: builder.expireAfterCreation(Duration.ofMillis(value)); break;
         }
         assertThat(builder.build()).isNotNull();
         final UUID cluster = UUID.randomUUID();
@@ -50,7 +51,7 @@ class PoolConfigurationContractTest {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.coresize", "-1",
                     "defaults.connectionpool.maxsize", "0", "defaults.connectionpool.expireaftercreation.millis", "0"));
-            buildAndClose(mail.mailerBuilder().withConnectionPoolClaimTimeoutMillis(-1).withConnectionPoolExpireAfterCreationMillis(-1));
+            buildAndClose(mail.mailerBuilder().withConnectionPoolClaimTimeout(Duration.ofMillis(-1)).withConnectionPoolExpireAfterCreation(Duration.ofMillis(-1)));
             modules.verify(ModuleLoader::loadBatchModule, Mockito.never());
         }
     }
@@ -64,8 +65,8 @@ class PoolConfigurationContractTest {
                 prefix + "claimtimeout.millis", "0", prefix + "expireafter.millis", "0", prefix + "expireaftercreation.millis", "1",
                 "defaults.connectionpool.clusters." + unused + ".coresize", "3", "defaults.connectionpool.clusters." + unused + ".maxsize", "1"));
         buildAndClose(mail.mailerBuilder().withClusterKey(selected)
-                .withConnectionPoolCoreSize(-1).withConnectionPoolMaxSize(0).withConnectionPoolClaimTimeoutMillis(-1)
-                .withConnectionPoolExpireAfterMillis(-1).withConnectionPoolExpireAfterCreationMillis(0));
+                .withConnectionPoolCoreSize(-1).withConnectionPoolMaxSize(0).withConnectionPoolClaimTimeout(Duration.ofMillis(-1))
+                .withConnectionPoolExpireAfter(Duration.ofMillis(-1)).withConnectionPoolExpireAfterCreation(Duration.ofMillis(0)));
     }
 
     @ParameterizedTest
@@ -79,7 +80,7 @@ class PoolConfigurationContractTest {
     void rejectsInvalidJavaChoicesBeforePoolCreation() {
         assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolCoreSize(-1)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize");
-        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolClaimTimeoutMillis(-1)))
+        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolClaimTimeout(Duration.ofMillis(-1))))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("claimTimeoutMillis");
         assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolMaxSize(1).withConnectionPoolCoreSize(2)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize").hasMessageContaining("maxSize");
@@ -105,10 +106,10 @@ class PoolConfigurationContractTest {
     void zeroValuesAndSetterOrderingRemainSupported() throws Exception {
         final MailerRegularBuilder<?> builder = factory(Map.of()).mailerBuilder().withConnectionPoolCoreSize(4)
                 .withConnectionPoolMaxSize(4).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeoutMillis(0).withConnectionPoolExpireAfterMillis(0);
+                .withConnectionPoolClaimTimeout(Duration.ofMillis(0)).withConnectionPoolExpireAfter(Duration.ofMillis(0));
         try (Mailer mailer = builder.buildMailer()) {
-            assertThat(mailer.getOperationalConfig().getConnectionPoolClaimTimeoutMillis()).isZero();
-            assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterMillis()).isZero();
+            assertThat(mailer.getOperationalConfig().getConnectionPoolClaimTimeout()).isEqualTo(Duration.ZERO);
+            assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfter()).isEqualTo(Duration.ZERO);
         }
     }
 

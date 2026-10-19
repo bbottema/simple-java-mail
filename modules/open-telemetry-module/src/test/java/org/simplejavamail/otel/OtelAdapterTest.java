@@ -1,5 +1,6 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
@@ -100,17 +101,15 @@ class OtelAdapterTest {
         final Properties source = properties("simplejavamail.telemetry.smtp.endpointattributes", "true");
         final SimpleJavaMail configured = factory(source);
         source.setProperty("simplejavamail.telemetry.smtp.endpointattributes", "false");
-        try (Mailer enabled = configured.mailerBuilder().withMailSendTelemetry(shared).buildMailer();
-             Mailer disabled = factory(new Properties()).mailerBuilder().withMailSendTelemetry(shared).buildMailer();
-             Mailer explicitlyDisabled = configured.mailerBuilder().withMailSendTelemetry(shared)
-                     .withMailSendTelemetrySmtpEndpointAttributes(false).buildMailer();
+        try (Mailer enabled = configured.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(shared).withEnabled(true).build()).buildMailer();
+             Mailer disabled = factory(new Properties()).mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(shared).withEnabled(true).build()).buildMailer();
+             Mailer explicitlyDisabled = configured.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(shared).withEnabled(true).withSmtpEndpointAttributes(false).build()).buildMailer();
              Mailer cleared = configured.mailerBuilder()
-                     .withMailSendTelemetry(shared).withMailSendTelemetrySmtpEndpointAttributes(false)
-                     .clearMailSendTelemetrySmtpEndpointAttributes().buildMailer()) {
-            assertThat(enabled.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
-            assertThat(disabled.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isFalse();
-            assertThat(explicitlyDisabled.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isFalse();
-            assertThat(cleared.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
+                     .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(shared).withEnabled(true).withSmtpEndpointAttributes(false).useConfiguredSmtpEndpointAttributes().build()).buildMailer()) {
+            assertThat(enabled.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
+            assertThat(disabled.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isFalse();
+            assertThat(explicitlyDisabled.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isFalse();
+            assertThat(cleared.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
             assertThat(((OtelTelemetry) shared).getOpenTelemetry()).isSameAs(OpenTelemetry.noop());
         }
         assertThat(configured.getConfig().getDiagnostics().getProperties(ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION)).anySatisfy(entry -> {
@@ -125,31 +124,39 @@ class OtelAdapterTest {
         final SimpleJavaMail mail = factory(properties("simplejavamail.locked.telemetry.smtp.endpointattributes", "true"));
         final MailSendTelemetry registration = OtelAdapter.wrap(OpenTelemetry.noop());
         try (Mailer inactive = mail.mailerBuilder().buildMailer();
-             Mailer equal = mail.mailerBuilder().withMailSendTelemetry(registration).withMailSendTelemetrySmtpEndpointAttributes(true).buildMailer();
-             Mailer cleared = mail.mailerBuilder().withMailSendTelemetry(registration).clearMailSendTelemetry().buildMailer()) {
-            assertThat(inactive.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
-            assertThat(equal.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
-            assertThat(cleared.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
+             Mailer equal = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).withSmtpEndpointAttributes(true).build()).buildMailer();
+             Mailer cleared = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).clearIntegration().build()).buildMailer()) {
+            assertThat(inactive.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
+            assertThat(equal.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
+            assertThat(cleared.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
         }
         assertThatIllegalArgumentException().isThrownBy(() -> mail.mailerBuilder()
-                .withMailSendTelemetry(registration).resetMailSendTelemetrySmtpEndpointAttributes().buildMailer())
+                .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).resetSmtpEndpointAttributes().build()).buildMailer())
                 .withMessageContaining("simplejavamail.locked.telemetry.smtp.endpointattributes");
-        final var builder = mail.mailerBuilder().withMailSendTelemetry(registration);
-        assertThat(builder.getMailSendTelemetry()).isSameAs(registration);
-        assertThat(builder.clearMailSendTelemetry().getMailSendTelemetry()).isNull();
+        final var builder = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(registration).withEnabled(true).build());
+        assertThat(builder.getTelemetryConfig().getIntegration()).isSameAs(registration);
+        assertThat(builder.withTelemetryConfig(builder.getTelemetryConfig().toBuilder().clearIntegration().build())
+                .getTelemetryConfig().getIntegration()).isNull();
+        assertThat(builder.getTelemetryConfig().getEnabled()).isTrue();
     }
 
     @Test
     void replacingOrClearingTheHandlePreservesTheMailersEndpointChoice() throws Exception {
         final var builder = factory(properties("simplejavamail.telemetry.smtp.endpointattributes", "true")).mailerBuilder()
-                .withMailSendTelemetrySmtpEndpointAttributes(false);
-        assertThat(builder.isMailSendTelemetrySmtpEndpointAttributesEnabled()).isFalse();
-        try (Mailer mailer = builder.withMailSendTelemetry(OtelAdapter.wrap(OpenTelemetry.noop()))
-                .clearMailSendTelemetry().withMailSendTelemetry(OtelAdapter.wrap(OpenTelemetry.noop())).buildMailer()) {
-            assertThat(mailer.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isFalse();
+                .withTelemetryConfig(MailSendTelemetryConfig.builder().withSmtpEndpointAttributes(false).build());
+        assertThat(builder.getTelemetryConfig().getSmtpEndpointAttributes()).isFalse();
+        try (Mailer mailer = builder.withTelemetryConfig(builder.getTelemetryConfig().toBuilder()
+                .withIntegration(OtelAdapter.wrap(OpenTelemetry.noop())).withEnabled(true)
+                .clearIntegration().withIntegration(OtelAdapter.wrap(OpenTelemetry.noop())).build()).buildMailer()) {
+            assertThat(mailer.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isFalse();
         }
-        assertThat(builder.clearMailSendTelemetrySmtpEndpointAttributes().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
-        assertThat(builder.resetMailSendTelemetrySmtpEndpointAttributes().isMailSendTelemetrySmtpEndpointAttributesEnabled())
+        builder.withTelemetryConfig(builder.getTelemetryConfig().toBuilder().useConfiguredSmtpEndpointAttributes().build());
+        assertThat(builder.getTelemetryConfig().getSmtpEndpointAttributes()).isNull();
+        try (Mailer inherited = builder.buildMailer()) {
+            assertThat(inherited.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
+        }
+        assertThat(builder.withTelemetryConfig(builder.getTelemetryConfig().toBuilder().resetSmtpEndpointAttributes().build())
+                .getTelemetryConfig().getSmtpEndpointAttributes())
                 .isEqualTo(MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES);
     }
 

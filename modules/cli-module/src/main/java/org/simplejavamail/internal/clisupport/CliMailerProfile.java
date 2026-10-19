@@ -175,8 +175,8 @@ public final class CliMailerProfile {
 		} else if (value instanceof ConnectionPoolClusterConfig cluster) {
 			writeValue(output, cluster.getCoreSize());
 			writeValue(output, cluster.getMaxSize());
-			writeValue(output, cluster.getClaimTimeoutMillis());
-			writeValue(output, cluster.getExpireAfterMillis());
+			writeValue(output, cluster.getClaimTimeout());
+			writeValue(output, cluster.getExpireAfter());
 			writeValue(output, cluster.getLoadBalancingStrategy());
 		} else if (value instanceof Map<?, ?> map) {
 			output.writeInt(map.size());

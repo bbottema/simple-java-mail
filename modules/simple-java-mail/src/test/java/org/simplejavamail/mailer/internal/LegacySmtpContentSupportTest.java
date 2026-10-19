@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -114,7 +116,7 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
                 finishConnection(peer);
             }
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(message(INTERNATIONAL_RECIPIENT));
             assertThat(mailCommandReceived.await(10, SECONDS)).isTrue();
             send.requestCancellation();
@@ -158,7 +160,7 @@ class LegacySmtpContentSupportTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(legacy).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(legacy).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             if (permitted) {
                 final MailSubmissionReceipt receipt = mailer.async().sendMail(email).getCompletion().get(10, SECONDS);
                 assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -275,11 +277,11 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
                 finishConnection(peer);
             }
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(
                     composedEmail("séndér@example.test", INTERNATIONAL_RECIPIENT, "Test", "Body")));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt rejected = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt rejected = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(rejected.getStatus()).isEqualTo(REJECTED);
             assertThat(rejected.getSmtpResponse().orElseThrow().getReturnCode()).isEqualTo(550);
             assertThat(outcomes).hasSize(1);
@@ -407,7 +409,7 @@ class LegacySmtpContentSupportTest {
             final Session session = Session.getInstance(properties);
             final String provider = session.getProvider("smtp").getClassName();
             try (Mailer mailer = factory().mailerBuilder(session).withSmtpClientHostname("probe.example.test")
-                    .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(5000).buildMailer()) {
+                    .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
                 mailer.sync().sendMail(message(ASCII_RECIPIENT));
                 assertThat(session.getProvider("smtp").getClassName()).isEqualTo(provider);
                 assertThat(session.getProperty("mail.mime.allowutf8")).isEqualTo("true");

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
@@ -64,8 +65,8 @@ class FailoverPoolContractTest {
         // Keep the released connection eligible for reuse even when the first send is slow on the test host.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(150)
-                     .withConnectionPoolExpireAfterMillis(60000).withFailoverMailer(selected, policy()).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(150))
+                     .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withFailoverMailer(selected, policy()).buildMailer()) {
             try {
                 final var occupied = callback.submit(() -> {
                     initiating.withOpenConnection(sender -> {
@@ -101,13 +102,13 @@ class FailoverPoolContractTest {
         // Test lease release and reentry, not expiration while a slow host completes the first send.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000)
+             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000))
                      .withFailoverMailer(selected, policy())
-                     .withMailSendResultObserver(outcome -> {
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                          if (completions.incrementAndGet() == 1) {
                              observerFailure.set(catchThrowable(() -> active.get().sync().sendMail(email())));
                          }
-                     }).buildMailer()) {
+                     }).build()).buildMailer()) {
             active.set(initiating);
             initiating.sync().sendMail(email());
             assertThat(observerFailure.get()).isNull();

@@ -1,5 +1,8 @@
 package org.simplejavamail.batch;
 
+import org.simplejavamail.internal.util.DurationMillis;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -15,14 +18,14 @@ public final class BatchTransportExecutorBuilder<K> {
 
 	/** Default number of worker threads when the batch module owns the executor. */
 	public static final int DEFAULT_THREAD_POOL_SIZE = 10;
-	/** Default worker keep-alive time, in milliseconds, when the batch module owns the executor. */
-	public static final int DEFAULT_THREAD_POOL_KEEP_ALIVE_MILLIS = 1;
+	/** Default worker keep-alive of one millisecond when the batch module owns the executor. */
+	public static final Duration DEFAULT_THREAD_POOL_KEEP_ALIVE = Duration.ofMillis(1);
 
 	private BatchTransportPoolConfiguration.Builder defaultPoolConfiguration = BatchTransportPoolConfiguration.builder();
 	private final Map<K, BatchTransportPoolConfiguration> clusterConfigurations = new LinkedHashMap<>();
 	private ExecutorService executorService;
 	private int threadPoolSize = DEFAULT_THREAD_POOL_SIZE;
-	private int threadPoolKeepAliveMillis = DEFAULT_THREAD_POOL_KEEP_ALIVE_MILLIS;
+	private Duration threadPoolKeepAliveTime = DEFAULT_THREAD_POOL_KEEP_ALIVE;
 
 	BatchTransportExecutorBuilder() {
 	}
@@ -63,22 +66,22 @@ public final class BatchTransportExecutorBuilder<K> {
 	/**
 	 * Sets the default claim timeout.
 	 *
-	 * @param claimTimeoutMillis a nonnegative duration in milliseconds
+	 * @param claimTimeout a nonnegative duration exactly representable as integer milliseconds
 	 * @return this builder
 	 */
-	public BatchTransportExecutorBuilder<K> withClaimTimeoutMillis(final int claimTimeoutMillis) {
-		defaultPoolConfiguration.withClaimTimeoutMillis(claimTimeoutMillis);
+	public BatchTransportExecutorBuilder<K> withClaimTimeout(final Duration claimTimeout) {
+		defaultPoolConfiguration.withClaimTimeout(claimTimeout);
 		return this;
 	}
 
 	/**
 	 * Sets the default idle expiry time.
 	 *
-	 * @param expireAfterMillis a nonnegative duration in milliseconds; zero disables idle expiry
+	 * @param expireAfter a nonnegative duration exactly representable as integer milliseconds; zero disables idle expiry
 	 * @return this builder
 	 */
-	public BatchTransportExecutorBuilder<K> withExpireAfterMillis(final int expireAfterMillis) {
-		defaultPoolConfiguration.withExpireAfterMillis(expireAfterMillis);
+	public BatchTransportExecutorBuilder<K> withExpireAfter(final Duration expireAfter) {
+		defaultPoolConfiguration.withExpireAfter(expireAfter);
 		return this;
 	}
 
@@ -88,11 +91,11 @@ public final class BatchTransportExecutorBuilder<K> {
 	 * Expiration is asynchronous and does not interrupt active leases, so this is an eligibility threshold rather than a
 	 * strict maximum connection lifetime.
 	 *
-	 * @param expireAfterCreationMillis a positive duration in milliseconds
+	 * @param expireAfterCreation a positive duration exactly representable as integer milliseconds
 	 * @return this builder
 	 */
-	public BatchTransportExecutorBuilder<K> withExpireAfterCreationMillis(final int expireAfterCreationMillis) {
-		defaultPoolConfiguration.withExpireAfterCreationMillis(expireAfterCreationMillis);
+	public BatchTransportExecutorBuilder<K> withExpireAfterCreation(final Duration expireAfterCreation) {
+		defaultPoolConfiguration.withExpireAfterCreation(expireAfterCreation);
 		return this;
 	}
 
@@ -101,8 +104,8 @@ public final class BatchTransportExecutorBuilder<K> {
 	 *
 	 * @return this builder
 	 */
-	public BatchTransportExecutorBuilder<K> clearExpireAfterCreationMillis() {
-		defaultPoolConfiguration.clearExpireAfterCreationMillis();
+	public BatchTransportExecutorBuilder<K> clearExpireAfterCreation() {
+		defaultPoolConfiguration.clearExpireAfterCreation();
 		return this;
 	}
 
@@ -158,11 +161,12 @@ public final class BatchTransportExecutorBuilder<K> {
 	/**
 	 * Sets the keep-alive time for module-owned worker threads. A positive value also lets core threads time out.
 	 *
-	 * @param threadPoolKeepAliveMillis a nonnegative duration in milliseconds
+	 * @param threadPoolKeepAliveTime a nonnegative duration exactly representable as integer milliseconds
 	 * @return this builder
 	 */
-	public BatchTransportExecutorBuilder<K> withThreadPoolKeepAliveTimeMillis(final int threadPoolKeepAliveMillis) {
-		this.threadPoolKeepAliveMillis = threadPoolKeepAliveMillis;
+	public BatchTransportExecutorBuilder<K> withThreadPoolKeepAliveTime(final Duration threadPoolKeepAliveTime) {
+		DurationMillis.toInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime");
+		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
 		return this;
 	}
 
@@ -175,11 +179,11 @@ public final class BatchTransportExecutorBuilder<K> {
 		if (threadPoolSize < 1) {
 			throw new IllegalArgumentException("threadPoolSize must be at least one");
 		}
-		if (threadPoolKeepAliveMillis < 0) {
-			throw new IllegalArgumentException("threadPoolKeepAliveMillis must not be negative");
+		if (threadPoolKeepAliveTime.isNegative()) {
+			throw new IllegalArgumentException("threadPoolKeepAliveTime must not be negative");
 		}
 		return new BatchTransportExecutor<>(defaultPoolConfiguration.build(),
 				Collections.unmodifiableMap(new LinkedHashMap<>(clusterConfigurations)), executorService,
-				threadPoolSize, threadPoolKeepAliveMillis);
+				threadPoolSize, DurationMillis.toInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime"));
 	}
 }

@@ -3,6 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailSendRetryBuilder;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
@@ -14,6 +15,7 @@ public final class CliBuilderApi {
 			CliEmailRecipientBuilder.class,
 			CliFailoverMailerBuilder.class,
 			CliMailSendRetryBuilder.class,
+			CliMailerConfigurationBuilder.class,
 			MailerRegularBuilder.class,
 			MailerFromSessionBuilder.class
 	};

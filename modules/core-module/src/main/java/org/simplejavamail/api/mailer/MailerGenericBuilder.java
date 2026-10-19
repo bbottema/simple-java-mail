@@ -17,6 +17,8 @@ import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
@@ -144,10 +146,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	boolean DEFAULT_OPPORTUNISTIC_TLS = true;
 	/**
-	 * The default maximum timeout value for the transport socket is <code>{@value}</code> milliseconds (affects socket connect-,
-	 * read- and write timeouts). Can be overridden from a config file or through System variable.
+	 * The default transport socket timeout is sixty seconds (affects socket connect-, read- and write timeouts). Can be overridden from a config file or through System variable.
 	 */
-	int DEFAULT_SESSION_TIMEOUT_MILLIS = 60_000;
+	Duration DEFAULT_SESSION_TIMEOUT = Duration.ofMillis(60_000);
 	/**
 	 * {@value}
 	 *
@@ -155,11 +156,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_POOL_SIZE = 10;
 	/**
-	 * {@value}
+	 * One millisecond for explicitly reset worker keep-alive and for implicit defaults with the batch module.
 	 *
-	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 * @see #withThreadPoolKeepAliveTime(Duration)
 	 */
-	int DEFAULT_POOL_KEEP_ALIVE_TIME = 1;
+	Duration DEFAULT_POOL_KEEP_ALIVE_TIME = Duration.ofMillis(1);
 	/**
 	 * {@value} (unbounded).
 	 *
@@ -173,11 +174,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	AsyncQueueOverflowPolicy DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY = AsyncQueueOverflowPolicy.REJECT;
 	/**
-	 * {@value} milliseconds.
+	 * One second.
 	 *
-	 * @see #withAsyncQueueWaitTimeoutMillis(int)
+	 * @see #withAsyncQueueWaitTimeout(Duration)
 	 */
-	int DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS = 1000;
+	Duration DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT = Duration.ofMillis(1000);
 	/**
 	 * {@value}
 	 *
@@ -191,17 +192,19 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_CONNECTIONPOOL_MAX_SIZE = 4;
 	/**
-	 * {@value} ({@code Integer.MAX_VALUE}), approximately 24.9 days.
+	 * The duration of {@code Integer.MAX_VALUE} milliseconds, approximately 24.9 days.
 	 *
-	 * @see #withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see #withConnectionPoolClaimTimeout(Duration)
 	 */
-	int DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS = Integer.MAX_VALUE;
+	Duration DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT = Duration.ofMillis(Integer.MAX_VALUE);
 	/**
-	 * {@value}
+	 * Five seconds.
 	 *
-	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 * @see #withConnectionPoolExpireAfter(Duration)
 	 */
-	int DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS = 5000;
+	Duration DEFAULT_CONNECTIONPOOL_EXPIREAFTER = Duration.ofMillis(5000);
+	/** No creation-age expiration unless configured. */
+	@Nullable Duration DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION = null;
 	/**
 	 * {@value}
 	 *
@@ -225,6 +228,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defaults to <code>{@value}</code>, sending mails rather than just only logging the mails.
 	 */
 	boolean DEFAULT_JAVAXMAIL_DEBUG = false;
+	/** Explicit reset target for Jakarta Mail debug output. Unset output preserves captured configuration or the Session baseline. */
+	SessionDebugOutput DEFAULT_JAVAXMAIL_DEBUG_OUTPUT = SessionDebugOutput.STDOUT;
 	/** Defaults to {@value}: require advertised support for internationalized addresses and raw 8-bit content. */
 	boolean DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT = false;
 	/** Defaults to {@value}: mail-send telemetry is opt-in through Java configuration or properties. */
@@ -313,62 +318,25 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withProxyBridgePort(@NotNull Integer proxyBridgePort);
 
 	/**
-	 * Turns Jakarta Mail's protocol debug output on or off through {@link Session#setDebug(boolean)}. Use your application's logging configuration
-	 * separately when you want more detail from Simple Java Mail's own loggers.
-	 * Calling again replaces the flag. {@link #resetDebugLogging()} selects the library default, {@value #DEFAULT_JAVAXMAIL_DEBUG},
-	 * without changing the output target or any already built Mailer. A conflicting factory lock still rejects construction.
-	 *
-	 * @param debugLogging Enables or disables debug logging with {@code true} or {@code false}.
+	 * Replaces this builder's supplied debug choices. Unset fields inherit the factory snapshot, never the previous group.
+	 * The supplied value and its getters retain absence. A built Mailer's operational configuration contains resolved choices.
+	 * For a caller-owned Session, absent factory and group choices preserve its debug flag and output. Streams remain borrowed.
+	 * @param debugConfig Immutable supplied choices.
+	 * @see #getDebugConfig()
+	 * @see #useConfiguredDebugConfig()
 	 */
-	T withDebugLogging(@NotNull Boolean debugLogging);
+	@Cli.ExcludeApi(reason = "The CLI exposes scalar debug options through its internal configuration adapter")
+	T withDebugConfig(@NotNull SessionDebugConfig debugConfig);
 
-	/** @see #withDebugLogging(Boolean) */
-	@Cli.ExcludeApi(reason = "Fresh CLI builders inherit logging configuration; use withDebugLogging for an explicit choice")
-	T resetDebugLogging();
+	/** @see #withDebugConfig(SessionDebugConfig) */
+	@NotNull SessionDebugConfig getDebugConfig();
 
 	/**
-	 * Sets a custom printer for Jakarta Mail debug output.
-	 * <p>
-	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected,
-	 * for example to an SLF4J-backed {@link PrintStream}.
-	 * <p>
-	 * Simple Java Mail does not close the supplied stream. Keep it open for as long as the Mailer may write debug output and close it after the Mailer
-	 * is no longer using it.
-	 * Calling again replaces the selected output. {@link #clearDebugPrinter()} restores the factory's captured output setting, or leaves the
-	 * Session's output unchanged when none was configured. This is the same selection as {@link #withDebugOutput(SessionDebugOutput)};
-	 * clearing either does not turn logging off or close a borrowed stream. Previously built Mailers are unchanged.
-	 * <p>
-	 * For property files and CLI usage, use {@link #withDebugOutput(SessionDebugOutput)} or configure {@code simplejavamail.javaxmail.debug.out}.
-	 *
-	 * @param debugPrinter The printer that should receive Jakarta Mail debug output.
-	 * @see Session#setDebugOut(PrintStream)
-	 * @see #withDebugOutput(SessionDebugOutput)
+	 * Restores captured debug configuration by removing all supplied group choices.
+	 * @see #withDebugConfig(SessionDebugConfig)
 	 */
-	@Cli.ExcludeApi(reason = "PrintStream instances are Java-only; use withDebugOutput(SessionDebugOutput) for CLI-compatible built-in targets")
-	T withDebugPrinter(@NotNull PrintStream debugPrinter);
-
-	/** @see #withDebugPrinter(PrintStream) */
-	@Cli.ExcludeApi(reason = "PrintStream registrations are Java-only; fresh CLI builders already inherit the configured target")
-	T clearDebugPrinter();
-
-	/**
-	 * Sets one of the built-in targets for Jakarta Mail debug output.
-	 * <p>
-	 * This is useful when {@link #withDebugLogging(Boolean)} is enabled and Jakarta Mail's default {@link System#out} output should be redirected
-	 * without providing a custom {@link PrintStream}.
-	 * Calling again replaces the output, including a previous custom printer. {@link #clearDebugOutput()} restores the factory's captured
-	 * output selection or absence, without changing logging or closing any stream. Both output setters select the same setting.
-	 *
-	 * @param debugOutput The built-in output target to use for Jakarta Mail debug output.
-	 *                    Supported values: STDOUT, STDERR, SLF4J.
-	 * @see Session#setDebugOut(PrintStream)
-	 * @see #withDebugPrinter(PrintStream)
-	 */
-	T withDebugOutput(@NotNull SessionDebugOutput debugOutput);
-
-	/** @see #withDebugOutput(SessionDebugOutput) */
-	@Cli.ExcludeApi(reason = "Fresh CLI builders inherit the configured debug target; use withDebugOutput for an explicit choice")
-	T clearDebugOutput();
+	@Cli.ExcludeApi(reason = "Fresh CLI builders already inherit captured debug configuration")
+	T useConfiguredDebugConfig();
 
 	/**
 	 * Controls whether client-side validation findings block sending or are reported as warnings.
@@ -382,10 +350,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
 
 	/**
-	 * Sets the same socket timeout for connecting, reading and writing, in milliseconds. This is not a deadline for the whole send.
+	 * Sets the same socket timeout for connecting, reading and writing. This is not a deadline for the whole send.
 	 * <p>
 	 * When you supply your own Session, its existing timeouts remain unchanged until you call this method or a factory lock requires a value.
-	 * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(1000)} deliberately replaces
+	 * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(Duration.ofSeconds(1))} deliberately replaces
 	 * all three socket timeouts with one second. Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session
 	 * previously belonged to another Mailer. Additional Jakarta Mail properties retain their configured overlay behavior.
 	 * <p>
@@ -404,9 +372,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * configured timeout, or {@code null} if a caller-supplied Session or locked raw properties leave different, missing or unusable values.
 	 * A custom protocol cannot use these SMTP convenience mappings; configure its provider-specific settings through {@link #withProperty(String, Object)}.
 	 *
-	 * @param sessionTimeout Socket timeout in milliseconds.
+	 * @param sessionTimeout Socket timeout, exactly representable as an integer number of milliseconds.
+	 * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
 	 */
-	T withSessionTimeout(@NotNull Integer sessionTimeout);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withSessionTimeout(@NotNull Duration sessionTimeout);
 
 	/**
 	 * Sets a positive total budget for each send, or for the whole operation when using a simple batch. Disabled by default.
@@ -657,11 +627,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * This replaces the previous template, including the automatically derived property defaults; it does not merge templates. To retain configured
 	 * property defaults, first materialize them with {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()}, then copy and edit
-	 * that Email before supplying it here. Clearing this reference restores the Mailer's snapshot-derived defaults.
+	 * that Email before supplying it here. Use {@link #useConfiguredEmailDefaults()} to restore the Mailer's snapshot-derived defaults,
+	 * or {@link #withoutEmailDefaults()} to suppress ordinary defaults.
 	 * Factory-scoped {@code simplejavamail.locked.} settings are separate restrictions: replacing or suppressing this template cannot remove them.
 	 *
 	 * @param emailDefaults The email to use as defaults.
-	 * @see #clearEmailDefaults()
+	 * @see #useConfiguredEmailDefaults()
 	 */
 	T withEmailDefaults(@NotNull Email emailDefaults);
 
@@ -693,17 +664,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Sets the executor service used for asynchronous operations, including individual sends and simple batches. This lets the caller manage the thread
 	 * pool, threads and concurrency characteristics directly.
 	 * <p>
-	 * Without a caller-provided executor, the built-in executor uses one worker when the
-	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME} is absent. With the batch module present, it uses:
-	 * <ul>
-	 *     <li>with max threads fixed to the given pool size (default is {@value #DEFAULT_POOL_SIZE})</li>
-	 *     <li>with keepAliveTime as specified (if greater than zero, core threads will also time out and die off), default is {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}</li>
-	 *     <li>An unbounded queue by default, or the capacity and policy configured through {@link #withAsyncQueueCapacity(int)}</li>
-	 *     <li>Named non-daemon worker threads</li>
-	 * </ul>
-	 * <p>
-	 * <strong>Note:</strong> With the batch module present, the default keepAliveTime is set to the lowest non-zero value (so 1), so that
-	 * any threads will die off as soon as possible, as not to block the JVM from shutting down.
+	 * Without a caller-provided executor, the built-in executor honors explicit worker count and keep-alive choices, whether supplied through
+	 * Java or properties, with or without the batch module. Unspecified worker count defaults to one without the batch module or
+	 * {@value #DEFAULT_POOL_SIZE} with it. Unspecified keep-alive defaults to zero without the batch module or
+	 * {@link #DEFAULT_POOL_KEEP_ALIVE_TIME} with it. A positive keep-alive lets core workers stop once idle.
+	 * The executor uses named non-daemon workers and an unbounded queue unless configured through {@link #withAsyncQueueCapacity(int)}.
 	 * <p>
 	 * Simple Java Mail will <strong>not</strong> shut down the provided executor service when the Mailer or its connection pool is closed. The caller remains
 	 * responsible for the executor's lifecycle. Non-default built-in queue settings cannot be combined with a caller-owned executor and are rejected
@@ -738,7 +703,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Neither policy runs SMTP work on the submitting thread. Rejection completes an async send exceptionally with {@link MailSendRejectedException};
 	 * its observer runs on the submitting thread, before the method returns. A rejected simple batch does not open its iterable or notify per email.
 	 * <p>
-	 * WAIT_FOR_CAPACITY can block the submitting thread for {@link #withAsyncQueueWaitTimeoutMillis(int)}. Avoid it on event-loop threads.
+	 * WAIT_FOR_CAPACITY can block the submitting thread for {@link #withAsyncQueueWaitTimeout(Duration)}. Avoid it on event-loop threads.
 	 * Waiting from a Mailer worker (for example inside an observer) also occupies that worker until admission succeeds or times out.
 	 *
 	 * @param overflowPolicy REJECT or WAIT_FOR_CAPACITY; only meaningful with a finite queue capacity.
@@ -750,10 +715,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Sets the maximum caller-side wait for queue capacity under WAIT_FOR_CAPACITY. Defaults to 1000 milliseconds.
 	 * This is an admission timeout, not an SMTP/session timeout or a total-send deadline. Interruption rejects admission and preserves the interrupt flag.
 	 *
-	 * @param waitTimeoutMillis Positive maximum admission wait in milliseconds; ignored by REJECT.
+	 * @param waitTimeout Positive maximum admission wait, exactly representable as integer milliseconds; ignored by REJECT.
+	 * @throws IllegalArgumentException If the duration is not positive, has fractional milliseconds or exceeds the integer-millisecond range.
 	 * @see #withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
 	 */
-	T withAsyncQueueWaitTimeoutMillis(int waitTimeoutMillis);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withAsyncQueueWaitTimeout(@NotNull Duration waitTimeout);
 
 	/** Restores unbounded queuing, immediate rejection policy, and the default 1000 millisecond admission wait. */
 	T resetAsyncQueue();
@@ -763,9 +730,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	AsyncQueueConfig getAsyncQueueConfig();
 
 	/**
-	 * Sets max thread pool size to the given size (default is {@value #DEFAULT_POOL_SIZE}).
-	 * <p>
-	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Sets the built-in executor's worker count, independently of the batch module. Explicit Java and property values are honored.
+	 * When unspecified, the count is one without the batch module or {@value #DEFAULT_POOL_SIZE} with it.
 	 *
 	 * @param threadPoolSize See main description.
 	 *
@@ -775,22 +741,18 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T withThreadPoolSize(@NotNull Integer threadPoolSize);
 
 	/**
-	 * When set to a non-zero value (milliseconds), this keepAlivetime is applied to <em>both</em> core and extra threads. This is so that
-	 * these threads can never block the JVM from exiting once they finish their task. This is different from daemon threads,
-	 * which are abandonded without waiting for them to finish the tasks.
-	 * <p>
-	 * When set to zero, this keepAliveTime is applied only to extra threads, not core threads. This is the classic executor
-	 * behavior, but this blocks the JVM from exiting.
-	 * <p>
-	 * Defaults to {@value #DEFAULT_POOL_KEEP_ALIVE_TIME}ms.
-	 * <p>
-	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Sets how long idle built-in executor workers remain alive. A positive duration permits core workers to time out,
+	 * allowing the JVM to exit after their work finishes. Zero keeps core workers alive until the Mailer is closed.
+	 * Explicit Java and property values are honored independently of the batch module and of the worker-count choice.
+	 * When unspecified, keep-alive is zero without the batch module or {@link #DEFAULT_POOL_KEEP_ALIVE_TIME} with it.
 	 *
-	 * @param threadPoolKeepAliveTime Value in milliseconds. See main description for details.
+	 * @param threadPoolKeepAliveTime Nonnegative duration, exactly representable as integer milliseconds.
+	 * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
 	 *
 	 * @see #resetThreadPoolKeepAliveTime()
 	 */
-	T withThreadPoolKeepAliveTime(@NotNull Integer threadPoolKeepAliveTime);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withThreadPoolKeepAliveTime(@NotNull Duration threadPoolKeepAliveTime);
 
 	/**
 	 * By defining a clusterKey, you can form clusters where other {@link Mailer} instances represent
@@ -842,18 +804,20 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * If {@code >0}, configures the connection pool to wait for a limited time after which the attempt to claim a Transport connection errors out.
 	 * Use zero for a non-waiting claim; negative timeouts are invalid.
-	 * The default is {@value #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS} milliseconds, approximately 24.9 days.
+	 * The default {@link #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT} is approximately 24.9 days.
 	 * <p>
 	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @param connectionPoolClaimTimeoutMillis See main description.
+	 * @param connectionPoolClaimTimeout Nonnegative duration, exactly representable as integer milliseconds.
+	 * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
 	 */
-	T withConnectionPoolClaimTimeoutMillis(@NotNull Integer connectionPoolClaimTimeoutMillis);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withConnectionPoolClaimTimeout(@NotNull Duration connectionPoolClaimTimeout);
 
 	/**
-	 * If {@code >0}, configures the connection pool to automatically close connections after some milliseconds (default {@value DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS}) since last usage.
+	 * If {@code >0}, configures the connection pool to automatically close connections after the configured idle duration (default {@link #DEFAULT_CONNECTIONPOOL_EXPIREAFTER}).
 	 * Use zero to disable idle expiration; negative durations are invalid.
 	 * <p>
 	 * Note that if you combine this with {@link #withConnectionPoolCoreSize(Integer)} also {@code >0} (default is {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), connections will keep
@@ -863,15 +827,17 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @param connectionPoolExpireAfterMillis See main description.
+	 * @param connectionPoolExpireAfter Nonnegative duration, exactly representable as integer milliseconds.
+	 * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
 	 */
-	T withConnectionPoolExpireAfterMillis(@NotNull Integer connectionPoolExpireAfterMillis);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withConnectionPoolExpireAfter(@NotNull Duration connectionPoolExpireAfter);
 
 	/**
 	 * Configures the age after which an available pooled connection becomes eligible for retirement, measured from the
 	 * connection's creation time. Creation-age expiration is disabled when no value is configured.
 	 * <p>
-	 * This threshold is independent of {@link #withConnectionPoolExpireAfterMillis(Integer) idle expiration}. When both
+	 * This threshold is independent of {@link #withConnectionPoolExpireAfter(Duration) idle expiration}. When both
 	 * thresholds are enabled, either can retire an available connection. Claiming or releasing a connection does not reset
 	 * its creation age.
 	 * <p>
@@ -885,10 +851,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <strong>Note:</strong> this is only used in combination with the
 	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @param connectionPoolExpireAfterCreationMillis A positive duration in milliseconds.
-	 * @see #clearConnectionPoolExpireAfterCreationMillis()
+	 * @param connectionPoolExpireAfterCreation Positive duration, exactly representable as integer milliseconds.
+	 * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
+	 * @see #clearConnectionPoolExpireAfterCreation()
 	 */
-	T withConnectionPoolExpireAfterCreationMillis(@NotNull Integer connectionPoolExpireAfterCreationMillis);
+	@Cli.ExcludeApi(reason = "The CLI retains numeric millisecond arguments through its internal adapter")
+	T withConnectionPoolExpireAfterCreation(@NotNull Duration connectionPoolExpireAfterCreation);
 
 	/**
 	 * Defines the various types of load balancing modes supported by the connection pool ion the
@@ -1017,203 +985,90 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearOAuth2AccessTokenProvider();
 
 	/**
-	 * Lets you trace email sends and collect sending metrics with the OpenTelemetry instance your application already uses.
-	 * Supply the handle returned by {@code OtelAdapter.wrap(openTelemetry)} from the optional telemetry module. This also enables telemetry;
-	 * calling the method again replaces the previous handle without changing the supplied instance.
-	 * <p>
-	 * The integration follows each email from admission through retries, failover and ordinary cleanup, with separate observations of
-	 * each provider invocation. The send span includes the same phase timings as {@link MailSendDiagnostics} and identifies the primary
-	 * failure's phase when known. It records completion independently of result and progress callbacks, so delayed or coalesced callbacks
-	 * do not affect span completion or send counts. As with submission receipts, SMTP acceptance does not establish final delivery.
-	 * <p>
-	 * To keep infrastructure names private, SMTP host and port attributes default to {@value #DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES}.
-	 * Use {@link #withMailSendTelemetrySmtpEndpointAttributes(boolean)} or {@code simplejavamail.telemetry.smtp.endpointattributes} to allow them.
-	 * Each Mailer resolves its own permission without modifying the handle you supplied.
-	 * <p>
-	 * Your application remains responsible for SDK processing, sampling, buffering and shutdown; closing the Mailer never closes the SDK
-	 * or exporters. Prefer batched export for normal operation, because synchronous SDK processors can delay the sending thread.
-	 * If the integration throws a {@link RuntimeException}, Simple Java Mail logs a warning and preserves the send result.
-	 *
-	 * @param telemetry A handle returned by the optional telemetry module's typed adapter.
-	 * @see #getMailSendTelemetry()
-	 * @see #clearMailSendTelemetry()
+	 * Replaces this builder's supplied telemetry choices. Unset flags inherit the captured snapshot, never the previous group.
+	 * Activation is independent from supplying or clearing an integration. Enabled telemetry requires the optional module and,
+	 * without a supplied integration, uses the application's global OpenTelemetry instance. The application owns SDK shutdown.
+	 * SMTP endpoint attributes are opt-in; email content, addresses and credentials remain excluded. Configuration locks apply.
+	 * @param telemetryConfig Immutable supplied choices; its getters retain unset fields.
+	 * @see #getTelemetryConfig()
+	 * @see #useConfiguredTelemetryConfig()
 	 */
-	@Cli.ExcludeApi(reason = "Telemetry integrations contain application-owned runtime SDK instances, not CLI values")
-	T withMailSendTelemetry(@NotNull MailSendTelemetry telemetry);
+	@Cli.ExcludeApi(reason = "The CLI exposes scalar telemetry options through its internal configuration adapter")
+	T withTelemetryConfig(@NotNull MailSendTelemetryConfig telemetryConfig);
+
+	/** @see #withTelemetryConfig(MailSendTelemetryConfig) */
+	@NotNull MailSendTelemetryConfig getTelemetryConfig();
 
 	/**
-	 * Lets you turn mail-send tracing and metrics on or off without configuring each Mailer separately.
-	 * Set {@code simplejavamail.telemetry.enabled=true} in a factory's captured configuration to enable it for Mailers created by that factory,
-	 * or use this method to replace the captured choice. The built-in default is {@value #DEFAULT_MAIL_SEND_TELEMETRY_ENABLED}.
-	 * <p>
-	 * Enabling requires {@code open-telemetry-module}. Unless {@link #withMailSendTelemetry(MailSendTelemetry)} supplies a specific instance,
-	 * the module uses the application's global OpenTelemetry instance. Set that instance up before building the Mailer, including its SDK,
-	 * sampling and exporters; Simple Java Mail neither creates nor closes them. An unconfigured global instance provides no-op reporting.
-	 * <p>
-	 * Disabling keeps any supplied configuration for later reuse, but creates no telemetry runtime or per-send telemetry work.
-	 * A conflicting {@code simplejavamail.locked.telemetry.enabled} value rejects construction rather than silently changing the choice.
-	 *
-	 * @param enabled Whether mail sends should produce telemetry through the optional module.
-	 * @see #withMailSendTelemetry(MailSendTelemetry)
+	 * Restores captured flags and removes a supplied integration without closing it.
+	 * @see #withTelemetryConfig(MailSendTelemetryConfig)
 	 */
-	T withMailSendTelemetryEnabled(boolean enabled);
-
-	/** @see #withMailSendTelemetryEnabled(boolean) */
-	boolean isMailSendTelemetryEnabled();
-
-	/** @see #withMailSendTelemetryEnabled(boolean) */
-	T resetMailSendTelemetryEnabled();
+	@Cli.ExcludeApi(reason = "Fresh CLI builders already inherit captured telemetry configuration")
+	T useConfiguredTelemetryConfig();
 
 	/**
-	 * Lets traces identify which SMTP relay handled a submission by including its logical host and port.
-	 * Leave this disabled if infrastructure names should stay private. Even when enabled, those details never become metric labels,
-	 * and email addresses, content, credentials, message identifiers and raw exception text remain excluded.
-	 * <p>
-	 * This choice replaces {@code simplejavamail.telemetry.smtp.endpointattributes} from the factory's captured configuration.
-	 * Without either choice, the default is {@value #DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES}. If the configuration owner fixes
-	 * a different value through {@code simplejavamail.locked.telemetry.smtp.endpointattributes}, building the Mailer fails with that conflict.
-	 * <p>
-	 * Clear the choice to restore the captured property, or reset it to explicitly select the built-in default. Replacing or clearing a telemetry
-	 * handle does not change this permission. The setting does not install an SDK or enable telemetry by itself; use
-	 * {@link #withMailSendTelemetryEnabled(boolean)} or {@link #withMailSendTelemetry(MailSendTelemetry)} to enable reporting.
-	 *
-	 * @param enabled Whether the selected logical SMTP host and port may appear in trace attributes.
-	 */
-	T withMailSendTelemetrySmtpEndpointAttributes(boolean enabled);
-
-	/** @see #withMailSendTelemetrySmtpEndpointAttributes(boolean) */
-	boolean isMailSendTelemetrySmtpEndpointAttributesEnabled();
-
-	/** @see #withMailSendTelemetrySmtpEndpointAttributes(boolean) */
-	T resetMailSendTelemetrySmtpEndpointAttributes();
-
-	/**
-	 * Restores the endpoint permission from this factory's captured configuration.
-	 *
-	 * @see #withMailSendTelemetrySmtpEndpointAttributes(boolean)
-	 */
-	@Cli.ExcludeApi(reason = "Fresh CLI builders already inherit the endpoint permission; use withMailSendTelemetrySmtpEndpointAttributes")
-	T clearMailSendTelemetrySmtpEndpointAttributes();
-
-	/**
-	 * Returns the integration you supplied, or {@code null} when none is registered. Mailer-specific property resolution does not modify it.
-	 *
-	 * @see #withMailSendTelemetry(MailSendTelemetry)
-	 */
-	@Nullable
-	MailSendTelemetry getMailSendTelemetry();
-
-	/**
-	 * Removes the supplied handle and restores activation from the captured properties, without closing its SDK or changing endpoint permission.
-	 * If those properties enable telemetry, the module uses the application's global instance instead.
-	 * Use {@link #withMailSendTelemetryEnabled(boolean)} with {@code false} to disable it explicitly.
-	 *
-	 * @see #withMailSendTelemetry(MailSendTelemetry)
-	 */
-	@Cli.ExcludeApi(reason = "Fresh CLI builders have no supplied runtime integration to clear; use withMailSendTelemetryEnabled")
-	T clearMailSendTelemetry();
-
-	/**
-	 * Calls your observer once each individual email send has finished, so you can record its result and inspect any SMTP acceptance facts.
-	 * <p>
-	 * The callback runs on the thread completing the send, before completion is reported to the caller. Keep it quick and thread-safe: slow callbacks
-	 * delay completion, and different sends may call the observer concurrently. If it throws a {@link RuntimeException}, the exception is logged
-	 * without changing the send's result.
-	 * <p>
-	 * Calling this method again replaces the result observer and restores inline execution, even if you previously supplied an observer executor.
-	 * Use {@link #clearMailSendResultObserver()} to remove the result observer and its executor from this builder. Neither operation changes your
-	 * progress observer or any Mailer already built from this builder.
-	 *
-	 * @param mailSendResultObserver Thread-safe, quick and non-blocking terminal send observer.
-	 * @see MailSendResultObserver
-	 */
-	@Cli.ExcludeApi(reason = "Mail send observers are runtime Java callbacks and cannot be represented as CLI values")
-	T withMailSendResultObserver(@NotNull MailSendResultObserver mailSendResultObserver);
-
-	/**
-	 * Sends final outcomes to your observer through the supplied executor, allowing you to process results separately from sending emails.
-	 * The Mailer submits each notification before completing the send, but does not wait for an asynchronously executed callback to finish.
-	 * Your observer can therefore run before or after the caller sees completion.
-	 * <p>
-	 * Choose an executor that actually moves work off the sending thread and explicitly rejects tasks it cannot accept. A direct or caller-runs executor
-	 * can run the callback on the sending thread, and an executor that blocks when full can delay sending too. Silent-discard policies can lose
-	 * notifications without reporting rejection. Callback {@link RuntimeException}s and executor rejections are logged without changing the send result;
-	 * rejected notifications are neither retried nor run inline as a fallback.
-	 * <p>
-	 * You manage this executor's capacity and shutdown; closing the Mailer neither drains nor shuts it down. A completed callback only tells you that
-	 * your callback finished, not that any broker or downstream system processed the event.
-	 * <p>
-	 * Calling this method again replaces the result observer and its executor without changing your progress observer.
-	 *
-	 * @param mailSendResultObserver Thread-safe terminal send observer; callbacks for different sends may run concurrently or out of order.
-	 * @param observerExecutor Application-owned executor; the application owns capacity, draining and shutdown.
-	 * @see #withMailSendResultObserver(MailSendResultObserver)
-	 */
-	@Cli.ExcludeApi(reason = "Observers and executors are runtime Java integrations and cannot be represented as CLI values")
-	T withMailSendResultObserver(@NotNull MailSendResultObserver mailSendResultObserver, @NotNull Executor observerExecutor);
-
-	/**
-	 * @see #withMailSendResultObserver(MailSendResultObserver)
-	 */
-	@Cli.ExcludeApi(reason = "Result observers are Java-only registrations; a fresh CLI builder has none to clear")
-	T clearMailSendResultObserver();
-
-	/**
-	 * Keeps you informed while an email is being sent, for example when it is waiting for a connection or uploading an attachment.
-	 * To learn how the send finished, also register a {@link #withMailSendResultObserver(MailSendResultObserver) result observer}:
-	 * even {@link MailSendProgressStage#FINISHED FINISHED} means only that sending has ended, not that the server accepted or delivered the email.
-	 * <p>
-	 * Think of progress as the latest available view, rather than a log of every step. Updates can be combined or dropped, so you may not see every stage.
-	 * The detail available also depends on the provider; missing upload counts remain empty and do not prevent sending.
-	 * <p>
-	 * The Mailer starts its own daemon dispatcher when progress is first needed and calls your observer one update at a time, never on a sending thread.
-	 * This lets slow callbacks delay reporting without holding up sending. A callback {@link RuntimeException} is logged and ignored.
-	 * To keep pending reporting bounded, the dispatcher retains only the newest snapshot for each observation ID, up to 1,024 pending IDs plus one callback
-	 * in flight. If another ID would exceed that limit, the oldest pending snapshot is discarded. Updates that change only the upload count are published
-	 * at most once every 250 milliseconds per email; stage changes and final counts can be published sooner, but can still be combined before delivery.
-	 * <p>
-	 * Progress and final results are delivered independently. Once your result observer receives the final outcome for an observation ID, ignore any later
-	 * progress for that ID so an older snapshot cannot make a completed send appear active again.
-	 * <p>
-	 * Closing the Mailer waits for sends, not progress callbacks: pending updates may be discarded, and a running callback is neither awaited nor interrupted.
-	 * Calling this method again replaces the progress observer and restores execution on the Mailer's dispatcher, without changing your result observer.
-	 * Use {@link #clearMailSendProgressObserver()} to remove the progress observer and its executor from this builder. Clearing either registration
-	 * leaves the other observer and any Mailer already built from this builder unchanged.
-	 *
-	 * @param progressObserver Non-null progress callback; it must tolerate snapshots already superseded by a final result.
+	 * Registers shared callbacks for every logical email send. Replaces only this group, leaving the per-send factory unchanged.
+	 * Shared callbacks are handed off before factory-created callbacks; each callback failure is isolated independently.
+	 * Executors and callbacks remain caller-owned. Clearing removes this group without closing anything.
+	 * @param handlers Immutable shared callback choices.
 	 * @return This builder.
-	 * @see MailSendProgress
 	 */
-	@Cli.ExcludeApi(reason = "A Java progress callback cannot be represented as a CLI value")
-	T withMailSendProgressObserver(@NotNull MailSendProgressObserver progressObserver);
+	@Cli.ExcludeApi(reason = "Mail send handlers are runtime Java callbacks and cannot be represented as CLI values")
+	T withSendHandlers(@NotNull MailSendHandlers handlers);
+	/**
+	 * Returns supplied shared handlers, or null when absent.
+	 * @see #withSendHandlers(MailSendHandlers)
+	 */
+	@Nullable MailSendHandlers getSendHandlers();
+	/** @see #withSendHandlers(MailSendHandlers) */
+	@Cli.ExcludeApi(reason = "Runtime Java callback registration")
+	T clearSendHandlers();
 
 	/**
-	 * Delivers progress through your own executor, with the same latest-state behavior and reporting limits as
-	 * {@link #withMailSendProgressObserver(MailSendProgressObserver) the default registration}.
-	 * <p>
-	 * The Mailer's dispatcher submits the callbacks, rather than a sending thread, and waits for each callback before handing off another.
-	 * Even a direct or caller-runs executor therefore cannot run a callback inline in the sending call. Keep this executor separate from your sending workers,
-	 * though: sharing their executor lets slow progress callbacks occupy threads that could otherwise send mail.
-	 * <p>
-	 * Choose an executor that explicitly rejects work it cannot accept. Rejections are logged and the update is discarded, without retrying or calling
-	 * the observer inline as a fallback. An executor that silently discards a task can leave the dispatcher waiting and stall further progress reporting.
-	 * <p>
-	 * You own this executor; the Mailer never shuts it down or waits for progress callbacks during close. Calling this method again replaces only the
-	 * progress observer and its executor, leaving your result observer unchanged.
-	 *
-	 * @param progressObserver Non-null progress callback.
-	 * @param progressExecutor Non-null application-owned callback executor.
+	 * Creates callbacks once per logical email using its generated UUID, before preparation or individual-send admission.
+	 * Singles initialize on the caller thread; lazy batches initialize each reached email on their execution thread.
+	 * Retries and failover reuse the initial callbacks and ID. The initiating Mailer owns reporting; connection checks and rehearsals do not call this factory.
+	 * A null result or runtime exception prevents that email's submission: sync throws and async returns a failed completion.
+	 * Original runtime failures are retained without automatic retries. A batch stops at that email; earlier submissions remain completed.
+	 * A factory failure is reported through shared handlers and telemetry under the generated ID. Fatal Errors propagate normally.
+	 * Generated and shared handlers both receive notifications, shared first. Callbacks/executors remain borrowed.
+	 * @param factory Thread-safe factory returning non-null handler choices, including an empty group when no callbacks are needed.
 	 * @return This builder.
-	 * @see #withMailSendProgressObserver(MailSendProgressObserver)
 	 */
-	@Cli.ExcludeApi(reason = "Java callbacks and executors cannot be represented as CLI values")
-	T withMailSendProgressObserver(@NotNull MailSendProgressObserver progressObserver, @NotNull Executor progressExecutor);
+	@Cli.ExcludeApi(reason = "A runtime Java callback factory cannot be represented as a CLI value")
+	T withSendHandlersFactory(@NotNull java.util.function.Function<UUID, MailSendHandlers> factory);
+	/**
+	 * Returns the supplied factory, or null when absent.
+	 * @see #withSendHandlersFactory(java.util.function.Function)
+	 */
+	@Nullable java.util.function.Function<UUID, MailSendHandlers> getSendHandlersFactory();
+	/** @see #withSendHandlersFactory(java.util.function.Function) */
+	@Cli.ExcludeApi(reason = "Runtime Java callback registration")
+	T clearSendHandlersFactory();
 
 	/**
-	 * @see #withMailSendProgressObserver(MailSendProgressObserver)
+	 * Chooses one observation UUID per logical email send, before factory initialization and preparation/admission.
+	 * The default is {@code UUID::randomUUID}. A generator must be thread-safe and return unique, non-null IDs.
+	 * IDs stay local and never alter Email or MIME content. A failure or null ID prevents submission and has no observation outcome;
+	 * sync throws, async returns a failed completion. Batch initialization remains lazy; retries and failover retain the same ID.
+	 * A batch stops at the failing email without undoing earlier submissions. Connection checks and rehearsals do not call this supplier.
+	 * Original runtime failures are retained without retries; fatal Errors propagate normally.
+	 * @param generator Thread-safe observation-ID supplier.
+	 * @return This builder.
 	 */
-	@Cli.ExcludeApi(reason = "Progress observers are Java-only registrations; a fresh CLI builder has none to clear")
-	T clearMailSendProgressObserver();
+	@Cli.ExcludeApi(reason = "A runtime Java ID supplier cannot be represented as a CLI value")
+	T withSendIdGenerator(@NotNull java.util.function.Supplier<UUID> generator);
+	/**
+	 * Returns the current supplier, including the default.
+	 * @see #withSendIdGenerator(java.util.function.Supplier)
+	 */
+	@NotNull java.util.function.Supplier<UUID> getSendIdGenerator();
+	/**
+	 * Restores {@code UUID::randomUUID}.
+	 * @see #withSendIdGenerator(java.util.function.Supplier)
+	 */
+	@Cli.ExcludeApi(reason = "Runtime Java ID supplier")
+	T resetSendIdGenerator();
 
 	/**
 	 * Lets your callback deliver the prepared email instead of using Simple Java Mail's SMTP transport.
@@ -1282,9 +1137,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetDisableAllClientValidations();
 
 	/**
-	 * Resets session time to its default ({@value DEFAULT_SESSION_TIMEOUT_MILLIS}).
+	 * Resets session time to its default ({@link DEFAULT_SESSION_TIMEOUT}).
 	 *
-	 * @see #withSessionTimeout(Integer)
+	 * @see #withSessionTimeout(Duration)
 	 */
 	T resetSessionTimeout();
 
@@ -1297,8 +1152,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetEmailValidator();
 
 	/**
-	 * Restores a Mailer-owned executor using the current built-in queue settings. With the Batch module present it uses the configured
-	 * worker count and keep-alive time; without it, it uses one worker. This does not reset queue settings.
+	 * Restores a Mailer-owned executor using the current worker and queue settings. Explicit worker count and keep-alive choices
+	 * are honored with or without the batch module. This does not reset queue settings.
 	 *
 	 * @see #withExecutorService(ExecutorService)
 	 * @see #resetAsyncQueue()
@@ -1306,20 +1161,16 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetExecutorService();
 
 	/**
-	 * Resets max thread pool size to its default of {@value #DEFAULT_POOL_SIZE}.
-	 * <p>
-	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Selects the library default worker count of {@value #DEFAULT_POOL_SIZE}, including without the batch module.
 	 *
 	 * @see #withThreadPoolSize(Integer)
 	 */
 	T resetThreadPoolSize();
 
 	/**
-	 * Resets thread pool keepAliveTime to its default ({@value #DEFAULT_POOL_KEEP_ALIVE_TIME}).
-	 * <p>
-	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
+	 * Selects the library default keep-alive of {@link #DEFAULT_POOL_KEEP_ALIVE_TIME}, including without the batch module.
 	 *
-	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 * @see #withThreadPoolKeepAliveTime(Duration)
 	 */
 	T resetThreadPoolKeepAliveTime();
 
@@ -1367,22 +1218,24 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T resetConnectionPoolMaxSize();
 
 	/**
-	 * Resets the connection pool claim timeout to its default ({@value #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS} milliseconds, approximately 24.9 days).
+	 * Resets the connection pool claim timeout to its default ({@link #DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT}, approximately 24.9 days).
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @see #withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see #withConnectionPoolClaimTimeout(Duration)
 	 */
-	T resetConnectionPoolClaimTimeoutMillis();
+	@Cli.ExcludeApi(reason = "The CLI retains its existing millisecond option name through an internal adapter")
+	T resetConnectionPoolClaimTimeout();
 
 	/**
-	 * Resets connection pool expire-after-milliseconds property to its default ({@value #DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS}).
+	 * Resets connection pool idle expiration to its default ({@link #DEFAULT_CONNECTIONPOOL_EXPIREAFTER}).
 	 * <p>
 	 * <strong>Note:</strong> this is only used in combination with the {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 * @see #withConnectionPoolExpireAfter(Duration)
 	 */
-	T resetConnectionPoolExpireAfterMillis();
+	@Cli.ExcludeApi(reason = "The CLI retains its existing millisecond option name through an internal adapter")
+	T resetConnectionPoolExpireAfter();
 
 	/**
 	 * Disables connection pool creation-age expiration by removing the configured duration.
@@ -1390,9 +1243,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <strong>Note:</strong> this is only used in combination with the
 	 * {@value org.simplejavamail.internal.modules.BatchModule#NAME}.
 	 *
-	 * @see #withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see #withConnectionPoolExpireAfterCreation(Duration)
 	 */
-	T clearConnectionPoolExpireAfterCreationMillis();
+	@Cli.ExcludeApi(reason = "The CLI retains its existing millisecond option name through an internal adapter")
+	T clearConnectionPoolExpireAfterCreation();
 
 	/**
 	 * Resets connection pool load balancing strategy to its default ({@value #DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY}).
@@ -1432,7 +1286,15 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 *
 	 * @see #withEmailDefaults(Email)
 	 */
-	T clearEmailDefaults();
+	@Cli.ExcludeApi(reason = "The CLI retains clearEmailDefaults through its internal adapter")
+	T useConfiguredEmailDefaults();
+
+	/**
+	 * Disables ordinary email defaults by supplying an empty template. Mandatory configuration locks still apply.
+	 * @see #withEmailDefaults(Email)
+	 * @see #useConfiguredEmailDefaults()
+	 */
+	T withoutEmailDefaults();
 
 	/**
 	 * Makes the reference {@code Email} instance <code>null</code>, meaning no overrides will be applied.
@@ -1511,26 +1373,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	@Nullable
 	Integer getProxyBridgePort();
 
-	/**
-	 * @see #withDebugLogging(Boolean)
-	 */
-	boolean isDebugLogging();
 
-	/**
-	 * @see #withDebugPrinter(PrintStream)
-	 * @see #withDebugOutput(SessionDebugOutput)
-	 */
-	@Nullable
-	PrintStream getDebugPrinter();
 
-	/**
-	 * Returns the selected built-in target, or null for a custom printer or no explicit target.
-	 *
-	 * @see #withDebugOutput(SessionDebugOutput)
-	 * @see #getDebugPrinter()
-	 */
-	@Nullable
-	SessionDebugOutput getDebugOutput();
+
+
+
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
@@ -1538,10 +1385,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	boolean isDisableAllClientValidation();
 
 	/**
-	 * @see #withSessionTimeout(Integer)
+	 * @see #withSessionTimeout(Duration)
 	 */
 	@Nullable
-	Integer getSessionTimeout();
+	Duration getSessionTimeout();
 
 	/**
 	 * @see #withLocalBindAddress(String)
@@ -1605,10 +1452,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	Integer getThreadPoolSize();
 
 	/**
-	 * @see #withThreadPoolKeepAliveTime(Integer)
+	 * @see #withThreadPoolKeepAliveTime(Duration)
 	 */
 	@NotNull
-	Integer getThreadPoolKeepAliveTime();
+	Duration getThreadPoolKeepAliveTime();
 
 	/**
 	 * @see #withClusterKey(UUID)
@@ -1629,22 +1476,22 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	Integer getConnectionPoolMaxSize();
 
 	/**
-	 * @see #withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see #withConnectionPoolClaimTimeout(Duration)
 	 */
 	@NotNull
-	Integer getConnectionPoolClaimTimeoutMillis();
+	Duration getConnectionPoolClaimTimeout();
 
 	/**
-	 * @see #withConnectionPoolExpireAfterMillis(Integer)
+	 * @see #withConnectionPoolExpireAfter(Duration)
 	 */
 	@NotNull
-	Integer getConnectionPoolExpireAfterMillis();
+	Duration getConnectionPoolExpireAfter();
 
 	/**
-	 * @see #withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see #withConnectionPoolExpireAfterCreation(Duration)
 	 */
 	@Nullable
-	Integer getConnectionPoolExpireAfterCreationMillis();
+	Duration getConnectionPoolExpireAfterCreation();
 
 	/**
 	 * @see #withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)

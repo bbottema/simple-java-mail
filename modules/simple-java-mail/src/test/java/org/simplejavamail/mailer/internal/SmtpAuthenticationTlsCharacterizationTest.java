@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
@@ -345,7 +346,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             acceptMessage(peer);
             acceptMessageAndQuit(peer);
         }); Mailer mailer = oauthBuilder(server.port(), true, resolutions).withCustomSSLFactoryInstance(trustedFactory())
-                .withConnectionPoolExpireAfterMillis(0).buildMailer()) {
+                .withConnectionPoolExpireAfter(Duration.ofMillis(0)).buildMailer()) {
             assertAccepted(mailer);
             assertThat(mailer.async().sendMail(email()).getCompletion().get(10, SECONDS).getStatus()).isEqualTo(ACCEPTED);
             assertThat(resolutions).hasValue(1);
@@ -508,8 +509,8 @@ class SmtpAuthenticationTlsCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port) {
         return factory().mailerBuilder().withSMTPServer("localhost", port)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000)
+                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
                 .withProperty("mail.smtps.ssl.protocols", "TLSv1.2")
                 .withProperty("mail.smtps.socketFactory.fallback", "false")
                 .withProperty("mail.smtps.quitwait", "true");

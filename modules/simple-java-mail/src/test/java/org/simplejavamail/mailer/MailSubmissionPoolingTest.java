@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -79,7 +81,7 @@ class MailSubmissionPoolingTest {
 		}
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
 				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(connectionPoolSize)
-				.withConnectionPoolClaimTimeoutMillis(5000).withConnectionPoolExpireAfterMillis(0)
+				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000)).withConnectionPoolExpireAfter(Duration.ofMillis(0))
 				.withThreadPoolSize(2).withAsyncQueueCapacity(3).buildMailer();
 		try {
 			for (int index = 0; index < 2; index++) {
@@ -156,7 +158,7 @@ class MailSubmissionPoolingTest {
 
 		assertThat(partialFailure.getCause()).isSameAs(partialProviderFailure);
 		assertThat(partialFailure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-		final MailSubmissionReceipt partialReceipt = partialFailure.getSubmissionReceipt();
+		final MailSubmissionReceipt partialReceipt = partialFailure.getSubmissionReceipt().orElseThrow();
 		assertThat(partialReceipt.getSmtpResponse())
 				.as("The preceding attempt's 250 response must not leak into this failure")
 				.isEmpty();
@@ -173,7 +175,7 @@ class MailSubmissionPoolingTest {
 
 		assertThat(unknownFailure.getCause()).isSameAs(unknownProviderFailure);
 		assertThat(unknownFailure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
-		final MailSubmissionReceipt unknownReceipt = unknownFailure.getSubmissionReceipt();
+		final MailSubmissionReceipt unknownReceipt = unknownFailure.getSubmissionReceipt().orElseThrow();
 		assertThat(unknownReceipt.getSmtpResponse())
 				.as("The replacement transport's successful response must not leak into its next failure")
 				.isEmpty();
@@ -224,13 +226,13 @@ class MailSubmissionPoolingTest {
 
 		assertThat(rejectedFailure.getCause()).isSameAs(rejectedProviderFailure);
 		assertThat(rejectedFailure.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
-		assertThat(rejectedFailure.getSubmissionReceipt().hasServerAcceptanceInformation()).isTrue();
-		assertThat(rejectedFailure.getSubmissionReceipt().isAcceptedByServer()).isFalse();
-		assertThat(rejectedFailure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
-		assertThat(rejectedFailure.getSubmissionReceipt().getValidUnsentRecipients())
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isTrue();
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().isAcceptedByServer()).isFalse();
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients())
 				.containsExactly("valid-unsent@example.com");
-		assertThat(rejectedFailure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("invalid@example.com");
-		assertThat(rejectedFailure.getSubmissionReceipt().getSmtpResponse()).get()
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getInvalidRecipients()).containsExactly("invalid@example.com");
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).get()
 				.extracting(response -> response.getResponse()).isEqualTo("550 all recipients rejected");
 
 		assertThat(state.transportId("after rejection")).isNotEqualTo(state.transportId("rejected"));
@@ -264,10 +266,10 @@ class MailSubmissionPoolingTest {
 
 		assertThat(unknownFailure.getCause()).isSameAs(finalReplyFailure);
 		assertThat(unknownFailure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
-		assertThat(unknownFailure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
-		assertThat(unknownFailure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
-		assertThat(unknownFailure.getSubmissionReceipt().getValidUnsentRecipients()).isEmpty();
-		assertThat(unknownFailure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("invalid@example.com");
+		assertThat(unknownFailure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).isEmpty();
+		assertThat(unknownFailure.getSubmissionReceipt().orElseThrow().getInvalidRecipients()).containsExactly("invalid@example.com");
 
 		assertThat(state.transportId("after unknown final reply")).isNotEqualTo(state.transportId("unknown final reply"));
 		assertThat(recoveryReceipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
@@ -498,11 +500,11 @@ class MailSubmissionPoolingTest {
 				.withClusterKey(clusterKey)
 				.withConnectionPoolCoreSize(0)
 				.withConnectionPoolMaxSize(maxPoolSize)
-				.withConnectionPoolClaimTimeoutMillis(5000)
-				.withConnectionPoolExpireAfterMillis(0)
+				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
+				.withConnectionPoolExpireAfter(Duration.ofMillis(0))
 				.withThreadPoolSize(threadPoolSize);
 		if (mailSendResultObserver != null) {
-			builder.withMailSendResultObserver(mailSendResultObserver);
+			builder.withSendHandlers(MailSendHandlers.builder().withResultObserver(mailSendResultObserver).build());
 		}
 		return builder.buildMailer();
 	}

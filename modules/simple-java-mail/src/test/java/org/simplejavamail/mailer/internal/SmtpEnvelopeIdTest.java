@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -86,7 +88,7 @@ class SmtpEnvelopeIdTest {
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             final MailerGenericBuilder<?> configured = callerOwnedSession ? mail.mailerBuilder(Session.getInstance(properties)) : builder(server);
             try (Mailer mailer = configured.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                    .disablingAllClientValidation(true).withMailSendResultObserver(outcomes::add).buildMailer()) {
+                    .disablingAllClientValidation(true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
                 final Email withoutRecipients = mail.emailBuilder().startingBlank().from("sender@example.test")
                         .withPlainText("Synthetic local failure.").fixingEnvelopeId(identifier).buildEmail();
                 mailer.withOpenConnection(sender -> {
@@ -94,7 +96,7 @@ class SmtpEnvelopeIdTest {
                     final Throwable failure = catchThrowable(() -> sender.sendMail(withoutRecipients));
                     assertThat(failure).isInstanceOf(MailSubmissionException.class);
                     assertThat(failure.getCause()).hasMessage("No recipient addresses");
-                    final MailSubmissionReceipt notSubmitted = ((MailSubmissionException) failure).getSubmissionReceipt();
+                    final MailSubmissionReceipt notSubmitted = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
                     assertThat(notSubmitted.getEnvelopeId()).isNull();
                     assertThat(notSubmitted.getSmtpResponse()).isEmpty();
                     assertThat(notSubmitted.getRecipientResults()).isEmpty();
@@ -123,7 +125,7 @@ class SmtpEnvelopeIdTest {
             generatedIdentifier.set(readGeneratedEnvelopeId(peer, MAIL_FROM));
             acceptMessageAfterMailFrom(peer, "", RECIPIENT);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Email first = mail.emailBuilder().copying(email("order +42="))
                     .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)
                     .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).buildEmail();
@@ -145,7 +147,7 @@ class SmtpEnvelopeIdTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(malformed ? "250-localhost\r\n250 DSN unsupported-parameters" : "250 localhost");
             finishConnection(peer); // A pre-submission capability mismatch leaves the lease healthy.
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable thrown = catchThrowable(() -> send(mailer, email("must-not-disappear"), asynchronous));
             if (asynchronous) {
                 assertThat(thrown).isInstanceOf(ExecutionException.class);
@@ -153,7 +155,7 @@ class SmtpEnvelopeIdTest {
             final Throwable failure = asynchronous ? thrown.getCause() : thrown;
             assertThat(failure).isInstanceOf(MailSubmissionException.class).hasCauseInstanceOf(MessagingException.class);
             assertThat(failure.getCause()).hasMessageContaining("does not advertise usable DSN support").hasMessageContaining("No message was submitted");
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(REJECTED);
             assertThat(receipt.getEnvelopeId()).isNull();
             assertThat(receipt.getSmtpResponse()).isEmpty();
@@ -178,8 +180,8 @@ class SmtpEnvelopeIdTest {
                 sender.sendMail(email(null));
                 final Throwable failure = catchThrowable(() -> sender.sendMail(email("unsupported")));
                 assertThat(failure).isInstanceOf(MailSubmissionException.class);
-                assertThat(((MailSubmissionException) failure).getSubmissionReceipt().getSmtpResponse()).isEmpty();
-                assertThat(((MailSubmissionException) failure).getSubmissionReceipt().getRecipientResults())
+                assertThat(((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
+                assertThat(((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow().getRecipientResults())
                         .allSatisfy(recipient -> assertThat(recipient.getRcptResponse()).isEmpty());
                 sender.sendMail(email(null));
             });
@@ -206,7 +208,7 @@ class SmtpEnvelopeIdTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSubmissionReceipt first = send(mailer, original, asynchronous);
             final MailSubmissionReceipt second = send(mailer, original, asynchronous);
             assertThat(identifiers).hasSize(2).doesNotHaveDuplicates();
@@ -230,7 +232,7 @@ class SmtpEnvelopeIdTest {
                 acceptMessageAfterMailFrom(peer, "", RECIPIENT);
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.withOpenConnection(sender -> {
                 final MailSubmissionReceipt first = sender.sendMail(original);
                 final MailSubmissionReceipt second = sender.sendMail(original);
@@ -270,7 +272,7 @@ class SmtpEnvelopeIdTest {
                 acceptMessageAfterMailFrom(peer, "", RECIPIENT);
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             if (asynchronous) {
                 mailer.async().sendMailsInSimpleBatch(List.of(original, original)).getCompletion().get(10, SECONDS);
             } else {
@@ -311,7 +313,7 @@ class SmtpEnvelopeIdTest {
         }); Mailer mailer = builder(server).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(original));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            assertThat(((MailSubmissionException) failure).getSubmissionReceipt().getEnvelopeId()).isEqualTo(failedIdentifier.get());
+            assertThat(((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow().getEnvelopeId()).isEqualTo(failedIdentifier.get());
             final MailSubmissionReceipt receipt = mailer.async().sendMail(original).getCompletion().get(10, SECONDS);
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
             assertThat(receipt.getEnvelopeId()).isEqualTo(nextIdentifier.get()).isNotEqualTo(failedIdentifier.get());
@@ -333,11 +335,11 @@ class SmtpEnvelopeIdTest {
             peer.reply("354 send synthetic message");
             readMessage(peer);
             // Drop the connection after DATA without acknowledging acceptance.
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable thrown = catchThrowable(() -> send(mailer, email(null), asynchronous));
             final Throwable failure = asynchronous ? thrown.getCause() : thrown;
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getEnvelopeId()).isEqualTo(identifier.get()).isNotNull();
             assertThat(receipt.getStatus()).isEqualTo(UNKNOWN);
             assertThat(receipt.getRetryDisposition()).isEqualTo(DUPLICATE_RISK);
@@ -357,7 +359,7 @@ class SmtpEnvelopeIdTest {
             acceptMessage(peer, MAIL_FROM + " ENVID=batch-1", "", RECIPIENT);
             acceptMessage(peer, MAIL_FROM + " ENVID=batch-2", "", RECIPIENT);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final List<Email> emails = List.of(email("batch-1"), email("batch-2"));
             if (asynchronous) {
                 assertThat(mailer.async().sendMailsInSimpleBatch(emails).getCompletion().get(10, SECONDS)).isNull();
@@ -390,7 +392,7 @@ class SmtpEnvelopeIdTest {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> {
                 if (asynchronous) {
                     mailer.async().sendMailsInSimpleBatch(emails).getCompletion().get(10, SECONDS);
@@ -423,11 +425,11 @@ class SmtpEnvelopeIdTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withConnectionPoolClaimTimeoutMillis(2000).withMailSendResultObserver(outcome -> {
+        }); Mailer mailer = builder(server).withConnectionPoolClaimTimeout(Duration.ofMillis(2000)).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             if (observed.incrementAndGet() == 1) {
                 nestedReceipt.set(owner.get().sync().sendMail(email(fixed ? "nested-id" : null)));
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             owner.set(mailer);
             final MailSubmissionReceipt outerReceipt = mailer.async().sendMail(email(fixed ? "outer-id" : null)).getCompletion().get(10, SECONDS);
             assertThat(outerReceipt.getStatus()).isEqualTo(ACCEPTED);
@@ -667,8 +669,8 @@ class SmtpEnvelopeIdTest {
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // Keep MIME Message-ID generation independent of workstation DNS within the scripted SMTP deadlines.
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-                .withProperty("mail.host", "localhost").withSessionTimeout(5000)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(10000);
+                .withProperty("mail.host", "localhost").withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(10000));
     }
 
     private Email email(final String identifier) {

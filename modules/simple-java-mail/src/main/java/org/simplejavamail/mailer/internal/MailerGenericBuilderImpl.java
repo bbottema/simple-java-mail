@@ -9,12 +9,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
-import org.simplejavamail.api.mailer.MailSendResultObserver;
-import org.simplejavamail.api.mailer.MailSendProgressObserver;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailSendRetryBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
@@ -28,6 +28,8 @@ import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -36,6 +38,7 @@ import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.internal.util.DurationMillis;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.io.PrintStream;
@@ -53,6 +56,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY;
@@ -70,10 +74,10 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  */
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
-		implements InternalMailerBuilder<T>, CliFailoverMailerBuilder, CliMailSendRetryBuilder {
+		implements InternalMailerBuilder<T>, CliFailoverMailerBuilder, CliMailSendRetryBuilder, CliMailerConfigurationBuilder {
 
 	private static final AsyncQueueConfig DEFAULT_ASYNC_QUEUE_CONFIG = new AsyncQueueConfig(
-			DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS);
+			DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT);
 
 	@NotNull
 	private final SimpleJavaMailConfig config;
@@ -125,17 +129,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@NotNull
 	private Integer proxyBridgePort;
 
-	/**
-	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
-	 */
-	private boolean debugLogging;
-
-	/**
-	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
-	 */
-	@Nullable
-	private PrintStream debugPrinter;
-	@Nullable private SessionDebugOutput debugOutput;
+	@NotNull private SessionDebugConfig debugConfig = SessionDebugConfig.builder().build();
 
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
@@ -143,10 +137,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private boolean disableAllClientValidation;
 
 	/**
-	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
+	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
 	 */
 	@NotNull
-	private Integer sessionTimeout;
+	private Duration sessionTimeout;
 
 	/**
 	 * @see MailerGenericBuilder#withLocalBindAddress(String)
@@ -205,12 +199,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@NotNull
 	private Integer threadPoolSize;
+	private boolean threadPoolSizeExplicit;
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Duration)
 	 */
 	@NotNull
-	private Integer threadPoolKeepAliveTime;
+	private Duration threadPoolKeepAliveTime;
+	private boolean threadPoolKeepAliveTimeExplicit;
 
 	/**
 	 * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
@@ -236,22 +232,22 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private Integer connectionPoolMaxSize;
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)
 	 */
 	@NotNull
-	private Integer connectionPoolClaimTimeoutMillis;
+	private Duration connectionPoolClaimTimeout;
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)
 	 */
 	@NotNull
-	private Integer connectionPoolExpireAfterMillis;
+	private Duration connectionPoolExpireAfter;
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)
 	 */
 	@Nullable
-	private Integer connectionPoolExpireAfterCreationMillis;
+	private Duration connectionPoolExpireAfterCreation;
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy loadBalancingStrategy)
@@ -304,27 +300,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable
 	private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
 
-	/**
-	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver)
-	 */
-	@Nullable
-	private MailSendResultObserver mailSendResultObserver;
-
-	/**
-	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, Executor)
-	 */
-	@Nullable private Executor mailSendResultObserverExecutor;
-	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver) */
-	@Nullable private MailSendProgressObserver mailSendProgressObserver;
-	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver, Executor) */
-	@Nullable private Executor mailSendProgressExecutor;
-	/** @see MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry) */
-	@Nullable private MailSendTelemetry mailSendTelemetry;
-	private final boolean configuredTelemetryEnabled;
-	private boolean mailSendTelemetryEnabled;
-	private final boolean configuredTelemetryEndpointAttributes;
-	/** @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean) */
-	private boolean mailSendTelemetrySmtpEndpointAttributesEnabled;
+	@Nullable private MailSendHandlers sendHandlers;
+	@Nullable private Function<UUID, MailSendHandlers> sendHandlersFactory;
+	@NotNull private Supplier<UUID> sendIdGenerator = UUID::randomUUID;
+	@NotNull private MailSendTelemetryConfig telemetryConfig = MailSendTelemetryConfig.builder().build();
 
 	/**
 	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
@@ -356,11 +335,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		this.rateLimitBurstsAllowed = config.valueOrProperty(null, Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
 		this.legacySmtpContentSupportEnabled = config.valueOrProperty(null, Property.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
-		this.configuredTelemetryEnabled = config.valueOrProperty(null, Property.TELEMETRY_ENABLED, DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
-		this.mailSendTelemetryEnabled = configuredTelemetryEnabled;
-		this.configuredTelemetryEndpointAttributes = config.valueOrProperty(null, Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
-				DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES);
-		this.mailSendTelemetrySmtpEndpointAttributesEnabled = configuredTelemetryEndpointAttributes;
 		this.mailSendTimeout = config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
 		if (mailSendTimeout != null) {
 			MailSendControl.positiveTimeoutNanos(mailSendTimeout);
@@ -368,7 +342,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.asyncQueueConfig = new AsyncQueueConfig(
 				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_CONFIG.getCapacity()),
 				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_CONFIG.getOverflowPolicy()),
-				config.valueOrProperty(null, Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DEFAULT_ASYNC_QUEUE_CONFIG.getWaitTimeoutMillis()));
+				configuredDuration(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DEFAULT_ASYNC_QUEUE_CONFIG.getWaitTimeout()));
 		final Map<String, String> extraProperties = config.getProperty(EXTRA_PROPERTIES);
 		if (extraProperties != null) {
 			this.properties.putAll(extraProperties);
@@ -383,22 +357,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.proxyPort =  							verifyNonnullOrEmpty(config.valueOrProperty(null, Property.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.disableAllClientValidation = 			verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
-		this.debugLogging = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		this.debugOutput = config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT);
-		this.debugPrinter = resolveDebugPrinter(debugOutput);
-		this.sessionTimeout = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT_MILLIS));
+		this.sessionTimeout = configuredDuration(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DEFAULT_SESSION_TIMEOUT);
 		this.localBindAddress = 					config.getStringProperty(Property.SMTP_LOCAL_ADDRESS);
 		this.localBindPort = 						config.getIntegerProperty(Property.SMTP_LOCAL_PORT);
 		this.smtpClientHostname = 					config.getStringProperty(Property.SMTP_CLIENT_HOSTNAME);
 		this.trustAllSSLHost = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
 		this.verifyingServerIdentity = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
 		this.threadPoolSize = 						verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
-		this.threadPoolKeepAliveTime = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME));
+		this.threadPoolKeepAliveTime = configuredDuration(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME);
+		this.threadPoolSizeExplicit = config.hasProperty(Property.DEFAULT_POOL_SIZE);
+		this.threadPoolKeepAliveTimeExplicit = config.hasProperty(Property.DEFAULT_POOL_KEEP_ALIVE_TIME);
 		this.connectionPoolCoreSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
 		this.connectionPoolMaxSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
-		this.connectionPoolClaimTimeoutMillis = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
-		this.connectionPoolExpireAfterMillis = 		verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
-		this.connectionPoolExpireAfterCreationMillis = config.getIntegerProperty(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS);
+		this.connectionPoolClaimTimeout = configuredDuration(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
+		this.connectionPoolExpireAfter = configuredDuration(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
+		this.connectionPoolExpireAfterCreation = configuredDuration(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION);
 		this.connectionPoolLoadBalancingStrategy = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
 				LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
 		final Map<UUID, ConnectionPoolClusterConfig> configuredClusters = config.getProperty(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
@@ -604,9 +577,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private void validateLockedExecutionSettings(final ConfigurationLocks locks) {
 		locks.verify(Property.DEFAULT_ASYNC_QUEUE_CAPACITY, asyncQueueConfig.getCapacity());
 		locks.verify(Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, asyncQueueConfig.getOverflowPolicy());
-		locks.verify(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, asyncQueueConfig.getWaitTimeoutMillis());
+		locks.verify(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DurationMillis.toInt(asyncQueueConfig.getWaitTimeout(), "asyncQueueWaitTimeout"));
 		locks.verify(Property.DEFAULT_POOL_SIZE, threadPoolSize);
-		locks.verify(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, threadPoolKeepAliveTime);
+		locks.verify(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DurationMillis.toNullableInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime"));
 		if (locks.contains(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
 				&& !clusterKey.equals(UUID.fromString(config.getStringProperty(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))) {
 			throw locks.conflict(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY,
@@ -615,9 +588,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, connectionPoolCoreSize);
 		locks.verify(Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, connectionPoolMaxSize);
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, connectionPoolClaimTimeoutMillis);
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, connectionPoolExpireAfterMillis);
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, connectionPoolExpireAfterCreationMillis);
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DurationMillis.toNullableInt(connectionPoolClaimTimeout, "connectionPoolClaimTimeout"));
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfter, "connectionPoolExpireAfter"));
+		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfterCreation, "connectionPoolExpireAfterCreation"));
 		locks.verify(Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, connectionPoolLoadBalancingStrategy);
 	}
 
@@ -627,10 +600,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		locks.verify(Property.PROXY_USERNAME, proxyUsername);
 		locks.verify(Property.PROXY_PASSWORD, proxyPassword);
 		locks.verify(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
-		locks.verify(Property.JAVAXMAIL_DEBUG, debugLogging);
-		locks.verify(Property.JAVAXMAIL_DEBUG_OUTPUT, debugOutput);
+		locks.verify(Property.JAVAXMAIL_DEBUG, config.valueOrProperty(debugConfig.getEnabled(), Property.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
+		locks.verify(Property.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getPrinter() == null
+				? config.valueOrProperty(debugConfig.getOutput(), Property.JAVAXMAIL_DEBUG_OUTPUT)
+				: debugConfig.getPrinter() == System.out ? SessionDebugOutput.STDOUT : debugConfig.getPrinter() == System.err ? SessionDebugOutput.STDERR : null);
 		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, disableAllClientValidation);
-		locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
+		locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toNullableInt(sessionTimeout, "sessionTimeout"));
 		locks.verify(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
 		locks.verify(Property.SMTP_LOCAL_PORT, localBindPort);
 		locks.verify(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
@@ -655,9 +630,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		for (ConnectionPoolClusterConfig cluster : connectionPoolClusterConfigs.values()) {
 			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, cluster.getCoreSize());
 			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, cluster.getMaxSize());
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, cluster.getClaimTimeoutMillis());
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, cluster.getExpireAfterMillis());
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, cluster.getExpireAfterCreationMillis());
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DurationMillis.toNullableInt(cluster.getClaimTimeout(), "clusterClaimTimeout"));
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DurationMillis.toNullableInt(cluster.getExpireAfter(), "clusterExpireAfter"));
+			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DurationMillis.toNullableInt(cluster.getExpireAfterCreation(), "clusterExpireAfterCreation"));
 			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, cluster.getLoadBalancingStrategy());
 		}
 	}
@@ -833,7 +808,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		final ConfigurationLocks locks = locksOf(config);
 		final TransportStrategy strategy = transportStrategyForLocks();
 		addLockedConnectionChoices(connectionChoices, strategy, locks);
-		return MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), connectionChoices, locks.getValues());
+		final boolean applyDebugEnabled = suppliedSession == null || debugConfig.getEnabled() != null || config.hasProperty(Property.JAVAXMAIL_DEBUG);
+		final boolean applyDebugOutput = debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(Property.JAVAXMAIL_DEBUG_OUTPUT);
+		return MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), connectionChoices, locks.getValues(),
+				applyDebugEnabled, applyDebugOutput);
 	}
 
 	private void addLockedConnectionChoices(final Map<Property, Object> connectionChoices, @Nullable final TransportStrategy strategy,
@@ -853,7 +831,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	private Map<Property, Object> ownedConnectionChoices() {
 		final Map<Property, Object> choices = new LinkedHashMap<>();
-		choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
+		choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(sessionTimeout, "sessionTimeout"));
 		choices.put(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust));
 		choices.put(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
 		choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
@@ -882,21 +860,19 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				sessionSettings.getLocalBindPort(),
 				sessionSettings.getSmtpClientHostname(),
 				isLegacySmtpContentSupportEnabled(),
-				mailSendTelemetryEnabled,
-				mailSendTelemetrySmtpEndpointAttributesEnabled,
-				getThreadPoolSize(),
-				getThreadPoolKeepAliveTime(),
+				resolveTelemetryConfig(),
+				resolvedWorkerCount(),
+				resolvedWorkerKeepAlive(),
 				getClusterKey(),
 				getConnectionPoolCoreSize(),
 				getConnectionPoolMaxSize(),
-				getConnectionPoolClaimTimeoutMillis(),
-				getConnectionPoolExpireAfterMillis(),
-				getConnectionPoolExpireAfterCreationMillis(),
+				getConnectionPoolClaimTimeout(),
+				getConnectionPoolExpireAfter(),
+				getConnectionPoolExpireAfterCreation(),
 				getConnectionPoolLoadBalancingStrategy(),
 				Collections.unmodifiableMap(new LinkedHashMap<>(connectionPoolClusterConfigs)),
 				isTransportModeLoggingOnly(),
-				isDebugLogging(),
-				getDebugPrinter(),
+				resolveDebugConfig(sessionSettings.getDebugConfig()),
 				isDisableAllClientValidation(),
 				Collections.unmodifiableList(new ArrayList<>(sessionSettings.getSslHostsToTrust())),
 				sessionSettings.isTrustAllSSLHost(),
@@ -1140,55 +1116,58 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
-	 */
-	@Override
-	public T withDebugLogging(@NotNull final Boolean debugLogging) {
-		this.debugLogging = debugLogging;
+	/** Internal CLI scalar adaptation; it preserves earlier choices in the same invocation. */
+	@Override public T withDebugLogging(final Boolean enabled) {
+		return withDebugConfig(debugConfig.toBuilder().withEnabled(requireNonNull(enabled, "enabled")).build());
+	}
+	@Override public T withDebugOutput(final SessionDebugOutput output) {
+		return withDebugConfig(debugConfig.toBuilder().withOutput(output).build());
+	}
+	@Override public T withMailSendTelemetryEnabled(final boolean enabled) {
+		return withTelemetryConfig(telemetryConfig.toBuilder().withEnabled(enabled).build());
+	}
+	@Override public T resetMailSendTelemetryEnabled() {
+		return withTelemetryConfig(telemetryConfig.toBuilder().resetEnabled().build());
+	}
+	@Override public T withMailSendTelemetrySmtpEndpointAttributes(final boolean enabled) {
+		return withTelemetryConfig(telemetryConfig.toBuilder().withSmtpEndpointAttributes(enabled).build());
+	}
+	@Override public T resetMailSendTelemetrySmtpEndpointAttributes() {
+		return withTelemetryConfig(telemetryConfig.toBuilder().resetSmtpEndpointAttributes().build());
+	}
+	@Override public T withSessionTimeout(final Integer timeout) { return withSessionTimeout(Duration.ofMillis(timeout)); }
+	@Override public T withThreadPoolKeepAliveTime(final Integer keepAliveTime) { return withThreadPoolKeepAliveTime(Duration.ofMillis(keepAliveTime)); }
+	@Override public T withAsyncQueueWaitTimeoutMillis(final int waitTimeoutMillis) { return withAsyncQueueWaitTimeout(Duration.ofMillis(waitTimeoutMillis)); }
+	@Override public T withConnectionPoolClaimTimeoutMillis(final Integer timeoutMillis) { return withConnectionPoolClaimTimeout(Duration.ofMillis(timeoutMillis)); }
+	@Override public T resetConnectionPoolClaimTimeoutMillis() { return resetConnectionPoolClaimTimeout(); }
+	@Override public T withConnectionPoolExpireAfterMillis(final Integer expireAfterMillis) { return withConnectionPoolExpireAfter(Duration.ofMillis(expireAfterMillis)); }
+	@Override public T resetConnectionPoolExpireAfterMillis() { return resetConnectionPoolExpireAfter(); }
+	@Override public T withConnectionPoolExpireAfterCreationMillis(final Integer expireAfterCreationMillis) {
+		return withConnectionPoolExpireAfterCreation(Duration.ofMillis(expireAfterCreationMillis));
+	}
+	@Override public T clearConnectionPoolExpireAfterCreationMillis() { return clearConnectionPoolExpireAfterCreation(); }
+	@Override public T clearEmailDefaults() { return useConfiguredEmailDefaults(); }
+
+	/** @see MailerGenericBuilder#withDebugConfig(SessionDebugConfig) */
+	@Override public T withDebugConfig(@NotNull final SessionDebugConfig debugConfig) {
+		this.debugConfig = requireNonNull(debugConfig, "debugConfig");
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#resetDebugLogging() */
-	@Override
-	public T resetDebugLogging() {
-		return withDebugLogging(DEFAULT_JAVAXMAIL_DEBUG);
-	}
+	/** @see MailerGenericBuilder#getDebugConfig() */
+	@Override @NotNull public SessionDebugConfig getDebugConfig() { return debugConfig; }
 
-	/** @see MailerGenericBuilder#clearDebugPrinter() */
-	@Override
-	public T clearDebugPrinter() {
-		return clearDebugOutput();
-	}
+	/** @see MailerGenericBuilder#useConfiguredDebugConfig() */
+	@Override public T useConfiguredDebugConfig() { return withDebugConfig(SessionDebugConfig.builder().build()); }
 
-	/** @see MailerGenericBuilder#clearDebugOutput() */
-	@Override
-	public T clearDebugOutput() {
-		debugOutput = config.getProperty(Property.JAVAXMAIL_DEBUG_OUTPUT);
-		debugPrinter = resolveDebugPrinter(debugOutput);
-		return (T) this;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
-	 */
-	@Override
-	public T withDebugPrinter(@NotNull final PrintStream debugPrinter) {
-		if (this.debugPrinter != debugPrinter) {
-			this.debugOutput = debugPrinter == System.out ? SessionDebugOutput.STDOUT : debugPrinter == System.err ? SessionDebugOutput.STDERR : null;
+	private SessionDebugConfig resolveDebugConfig(final SessionDebugConfig baseline) {
+		final SessionDebugConfig.Builder resolved = SessionDebugConfig.builder().withEnabled(config.valueOrProperty(
+				debugConfig.getEnabled(), Property.JAVAXMAIL_DEBUG, baseline.getEnabled()));
+		if (debugConfig.getPrinter() != null) {
+			return resolved.withPrinter(debugConfig.getPrinter()).build();
 		}
-		this.debugPrinter = debugPrinter;
-		return (T) this;
-	}
-
-	/**
-	 * @see MailerGenericBuilder#withDebugOutput(SessionDebugOutput)
-	 */
-	@Override
-	public T withDebugOutput(@NotNull final SessionDebugOutput debugOutput) {
-		withDebugPrinter(SessionDebugOutputResolver.resolve(debugOutput));
-		this.debugOutput = debugOutput;
-		return (T) this;
+		final SessionDebugOutput output = config.valueOrProperty(debugConfig.getOutput(), Property.JAVAXMAIL_DEBUG_OUTPUT, baseline.getOutput());
+		return output != null ? resolved.withOutput(output).build() : resolved.withPrinter(requireNonNull(baseline.getPrinter(), "baselinePrinter")).build();
 	}
 
 	/**
@@ -1201,12 +1180,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
+	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
 	 */
 	@Override
-	public T withSessionTimeout(@NotNull final Integer sessionTimeout) {
+	public T withSessionTimeout(@NotNull final Duration sessionTimeout) {
+		DurationMillis.toInt(sessionTimeout, "sessionTimeout");
 		this.sessionTimeout = sessionTimeout;
-		customizedSessionSetting(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, sessionTimeout);
+		customizedSessionSetting(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(sessionTimeout, "sessionTimeout"));
 		return (T) this;
 	}
 
@@ -1306,15 +1286,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withThreadPoolSize(@NotNull final Integer threadPoolSize) {
 		this.threadPoolSize = threadPoolSize;
+		threadPoolSizeExplicit = true;
 		return (T) this;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Duration)
 	 */
 	@Override
-	public T withThreadPoolKeepAliveTime(@NotNull final Integer threadPoolKeepAliveTime) {
+	public T withThreadPoolKeepAliveTime(@NotNull final Duration threadPoolKeepAliveTime) {
+		DurationMillis.toInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime");
 		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
+		threadPoolKeepAliveTimeExplicit = true;
 		return (T) this;
 	}
 
@@ -1346,29 +1329,32 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)
 	 */
 	@Override
-	public T withConnectionPoolClaimTimeoutMillis(@NotNull final Integer connectionPoolClaimTimeoutMillis) {
-		this.connectionPoolClaimTimeoutMillis = connectionPoolClaimTimeoutMillis;
+	public T withConnectionPoolClaimTimeout(@NotNull final Duration connectionPoolClaimTimeout) {
+		DurationMillis.toInt(connectionPoolClaimTimeout, "connectionPoolClaimTimeout");
+		this.connectionPoolClaimTimeout = connectionPoolClaimTimeout;
 		return (T) this;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)
 	 */
 	@Override
-	public T withConnectionPoolExpireAfterMillis(@NotNull final Integer connectionPoolExpireAfterMillis) {
-		this.connectionPoolExpireAfterMillis = connectionPoolExpireAfterMillis;
+	public T withConnectionPoolExpireAfter(@NotNull final Duration connectionPoolExpireAfter) {
+		DurationMillis.toInt(connectionPoolExpireAfter, "connectionPoolExpireAfter");
+		this.connectionPoolExpireAfter = connectionPoolExpireAfter;
 		return (T) this;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)
 	 */
 	@Override
-	public T withConnectionPoolExpireAfterCreationMillis(@NotNull final Integer connectionPoolExpireAfterCreationMillis) {
-		this.connectionPoolExpireAfterCreationMillis = connectionPoolExpireAfterCreationMillis;
+	public T withConnectionPoolExpireAfterCreation(@NotNull final Duration connectionPoolExpireAfterCreation) {
+		DurationMillis.toInt(connectionPoolExpireAfterCreation, "connectionPoolExpireAfterCreation");
+		this.connectionPoolExpireAfterCreation = connectionPoolExpireAfterCreation;
 		return (T) this;
 	}
 
@@ -1487,143 +1473,63 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver)
-	 */
-	@Override
-	public T withMailSendResultObserver(@NotNull final MailSendResultObserver mailSendResultObserver) {
-		this.mailSendResultObserver = requireNonNull(mailSendResultObserver, "mailSendResultObserver");
-		this.mailSendResultObserverExecutor = null;
+
+
+	/** @see MailerGenericBuilder#withTelemetryConfig(MailSendTelemetryConfig) */
+	@Override public T withTelemetryConfig(@NotNull final MailSendTelemetryConfig telemetryConfig) {
+		this.telemetryConfig = requireNonNull(telemetryConfig, "telemetryConfig");
 		return (T) this;
 	}
 
-	/** @see MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry) */
-	@Override
-	public T withMailSendTelemetry(@NotNull final MailSendTelemetry telemetry) {
-		mailSendTelemetry = requireNonNull(telemetry, "telemetry");
-		mailSendTelemetryEnabled = true;
-		return (T) this;
-	}
+	/** @see MailerGenericBuilder#getTelemetryConfig() */
+	@Override @NotNull public MailSendTelemetryConfig getTelemetryConfig() { return telemetryConfig; }
 
-	/** @see MailerGenericBuilder#withMailSendTelemetryEnabled(boolean) */
-	@Override
-	public T withMailSendTelemetryEnabled(final boolean enabled) {
-		mailSendTelemetryEnabled = enabled;
-		return (T) this;
-	}
+	/** @see MailerGenericBuilder#useConfiguredTelemetryConfig() */
+	@Override public T useConfiguredTelemetryConfig() { return withTelemetryConfig(MailSendTelemetryConfig.builder().build()); }
 
-	/** @see MailerGenericBuilder#isMailSendTelemetryEnabled() */
-	@Override
-	public boolean isMailSendTelemetryEnabled() {
-		return mailSendTelemetryEnabled;
-	}
-
-	/** @see MailerGenericBuilder#resetMailSendTelemetryEnabled() */
-	@Override
-	public T resetMailSendTelemetryEnabled() {
-		return withMailSendTelemetryEnabled(DEFAULT_MAIL_SEND_TELEMETRY_ENABLED);
-	}
-
-	/** @see MailerGenericBuilder#getMailSendTelemetry() */
-	@Override
-	@Nullable
-	public MailSendTelemetry getMailSendTelemetry() {
-		return mailSendTelemetry;
-	}
-
-	/** @see MailerGenericBuilder#clearMailSendTelemetry() */
-	@Override
-	public T clearMailSendTelemetry() {
-		mailSendTelemetry = null;
-		mailSendTelemetryEnabled = configuredTelemetryEnabled;
-		return (T) this;
-	}
-
-	/** @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean) */
-	@Override
-	public T withMailSendTelemetrySmtpEndpointAttributes(final boolean enabled) {
-		mailSendTelemetrySmtpEndpointAttributesEnabled = enabled;
-		return (T) this;
-	}
-
-	/** @see MailerGenericBuilder#isMailSendTelemetrySmtpEndpointAttributesEnabled() */
-	@Override
-	public boolean isMailSendTelemetrySmtpEndpointAttributesEnabled() {
-		return mailSendTelemetrySmtpEndpointAttributesEnabled;
-	}
-
-	/** @see MailerGenericBuilder#resetMailSendTelemetrySmtpEndpointAttributes() */
-	@Override
-	public T resetMailSendTelemetrySmtpEndpointAttributes() {
-		return withMailSendTelemetrySmtpEndpointAttributes(DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES);
-	}
-
-	/** @see MailerGenericBuilder#clearMailSendTelemetrySmtpEndpointAttributes() */
-	@Override
-	public T clearMailSendTelemetrySmtpEndpointAttributes() {
-		return withMailSendTelemetrySmtpEndpointAttributes(configuredTelemetryEndpointAttributes);
+	/** Resolves only captured values, retaining the application-owned integration. */
+	MailSendTelemetryConfig resolveTelemetryConfig() {
+		final MailSendTelemetryConfig.Builder resolved = telemetryConfig.toBuilder()
+				.withEnabled(config.valueOrProperty(telemetryConfig.getEnabled(), Property.TELEMETRY_ENABLED, DEFAULT_MAIL_SEND_TELEMETRY_ENABLED))
+				.withSmtpEndpointAttributes(config.valueOrProperty(telemetryConfig.getSmtpEndpointAttributes(),
+						Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES));
+		return resolved.build();
 	}
 
 	/** Validate the builder's resolved choices before requesting optional runtime resources. */
 	private void resolveTelemetrySettings() {
-		locksOf(config).verify(Property.TELEMETRY_ENABLED, mailSendTelemetryEnabled,
-				"This factory fixes mail-send telemetry through simplejavamail.locked.telemetry.enabled. "
-						+ "Use the same enabled value, clear your local telemetry configuration, or change that locked property at its source.");
-		locksOf(config).verify(Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, mailSendTelemetrySmtpEndpointAttributesEnabled,
-				"This factory fixes whether SMTP host and port may be included in telemetry through "
-						+ "simplejavamail.locked.telemetry.smtp.endpointattributes. Use the same permission, call "
-						+ "clearMailSendTelemetrySmtpEndpointAttributes() to restore the configured value, or change that locked property at its source.");
-		if (mailSendTelemetryEnabled) {
-			// Verify availability before construction creates executors or pool resources; the cached module itself is stateless.
+		final MailSendTelemetryConfig resolved = resolveTelemetryConfig();
+		locksOf(config).verify(Property.TELEMETRY_ENABLED, resolved.getEnabled());
+		locksOf(config).verify(Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, resolved.getSmtpEndpointAttributes());
+		if (Boolean.TRUE.equals(resolved.getEnabled())) {
 			ModuleLoader.loadOpenTelemetryModule();
 		}
 	}
 
-	/**
-	 * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, Executor)
-	 */
-	@Override
-	public T withMailSendResultObserver(@NotNull final MailSendResultObserver mailSendResultObserver, @NotNull final Executor observerExecutor) {
-		requireNonNull(mailSendResultObserver, "mailSendResultObserver");
-		requireNonNull(observerExecutor, "observerExecutor");
-		this.mailSendResultObserver = mailSendResultObserver;
-		this.mailSendResultObserverExecutor = observerExecutor;
-		return (T) this;
+	/** @see MailerGenericBuilder#withSendHandlers(MailSendHandlers) */
+	@Override public T withSendHandlers(@NotNull final MailSendHandlers handlers) {
+		sendHandlers = requireNonNull(handlers, "sendHandlers"); return (T) this;
 	}
-
-	/** @see MailerGenericBuilder#clearMailSendResultObserver() */
-	@Override
-	public T clearMailSendResultObserver() {
-		this.mailSendResultObserver = null;
-		this.mailSendResultObserverExecutor = null;
-		return (T) this;
+	/** @see MailerGenericBuilder#getSendHandlers() */
+	@Override @Nullable public MailSendHandlers getSendHandlers() { return sendHandlers; }
+	/** @see MailerGenericBuilder#clearSendHandlers() */
+	@Override public T clearSendHandlers() { sendHandlers = null; return (T) this; }
+	/** @see MailerGenericBuilder#withSendHandlersFactory(Function) */
+	@Override public T withSendHandlersFactory(@NotNull final Function<UUID, MailSendHandlers> factory) {
+		sendHandlersFactory = requireNonNull(factory, "sendHandlersFactory"); return (T) this;
 	}
-
-	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver) */
-	@Override
-	public T withMailSendProgressObserver(@NotNull final MailSendProgressObserver progressObserver) {
-		this.mailSendProgressObserver = requireNonNull(progressObserver, "progressObserver");
-		this.mailSendProgressExecutor = null;
-		return (T) this;
+	/** @see MailerGenericBuilder#getSendHandlersFactory() */
+	@Override @Nullable public Function<UUID, MailSendHandlers> getSendHandlersFactory() { return sendHandlersFactory; }
+	/** @see MailerGenericBuilder#clearSendHandlersFactory() */
+	@Override public T clearSendHandlersFactory() { sendHandlersFactory = null; return (T) this; }
+	/** @see MailerGenericBuilder#withSendIdGenerator(Supplier) */
+	@Override public T withSendIdGenerator(@NotNull final Supplier<UUID> generator) {
+		sendIdGenerator = requireNonNull(generator, "sendIdGenerator"); return (T) this;
 	}
-
-	/** @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver, Executor) */
-	@Override
-	public T withMailSendProgressObserver(@NotNull final MailSendProgressObserver progressObserver, @NotNull final Executor progressExecutor) {
-		requireNonNull(progressObserver, "progressObserver");
-		requireNonNull(progressExecutor, "progressExecutor");
-		this.mailSendProgressObserver = progressObserver;
-		this.mailSendProgressExecutor = progressExecutor;
-		return (T) this;
-	}
-
-	/** @see MailerGenericBuilder#clearMailSendProgressObserver() */
-	@Override
-	public T clearMailSendProgressObserver() {
-		this.mailSendProgressObserver = null;
-		this.mailSendProgressExecutor = null;
-		return (T) this;
-	}
+	/** @see MailerGenericBuilder#getSendIdGenerator() */
+	@Override @NotNull public Supplier<UUID> getSendIdGenerator() { return sendIdGenerator; }
+	/** @see MailerGenericBuilder#resetSendIdGenerator() */
+	@Override public T resetSendIdGenerator() { sendIdGenerator = UUID::randomUUID; return (T) this; }
 
 	/**
 	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
@@ -1666,7 +1572,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T resetSessionTimeout() {
-		return withSessionTimeout(DEFAULT_SESSION_TIMEOUT_MILLIS);
+		return withSessionTimeout(DEFAULT_SESSION_TIMEOUT);
 	}
 
 	/**
@@ -1702,11 +1608,22 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
+	private int resolvedWorkerCount() {
+		return threadPoolSizeExplicit || ModuleLoader.batchModuleAvailable() ? threadPoolSize : 1;
+	}
+
+	private Duration resolvedWorkerKeepAlive() {
+		return threadPoolKeepAliveTimeExplicit || ModuleLoader.batchModuleAvailable() ? threadPoolKeepAliveTime : Duration.ZERO;
+	}
+
+	@Nullable private Duration configuredDuration(final Property property, @Nullable final Duration fallback) {
+		final Integer milliseconds = config.getIntegerProperty(property);
+		return milliseconds == null ? fallback : Duration.ofMillis(milliseconds);
+	}
+
 	@NotNull
 	private ExecutorService determineDefaultExecutorService() {
-		final boolean batchAvailable = ModuleLoader.batchModuleAvailable();
-		return new MailSendExecutor(batchAvailable ? getThreadPoolSize() : 1,
-				batchAvailable ? getThreadPoolKeepAliveTime() : 0, asyncQueueConfig);
+		return new MailSendExecutor(resolvedWorkerCount(), DurationMillis.toInt(resolvedWorkerKeepAlive(), "threadPoolKeepAliveTime"), asyncQueueConfig);
 	}
 
 	/**
@@ -1714,7 +1631,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withAsyncQueueCapacity(final int capacity) {
-		asyncQueueConfig = new AsyncQueueConfig(capacity, asyncQueueConfig.getOverflowPolicy(), asyncQueueConfig.getWaitTimeoutMillis());
+		asyncQueueConfig = new AsyncQueueConfig(capacity, asyncQueueConfig.getOverflowPolicy(), asyncQueueConfig.getWaitTimeout());
 		return (T) this;
 	}
 
@@ -1723,16 +1640,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withAsyncQueueOverflowPolicy(@NotNull final AsyncQueueOverflowPolicy overflowPolicy) {
-		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), overflowPolicy, asyncQueueConfig.getWaitTimeoutMillis());
+		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), overflowPolicy, asyncQueueConfig.getWaitTimeout());
 		return (T) this;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withAsyncQueueWaitTimeoutMillis(int)
+	 * @see MailerGenericBuilder#withAsyncQueueWaitTimeout(Duration)
 	 */
 	@Override
-	public T withAsyncQueueWaitTimeoutMillis(final int waitTimeoutMillis) {
-		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), asyncQueueConfig.getOverflowPolicy(), waitTimeoutMillis);
+	public T withAsyncQueueWaitTimeout(final Duration waitTimeout) {
+		asyncQueueConfig = new AsyncQueueConfig(asyncQueueConfig.getCapacity(), asyncQueueConfig.getOverflowPolicy(), waitTimeout);
 		return (T) this;
 	}
 
@@ -1745,19 +1662,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#getAsyncQueueConfig()
-	 */
-	@Override
-	@NotNull
-	public AsyncQueueConfig getAsyncQueueConfig() {
-		return asyncQueueConfig;
-	}
+	/** @see MailerGenericBuilder#getAsyncQueueConfig() */
+	@Override @NotNull public AsyncQueueConfig getAsyncQueueConfig() { return asyncQueueConfig; }
 
-	@Nullable
-	private PrintStream resolveDebugPrinter(@Nullable final SessionDebugOutput debugOutput) {
-		return debugOutput != null ? SessionDebugOutputResolver.resolve(debugOutput) : null;
-	}
+
 
 	/**
 	 * @see MailerGenericBuilder#resetThreadPoolSize()
@@ -1800,27 +1708,27 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetConnectionPoolClaimTimeoutMillis()
+	 * @see MailerGenericBuilder#resetConnectionPoolClaimTimeout()
 	 */
 	@Override
-	public T resetConnectionPoolClaimTimeoutMillis() {
-		return this.withConnectionPoolClaimTimeoutMillis(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS);
+	public T resetConnectionPoolClaimTimeout() {
+		return this.withConnectionPoolClaimTimeout(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetConnectionPoolExpireAfterMillis()
+	 * @see MailerGenericBuilder#resetConnectionPoolExpireAfter()
 	 */
 	@Override
-	public T resetConnectionPoolExpireAfterMillis() {
-		return this.withConnectionPoolExpireAfterMillis(DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS);
+	public T resetConnectionPoolExpireAfter() {
+		return this.withConnectionPoolExpireAfter(DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
 	}
 
 	/**
-	 * @see MailerGenericBuilder#clearConnectionPoolExpireAfterCreationMillis()
+	 * @see MailerGenericBuilder#clearConnectionPoolExpireAfterCreation()
 	 */
 	@Override
-	public T clearConnectionPoolExpireAfterCreationMillis() {
-		this.connectionPoolExpireAfterCreationMillis = null;
+	public T clearConnectionPoolExpireAfterCreation() {
+		this.connectionPoolExpireAfterCreation = null;
 		return (T) this;
 	}
 
@@ -1859,12 +1767,17 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#clearEmailDefaults()
+	 * @see MailerGenericBuilder#useConfiguredEmailDefaults()
 	 */
 	@Override
-	public T clearEmailDefaults() {
+	public T useConfiguredEmailDefaults() {
 		this.emailDefaults = null;
 		return (T) this;
+	}
+
+	/** @see MailerGenericBuilder#withoutEmailDefaults() */
+	@Override public T withoutEmailDefaults() {
+		return withEmailDefaults(new EmailStartingBuilderImpl(config).startingBlank().buildEmail());
 	}
 
 	/**
@@ -1963,29 +1876,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return proxyBridgePort;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#isDebugLogging()
-	 */
-	@Override
-	public boolean isDebugLogging() {
-		return debugLogging;
-	}
 
-	/**
-	 * @see MailerGenericBuilder#getDebugPrinter()
-	 */
-	@Override
-	@Nullable
-	public PrintStream getDebugPrinter() {
-		return debugPrinter;
-	}
-
-	/** @see MailerGenericBuilder#getDebugOutput() */
-	@Override
-	@Nullable
-	public SessionDebugOutput getDebugOutput() {
-		return debugOutput;
-	}
 
 	/**
 	 * @see MailerGenericBuilder#isDisableAllClientValidation()
@@ -2000,7 +1891,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	@NotNull
-	public Integer getSessionTimeout() {
+	public Duration getSessionTimeout() {
 		return sessionTimeout;
 	}
 
@@ -2104,7 +1995,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	@NotNull
-	public Integer getThreadPoolKeepAliveTime() {
+	public Duration getThreadPoolKeepAliveTime() {
 		return threadPoolKeepAliveTime;
 	}
 
@@ -2136,30 +2027,30 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#getConnectionPoolClaimTimeoutMillis()
+	 * @see MailerGenericBuilder#getConnectionPoolClaimTimeout()
 	 */
 	@Override
 	@NotNull
-	public Integer getConnectionPoolClaimTimeoutMillis() {
-		return connectionPoolClaimTimeoutMillis;
+	public Duration getConnectionPoolClaimTimeout() {
+		return connectionPoolClaimTimeout;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterMillis()
+	 * @see MailerGenericBuilder#getConnectionPoolExpireAfter()
 	 */
 	@Override
 	@NotNull
-	public Integer getConnectionPoolExpireAfterMillis() {
-		return connectionPoolExpireAfterMillis;
+	public Duration getConnectionPoolExpireAfter() {
+		return connectionPoolExpireAfter;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterCreationMillis()
+	 * @see MailerGenericBuilder#getConnectionPoolExpireAfterCreation()
 	 */
 	@Override
 	@Nullable
-	public Integer getConnectionPoolExpireAfterCreationMillis() {
-		return connectionPoolExpireAfterCreationMillis;
+	public Duration getConnectionPoolExpireAfterCreation() {
+		return connectionPoolExpireAfterCreation;
 	}
 
 	/**
@@ -2236,11 +2127,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	/** Captures observer registrations and binds the already-resolved telemetry permission; no progress dispatcher is started here. */
 	MailSendObserverNotifier buildObserverNotifier() {
 		return MailSendObserverNotifier.builder()
-			.resultObserver(mailSendResultObserver)
-			.resultExecutor(mailSendResultObserverExecutor)
-			.progressObserver(mailSendProgressObserver)
-			.progressExecutor(mailSendProgressExecutor)
-			.telemetry(MailSendTelemetryRecorder.bind(mailSendTelemetry, mailSendTelemetryEnabled, mailSendTelemetrySmtpEndpointAttributesEnabled))
+			.handlers(sendHandlers)
+			.handlersFactory(sendHandlersFactory)
+			.idGenerator(sendIdGenerator)
+			.telemetry(MailSendTelemetryRecorder.bind(resolveTelemetryConfig().getIntegration(), Boolean.TRUE.equals(resolveTelemetryConfig().getEnabled()), Boolean.TRUE.equals(resolveTelemetryConfig().getSmtpEndpointAttributes())))
 			.loggingOnly(transportModeLoggingOnly)
 			.build();
 	}

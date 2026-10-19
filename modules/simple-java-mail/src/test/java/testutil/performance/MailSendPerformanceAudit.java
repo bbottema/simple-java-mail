@@ -1,5 +1,6 @@
 package testutil.performance;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jdk.jfr.Configuration;
 import jdk.jfr.Recording;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -87,11 +88,11 @@ public final class MailSendPerformanceAudit {
     private static Mailer mailer(final SimpleJavaMail factory, final AuditSmtpServer server, final String scenario,
             final AuditMeasurements measurements) {
         final MailerRegularBuilder<?> builder = factory.mailerBuilder().withSMTPServer("127.0.0.1", server.port())
-                .withSmtpClientHostname("audit.example.test").withSessionTimeout(30000)
-                .withThreadPoolSize(WORKERS).withThreadPoolKeepAliveTime(3600000).withAsyncQueueCapacity(64)
+                .withSmtpClientHostname("audit.example.test").withSessionTimeout(Duration.ofMillis(30000))
+                .withThreadPoolSize(WORKERS).withThreadPoolKeepAliveTime(Duration.ofMillis(3600000)).withAsyncQueueCapacity(64)
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(WORKERS)
-                .withConnectionPoolExpireAfterMillis(3600000)
-                .withConnectionPoolClaimTimeoutMillis(30000).withMailSendResultObserver(measurements::observe);
+                .withConnectionPoolExpireAfter(Duration.ofMillis(3600000))
+                .withConnectionPoolClaimTimeout(Duration.ofMillis(30000)).withSendHandlers(MailSendHandlers.builder().withResultObserver(measurements::observe).build());
         if (scenario.startsWith("limit-")) {
             builder.withMaximumEmailSize(AuditSmtpServer.MAXIMUM_MESSAGE_BYTES);
         }

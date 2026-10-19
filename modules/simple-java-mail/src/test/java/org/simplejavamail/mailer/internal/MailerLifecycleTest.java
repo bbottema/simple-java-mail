@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -129,11 +130,11 @@ class MailerLifecycleTest {
         delivery.finish.countDown();
         final AtomicReference<Mailer> owner = new AtomicReference<>();
         final AtomicReference<CompletableFuture<Void>> closing = new AtomicReference<>();
-        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withMailSendResultObserver(outcome -> {
+        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             closing.set(owner.get().closeAsync());
             assertThat(closing.get()).isNotDone();
             assertThatThrownBy(owner.get()::close).isInstanceOf(IllegalStateException.class).hasMessageContaining("own shutdown");
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             owner.set(mailer);
             mailer.async().sendMail(email()).getCompletion().get(5, SECONDS);
             closing.get().get(5, SECONDS);

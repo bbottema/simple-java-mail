@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Address;
@@ -82,7 +83,7 @@ class ConnectionFailoverTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(usePooling);
             try (Mailer alternative = builder(secondary).buildMailer()) {
-                final MailerFromSessionBuilderImpl configured = builder(primary).withExecutorService(workers).withMailSendResultObserver(outcomes::add);
+                final MailerFromSessionBuilderImpl configured = builder(primary).withExecutorService(workers).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
                 if (configuredFailover) {
                     configured.withFailoverMailer(alternative, FailoverPolicy.builder().build());
                 }
@@ -131,7 +132,7 @@ class ConnectionFailoverTest {
                 final MailerFromSessionBuilderImpl configured = builder(primary).withExecutorService(workers)
                         .withFailoverMailer(alternative, FailoverPolicy.builder().build());
                 if (observed) {
-                    configured.withMailSendResultObserver(outcomes::add);
+                    configured.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
                 }
                 try (Mailer initiating = configured.buildMailer()) {
                     try {
@@ -316,7 +317,7 @@ class ConnectionFailoverTest {
         try (Mailer alternative = builder(secondary).buildMailer();
              Mailer initiating = builder(primary, runtime).withConnectionPoolCoreSize(2).withConnectionPoolMaxSize(2)
                      // Count recovery allocations, not replacements caused by wall-clock idle expiry.
-                     .withConnectionPoolExpireAfterMillis(0)
+                     .withConnectionPoolExpireAfter(Duration.ofMillis(0))
                      .withFailoverMailer(alternative, policy).buildMailer()) {
             try {
                 await(initialConnectionStarted);
@@ -395,7 +396,7 @@ class ConnectionFailoverTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             try (Mailer b = builder(secondary).buildMailer();
-                 Mailer a = builder(primary).withExecutorService(direct).withMailSendResultObserver(outcomes::add)
+                 Mailer a = builder(primary).withExecutorService(direct).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                          .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
                 final var synchronous = a.sync().sendMail(email());
                 final var asynchronous = a.async().sendMail(email()).getCompletion().get(5, TimeUnit.SECONDS);
@@ -422,7 +423,7 @@ class ConnectionFailoverTest {
         final FailoverPolicy policy = FailoverPolicy.builder().withPrimaryConnectionAttempts(3)
                 .withPrimaryConnectionRetryDelay(Duration.ofDays(1)).build();
         try (Mailer b = builder(secondary).buildMailer();
-             Mailer a = builder(primary).withMailSendResultObserver(outcomes::add).withFailoverMailer(b, policy).buildMailer()) {
+             Mailer a = builder(primary).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).withFailoverMailer(b, policy).buildMailer()) {
             final var send = a.async().sendMail(email());
             try {
                 assertThat(disposed.await(5, TimeUnit.SECONDS)).isTrue();
@@ -557,10 +558,10 @@ class ConnectionFailoverTest {
         final State secondary = new State();
         final AtomicInteger observations = new AtomicInteger();
         try (Mailer b = builder(secondary).buildMailer();
-             Mailer a = builder(primary).withFailoverMailer(b, FailoverPolicy.builder().build()).withMailSendResultObserver(outcome -> {
+             Mailer a = builder(primary).withFailoverMailer(b, FailoverPolicy.builder().build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                  assertThatThrownBy(b::close).isInstanceOf(IllegalStateException.class).hasMessageContaining("own shutdown");
                  observations.incrementAndGet();
-             }).buildMailer()) {
+             }).build()).buildMailer()) {
             a.sync().sendMailsInSimpleBatch(List.of(email(), email()));
             assertThat(observations).hasValue(2);
             assertThat(secondary.messages).hasSize(2);
@@ -575,7 +576,7 @@ class ConnectionFailoverTest {
         final CountDownLatch release = new CountDownLatch(1);
         primary.onSend = () -> { sending.countDown(); await(release); };
         try (Mailer b = builder(secondary).buildMailer();
-             Mailer a = builder(primary).withConnectionPoolClaimTimeoutMillis(50).withThreadPoolSize(2)
+             Mailer a = builder(primary).withConnectionPoolClaimTimeout(Duration.ofMillis(50)).withThreadPoolSize(2)
                      .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
             final var occupied = a.async().sendMail(email());
             try {
@@ -624,7 +625,7 @@ class ConnectionFailoverTest {
         final State secondary = new State();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer b = builder(secondary).withEmailOverrides(template("b")).buildMailer();
-             Mailer a = builder(primary).withEmailOverrides(template("a")).withMailSendResultObserver(outcomes::add)
+             Mailer a = builder(primary).withEmailOverrides(template("a")).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                      .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
             a.sync().sendMail(email());
             a.async().sendMail(email()).getCompletion().join();
@@ -758,7 +759,7 @@ class ConnectionFailoverTest {
         final AtomicInteger iterators = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer b = builder(secondary, runtime).withEmailOverrides(template("b")).buildMailer();
-             Mailer a = builder(primary, runtime).withEmailOverrides(template("a")).withMailSendResultObserver(outcomes::add)
+             Mailer a = builder(primary, runtime).withEmailOverrides(template("a")).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                      .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
             a.async().sendMailsInSimpleBatch(() -> {
                 iterators.incrementAndGet();
@@ -816,7 +817,7 @@ class ConnectionFailoverTest {
             final AtomicReference<Throwable> handled = new AtomicReference<>();
             final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
             try (Mailer b = builder(secondary).buildMailer();
-                 Mailer a = builder(primary).withMailSendResultObserver(outcomes::add)
+                 Mailer a = builder(primary).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                          .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
                 final Throwable scopeFailure = catchThrowable(() -> a.withOpenConnection(sender -> {
                     handled.set(catchThrowable(() -> sender.sendMail(email())));
@@ -879,7 +880,7 @@ class ConnectionFailoverTest {
             final AtomicReference<RuntimeException> escaping = new AtomicReference<>();
             final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
             try (Mailer b = builder(secondary).buildMailer();
-                 Mailer a = builder(primary).withMailSendResultObserver(outcomes::add)
+                 Mailer a = builder(primary).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                          .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
                 final Throwable scopeFailure = catchThrowable(() -> a.withOpenConnection(sender -> {
                     try {
@@ -894,7 +895,7 @@ class ConnectionFailoverTest {
                         .satisfies(cleanup -> assertThat(cleanup).hasRootCause(secondary.closeFailure));
                 assertThat(outcomes).hasSize(1);
                 assertThat(outcomes.get(0).getFailure()).containsSame(scopeFailure);
-                assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(((MailSubmissionException) scopeFailure).getSubmissionReceipt());
+                assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(((MailSubmissionException) scopeFailure).getSubmissionReceipt().orElseThrow());
             }
         }
     }
@@ -923,7 +924,7 @@ class ConnectionFailoverTest {
             };
             final ExecutorService worker = Executors.newSingleThreadExecutor();
             try (Mailer b = builder(secondary).buildMailer()) {
-                final MailerFromSessionBuilderImpl initiating = builder(primary).withMailSendResultObserver(outcomes::add);
+                final MailerFromSessionBuilderImpl initiating = builder(primary).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
                 if (useFailover) {
                     initiating.withFailoverMailer(b, FailoverPolicy.builder().build());
                 }
@@ -1007,9 +1008,9 @@ class ConnectionFailoverTest {
         final State third = new State();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final AtomicInteger delegatedObservers = new AtomicInteger();
-        try (Mailer c = builder(third).withMailSendResultObserver(ignored -> delegatedObservers.incrementAndGet()).buildMailer();
+        try (Mailer c = builder(third).withSendHandlers(MailSendHandlers.builder().withResultObserver(ignored -> delegatedObservers.incrementAndGet()).build()).buildMailer();
              Mailer b = builder(second).withFailoverMailer(c, FailoverPolicy.builder().build()).buildMailer()) {
-            try (Mailer a = builder(first).withFailoverMailer(b, FailoverPolicy.builder().build()).withMailSendResultObserver(outcomes::add).buildMailer()) {
+            try (Mailer a = builder(first).withFailoverMailer(b, FailoverPolicy.builder().build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
                 a.sync().sendMail(email());
             }
             c.sync().sendMail(email());

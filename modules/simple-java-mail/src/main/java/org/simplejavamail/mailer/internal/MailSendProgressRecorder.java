@@ -17,6 +17,7 @@ final class MailSendProgressRecorder implements MailTransportProgress {
     // Four upload updates per second are enough for a responsive dashboard without allocating a snapshot per stream write.
     private static final long UPLOAD_INTERVAL_NANOS = Duration.ofMillis(250).toNanos();
     private final MailSendProgressDispatcher dispatcher;
+    @Nullable private MailSendProgressDispatcher.Target[] targets;
     private final UUID observationId;
     @Nullable private final String initialMessageId;
     private final LongSupplier clock;
@@ -33,7 +34,13 @@ final class MailSendProgressRecorder implements MailTransportProgress {
 
     MailSendProgressRecorder(final MailSendProgressDispatcher dispatcher, final UUID observationId,
             @Nullable final String initialMessageId, final LongSupplier clock) {
+        this(dispatcher, observationId, initialMessageId, clock, null);
+    }
+
+    MailSendProgressRecorder(final MailSendProgressDispatcher dispatcher, final UUID observationId,
+            @Nullable final String initialMessageId, final LongSupplier clock, @Nullable final MailSendProgressDispatcher.Target[] targets) {
         this.dispatcher = dispatcher;
+        this.targets = targets;
         this.observationId = observationId;
         this.initialMessageId = initialMessageId;
         this.clock = clock;
@@ -157,14 +164,17 @@ final class MailSendProgressRecorder implements MailTransportProgress {
             stage = MailSendProgressStage.FINISHED;
             finished = true;
             publish(clock.getAsLong());
+            targets = null;
         }
     }
 
     private void publish(final long now) {
-        dispatcher.offer(MailSendProgressImpl.builder()
+        final MailSendProgressImpl snapshot = MailSendProgressImpl.builder()
                 .observationId(observationId).sequence(++sequence).observedAt(Instant.now())
                 .elapsed(Duration.ofNanos(Math.max(0, now - requestedAt))).stage(stage).submissionAttempt(submissionAttempt)
-                .initialMessageId(initialMessageId).effectiveMessageId(effectiveMessageId).bytesWritten(bytesWritten).totalBytes(totalBytes).build());
+                .initialMessageId(initialMessageId).effectiveMessageId(effectiveMessageId).bytesWritten(bytesWritten).totalBytes(totalBytes).build();
+        if (targets == null) { dispatcher.offer(snapshot); }
+        else { dispatcher.offer(snapshot, targets); }
         lastPublishedAt = now;
     }
 }

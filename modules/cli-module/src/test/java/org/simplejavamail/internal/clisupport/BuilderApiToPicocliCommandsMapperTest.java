@@ -13,10 +13,10 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
-import org.simplejavamail.api.mailer.MailSendResultObserver;
-import org.simplejavamail.api.mailer.MailSendProgressObserver;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -32,7 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -157,7 +158,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	public void asyncQueueSettingsHaveCliOptionsAndTypedArguments() throws Exception {
 		final Method capacity = MailerGenericBuilder.class.getMethod("withAsyncQueueCapacity", int.class);
 		final Method policy = MailerGenericBuilder.class.getMethod("withAsyncQueueOverflowPolicy", AsyncQueueOverflowPolicy.class);
-		final Method timeout = MailerGenericBuilder.class.getMethod("withAsyncQueueWaitTimeoutMillis", int.class);
+		final Method timeout = CliMailerConfigurationBuilder.class.getMethod("withAsyncQueueWaitTimeoutMillis", int.class);
 		for (Method setting : Arrays.asList(capacity, policy, timeout)) {
 			assertThat(methodIsCliCompatible(setting).isCompatible()).isTrue();
 			assertThat(getArgumentsForCliOption(setting)).extracting("required").containsExactly(true);
@@ -166,8 +167,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 				.containsExactly(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY);
 		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("0")), capacity)).containsExactly(0);
 		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("250")), timeout)).containsExactly(250);
-		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
-				new Class<?>[] {MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(CliBuilderApi.roots());
 		assertThat(options).extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withAsyncQueueCapacity", "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withAsyncQueueWaitTimeoutMillis")
 				.doesNotContain("--mailer:getAsyncQueueSnapshot", "--mailer:getAsyncQueueConfig", "--mailer:async", "--mailer:async--help");
@@ -181,20 +181,18 @@ public class BuilderApiToPicocliCommandsMapperTest {
 				.containsExactly(Duration.ofMillis(12500));
 		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("30 seconds")), timeout))
 				.isInstanceOf(RuntimeException.class);
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendResultObserver", MailSendResultObserver.class)).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendResultObserver", MailSendResultObserver.class, Executor.class))
-				.isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class)).isCompatible())
-				.isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class, Executor.class))
-				.isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearMailSendResultObserver")).isCompatible()).isFalse();
-		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearMailSendProgressObserver")).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withSendHandlers", MailSendHandlers.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withSendHandlersFactory", Function.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("withSendIdGenerator", Supplier.class)).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearSendHandlers")).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("clearSendHandlersFactory")).isCompatible()).isFalse();
+		assertThat(methodIsCliCompatible(MailerGenericBuilder.class.getMethod("resetSendIdGenerator")).isCompatible()).isFalse();
 		assertThat(BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(new Class<?>[]{MailerRegularBuilder.class, MailerFromSessionBuilder.class}))
 				.extracting(CliDeclaredOptionSpec::getName)
 				.contains("--mailer:withMailSendTimeout", "--mailer:resetMailSendTimeout")
-				.doesNotContain("--mailer:withMailSendResultObserver", "--mailer:withMailSendProgressObserver",
-						"--mailer:clearMailSendResultObserver", "--mailer:clearMailSendProgressObserver", "--mailer:getCompletion", "--mailer:requestCancellation");
+				.doesNotContain("--mailer:withSendHandlers", "--mailer:withSendHandlersFactory", "--mailer:withSendIdGenerator",
+						"--mailer:clearSendHandlers", "--mailer:clearSendHandlersFactory", "--mailer:resetSendIdGenerator",
+						"--mailer:getCompletion", "--mailer:requestCancellation");
 	}
 
 	@Test
@@ -255,8 +253,8 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	}
 
 	@Test
-	public void dedicatedRecipientOptionsRemainCliOnly() throws Exception {
-		Method to = CliEmailRecipientBuilder.class.getMethod("to", String.class, String.class);
+	public void parsedRecipientOptionsRemainSeparateFromSingleRecipientShortcuts() throws Exception {
+		Method to = CliEmailRecipientBuilder.class.getMethod("toAddresses", String.class, String.class);
 		assertThat(methodIsCliCompatible(to).isCompatible()).isTrue();
 		assertThat(getArgumentsForCliOption(to)).extracting("helpLabel")
 				.containsExactly("TEXT", "TEXT");
@@ -266,10 +264,13 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
 				new Class<?>[] { EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class });
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
-				.contains("--email:to", "--email:cc", "--email:bcc");
+				.contains("--email:to", "--email:cc", "--email:bcc")
+				.doesNotContain("--email:toAddresses", "--email:ccAddresses", "--email:bccAddresses");
 
-		assertThat(Arrays.stream(EmailPopulatingBuilder.class.getMethods()).map(Method::getName))
-				.doesNotContain("to", "cc", "bcc");
+		for (String shortcut : Arrays.asList("to", "cc", "bcc")) {
+			assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod(shortcut, String.class)).isCompatible()).isFalse();
+			assertThat(methodIsCliCompatible(EmailPopulatingBuilder.class.getMethod(shortcut, String.class, String.class)).isCompatible()).isFalse();
+		}
 		assertThatThrownBy(() -> EmailPopulatingBuilder.class.getMethod("withRecipients", String.class, boolean.class,
 				Message.RecipientType.class, String[].class))
 				.isInstanceOf(NoSuchMethodException.class);
@@ -296,17 +297,16 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	@Test
 	public void connectionCreationAgeExpirationApisAreGeneratedAsCliOptions() {
-		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
-				new Class<?>[] {MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(CliBuilderApi.roots());
 
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
-				.contains("--mailer:withConnectionPoolExpireAfterCreationMillis", "--mailer:clearConnectionPoolExpireAfterCreationMillis");
+				.contains("--mailer:withConnectionPoolExpireAfterCreationMillis", "--mailer:clearConnectionPoolExpireAfterCreationMillis")
+				.doesNotContain("--mailer:withConnectionPoolExpireAfterCreation", "--mailer:clearConnectionPoolExpireAfterCreation");
 	}
 
 	@Test
 	public void generatedArgumentsFollowExplicitCliOptionality() {
-		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
-				new Class<?>[] {EmailStartingBuilder.class, CliEmailRecipientBuilder.class, MailerRegularBuilder.class, MailerFromSessionBuilder.class});
+		final List<CliDeclaredOptionSpec> options = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(CliBuilderApi.roots());
 		assertThat(options).isNotEmpty();
 		for (final CliDeclaredOptionSpec option : options) {
 			final Method method = option.getSourceMethod();

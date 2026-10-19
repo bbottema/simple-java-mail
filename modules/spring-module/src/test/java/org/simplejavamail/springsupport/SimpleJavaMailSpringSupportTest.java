@@ -59,7 +59,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(config.<Duration>getProperty(ConfigLoader.Property.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
 		assertThat(defaultMailer.getOperationalConfig().getMailSendTimeout()).isEqualTo(Duration.ofSeconds(30));
 		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(900000);
-		assertThat(defaultMailer.getOperationalConfig().getConnectionPoolExpireAfterCreationMillis()).isEqualTo(900000);
+		assertThat(defaultMailer.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900000));
 		assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isNull(); // not set in any properties
 	}
 
@@ -69,7 +69,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(clusterConfigs).containsKey(ordersCluster);
 		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
 		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(3);
-		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterCreationMillis()).isNull();
+		assertThat(clusterConfigs.get(ordersCluster).getExpireAfterCreation()).isNull();
 		assertThat(clusterConfigs.get(ordersCluster).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.RANDOM_ACCESS);
 	}
 

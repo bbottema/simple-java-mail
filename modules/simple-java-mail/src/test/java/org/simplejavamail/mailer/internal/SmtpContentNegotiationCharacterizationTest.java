@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Message;
@@ -161,7 +162,7 @@ class SmtpContentNegotiationCharacterizationTest {
             properties.setProperty("mail.smtp.port", String.valueOf(server.port()));
             final Session session = Session.getInstance(properties);
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-                    .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+                    .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
                 final Email email = composedEmail("sender@example.test", internationalizedRecipient, "ASCII subject", "ASCII body");
                 if (enabled) {
                     mailer.sync().sendMail(email);
@@ -579,9 +580,9 @@ class SmtpContentNegotiationCharacterizationTest {
         // These scripts expect a fixed set of connections; idle expiry during caller-thread MIME preparation is a different concern.
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", server.port())
                 // MIME Message-ID generation must not spend the script's timeout resolving the workstation hostname.
-                .withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(5000)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000)
-                .withConnectionPoolExpireAfterMillis(0);
+                .withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolExpireAfter(Duration.ofMillis(0));
     }
 
     private static Email eightBitCandidate() {

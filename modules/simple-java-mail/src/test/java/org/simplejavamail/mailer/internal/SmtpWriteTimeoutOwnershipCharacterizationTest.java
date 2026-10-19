@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
@@ -234,7 +236,7 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, "receiver@example.test", TO, null))
                 .fixingMessageId("retained-scheduler@example.test").withPlainText("Synthetic retained-connection test.").buildEmail();
-        try (ScriptedSmtpServer server = sendingPeer(2); Mailer mailer = builder(server.port()).withMailSendResultObserver(outcome -> {
+        try (ScriptedSmtpServer server = sendingPeer(2); Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             try {
                 final ScheduledThreadPoolExecutor current = schedulerGeneration(controller.get());
                 assertThat(current).isNotNull();
@@ -246,7 +248,7 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
             } catch (Exception failure) {
                 throw new AssertionError("Couldn't inspect the retained connection's timeout controller", failure);
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             controller.set(mailer.getSession().getProperties().get("mail.smtp.executor.writetimeout"));
             if (simpleBatch) {
                 mailer.sync().sendMailsInSimpleBatch(List.of(email, email));
@@ -271,8 +273,8 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
         ScheduledThreadPoolExecutor secondGeneration = null;
         try (ScriptedSmtpServer firstPeer = sendingPeer(1); ScriptedSmtpServer secondPeer = sendingPeer(2);
              Mailer first = builder(firstPeer.port()).withClusterKey(cluster)
-                     .withConnectionPoolExpireAfterMillis(60000).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer();
-             Mailer second = builder(secondPeer.port()).withClusterKey(cluster).withConnectionPoolExpireAfterMillis(60000).buildMailer()) {
+                     .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer();
+             Mailer second = builder(secondPeer.port()).withClusterKey(cluster).withConnectionPoolExpireAfter(Duration.ofMillis(60000)).buildMailer()) {
             assertThat(second.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
             assertThat(second.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
             final Object firstController = first.getSession().getProperties().get("mail.smtp.executor.writetimeout");

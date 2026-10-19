@@ -13,7 +13,7 @@ public final class OtelRuntimeConsumer {
                 "simplejavamail.smtp.host", "localhost", "simplejavamail.telemetry.enabled", true,
                 "simplejavamail.transport.mode.logging.only", true)).load());
         try (Mailer mailer = mail.mailerBuilder().buildMailer()) {
-            if (!mailer.getOperationalConfig().isMailSendTelemetryEnabled()) {
+            if (!mailer.getOperationalConfig().getTelemetryConfig().getEnabled()) {
                 throw new AssertionError("Factory activation did not reach the Mailer");
             }
             mailer.sync().sendMail(mail.emailBuilder().startingBlank().from("sender@example.test")

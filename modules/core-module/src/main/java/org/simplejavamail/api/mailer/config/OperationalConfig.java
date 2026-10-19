@@ -7,7 +7,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
-import java.io.PrintStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +59,10 @@ public interface OperationalConfig {
 	 * In particular, {@code null} does not mean unlimited: a caller-supplied Session may configure three different timeouts, omit some of them,
 	 * or leave their interpretation to its provider. The snapshot does not guess provider defaults.
 	 *
-	 * @see MailerGenericBuilder#withSessionTimeout(Integer)
+	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
 	 */
 	@Nullable
-	Integer getSessionTimeout();
+	Duration getSessionTimeout();
 
 	/**
 	 * @return Total send budget, or {@code null} when disabled.
@@ -93,16 +92,11 @@ public interface OperationalConfig {
 	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
 	boolean isLegacySmtpContentSupportEnabled();
 
-	/** @see MailerGenericBuilder#withMailSendTelemetryEnabled(boolean) */
-	boolean isMailSendTelemetryEnabled();
-
 	/**
-	 * Returns whether this Mailer permits SMTP host and port in telemetry after applying configuration and explicit choices.
-	 * The permission can be present without an integration; it does not enable telemetry by itself.
-	 *
-	 * @see MailerGenericBuilder#withMailSendTelemetrySmtpEndpointAttributes(boolean)
+	 * Resolved telemetry settings, including activation and endpoint permission.
+	 * @see MailerGenericBuilder#withTelemetryConfig(MailSendTelemetryConfig)
 	 */
-	boolean isMailSendTelemetrySmtpEndpointAttributesEnabled();
+	@NotNull MailSendTelemetryConfig getTelemetryConfig();
 
 	/**
 	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
@@ -110,9 +104,9 @@ public interface OperationalConfig {
 	int getThreadPoolSize();
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Duration)
 	 */
-	int getThreadPoolKeepAliveTime();
+	Duration getThreadPoolKeepAliveTime();
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
@@ -125,20 +119,20 @@ public interface OperationalConfig {
 	int getConnectionPoolMaxSize();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)
 	 */
-	int getConnectionPoolClaimTimeoutMillis();
+	Duration getConnectionPoolClaimTimeout();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)
 	 */
-	int getConnectionPoolExpireAfterMillis();
+	Duration getConnectionPoolExpireAfter();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)
 	 */
 	@Nullable
-	Integer getConnectionPoolExpireAfterCreationMillis();
+	Duration getConnectionPoolExpireAfterCreation();
 
 	/**
 	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
@@ -158,16 +152,10 @@ public interface OperationalConfig {
 	boolean isTransportModeLoggingOnly();
 
 	/**
-	 * @see MailerGenericBuilder#withDebugLogging(Boolean)
+	 * Resolved debug settings, including the caller-Session baseline where configuration was absent.
+	 * @see MailerGenericBuilder#withDebugConfig(SessionDebugConfig)
 	 */
-	boolean isDebugLogging();
-
-	/**
-	 * @see MailerGenericBuilder#withDebugPrinter(PrintStream)
-	 * @see MailerGenericBuilder#withDebugOutput(SessionDebugOutput)
-	 */
-	@Nullable
-	PrintStream getDebugPrinter();
+	@NotNull SessionDebugConfig getDebugConfig();
 
 	/**
 	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)

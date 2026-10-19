@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.batchsupport;
 
+import java.time.Duration;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.bbottema.clusteredobjectpool.core.ClusterConfig;
@@ -231,8 +232,8 @@ class BatchSupportTest {
 		configuredClusters.put(configuredCluster, ConnectionPoolClusterConfig.builder()
 				.coreSize(0)
 				.maxSize(9)
-				.claimTimeoutMillis(300)
-				.expireAfterMillis(7000)
+				.claimTimeout(Duration.ofMillis(300))
+				.expireAfter(Duration.ofMillis(7000))
 				.loadBalancingStrategy(LoadBalancingStrategy.RANDOM_ACCESS)
 				.build());
 
@@ -261,9 +262,9 @@ class BatchSupportTest {
 		OperationalConfig operationalConfig = mock(OperationalConfig.class);
 		when(operationalConfig.getConnectionPoolCoreSize()).thenReturn(corePoolSize);
 		when(operationalConfig.getConnectionPoolMaxSize()).thenReturn(maxPoolSize);
-		when(operationalConfig.getConnectionPoolClaimTimeoutMillis()).thenReturn(claimTimeoutMillis);
-		when(operationalConfig.getConnectionPoolExpireAfterMillis()).thenReturn(expireAfterMillis);
-		when(operationalConfig.getConnectionPoolExpireAfterCreationMillis()).thenReturn(null);
+		when(operationalConfig.getConnectionPoolClaimTimeout()).thenReturn(Duration.ofMillis(claimTimeoutMillis));
+		when(operationalConfig.getConnectionPoolExpireAfter()).thenReturn(Duration.ofMillis(expireAfterMillis));
+		when(operationalConfig.getConnectionPoolExpireAfterCreation()).thenReturn(null);
 		when(operationalConfig.getConnectionPoolLoadBalancingStrategy()).thenReturn(loadBalancingStrategy);
 		when(operationalConfig.getConnectionPoolClusterConfigs()).thenReturn(connectionPoolClusterConfigs);
 		return operationalConfig;

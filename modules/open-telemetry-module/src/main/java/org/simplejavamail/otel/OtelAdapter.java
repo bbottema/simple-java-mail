@@ -20,7 +20,7 @@ public final class OtelAdapter {
 
     /**
      * Wraps your OpenTelemetry instance so you can pass it to the Mailer builder's
-     * {@link MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)} method.
+     * {@link MailerGenericBuilder#withTelemetryConfig(org.simplejavamail.api.mailer.config.MailSendTelemetryConfig)} method.
      * Your instance keeps its existing providers, sampling and exporters. Wrapping it performs no telemetry work, installs no global
      * instance and leaves flushing and shutdown with your application. Closing a Mailer never closes the supplied instance.
      * <p>
@@ -29,7 +29,7 @@ public final class OtelAdapter {
      *
      * @param openTelemetry The application's non-null instance, including implementations of OpenTelemetry's public interface.
      * @return An immutable core handle retaining this exact instance, without initializing a Mailer or telemetry runtime.
-     * @see MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)
+     * @see MailerGenericBuilder#withTelemetryConfig(org.simplejavamail.api.mailer.config.MailSendTelemetryConfig)
      */
     @NotNull
     public static MailSendTelemetry wrap(@NotNull final OpenTelemetry openTelemetry) {

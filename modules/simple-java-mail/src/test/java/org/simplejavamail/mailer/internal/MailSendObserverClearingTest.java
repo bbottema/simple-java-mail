@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -33,11 +34,10 @@ class MailSendObserverClearingTest {
         final BlockingQueue<Runnable> progressTasks = new LinkedBlockingQueue<>();
         final List<MailSendProgress> progress = new ArrayList<>();
         final MailerRegularBuilder<?> builder = builder()
-                .withMailSendResultObserver(ignored -> resultCalls.incrementAndGet(), abandonedResults::add)
-                .withMailSendProgressObserver(progress::add, progressTasks::add);
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(ignored -> resultCalls.incrementAndGet(), abandonedResults::add).withProgressObserver(progress::add, progressTasks::add).build());
 
-        assertThat(builder.clearMailSendResultObserver()).isSameAs(builder);
-        builder.clearMailSendResultObserver();
+        assertThat(builder.withSendHandlers(builder.getSendHandlers().toBuilder().clearResultObserver().build())).isSameAs(builder);
+        builder.withSendHandlers(builder.getSendHandlers().toBuilder().clearResultObserver().build());
         try (Mailer mailer = builder.buildMailer()) {
             mailer.sync().sendMail(email());
 
@@ -56,11 +56,10 @@ class MailSendObserverClearingTest {
         final BlockingQueue<Runnable> abandonedProgress = new LinkedBlockingQueue<>();
         final AtomicInteger progressCalls = new AtomicInteger();
         final MailerRegularBuilder<?> builder = builder()
-                .withMailSendResultObserver(outcomes::add, resultTasks::add)
-                .withMailSendProgressObserver(ignored -> progressCalls.incrementAndGet(), abandonedProgress::add);
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add, resultTasks::add).withProgressObserver(ignored -> progressCalls.incrementAndGet(), abandonedProgress::add).build());
 
-        assertThat(builder.clearMailSendProgressObserver()).isSameAs(builder);
-        builder.clearMailSendProgressObserver();
+        assertThat(builder.withSendHandlers(builder.getSendHandlers().toBuilder().clearProgressObserver().build())).isSameAs(builder);
+        builder.withSendHandlers(builder.getSendHandlers().toBuilder().clearProgressObserver().build());
         try (Mailer mailer = builder.buildMailer()) {
             mailer.sync().sendMail(email());
 
@@ -76,14 +75,11 @@ class MailSendObserverClearingTest {
     @Test
     void clearingBothRestoresTheUnobservedFastPath() {
         final MailerRegularBuilderImpl builder = new MailerRegularBuilderImpl(ConfigLoaderTestHelper.emptyConfig())
-                .withMailSendResultObserver(ignored -> { }, Runnable::run)
-                .withMailSendProgressObserver(ignored -> { }, Runnable::run)
-                .clearMailSendResultObserver()
-                .clearMailSendProgressObserver();
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(ignored -> { }, Runnable::run).withProgressObserver(ignored -> { }, Runnable::run).clearResultObserver().clearProgressObserver().build());
         final MailSendObserverNotifier notifier = builder.buildObserverNotifier();
 
-        assertThat(notifier.observesResults()).isFalse();
-        assertThat(notifier.progressRecorder(UUID.randomUUID(), null)).isNull();
+        assertThat(notifier.observesResults(null)).isFalse();
+        assertThat(notifier.progressRecorder(UUID.randomUUID(), null, null)).isNull();
         assertThat(notifier.beginAttempt(email()).diagnostics()).isSameAs(MailSendDiagnosticsRecorder.unobserved());
     }
 
@@ -94,11 +90,10 @@ class MailSendObserverClearingTest {
         final BlockingQueue<Runnable> progressTasks = new LinkedBlockingQueue<>();
         final List<MailSendProgress> progress = new ArrayList<>();
         final MailerRegularBuilder<?> builder = builder()
-                .withMailSendResultObserver(outcomes::add, resultTasks::add)
-                .withMailSendProgressObserver(progress::add, progressTasks::add);
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add, resultTasks::add).withProgressObserver(progress::add, progressTasks::add).build());
 
         try (Mailer alreadyBuilt = builder.buildMailer();
-                Mailer cleared = builder.clearMailSendResultObserver().clearMailSendProgressObserver().buildMailer()) {
+                Mailer cleared = builder.withSendHandlers(MailSendHandlers.builder().clearResultObserver().clearProgressObserver().build()).buildMailer()) {
             cleared.sync().sendMail(email());
             assertThat(resultTasks).isEmpty();
             assertThat(progressTasks).isEmpty();
@@ -119,11 +114,7 @@ class MailSendObserverClearingTest {
         final List<MailSendOutcome> outcomes = new ArrayList<>();
         final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
         try (Mailer mailer = builder()
-                .withMailSendResultObserver(ignored -> { }, abandonedResults::add)
-                .withMailSendProgressObserver(ignored -> { }, abandonedProgress::add)
-                .clearMailSendResultObserver().clearMailSendProgressObserver()
-                .withMailSendResultObserver(outcomes::add)
-                .withMailSendProgressObserver(progress::add).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(ignored -> { }, abandonedResults::add).withProgressObserver(ignored -> { }, abandonedProgress::add).clearResultObserver().clearProgressObserver().withResultObserver(outcomes::add).withProgressObserver(progress::add).build()).buildMailer()) {
             mailer.sync().sendMail(email());
 
             assertThat(outcomes).hasSize(1);

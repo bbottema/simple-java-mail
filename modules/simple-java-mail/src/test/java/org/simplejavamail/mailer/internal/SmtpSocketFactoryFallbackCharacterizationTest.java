@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import org.eclipse.angus.mail.util.MailSSLSocketFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -380,8 +381,8 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port, final TransportStrategy strategy) {
         return factory().mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(strategy)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(5000)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(5000);
+                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
     }
 
     private static SimpleJavaMail factory() {

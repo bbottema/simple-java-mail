@@ -61,9 +61,9 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(REJECTED);
-		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isTrue();
-		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("recipient@example.org");
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isTrue();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).containsExactly("recipient@example.org");
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
 		assertThat(failure.getCause()).isInstanceOfSatisfying(SMTPSendFailedException.class,
 				providerFailure -> assertThat(providerFailure.getCommand()).startsWith("MAIL FROM:"));
 	}
@@ -75,8 +75,8 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(REJECTED);
-		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isTrue();
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isTrue();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
 		assertThat(failure.getCause()).isInstanceOfSatisfying(SMTPAddressFailedException.class,
 				providerFailure -> assertThat(providerFailure.getCommand()).startsWith("RCPT TO:"));
 	}
@@ -88,11 +88,11 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(UNKNOWN);
-		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
-		assertThat(failure.getSubmissionReceipt().isAcceptedByServer()).isFalse();
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().isAcceptedByServer()).isFalse();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).isEmpty();
 		assertThat(failure.getCause())
 				.isExactlyInstanceOf(MessagingException.class)
 				.hasMessage("Exception reading response");
@@ -105,10 +105,10 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(UNKNOWN);
-		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).isEmpty();
 		assertThat(failure.getCause()).isInstanceOfSatisfying(SMTPSendFailedException.class, providerFailure -> {
 			assertThat(providerFailure.getCommand()).isEqualTo(".");
 			assertThat(providerFailure.getReturnCode()).isEqualTo(-1);
@@ -122,11 +122,11 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(UNKNOWN);
-		assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).isEmpty();
-		assertThat(failure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("rejected@example.org");
+		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).isEmpty();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getInvalidRecipients()).containsExactly("rejected@example.org");
 	}
 
 	@Test
@@ -136,8 +136,8 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(REJECTED);
-		assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("recipient@example.org");
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).hasValueSatisfying(response -> {
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).containsExactly("recipient@example.org");
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).hasValueSatisfying(response -> {
 			assertThat(response.getReturnCode()).isEqualTo(550);
 			assertThat(response.getResponse()).isEqualTo("550 5.7.1 message rejected\n");
 		});
@@ -168,11 +168,11 @@ class SmtpSubmissionFaultBoundaryTest {
 
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(PARTIALLY_ACCEPTED);
-		assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).containsExactly("accepted@example.org");
-		assertThat(failure.getSubmissionReceipt().getInvalidRecipients()).containsExactly("rejected@example.org");
-		assertThat(failure.getSubmissionReceipt().getRecipientResults()).extracting(recipient ->
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).containsExactly("accepted@example.org");
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getInvalidRecipients()).containsExactly("rejected@example.org");
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getRecipientResults()).extracting(recipient ->
 				recipient.getRcptResponse().orElseThrow().getReturnCode()).containsExactly(250, 550);
-		assertThat(failure.getSubmissionReceipt().getSmtpResponse()).hasValueSatisfying(response ->
+		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).hasValueSatisfying(response ->
 				assertThat(response.getResponse()).isEqualTo("250 2.0.0 queued as fault-boundary-test\n"));
 
 		final List<MessagingException> providerExceptions = providerExceptionChain(failure.getCause());

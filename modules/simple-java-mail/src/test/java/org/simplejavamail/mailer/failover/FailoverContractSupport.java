@@ -40,10 +40,10 @@ final class FailoverContractSupport {
 
     static MailerRegularBuilder<?> builder(final SimpleJavaMail factory, final int port) {
         return factory.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(SMTP)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(30000)
+                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(30000))
                 // Message-ID generation must not spend this fixture's barrier budget resolving the workstation's hostname.
                 .withProperty("mail.host", "localhost")
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(2).withConnectionPoolClaimTimeoutMillis(6000)
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(2).withConnectionPoolClaimTimeout(Duration.ofMillis(6000))
                 .withThreadPoolSize(4);
     }
 

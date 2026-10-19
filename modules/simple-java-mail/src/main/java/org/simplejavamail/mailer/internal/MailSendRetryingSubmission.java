@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
+import org.simplejavamail.api.mailer.MailSendException;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -45,6 +47,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 	@Nullable private RuntimeException lastFailure;
 	@Nullable private String messageId;
 	@Nullable private String subject;
+	@Nullable private MailSubmissionReceipt latestReceipt;
 	private int invocations;
 	private boolean closed;
 
@@ -98,9 +101,10 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		final SendingAllowance.Reservation reservation = connection.reserve(prepared.getRecipients());
 		final int beforeInvocation = invocations;
 		final SubmissionAttempt attempt = invokeProvider(prepared, reservation);
+		latestReceipt = submissionReceipt(attempt.result, attempt.refusal);
 		recordInvokedSubmission(attempt, beforeInvocation);
 		final AttemptCleanup cleanup = retireAttempt(reservation, attempt.refusal);
-		checkForNewCleanupFailure(attempt.refusal, cleanup);
+		checkForNewCleanupFailure(attempt, cleanup);
 		return retryOrComplete(attempt, cleanup.successful);
 	}
 
@@ -134,11 +138,12 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		}
 	}
 
-	private static void checkForNewCleanupFailure(@Nullable final Throwable refusal, final AttemptCleanup cleanup) {
-		if (cleanup.failure != refusal) {
+	private static void checkForNewCleanupFailure(final SubmissionAttempt attempt, final AttemptCleanup cleanup) {
+		if (cleanup.failure != attempt.refusal) {
 			if (cleanup.failure instanceof Error) { throw (Error) cleanup.failure; }
-			throw new MailerException("The SMTP attempt finished, but its connection or sending-allowance cleanup failed. "
-					+ "Check the submission receipt before deciding whether to retry; it was not submitted again.", (Exception) cleanup.failure);
+			throw new MailSendCleanupException("The SMTP attempt finished, but its connection or sending-allowance cleanup failed. "
+					+ "Check the submission receipt before deciding whether to retry; it was not submitted again.", cleanup.failure,
+					submissionReceipt(attempt.result, attempt.refusal));
 		}
 	}
 
@@ -170,7 +175,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 	@Nullable
 	private static MailSubmissionReceipt submissionReceipt(@Nullable final MailSubmissionReceipt result, @Nullable final Throwable refusal) {
 		if (result != null) { return result; }
-		return refusal instanceof MailSubmissionException ? ((MailSubmissionException) refusal).getSubmissionReceipt() : null;
+		return refusal instanceof MailSendException ? ((MailSendException) refusal).getSubmissionReceipt().orElse(null) : null;
 	}
 
 	private AttemptCleanup retireAttempt(final SendingAllowance.Reservation reservation, @Nullable final Throwable refusal) {
@@ -220,7 +225,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 	}
 
 	private boolean canReplayRefusal(final MailSubmissionException failure) {
-		return connection.canRetryAfter(failure.getSubmissionReceipt()) && MailSendRetryEligibility.isTemporaryWholeMessageRefusal(failure);
+		return connection.canRetryAfter(failure.getSubmissionReceipt().orElseThrow()) && MailSendRetryEligibility.isTemporaryWholeMessageRefusal(failure);
 	}
 
 	private RuntimeException terminal(final RuntimeException failure) {
@@ -232,7 +237,8 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 	}
 
 	private boolean hasStoppedAfterRefusal(final RuntimeException failure) {
-		return (failure instanceof MailSendCancelledException || failure instanceof MailSendTimeoutException) && lastFailure != null;
+		return (failure instanceof MailSendCancelledException || failure instanceof MailSendTimeoutException)
+				&& ((MailSendException) failure).getSubmissionReceipt().isEmpty() && lastFailure != null;
 	}
 
 	private void logRetry(final Duration delay) {
@@ -276,13 +282,14 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		closed = true;
 		try {
 			connection.close();
-		} catch (MessagingException failure) {
-			throw new MailerException("Couldn't finish the retry-enabled send's connection cleanup. "
-					+ "Check the retained submission facts before retrying.", failure);
+		} catch (MessagingException | RuntimeException failure) {
+			throw new MailSendCleanupException("Couldn't finish the retry-enabled send's connection cleanup. "
+					+ "Check the retained submission facts before retrying.", failure, latestReceipt);
 		} finally {
 			if (replay != null) { replay.close(); replay = null; }
 			email = null;
 			lastFailure = null;
+			latestReceipt = null;
 		}
 	}
 }

@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
  * not whether SMTP accepted the message: inspect any receipt on {@link MailSendCancelledException} or {@link MailSendTimeoutException}.
  * <p>
  * An inline result observer runs before completion. With
- * {@link MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, java.util.concurrent.Executor)},
+ * {@link MailSendHandlers.Builder#withResultObserver(MailSendResultObserver, java.util.concurrent.Executor)},
  * only the handoff is attempted before completion; the application owns callback execution and its executor.
  *
  * @see MailerRegularBuilder
@@ -362,17 +362,15 @@ public interface Mailer extends AutoCloseable {
 	 * Email and bytes. Sending still performs its own size check. When all client validation is disabled, ordinary validation findings are logged instead
 	 * of being thrown, but MIME construction, security processing, encoded-size failures, and exact-mail invariants still fail this rehearsal.
 	 *
-	 * @param email The email to validate with this mailer's configuration.
+	 * Returns normally after {@link #rehearse(Email)} succeeds; invalid preparation is reported by exception.
 	 *
-	 * @return Always <code>true</code> after {@link #rehearse(Email)} succeeds. Invalid preparation is reported by exception, never by returning
-	 * {@code false}.
+	 * @param email The email to validate with this mailer's configuration.
 	 * @throws MailException If validation, MIME construction or security processing fails.
 	 * @throws EmailTooBigException If the final encoded message exceeds the configured maximum size.
 	 * @see com.sanctionco.jmail.EmailValidator
 	 * @see #rehearse(Email)
 	 */
-	@SuppressWarnings({"SameReturnValue" })
-	boolean validate(Email email) throws MailException;
+	void validate(Email email) throws MailException;
 
 	/**
 	 * Checks whether the supplied {@link Email} can be prepared for sending through this mailer, with control over expensive final-message processing.
@@ -387,17 +385,16 @@ public interface Mailer extends AutoCloseable {
 	 * Use this success-or-exception overload when the caller does not need the prepared result. If it needs any result fields, call
 	 * {@link #rehearse(Email, boolean)} directly; validating first would prepare the message twice.
 	 *
+	 * Returns normally after {@link #rehearse(Email, boolean)} succeeds; invalid preparation is reported by exception.
+	 *
 	 * @param email The email to validate with this mailer's configuration.
 	 * @param processSecurityAndValidateSize Whether to run configured message security and validate the resulting encoded size.
-	 * @return Always <code>true</code> after {@link #rehearse(Email, boolean)} succeeds. Invalid preparation is reported by exception, never by returning
-	 * {@code false}.
 	 * @throws MailException If validation, MIME construction or requested security processing fails.
 	 * @throws EmailTooBigException If final-size validation is requested and the encoded message exceeds the configured maximum size.
 	 * @see #validate(Email)
 	 * @see #rehearse(Email, boolean)
 	 */
-	@SuppressWarnings({"SameReturnValue" })
-	boolean validate(Email email, boolean processSecurityAndValidateSize) throws MailException;
+	void validate(Email email, boolean processSecurityAndValidateSize) throws MailException;
 
 	/**
 	 * Releases the resources owned by this {@link Mailer}. This initiates an orderly shutdown of an internally created executor service and, when the

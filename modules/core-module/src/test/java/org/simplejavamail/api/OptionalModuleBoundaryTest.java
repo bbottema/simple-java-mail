@@ -1,5 +1,6 @@
 package org.simplejavamail.api;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
@@ -18,10 +19,10 @@ class OptionalModuleBoundaryTest {
         assertThat(getClass().getClassLoader().getResource("org/simplejavamail/internal/batchsupport/BatchSupport.class")).isNull();
         assertThat(getClass().getClassLoader().getResource("org/simplejavamail/internal/dkimsupport/DKIMSigner.class")).isNull();
 
-        final ConnectionPoolClusterConfig pool = ConnectionPoolClusterConfig.builder().coreSize(-1).maxSize(0).expireAfterCreationMillis(0).build();
+        final ConnectionPoolClusterConfig pool = ConnectionPoolClusterConfig.builder().coreSize(-1).maxSize(0).expireAfterCreation(Duration.ofMillis(0)).build();
         assertThat(pool.getCoreSize()).isEqualTo(-1);
         assertThat(pool.getMaxSize()).isZero();
-        assertThat(pool.getExpireAfterCreationMillis()).isZero();
+        assertThat(pool.getExpireAfterCreation()).isEqualTo(Duration.ZERO);
 
         final DkimConfig signing = DkimConfig.builder().dkimPrivateKeyData("not yet parsed")
                 .excludedHeadersFromDkimDefaultSigningList("From").build();

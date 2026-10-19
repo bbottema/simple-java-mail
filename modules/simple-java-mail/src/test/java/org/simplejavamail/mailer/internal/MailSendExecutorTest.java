@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MailSendExecutorTest {
     @Test
     void concurrentProducersCannotOversubscribeTheWaitingQueue() throws Exception {
-        final MailSendExecutor executor = new MailSendExecutor(2, 1, new AsyncQueueConfig(5, AsyncQueueOverflowPolicy.REJECT, 1000));
+        final MailSendExecutor executor = new MailSendExecutor(2, 1, new AsyncQueueConfig(5, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
         final CountDownLatch started = new CountDownLatch(2);
         final CountDownLatch release = new CountDownLatch(1);
         final AtomicInteger completedQueuedTasks = new AtomicInteger();
@@ -68,7 +69,7 @@ class MailSendExecutorTest {
 
     @Test
     void workersAreNonDaemonEvenWhenSubmittedFromADaemonThread() throws Exception {
-        final MailSendExecutor executor = new MailSendExecutor(1, 1, new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
+        final MailSendExecutor executor = new MailSendExecutor(1, 1, new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
         try {
             final CompletableFuture<Boolean> daemonWorker = new CompletableFuture<>();
             final Thread daemonCaller = new Thread(() -> executor.execute(() -> daemonWorker.complete(Thread.currentThread().isDaemon())));
@@ -87,7 +88,7 @@ class MailSendExecutorTest {
     @ValueSource(ints = {0, 1, 4})
     void capacityExcludesActiveWorkers(final int capacity) throws Exception {
         final MailSendExecutor executor = new MailSendExecutor(3, 1,
-                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.REJECT, 1000));
+                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
         final CountDownLatch started = new CountDownLatch(3);
         final CountDownLatch release = new CountDownLatch(1);
         try {
@@ -116,7 +117,7 @@ class MailSendExecutorTest {
     @ValueSource(ints = {0, 1})
     void shutdownReleasesAnAdmissionWaiterAndDoesNotDiscardAcceptedWork(final int capacity) throws Exception {
         final MailSendExecutor executor = new MailSendExecutor(1, 1,
-                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, 10000));
+                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, Duration.ofMillis(10000)));
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         final CountDownLatch submitting = new CountDownLatch(1);
@@ -161,7 +162,7 @@ class MailSendExecutorTest {
     @ValueSource(ints = {0, 1})
     void waitingAdmissionRestartsWorkersThatExpiredAfterRejection(final int capacity) throws Exception {
         final MailSendExecutor executor = new MailSendExecutor(1, 1,
-                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, 1000));
+                new AsyncQueueConfig(capacity, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, Duration.ofMillis(1000)));
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         final AtomicInteger executions = new AtomicInteger();
@@ -205,7 +206,7 @@ class MailSendExecutorTest {
     @Test
     void anIdleExecutorRestartsAfterItsLastWorkerExpires() throws Exception {
         final MailSendExecutor executor = new MailSendExecutor(1, 1,
-                new AsyncQueueConfig(1, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, 1000));
+                new AsyncQueueConfig(1, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, Duration.ofMillis(1000)));
         try {
             for (int attempt = 0; attempt < 20; attempt++) {
                 CompletableFuture.runAsync(() -> { }, executor).get(2, TimeUnit.SECONDS);

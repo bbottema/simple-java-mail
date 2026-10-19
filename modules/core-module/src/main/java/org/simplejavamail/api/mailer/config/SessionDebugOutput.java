@@ -5,8 +5,8 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 /**
  * Built-in targets for Jakarta Mail {@link jakarta.mail.Session} debug output.
  *
- * @see MailerGenericBuilder#withDebugOutput(SessionDebugOutput)
- * @see MailerGenericBuilder#withDebugPrinter(java.io.PrintStream)
+ * @see SessionDebugConfig.Builder#withOutput(SessionDebugOutput)
+ * @see SessionDebugConfig.Builder#withPrinter(java.io.PrintStream)
  */
 public enum SessionDebugOutput {
 	/**

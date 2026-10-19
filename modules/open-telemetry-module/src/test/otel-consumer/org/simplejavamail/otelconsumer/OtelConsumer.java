@@ -1,5 +1,6 @@
 package org.simplejavamail.otelconsumer;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.OpenTelemetry;
 import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -17,6 +18,6 @@ public final class OtelConsumer {
     }
 
     public static MailerGenericBuilder<?> configure(final MailerGenericBuilder<?> builder, final MailSendTelemetry telemetry) {
-        return builder.withMailSendTelemetry(telemetry).withMailSendTelemetrySmtpEndpointAttributes(true);
+        return builder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(telemetry).withEnabled(true).withSmtpEndpointAttributes(true).build());
     }
 }

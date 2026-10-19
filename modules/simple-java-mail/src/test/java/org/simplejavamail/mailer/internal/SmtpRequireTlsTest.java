@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -65,7 +67,7 @@ class SmtpRequireTlsTest {
                 assertThat(content.getBytes(StandardCharsets.US_ASCII)).containsExactly(eml);
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSubmissionReceipt receipt = send(mailer, email, asynchronous);
 
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -82,7 +84,7 @@ class SmtpRequireTlsTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls("250 localhost");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable thrown = catchThrowable(() -> send(mailer, email(true), asynchronous));
             final Throwable failure = asynchronous ? thrown.getCause() : thrown;
 
@@ -90,7 +92,7 @@ class SmtpRequireTlsTest {
                     .hasCauseInstanceOf(MailTransportCompatibilityException.class);
             assertThat(failure.getCause()).hasMessageContaining("does not advertise usable REQUIRETLS")
                     .hasMessageContaining("No message was submitted");
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.isRequireTlsUsed()).isFalse();
             assertThat(receipt.getSmtpResponse()).isEmpty();
             assertThat(outcomes).singleElement().satisfies(outcome -> {
@@ -113,7 +115,7 @@ class SmtpRequireTlsTest {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(true)));
 
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(REJECTED);
             assertThat(receipt.isRequireTlsUsed()).isTrue();
             assertThat(receipt.getSmtpResponse()).hasValueSatisfying(response ->
@@ -137,7 +139,7 @@ class SmtpRequireTlsTest {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(true)));
 
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(UNKNOWN);
             assertThat(receipt.isRequireTlsUsed()).isTrue();
         }
@@ -186,8 +188,8 @@ class SmtpRequireTlsTest {
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withSmtpClientHostname("probe.example.test").trustingSSLHosts("localhost")
-                .withSessionTimeout(5000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeoutMillis(10000).withProperty("mail.smtp.ssl.protocols", "TLSv1.2");
+                .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+                .withConnectionPoolClaimTimeout(Duration.ofMillis(10000)).withProperty("mail.smtp.ssl.protocols", "TLSv1.2");
     }
 
     private Email email(final boolean requireTls) {

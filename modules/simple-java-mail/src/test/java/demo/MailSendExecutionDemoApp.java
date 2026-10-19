@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
@@ -32,13 +33,13 @@ public final class MailSendExecutionDemoApp extends DemoAppBase {
         final ExecutorService observations = Executors.newFixedThreadPool(2);
         final CountDownLatch observed = new CountDownLatch(EMAIL_COUNT);
         final AtomicInteger successes = new AtomicInteger();
-        try (Mailer mailer = mailerTLSBuilder.withMailSendResultObserver(outcome -> {
+        try (Mailer mailer = mailerTLSBuilder.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             try {
                 report(outcome, successes);
             } finally {
                 observed.countDown();
             }
-        }, observations).buildMailer()) {
+        }, observations).build()).buildMailer()) {
             final List<CompletableFuture<Void>> completions = new ArrayList<>();
             for (int number = 1; number <= EMAIL_COUNT; number++) {
                 final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email(number));

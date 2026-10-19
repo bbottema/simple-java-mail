@@ -59,7 +59,7 @@ public class SimpleJavaMailAutoConfiguration {
 	 * Spring closes the Mailer created here, but it does not take ownership of an application's telemetry SDK.
 	 *
 	 * @return The context's default Mailer.
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTelemetryConfig(org.simplejavamail.api.mailer.config.MailSendTelemetryConfig)
 	 */
 	@Bean(destroyMethod = "close")
 	@ConditionalOnMissingBean(Mailer.class)

@@ -41,10 +41,9 @@ public class MailerHelper {
 	/**
 	 * Delegates to #validate(Email, EmailValidator) with a null validator.
 	 */
-	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@NotNull final Email email)
+	public static void validate(@NotNull final Email email)
 			throws MailException {
-		return validate(email, null);
+		validate(email, null);
 	}
 
 	/**
@@ -55,8 +54,7 @@ public class MailerHelper {
 	 * @see #validateAddresses(Email, EmailValidator)
 	 * @see #scanForInjectionAttacks(Email)
 	 */
-	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validate(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
+	public static void validate(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 
@@ -65,16 +63,14 @@ public class MailerHelper {
 		scanForInjectionAttacks(email);
 
 		LOGGER.debug("...no problems found");
-
-		return true;
 	}
 
 	/**
 	 * Delegate to #validateLenient(Email, EmailValidator) with a null validator.
 	 */
-	public static boolean validateLenient(@NotNull final Email email)
+	public static void validateLenient(@NotNull final Email email)
 			throws MailException {
-		return validateLenient(email, null);
+		validateLenient(email, null);
 	}
 
 	/**
@@ -85,8 +81,7 @@ public class MailerHelper {
 	 * @see #validateAddresses(Email, EmailValidator)
 	 * @see #scanForInjectionAttacks(Email) 
 	 */
-	@SuppressWarnings({ "SameReturnValue" })
-	public static boolean validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
+	public static void validateLenient(@NotNull final Email email, @Nullable final EmailValidator emailValidator)
 			throws MailException {
 		LOGGER.debug("validating email...");
 		try {
@@ -105,8 +100,6 @@ public class MailerHelper {
 			LOGGER.warn("encountered (and ignored) suspected CRLF injection: {}", e.getMessage());
 		}
 		LOGGER.debug("...no blocking problems found");
-
-		return true;
 	}
 
 	/**

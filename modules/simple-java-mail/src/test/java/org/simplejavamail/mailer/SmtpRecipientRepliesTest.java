@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.Test;
@@ -62,7 +64,7 @@ class SmtpRecipientRepliesTest {
 	@CsvSource({"true, true", "true, false", "false, true", "false, false"})
 	void perEmailChoiceControlsDataButPartialSendingStillFailsTheOperation(final boolean continueSending, final boolean async) throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final Email email = emailWithChoice(continueSending, "accepted", "temporary", "permanent");
 			final MailSubmissionException failure;
 			if (async) {
@@ -73,7 +75,7 @@ class SmtpRecipientRepliesTest {
 			} else {
 				failure = failure(mailer, email);
 			}
-			final MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure.getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(continueSending ? MailSubmissionStatus.PARTIALLY_ACCEPTED : MailSubmissionStatus.REJECTED);
 			assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getRcptStatus).containsExactly(
 					SmtpRecipientStatus.ACCEPTED, SmtpRecipientStatus.TEMPORARILY_REJECTED, SmtpRecipientStatus.PERMANENTLY_REJECTED);
@@ -94,7 +96,7 @@ class SmtpRecipientRepliesTest {
 	@ValueSource(booleans = {true, false})
 	void allRejectedRecipientsNeverReceiveContentRegardlessOfChoice(final boolean continueSending) throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			assertThat(failure(mailer, emailWithChoice(continueSending, "temporary", "permanent")).getSubmissionReceipt().getStatus())
+			assertThat(failure(mailer, emailWithChoice(continueSending, "temporary", "permanent")).getSubmissionReceipt().orElseThrow().getStatus())
 					.isEqualTo(MailSubmissionStatus.REJECTED);
 			assertThat(server.dataCommands).hasValue(0);
 			assertThat(server.messages).hasValue(0);
@@ -105,7 +107,7 @@ class SmtpRecipientRepliesTest {
 	void trueFalseAndUnsetAlternateOnOneHealthyPooledConnectionWithoutLeakingChoicesOrResponses() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			for (final Boolean choice : Arrays.asList(true, false, null, true, null, false)) {
 				final MailSubmissionReceipt receipt = mailer.sync().sendMail(emailWithChoice(choice, "accepted-" + outcomes.size()));
 				assertThat(receipt.getRecipientResults()).singleElement().satisfies(result ->
@@ -114,11 +116,11 @@ class SmtpRecipientRepliesTest {
 			assertThat(server.connections).hasValue(1);
 			assertThat(server.messages).hasValue(6);
 			assertThat(mailer.getSession().getProperty("mail.smtp.sendpartial")).isNull();
-			assertThat(failure(mailer, emailWithChoice(true, "accepted-partial", "temporary-partial")).getSubmissionReceipt().getStatus())
+			assertThat(failure(mailer, emailWithChoice(true, "accepted-partial", "temporary-partial")).getSubmissionReceipt().orElseThrow().getStatus())
 					.isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-			assertThat(failure(mailer, emailWithChoice(false, "accepted-stop", "temporary-stop")).getSubmissionReceipt().getStatus())
+			assertThat(failure(mailer, emailWithChoice(false, "accepted-stop", "temporary-stop")).getSubmissionReceipt().orElseThrow().getStatus())
 					.isEqualTo(MailSubmissionStatus.REJECTED);
-			assertThat(failure(mailer, email("accepted-unset", "temporary-unset")).getSubmissionReceipt().getStatus())
+			assertThat(failure(mailer, email("accepted-unset", "temporary-unset")).getSubmissionReceipt().orElseThrow().getStatus())
 					.isEqualTo(MailSubmissionStatus.REJECTED);
 			final MailSubmissionReceipt recovery = mailer.sync().sendMail(email("accepted-recovery"));
 			assertThat(recovery.getAcceptedRecipients()).containsExactly("accepted-recovery@example.org");
@@ -132,7 +134,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final List<Boolean> choices = Arrays.asList(true, false, null);
 		try (RecipientSmtpServer server = new RecipientSmtpServer(null, new CyclicBarrier(3)); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> warmups = new ArrayList<>();
 			for (int index = 0; index < choices.size(); index++) {
 				warmups.add(mailer.async().sendMail(emailWithChoice(choices.get(index), "accepted-warmup-" + index)).getCompletion());
@@ -157,7 +159,7 @@ class SmtpRecipientRepliesTest {
 					final ExecutionException completionFailure = catchThrowableOfType(() -> attempt.get(10, TimeUnit.SECONDS), ExecutionException.class);
 					assertThat(completionFailure).isNotNull().hasCauseInstanceOf(MailSubmissionException.class);
 					final MailSubmissionException failure = (MailSubmissionException) completionFailure.getCause();
-					final MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+					final MailSubmissionReceipt receipt = failure.getSubmissionReceipt().orElseThrow();
 					assertThat(receipt.getStatus()).isEqualTo(continueSending ? MailSubmissionStatus.PARTIALLY_ACCEPTED : MailSubmissionStatus.REJECTED);
 					assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getOriginalAddress).containsExactly(
 							"accepted-" + tag + "@example.org", "temporary-" + tag + "@example.org", "permanent-" + tag + "@example.org");
@@ -197,7 +199,7 @@ class SmtpRecipientRepliesTest {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withProperty("mail.smtp.sendpartial", true)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
 			mailer.sync().sendMail(email("accepted-before"));
-			final MailSubmissionReceipt receipt = failure(mailer, emailWithChoice(false, "accepted-conflict")).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, emailWithChoice(false, "accepted-conflict")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
 			assertThat(receipt.getSmtpResponse()).isEmpty();
 			assertThat(receipt.getRecipientResults()).allSatisfy(recipient -> assertThat(recipient.getRcptResponse()).isEmpty());
@@ -220,9 +222,9 @@ class SmtpRecipientRepliesTest {
 			final Session session = Session.getInstance(properties);
 			try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 					.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
-				assertThat(failure(mailer, emailWithChoice(true, "accepted-first", "temporary-first")).getSubmissionReceipt().getStatus())
+				assertThat(failure(mailer, emailWithChoice(true, "accepted-first", "temporary-first")).getSubmissionReceipt().orElseThrow().getStatus())
 						.isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-				assertThat(failure(mailer, emailWithChoice(false, "accepted-second", "temporary-second")).getSubmissionReceipt().getStatus())
+				assertThat(failure(mailer, emailWithChoice(false, "accepted-second", "temporary-second")).getSubmissionReceipt().orElseThrow().getStatus())
 						.isEqualTo(MailSubmissionStatus.REJECTED);
 				properties.setProperty("mail.smtp.sendpartial", "true");
 				final MailSubmissionException conflict = failure(mailer, emailWithChoice(false, "accepted-conflict"));
@@ -249,7 +251,7 @@ class SmtpRecipientRepliesTest {
 					accepted++;
 				} catch (final MailSubmissionException failure) {
 					assertThat(failure.getCause()).hasMessageContaining("mail.smtp.sendpartial=true");
-					assertThat(failure.getSubmissionReceipt().getSmtpResponse()).isEmpty();
+					assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
 					localConflicts++;
 				}
 			}
@@ -269,7 +271,7 @@ class SmtpRecipientRepliesTest {
 		final AtomicInteger traversed = new AtomicInteger();
 		final Iterable<Email> emails = () -> List.of(email("accepted-first"), emailWithChoice(continueSending, "accepted-second", "temporary-second"),
 				email("accepted-untouched")).stream().peek(email -> traversed.incrementAndGet()).iterator();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final Throwable failure;
 			if (async) {
 				final ExecutionException completionFailure = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(emails).getCompletion()
@@ -294,11 +296,11 @@ class SmtpRecipientRepliesTest {
 				final MailSubmissionException continued = catchThrowableOfType(
 						() -> sender.sendMail(emailWithChoice(true, "accepted-first", "temporary-first")),
 						MailSubmissionException.class);
-				assertThat(continued.getSubmissionReceipt().getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
+				assertThat(continued.getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
 				final MailSubmissionException stopped = catchThrowableOfType(
 						() -> sender.sendMail(emailWithChoice(false, "accepted-second", "temporary-second")),
 						MailSubmissionException.class);
-				assertThat(stopped.getSubmissionReceipt().getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+				assertThat(stopped.getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
 				assertThat(sender.sendMail(email("accepted-last")).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 			});
 			assertThat(server.connections).hasValue(1);
@@ -316,7 +318,7 @@ class SmtpRecipientRepliesTest {
 				.withEnvelopeRecipients("accepted@example.org", "accepted@example.org", "temporary@example.org")
 				.withSendingToAcceptedRecipients(continueSending).buildEmail();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getOriginalAddress)
 					.containsExactly("accepted@example.org", "accepted@example.org", "temporary@example.org");
 			assertThat(server.contents).containsExactlyElementsOf(continueSending ? List.of(eml) : List.of());
@@ -327,7 +329,7 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void lostFinalReplyStillMeansUncertainAcceptanceWhenPerEmailContinuationWasRequested() throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, emailWithChoice(true, "finaleof", "temporary", "permanent")).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, emailWithChoice(true, "finaleof", "temporary", "permanent")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
 			assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.DUPLICATE_RISK);
 			assertThat(receipt.getAcceptedRecipients()).isEmpty();
@@ -348,7 +350,7 @@ class SmtpRecipientRepliesTest {
 				.withEnvelopeRecipients("accepted@example.org", "temporary@example.org").withSendingToAcceptedRecipients(continueSending).buildEmail();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
 			assertThat(mailer.rehearse(exact).getEmlBytes()).containsExactly(signedBytes);
-			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(continueSending ? MailSubmissionStatus.PARTIALLY_ACCEPTED : MailSubmissionStatus.REJECTED);
 			assertThat(server.contents).containsExactlyElementsOf(continueSending ? List.of(new String(signedBytes, StandardCharsets.US_ASCII)) : List.of());
 		}
@@ -400,7 +402,7 @@ class SmtpRecipientRepliesTest {
 	void mixedRecipientsKeepOriginalOrderAndSeparateTemporaryFromPermanent(final boolean sendPartial) throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withProperty("mail.smtp.sendpartial", sendPartial).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, email("temporary", "accepted", "permanent", "quota")).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, email("temporary", "accepted", "permanent", "quota")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(sendPartial ? MailSubmissionStatus.PARTIALLY_ACCEPTED : MailSubmissionStatus.REJECTED);
 			assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getRcptStatus).containsExactly(
 					SmtpRecipientStatus.TEMPORARILY_REJECTED, SmtpRecipientStatus.ACCEPTED,
@@ -419,9 +421,9 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void allTemporaryAndAllPermanentRejectionsProduceDifferentAdvice() throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			assertThat(failure(mailer, email("temporary-one", "temporary-two")).getSubmissionReceipt().getRetryDisposition())
+			assertThat(failure(mailer, email("temporary-one", "temporary-two")).getSubmissionReceipt().orElseThrow().getRetryDisposition())
 					.isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_ALL);
-			assertThat(failure(mailer, email("permanent-one", "quota-two")).getSubmissionReceipt().getRetryDisposition())
+			assertThat(failure(mailer, email("permanent-one", "quota-two")).getSubmissionReceipt().orElseThrow().getRetryDisposition())
 					.isEqualTo(MailRetryDisposition.DO_NOT_RETRY);
 			assertThat(server.messages.get()).isZero();
 		}
@@ -431,7 +433,7 @@ class SmtpRecipientRepliesTest {
 	@ValueSource(strings = {"finaltemporary", "finalpermanent", "finaleof", "finalreset", "finaltimeout"})
 	void finalDataReplyControlsRetryEvenAfterPositiveRecipientReplies(final String scenario) throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, email(scenario)).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, email(scenario)).getSubmissionReceipt().orElseThrow();
 			if (scenario.equals("finaltemporary") || scenario.equals("finalpermanent")) {
 				assertThat(receipt.getRecipientResults().get(0).getRcptStatus()).isEqualTo(SmtpRecipientStatus.ACCEPTED);
 				assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
@@ -451,7 +453,7 @@ class SmtpRecipientRepliesTest {
 	void lostFinalReplyRetainsKnownTemporaryAndPermanentRcptRejections() throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withProperty("mail.smtp.sendpartial", true).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, email("finaleof", "temporary", "permanent", "quota")).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, email("finaleof", "temporary", "permanent", "quota")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
 			assertThat(receipt.getAcceptedRecipients()).isEmpty();
 			assertThat(receipt.getValidUnsentRecipients()).containsExactly("temporary@example.org", "quota@example.org");
@@ -465,7 +467,7 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void earlyRcptDisconnectMarksUntouchedRecipientsWithoutInventingAReply() throws Exception {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
-			final MailSubmissionReceipt receipt = failure(mailer, email("rcpteof", "untouched")).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = failure(mailer, email("rcpteof", "untouched")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_ALL);
 			assertThat(receipt.getRecipientResults().get(0).getRcptAttempted()).contains(true);
 			assertThat(receipt.getRecipientResults().get(0).getRcptResponse()).isEmpty();
@@ -479,7 +481,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(poolSize).withThreadPoolSize(6)
-				.withProperty("mail.smtp.sendpartial", true).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withProperty("mail.smtp.sendpartial", true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.async().sendMail(email("accepted-warmup")).getCompletion().get(10, TimeUnit.SECONDS);
 			final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
@@ -514,7 +516,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(new CyclicBarrier(3)); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3)
-				.withProperty("mail.smtp.sendpartial", true).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withProperty("mail.smtp.sendpartial", true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			for (int wave = 0; wave < 3; wave++) {
 				final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
 				for (int index = 0; index < 3; index++) {
@@ -542,7 +544,7 @@ class SmtpRecipientRepliesTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
 				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-				.withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final ExecutionException failedBatch = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(
 					List.of(email("accepted-first"), email("temporary-second"), email("untouched-third"))).getCompletion()
 					.get(10, TimeUnit.SECONDS), ExecutionException.class);
@@ -550,7 +552,7 @@ class SmtpRecipientRepliesTest {
 			final Throwable failure = failedBatch.getCause();
 			assertThat(failure).isInstanceOf(MailSubmissionException.class);
 			assertThat(outcomes).hasSize(2);
-			assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(((MailSubmissionException) failure).getSubmissionReceipt());
+			assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow());
 			assertThat(outcomes.get(1).getSubmissionReceipt().orElseThrow().getRecipientResults()).singleElement()
 					.satisfies(recipient -> assertThat(recipient.getRcptStatus()).isEqualTo(SmtpRecipientStatus.TEMPORARILY_REJECTED));
 			assertThat(server.messages.get()).isEqualTo(1);
@@ -562,13 +564,13 @@ class SmtpRecipientRepliesTest {
 		final AtomicReference<Mailer> configuredMailer = new AtomicReference<>();
 		final List<MailSubmissionReceipt> receipts = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(2000)
-				.withMailSendResultObserver(outcome -> {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(2000))
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					receipts.add(outcome.getSubmissionReceipt().orElseThrow());
 					if (receipts.size() == 1) {
 						configuredMailer.get().sync().sendMail(email("accepted-reentrant"));
 					}
-				}).buildMailer()) {
+				}).build()).buildMailer()) {
 			configuredMailer.set(mailer);
 			mailer.sync().sendMail(email("accepted-first"));
 			assertThat(receipts).hasSize(2);
@@ -580,7 +582,7 @@ class SmtpRecipientRepliesTest {
 	void simpleBatchAndOpenConnectionPublishEachReceiptWhileSharingTheTransport() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withMailSendResultObserver(outcomes::add).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.async().sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two"))).getCompletion().get(10, TimeUnit.SECONDS);
 			mailer.withOpenConnection(sender -> {
 				final MailSubmissionReceipt first = sender.sendMail(email("accepted-open-one"));
@@ -610,8 +612,8 @@ class SmtpRecipientRepliesTest {
 		return factory.mailerBuilder()
 				.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.port())
 				.withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
-				.withSessionTimeout(1200)
-				.withConnectionPoolClaimTimeoutMillis(5000)
+				.withSessionTimeout(Duration.ofMillis(1200))
+				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
 				.withProperty("mail.smtp.connectiontimeout", 3000).withProperty("mail.smtp.timeout", 1200)
 				.withProperty("mail.smtp.writetimeout", 3000);
 	}

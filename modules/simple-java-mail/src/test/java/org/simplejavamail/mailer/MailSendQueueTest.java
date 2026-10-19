@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -73,7 +75,9 @@ class MailSendQueueTest {
         final Mailer mailer;
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-            mailer = builder(transport).withThreadPoolSize(4).withAsyncQueueCapacity(1).buildMailer();
+            mailer = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder()
+                    .withProperty("mail.from", "sender@example.org").withCustomMailer(transport)
+                    .withAsyncQueueCapacity(1).buildMailer();
         }
         try {
             final CompletableFuture<MailSubmissionReceipt> first = mailer.async().sendMail(email("first")).getCompletion();
@@ -95,13 +99,13 @@ class MailSendQueueTest {
         transport.release.countDown();
         final AtomicReference<Mailer> owner = new AtomicReference<>();
         final AtomicReference<Throwable> closeFailure = new AtomicReference<>();
-        try (Mailer mailer = builder(transport).withMailSendResultObserver(outcome -> {
+        try (Mailer mailer = builder(transport).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             try {
                 owner.get().close();
             } catch (Exception failure) {
                 closeFailure.set(failure);
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             owner.set(mailer);
             mailer.async().sendMail(email("observed")).getCompletion().get(5, TimeUnit.SECONDS);
             assertThat(closeFailure.get()).isInstanceOf(IllegalStateException.class).hasMessageContaining("own shutdown");
@@ -135,10 +139,10 @@ class MailSendQueueTest {
         final BlockingMailer transport = new BlockingMailer();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final AtomicReference<Thread> observerThread = new AtomicReference<>();
-        final Mailer mailer = builder(transport).withAsyncQueueCapacity(1).withMailSendResultObserver(outcome -> {
+        final Mailer mailer = builder(transport).withAsyncQueueCapacity(1).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             outcomes.add(outcome);
             observerThread.set(Thread.currentThread());
-        }).buildMailer();
+        }).build()).buildMailer();
         try {
             mailer.async().sendMail(email("first"));
             transport.awaitStarted();
@@ -179,7 +183,7 @@ class MailSendQueueTest {
         final BlockingMailer transport = new BlockingMailer();
         final ExecutorService caller = Executors.newSingleThreadExecutor();
         final Mailer mailer = builder(transport).withAsyncQueueCapacity(1)
-                .withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY).withAsyncQueueWaitTimeoutMillis(3000).buildMailer();
+                .withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY).withAsyncQueueWaitTimeout(Duration.ofMillis(3000)).buildMailer();
         try {
             mailer.async().sendMail(email("first"));
             transport.awaitStarted();
@@ -208,7 +212,7 @@ class MailSendQueueTest {
     void zeroCapacityRejectsWhileBusyAndBoundedWaitingCanTimeOutOrBeInterrupted() throws Exception {
         final BlockingMailer transport = new BlockingMailer();
         final Mailer mailer = builder(transport).withAsyncQueueCapacity(0)
-                .withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY).withAsyncQueueWaitTimeoutMillis(60).buildMailer();
+                .withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY).withAsyncQueueWaitTimeout(Duration.ofMillis(60)).buildMailer();
         try {
             mailer.async().sendMail(email("first"));
             transport.awaitStarted();
@@ -262,7 +266,7 @@ class MailSendQueueTest {
                                                                final int waitTimeoutMillis) {
         final SimpleJavaMailConfig config = ConfigLoader.builder().withMap("application", Map.of(property.key(), value)).load();
         final MailerRegularBuilder<?> configured = SimpleJavaMail.withConfig(config).mailerBuilder();
-        assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(capacity, overflowPolicy, waitTimeoutMillis));
+        assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(capacity, overflowPolicy, Duration.ofMillis(waitTimeoutMillis)));
     }
 
     @Test
@@ -272,13 +276,13 @@ class MailSendQueueTest {
                 "simplejavamail.defaults.async.queue.overflowpolicy", "WAIT_FOR_CAPACITY",
                 "simplejavamail.defaults.async.queue.waittimeoutmillis", "200")).load();
         final MailerRegularBuilder<?> configured = SimpleJavaMail.withConfig(config).mailerBuilder().withSMTPServer("localhost", 25);
-        assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(7, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, 200));
+        assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(7, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, Duration.ofMillis(200)));
         configured.withAsyncQueueCapacity(3);
         assertThat(SimpleJavaMail.withConfig(config).mailerBuilder().getAsyncQueueConfig().getCapacity()).isEqualTo(7);
-        assertThat(builder(new BlockingMailer()).getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
+        assertThat(builder(new BlockingMailer()).getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
         assertThat(config.getDiagnostics().getProperties(ConfigDiagnosticGroup.EXECUTION_AND_POOLING)).hasSize(3);
         assertThatThrownBy(() -> configured.withAsyncQueueCapacity(-2)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> configured.withAsyncQueueWaitTimeoutMillis(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> configured.withAsyncQueueWaitTimeout(Duration.ofMillis(0))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> configured.withAsyncQueueOverflowPolicy(null)).isInstanceOf(NullPointerException.class);
         final ExecutorService callerOwned = Executors.newSingleThreadExecutor();
         try {
@@ -288,7 +292,7 @@ class MailSendQueueTest {
                 assertThat(mailer.getOperationalConfig().getExecutorService()).isSameAs(callerOwned);
                 assertThat(mailer.getAsyncQueueSnapshot()).isEmpty();
                 assertThat(mailer.getOperationalConfig().getAsyncQueueConfig())
-                        .isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
+                        .isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
             }
             assertThat(callerOwned.isShutdown()).isFalse();
         } finally {
@@ -301,14 +305,14 @@ class MailSendQueueTest {
         assertThat(OperationalConfig.class.getMethod("getAsyncQueueConfig").isDefault()).isFalse();
         final MailerRegularBuilder<?> configured = builder(new BlockingMailer())
                 .withAsyncQueueCapacity(3).withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY)
-                .withAsyncQueueWaitTimeoutMillis(250);
+                .withAsyncQueueWaitTimeout(Duration.ofMillis(250));
         final AsyncQueueConfig supplied = configured.getAsyncQueueConfig();
         try (Mailer mailer = configured.buildMailer()) {
             assertThat(mailer.getOperationalConfig().getAsyncQueueConfig()).isSameAs(supplied);
             configured.resetAsyncQueue();
-            assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, 1000));
+            assertThat(configured.getAsyncQueueConfig()).isEqualTo(new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)));
             assertThat(mailer.getOperationalConfig().getAsyncQueueConfig()).isSameAs(supplied);
-            assertThat(supplied).isEqualTo(new AsyncQueueConfig(3, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, 250));
+            assertThat(supplied).isEqualTo(new AsyncQueueConfig(3, AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY, Duration.ofMillis(250)));
         }
     }
 

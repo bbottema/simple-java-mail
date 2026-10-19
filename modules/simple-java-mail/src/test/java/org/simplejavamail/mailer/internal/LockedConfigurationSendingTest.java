@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,7 @@ class LockedConfigurationSendingTest {
 	void concurrentPooledSendsAlwaysIncludeTheArchiveWithoutLeakingRecipientsOrOutcomes() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("defaults.bcc.address", "archive@example.org", "smtp.host", "localhost"));
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(factory).withConnectionPoolMaxSize(3).withMailSendResultObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(factory).withConnectionPoolMaxSize(3).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> completions = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
 				completions.add(mailer.async().sendMail(email("mail-" + index)).getCompletion());
@@ -59,7 +61,7 @@ class LockedConfigurationSendingTest {
 		final SimpleJavaMail factory = locked(Map.of("defaults.subject", "Locked", "defaults.bcc.address", "archive@example.org"));
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final Email conflict = ordinary.emailBuilder().copying(email("conflict")).withSubject("Other").buildEmail();
-		try (Mailer mailer = builder(factory).withMailSendResultObserver(outcomes::add).buildMailer()) {
+		try (Mailer mailer = builder(factory).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(List.of(email("first"), conflict, email("untouched"))))
 					.hasRootCauseInstanceOf(IllegalArgumentException.class);
 			assertThat(outcomes).hasSize(2);
@@ -88,7 +90,7 @@ class LockedConfigurationSendingTest {
 			finishConnection(peer); // Only health checks and QUIT; MAIL FROM here makes the script fail.
 		}); Mailer mailer = locked(Map.of("defaults.delivery.status.notification.notify", "FAILURE")).mailerBuilder()
 				.withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(5000).buildMailer()) {
+				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMail(email("notify"))).isInstanceOf(MailSubmissionException.class)
 					.hasRootCauseMessage("This send requires its delivery-notification settings to be honored, "
 							+ "but the connected SMTP server does not advertise DSN support. Simple Java Mail cannot submit the email with that requirement. "

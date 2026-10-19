@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.batchsupport;
 
+import java.time.Duration;
+
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import org.junit.jupiter.api.Test;
@@ -180,9 +182,9 @@ class BatchTransportSelectionTest {
 	private static OperationalConfig configuration() {
 		final OperationalConfig config = mock(OperationalConfig.class);
 		when(config.getConnectionPoolMaxSize()).thenReturn(1);
-		when(config.getConnectionPoolClaimTimeoutMillis()).thenReturn(1000);
-		when(config.getConnectionPoolExpireAfterMillis()).thenReturn(60000);
-		when(config.getConnectionPoolExpireAfterCreationMillis()).thenReturn(null);
+		when(config.getConnectionPoolClaimTimeout()).thenReturn(Duration.ofMillis(1000));
+		when(config.getConnectionPoolExpireAfter()).thenReturn(Duration.ofMillis(60000));
+		when(config.getConnectionPoolExpireAfterCreation()).thenReturn(null);
 		when(config.getConnectionPoolLoadBalancingStrategy()).thenReturn(LoadBalancingStrategy.ROUND_ROBIN);
 		when(config.getConnectionPoolClusterConfigs()).thenReturn(Collections.emptyMap());
 		return config;
