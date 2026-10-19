@@ -14,10 +14,11 @@ import java.util.regex.Pattern;
 import static java.util.regex.Pattern.compile;
 
 /**
- * Entry Builder API for starting new emails.
+ * Choose how to start an Email: begin with an empty message, copy an existing Email, or prepare a reply or forward.
+ * Obtain this starting builder with {@code SimpleJavaMail.fromDefaults().emailBuilder()}.
  * <p>
- * Obtain this starting builder from {@code SimpleJavaMail.emailBuilder()}. Every builder created from it retains that factory's immutable configuration
- * snapshot.
+ * If you have a configured SimpleJavaMail factory, call its {@code emailBuilder()} instead. Every builder created from that starting point retains
+ * the factory's immutable configuration snapshot.
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailStartingBuilder {

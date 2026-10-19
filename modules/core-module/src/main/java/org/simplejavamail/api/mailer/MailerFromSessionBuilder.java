@@ -7,10 +7,9 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 
 /**
- * Intermediate builder interface that supports a caller-supplied {@link Session}. Allows configuring generic Mailer settings, but not SMTP server or transport
- * strategy details.
- * <p>
- * Obtain this builder by passing the Session to {@code SimpleJavaMail.mailerBuilder(Session)}.
+ * Build a Mailer around your own {@link Session} with {@code SimpleJavaMail.fromDefaults().mailerBuilder(session)}.
+ * If you have a configured SimpleJavaMail factory, call its {@code mailerBuilder(session)} instead to retain that factory's immutable configuration
+ * snapshot. This builder offers generic Mailer settings; supply the SMTP server and transport strategy on the Session itself.
  * <p>
  * Supply the SMTP server, authentication and transport settings on the Session. Its other connection settings are the baseline too: ordinary SJM
  * timeout, local-binding, EHLO and certificate-trust defaults do not replace them. Calling a generic connection setter explicitly applies that choice,

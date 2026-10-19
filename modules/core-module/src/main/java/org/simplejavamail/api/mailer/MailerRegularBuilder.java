@@ -10,16 +10,12 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import javax.net.ssl.SSLSocketFactory;
 
 /**
- * Default builder for generating Mailer instances. Sets defaults configured for SMTP host, SMTP port, SMTP username, SMTP password and transport
- * strategy.
+ * Configure an SMTP connection and build a Mailer with {@code SimpleJavaMail.fromDefaults().mailerBuilder()}.
+ * If you have a configured SimpleJavaMail factory, call its {@code mailerBuilder()} instead to use its immutable configuration snapshot.
  * <p>
- * Obtain this builder from {@code SimpleJavaMail.mailerBuilder()}. Explicit calls on the returned builder override values from that factory's immutable
- * configuration snapshot.
- * <p>
- * <strong>Note:</strong> Any builder methods invoked after this will override the default value.
- * <p>
- * In addition on generic Mailer setting, this builder is used to configure SMTP server details and transport strategy needed to produce a valid
- * {@link Session} instance.
+ * The factory supplies the initial SMTP host, port, username, password and transport strategy. Builder calls can replace these ordinary configured
+ * values; factory-scoped locked settings still apply. This builder also offers the generic Mailer settings and creates the {@link Session} needed
+ * for the selected connection.
  *
  * @see TransportStrategy
  */
