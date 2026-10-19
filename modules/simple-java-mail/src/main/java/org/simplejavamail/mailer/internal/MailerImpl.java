@@ -33,6 +33,7 @@ import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.PropertyDiagnosticText;
 import org.simplejavamail.internal.util.concurrent.AsyncOperationHelper;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.internal.util.concurrent.NamedRunnable;
@@ -982,7 +983,7 @@ public class MailerImpl implements Mailer {
 				+ ",\n\tproxyConfig=" + proxyConfig
 				+ ",\n\toperationalConfig=" + operationalConfig
 				+ ",\n\temailGovernance=" + emailGovernance
-				+ ",\n\tsession=" + session.getProperties()
+				+ ",\n\tsession=" + PropertyDiagnosticText.render(session.getProperties())
 				+ "\n}";
 	}
 

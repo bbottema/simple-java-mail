@@ -3,6 +3,7 @@ package org.simplejavamail.config;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
@@ -33,6 +34,77 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
 
 class ConfigLoaderTest {
+
+	@Test
+	void readsInheritedPropertiesAndSamplesThemOnEveryLoad() {
+		final Properties base = new Properties();
+		base.setProperty(SMTP_HOST.key(), "base.example.test");
+		base.setProperty(SMTP_PORT.key(), "25");
+		final Properties intermediate = new Properties(base);
+		intermediate.setProperty(SMTP_HOST.key(), "inherited.example.test");
+		final Properties supplied = new Properties(intermediate);
+		supplied.put(SMTP_PORT.key(), 587);
+		final ConfigLoader loader = ConfigLoader.builder().withProperties("application", supplied);
+
+		final SimpleJavaMailConfig first = loader.load();
+		intermediate.setProperty(SMTP_HOST.key(), "changed.example.test");
+		final SimpleJavaMailConfig second = loader.load();
+
+		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("inherited.example.test");
+		assertThat(first.getIntegerProperty(SMTP_PORT)).isEqualTo(587);
+		assertThat(first.getPropertySource(SMTP_HOST)).isEqualTo("application");
+		assertThat(second.getStringProperty(SMTP_HOST)).isEqualTo("changed.example.test");
+	}
+
+	@Test
+	void inheritedLocksAndWildcardValuesRemainPartOfTheSnapshot() {
+		final Properties base = new Properties();
+		base.setProperty("simplejavamail.locked.smtp.host", "approved.example.test");
+		base.setProperty("simplejavamail.extraproperties.mail.smtp.ehlo", "false");
+		base.setProperty("simplejavamail.mailers.secondary.smtp.host", "secondary.example.test");
+		final Properties supplied = new Properties(base);
+		supplied.setProperty(SMTP_HOST.key(), "ordinary.example.test");
+		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties("company configuration", supplied).load();
+
+		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("approved.example.test");
+		assertThat(config.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).containsEntry("mail.smtp.ehlo", "false");
+		final Map<String, SimpleJavaMailConfig> named = config.getProperty(ConfigLoader.Property.NAMED_MAILERS);
+		assertThat(named.get("secondary").getStringProperty(SMTP_HOST)).isEqualTo("secondary.example.test");
+		assertThat(ConfigLoader.builder().withConfig(config).load().getStringProperty(SMTP_HOST)).isEqualTo("approved.example.test");
+		assertThatThrownBy(() -> SimpleJavaMail.withConfig(config).mailerBuilder()
+				.withSMTPServerHost("unapproved.example.test").buildMailer())
+				.hasMessageContaining("simplejavamail.locked.smtp.host");
+	}
+
+	@Test
+	void validatesInheritedCallerKeysButIgnoresUnrelatedSystemProperties() {
+		final Properties base = new Properties();
+		base.setProperty("unrelated.property", "unrelated");
+		base.setProperty(SMTP_HOST.key(), "inherited.example.test");
+		final Properties supplied = new Properties(base);
+
+		assertThatThrownBy(() -> ConfigLoader.builder().withProperties("application", supplied).load())
+				.hasMessageContaining("unrelated.property").hasMessageContaining("application");
+		assertThat(ConfigLoader.builder().withSystemProperties(supplied).load().getStringProperty(SMTP_HOST))
+				.isEqualTo("inherited.example.test");
+	}
+
+	@Test
+	void explicitBlankAndInvalidTypedValuesStillShadowInheritedProperties() {
+		final Properties base = new Properties();
+		base.setProperty(SMTP_HOST.key(), "inherited.example.test");
+		base.setProperty(SMTP_PORT.key(), "587");
+		final Properties supplied = new Properties(base);
+		supplied.setProperty(SMTP_HOST.key(), " ");
+		supplied.put(SMTP_PORT.key(), false);
+
+		assertThatThrownBy(() -> ConfigLoader.builder().withProperties(supplied).load())
+				.hasMessageContaining(SMTP_PORT.key());
+		supplied.remove(SMTP_PORT.key());
+		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(supplied).load();
+		assertThat(config.hasProperty(SMTP_HOST)).isFalse();
+		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(587);
+	}
 
 	@Test
 	void snapshotValueSelectionUsesExplicitThenConfiguredThenFallback() {

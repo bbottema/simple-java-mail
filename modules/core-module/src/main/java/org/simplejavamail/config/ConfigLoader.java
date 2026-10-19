@@ -212,7 +212,8 @@ public final class ConfigLoader {
 	}
 
 	/**
-	 * Adds strict caller properties. The source is sampled during each {@link #load()} and the resulting snapshot is detached from it.
+	 * Adds caller properties, including their inherited string defaults. Direct entries take precedence over inherited defaults, and unknown property
+	 * names are rejected. The source is sampled during each {@link #load()} and the resulting snapshot is detached from it.
 	 */
 	public ConfigLoader withProperties(final @NotNull String sourceName, final @NotNull Properties properties) {
 		return withSource(mapSource(sourceName, properties, true));
@@ -595,6 +596,11 @@ public final class ConfigLoader {
 			@Override
 			public Map<String, ?> getProperties() {
 				final Map<String, Object> copy = new LinkedHashMap<>();
+				if (properties instanceof Properties) {
+					final Properties inherited = (Properties) properties;
+					// Map entries omit Properties' defaults chain; capture it first, then retain direct entries and their original types below.
+					inherited.stringPropertyNames().forEach(key -> copy.put(key, inherited.getProperty(key)));
+				}
 				for (Map.Entry<?, ?> entry : properties.entrySet()) {
 					if (entry.getKey() instanceof String) {
 						copy.put((String) entry.getKey(), entry.getValue());
