@@ -115,6 +115,10 @@ New fields must be accessible through the fluent Builder API.
   - Keep `File`, `Date`, and `InputStream` APIs when they remain useful. Exclude a `Path` or `Instant` builder overload from CLI generation when an existing file or date option already represents the same command-line value.
   - Exercise at least one non-default filesystem when the implementation promises genuine `Path` support; converting immediately through `Path#toFile()` is not sufficient.
 
+Builder inspection must also work before construction is complete: return stored choices without calling `build()`, resolving a derived/provider
+fallback or validating an incomplete policy. Include reviewed application value builders in companion checks, not only the original motivating
+builder. Automatic rendering protects known secrets on unfinished builders as well as completed values; explicit programmatic accessors remain separate.
+
 ## 3. Core Implementation (`simple-java-mail`)
 
 Implement the new API methods and ensure data propagation.
@@ -236,9 +240,12 @@ Always verify the following areas:
 - **Opt-in Runtime Behavior**: Exercise both configured and unconfigured behavior through the actual factory/builder. Testing a policy or state object directly does not verify who enables it during construction. For background behavior, demonstrate recovery without a foreground operation hiding the failure.
 - **Concurrent Transitions**: Write down who owns each state transition and when pending results become stale. Test both completion orders of overlapping success/failure, cancellation followed by replacement, and work begun after recovery. Pair focused state tests with real send-path regressions; a routing fix must also preserve public exception families, exact observer/completion failures, receipt retention and resource ownership.
 - **Email Copying**: Use `simpleJavaMail.emailBuilder().copying(email).buildEmail()` and verify the field is still there.
+  Exercise nullable enabled flags separately from optional values, including automatic notification addresses and explicit disabling; an absent
+  resolved address must not erase the underlying choice or let defaults re-enable a disabled request.
 - **Message Snapshot Ownership**: Follow [ADR 0036](adr/0036-structural-message-snapshots-and-borrowed-content.md). Copy owned collection structure,
   nested headers, dates and supplied arrays; verify builder/getter/serialization aliases cannot change existing messages. Borrow arbitrary
   DataSources and forwarded MimeMessages without eager reads. Keep exact/retry freezing separate and test unchanged content-read counts.
+  Convenience readers close streams they open from a borrowed DataSource. Test success, read/close failures and direct caller-owned stream access.
 - **CLI Help**: Run the CLI with `--help` for the relevant command to ensure the new option is documented and has the correct parameter labels.
 - **CLI Metadata**: Follow [Generated CLI Metadata](DEVELOPMENT.md#generated-cli-metadata) to regenerate both `cli.data` and `therapi.data` before asserting changed help text, then run normal verification with tests enabled. Include the cold-cache concurrency regression and daemon send/probe tests: an API change can invalidate the prepared caches while concurrent requests are using the CLI.
 - **Migration Notes**: Maintain migration guidance only on the website, starting from its [migration index](https://www.simplejavamail.org/migration-notes.html). Document only broken backwards compatibility or changed behavior for existing callers. Compare against released versions, not intermediate APIs introduced during the current unreleased work. Put additive features and their usage examples in feature documentation and release notes instead.

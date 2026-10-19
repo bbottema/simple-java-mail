@@ -66,6 +66,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- Email copying preserves address-free receipt requests and explicit disabling; governance retains disabling through subsequent template application.
+- Attachment convenience readers close the streams they open, including on failure. DKIM builder rendering no longer exposes private-key bytes.
+- Pool sizes and durations are validated consistently across Mailer, cluster and standalone configuration, after applicable inheritance for size pairs.
+
 - Caller-supplied Sessions now retain their connection baseline consistently, with or without an SJM strategy marker. Explicit connection
   builder choices and locks apply without importing unrelated defaults. Operational timeout inspection reports a nullable common configured
   connect/read/write value instead of claiming a default that the Session does not use; integrations must recompile and handle absence.
@@ -83,6 +87,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - Updated [SMTP Connection Pool to 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0), [Clustered Object Pool to 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool to 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), retaining failed-lease waiter recovery and connection creation-age retirement. Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751). Finite candidate traversal, claim-scoped connection observations and deferred background top-up support coordinated connection failover under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Fully retired cluster metadata can now be released after disposal, avoiding retention across repeated Mailer creation and closure.
 
 ### Maintenance
+
+- Completed inspection and optional-choice clearing on reviewed security/policy builders, added debug-output companions, and expanded API/Javadoc guards.
 
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): shared write-timeout monitoring across connections from each managed Angus Session, with cleanup after its last connection closes. Application-supplied schedulers remain application-owned.
 - [#747](https://github.com/bbottema/simple-java-mail/issues/747): added a reproducible SMTP conformance runner with pinned Postfix/Exim fixtures, independent protected-content checks and sanitized CI evidence. Restored the embedded SMTP/SOCKS integration tests to ordinary verification. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).

@@ -34,9 +34,9 @@ public interface EmailGovernance {
     /**
      * This method will apply the defaults and overrides to the given email and return the result as a new instance. The original email is not modified.
      * <p>
-     * Note that this is used automatically when sending or converting an email, so you don't need to call this yourself. This method might be useful
-     * if you don't want to send the email, but just want to use a helper method or wish to inspect the email without sending (for the latter case
-     * {@link org.simplejavamail.api.mailer.MailerRegularBuilder#withTransportModeLoggingOnly(Boolean)} might be of interest too).
+     * Sending applies governance automatically. Ordinary conversion does not: use
+     * {@link org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion#withEmailGovernance(EmailGovernance)}
+     * when an export should apply these templates. You can also call this method to inspect the governed Email without sending it.
      * <p>
      * Alternatively, you can also use {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()} or
      * {@link EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)}.
