@@ -1,5 +1,6 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -50,16 +51,16 @@ class SpringMailSendTelemetryTest {
         final SimpleJavaMailSpringBeanFactory support = new SimpleJavaMailSpringBeanFactory(environment);
         final SimpleJavaMail mail = support.createSimpleJavaMail(ConfigLoader.builder().withSource(new SpringEnvironmentConfigSource(environment)).load());
         try (Mailer first = mail.mailerBuilder().buildMailer(); Mailer second = mail.mailerBuilder().buildMailer();
-             Mailer disabled = mail.mailerBuilder().withMailSendTelemetryEnabled(false).buildMailer()) {
-            assertThat(first.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-            assertThat(second.getOperationalConfig().isMailSendTelemetryEnabled()).isTrue();
-            assertThat(disabled.getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+             Mailer disabled = mail.mailerBuilder().withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()).buildMailer()) {
+            assertThat(first.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+            assertThat(second.getOperationalConfig().getTelemetryConfig().getEnabled()).isTrue();
+            assertThat(disabled.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
             assertThat(global.bindings).hasValue(2);
         }
     }
 
     @Test
-    void explicitIntegrationBeanAppliesButPropertiesAndArbitraryBeansDoNotActivateIt() throws Exception {
+    void integrationBeanIsBorrowedAndRequiresIndependentActivation() throws Exception {
         final StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(new MapPropertySource("telemetry test", Map.of(
                 "simplejavamail.smtp.host", "localhost",
@@ -71,11 +72,18 @@ class SpringMailSendTelemetryTest {
         final DefaultListableBeanFactory beans = new DefaultListableBeanFactory();
         beans.registerSingleton("arbitrarySdk", new Object());
         try (Mailer inactive = create(support, mail, beans)) {
-            assertThat(inactive.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isTrue();
+            assertThat(inactive.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isTrue();
         }
         final TestMailSendTelemetry registration = new TestMailSendTelemetry();
         register(beans, "mailTelemetry", registration, false);
-        try (Mailer active = create(support, mail, beans)) {
+        try (Mailer inactive = create(support, mail, beans)) {
+            assertThat(inactive.getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
+            assertThat(registration.bindings).hasValue(0);
+        }
+        final SimpleJavaMail enabled = support.createSimpleJavaMail(ConfigLoader.builder()
+                .withSource(new SpringEnvironmentConfigSource(environment))
+                .withMap(Map.of("simplejavamail.telemetry.enabled", true)).load());
+        try (Mailer active = create(support, enabled, beans)) {
             active.sync().sendMail(mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(mail.recipientBuilder()
                     .withAddress("receiver@example.test").withType(jakarta.mail.Message.RecipientType.TO).build()).buildEmail());
             assertThat(registration.bindings).hasValue(1);
@@ -92,7 +100,8 @@ class SpringMailSendTelemetryTest {
         register(beans, "first", first, false);
         register(beans, "second", second, false);
         final SimpleJavaMailSpringBeanFactory support = new SimpleJavaMailSpringBeanFactory(new StandardEnvironment());
-        final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of("simplejavamail.smtp.host", "localhost")).load());
+        final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
+                "simplejavamail.smtp.host", "localhost", "simplejavamail.telemetry.enabled", true)).load());
         assertThatThrownBy(() -> create(support, mail, beans)).isInstanceOf(NoUniqueBeanDefinitionException.class);
         final DefaultListableBeanFactory selected = new DefaultListableBeanFactory();
         register(selected, "first", first, false);

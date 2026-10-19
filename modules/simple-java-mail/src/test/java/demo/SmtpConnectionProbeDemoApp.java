@@ -1,5 +1,6 @@
 package demo;
 
+import java.time.Duration;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
@@ -41,7 +42,7 @@ public final class SmtpConnectionProbeDemoApp extends DemoAppBase {
             final CompletableFuture<Void> peer = CompletableFuture.runAsync(() -> serveLocalGreeting(endpoint));
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder()
                     .withSMTPServer(endpoint.getInetAddress().getHostAddress(), endpoint.getLocalPort())
-                    .withOpportunisticTLS(false).withSessionTimeout(5000).buildMailer()) {
+                    .withOpportunisticTLS(false).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
                 printReport(mailer.async().probeConnection().get(10, TimeUnit.SECONDS));
             }
             peer.get(10, TimeUnit.SECONDS);

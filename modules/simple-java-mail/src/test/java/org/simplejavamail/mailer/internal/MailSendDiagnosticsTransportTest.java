@@ -18,25 +18,35 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
+import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
+import org.simplejavamail.api.mailer.MailSendException;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendProgress;
 import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
+import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.mailer.internal.ratelimit.MailSendRateLimiter;
 import testutil.ConfigLoaderTestHelper;
+import testutil.retry.RetryProviderTransport;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -56,6 +66,41 @@ import static org.mockito.Mockito.when;
 
 
 class MailSendDiagnosticsTransportTest {
+	@Test
+	void failoverKeepsTheInitiatorsIdentityAndHandlersAcrossEverySendingSurface() throws Exception {
+		final TransportState primary = new TransportState();
+		primary.connectFailure = new MessagingException("synthetic connection refusal", new ConnectException());
+		final TransportState secondary = new TransportState();
+		final AtomicInteger identities = new AtomicInteger();
+		final AtomicInteger factories = new AtomicInteger();
+		final List<UUID> generatedIds = new ArrayList<>();
+		final List<MailSendOutcome> outcomes = new ArrayList<>();
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer destination = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(secondary))
+						.withSendIdGenerator(() -> { throw new AssertionError("destination must not initialize send identity"); })
+						.withSendHandlersFactory(id -> { throw new AssertionError("destination must not initialize handlers"); }).buildMailer();
+				Mailer initiator = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(primary))
+						.withExecutorService(inlineExecutor()).withFailoverMailer(destination, FailoverPolicy.builder().build())
+						.withSendIdGenerator(() -> { identities.incrementAndGet(); return UUID.randomUUID(); })
+						.withSendHandlersFactory(id -> {
+							factories.incrementAndGet(); generatedIds.add(id);
+							return MailSendHandlers.builder().withResultObserver(outcomes::add).build();
+						}).buildMailer()) {
+			final Email email = email("one email reused");
+			initiator.sync().sendMail(email);
+			initiator.async().sendMail(email).getCompletion().join();
+			initiator.sync().sendMailsInSimpleBatch(Arrays.asList(email, email));
+			initiator.withOpenConnection(sender -> { sender.sendMail(email); sender.sendMail(email); });
+			assertThat(identities).hasValue(6);
+			assertThat(factories).hasValue(6);
+			assertThat(generatedIds).hasSize(6).doesNotHaveDuplicates();
+			assertThat(outcomes).extracting(MailSendOutcome::getObservationId).containsExactlyElementsOf(generatedIds);
+			assertThat(outcomes).allMatch(MailSendOutcome::isSuccessful);
+			assertThat(primary.sent).isZero();
+			assertThat(secondary.sent).isEqualTo(6);
+		}
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = {"acquisition", "submission", "cleanup"})
 	void progressCannotChangeTheFailureOrReceiptOfAnUnsupportedProvider(final String failureStage) throws Exception {
@@ -68,7 +113,7 @@ class MailSendDiagnosticsTransportTest {
 		final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
 		try (MockedStatic<ModuleLoader> modules = withoutPool();
 				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
-						.withMailSendResultObserver(outcomes::add).withMailSendProgressObserver(progress::add).buildMailer()) {
+						.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).withProgressObserver(progress::add).build()).buildMailer()) {
 			final Throwable callerFailure = sendFailure(mailer, email(failureStage), false);
 			assertThat(callerFailure).isNotNull();
 			assertThat(outcomes.get(0).getFailure()).containsSame(callerFailure);
@@ -101,9 +146,121 @@ class MailSendDiagnosticsTransportTest {
 			assertThat(outcome.getFailure()).containsSame(callerFailure);
 			assertThat(outcome.isSuccessful()).isFalse();
 			assertThat(outcome.getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+			assertThat(callerFailure).isInstanceOf(MailSendException.class).hasCause(state.closeFailure);
+			assertThat(((MailSendException) callerFailure).getSubmissionReceipt())
+					.containsSame(outcome.getSubmissionReceipt().orElseThrow());
 			assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().isFailureObservedHere()).isTrue();
 			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isFalse();
 			assertThat(state.sent).isEqualTo(1);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void directCloseFailureRetainsAcceptanceWithoutAnObserver(final boolean asynchronous) throws Exception {
+		final TransportState state = new TransportState();
+		state.closeFailure = new MessagingException("close failed after acceptance");
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
+						.withExecutorService(inlineExecutor()).buildMailer()) {
+			final Throwable failure = sendFailure(mailer, email("unobserved acceptance"), asynchronous);
+			assertThat(failure).isInstanceOf(MailSendException.class).hasCause(state.closeFailure);
+			assertThat(((MailSendException) failure).getSubmissionReceipt().orElseThrow().getStatus())
+					.isEqualTo(MailSubmissionStatus.ACCEPTED);
+			assertThat(state.sent).isEqualTo(1);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void laterAllowanceCleanupIsSuppressedOnTheOriginalTransportCleanup(final boolean asynchronous) throws Exception {
+		final TransportState state = new TransportState();
+		state.closeFailure = new MessagingException("original transport cleanup failed");
+		final SendingAllowance.Reservation reservation = mock(SendingAllowance.Reservation.class);
+		final IllegalStateException allowanceFailure = new IllegalStateException("secondary allowance cleanup failed");
+		doThrow(allowanceFailure).when(reservation).close();
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				MockedStatic<EmailSendingAllowance> allowances = mockStatic(EmailSendingAllowance.class, CALLS_REAL_METHODS);
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
+						.withExecutorService(inlineExecutor()).buildMailer()) {
+			allowances.when(() -> EmailSendingAllowance.reserve(any(), any(), any(), any(), any())).thenReturn(reservation);
+			final Throwable failure = sendFailure(mailer, email("two cleanup failures"), asynchronous);
+			assertThat(failure).isInstanceOf(MailSendCleanupException.class).hasCause(state.closeFailure);
+			assertThat(state.closeFailure.getSuppressed()).containsExactly(allowanceFailure);
+			assertThat(((MailSendException) failure).getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+			assertThat(state.sent).isEqualTo(1);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void retryEnabledCloseFailureRetainsAcceptanceWithoutAnObserver(final boolean asynchronous) throws Exception {
+		final RetryProviderTransport.State state = new RetryProviderTransport.State();
+		state.temporaryRefusals = 0;
+		state.failCleanup = true;
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(RetryProviderTransport.session(state))
+						.withExecutorService(inlineExecutor())
+						.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofMillis(1)).build())
+						.buildMailer()) {
+			final Throwable failure = sendFailure(mailer, email("retry cleanup acceptance"), asynchronous);
+			assertThat(failure).isInstanceOf(MailSendCleanupException.class).hasCauseInstanceOf(MessagingException.class);
+			assertThat(failure.getCause()).hasMessage("fixture cleanup failed");
+			assertThat(((MailSendException) failure).getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+			assertThat(state.invocations).hasValue(1);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void sharedSenderCleanupRetainsAcceptanceWithoutAnObserver(final boolean retryEnabled) throws Exception {
+		final RetryProviderTransport.State state = new RetryProviderTransport.State();
+		state.temporaryRefusals = 0;
+		final SendingAllowance.Reservation reservation = mock(SendingAllowance.Reservation.class);
+		final IllegalStateException cleanupFailure = new IllegalStateException("per-email allowance cleanup failed");
+		doThrow(cleanupFailure).when(reservation).close();
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				MockedStatic<EmailSendingAllowance> allowances = mockStatic(EmailSendingAllowance.class, CALLS_REAL_METHODS);
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(RetryProviderTransport.session(state))
+						.withMailSendRetryPolicy(retryEnabled
+								? MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofMillis(1)).build()
+								: MailSendRetryPolicy.builder().build()).buildMailer()) {
+			allowances.when(() -> EmailSendingAllowance.reserve(any(), any(), any(), any(), any())).thenReturn(reservation);
+			allowances.when(() -> EmailSendingAllowance.reserve(any(), any(), any(), any())).thenReturn(reservation);
+			final Throwable failure = catchThrowable(() -> mailer.withOpenConnection(sender -> sender.sendMail(email("shared acceptance"))));
+			assertThat(failure).isInstanceOf(MailSendCleanupException.class).hasCause(cleanupFailure);
+			assertThat(((MailSendException) failure).getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+			assertThat(state.invocations).hasValue(1);
+		}
+	}
+
+	@Test
+	void sharedScopeCloseFailureDoesNotClaimOneEmailsReceipt() throws Exception {
+		final TransportState state = new TransportState();
+		state.closeFailure = new MessagingException("whole scope cleanup failed");
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state)).buildMailer()) {
+			final Throwable failure = catchThrowable(() -> mailer.withOpenConnection(sender -> {
+				sender.sendMail(email("first acceptance"));
+				sender.sendMail(email("second acceptance"));
+			}));
+			assertThat(failure).isNotInstanceOf(MailSendException.class).hasCause(state.closeFailure);
+			assertThat(state.sent).isEqualTo(2);
+		}
+	}
+
+	@Test
+	void sharedScopeCleanupIsSuppressedOnTheOriginalFactoryFailure() throws Exception {
+		final TransportState state = new TransportState();
+		state.closeFailure = new MessagingException("secondary scope cleanup failed");
+		final IllegalStateException factoryFailure = new IllegalStateException("cannot initialize this send");
+		try (MockedStatic<ModuleLoader> modules = withoutPool();
+				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
+						.withSendHandlersFactory(id -> { throw factoryFailure; }).buildMailer()) {
+			final Throwable failure = catchThrowable(() -> mailer.withOpenConnection(sender -> sender.sendMail(email("factory failure"))));
+			assertThat(failure).isSameAs(factoryFailure);
+			assertThat(failure.getSuppressed()).containsExactly(state.closeFailure);
+			assertThat(state.sent).isZero();
 		}
 	}
 
@@ -258,14 +415,18 @@ class MailSendDiagnosticsTransportTest {
 	}
 
 	private static Mailer mailer(final Session session, final List<MailSendOutcome> outcomes) {
+		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
+				.withExecutorService(inlineExecutor()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
+	}
+
+	private static ExecutorService inlineExecutor() {
 		// Inline execution keeps fault injection deterministic while exercising the async completion contract as well as throwing sync calls.
 		final ExecutorService executor = mock(ExecutorService.class);
 		doAnswer(invocation -> {
 			invocation.<Runnable>getArgument(0).run();
 			return null;
 		}).when(executor).execute(any());
-		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-				.withExecutorService(executor).withMailSendResultObserver(outcomes::add).buildMailer();
+		return executor;
 	}
 
 	private static Throwable sendFailure(final Mailer mailer, final Email email, final boolean asynchronous) {

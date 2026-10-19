@@ -3,8 +3,8 @@ package org.simplejavamail.internal.util.concurrent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
+import org.simplejavamail.api.mailer.MailSendException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
-import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +140,8 @@ public final class MailSendControl implements AutoCloseable {
     }
 
     private RuntimeException stoppedFailure(final StopReason reason, @Nullable final Throwable cause) {
-        final MailSubmissionReceipt receipt = cause instanceof MailSubmissionException
-                ? ((MailSubmissionException) cause).getSubmissionReceipt() : null;
+        final MailSubmissionReceipt receipt = cause instanceof MailSendException
+                ? ((MailSendException) cause).getSubmissionReceipt().orElse(null) : null;
         return reason == StopReason.TIMED_OUT
                 ? new MailSendTimeoutException(cause, receipt) : new MailSendCancelledException(cause, receipt);
     }

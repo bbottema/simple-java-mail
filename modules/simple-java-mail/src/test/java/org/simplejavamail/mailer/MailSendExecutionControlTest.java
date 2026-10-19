@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.activation.DataSource;
@@ -169,7 +170,7 @@ class MailSendExecutionControlTest {
     void openConnectionGetsFreshPerEmailBudgetsAndDoesNotTimeApplicationGaps() throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
-             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(2)).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(2)).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.withOpenConnection(sender -> {
                 sender.sendMail(email("first"));
                 // Outlast an entire send budget without requiring sub-second SMTP round trips under parallel test load.
@@ -185,7 +186,7 @@ class MailSendExecutionControlTest {
     void simpleBatchSharesOneBudgetAndDoesNotReachUntouchedEmails() throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("SECOND_REPLY");
-             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(5)).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(5)).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSend<Void> batch = mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"), email("untouched")));
             assertThat(failure(batch)).isInstanceOf(MailSendTimeoutException.class);
             assertThat(outcomes).hasSize(2);
@@ -198,7 +199,7 @@ class MailSendExecutionControlTest {
     void inlineObserversBetweenBatchEmailsDoNotConsumeTheBatchBudget() throws Exception {
         final AtomicInteger callbacks = new AtomicInteger();
         try (BlockedSmtpServer server = new BlockedSmtpServer("DELAY");
-             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(3)).withMailSendResultObserver(outcome -> {
+             Mailer mailer = builder(server).withMailSendTimeout(Duration.ofSeconds(3)).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                  if (callbacks.incrementAndGet() == 1) {
                      try {
                          // Still outlast the whole budget, with enough network-time headroom for parallel test forks.
@@ -207,7 +208,7 @@ class MailSendExecutionControlTest {
                          Thread.currentThread().interrupt();
                      }
                  }
-             }).buildMailer()) {
+             }).build()).buildMailer()) {
             mailer.async().sendMailsInSimpleBatch(List.of(email("first"), email("second"))).getCompletion().get(10, SECONDS);
             assertThat(callbacks).hasValue(2);
         }
@@ -218,7 +219,7 @@ class MailSendExecutionControlTest {
     void cancellationAbortsThePooledAttemptAndTheNextLeaseHasFreshFacts(final String phase) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer(phase);
-             Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).as(phase).isTrue();
             send.requestCancellation();
@@ -268,7 +269,7 @@ class MailSendExecutionControlTest {
         final AtomicReference<MailSubmissionReceipt> nested = new AtomicReference<>();
         final AtomicReference<Throwable> nestedFailure = new AtomicReference<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer(".");
-             Mailer mailer = builder(server).withMailSendResultObserver(outcome -> {
+             Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                  if (!outcome.isSuccessful()) {
                      try {
                          nested.set(currentMailer.get().sync().sendMail(email("observer-reentrant")));
@@ -276,7 +277,7 @@ class MailSendExecutionControlTest {
                          nestedFailure.set(failure);
                      }
                  }
-             }).buildMailer()) {
+             }).build()).buildMailer()) {
             currentMailer.set(mailer);
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
@@ -319,7 +320,7 @@ class MailSendExecutionControlTest {
         final AtomicInteger iterations = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-                .withTransportModeLoggingOnly(true).withExecutorService(callerExecutor).withMailSendResultObserver(outcomes::add).buildMailer()) {
+                .withTransportModeLoggingOnly(true).withExecutorService(callerExecutor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             callerExecutor.execute(() -> await(release));
             final Iterable<Email> emails = () -> { iterations.incrementAndGet(); return List.of(email("untouched")).iterator(); };
             final MailSend<Void> send = mailer.async().sendMailsInSimpleBatch(emails);
@@ -339,7 +340,7 @@ class MailSendExecutionControlTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
              Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
-                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.rehearse(email("warm-up"));
             mailer.sync().sendMail(email("allowed"));
             if (asynchronous) {
@@ -361,7 +362,7 @@ class MailSendExecutionControlTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
              Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
-                     .withMailSendResultObserver(outcomes::add).buildMailer()) {
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.rehearse(email("warm-up"));
             assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
                 sender.sendMail(email("allowed"));
@@ -402,8 +403,8 @@ class MailSendExecutionControlTest {
                 .withTransportStrategy(TransportStrategy.SMTP).withOpportunisticTLS(false)
                 .withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.listener.getLocalPort())
                 .withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
-                .withSessionTimeout(30000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeoutMillis(5000);
+                .withSessionTimeout(Duration.ofMillis(30000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+                .withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
         if (server.phase.equals("AUTH")) {
             builder.withSMTPServerUsername("user").withSMTPServerPassword("password").withProperty("mail.smtp.auth.mechanisms", "PLAIN");
         }

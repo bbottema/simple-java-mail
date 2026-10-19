@@ -20,8 +20,8 @@ import java.util.concurrent.Executor;
  * cleaning up. Measurement stops before your observer is called or handed to an executor, so callback work is not included.
  * Unlike a separate connection probe, these measurements describe what happened during this particular send.
  *
- * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver)
- * @see MailerGenericBuilder#withMailSendResultObserver(MailSendResultObserver, Executor)
+ * @see MailSendHandlers.Builder#withResultObserver(MailSendResultObserver)
+ * @see MailSendHandlers.Builder#withResultObserver(MailSendResultObserver, Executor)
  */
 @FunctionalInterface
 public interface MailSendResultObserver {

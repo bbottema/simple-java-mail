@@ -1,5 +1,6 @@
 package org.simplejavamail.providerneutral;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -317,7 +318,7 @@ public final class ProviderNeutralClasspathConsumer {
 	private static void assertAsyncQueueApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
 		if (simpleJavaMail.mailerBuilder().withAsyncQueueCapacity(4)
 				.withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY)
-				.withAsyncQueueWaitTimeoutMillis(250).getAsyncQueueConfig().getCapacity() != 4) {
+				.withAsyncQueueWaitTimeout(Duration.ofMillis(250)).getAsyncQueueConfig().getCapacity() != 4) {
 			throw new AssertionError("Async queue configuration API is unavailable");
 		}
 		// Compile the optional return type without constructing a Mailer, which would need a Jakarta Mail implementation here.
@@ -340,7 +341,7 @@ public final class ProviderNeutralClasspathConsumer {
 			throw new AssertionError("Completion views affected the operation");
 		}
 		if (mail.mailerBuilder().withMailSendTimeout(Duration.ofSeconds(1))
-				.withMailSendResultObserver(outcome -> { }, Runnable::run).getMailSendTimeout() == null
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> { }, Runnable::run).build()).getMailSendTimeout() == null
 				|| new MailSendCancelledException(null, null).getSubmissionReceipt().isPresent()
 				|| new MailSendTimeoutException(null, null).getSubmissionReceipt().isPresent()) {
 			throw new AssertionError("Execution control API is unavailable");
@@ -422,8 +423,7 @@ public final class ProviderNeutralClasspathConsumer {
 		};
 		simpleJavaMail.mailerBuilder()
 				.withSMTPServer("localhost", 25)
-				.withMailSendResultObserver(observer)
-				.withMailSendProgressObserver(progress -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(observer).withProgressObserver(progress -> {
 					progress.getObservationId();
 					progress.getSequence();
 					progress.getObservedAt();
@@ -434,7 +434,7 @@ public final class ProviderNeutralClasspathConsumer {
 					progress.getEffectiveMessageId();
 					progress.getBytesWritten();
 					progress.getTotalBytes();
-				}, Runnable::run);
+				}, Runnable::run).build());
 	}
 
 	/** Verifies that third-party adapters can report a failed submission whose final acceptance remains unknown. */

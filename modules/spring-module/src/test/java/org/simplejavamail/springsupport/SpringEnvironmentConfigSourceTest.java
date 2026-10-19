@@ -1,5 +1,6 @@
 package org.simplejavamail.springsupport;
 
+import java.time.Duration;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,7 @@ class SpringEnvironmentConfigSourceTest {
 		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 
 		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
-		assertThat(clusters.get(clusterKey).getExpireAfterCreationMillis()).isEqualTo(900000);
+		assertThat(clusters.get(clusterKey).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(900000));
 		assertThat(diagnostic(config.getDiagnostics(), DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key()).getSourceName())
 				.isEqualTo("pool defaults");
 		final ConfigPropertyDiagnostic clusterDiagnostic = diagnostic(config.getDiagnostics(), clusterAgeProperty);
@@ -88,7 +89,7 @@ class SpringEnvironmentConfigSourceTest {
 		final SimpleJavaMailConfig config = loadConfig(environment);
 		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
-		assertThat(clusters.get(clusterKey).getExpireAfterCreationMillis()).isEqualTo(value);
+		assertThat(clusters.get(clusterKey).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(value));
 		for (String property : new String[] {globalProperty, clusterProperty}) {
 			final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), property);
 			assertThat(diagnostic.getDisplayValue()).isEqualTo(Integer.toString(value));

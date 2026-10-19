@@ -28,8 +28,8 @@ class CliMailSendTelemetryTest {
                         "--email:to", "receiver@example.org", "--mailer:withTransportModeLoggingOnly", "true",
                         "--mailer:withMailSendTelemetrySmtpEndpointAttributes", Boolean.toString(permission));
                 assertThat(result.exitCode()).as(result.stderr()).isZero();
-                assertThat(selected.get().getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled()).isEqualTo(permission);
-                assertThat(selected.get().getOperationalConfig().isMailSendTelemetryEnabled()).isFalse();
+                assertThat(selected.get().getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes()).isEqualTo(permission);
+                assertThat(selected.get().getOperationalConfig().getTelemetryConfig().getEnabled()).isFalse();
             }
         }
     }

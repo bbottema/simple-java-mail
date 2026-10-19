@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.AcquiredMailTransport;
 
@@ -77,8 +78,8 @@ final class ReadyMailSend extends RoutedConnectionScope {
 		try {
 			close();
 		} catch (MessagingException | RuntimeException failure) {
-			throw new MailerException("The email was submitted, but finishing its connection cleanup failed. "
-					+ "Check the cause and submission receipt before deciding whether to retry.", failure);
+			throw new MailSendCleanupException("The email was submitted, but finishing its connection cleanup failed. "
+					+ "Check the cause and submission receipt before deciding whether to retry.", failure, receipt);
 		}
 		return receipt;
 	}
@@ -129,8 +130,9 @@ final class ReadyMailSend extends RoutedConnectionScope {
 	@Override
 	void releaseReservation() {
 		if (reservation != null) {
-			reservation.close();
+			final SendingAllowance.Reservation released = reservation;
 			reservation = null;
+			released.close();
 		}
 	}
 }

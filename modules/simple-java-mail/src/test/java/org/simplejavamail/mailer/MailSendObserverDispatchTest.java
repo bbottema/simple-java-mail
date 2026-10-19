@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class MailSendObserverDispatchTest {
         final List<Runnable> scheduled = new ArrayList<>();
         final List<MailSendOutcome> outcomes = new ArrayList<>();
         final MailSubmissionReceipt receipt;
-        try (Mailer mailer = builder().withMailSendResultObserver(outcomes::add, scheduled::add).buildMailer()) {
+        try (Mailer mailer = builder().withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add, scheduled::add).build()).buildMailer()) {
             receipt = mailer.sync().sendMail(email());
             assertThat(scheduled).hasSize(1);
             assertThat(outcomes).isEmpty();
@@ -39,9 +40,9 @@ class MailSendObserverDispatchTest {
     @Test
     void rejectedHandoffDoesNotReplaceSuccessfulOrFailedSends() throws Exception {
         final AtomicInteger calls = new AtomicInteger();
-        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> calls.incrementAndGet(), action -> {
+        try (Mailer mailer = builder().withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> calls.incrementAndGet(), action -> {
             throw new RejectedExecutionException("application executor full");
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             assertThat(mailer.sync().sendMail(email())).isNotNull();
             final Email invalid = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
             final Throwable failure = mailer.async().sendMail(invalid).getCompletion().handle((value, cause) -> cause).join();
@@ -55,8 +56,7 @@ class MailSendObserverDispatchTest {
         final List<Runnable> abandonedExecutor = new ArrayList<>();
         final AtomicInteger abandonedObserver = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new ArrayList<>();
-        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> abandonedObserver.incrementAndGet(), abandonedExecutor::add)
-                .withMailSendResultObserver(outcomes::add).buildMailer()) {
+        try (Mailer mailer = builder().withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> abandonedObserver.incrementAndGet(), abandonedExecutor::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);
             assertThat(abandonedExecutor).isEmpty();
@@ -67,10 +67,10 @@ class MailSendObserverDispatchTest {
     @Test
     void directExecutorRunsInlineAndCallbackRuntimeExceptionsRemainIsolated() throws Exception {
         final AtomicInteger calls = new AtomicInteger();
-        try (Mailer mailer = builder().withMailSendResultObserver(outcome -> {
+        try (Mailer mailer = builder().withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             calls.incrementAndGet();
             throw new IllegalStateException("observer failure");
-        }, Runnable::run).buildMailer()) {
+        }, Runnable::run).build()).buildMailer()) {
             mailer.sync().sendMail(email());
             mailer.sync().sendMail(email());
             assertThat(calls).hasValue(2);
@@ -80,9 +80,9 @@ class MailSendObserverDispatchTest {
     @Test
     void nullReplacementDoesNotDiscardTheExistingRegistration() throws Exception {
         final List<MailSendOutcome> outcomes = new ArrayList<>();
-        final MailerRegularBuilder<?> builder = builder().withMailSendResultObserver(outcomes::add);
-        assertThatThrownBy(() -> builder.withMailSendResultObserver(null, Runnable::run)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> builder.withMailSendResultObserver(outcome -> { }, null)).isInstanceOf(NullPointerException.class);
+        final MailerRegularBuilder<?> builder = builder().withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
+        assertThatThrownBy(() -> builder.withSendHandlers(MailSendHandlers.builder().withResultObserver(null, Runnable::run).build())).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> builder.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> { }, null).build())).isInstanceOf(NullPointerException.class);
         try (Mailer mailer = builder.buildMailer()) {
             mailer.sync().sendMail(email());
             assertThat(outcomes).hasSize(1);

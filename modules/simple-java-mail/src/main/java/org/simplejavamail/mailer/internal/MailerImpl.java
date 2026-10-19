@@ -447,9 +447,15 @@ public class MailerImpl implements Mailer {
 
 	private static void initSession(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig,
 			final MailerSessionSettings sessionSettings) {
-		session.setDebug(operationalConfig.isDebugLogging());
-		if (operationalConfig.getDebugPrinter() != null) {
-			session.setDebugOut(operationalConfig.getDebugPrinter());
+		if (sessionSettings.shouldApplyDebugEnabled()) {
+			session.setDebug(Boolean.TRUE.equals(operationalConfig.getDebugConfig().getEnabled()));
+		}
+		if (sessionSettings.shouldApplyDebugOutput()) {
+			if (operationalConfig.getDebugConfig().getPrinter() != null) {
+				session.setDebugOut(operationalConfig.getDebugConfig().getPrinter());
+			} else if (operationalConfig.getDebugConfig().getOutput() != null) {
+				session.setDebugOut(SessionDebugOutputResolver.resolve(operationalConfig.getDebugConfig().getOutput()));
+			}
 		}
 		session.getProperties().putAll(operationalConfig.getProperties());
 		sessionSettings.applyConnectionOverrides(session);
@@ -576,7 +582,12 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	private MailSend<MailSubmissionReceipt> sendMailAsynchronously(final Email userProvidedEmail) {
 		final Email checkedEmail = verifyNonnull(userProvidedEmail);
-		final MailSendAttempt attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		final MailSendAttempt attempt;
+		try {
+			attempt = mailSendObserverNotifier.beginAttempt(checkedEmail);
+		} catch (RuntimeException failure) {
+			return new MailSend<>(AsyncOperationHelper.failedFuture(failure), () -> { });
+		}
 		attempt.diagnostics().useAsyncScheduling();
 		final MailSendOperation<MailSubmissionReceipt> operation;
 		try {
@@ -898,20 +909,18 @@ public class MailerImpl implements Mailer {
 	 * @see Mailer#validate(Email)
 	 */
 	@Override
-	public boolean validate(@NotNull final Email email)
+	public void validate(@NotNull final Email email)
 			throws MailException {
 		rehearse(email);
-		return true;
 	}
 
 	/**
 	 * @see Mailer#validate(Email, boolean)
 	 */
 	@Override
-	public boolean validate(@NotNull final Email email, final boolean processSecurityAndValidateSize)
+	public void validate(@NotNull final Email email, final boolean processSecurityAndValidateSize)
 			throws MailException {
 		rehearse(email, processSecurityAndValidateSize);
-		return true;
 	}
 
 	/**

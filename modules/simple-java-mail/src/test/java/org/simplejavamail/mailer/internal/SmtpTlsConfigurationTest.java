@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,6 +30,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
@@ -168,7 +170,7 @@ class SmtpTlsConfigurationTest {
         final ExecutorService executor = mock(ExecutorService.class);
         final MailerRegularBuilder<?> builder = builder(SMTP_OAUTH2).withSMTPServerPassword(null)
                 .withOAuth2AccessTokenProvider(() -> { tokenCalls.incrementAndGet(); return "fake-token"; })
-                .withMailSendResultObserver(outcome -> observerCalls.incrementAndGet())
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> observerCalls.incrementAndGet()).build())
                 .withExecutorService(executor).withProxy("localhost", 12346, "proxy-user", "fake-proxy-password")
                 .withProperty(REQUIRED, false);
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
@@ -177,7 +179,9 @@ class SmtpTlsConfigurationTest {
             assertThatThrownBy(builder::buildMailer).isInstanceOf(MailerException.class)
                     .hasMessage("SMTP_OAUTH2 requires STARTTLS, but mail.smtp.starttls.required disables it. "
                             + "Remove that override so the access token is sent only after TLS succeeds.");
-            modules.verifyNoInteractions();
+            // Resolving worker defaults may inspect cached module availability without creating a pool or any runtime owner.
+            modules.verify(ModuleLoader::batchModuleAvailable, atLeast(0));
+            modules.verifyNoMoreInteractions();
             lifecycle.verifyNoInteractions();
             assertThat(operations.constructed()).isEmpty();
             assertThat(tokenCalls).hasValue(0);

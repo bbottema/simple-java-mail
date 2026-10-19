@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Address;
@@ -58,7 +60,7 @@ class MailerSessionOwnershipTest {
 			send(owner, asynchronous);
 			final Properties before = (Properties) session.getProperties().clone();
 			for (int attempt = 0; attempt < 2; attempt++) {
-				assertThatThrownBy(() -> builder(session, "owner-b").withDebugLogging(true)
+				assertThatThrownBy(() -> builder(session, "owner-b").withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build())
 						.withProxy("unwanted-proxy.example.test", 1080).withProperty("mail.smtp.host", "unwanted.example.test").buildMailer())
 						.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already belongs to another Mailer")
 						.hasMessageContaining("Properties object").hasMessageContaining("defaults, overrides and connection settings")
@@ -252,7 +254,7 @@ class MailerSessionOwnershipTest {
 				.withEmailOverrides(mail.emailBuilder().startingBlank().from(owner + "@example.test").withHeader("X-Owner", owner).buildEmail())
 				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
 				// This fixture verifies ownership, not wall-clock expiry.
-				.withConnectionPoolExpireAfterMillis(0);
+				.withConnectionPoolExpireAfter(Duration.ofMillis(0));
 	}
 
 	private Email email() {

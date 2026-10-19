@@ -1,5 +1,6 @@
 package org.simplejavamail.thirdpartyprobe;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -32,7 +33,7 @@ public final class ConnectionFailoverConsumer {
         try (Mailer failoverMailer = simpleJavaMail.mailerBuilder(refusingSession(connectionAttempts)).buildMailer();
              Mailer initiatingMailer = simpleJavaMail.mailerBuilder(refusingSession(connectionAttempts))
                      .withFailoverMailer(failoverMailer, FailoverPolicy.builder().build())
-                     .withMailSendResultObserver(outcomes::add)
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                      .buildMailer()) {
             try {
                 initiatingMailer.sync().sendMail(email);

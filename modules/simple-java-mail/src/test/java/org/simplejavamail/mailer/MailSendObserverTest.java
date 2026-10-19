@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -49,13 +50,12 @@ class MailSendObserverTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final MailerRegularBuilder<?> builder = mailerBuilder(new SuccessfulCustomMailer());
 
-		assertThatThrownBy(() -> builder.withMailSendResultObserver(null))
+		assertThatThrownBy(() -> builder.withSendHandlers(MailSendHandlers.builder().withResultObserver(null).build()))
 				.isInstanceOf(NullPointerException.class)
-				.hasMessage("mailSendResultObserver");
+				.hasMessage("resultObserver");
 
 		try (Mailer mailer = builder
-				.withMailSendResultObserver(outcome -> replacedObserverCalls.incrementAndGet())
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> replacedObserverCalls.incrementAndGet()).withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			mailer.sync().sendMail(completeEmail("builder-observer@example.org", "builder observer"));
 		}
@@ -66,7 +66,7 @@ class MailSendObserverTest {
 
 	@Test
 	void builderCallbackIsExcludedFromTheCliApi() throws Exception {
-		final Method builderMethod = MailerGenericBuilder.class.getMethod("withMailSendResultObserver", MailSendResultObserver.class);
+		final Method builderMethod = MailerGenericBuilder.class.getMethod("withSendHandlers", MailSendHandlers.class);
 
 		assertThat(builderMethod.getAnnotation(Cli.ExcludeApi.class))
 				.isNotNull()
@@ -74,9 +74,9 @@ class MailSendObserverTest {
 				.asString()
 				.contains("runtime Java callbacks");
 
-        assertThat(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class)
+        assertThat(MailerGenericBuilder.class.getMethod("withSendHandlersFactory", java.util.function.Function.class)
                 .getAnnotation(Cli.ExcludeApi.class)).isNotNull();
-        assertThat(MailerGenericBuilder.class.getMethod("withMailSendProgressObserver", MailSendProgressObserver.class, java.util.concurrent.Executor.class)
+        assertThat(MailerGenericBuilder.class.getMethod("withSendIdGenerator", java.util.function.Supplier.class)
                 .getAnnotation(Cli.ExcludeApi.class)).isNotNull();
 	}
 
@@ -89,10 +89,10 @@ class MailSendObserverTest {
 
 		final MailSubmissionReceipt submissionReceipt;
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					observerThread.set(Thread.currentThread());
 					outcomes.add(outcome);
-				})
+				}).build())
 				.buildMailer()) {
 			submissionReceipt = mailer.sync().sendMail(email);
 			assertThat(outcomes).as("The observer runs before the synchronous call returns").hasSize(1);
@@ -122,10 +122,10 @@ class MailSendObserverTest {
 		final AtomicReference<MailSendOutcome> observedOutcome = new AtomicReference<>();
 		try (Mailer mailer = mailerBuilder(customMailer)
 				.withExecutorService(executorService)
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					observedOutcome.set(outcome);
 					completionOrder.add("observer");
-				})
+				}).build())
 				.buildMailer()) {
 			final CompletableFuture<MailSubmissionReceipt> send = mailer.async().sendMail(
 					completeEmail("async-observer@example.org", "async observer")).getCompletion();
@@ -150,7 +150,7 @@ class MailSendObserverTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final Email incompleteEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail();
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			final RuntimeException synchronousFailure = synchronousFailure(() -> mailer.sync().sendMail(incompleteEmail));
 			assertPreparationFailure(outcomes.get(0), synchronousFailure, false);
@@ -170,10 +170,10 @@ class MailSendObserverTest {
 		final AtomicReference<Thread> callbackThread = new AtomicReference<>();
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
 				.withExecutorService(executorService)
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					callbackThread.set(Thread.currentThread());
 					outcomes.add(outcome);
-				})
+				}).build())
 				.buildMailer()) {
 			executorService.shutdown();
 			final Throwable schedulingFailure = futureFailure(mailer.async().sendMail(
@@ -205,7 +205,7 @@ class MailSendObserverTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withTransportModeLoggingOnly(true)
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			mailer.sync().sendMail(completeEmail("logging-only@example.org", "logging only"));
 		}
@@ -238,10 +238,10 @@ class MailSendObserverTest {
 	void observerRuntimeExceptionNeverChangesSyncOrAsyncSendResults() throws Exception {
 		final AtomicInteger observerCalls = new AtomicInteger();
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					observerCalls.incrementAndGet();
 					throw new IllegalStateException("observer unavailable");
-				})
+				}).build())
 				.buildMailer()) {
 			mailer.sync().sendMail(completeEmail("observer-failure-sync@example.org", "sync observer failure"));
 			mailer.async().sendMail(completeEmail("observer-failure-async@example.org", "async observer failure")).getCompletion()
@@ -262,7 +262,7 @@ class MailSendObserverTest {
 		final Email untouched = completeEmail("batch-untouched@example.org", "batch untouched");
 
 		try (Mailer mailer = mailerBuilder(customMailer)
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			final RuntimeException batchFailure = synchronousFailure(() ->
 					mailer.sync().sendMailsInSimpleBatch(Arrays.asList(first, invalid, untouched)));

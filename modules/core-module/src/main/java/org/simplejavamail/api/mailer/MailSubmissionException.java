@@ -2,7 +2,6 @@ package org.simplejavamail.api.mailer;
 
 import jakarta.mail.MessagingException;
 import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.MailException;
 
 import static java.util.Objects.requireNonNull;
 
@@ -13,11 +12,9 @@ import static java.util.Objects.requireNonNull;
  * the direct cause. {@link #getSubmissionReceipt()} reports which recipients are known to have been accepted, left unsent, or rejected as invalid.
  * When its status is {@link MailSubmissionStatus#UNKNOWN}, some recipients may already have been accepted and an automatic retry can create duplicates.
  */
-public final class MailSubmissionException extends MailException {
+public final class MailSubmissionException extends MailSendException {
 
 	private static final long serialVersionUID = 1L;
-
-	@NotNull private final MailSubmissionReceipt submissionReceipt;
 
 	/**
 	 * Creates a submission failure whose direct cause remains the provider's original Jakarta Mail exception.
@@ -29,16 +26,7 @@ public final class MailSubmissionException extends MailException {
 	public MailSubmissionException(@NotNull final String message,
 			@NotNull final MessagingException cause,
 			@NotNull final MailSubmissionReceipt submissionReceipt) {
-		super(message, cause);
-		this.submissionReceipt = requireNonNull(submissionReceipt, "submissionReceipt");
-	}
-
-	/**
-	 * @return The immutable provider-neutral facts captured for the failed submission attempt.
-	 */
-	@NotNull
-	public MailSubmissionReceipt getSubmissionReceipt() {
-		return submissionReceipt;
+		super(message, cause, requireNonNull(submissionReceipt, "submissionReceipt"));
 	}
 
 	/**
@@ -46,7 +34,7 @@ public final class MailSubmissionException extends MailException {
 	 */
 	@NotNull
 	public MailSubmissionStatus getStatus() {
-		return submissionReceipt.getStatus();
+		return getSubmissionReceipt().orElseThrow().getStatus();
 	}
 
 	/**

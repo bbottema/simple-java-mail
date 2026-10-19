@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Provider;
@@ -264,7 +266,7 @@ class SmtpConnectionProbeTest {
         session.getProperties().setProperty("mail.mime.allowutf8", "true");
         try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.quit(); });
              Mailer mailer = factory().mailerBuilder(atEndpoint(session, server))
-                     .withMailSendResultObserver(outcome -> observations.incrementAndGet()).buildMailer()) {
+                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> observations.incrementAndGet()).build()).buildMailer()) {
             final Properties before = (Properties) session.getProperties().clone();
             final Provider provider = session.getProvider("smtp");
             final SmtpConnectionReport report = async ? mailer.async().probeConnection().get(10, SECONDS) : mailer.sync().probeConnection();
@@ -631,7 +633,7 @@ class SmtpConnectionProbeTest {
         server.start();
         // The bound checks pool isolation, not reverse DNS for Angus's automatically chosen EHLO name.
         try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.getServer().getPortAllocated())
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(500)
+                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(500))
                 .withOpportunisticTLS(false).withSmtpClientHostname("localhost").buildMailer()) {
             final LifecycleDelegatingTransport lease = ModuleLoader.loadBatchModule().acquireTransport(
                     mailer.getOperationalConfig().getClusterKey(), mailer.getSession(), true, null);
@@ -674,7 +676,7 @@ class SmtpConnectionProbeTest {
             peer.quit();
         }); Mailer mailer = factory().mailerBuilder().withProxy("localhost", proxy.getPort(), PROXY_USERNAME, PROXY_PASSWORD)
                 .withSMTPServer("localhost", server.port(), "probe-user", "probe-secret").withOpportunisticTLS(false)
-                .withSessionTimeout(2000).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
+                .withSessionTimeout(Duration.ofMillis(2000)).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             final SmtpConnectionReport report = asynchronous ? mailer.async().probeConnection(authenticateSmtp).get(5, SECONDS)
                     : mailer.sync().probeConnection(authenticateSmtp);
 
@@ -697,7 +699,7 @@ class SmtpConnectionProbeTest {
         try (ServerSocket smtpEndpoint = new ServerSocket(0, 1, InetAddress.getByName("localhost"));
              Mailer mailer = factory().mailerBuilder().withProxy("localhost", proxy.getPort(), username, password)
                      .withSMTPServer("localhost", smtpEndpoint.getLocalPort()).withOpportunisticTLS(false)
-                     .withSessionTimeout(2000).buildMailer()) {
+                     .withSessionTimeout(Duration.ofMillis(2000)).buildMailer()) {
             final SmtpConnectionReport report = asynchronous ? mailer.async().probeConnection().get(5, SECONDS)
                     : mailer.sync().probeConnection();
 

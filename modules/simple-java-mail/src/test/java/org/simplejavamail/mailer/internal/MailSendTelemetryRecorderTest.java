@@ -108,7 +108,7 @@ class MailSendTelemetryRecorderTest {
         when(submission.makeCurrent()).thenReturn(() -> { });
         final AtomicReference<MailSendOutcome> outcome = new AtomicReference<>();
         final MailSendAttempt attempt = MailSendObserverNotifier.builder()
-                .resultObserver(outcome::set)
+                .handlers(org.simplejavamail.api.mailer.MailSendHandlers.builder().withResultObserver(outcome::set).build())
                 .telemetry(runtime)
                 .build()
                 .beginAttempt(SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank().buildEmail());

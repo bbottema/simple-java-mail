@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
@@ -221,9 +222,9 @@ class LockedMailerConfigurationTest {
 		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").buildMailer()) {
 			assertThat(mailer.getSession().getProperty("mail.smtp.timeout")).isEqualTo("1000");
 		}
-		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(2000).buildMailer())
+		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(Duration.ofMillis(2000)).buildMailer())
 				.hasMessageContaining("locked.extraproperties.mail.smtp.timeout");
-		try (Mailer ignored = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(1000).buildMailer()) {
+		try (Mailer ignored = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(Duration.ofMillis(1000)).buildMailer()) {
 			assertThat(ignored.getSession().getProperty("mail.smtp.timeout")).isEqualTo("1000");
 		}
 	}

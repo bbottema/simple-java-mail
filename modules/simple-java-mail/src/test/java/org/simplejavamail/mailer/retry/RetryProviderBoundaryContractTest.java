@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.retry;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Session;
@@ -39,9 +40,9 @@ class RetryProviderBoundaryContractTest {
 
     private Mailer mailer(final RetryProviderTransport.State state, final List<MailSendOutcome> outcomes) throws Exception {
         final Session session = RetryProviderTransport.session(state);
-        return mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfterMillis(60000)
+        return mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000))
                 .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofMillis(1)).build())
-                .withMailSendResultObserver(outcomes::add).buildMailer();
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
     }
 
     private Email email() {
@@ -84,10 +85,10 @@ class RetryProviderBoundaryContractTest {
         final Session session = RetryProviderTransport.session(state);
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolExpireAfterMillis(60000).withThreadPoolSize(1)
+                .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withThreadPoolSize(1)
                 .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofHours(1))
                         .withWaitingCapacity(1).build())
-                .withMailSendResultObserver(outcomes::add).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final var first = mailer.async().sendMail(email());
             // Wait for the first execution to return its worker, not merely for the provider to record a refusal.
             mailer.getOperationalConfig().getExecutorService().submit(() -> { }).get(10, SECONDS);

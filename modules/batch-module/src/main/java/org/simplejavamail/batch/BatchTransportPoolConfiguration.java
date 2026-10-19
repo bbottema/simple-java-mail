@@ -1,8 +1,12 @@
 package org.simplejavamail.batch;
 
+import java.time.Duration;
+
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.batchsupport.ConnectionPoolValidation;
+import org.simplejavamail.internal.util.DurationMillis;
 
 import java.util.Objects;
 
@@ -20,10 +24,10 @@ public final class BatchTransportPoolConfiguration {
 	public static final int DEFAULT_CORE_POOL_SIZE = 0;
 	/** Default maximum number of connections per registered Session. */
 	public static final int DEFAULT_MAX_POOL_SIZE = 4;
-	/** Default time to wait for a connection, in milliseconds. */
-	public static final int DEFAULT_CLAIM_TIMEOUT_MILLIS = Integer.MAX_VALUE;
-	/** Default idle time after which a non-core connection expires, in milliseconds. */
-	public static final int DEFAULT_EXPIRE_AFTER_MILLIS = 5000;
+	/** Default time to wait for a connection: approximately 24.9 days. */
+	public static final Duration DEFAULT_CLAIM_TIMEOUT = Duration.ofMillis(Integer.MAX_VALUE);
+	/** Default idle duration after which a non-core connection expires: five seconds. */
+	public static final Duration DEFAULT_EXPIRE_AFTER = Duration.ofSeconds(5);
 	/** Default cluster selection strategy. */
 	public static final BatchLoadBalancingStrategy DEFAULT_LOAD_BALANCING_STRATEGY = BatchLoadBalancingStrategy.ROUND_ROBIN;
 
@@ -32,21 +36,21 @@ public final class BatchTransportPoolConfiguration {
 	@ToString.Include
 	private final int maxPoolSize;
 	@ToString.Include
-	private final int claimTimeoutMillis;
+	private final Duration claimTimeout;
 	@ToString.Include
-	private final int expireAfterMillis;
+	private final Duration expireAfter;
 	@ToString.Include
 	@Nullable
-	private final Integer expireAfterCreationMillis;
+	private final Duration expireAfterCreation;
 	@ToString.Include
 	private final BatchLoadBalancingStrategy loadBalancingStrategy;
 
 	private BatchTransportPoolConfiguration(final Builder builder) {
 		this.corePoolSize = builder.corePoolSize;
 		this.maxPoolSize = builder.maxPoolSize;
-		this.claimTimeoutMillis = builder.claimTimeoutMillis;
-		this.expireAfterMillis = builder.expireAfterMillis;
-		this.expireAfterCreationMillis = builder.expireAfterCreationMillis;
+		this.claimTimeout = builder.claimTimeout;
+		this.expireAfter = builder.expireAfter;
+		this.expireAfterCreation = builder.expireAfterCreation;
 		this.loadBalancingStrategy = builder.loadBalancingStrategy;
 	}
 
@@ -79,22 +83,22 @@ public final class BatchTransportPoolConfiguration {
 		return maxPoolSize;
 	}
 
-	/** @return the maximum wait for an available connection, in milliseconds */
-	public int getClaimTimeoutMillis() {
-		return claimTimeoutMillis;
+	/** @return the maximum wait for an available connection */
+	public Duration getClaimTimeout() {
+		return claimTimeout;
 	}
 
-	/** @return the idle expiry time for non-core connections, in milliseconds */
-	public int getExpireAfterMillis() {
-		return expireAfterMillis;
+	/** @return the idle expiry time for non-core connections */
+	public Duration getExpireAfter() {
+		return expireAfter;
 	}
 
 	/**
-	 * @return the creation-age retirement eligibility threshold in milliseconds, or {@code null} when not configured
+	 * @return the creation-age retirement eligibility threshold, or {@code null} when not configured
 	 */
 	@Nullable
-	public Integer getExpireAfterCreationMillis() {
-		return expireAfterCreationMillis;
+	public Duration getExpireAfterCreation() {
+		return expireAfterCreation;
 	}
 
 	/** @return the Session-pool selection strategy used within a cluster */
@@ -113,16 +117,16 @@ public final class BatchTransportPoolConfiguration {
 		final BatchTransportPoolConfiguration that = (BatchTransportPoolConfiguration) other;
 		return corePoolSize == that.corePoolSize
 				&& maxPoolSize == that.maxPoolSize
-				&& claimTimeoutMillis == that.claimTimeoutMillis
-				&& expireAfterMillis == that.expireAfterMillis
-				&& Objects.equals(expireAfterCreationMillis, that.expireAfterCreationMillis)
+				&& claimTimeout.equals(that.claimTimeout)
+				&& expireAfter.equals(that.expireAfter)
+				&& Objects.equals(expireAfterCreation, that.expireAfterCreation)
 				&& loadBalancingStrategy == that.loadBalancingStrategy;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis,
-				expireAfterCreationMillis, loadBalancingStrategy);
+		return Objects.hash(corePoolSize, maxPoolSize, claimTimeout, expireAfter,
+				expireAfterCreation, loadBalancingStrategy);
 	}
 
 	/**
@@ -131,10 +135,10 @@ public final class BatchTransportPoolConfiguration {
 	public static final class Builder {
 		private int corePoolSize = DEFAULT_CORE_POOL_SIZE;
 		private int maxPoolSize = DEFAULT_MAX_POOL_SIZE;
-		private int claimTimeoutMillis = DEFAULT_CLAIM_TIMEOUT_MILLIS;
-		private int expireAfterMillis = DEFAULT_EXPIRE_AFTER_MILLIS;
+		private Duration claimTimeout = DEFAULT_CLAIM_TIMEOUT;
+		private Duration expireAfter = DEFAULT_EXPIRE_AFTER;
 		@Nullable
-		private Integer expireAfterCreationMillis;
+		private Duration expireAfterCreation;
 		private BatchLoadBalancingStrategy loadBalancingStrategy = DEFAULT_LOAD_BALANCING_STRATEGY;
 
 		private Builder() {
@@ -143,9 +147,9 @@ public final class BatchTransportPoolConfiguration {
 		private Builder(final BatchTransportPoolConfiguration configuration) {
 			this.corePoolSize = configuration.corePoolSize;
 			this.maxPoolSize = configuration.maxPoolSize;
-			this.claimTimeoutMillis = configuration.claimTimeoutMillis;
-			this.expireAfterMillis = configuration.expireAfterMillis;
-			this.expireAfterCreationMillis = configuration.expireAfterCreationMillis;
+			this.claimTimeout = configuration.claimTimeout;
+			this.expireAfter = configuration.expireAfter;
+			this.expireAfterCreation = configuration.expireAfterCreation;
 			this.loadBalancingStrategy = configuration.loadBalancingStrategy;
 		}
 
@@ -174,22 +178,22 @@ public final class BatchTransportPoolConfiguration {
 		/**
 		 * Sets how long a claim may wait for an available connection.
 		 *
-		 * @param claimTimeoutMillis a nonnegative duration in milliseconds
+		 * @param claimTimeout a nonnegative duration exactly representable as integer milliseconds
 		 * @return this builder
 		 */
-		public Builder withClaimTimeoutMillis(final int claimTimeoutMillis) {
-			this.claimTimeoutMillis = claimTimeoutMillis;
+		public Builder withClaimTimeout(@NotNull final Duration claimTimeout) {
+			this.claimTimeout = Objects.requireNonNull(claimTimeout, "claimTimeout");
 			return this;
 		}
 
 		/**
 		 * Sets when an idle non-core connection expires.
 		 *
-		 * @param expireAfterMillis a nonnegative duration in milliseconds; zero disables idle expiry
+		 * @param expireAfter a nonnegative duration exactly representable as integer milliseconds; zero disables idle expiry
 		 * @return this builder
 		 */
-		public Builder withExpireAfterMillis(final int expireAfterMillis) {
-			this.expireAfterMillis = expireAfterMillis;
+		public Builder withExpireAfter(@NotNull final Duration expireAfter) {
+			this.expireAfter = Objects.requireNonNull(expireAfter, "expireAfter");
 			return this;
 		}
 
@@ -199,11 +203,11 @@ public final class BatchTransportPoolConfiguration {
 		 * The pool checks asynchronously and does not interrupt active leases. Rapid reuse can delay retirement, so this
 		 * is not a strict maximum connection lifetime. Claiming or releasing a connection does not reset its creation age.
 		 *
-		 * @param expireAfterCreationMillis a positive duration in milliseconds
+		 * @param expireAfterCreation a positive duration exactly representable as integer milliseconds
 		 * @return this builder
 		 */
-		public Builder withExpireAfterCreationMillis(final int expireAfterCreationMillis) {
-			this.expireAfterCreationMillis = expireAfterCreationMillis;
+		public Builder withExpireAfterCreation(@NotNull final Duration expireAfterCreation) {
+			this.expireAfterCreation = Objects.requireNonNull(expireAfterCreation, "expireAfterCreation");
 			return this;
 		}
 
@@ -212,8 +216,8 @@ public final class BatchTransportPoolConfiguration {
 		 *
 		 * @return this builder
 		 */
-		public Builder clearExpireAfterCreationMillis() {
-			this.expireAfterCreationMillis = null;
+		public Builder clearExpireAfterCreation() {
+			this.expireAfterCreation = null;
 			return this;
 		}
 
@@ -232,10 +236,12 @@ public final class BatchTransportPoolConfiguration {
 		 * Validates and creates the immutable configuration.
 		 *
 		 * @return the configuration
-		 * @throws IllegalArgumentException when a size or duration is invalid
+		 * @throws IllegalArgumentException when a size or duration is invalid, has fractional milliseconds or exceeds the integer-millisecond range
 		 */
 		public BatchTransportPoolConfiguration build() {
-			ConnectionPoolValidation.validateResolved(corePoolSize, maxPoolSize, claimTimeoutMillis, expireAfterMillis, expireAfterCreationMillis);
+			ConnectionPoolValidation.validateResolved(corePoolSize, maxPoolSize,
+					DurationMillis.toInt(claimTimeout, "claimTimeout"), DurationMillis.toInt(expireAfter, "expireAfter"),
+					DurationMillis.toNullableInt(expireAfterCreation, "expireAfterCreation"));
 			Objects.requireNonNull(loadBalancingStrategy, "loadBalancingStrategy");
 			return new BatchTransportPoolConfiguration(this);
 		}

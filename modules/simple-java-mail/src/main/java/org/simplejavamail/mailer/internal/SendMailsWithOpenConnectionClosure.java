@@ -13,6 +13,8 @@ import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
+import org.simplejavamail.api.mailer.MailSendException;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
@@ -77,7 +79,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	@Override
 	void executeClosure() {
 		LOGGER.trace("sending emails with open connection...");
-		boolean operationFailed = false;
+		Throwable operationFailure = null;
 		try {
 			if (operationalConfig.getCustomMailer() != null) {
 				throw new MailerException("Cannot use withOpenConnection when a custom mailer is configured");
@@ -89,31 +91,31 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 				runCallback(this);
 			}
 		} catch (final CheckedCallbackException callbackFailure) {
-			operationFailed = true;
+			operationFailure = callbackFailure.getCause();
 			throw callbackFailure;
 		} catch (final RuntimeCallbackException callbackFailure) {
-			operationFailed = true;
+			operationFailure = callbackFailure.getCause();
 			throw callbackFailure;
 		} catch (final MessagingException failure) {
-			operationFailed = true;
-			throwMappedFailure(failure, GENERIC_ERROR);
+			operationFailure = createMailerException(failure, GENERIC_ERROR);
+			throw (MailerException) operationFailure;
 		} catch (final MailerException failure) {
-			operationFailed = true;
+			operationFailure = failure;
 			throw failure;
 		} catch (final EmailTooBigException failure) {
-			operationFailed = true;
-			throwMappedFailure(failure, MAILER_ERROR);
+			operationFailure = createMailerException(failure, MAILER_ERROR);
+			throw (MailerException) operationFailure;
 		} catch (final MailException failure) {
-			operationFailed = true;
+			operationFailure = failure;
 			throw failure;
 		} catch (final Exception failure) {
-			operationFailed = true;
-			throwMappedFailure(failure, UNKNOWN_ERROR);
+			operationFailure = createMailerException(failure, UNKNOWN_ERROR);
+			throw (MailerException) operationFailure;
 		} catch (final Error failure) {
-			operationFailed = true;
+			operationFailure = failure;
 			throw failure;
 		} finally {
-			closeTransportIfOpened(operationFailed);
+			closeTransportIfOpened(operationFailure);
 		}
 	}
 
@@ -144,13 +146,14 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	private MailSubmissionReceipt sendOnOpenConnection(final Email checkedEmail, final MailSendAttempt mailSendAttempt, final MailSendControl control) {
 		mailSendAttempt.started();
 		mailSendAttempt.preparationStarted();
+		MailSubmissionReceipt receipt = null;
 		try {
 			final Email preparedEmail = prepareEmail(checkedEmail);
 			control.checkStopped();
 			mailSendAttempt.prepared(preparedEmail);
 			if (transportModeLoggingOnly) {
 				mailSendAttempt.diagnostics().startMimePreparation();
-				final MailSubmissionReceipt receipt = convertAndLogPreparedEmail(preparedEmail);
+				receipt = convertAndLogPreparedEmail(preparedEmail);
 				control.checkStopped();
 				mailSendAttempt.diagnostics().receiptProduced(receipt);
 				return receipt;
@@ -158,19 +161,25 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			final Transport activeTransport = checkNonEmptyArgument(transport, "transport");
 			if (operationalConfig.getMailSendRetryPolicy().isRetryEnabled()) {
 				try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control)) {
-					return RetainedMailSendRetry.send(session, activeTransport, preparedEmail, sendingAllowance, control, mailSendAttempt.diagnostics());
+					receipt = RetainedMailSendRetry.send(session, activeTransport, preparedEmail, sendingAllowance, control, mailSendAttempt.diagnostics());
+					return receipt;
 				}
 			}
 			try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(activeTransport, control);
 					SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(
 							sendingAllowance, session, preparedEmail, control, mailSendAttempt.diagnostics())) {
-				return TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control, mailSendAttempt.diagnostics(), allowance);
+				receipt = TransportRunner.sendMessageOnTransport(activeTransport, session, preparedEmail, control, mailSendAttempt.diagnostics(), allowance);
+				return receipt;
 			}
 		} catch (final MessagingException failure) {
+			if (receipt != null) { throw control.translateFailure(new MailSendCleanupException("Individual send cleanup failed on the shared connection", failure, receipt)); }
 			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR));
 		} catch (final EmailTooBigException failure) {
 			throw control.translateFailure(createMailerException(failure, MAILER_ERROR));
 		} catch (final RuntimeException failure) {
+			if (receipt != null && !(failure instanceof MailSendException)) {
+				throw control.translateFailure(new MailSendCleanupException("Individual send cleanup failed on the shared connection", failure, receipt));
+			}
 			throw control.translateFailure(failure);
 		}
 	}
@@ -217,7 +226,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		});
 	}
 
-	private void closeTransportIfOpened(boolean suppressCloseFailure) {
+	private void closeTransportIfOpened(@Nullable final Throwable operationFailure) {
 		if (transport == null) {
 			return;
 		}
@@ -225,12 +234,17 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		try {
 			LOGGER.trace("closing transport");
 			transport.close();
-		} catch (final MessagingException closeFailure) {
-			if (suppressCloseFailure) {
-				LOGGER.trace("Failed to close open connection after earlier failure", closeFailure);
+		} catch (final MessagingException | RuntimeException | Error closeFailure) {
+			if (operationFailure != null) {
+				if (operationFailure != closeFailure) {
+					operationFailure.addSuppressed(closeFailure);
+				}
 				return;
 			}
-			throw new MailerException("Was unable to close SMTP transport", closeFailure);
+			if (closeFailure instanceof Error) {
+				throw (Error) closeFailure;
+			}
+			throw new MailerException("Was unable to close SMTP transport", (Exception) closeFailure);
 		}
 	}
 
@@ -238,10 +252,6 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		currentEmail = null;
 		currentEmail = emailPreparer.apply(userProvidedEmail);
 		return currentEmail;
-	}
-
-	private void throwMappedFailure(@NotNull final Exception cause, @NotNull final String errorMessage) {
-		throw createMailerException(cause, errorMessage);
 	}
 
 	@NotNull

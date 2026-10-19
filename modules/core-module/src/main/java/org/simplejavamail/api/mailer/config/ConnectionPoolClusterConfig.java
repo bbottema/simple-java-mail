@@ -1,6 +1,9 @@
 package org.simplejavamail.api.mailer.config;
 
+import java.time.Duration;
+
 import lombok.Value;
+import org.simplejavamail.internal.util.DurationMillis;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -13,6 +16,7 @@ import java.io.Serializable;
  * Null values mean the regular {@link OperationalConfig} connection-pool defaults remain effective for that setting.
  * The batch module resolves these overrides and validates the resulting settings when this cluster is used, before creating pool resources.
  * This object only retains supplied values; unused cluster settings do not affect a Mailer without pooling.
+ * Durations must be exactly representable as integer milliseconds; fractional milliseconds and overflow are rejected when built.
  */
 @Value
 public class ConnectionPoolClusterConfig implements Serializable {
@@ -20,20 +24,23 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 	@Nullable Integer coreSize;
 	@Nullable Integer maxSize;
-	@Nullable Integer claimTimeoutMillis;
-	@Nullable Integer expireAfterMillis;
-	@Nullable Integer expireAfterCreationMillis;
+	@Nullable Duration claimTimeout;
+	@Nullable Duration expireAfter;
+	@Nullable Duration expireAfterCreation;
 	@Nullable LoadBalancingStrategy loadBalancingStrategy;
 
 	private ConnectionPoolClusterConfig(@Nullable final Integer coreSize, @Nullable final Integer maxSize,
-			@Nullable final Integer claimTimeoutMillis, @Nullable final Integer expireAfterMillis,
-			@Nullable final Integer expireAfterCreationMillis,
+			@Nullable final Duration claimTimeout, @Nullable final Duration expireAfter,
+			@Nullable final Duration expireAfterCreation,
 			@Nullable final LoadBalancingStrategy loadBalancingStrategy) {
 		this.coreSize = coreSize;
 		this.maxSize = maxSize;
-		this.claimTimeoutMillis = claimTimeoutMillis;
-		this.expireAfterMillis = expireAfterMillis;
-		this.expireAfterCreationMillis = expireAfterCreationMillis;
+		DurationMillis.toNullableInt(claimTimeout, "claimTimeout");
+		this.claimTimeout = claimTimeout;
+		DurationMillis.toNullableInt(expireAfter, "expireAfter");
+		this.expireAfter = expireAfter;
+		DurationMillis.toNullableInt(expireAfterCreation, "expireAfterCreation");
+		this.expireAfterCreation = expireAfterCreation;
 		this.loadBalancingStrategy = loadBalancingStrategy;
 	}
 
@@ -49,22 +56,22 @@ public class ConnectionPoolClusterConfig implements Serializable {
 		return maxSize;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer) */
+	/** @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration) */
 	@Nullable
-	public Integer getClaimTimeoutMillis() {
-		return claimTimeoutMillis;
+	public Duration getClaimTimeout() {
+		return claimTimeout;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer) */
+	/** @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration) */
 	@Nullable
-	public Integer getExpireAfterMillis() {
-		return expireAfterMillis;
+	public Duration getExpireAfter() {
+		return expireAfter;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer) */
+	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration) */
 	@Nullable
-	public Integer getExpireAfterCreationMillis() {
-		return expireAfterCreationMillis;
+	public Duration getExpireAfterCreation() {
+		return expireAfterCreation;
 	}
 
 	/** @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy) */
@@ -83,9 +90,9 @@ public class ConnectionPoolClusterConfig implements Serializable {
 	public static final class ConnectionPoolClusterConfigBuilder {
 		private Integer coreSize;
 		private Integer maxSize;
-		private Integer claimTimeoutMillis;
-		private Integer expireAfterMillis;
-		private Integer expireAfterCreationMillis;
+		private Duration claimTimeout;
+		private Duration expireAfter;
+		private Duration expireAfterCreation;
 		private LoadBalancingStrategy loadBalancingStrategy;
 
 		private ConnectionPoolClusterConfigBuilder() {
@@ -139,70 +146,70 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 * MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder claimTimeoutMillis(@Nullable final Integer value) {
-			this.claimTimeoutMillis = value;
+		public ConnectionPoolClusterConfigBuilder claimTimeout(@Nullable final Duration value) {
+			this.claimTimeout = value;
 			return this;
 		}
 
-		/** @see #claimTimeoutMillis(Integer) */
+		/** @see #claimTimeout(Duration) */
 		@Nullable
-		public Integer getClaimTimeoutMillis() {
-			return claimTimeoutMillis;
+		public Duration getClaimTimeout() {
+			return claimTimeout;
 		}
 
-		/** @see #claimTimeoutMillis(Integer) */
+		/** @see #claimTimeout(Duration) */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder clearClaimTimeoutMillis() {
-			this.claimTimeoutMillis = null;
+		public ConnectionPoolClusterConfigBuilder clearClaimTimeout() {
+			this.claimTimeout = null;
 			return this;
 		}
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 * MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder expireAfterMillis(@Nullable final Integer value) {
-			this.expireAfterMillis = value;
+		public ConnectionPoolClusterConfigBuilder expireAfter(@Nullable final Duration value) {
+			this.expireAfter = value;
 			return this;
 		}
 
-		/** @see #expireAfterMillis(Integer) */
+		/** @see #expireAfter(Duration) */
 		@Nullable
-		public Integer getExpireAfterMillis() {
-			return expireAfterMillis;
+		public Duration getExpireAfter() {
+			return expireAfter;
 		}
 
-		/** @see #expireAfterMillis(Integer) */
+		/** @see #expireAfter(Duration) */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder clearExpireAfterMillis() {
-			this.expireAfterMillis = null;
+		public ConnectionPoolClusterConfigBuilder clearExpireAfter() {
+			this.expireAfter = null;
 			return this;
 		}
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)} for its meaning and constraints. Replaces the previous value.
+		 * MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder expireAfterCreationMillis(@Nullable final Integer value) {
-			this.expireAfterCreationMillis = value;
+		public ConnectionPoolClusterConfigBuilder expireAfterCreation(@Nullable final Duration value) {
+			this.expireAfterCreation = value;
 			return this;
 		}
 
-		/** @see #expireAfterCreationMillis(Integer) */
+		/** @see #expireAfterCreation(Duration) */
 		@Nullable
-		public Integer getExpireAfterCreationMillis() {
-			return expireAfterCreationMillis;
+		public Duration getExpireAfterCreation() {
+			return expireAfterCreation;
 		}
 
-		/** @see #expireAfterCreationMillis(Integer) */
+		/** @see #expireAfterCreation(Duration) */
 		@NotNull
-		public ConnectionPoolClusterConfigBuilder clearExpireAfterCreationMillis() {
-			this.expireAfterCreationMillis = null;
+		public ConnectionPoolClusterConfigBuilder clearExpireAfterCreation() {
+			this.expireAfterCreation = null;
 			return this;
 		}
 
@@ -233,8 +240,8 @@ public class ConnectionPoolClusterConfig implements Serializable {
 		/** @return A validated snapshot with defensive copies of supplied mutable data. */
 		@NotNull
 		public ConnectionPoolClusterConfig build() {
-			return new ConnectionPoolClusterConfig(coreSize, maxSize, claimTimeoutMillis, expireAfterMillis,
-					expireAfterCreationMillis, loadBalancingStrategy);
+			return new ConnectionPoolClusterConfig(coreSize, maxSize, claimTimeout, expireAfter,
+					expireAfterCreation, loadBalancingStrategy);
 		}
 	}
 }

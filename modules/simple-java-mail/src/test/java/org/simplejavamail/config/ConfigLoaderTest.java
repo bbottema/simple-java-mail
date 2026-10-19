@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -217,10 +218,10 @@ class ConfigLoaderTest {
 		assertThat(clusters).containsOnlyKeys(ordersKey, bulkKey);
 		assertThat(clusters.get(ordersKey).getCoreSize()).isEqualTo(0);
 		assertThat(clusters.get(ordersKey).getMaxSize()).isEqualTo(2);
-		assertThat(clusters.get(ordersKey).getExpireAfterCreationMillis()).isEqualTo(900000);
+		assertThat(clusters.get(ordersKey).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(900000));
 		assertThat(clusters.get(ordersKey).getLoadBalancingStrategy()).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
 		assertThat(clusters.get(bulkKey).getMaxSize()).isEqualTo(8);
-		assertThat(clusters.get(bulkKey).getExpireAfterCreationMillis()).isNull();
+		assertThat(clusters.get(bulkKey).getExpireAfterCreation()).isNull();
 	}
 
 	@ParameterizedTest
@@ -249,7 +250,7 @@ class ConfigLoaderTest {
 				"simplejavamail.defaults.connectionpool.clusters." + cluster + ".expireaftercreation.millis", Integer.toString(value))).load();
 		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
-		assertThat(clusters.get(cluster).getExpireAfterCreationMillis()).isEqualTo(value);
+		assertThat(clusters.get(cluster).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(value));
 	}
 
 	@Test

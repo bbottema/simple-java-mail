@@ -13,7 +13,7 @@ final class MailSendRetryEligibility {
 	private MailSendRetryEligibility() { }
 
 	static boolean isTemporaryWholeMessageRefusal(final MailSubmissionException failure) {
-		final MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+		final MailSubmissionReceipt receipt = failure.getSubmissionReceipt().orElseThrow();
 		return !hasUnsafeSubmissionFacts(receipt)
 				&& !hasContradictoryRecipientFacts(receipt)
 				&& !hasNonTemporaryTransactionReply(receipt)

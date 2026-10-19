@@ -1,5 +1,6 @@
 package testutil.conformance;
 
+import java.time.Duration;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -62,7 +63,7 @@ public enum RealSmtpServer {
 				.withSMTPServer(endpoints.getProperty(serverName() + ".host", "localhost"), Integer.parseInt(endpoints.getProperty(serverName() + "." + endpoint)))
 				.withTransportStrategy(strategy)
 				.withSmtpClientHostname("client.conformance.test")
-				.withSessionTimeout(10000)
+				.withSessionTimeout(Duration.ofMillis(10000))
 				.withConnectionPoolCoreSize(0)
 				.withConnectionPoolMaxSize(2)
 				.withThreadPoolSize(2);

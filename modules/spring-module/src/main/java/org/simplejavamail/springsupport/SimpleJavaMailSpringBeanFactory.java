@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
@@ -51,7 +52,7 @@ final class SimpleJavaMailSpringBeanFactory {
 		}
 		final MailSendTelemetry configuredTelemetry = mailSendTelemetry.getIfAvailable();
 		if (configuredTelemetry != null) {
-			builder.withMailSendTelemetry(configuredTelemetry);
+			builder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(configuredTelemetry).build());
 		}
 		return builder.buildMailer();
 	}

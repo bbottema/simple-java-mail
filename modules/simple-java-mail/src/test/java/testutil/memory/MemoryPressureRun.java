@@ -1,5 +1,6 @@
 package testutil.memory;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.activation.FileDataSource;
 import jakarta.mail.Message.RecipientType;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -119,15 +120,19 @@ final class MemoryPressureRun implements AutoCloseable {
         final MailerRegularBuilder<?> builder = factory.mailerBuilder().withSMTPServer("127.0.0.1", port)
                 .withTransportStrategy(TransportStrategy.SMTP).withOpportunisticTLS(false)
                 .withSmtpClientHostname("memory.example.test").withProperty("mail.host", "memory.example.test")
-                .withSessionTimeout(15000).withConnectionPoolClaimTimeoutMillis(15000)
-                .withThreadPoolSize(options.concurrency).withThreadPoolKeepAliveTime(3600000)
+                .withSessionTimeout(Duration.ofMillis(15000)).withConnectionPoolClaimTimeout(Duration.ofMillis(15000))
+                .withThreadPoolSize(options.concurrency).withThreadPoolKeepAliveTime(Duration.ofMillis(3600000))
                 .withAsyncQueueCapacity(options.inflight).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(options.concurrency)
-                .withConnectionPoolExpireAfterMillis(3600000);
-        if (observers && options.hasResultObserver()) {
-            builder.withMailSendResultObserver(this::recordResult);
-        }
-        if (observers && options.hasProgressObserver()) {
-            builder.withMailSendProgressObserver(this::recordProgress);
+                .withConnectionPoolExpireAfter(Duration.ofMillis(3600000));
+        if (observers) {
+            final MailSendHandlers.Builder handlers = MailSendHandlers.builder();
+            if (options.hasResultObserver()) {
+                handlers.withResultObserver(this::recordResult);
+            }
+            if (options.hasProgressObserver()) {
+                handlers.withProgressObserver(this::recordProgress);
+            }
+            builder.withSendHandlers(handlers.build());
         }
         return builder;
     }

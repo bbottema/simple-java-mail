@@ -20,11 +20,11 @@ public class MailerHelperTest {
     @Test
     public void validate() {
         val email = newBuilder().buildEmail();
-        assertThat(MailerHelper.validate(email)).isTrue();
-        assertThat(MailerHelper.validate(email, JMail.strictValidator())).isTrue();
+        assertThatNoException().isThrownBy(() -> MailerHelper.validate(email));
+        assertThatNoException().isThrownBy(() -> MailerHelper.validate(email, JMail.strictValidator()));
 
         val emailInvalidFrom = newBuilder().from("invalid", "invalid").buildEmail();
-        assertThat(MailerHelper.validate(emailInvalidFrom)).isTrue();
+        assertThatNoException().isThrownBy(() -> MailerHelper.validate(emailInvalidFrom));
         assertThatThrownBy(() -> MailerHelper.validate(emailInvalidFrom, JMail.strictValidator()))
                 .isInstanceOf(MailInvalidAddressException.class)
                 .hasMessageContaining("Invalid FROM address: invalid");
@@ -40,7 +40,7 @@ public class MailerHelperTest {
         val emailMissingFrom = newBuilder().clearFromRecipient().buildEmail();
         assertThatNoException().isThrownBy(() -> MailerHelper.validateLenient(emailMissingFrom, JMail.strictValidator()));
         val emailInvalidFrom = newBuilder().from("invalid", "invalid").buildEmail();
-        assertThat(MailerHelper.validateLenient(emailInvalidFrom)).isTrue();
+        assertThatNoException().isThrownBy(() -> MailerHelper.validateLenient(emailInvalidFrom));
         assertThatNoException().isThrownBy(() -> MailerHelper.validateLenient(emailInvalidFrom, JMail.strictValidator()));
     }
 

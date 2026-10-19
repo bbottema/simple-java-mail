@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
@@ -85,7 +86,7 @@ class SmtpConnectionFailoverWireTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(SMTP)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(1000)
+                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(1000))
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
     }
 

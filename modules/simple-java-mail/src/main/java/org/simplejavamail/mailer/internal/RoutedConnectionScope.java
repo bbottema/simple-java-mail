@@ -129,17 +129,28 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 	/** Retry waits keep participating Mailers alive, but own no ordinary lease, proxy or sending reservation. */
 	final void closeAttemptResources() throws MessagingException {
 		diagnostics.startCleanup();
+		Throwable primaryFailure = null;
 		try {
-			throwCleanupFailure(executeWithinOwners(this::closeConnectionAndProxy));
-		} catch (MessagingException | RuntimeException | Error failure) {
-			diagnostics.failed();
-			throw failure;
-		} finally {
-			try {
-				releaseReservation();
-			} finally {
-				diagnostics.cleanupCompleted();
+			primaryFailure = executeWithinOwners(this::closeConnectionAndProxy);
+		} catch (RuntimeException | Error failure) {
+			primaryFailure = failure;
+		}
+		try {
+			releaseReservation();
+		} catch (RuntimeException | Error failure) {
+			if (primaryFailure == null) {
+				primaryFailure = failure;
+			} else if (primaryFailure != failure) {
+				primaryFailure.addSuppressed(failure);
 			}
+		}
+		try {
+			if (primaryFailure != null) {
+				diagnostics.failed();
+			}
+			throwCleanupFailure(primaryFailure);
+		} finally {
+			diagnostics.cleanupCompleted();
 		}
 	}
 

@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -41,7 +42,7 @@ public class DependencyChecker extends DemoAppBase {
                 if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     String dependency = group + ":" + artifact + ":" + version;
                     mailerTLSBuilder
-                            .withDebugLogging(false)
+                            .withDebugConfig(SessionDebugConfig.builder().withEnabled(false).build())
                             .buildMailer()
                             .sync().sendMail(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                                     .from("Dependency Checker", "no-reply@dependency-checker.com")

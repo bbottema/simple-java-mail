@@ -37,7 +37,7 @@ class MailSendProgressSmtpTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(20000)
+                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000))
                 .withProperty("mail.host", "localhost")
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
     }
@@ -82,13 +82,13 @@ class MailSendProgressSmtpTest {
                     peer.reply("250 ok");
                 }
             }
-        }); Mailer mailer = builder(server.port()).withProperty("mail.smtp.chunksize", chunkSize).withMailSendProgressObserver(event -> {
+        }); Mailer mailer = builder(server.port()).withProperty("mail.smtp.chunksize", chunkSize).withSendHandlers(MailSendHandlers.builder().withProgressObserver(event -> {
             reportedStages.add(event.getStage());
             if (event.getStage() == MailSendProgressStage.WAITING_FOR_RESPONSE) {
                 atFinalReply.set(event);
                 waiting.countDown();
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             try (Mailer unobserved = builder(server.port()).withProperty("mail.smtp.chunksize", chunkSize).buildMailer()) {
                 unobserved.sync().sendMail(SmtpContentNegotiationCharacterizationTest.exactEmail(exactContent));
             }
@@ -114,8 +114,7 @@ class MailSendProgressSmtpTest {
     void preparationFailureAndLoggingOnlyFinishWithoutFictionalSmtpWork() throws Exception {
         final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
         final List<MailSendOutcome> results = new CopyOnWriteArrayList<>();
-        try (Mailer mailer = builder(25).withTransportModeLoggingOnly(true).withMailSendProgressObserver(progress::add)
-                .withMailSendResultObserver(results::add).buildMailer()) {
+        try (Mailer mailer = builder(25).withTransportModeLoggingOnly(true).withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(results::add).build()).buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(mail.emailBuilder().startingBlank().buildEmail())).isInstanceOf(RuntimeException.class);
             final MailSendProgress failed = awaitFinished(progress);
             assertThat(failed.getSubmissionAttempt()).isZero();
@@ -134,7 +133,7 @@ class MailSendProgressSmtpTest {
         final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
         final List<MailSendOutcome> results = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port())
-                .withMailSendProgressObserver(progress::add).withMailSendResultObserver(results::add).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(results::add).build()).buildMailer()) {
             mailer.sync().sendMailsInSimpleBatch(Arrays.asList(email(), email()));
             assertThat(server.connectionCount()).isEqualTo(1);
             mailer.withOpenConnection(sender -> sender.sendMail(email()));
@@ -161,7 +160,7 @@ class MailSendProgressSmtpTest {
         final BlockingQueue<Runnable> executor = new LinkedBlockingQueue<>();
         final AtomicInteger callbacks = new AtomicInteger();
         try (RecordingSmtpServer server = new RecordingSmtpServer()) {
-            final Mailer mailer = builder(server.port()).withMailSendProgressObserver(ignored -> callbacks.incrementAndGet(), executor::add).buildMailer();
+            final Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(ignored -> callbacks.incrementAndGet(), executor::add).build()).buildMailer();
             try {
                 mailer.sync().sendMail(email());
                 final Runnable waiting = take(executor);
@@ -180,12 +179,12 @@ class MailSendProgressSmtpTest {
         final AtomicReference<Mailer> reference = new AtomicReference<>();
         final AtomicReference<Throwable> failure = new AtomicReference<>();
         final CountDownLatch closed = new CountDownLatch(1);
-        try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port()).withMailSendProgressObserver(event -> {
+        try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(event -> {
             if (closed.getCount() != 0 && event.getStage() != MailSendProgressStage.WAITING_FOR_EXECUTION) {
                 try { reference.get().close(); } catch (Exception problem) { failure.set(problem); }
                 closed.countDown();
             }
-        }).buildMailer()) {
+        }).build()).buildMailer()) {
             reference.set(mailer);
             mailer.async().sendMail(email()).getCompletion().get(10, SECONDS);
             assertThat(closed.await(10, SECONDS)).isTrue();
@@ -206,11 +205,11 @@ class MailSendProgressSmtpTest {
                 await(allowReply);
                 return "250 queued";
             });
-        }); Mailer mailer = builder(server.port()).withMailSendProgressObserver(event -> {
+        }); Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(event -> {
             progress.add(event);
             if (event.getStage() == MailSendProgressStage.WAITING_FOR_RESPONSE) { waiting.countDown(); }
             if (event.getStage() == MailSendProgressStage.FINISHED) { finished.countDown(); }
-        }).withMailSendResultObserver(results::add).buildMailer()) {
+        }).withResultObserver(results::add).build()).buildMailer()) {
             try {
                 final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
                 assertThat(waiting.await(15, SECONDS)).isTrue();
@@ -244,11 +243,11 @@ class MailSendProgressSmtpTest {
             connection.acceptMessages(peer, ignored -> submissions.incrementAndGet() == 1 ? "451 retry later" : "250 queued");
         }); Mailer mailer = builder(server.port())
                 .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2).withRetryDelay(Duration.ofMillis(500)).build())
-                .withMailSendResultObserver(results::add).withMailSendProgressObserver(event -> {
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(results::add).withProgressObserver(event -> {
                     progress.add(event);
                     if (event.getStage() == MailSendProgressStage.WAITING_TO_RETRY) { waiting.countDown(); }
                     if (event.getStage() == MailSendProgressStage.FINISHED) { finished.countDown(); }
-                }).buildMailer()) {
+                }).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
             assertThat(waiting.await(5, SECONDS)).isTrue();
             send.getCompletion().get(5, SECONDS);
@@ -273,11 +272,10 @@ class MailSendProgressSmtpTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer);
         });
-                Mailer mailer = builder(server.port()).withMailSendResultObserver(results::add)
-                        .withMailSendProgressObserver(progress::add, notification -> {
+                Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withResultObserver(results::add).withProgressObserver(progress::add, notification -> {
                             progressExecutor.add(notification);
                             progressQueued.countDown();
-                        }).buildMailer()) {
+                        }).build()).buildMailer()) {
             final Email email = email();
             mailer.sync().sendMail(email);
             mailer.async().sendMail(email).getCompletion().get(5, SECONDS);
@@ -297,11 +295,11 @@ class MailSendProgressSmtpTest {
         final CountDownLatch releaseCallback = new CountDownLatch(1);
         final CountDownLatch callbackReturned = new CountDownLatch(1);
         try (RecordingSmtpServer server = new RecordingSmtpServer()) {
-            final Mailer mailer = builder(server.port()).withMailSendProgressObserver(ignored -> {
+            final Mailer mailer = builder(server.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(ignored -> {
                 callbackEntered.countDown();
                 await(releaseCallback);
                 callbackReturned.countDown();
-            }, Runnable::run).buildMailer();
+            }, Runnable::run).build()).buildMailer();
             try {
                 final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
                 assertThat(callbackEntered.await(5, SECONDS)).isTrue();

@@ -1,12 +1,17 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+
 import jakarta.mail.Session;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.util.DurationMillis;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.config.ConfigLoader.Property;
 
 import java.util.Arrays;
@@ -27,23 +32,30 @@ final class MailerSessionSettings {
 
     @Nullable private final TransportStrategy transportStrategy;
     private final Map<String, Object> connectionOverrides;
-    @Nullable private final Integer sessionTimeout;
+    @Nullable private final Duration sessionTimeout;
     @Nullable private final String localBindAddress;
     @Nullable private final Integer localBindPort;
     @Nullable private final String smtpClientHostname;
     private final List<String> sslHostsToTrust;
     private final boolean trustAllSSLHost;
     private final boolean verifyingServerIdentity;
+    private final SessionDebugConfig debugConfig;
+    @Getter(AccessLevel.NONE) private final boolean applyDebugEnabled;
+    @Getter(AccessLevel.NONE) private final boolean applyDebugOutput;
+
+    boolean shouldApplyDebugEnabled() { return applyDebugEnabled; }
+    boolean shouldApplyDebugOutput() { return applyDebugOutput; }
 
     static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
-            final Properties additionalProperties, final Map<Property, Object> connectionChoices, final Map<String, Object> lockedValues) {
+            final Properties additionalProperties, final Map<Property, Object> connectionChoices, final Map<String, Object> lockedValues,
+            final boolean applyDebugEnabled, final boolean applyDebugOutput) {
         final Properties effective = copyProperties(suppliedSession);
         effective.putAll(additionalProperties);
         final Map<String, Object> overrides = connectionOverrides(strategy, connectionChoices, effective);
         applyOverrides(effective, overrides);
         verifyRemovedSettings(effective, overrides);
         applyLockedExtraProperties(effective, lockedValues);
-        return snapshot(strategy, overrides, effective);
+        return snapshot(strategy, overrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput);
     }
 
     /** Package-private Mailer test constructors supply already-resolved configuration rather than a builder's customization history. */
@@ -51,7 +63,7 @@ final class MailerSessionSettings {
         final Map<Property, Object> choices = new LinkedHashMap<>();
         if (strategy != null) {
             if (config.getSessionTimeout() != null) {
-                choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, config.getSessionTimeout());
+                choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(config.getSessionTimeout(), "sessionTimeout"));
             }
             if (config.getLocalBindAddress() != null) {
                 choices.put(Property.SMTP_LOCAL_ADDRESS, config.getLocalBindAddress());
@@ -66,7 +78,7 @@ final class MailerSessionSettings {
             choices.put(DEFAULT_TRUST_ALL_HOSTS, config.isTrustAllSSLHost());
             choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, config.isVerifyingServerIdentity());
         }
-        return resolve(null, strategy, config.getProperties(), choices, Collections.emptyMap());
+        return resolve(null, strategy, config.getProperties(), choices, Collections.emptyMap(), true, true);
     }
 
     private static Properties copyProperties(@Nullable final Session suppliedSession) {
@@ -154,10 +166,13 @@ final class MailerSessionSettings {
     }
 
     private static MailerSessionSettings snapshot(@Nullable final TransportStrategy strategy, final Map<String, Object> overrides,
-            final Properties effective) {
+            final Properties effective, @Nullable final Session suppliedSession, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
         final String trusted = strategy == null ? null : effective.getProperty(strategy.propertyNameSSLTrust());
         return MailerSessionSettings.builder()
                 .transportStrategy(strategy)
+                .debugConfig(debugBaseline(suppliedSession))
+                .applyDebugEnabled(applyDebugEnabled)
+                .applyDebugOutput(applyDebugOutput)
                 .connectionOverrides(Collections.unmodifiableMap(new LinkedHashMap<>(overrides)))
                 .sessionTimeout(commonTimeout(effective, strategy))
                 .localBindAddress(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalAddress()))
@@ -167,6 +182,12 @@ final class MailerSessionSettings {
                 .trustAllSSLHost("*".equals(trusted))
                 .verifyingServerIdentity(strategy != null && booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())))
                 .build();
+    }
+
+    private static SessionDebugConfig debugBaseline(@Nullable final Session suppliedSession) {
+        return suppliedSession == null
+                ? SessionDebugConfig.builder().withEnabled(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG).withOutput(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG_OUTPUT).build()
+                : SessionDebugConfig.builder().withEnabled(suppliedSession.getDebug()).withPrinter(suppliedSession.getDebugOut()).build();
     }
 
     private static List<String> trustedHosts(@Nullable final String trusted) {
@@ -179,14 +200,14 @@ final class MailerSessionSettings {
     }
 
     @Nullable
-    private static Integer commonTimeout(final Properties effective, @Nullable final TransportStrategy strategy) {
+    private static Duration commonTimeout(final Properties effective, @Nullable final TransportStrategy strategy) {
         if (strategy == null) {
             return null;
         }
         final Integer connection = integerValue(propertyValue(effective, strategy.propertyNameConnectionTimeout()));
         final Integer read = integerValue(propertyValue(effective, strategy.propertyNameTimeout()));
         final Integer write = integerValue(propertyValue(effective, strategy.propertyNameWriteTimeout()));
-        return connection != null && connection.equals(read) && connection.equals(write) ? connection : null;
+        return connection != null && connection.equals(read) && connection.equals(write) ? Duration.ofMillis(connection) : null;
     }
 
     @Nullable

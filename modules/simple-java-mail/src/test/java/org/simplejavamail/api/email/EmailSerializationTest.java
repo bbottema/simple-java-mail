@@ -144,7 +144,7 @@ class EmailSerializationTest {
 				.containsExactly(smimeSigningConfig.getPkcs12Config().getPkcs12StoreData());
 		assertForwardedMessage(restored.getEmailToForward());
 
-		assertThat(MailerHelper.validate(restored)).isTrue();
+		MailerHelper.validate(restored);
 		assertThatNoException().isThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(restored).buildEmail());
 	}
 

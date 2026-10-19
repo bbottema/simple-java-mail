@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
@@ -40,7 +41,7 @@ class FailoverSmtpContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSubmissionReceipt receipt = send(initiating, email(), asynchronous);
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
             assertSuccessfulOutcome(outcomes, receipt);
@@ -57,7 +58,7 @@ class FailoverSmtpContractTest {
              Mailer destination = builder(factory(), secondary.port()).buildMailer()) {
             final var configured = builder(primary.port()).withFailoverMailer(destination, policy());
             if (observed) {
-                configured.withMailSendResultObserver(outcomes::add);
+                configured.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
             }
             try (Mailer initiating = configured.buildMailer()) {
                 final MailSubmissionReceipt receipt = send(initiating, email(), asynchronous);
@@ -98,7 +99,7 @@ class FailoverSmtpContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = unavailableServer(); RecordingSmtpServer secondary = unavailableServer();
              Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> send(initiating, email(), asynchronous));
             assertThat(failure).isInstanceOf(MailException.class);
             assertThat(outcomes).hasSize(1);
@@ -141,12 +142,12 @@ class FailoverSmtpContractTest {
             peer.reply("550 no such mailbox");
             connection.acceptMessages(peer);
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withMailSendResultObserver(outcomes::add).buildMailer()) {
+             Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Email message = MAIL.emailBuilder().copying(email()).withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("rejected@example.test").withType(RecipientType.TO).build())
                     .withSendingToAcceptedRecipients(partial).buildEmail();
             final Throwable failure = catchThrowable(() -> send(initiating, message, asynchronous));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
             assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipt);

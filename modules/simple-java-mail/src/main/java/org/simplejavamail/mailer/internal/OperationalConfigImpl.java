@@ -14,6 +14,8 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.internal.util.PropertyDiagnosticText;
 
@@ -41,10 +43,10 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final Properties properties;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Duration)
 	 */
 	@Nullable
-	private final Integer sessionTimeout;
+	private final Duration sessionTimeout;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withLocalBindAddress(String)
@@ -68,11 +70,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	/** @see OperationalConfig#isLegacySmtpContentSupportEnabled() */
 	private final boolean legacySmtpContentSupportEnabled;
 
-	/** @see OperationalConfig#isMailSendTelemetryEnabled() */
-	private final boolean mailSendTelemetryEnabled;
-
-	/** @see OperationalConfig#isMailSendTelemetrySmtpEndpointAttributesEnabled() */
-	private final boolean mailSendTelemetrySmtpEndpointAttributesEnabled;
+	/** @see OperationalConfig#getTelemetryConfig() */
+	@NotNull private final MailSendTelemetryConfig telemetryConfig;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolSize(Integer)
@@ -80,9 +79,9 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int threadPoolSize;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolKeepAliveTime(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withThreadPoolKeepAliveTime(Duration)
 	 */
-	private final int threadPoolKeepAliveTime;
+	private final Duration threadPoolKeepAliveTime;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withClusterKey(UUID)
@@ -101,20 +100,20 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final int connectionPoolMaxSize;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolClaimTimeoutMillis(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)
 	 */
-	private final int connectionPoolClaimTimeoutMillis;
+	private final Duration connectionPoolClaimTimeout;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterMillis(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)
 	 */
-	private final int connectionPoolExpireAfterMillis;
+	private final Duration connectionPoolExpireAfter;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterCreationMillis(Integer)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)
 	 */
 	@Nullable
-	private final Integer connectionPoolExpireAfterCreationMillis;
+	private final Duration connectionPoolExpireAfterCreation;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
@@ -133,16 +132,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	 */
 	private final boolean transportModeLoggingOnly;
 	
-	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugLogging(Boolean)
-	 */
-	private final boolean debugLogging;
-
-	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withDebugPrinter(PrintStream)
-	 */
-	@Nullable
-	private final PrintStream debugPrinter;
+	/** @see OperationalConfig#getDebugConfig() */
+	@NotNull private final SessionDebugConfig debugConfig;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#disablingAllClientValidation(Boolean)

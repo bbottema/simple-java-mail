@@ -63,7 +63,7 @@ public class SimpleJavaMailSpringSupport {
 	 * Builds the context's default Mailer from a fresh {@link MailerRegularBuilder}, using any selected OAuth2 and mail-send telemetry beans.
 	 * Spring closes the Mailer with the application context; the application keeps ownership of its telemetry SDK.
 	 *
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withMailSendTelemetry(MailSendTelemetry)
+	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withTelemetryConfig(org.simplejavamail.api.mailer.config.MailSendTelemetryConfig)
 	 */
 	@Bean(destroyMethod = "close")
 	public Mailer defaultMailer(@NotNull final SimpleJavaMail simpleJavaMail,

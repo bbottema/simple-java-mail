@@ -53,12 +53,12 @@ class MailSendProgressBoundaryTest {
                 return "250 queued";
             });
         }); Mailer mailer = builder(server.port()).withThreadPoolSize(2).withConnectionPoolMaxSize(2)
-                .withMailSendResultObserver(outcomes::add).withMailSendProgressObserver(event -> {
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).withProgressObserver(event -> {
                     progress.add(event);
                     if (event.getStage() == MailSendProgressStage.WAITING_FOR_RESPONSE && waitingIds.add(event.getObservationId())) {
                         waiting.countDown();
                     }
-                }).buildMailer()) {
+                }).build()).buildMailer()) {
             try {
                 final Email original = email();
                 final MailSend<MailSubmissionReceipt> first = mailer.async().sendMail(original);
@@ -107,7 +107,7 @@ class MailSendProgressBoundaryTest {
             }
         };
         try (Mailer mailer = builder(25).withCustomMailer(custom).withAsyncQueueCapacity(0)
-                .withMailSendProgressObserver(progress::add).withMailSendResultObserver(outcomes::add).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             try {
                 final MailSend<MailSubmissionReceipt> first = mailer.async().sendMail(email());
                 assertThat(invoked.await(10, SECONDS)).isTrue();
@@ -147,7 +147,7 @@ class MailSendProgressBoundaryTest {
         final Email email = mail.emailBuilder().copying(email()).withAttachment("report.bin", content).buildEmail();
         try (RecordingSmtpServer baseline = new RecordingSmtpServer(); RecordingSmtpServer observed = new RecordingSmtpServer();
                 Mailer plainMailer = builder(baseline.port()).buildMailer();
-                Mailer progressMailer = builder(observed.port()).withMailSendProgressObserver(ignored -> { }).buildMailer()) {
+                Mailer progressMailer = builder(observed.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(ignored -> { }).build()).buildMailer()) {
             plainMailer.sync().sendMail(email);
             final int withoutProgress = reads.getAndSet(0);
             progressMailer.sync().sendMail(email);
@@ -170,10 +170,7 @@ class MailSendProgressBoundaryTest {
         final AtomicInteger reported = new AtomicInteger();
         final AtomicInteger displayed = new AtomicInteger();
         try (Mailer mailer = builder(25).withTransportModeLoggingOnly(true)
-                .withMailSendResultObserver(ignored -> replaced.incrementAndGet())
-                .withMailSendProgressObserver(ignored -> replaced.incrementAndGet())
-                .withMailSendResultObserver(ignored -> reported.incrementAndGet(), results::add)
-                .withMailSendProgressObserver(ignored -> displayed.incrementAndGet(), progress::add).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(ignored -> replaced.incrementAndGet()).withProgressObserver(ignored -> replaced.incrementAndGet()).withResultObserver(ignored -> reported.incrementAndGet(), results::add).withProgressObserver(ignored -> displayed.incrementAndGet(), progress::add).build()).buildMailer()) {
             mailer.sync().sendMail(email());
             assertThat(replaced).hasValue(0);
             assertThat(reported).hasValue(0);
@@ -192,10 +189,9 @@ class MailSendProgressBoundaryTest {
         final AtomicInteger destinationCallbacks = new AtomicInteger();
         try (ScriptedSmtpServer unavailable = new ScriptedSmtpServer(1, peer -> peer.reply("421 try another relay"));
                 RecordingSmtpServer available = new RecordingSmtpServer();
-                Mailer destination = builder(available.port()).withMailSendProgressObserver(ignored -> destinationCallbacks.incrementAndGet())
-                        .withMailSendResultObserver(ignored -> destinationCallbacks.incrementAndGet()).buildMailer();
+                Mailer destination = builder(available.port()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(ignored -> destinationCallbacks.incrementAndGet()).withResultObserver(ignored -> destinationCallbacks.incrementAndGet()).build()).buildMailer();
                 Mailer initiator = builder(unavailable.port()).withFailoverMailer(destination, FailoverPolicy.builder().build())
-                        .withMailSendProgressObserver(progress::add).withMailSendResultObserver(outcomes::add).buildMailer()) {
+                        .withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSubmissionReceipt receipt = initiator.async().sendMail(email()).getCompletion().get(15, SECONDS);
             final List<MailSendProgress> delivered = throughFinished(progress);
             assertThat(delivered).extracting(MailSendProgress::getObservationId).containsOnly(outcomes.get(0).getObservationId());
@@ -212,8 +208,7 @@ class MailSendProgressBoundaryTest {
         final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port())
-                .withMessageRateLimit(1, Duration.ofHours(1)).withMailSendProgressObserver(progress::add)
-                .withMailSendResultObserver(outcomes::add).buildMailer()) {
+                .withMessageRateLimit(1, Duration.ofHours(1)).withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.sync().sendMail(email());
             throughFinished(progress);
             final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email());
@@ -249,7 +244,7 @@ class MailSendProgressBoundaryTest {
                 }
             }
         };
-        try (Mailer mailer = builder(25).withCustomMailer(custom).withMailSendProgressObserver(progress::add).buildMailer()) {
+        try (Mailer mailer = builder(25).withCustomMailer(custom).withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).build()).buildMailer()) {
             try {
                 final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
                 assertThat(invoked.await(10, SECONDS)).isTrue();
@@ -274,7 +269,7 @@ class MailSendProgressBoundaryTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(20000)
+                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000))
                 .withProperty("mail.host", "localhost").withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
     }
 

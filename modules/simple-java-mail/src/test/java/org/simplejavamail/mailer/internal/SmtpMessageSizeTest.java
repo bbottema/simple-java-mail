@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,7 @@ class SmtpMessageSizeTest {
             peer.greet("250-localhost\r\n250 SIZE " + content.length);
             assertThat(acceptSizedMessage(peer, (long) content.length).getBytes(UTF_8)).containsExactly(content);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final MailSubmissionReceipt receipt = asynchronous
                     ? mailer.async().sendMail(exactEmail(content)).getCompletion().get(10, SECONDS) : mailer.sync().sendMail(exactEmail(content));
             assertThat(receipt.getMessageSize()).isEqualTo((long) content.length);
@@ -84,12 +85,12 @@ class SmtpMessageSizeTest {
             // No MAIL, RCPT, DATA or RSET for the oversized attempt; only the following small message arrives.
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.sync().sendMail(exactEmail(small));
             final Throwable thrown = catchThrowable(() -> mailer.sync().sendMail(exactEmail(large)));
             assertThat(thrown).isInstanceOf(MailSubmissionException.class).hasCauseInstanceOf(MailTransportCompatibilityException.class);
             assertThat(thrown.getCause()).hasMessageContaining("Reduce its content or attachments");
-            final MailSubmissionReceipt failure = ((MailSubmissionException) thrown).getSubmissionReceipt();
+            final MailSubmissionReceipt failure = ((MailSubmissionException) thrown).getSubmissionReceipt().orElseThrow();
             assertThat(failure.getMessageSize()).isEqualTo((long) large.length);
             assertThat(failure.getServerMaximumMessageSize()).isEqualTo((long) small.length);
             assertThat(failure.getStatus()).isEqualTo(REJECTED);
@@ -216,7 +217,7 @@ class SmtpMessageSizeTest {
         }); Mailer mailer = builder(server).withProperty("mail.smtp.mailextension", "SIZE=1 size=2").buildMailer()) {
             final Throwable thrown = catchThrowable(() -> mailer.sync().sendMail(exactEmail(eml("small\r\n"))));
             assertThat(thrown).hasCauseInstanceOf(MailTransportCompatibilityException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getServerMaximumMessageSize()).isEqualTo(99999L);
             assertThat(receipt.getMessageSize()).isNull();
         }
@@ -237,7 +238,7 @@ class SmtpMessageSizeTest {
             peer.greet("250-localhost\r\n250 SIZE " + small.length);
             acceptSizedMessage(peer, (long) small.length);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> {
                 if (asynchronous) {
                     mailer.async().sendMailsInSimpleBatch(emails).getCompletion().get(10, SECONDS);
@@ -286,7 +287,7 @@ class SmtpMessageSizeTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withMailSendResultObserver(outcomes::add).buildMailer()) {
+        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final List<byte[]> content = new ArrayList<>();
             final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
             for (int index = 0; index < 16; index++) {
@@ -301,7 +302,7 @@ class SmtpMessageSizeTest {
                     receipt = sends.get(index).getCompletion().get(15, SECONDS);
                 } catch (ExecutionException failure) {
                     assertThat(failure.getCause()).isInstanceOf(MailSubmissionException.class);
-                    receipt = ((MailSubmissionException) failure.getCause()).getSubmissionReceipt();
+                    receipt = ((MailSubmissionException) failure.getCause()).getSubmissionReceipt().orElseThrow();
                 }
                 assertThat(receipt.getEmailId()).isEqualTo("<size-" + index + "@example.test>");
                 assertThat(receipt.getMessageSize()).isEqualTo((long) content.get(index).length);
@@ -339,7 +340,7 @@ class SmtpMessageSizeTest {
                 try {
                     receipts.add(large.sync().sendMail(exactEmail(content)));
                 } catch (MailSubmissionException failure) {
-                    receipts.add(failure.getSubmissionReceipt());
+                    receipts.add(failure.getSubmissionReceipt().orElseThrow());
                 }
             }
             assertThat(receipts).extracting(MailSubmissionReceipt::getServerMaximumMessageSize).containsExactlyInAnyOrder(1L, 99999L);
@@ -380,7 +381,7 @@ class SmtpMessageSizeTest {
                     .withEnvelopeRecipients(RECIPIENT).fixingEnvelopeId("not-issued").withTlsRequiredForOnwardDelivery().buildEmail();
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email));
             assertThat(failure).hasCauseInstanceOf(MailTransportCompatibilityException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getMessageSize()).isEqualTo((long) content.length);
             assertThat(receipt.getEnvelopeId()).isNull();
             assertThat(receipt.isRequireTlsUsed()).isFalse();
@@ -400,7 +401,7 @@ class SmtpMessageSizeTest {
         }); Mailer mailer = builder(server).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(exactEmail(content)));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
-            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+            final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getMessageSize()).isEqualTo((long) content.length);
             assertThat(receipt.getServerMaximumMessageSize()).isEqualTo(99999L);
             assertThat(receipt.getSmtpResponse()).hasValueSatisfying(reply -> assertThat(reply.getReturnCode()).isEqualTo(552));

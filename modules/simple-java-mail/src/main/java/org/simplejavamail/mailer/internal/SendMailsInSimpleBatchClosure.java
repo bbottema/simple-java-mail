@@ -13,6 +13,7 @@ import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.An
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
@@ -45,6 +46,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private final boolean transportModeLoggingOnly;
 	@Nullable private Email currentEmail;
 	@Nullable private MailSendAttempt currentMailSendAttempt;
+	@Nullable private RuntimeException handlerInitializationFailure;
 	@Nullable private MailSendTelemetryBridge.Scope currentTelemetryScope;
 	@NotNull private final MailSendControl control;
 	@NotNull private final SendingAllowance sendingAllowance;
@@ -108,6 +110,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		while (emailIterator.hasNext()) {
 			val email = prepareNextEmail(emailIterator);
 			control.checkStopped();
+			MailSubmissionReceipt receipt = null;
 			try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
 				currentDiagnostics().startMimePreparation();
 				final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
@@ -116,8 +119,13 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 				currentDiagnostics().startSubmission();
 				allowance.commit(control);
 				TransportRunner.invokeCustomMailer(operationalConfig, session, email, message, currentDiagnostics());
+				receipt = TransportRunner.buildReceipt(email, null);
+				currentDiagnostics().receiptProduced(receipt);
+			} catch (RuntimeException failure) {
+				if (receipt != null) { throw new MailSendCleanupException("Individual send cleanup failed in the simple batch", failure, receipt); }
+				throw failure;
 			}
-			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
+			completeCurrentSendSuccessfully(receipt);
 		}
 	}
 
@@ -137,10 +145,14 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 									sendingAllowance, control, currentDiagnostics()));
 							continue;
 						}
+						MailSubmissionReceipt receipt = null;
 						try (SendingAllowance.Reservation allowance = EmailSendingAllowance.reserve(sendingAllowance, session, email, control, currentDiagnostics())) {
-							completeCurrentSendSuccessfully(TransportRunner.sendMessageOnTransport(
-									ownedTransport, session, email, control, currentDiagnostics(), allowance));
+							receipt = TransportRunner.sendMessageOnTransport(ownedTransport, session, email, control, currentDiagnostics(), allowance);
+						} catch (RuntimeException failure) {
+							if (receipt != null) { throw new MailSendCleanupException("Individual send cleanup failed in the simple batch", failure, receipt); }
+							throw failure;
 						}
+						completeCurrentSendSuccessfully(receipt);
 					}
 				} catch (Exception failure) {
 					throw reportFailure(failure);
@@ -157,9 +169,15 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private Email prepareNextEmail(@NotNull final Iterator<Email> emailIterator) {
 		currentEmail = null;
 		currentMailSendAttempt = null;
+		handlerInitializationFailure = null;
 		control.checkStopped();
 		final Email userProvidedEmail = verifyNonnull(emailIterator.next());
-		currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail, control);
+		try {
+			currentMailSendAttempt = mailSendObserverNotifier.beginAttempt(userProvidedEmail, control);
+		} catch (RuntimeException failure) {
+			handlerInitializationFailure = failure;
+			throw failure;
+		}
 		currentTelemetryScope = currentMailSendAttempt.attachTelemetry();
 		currentMailSendAttempt.readyForAdmission();
 		currentMailSendAttempt.started();
@@ -203,6 +221,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	/** Freeze the failure before connection cleanup, then notify while the shared transport is still in scope. */
 	private RuntimeException reportFailure(@NotNull final Exception cause) {
+		if (cause == handlerInitializationFailure) { return handlerInitializationFailure; }
 		final RuntimeException failure = control.translateFailure(cause instanceof MailException
 				? (MailException) cause : createMailerException(cause));
 		completeCurrentSendWithFailure(failure);

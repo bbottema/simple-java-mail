@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
  * The Mailer delivers progress independently of sending, one callback at a time. If you share an observer between Mailers, make it thread-safe:
  * different Mailers can call it concurrently. The builder registration documents the reporting limits and executor choices.
  *
- * @see MailerGenericBuilder#withMailSendProgressObserver(MailSendProgressObserver)
+ * @see MailSendHandlers.Builder#withProgressObserver(MailSendProgressObserver)
  */
 @FunctionalInterface
 public interface MailSendProgressObserver {

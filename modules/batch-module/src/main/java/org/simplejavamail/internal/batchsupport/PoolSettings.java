@@ -14,6 +14,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.batch.BatchLoadBalancingStrategy;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.DurationMillis;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;
 
@@ -48,8 +49,8 @@ final class PoolSettings {
 
 	static PoolSettings from(final BatchTransportPoolConfiguration configuration) {
 		return new PoolSettings(configuration.getCorePoolSize(), configuration.getMaxPoolSize(),
-				configuration.getClaimTimeoutMillis(), configuration.getExpireAfterMillis(),
-				configuration.getExpireAfterCreationMillis(),
+				DurationMillis.toInt(configuration.getClaimTimeout(), "claimTimeout"), DurationMillis.toInt(configuration.getExpireAfter(), "expireAfter"),
+				DurationMillis.toNullableInt(configuration.getExpireAfterCreation(), "expireAfterCreation"),
 				configuration.getLoadBalancingStrategy());
 	}
 
@@ -62,12 +63,12 @@ final class PoolSettings {
 						? clusterConfig.getCoreSize() : operationalConfig.getConnectionPoolCoreSize(),
 				clusterConfig != null && clusterConfig.getMaxSize() != null
 						? clusterConfig.getMaxSize() : operationalConfig.getConnectionPoolMaxSize(),
-				clusterConfig != null && clusterConfig.getClaimTimeoutMillis() != null
-						? clusterConfig.getClaimTimeoutMillis() : operationalConfig.getConnectionPoolClaimTimeoutMillis(),
-				clusterConfig != null && clusterConfig.getExpireAfterMillis() != null
-						? clusterConfig.getExpireAfterMillis() : operationalConfig.getConnectionPoolExpireAfterMillis(),
-				clusterConfig != null && clusterConfig.getExpireAfterCreationMillis() != null
-						? clusterConfig.getExpireAfterCreationMillis() : operationalConfig.getConnectionPoolExpireAfterCreationMillis(),
+				DurationMillis.toInt(clusterConfig != null && clusterConfig.getClaimTimeout() != null
+						? clusterConfig.getClaimTimeout() : operationalConfig.getConnectionPoolClaimTimeout(), "connectionPoolClaimTimeout"),
+				DurationMillis.toInt(clusterConfig != null && clusterConfig.getExpireAfter() != null
+						? clusterConfig.getExpireAfter() : operationalConfig.getConnectionPoolExpireAfter(), "connectionPoolExpireAfter"),
+				DurationMillis.toNullableInt(clusterConfig != null && clusterConfig.getExpireAfterCreation() != null
+						? clusterConfig.getExpireAfterCreation() : operationalConfig.getConnectionPoolExpireAfterCreation(), "connectionPoolExpireAfterCreation"),
 				toBatchStrategy(clusterConfig != null && clusterConfig.getLoadBalancingStrategy() != null
 						? clusterConfig.getLoadBalancingStrategy() : operationalConfig.getConnectionPoolLoadBalancingStrategy()));
 	}

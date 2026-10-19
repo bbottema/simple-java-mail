@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.batchsupport;
 
+import java.time.Duration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
@@ -30,7 +31,7 @@ class ClaimObservationOwnershipTest {
 	@Test
 	void cancelledPhysicalSetupRetiresTheClaimAssociationBeforeReturning() throws Exception {
 		final PoolSettings settings = PoolSettings.from(BatchTransportPoolConfiguration.builder()
-				.withCorePoolSize(0).withMaxPoolSize(1).withClaimTimeoutMillis(1000).withExpireAfterMillis(0).build());
+				.withCorePoolSize(0).withMaxPoolSize(1).withClaimTimeout(Duration.ofMillis(1000)).withExpireAfter(Duration.ofMillis(0)).build());
 		final BatchTransportEngine<String> engine = new BatchTransportEngine<>(settings);
 		final Session session = mock(Session.class);
 		final Transport transport = mock(Transport.class);
@@ -59,7 +60,7 @@ class ClaimObservationOwnershipTest {
 	@Test
 	void physicalClaimUsesItsScopedObserverAndRemovesItAfterSuccessFailureAndCapacityTimeout() throws Exception {
 		final PoolSettings settings = PoolSettings.from(BatchTransportPoolConfiguration.builder()
-				.withCorePoolSize(0).withMaxPoolSize(1).withClaimTimeoutMillis(1000).withExpireAfterMillis(0).build());
+				.withCorePoolSize(0).withMaxPoolSize(1).withClaimTimeout(Duration.ofMillis(1000)).withExpireAfter(Duration.ofMillis(0)).build());
 		final BatchTransportEngine<String> engine = new BatchTransportEngine<>(settings);
 		final Session session = mock(Session.class);
 		final Transport transport = mock(Transport.class);

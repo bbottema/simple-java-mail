@@ -52,7 +52,7 @@ class MailerValidationTest {
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withEmailDefaults(defaults)
 				.buildMailer()) {
-			assertThat(mailer.validate(draft)).isTrue();
+			mailer.validate(draft);
 		}
 
 		assertThat(draft.getFromRecipient()).isNull();
@@ -76,7 +76,7 @@ class MailerValidationTest {
 					.buildMailer()) {
 			assertThatThrownBy(() -> mailerWithoutOverride.validate(draft, false))
 					.isInstanceOf(MailInvalidAddressException.class);
-			assertThat(mailerWithOverride.validate(draft, false)).isTrue();
+			mailerWithOverride.validate(draft, false);
 		}
 
 		assertThat(draft.getFromRecipient().getAddress()).isEqualTo("not-an-email-address");
@@ -100,11 +100,11 @@ class MailerValidationTest {
 			moduleLoader.when(ModuleLoader::loadDKIMModule).thenReturn(dkimModule);
 			moduleLoader.clearInvocations();
 
-			assertThat(mailer.validate(email, false)).isTrue();
+			mailer.validate(email, false);
 			moduleLoader.verify(ModuleLoader::loadDKIMModule, never());
 			verifyNoInteractions(dkimModule);
 
-			assertThat(mailer.validate(email)).isTrue();
+			mailer.validate(email);
 			verify(dkimModule).signMessageWithDKIM(any(Email.class), any(MimeMessage.class), any(DkimConfig.class), any(Recipient.class));
 		}
 	}
@@ -116,7 +116,7 @@ class MailerValidationTest {
 		try (Mailer mailer = mailerBuilder()
 				.withMaximumEmailSize(4)
 				.buildMailer()) {
-			assertThat(mailer.validate(email, false)).isTrue();
+			mailer.validate(email, false);
 			assertThatThrownBy(() -> mailer.validate(email))
 					.isInstanceOf(EmailTooBigException.class)
 					.hasMessageContaining("exceeds maximum allowed size of 4 bytes");
@@ -135,7 +135,7 @@ class MailerValidationTest {
 		try (Mailer mailer = mailerBuilder()
 				.withCustomMailer(customMailer)
 				.buildMailer()) {
-			assertThat(mailer.validate(validEmail("sender@example.com"))).isTrue();
+			mailer.validate(validEmail("sender@example.com"));
 		}
 
 		verifyNoInteractions(customMailer);

@@ -170,7 +170,7 @@ class MailSendOperationTest {
     }
 
     private static MailSendExecutor executor(final int capacity, final AsyncQueueOverflowPolicy policy) {
-        return new MailSendExecutor(1, 100, new AsyncQueueConfig(capacity, policy, 5000));
+        return new MailSendExecutor(1, 100, new AsyncQueueConfig(capacity, policy, Duration.ofMillis(5000)));
     }
 
     private MailSendOperations operations(final ExecutorService executor, final Duration timeout) {

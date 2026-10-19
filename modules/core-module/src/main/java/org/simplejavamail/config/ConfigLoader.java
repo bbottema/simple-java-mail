@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.simplejavamail.internal.util.SimpleConversions;
 
+import java.time.Duration;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -723,13 +724,13 @@ public final class ConfigLoader {
 					builder.maxSize((Integer) propertyValue);
 					break;
 				case "claimtimeout.millis":
-					builder.claimTimeoutMillis((Integer) propertyValue);
+					builder.claimTimeout(Duration.ofMillis((Integer) propertyValue));
 					break;
 				case "expireafter.millis":
-					builder.expireAfterMillis((Integer) propertyValue);
+					builder.expireAfter(Duration.ofMillis((Integer) propertyValue));
 					break;
 				case "expireaftercreation.millis":
-					builder.expireAfterCreationMillis((Integer) propertyValue);
+					builder.expireAfterCreation(Duration.ofMillis((Integer) propertyValue));
 					break;
 				case "loadbalancing.strategy":
 					builder.loadBalancingStrategy((LoadBalancingStrategy) propertyValue);

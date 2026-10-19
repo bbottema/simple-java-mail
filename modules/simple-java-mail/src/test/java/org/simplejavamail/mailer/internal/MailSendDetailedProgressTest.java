@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -86,7 +87,7 @@ class MailSendDetailedProgressTest {
             peer.reply("250 localhost");
             connection.acceptMessages(peer);
         }); Mailer mailer = builder(server.port(), false, "LOGIN").withSMTPServerUsername(null).withSMTPServerPassword(null)
-                .withProperty("mail.smtp.ehlo", ehloEnabled).withMailSendProgressObserver(stages::record).buildMailer()) {
+                .withProperty("mail.smtp.ehlo", ehloEnabled).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             stages.await(FINISHED);
             assertThat(server.messages()).hasSize(1);
@@ -105,7 +106,7 @@ class MailSendDetailedProgressTest {
                 connection.acceptMessages(peer);
             }
         }); Mailer mailer = builder(server.port(), false, "LOGIN").withSMTPServerUsername(null).withSMTPServerPassword(null)
-                .withMailSendProgressObserver(stages::record).buildMailer()) {
+                .withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> cancelled = mailer.async().sendMail(email());
             stages.await(WAITING_FOR_GREETING);
             cancelled.requestCancellation();
@@ -130,7 +131,7 @@ class MailSendDetailedProgressTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer);
         }); Mailer mailer = builder(server.port(), false, "LOGIN").withTransportStrategy(TransportStrategy.SMTPS)
-                .withSMTPServerUsername(null).withSMTPServerPassword(null).withMailSendProgressObserver(stages::record).buildMailer()) {
+                .withSMTPServerUsername(null).withSMTPServerPassword(null).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             stages.await(FINISHED);
             assertThat(stages.observed).extracting(MailSendProgress::getStage).doesNotContain(NEGOTIATING_TLS);
@@ -148,7 +149,7 @@ class MailSendDetailedProgressTest {
             properties.setProperty("mail.smtp.localhost", "probe.example.test");
             properties.setProperty("mail.smtp.timeout", "20000");
             final Session session = Session.getInstance(properties);
-            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withMailSendProgressObserver(stages::record).buildMailer()) {
+            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
                 assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
                 stages.await(FINISHED);
                 assertThat(stages.observed).extracting(MailSendProgress::getStage).doesNotContain(WAITING_FOR_GREETING,
@@ -171,7 +172,7 @@ class MailSendDetailedProgressTest {
             ready.countDown();
             connection.acceptMessages(peer);
         }); Mailer mailer = builder(server.port(), false, "LOGIN").withSMTPServerUsername(null).withSMTPServerPassword(null)
-                .withConnectionPoolCoreSize(background ? 1 : 0).withMailSendProgressObserver(stages::record).buildMailer()) {
+                .withConnectionPoolCoreSize(background ? 1 : 0).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             if (background) {
                 assertThat(ready.await(15, SECONDS)).isTrue();
                 assertThat(stages.observed).isEmpty();
@@ -191,7 +192,7 @@ class MailSendDetailedProgressTest {
     void retainedScopesDoNotAttributeSharedSetupToIndividualEmails() throws Exception {
         final Stages stages = new Stages();
         try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port(), false, "LOGIN")
-                .withSMTPServerUsername(null).withSMTPServerPassword(null).withMailSendProgressObserver(stages::record).buildMailer()) {
+                .withSMTPServerUsername(null).withSMTPServerPassword(null).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             mailer.sync().sendMailsInSimpleBatch(Arrays.asList(email(), email()));
             stages.nextFinished();
             stages.nextFinished();
@@ -208,7 +209,7 @@ class MailSendDetailedProgressTest {
     void observesActualSetupAndEnvelopeExchanges(final boolean tls, final String mechanism) throws Exception {
         final Stages stages = new Stages();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> conversation(peer, stages, tls, mechanism, null));
-             Mailer mailer = builder(server.port(), tls, mechanism).withMailSendProgressObserver(stages::record).buildMailer()) {
+             Mailer mailer = builder(server.port(), tls, mechanism).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             final MailSubmissionReceipt receipt = mailer.async().sendMail(email()).getCompletion().get(30, SECONDS);
             assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             stages.await(FINISHED);
@@ -231,8 +232,7 @@ class MailSendDetailedProgressTest {
         final Stages stages = new Stages();
         final List<MailSendOutcome> results = new CopyOnWriteArrayList<>();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> conversation(peer, stages, true, "LOGIN", failureStage));
-             Mailer mailer = builder(server.port(), true, "LOGIN").withMailSendProgressObserver(stages::record)
-                     .withMailSendResultObserver(results::add).buildMailer()) {
+             Mailer mailer = builder(server.port(), true, "LOGIN").withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).withResultObserver(results::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email()));
             assertThat(failure).isNotNull();
             stages.await(FINISHED);
@@ -311,7 +311,7 @@ class MailSendDetailedProgressTest {
                 .withTransportStrategy(tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP).withOpportunisticTLS(false)
                 .trustingAllHosts(true).verifyingServerIdentity(false).withSmtpClientHostname("probe.example.test")
                 .withProperty("mail.smtp.auth.mechanisms", mechanism).withProperty("mail.host", "localhost")
-                .withSessionTimeout(20000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
+                .withSessionTimeout(Duration.ofMillis(20000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
     }
 
     private Email email() {

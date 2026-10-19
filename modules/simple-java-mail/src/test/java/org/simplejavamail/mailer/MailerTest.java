@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -120,7 +122,7 @@ public class MailerTest {
 			final Session session = mailer.getSession();
 
 			assertThat(session.getDebug()).isFalse();
-			assertThat(mailer.getOperationalConfig().getDebugPrinter()).isNull();
+			assertThat(mailer.getOperationalConfig().getDebugConfig().getPrinter()).isNull();
 			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("host");
 			assertThat(session.getProperty("mail.smtp.port")).isEqualTo("25");
 			assertThat(session.getProperty("mail.transport.protocol")).isEqualTo("smtp");
@@ -329,13 +331,12 @@ public class MailerTest {
 		PrintStream debugPrinter = new PrintStream(new ByteArrayOutputStream());
 
 		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
-				.withDebugLogging(true)
-				.withDebugPrinter(debugPrinter)
+				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).withPrinter(debugPrinter).build())
 				.buildMailer();
 
 		assertThat(mailer.getSession().getDebug()).isTrue();
 		assertThat(mailer.getSession().getDebugOut()).isSameAs(debugPrinter);
-		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isSameAs(debugPrinter);
+		assertThat(mailer.getOperationalConfig().getDebugConfig().getPrinter()).isSameAs(debugPrinter);
 	}
 
 	@Test
@@ -343,13 +344,13 @@ public class MailerTest {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
-				.withDebugLogging(true)
-				.withDebugOutput(SessionDebugOutput.STDERR)
+				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).withOutput(SessionDebugOutput.STDERR).build())
 				.buildMailer();
 
 		assertThat(mailer.getSession().getDebug()).isTrue();
 		assertThat(mailer.getSession().getDebugOut()).isSameAs(System.err);
-		assertThat(mailer.getOperationalConfig().getDebugPrinter()).isSameAs(System.err);
+		assertThat(mailer.getOperationalConfig().getDebugConfig().getOutput()).isEqualTo(SessionDebugOutput.STDERR);
+		assertThat(mailer.getOperationalConfig().getDebugConfig().getPrinter()).isNull();
 	}
 
 	@Test
@@ -357,12 +358,13 @@ public class MailerTest {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null)
-				.withDebugLogging(true)
-				.withDebugOutput(SessionDebugOutput.SLF4J)
+				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).withOutput(SessionDebugOutput.SLF4J).build())
 				.buildMailer();
 
 		assertThat(mailer.getSession().getDebug()).isTrue();
-		assertThat(mailer.getSession().getDebugOut()).isSameAs(mailer.getOperationalConfig().getDebugPrinter());
+		assertThat(mailer.getOperationalConfig().getDebugConfig().getOutput()).isEqualTo(SessionDebugOutput.SLF4J);
+		assertThat(mailer.getOperationalConfig().getDebugConfig().getPrinter()).isNull();
+		assertThat(mailer.getSession().getDebugOut()).isNotNull();
 		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.out);
 		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.err);
 	}
@@ -789,7 +791,7 @@ public class MailerTest {
 
 		assertThat(failure.getCause()).isSameAs(providerFailure);
 		assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-		final MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+		final MailSubmissionReceipt receipt = failure.getSubmissionReceipt().orElseThrow();
 		assertThat(receipt.getEmailId()).isNotNull();
 		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
 		assertThat(receipt.hasServerAcceptanceInformation()).isTrue();
@@ -820,7 +822,7 @@ public class MailerTest {
 						.isInstanceOfSatisfying(MailSubmissionException.class, failure -> {
 							assertThat(failure.getCause()).isSameAs(providerFailure);
 							assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
-							assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
+							assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
 						});
 			}
 		}
@@ -846,8 +848,8 @@ public class MailerTest {
 				final MailSubmissionException failure = (MailSubmissionException) expected.getCause();
 				assertThat(failure.getCause()).isSameAs(providerFailure);
 				assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
-				assertThat(failure.getSubmissionReceipt().hasServerAcceptanceInformation()).isFalse();
-				assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).isEmpty();
+				assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
+				assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
 			}
 		}
 	}
@@ -862,10 +864,10 @@ public class MailerTest {
 		final List<Integer> activeConnectionsDuringCallbacks = new ArrayList<>();
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
 					outcomes.add(outcome);
-				})
+				}).build())
 				.buildMailer()) {
 			mailer.sync().sendMailsInSimpleBatch(Arrays.asList(
 					createBatchEmail("First batch email", "first@example.com"),
@@ -996,10 +998,10 @@ public class MailerTest {
 		final CountingTransportState transportState = getCountingTransportState(session);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendResultObserver(outcome -> {
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					activeConnectionsDuringCallbacks.add(transportState.activeConnections.get());
 					outcomes.add(outcome);
-				})
+				}).build())
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				receipts.add(sender.sendMail(createBatchEmail("First observed email", "first@example.com")));
@@ -1031,7 +1033,7 @@ public class MailerTest {
 
 		final List<MailSendOutcome> outcomes = new ArrayList<>();
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withMailSendResultObserver(outcomes::add)
+				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
 				.buildMailer()) {
 			try {
 				mailer.withOpenConnection(sender -> sender.sendMail(
@@ -1040,11 +1042,11 @@ public class MailerTest {
 			} catch (final MailSubmissionException failure) {
 				assertThat(failure.getCause()).isSameAs(providerFailure);
 				assertThat(failure.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
-				assertThat(failure.getSubmissionReceipt().getAcceptedRecipients()).containsExactly("accepted@example.com");
-				assertThat(failure.getSubmissionReceipt().getValidUnsentRecipients()).containsExactly("unsent@example.com");
+				assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).containsExactly("accepted@example.com");
+				assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).containsExactly("unsent@example.com");
 				assertThat(outcomes).singleElement().satisfies(outcome -> {
 					assertThat(outcome.getFailure()).containsSame(failure);
-					assertThat(outcome.getSubmissionReceipt()).containsSame(failure.getSubmissionReceipt());
+					assertThat(outcome.getSubmissionReceipt()).containsSame(failure.getSubmissionReceipt().orElseThrow());
 				});
 			}
 		}
@@ -1239,7 +1241,7 @@ public class MailerTest {
 		MailerRegularBuilder<?> mailerBuilder = configuredMail.mailerBuilder()
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
 				.verifyingServerIdentity(true)
-				.withDebugLogging(true);
+				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build());
 
 		if (transportStrategy != null) {
 			mailerBuilder.withTransportStrategy(transportStrategy);

@@ -1,5 +1,7 @@
 package org.simplejavamail.coreconsumer;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.email.Email;
@@ -52,7 +54,7 @@ public final class CoreOnlyConsumer {
         org.simplejavamail.api.email.config.OpenPgpReceiveConfig.builder().clearPassphraseProvider().getPassphraseProvider();
     }
 
-    public static Integer inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
+    public static java.time.Duration inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
         return configuration.getSessionTimeout();
     }
 
@@ -116,15 +118,14 @@ public final class CoreOnlyConsumer {
     }
 
     public static Mailer configureTelemetry(final MailerRegularBuilder<?> builder, final MailSendTelemetry telemetry) {
-        builder.withMailSendTelemetry(telemetry);
-        builder.withMailSendTelemetryEnabled(true);
-        builder.withMailSendTelemetrySmtpEndpointAttributes(true);
-        builder.isMailSendTelemetrySmtpEndpointAttributesEnabled();
-        builder.resetMailSendTelemetrySmtpEndpointAttributes();
-        builder.clearMailSendTelemetrySmtpEndpointAttributes();
+        final MailSendTelemetryConfig configuration = MailSendTelemetryConfig.builder()
+                .withIntegration(telemetry).withEnabled(true).withSmtpEndpointAttributes(true).build();
+        builder.withTelemetryConfig(configuration);
+        builder.getTelemetryConfig().getSmtpEndpointAttributes();
+        builder.withTelemetryConfig(configuration.toBuilder().resetSmtpEndpointAttributes().useConfiguredSmtpEndpointAttributes().build());
         final Mailer mailer = builder.buildMailer();
-        mailer.getOperationalConfig().isMailSendTelemetryEnabled();
-        mailer.getOperationalConfig().isMailSendTelemetrySmtpEndpointAttributesEnabled();
+        mailer.getOperationalConfig().getTelemetryConfig().getEnabled();
+        mailer.getOperationalConfig().getTelemetryConfig().getSmtpEndpointAttributes();
         return mailer;
     }
 
@@ -134,12 +135,13 @@ public final class CoreOnlyConsumer {
         groupBuilder.withRecipient("archive@example.org", RecipientType.BCC).buildRecipients();
         final Email email = emails.startingBlank().from("sender@example.org").withRecipients(recipient)
                 .dontApplyDefaultValueFor(EmailProperty.SUBJECT).withSubject("Core API consumer").buildEmail();
-        final Mailer mailer = mailers.withMailSendResultObserver(CoreOnlyConsumer::inspect)
-                .clearMailSendResultObserver()
-                .withMailSendResultObserver(CoreOnlyConsumer::inspect)
-                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress)
-                .clearMailSendProgressObserver()
-                .withMailSendProgressObserver(CoreOnlyConsumer::inspectProgress)
+        final Mailer mailer = mailers.withSendHandlers(MailSendHandlers.builder()
+                .withResultObserver(CoreOnlyConsumer::inspect).clearResultObserver().withResultObserver(CoreOnlyConsumer::inspect)
+                .withProgressObserver(CoreOnlyConsumer::inspectProgress).clearProgressObserver().withProgressObserver(CoreOnlyConsumer::inspectProgress).build())
+                .withSendIdGenerator(java.util.UUID::randomUUID)
+                .withSendHandlersFactory(id -> MailSendHandlers.builder().withResultObserver(outcome -> {
+                    if (!id.equals(outcome.getObservationId())) { throw new AssertionError("Send identity changed"); }
+                }).build())
                 .buildMailer();
         return mailer.async().sendMail(email);
     }

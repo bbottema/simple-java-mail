@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
 import org.junit.jupiter.api.BeforeAll;
@@ -112,7 +113,7 @@ class SmtpServerConformanceIT {
 		final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
 		final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
 		final List<Properties> deliveries = new ArrayList<>();
-		try (Mailer mailer = server.mailer().withMailSendResultObserver(observed::add).buildMailer()) {
+		try (Mailer mailer = server.mailer().withSendHandlers(MailSendHandlers.builder().withResultObserver(observed::add).build()).buildMailer()) {
 			for (int index = 0; index < 6; index++) {
 				sends.add(mailer.async().sendMail(server.email("parallel-" + index).buildEmail()));
 			}
@@ -156,7 +157,7 @@ class SmtpServerConformanceIT {
 		try (Mailer mailer = server.mailer().withProperty("mail.smtp.sendpartial", "true").buildMailer()) {
 			final Throwable thrown = catchThrowable(() -> mailer.sync().sendMail(mixed));
 			assertThat(thrown).isInstanceOf(MailSubmissionException.class);
-			final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(PARTIALLY_ACCEPTED);
 			assertThat(receipt.getAcceptedRecipients()).containsExactly("recipient@conformance.test", "another@conformance.test");
 			assertThat(receipt.getInvalidRecipients()).containsExactly("reject@conformance.test");
@@ -189,7 +190,7 @@ class SmtpServerConformanceIT {
 		try (Mailer mailer = server.mailer().buildMailer()) {
 			final Throwable thrown = catchThrowable(() -> mailer.sync().sendMail(oversized));
 			assertThat(thrown).isInstanceOf(MailSubmissionException.class);
-			final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = ((MailSubmissionException) thrown).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getMessageSize()).isGreaterThan(receipt.getServerMaximumMessageSize());
 			assertThat(mailer.sync().sendMail(server.email("after-oversized").buildEmail()).getStatus()).isEqualTo(ACCEPTED);
 		}
@@ -280,7 +281,7 @@ class SmtpServerConformanceIT {
 				server.email("pgp-encrypted").signWithOpenPgp(signing).encryptWithOpenPgp(OpenPgpEncryptionConfig.builder()
 						.addRecipientPublicKeyRing(Files.readAllBytes(openPgp.resolve("public-key.asc"))).build()).buildEmail());
 		// Independent signature/decryption checks also verify content sent through the progress-counting stream.
-		try (Mailer mailer = server.mailer().withMailSendProgressObserver(progress::add).buildMailer()) {
+		try (Mailer mailer = server.mailer().withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).build()).buildMailer()) {
 			for (final Email email : emails) {
 				assertThat(mailer.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
 				server.awaitDeliveries(email.getId(), 1);

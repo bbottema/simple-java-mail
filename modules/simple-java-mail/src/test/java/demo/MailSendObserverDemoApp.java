@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
@@ -66,12 +67,11 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 		final AtomicInteger failedCount = new AtomicInteger();
 
 		final Mailer mailer = mailerTLSBuilder
-				.withMailSendProgressObserver(MailSendObserverDemoApp::reportProgress)
-				.withMailSendResultObserver(outcome -> reportResult(
+				.withSendHandlers(MailSendHandlers.builder().withProgressObserver(MailSendObserverDemoApp::reportProgress).withResultObserver(outcome -> reportResult(
 						outcome,
 						completedCount,
 						successfulCount,
-						failedCount))
+						failedCount)).build())
 				.buildMailer();
 		try {
 			final List<CompletableFuture<Void>> completions = new ArrayList<>();

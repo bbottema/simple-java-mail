@@ -1,5 +1,6 @@
 package org.simplejavamail.batch;
 
+import java.time.Duration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
@@ -362,20 +363,20 @@ class BatchTransportExecutorTest {
 				.withMaxPoolSize(1)
 				.build()).isInstanceOf(IllegalArgumentException.class);
 		BatchTransportExecutor<String> noExpiry = BatchTransportExecutor.<String>builder()
-				.withExpireAfterMillis(0)
+				.withExpireAfter(Duration.ofMillis(0))
 				.build();
 		noExpiry.close();
-		assertThat(BatchTransportPoolConfiguration.builder().build().getExpireAfterCreationMillis()).isNull();
+		assertThat(BatchTransportPoolConfiguration.builder().build().getExpireAfterCreation()).isNull();
 		BatchTransportPoolConfiguration configured = BatchTransportPoolConfiguration.builder()
-				.withExpireAfterCreationMillis(900_000)
+				.withExpireAfterCreation(Duration.ofMillis(900_000))
 				.build();
-		assertThat(configured.getExpireAfterCreationMillis()).isEqualTo(900_000);
+		assertThat(configured.getExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
 		assertThat(BatchTransportPoolConfiguration.builder(configured).build()).isEqualTo(configured);
 		assertThat(BatchTransportPoolConfiguration.builder(configured)
-				.clearExpireAfterCreationMillis().build().getExpireAfterCreationMillis()).isNull();
-		assertThat(configured.toString()).contains("expireAfterCreationMillis=900000");
+				.clearExpireAfterCreation().build().getExpireAfterCreation()).isNull();
+		assertThat(configured.toString()).contains("expireAfterCreation=PT15M");
 		assertThatThrownBy(() -> BatchTransportPoolConfiguration.builder()
-				.withExpireAfterCreationMillis(0)
+				.withExpireAfterCreation(Duration.ofMillis(0))
 				.build()).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> BatchTransportExecutor.<String>builder()
 				.withThreadPoolSize(0)
@@ -427,8 +428,8 @@ class BatchTransportExecutorTest {
 		return BatchTransportExecutor.<String>builder()
 				.withCorePoolSize(0)
 				.withMaxPoolSize(2)
-				.withClaimTimeoutMillis(1000)
-				.withExpireAfterMillis(60000);
+				.withClaimTimeout(Duration.ofMillis(1000))
+				.withExpireAfter(Duration.ofMillis(60000));
 	}
 
 	private static void awaitBlockedPoolClaim(final AtomicReference<Thread> thread) throws InterruptedException {

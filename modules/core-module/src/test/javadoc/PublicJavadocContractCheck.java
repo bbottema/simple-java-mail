@@ -52,7 +52,16 @@ public final class PublicJavadocContractCheck {
         requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "RSA_OAEP_SHA512");
         requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "DES_EDE3_CBC");
         requireText("email/config/DkimConfig.DkimConfigBuilder", "SHA256_WITH_ED25519");
-        requireLinkedCompanions("mailer/MailerGenericBuilder", "getDebugOutput", "resetDebugLogging", "clearDebugPrinter", "clearDebugOutput");
+        requireLinkedCompanions("mailer/MailerGenericBuilder", "getDebugConfig", "useConfiguredDebugConfig",
+                "getTelemetryConfig", "useConfiguredTelemetryConfig", "getSendHandlers", "clearSendHandlers",
+                "getSendHandlersFactory", "clearSendHandlersFactory", "getSendIdGenerator", "resetSendIdGenerator");
+        requireLinkedCompanions("mailer/config/SessionDebugConfig.Builder", "getEnabled", "resetEnabled", "useConfiguredEnabled",
+                "getOutput", "resetOutput", "useConfiguredOutput", "getPrinter", "clearPrinter");
+        requireLinkedCompanions("mailer/config/MailSendTelemetryConfig.Builder", "getEnabled", "resetEnabled", "useConfiguredEnabled",
+                "getIntegration", "clearIntegration", "getSmtpEndpointAttributes", "resetSmtpEndpointAttributes", "useConfiguredSmtpEndpointAttributes");
+        requireLinkedCompanions("mailer/MailSendHandlers.Builder", "getResultObserver", "getResultObserverExecutor", "clearResultObserver",
+                "getProgressObserver", "getProgressObserverExecutor", "clearProgressObserver");
+        requireGetters("mailer/MailSendException", "getSubmissionReceipt");
         requireLinkedCompanions("mailer/MailerGenericBuilder", "getFailoverMailer", "getFailoverPolicy");
         if (read("email/Recipients").contains("id=\"&lt;init&gt;()\"")) {
             throw new IllegalStateException("Recipients Javadoc must not advertise a nonexistent no-argument constructor");

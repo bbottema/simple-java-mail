@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import java.time.Duration;
+import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,7 +52,7 @@ class SmtpProtocolConformanceTest {
 			acceptMessage(peer, MAIL_FROM, "", RECIPIENT);
 			expectCommand(peer, "QUIT");
 			peer.reply("421 deliberately unavailable during cleanup");
-		}); Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
+		}); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(observed::add).build()).buildMailer()) {
 			final MailSubmissionReceipt receipt = asynchronous ? mailer.async().sendMail(email()).getCompletion().get(10, SECONDS)
 					: mailer.sync().sendMail(email());
 			assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -63,10 +65,10 @@ class SmtpProtocolConformanceTest {
 	void explicitRejectionRemainsRejectedEvenWhenResetAlsoFails(final RejectionPoint point) throws Exception {
 		final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
 		try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> rejectAt(peer, point));
-			 Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
+			 Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(observed::add).build()).buildMailer()) {
 			final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email()));
 			assertThat(failure).isInstanceOf(MailSubmissionException.class);
-			final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt();
+			final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(REJECTED);
 			assertThat(receipt.getAcceptedRecipients()).isEmpty();
 			assertThat(observed).singleElement().satisfies(outcome -> {
@@ -118,7 +120,7 @@ class SmtpProtocolConformanceTest {
 		try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
 			peer.reply("this is not an SMTP greeting");
 			peer.expectClosed();
-		}); Mailer mailer = builder(server).withMailSendResultObserver(observed::add).buildMailer()) {
+		}); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(observed::add).build()).buildMailer()) {
 			final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email()));
 			assertThat(failure).isNotNull();
 			assertThat(observed).singleElement().satisfies(outcome -> {
@@ -131,7 +133,7 @@ class SmtpProtocolConformanceTest {
 
 	private static MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
 		return MAIL.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-				.withSessionTimeout(3000).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+				.withSessionTimeout(Duration.ofMillis(3000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
 	}
 
 	private static Email email() {

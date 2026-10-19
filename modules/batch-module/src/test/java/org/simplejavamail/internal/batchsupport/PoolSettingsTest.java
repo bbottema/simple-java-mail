@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.batchsupport;
 
+import java.time.Duration;
 import org.bbottema.genericobjectpool.ExpirationPolicy;
 import org.bbottema.genericobjectpool.PoolableObject;
 import org.bbottema.genericobjectpool.expirypolicies.CombinedExpirationPolicies;
@@ -29,13 +30,13 @@ class PoolSettingsTest {
 		final OperationalConfig configuration = mock(OperationalConfig.class);
 		when(configuration.getConnectionPoolCoreSize()).thenReturn(2);
 		when(configuration.getConnectionPoolMaxSize()).thenReturn(1);
-		when(configuration.getConnectionPoolExpireAfterCreationMillis()).thenReturn(null);
+		when(configuration.getConnectionPoolExpireAfterCreation()).thenReturn(null);
 		when(configuration.getConnectionPoolLoadBalancingStrategy()).thenReturn(LoadBalancingStrategy.ROUND_ROBIN);
 		when(configuration.getConnectionPoolClusterConfigs()).thenReturn(Map.of(cluster, ConnectionPoolClusterConfig.builder().coreSize(0).build()));
 		assertThat(PoolSettings.from(configuration, cluster).<String>toSmtpClusterConfig().getConfigBuilder().build().getDefaultCorePoolSize()).isZero();
 		assertThatThrownBy(() -> PoolSettings.from(configuration, UUID.randomUUID())).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("coreSize").hasMessageContaining("maxSize");
-		when(configuration.getConnectionPoolClaimTimeoutMillis()).thenReturn(-1);
+		when(configuration.getConnectionPoolClaimTimeout()).thenReturn(Duration.ofMillis(-1));
 		assertThatThrownBy(() -> PoolSettings.from(configuration, cluster)).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("claimTimeoutMillis");
 	}
@@ -67,14 +68,14 @@ class PoolSettingsTest {
 		UUID overridden = UUID.randomUUID();
 		Map<UUID, ConnectionPoolClusterConfig> clusters = new LinkedHashMap<>();
 		clusters.put(inherited, ConnectionPoolClusterConfig.builder().build());
-		clusters.put(overridden, ConnectionPoolClusterConfig.builder().expireAfterCreationMillis(75).build());
+		clusters.put(overridden, ConnectionPoolClusterConfig.builder().expireAfterCreation(Duration.ofMillis(75)).build());
 
 		OperationalConfig operationalConfig = mock(OperationalConfig.class);
 		when(operationalConfig.getConnectionPoolCoreSize()).thenReturn(0);
 		when(operationalConfig.getConnectionPoolMaxSize()).thenReturn(1);
-		when(operationalConfig.getConnectionPoolClaimTimeoutMillis()).thenReturn(100);
-		when(operationalConfig.getConnectionPoolExpireAfterMillis()).thenReturn(0);
-		when(operationalConfig.getConnectionPoolExpireAfterCreationMillis()).thenReturn(50);
+		when(operationalConfig.getConnectionPoolClaimTimeout()).thenReturn(Duration.ofMillis(100));
+		when(operationalConfig.getConnectionPoolExpireAfter()).thenReturn(Duration.ofMillis(0));
+		when(operationalConfig.getConnectionPoolExpireAfterCreation()).thenReturn(Duration.ofMillis(50));
 		when(operationalConfig.getConnectionPoolLoadBalancingStrategy()).thenReturn(LoadBalancingStrategy.ROUND_ROBIN);
 		when(operationalConfig.getConnectionPoolClusterConfigs()).thenReturn(clusters);
 
@@ -86,9 +87,9 @@ class PoolSettingsTest {
 	private static ExpirationPolicy<SessionTransport> policy(final int expireAfterMillis,
 			final Integer expireAfterCreationMillis) {
 		BatchTransportPoolConfiguration.Builder builder = BatchTransportPoolConfiguration.builder()
-				.withExpireAfterMillis(expireAfterMillis);
+				.withExpireAfter(Duration.ofMillis(expireAfterMillis));
 		if (expireAfterCreationMillis != null) {
-			builder.withExpireAfterCreationMillis(expireAfterCreationMillis);
+			builder.withExpireAfterCreation(Duration.ofMillis(expireAfterCreationMillis));
 		}
 		BatchTransportPoolConfiguration configuration = builder.build();
 		return PoolSettings.from(configuration).<String>toSmtpClusterConfig()

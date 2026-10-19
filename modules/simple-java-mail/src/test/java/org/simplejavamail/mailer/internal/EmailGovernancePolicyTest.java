@@ -78,7 +78,7 @@ class EmailGovernancePolicyTest {
 		final SimpleJavaMail configured = SimpleJavaMail.withConfig(propertyDefaults());
 		final MailerRegularBuilder<?> builder = configured.mailerBuilder().withTransportModeLoggingOnly(true)
 				.withEmailDefaults(configured.emailBuilder().startingBlank().withSubject("explicit template").buildEmail());
-		try (Mailer explicit = builder.buildMailer(); Mailer restored = builder.clearEmailDefaults().buildMailer()) {
+		try (Mailer explicit = builder.buildMailer(); Mailer restored = builder.useConfiguredEmailDefaults().buildMailer()) {
 			final Email explicitDefaults = explicit.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(null);
 			assertThat(explicitDefaults.getSubject()).isEqualTo("explicit template");
 			assertThat(explicitDefaults.getFromRecipient()).isNull();

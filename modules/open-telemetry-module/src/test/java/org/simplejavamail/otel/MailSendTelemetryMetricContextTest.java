@@ -1,5 +1,6 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
@@ -200,8 +201,8 @@ class MailSendTelemetryMetricContextTest {
                 .withProperty("mail.host", "localhost")
                 .withConnectionPoolCoreSize(0)
                 .withConnectionPoolMaxSize(2)
-                .withSessionTimeout(5000)
-                .withMailSendTelemetry(OtelAdapter.wrap(telemetry.sdk));
+                .withSessionTimeout(Duration.ofMillis(5000))
+                .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build());
     }
 
     private Email email() {
