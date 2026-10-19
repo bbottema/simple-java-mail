@@ -338,12 +338,14 @@ class SmtpAuthenticationTlsCharacterizationTest {
     @Test
     void pooledSyncAndAsyncSendsShareOneAuthenticatedTlsConnectionWithoutRefreshingItsToken() throws Exception {
         final AtomicInteger resolutions = new AtomicInteger();
+        // Retirement is tested separately; this fixture must keep one authenticated connection for both sends.
         try (Peer server = new Peer(peer -> {
             establishTls(peer, SMTP_OAUTH2, "250-localhost\r\n250 AUTH XOAUTH2");
             authenticate(peer, "XOAUTH2", TOKEN);
             acceptMessage(peer);
             acceptMessageAndQuit(peer);
-        }); Mailer mailer = oauthBuilder(server.port(), true, resolutions).withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+        }); Mailer mailer = oauthBuilder(server.port(), true, resolutions).withCustomSSLFactoryInstance(trustedFactory())
+                .withConnectionPoolExpireAfterMillis(0).buildMailer()) {
             assertAccepted(mailer);
             assertThat(mailer.async().sendMail(email()).getCompletion().get(10, SECONDS).getStatus()).isEqualTo(ACCEPTED);
             assertThat(resolutions).hasValue(1);

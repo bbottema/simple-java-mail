@@ -629,9 +629,10 @@ class SmtpConnectionProbeTest {
     void probeDoesNotWaitForOrDisturbALeasedPoolSizeOneConnection() throws Exception {
         final Wiser server = Wiser.port(0);
         server.start();
+        // The bound checks pool isolation, not reverse DNS for Angus's automatically chosen EHLO name.
         try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.getServer().getPortAllocated())
                 .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeoutMillis(500)
-                .withOpportunisticTLS(false).buildMailer()) {
+                .withOpportunisticTLS(false).withSmtpClientHostname("localhost").buildMailer()) {
             final LifecycleDelegatingTransport lease = ModuleLoader.loadBatchModule().acquireTransport(
                     mailer.getOperationalConfig().getClusterKey(), mailer.getSession(), true, null);
             try {
