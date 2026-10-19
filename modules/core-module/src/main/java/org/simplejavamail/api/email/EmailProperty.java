@@ -27,6 +27,10 @@ public enum EmailProperty {
     FROM_RECIPIENT,
     REPLYTO_RECIPIENT,
     BOUNCETO_RECIPIENT,
+    /**
+     * Skips To, Cc and Bcc recipients from ordinary templates together. Recipients supplied on the Email remain;
+     * suppress separate delivery-recipient overrides with {@link #OVERRIDE_RECEIVERS} instead.
+     */
     ALL_RECIPIENTS,
     TO_RECIPIENTS,
     CC_RECIPIENTS,

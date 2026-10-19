@@ -628,15 +628,24 @@ public final class MiscUtil {
 	}
 
 	private static boolean defaultAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
-		return provided == null || !provided.isIgnoreDefaults() &&
-				(provided.getPropertiesNotToApplyDefaultValueFor() == null ||
-						!provided.getPropertiesNotToApplyDefaultValueFor().contains(emailProperty));
+		return provided == null || !provided.isIgnoreDefaults()
+				&& !isPropertySuppressed(provided.getPropertiesNotToApplyDefaultValueFor(), emailProperty);
 	}
 
 	private static boolean overrideAllowedForProperty(@Nullable Email provided, @NotNull final EmailProperty emailProperty) {
-		return provided == null || !provided.isIgnoreOverrides() &&
-				(provided.getPropertiesNotToApplyOverrideValueFor() == null ||
-						!provided.getPropertiesNotToApplyOverrideValueFor ().contains(emailProperty));
+		return provided == null || !provided.isIgnoreOverrides()
+				&& !isPropertySuppressed(provided.getPropertiesNotToApplyOverrideValueFor(), emailProperty);
+	}
+
+	private static boolean isPropertySuppressed(@Nullable final Set<EmailProperty> suppressedProperties, @NotNull final EmailProperty emailProperty) {
+		return suppressedProperties != null && (suppressedProperties.contains(emailProperty)
+				|| suppressedProperties.contains(EmailProperty.ALL_RECIPIENTS) && isVisibleRecipientProperty(emailProperty));
+	}
+
+	private static boolean isVisibleRecipientProperty(@NotNull final EmailProperty emailProperty) {
+		return emailProperty == EmailProperty.TO_RECIPIENTS
+				|| emailProperty == EmailProperty.CC_RECIPIENTS
+				|| emailProperty == EmailProperty.BCC_RECIPIENTS;
 	}
 
 	private static void addOrOverrideHeaders(Map<String, Collection<String>> collectedHeaders, @NotNull Map<String, Collection<String>> headers) {
