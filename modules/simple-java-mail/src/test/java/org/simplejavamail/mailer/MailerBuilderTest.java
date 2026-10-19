@@ -87,7 +87,8 @@ public class MailerBuilderTest {
 		assertThat(builder.clearConnectionPoolExpireAfterCreationMillis()
 				.getConnectionPoolExpireAfterCreationMillis()).isNull();
 		assertThat(builder.getConnectionPoolExpireAfterMillis()).isEqualTo(60_000);
-		assertThatThrownBy(() -> builder.withConnectionPoolExpireAfterCreationMillis(0))
+		assertThat(builder.withConnectionPoolExpireAfterCreationMillis(0).getConnectionPoolExpireAfterCreationMillis()).isZero();
+		assertThatThrownBy(builder::buildMailer)
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 

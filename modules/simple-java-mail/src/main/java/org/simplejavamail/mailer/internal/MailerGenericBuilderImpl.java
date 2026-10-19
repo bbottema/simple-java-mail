@@ -34,7 +34,6 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.config.ConfigurationLocks;
-import org.simplejavamail.internal.config.ConnectionPoolValidation;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
@@ -399,8 +398,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.connectionPoolMaxSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
 		this.connectionPoolClaimTimeoutMillis = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS));
 		this.connectionPoolExpireAfterMillis = 		verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS));
-		this.connectionPoolExpireAfterCreationMillis = validateConnectionPoolExpireAfterCreationMillis(
-				config.getIntegerProperty(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS));
+		this.connectionPoolExpireAfterCreationMillis = config.getIntegerProperty(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS);
 		this.connectionPoolLoadBalancingStrategy = 	verifyNonnullOrEmpty(config.valueOrProperty(null, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
 				LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
 		final Map<UUID, ConnectionPoolClusterConfig> configuredClusters = config.getProperty(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
@@ -873,7 +871,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Assemble supplied configuration; default resolution and caller-Session ownership have already been settled by the builder. */
 	OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
-		validateConnectionPoolConfiguration();
 		resolveTelemetrySettings();
 		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
@@ -1357,7 +1354,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withConnectionPoolExpireAfterCreationMillis(@NotNull final Integer connectionPoolExpireAfterCreationMillis) {
-		this.connectionPoolExpireAfterCreationMillis = validateConnectionPoolExpireAfterCreationMillis(connectionPoolExpireAfterCreationMillis);
+		this.connectionPoolExpireAfterCreationMillis = connectionPoolExpireAfterCreationMillis;
 		return (T) this;
 	}
 
@@ -2149,23 +2146,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable
 	public Integer getConnectionPoolExpireAfterCreationMillis() {
 		return connectionPoolExpireAfterCreationMillis;
-	}
-
-	private void validateConnectionPoolConfiguration() {
-		ConnectionPoolValidation.validateRanges(connectionPoolCoreSize, connectionPoolMaxSize, connectionPoolClaimTimeoutMillis,
-				connectionPoolExpireAfterMillis, connectionPoolExpireAfterCreationMillis);
-		final ConnectionPoolClusterConfig cluster = connectionPoolClusterConfigs.get(clusterKey);
-		final Integer coreSize = cluster != null && cluster.getCoreSize() != null ? cluster.getCoreSize() : connectionPoolCoreSize;
-		final Integer maxSize = cluster != null && cluster.getMaxSize() != null ? cluster.getMaxSize() : connectionPoolMaxSize;
-		ConnectionPoolValidation.validateSizeRelationship(coreSize, maxSize);
-	}
-
-	@Nullable
-	private static Integer validateConnectionPoolExpireAfterCreationMillis(@Nullable final Integer value) {
-		if (value != null && value < 1) {
-			throw new IllegalArgumentException("connectionPoolExpireAfterCreationMillis must be positive");
-		}
-		return value;
 	}
 
 	/**

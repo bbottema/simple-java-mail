@@ -27,6 +27,8 @@ public interface BatchModule {
 	 * Initializes the connection pool cluster if not initialized yet.
 	 * <p>
 	 * Creates connection pool for the cluster key and session combination if it doesn't exist yet.
+	 * The module resolves the selected cluster's overrides and validates its effective settings before creating pool resources.
+	 * Core configuration holders do not apply pooling rules, and the caller does not invoke this boundary when pooling is unavailable.
 	 * The registration retains its sending allowance independently of Session properties. The same live pool cannot acquire a different
 	 * allowance owner while limits are enabled; callers should share the factory's named group or use a separate Session.
 	 */
@@ -36,6 +38,7 @@ public interface BatchModule {
 	/**
 	 * Registers a pool with factory-owned connection observation. The observer records physical setup outcomes and can defer only
 	 * background replenishment while a failover route waits to recheck a failed destination; it does not select destinations or retry sends.
+	 * Uses the same configuration validation as {@link #registerToCluster(OperationalConfig, UUID, Session, SendingAllowance)}.
 	 */
 	void registerToCluster(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey, @NotNull Session session,
 			@NotNull SendingAllowance sendingAllowance, @NotNull PoolConnectionObserver observer);

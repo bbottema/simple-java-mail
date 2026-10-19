@@ -768,9 +768,8 @@ public final class ConfigLoader {
 			case "maxsize":
 			case "claimtimeout.millis":
 			case "expireafter.millis":
-				return parseInteger(propertyDescription, propertyValue);
 			case "expireaftercreation.millis":
-				return parsePositiveInteger(propertyDescription, propertyValue);
+				return parseInteger(propertyDescription, propertyValue);
 			case "loadbalancing.strategy":
 				return parseLoadBalancingStrategy(propertyDescription, propertyValue);
 			default:
@@ -784,14 +783,6 @@ public final class ConfigLoader {
 			return UUID.fromString(SimpleConversions.convertToString(propertyValue));
 		} catch (RuntimeException e) {
 			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a UUID", e);
-		}
-	}
-
-	private static Integer parsePositiveInteger(final String propertyName, final Object propertyValue) {
-		try {
-			return PropertySchema.parsePositiveInteger(propertyValue);
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Connection pool cluster property " + propertyName + " should be a positive integer", e);
 		}
 	}
 

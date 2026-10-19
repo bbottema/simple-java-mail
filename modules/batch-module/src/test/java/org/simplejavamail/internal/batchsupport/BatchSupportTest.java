@@ -38,6 +38,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 class BatchSupportTest {
 
 	@Test
+	void invalidEffectiveSettingsFailBeforeCreatingPoolResources() {
+		final BatchSupport batch = new BatchSupport();
+		final OperationalConfig invalid = operationalConfig(2, 1, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN);
+		assertThatThrownBy(() -> batch.registerToCluster(invalid, UUID.randomUUID(), session(), mock(SendingAllowance.class)))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize").hasMessageContaining("maxSize");
+		assertThat(batch).extracting("batchTransportEngine", "smtpConnectionPool").containsOnlyNulls();
+	}
+
+	@Test
 	void shortLivedClustersLeaveNoSettingsBehindWhileOtherMailersRemainRegistered() throws Exception {
 		final BatchSupport batch = new BatchSupport();
 		final UUID longLivedCluster = UUID.randomUUID();

@@ -810,6 +810,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Configures the connection pool's core size (default {@value DEFAULT_CONNECTIONPOOL_CORE_SIZE}), which means the SMTP connection pool will keep X connections open at all times until shut down.
 	 * Use zero to disable core replenishment; negative sizes are invalid. The effective core size cannot exceed the maximum after cluster overrides.
+	 * The batch module checks the effective pool settings when the Mailer registers with it, before creating pool resources.
+	 * Without that module, these settings are unused and do not prevent direct sending.
 	 * Note that this also means that if you configure an auto-expiry timeout, these connections die off and new ones are created immediately to maintain core size.
 	 * <p>
 	 * When using clustered batch sending, the first {@link Mailer} registered for a cluster determines this setting for that cluster.

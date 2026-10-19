@@ -152,20 +152,32 @@ class ConfigLoaderTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"0", "-1", "false", "2147483648"})
-	void rejectsInvalidConnectionCreationAgeExpirationWhileLoading(final String value) {
+	@ValueSource(strings = {"false", "2147483648"})
+	void rejectsNonIntegerConnectionCreationAgeExpirationWhileLoading(final String value) {
 		final String globalProperty = DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key();
 		assertThatThrownBy(() -> ConfigLoader.builder().withMap("application properties", singleton(globalProperty, value)).load())
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining(globalProperty)
 				.hasMessageContaining("application properties")
-				.hasMessageContaining("positive integer");
+				.hasMessageContaining("integer");
 
 		final String clusterProperty = "simplejavamail.defaults.connectionpool.clusters.orders.expireaftercreation.millis";
 		assertThatThrownBy(() -> ConfigLoader.builder().withMap(singleton(clusterProperty, value)).load())
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining(clusterProperty)
-				.hasMessageContaining("positive integer");
+				.hasMessageContaining("integer");
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = {0, -1})
+	void leavesPoolValueSemanticsToTheBatchModule(final int value) {
+		final UUID cluster = UUID.randomUUID();
+		final SimpleJavaMailConfig config = ConfigLoader.builder().withMap(Map.of(
+				DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), Integer.toString(value),
+				"simplejavamail.defaults.connectionpool.clusters." + cluster + ".expireaftercreation.millis", Integer.toString(value))).load();
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
+		assertThat(clusters.get(cluster).getExpireAfterCreationMillis()).isEqualTo(value);
 	}
 
 	@Test

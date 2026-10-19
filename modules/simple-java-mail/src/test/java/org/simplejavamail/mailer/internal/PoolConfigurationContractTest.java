@@ -3,11 +3,14 @@ package org.simplejavamail.mailer.internal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,8 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PoolConfigurationContractTest {
     @ParameterizedTest
-    @CsvSource({"coreSize,-1", "maxSize,0", "claimTimeoutMillis,-1", "expireAfterMillis,-1", "expireAfterCreationMillis,0"})
-    void rejectsInvalidSuppliedClusterValues(final String field, final int value) {
+    @CsvSource({"coreSize,coresize,-1", "maxSize,maxsize,0", "claimTimeoutMillis,claimtimeout.millis,-1",
+            "expireAfterMillis,expireafter.millis,-1", "expireAfterCreationMillis,expireaftercreation.millis,0"})
+    void validatesClusterValuesOnlyWhenTheBatchModuleUsesThem(final String field, final String tail, final int value) throws Exception {
         final ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder builder = ConnectionPoolClusterConfig.builder();
         switch (field) {
             case "coreSize": builder.coreSize(value); break;
@@ -28,7 +32,40 @@ class PoolConfigurationContractTest {
             case "expireAfterMillis": builder.expireAfterMillis(value); break;
             default: builder.expireAfterCreationMillis(value); break;
         }
-        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class).hasMessageContaining(field);
+        assertThat(builder.build()).isNotNull();
+        final UUID cluster = UUID.randomUUID();
+        final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.clusters." + cluster + "." + tail, Integer.toString(value)));
+        try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+            modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+            buildAndClose(mail.mailerBuilder().withClusterKey(cluster));
+            modules.verify(ModuleLoader::loadBatchModule, Mockito.never());
+        }
+        assertThatThrownBy(() -> buildAndClose(mail.mailerBuilder().withClusterKey(cluster)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(field);
+    }
+
+    @Test
+    void unusedPoolChoicesDoNotPreventDirectMailerConstruction() throws Exception {
+        try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+            modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+            final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.coresize", "-1",
+                    "defaults.connectionpool.maxsize", "0", "defaults.connectionpool.expireaftercreation.millis", "0"));
+            buildAndClose(mail.mailerBuilder().withConnectionPoolClaimTimeoutMillis(-1).withConnectionPoolExpireAfterCreationMillis(-1));
+            modules.verify(ModuleLoader::loadBatchModule, Mockito.never());
+        }
+    }
+
+    @Test
+    void onlyEffectiveSettingsOfTheSelectedClusterAreValidated() throws Exception {
+        final UUID selected = UUID.randomUUID();
+        final UUID unused = UUID.randomUUID();
+        final String prefix = "defaults.connectionpool.clusters." + selected + ".";
+        final SimpleJavaMail mail = factory(Map.of(prefix + "coresize", "0", prefix + "maxsize", "1",
+                prefix + "claimtimeout.millis", "0", prefix + "expireafter.millis", "0", prefix + "expireaftercreation.millis", "1",
+                "defaults.connectionpool.clusters." + unused + ".coresize", "3", "defaults.connectionpool.clusters." + unused + ".maxsize", "1"));
+        buildAndClose(mail.mailerBuilder().withClusterKey(selected)
+                .withConnectionPoolCoreSize(-1).withConnectionPoolMaxSize(0).withConnectionPoolClaimTimeoutMillis(-1)
+                .withConnectionPoolExpireAfterMillis(-1).withConnectionPoolExpireAfterCreationMillis(0));
     }
 
     @ParameterizedTest

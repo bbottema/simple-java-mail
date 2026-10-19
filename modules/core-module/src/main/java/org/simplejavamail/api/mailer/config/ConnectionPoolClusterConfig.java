@@ -4,7 +4,6 @@ import lombok.Value;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
-import org.simplejavamail.internal.config.ConnectionPoolValidation;
 
 import java.io.Serializable;
 
@@ -12,8 +11,8 @@ import java.io.Serializable;
  * Optional connection-pool settings for a single batch-module cluster key.
  * <p>
  * Null values mean the regular {@link OperationalConfig} connection-pool defaults remain effective for that setting.
- * Sizes and durations are validated without creating a pool. A complete core/maximum pair must be ordered; a partial pair is checked
- * after inheritance when the cluster is configured. Zero is valid for core size, claim timeout and idle expiry, but not maximum size or creation age.
+ * The batch module resolves these overrides and validates the resulting settings when this cluster is used, before creating pool resources.
+ * This object only retains supplied values; unused cluster settings do not affect a Mailer without pooling.
  */
 @Value
 public class ConnectionPoolClusterConfig implements Serializable {
@@ -30,8 +29,6 @@ public class ConnectionPoolClusterConfig implements Serializable {
 			@Nullable final Integer claimTimeoutMillis, @Nullable final Integer expireAfterMillis,
 			@Nullable final Integer expireAfterCreationMillis,
 			@Nullable final LoadBalancingStrategy loadBalancingStrategy) {
-		ConnectionPoolValidation.validateRanges(coreSize, maxSize, claimTimeoutMillis, expireAfterMillis, expireAfterCreationMillis);
-		ConnectionPoolValidation.validateSizeRelationship(coreSize, maxSize);
 		this.coreSize = coreSize;
 		this.maxSize = maxSize;
 		this.claimTimeoutMillis = claimTimeoutMillis;

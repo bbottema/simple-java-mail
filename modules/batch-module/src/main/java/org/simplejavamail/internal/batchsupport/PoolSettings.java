@@ -13,7 +13,6 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.batch.BatchLoadBalancingStrategy;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
-import org.simplejavamail.internal.config.ConnectionPoolValidation;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.smtpconnectionpool.SessionTransport;
 import org.simplejavamail.smtpconnectionpool.SmtpClusterConfig;

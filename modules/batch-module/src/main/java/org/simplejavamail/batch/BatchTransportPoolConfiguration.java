@@ -2,7 +2,7 @@ package org.simplejavamail.batch;
 
 import lombok.ToString;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.internal.config.ConnectionPoolValidation;
+import org.simplejavamail.internal.batchsupport.ConnectionPoolValidation;
 
 import java.util.Objects;
 
