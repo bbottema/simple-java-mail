@@ -129,6 +129,20 @@ public class SmimeSigningConfig implements Serializable {
          * Chooses the algorithm used to sign the message, for example {@code SHA256withRSA}. Use a name supported by the S/MIME module.
          * Null leaves the choice to that module. Calling again replaces the preference; {@link #clearSignatureAlgorithm()}
          * removes it without replacing the PKCS12 store or signing key.
+         * <p>
+         * The S/MIME module defaults to {@code SHA256withRSA}. Other commonly supported names include:
+         * <ul>
+         *     <li>RSA: {@code SHA256withRSA}, {@code SHA384withRSA}, {@code SHA512withRSA}.</li>
+         *     <li>RSA-PSS: {@code SHA256withRSAandMGF1}, {@code SHA384withRSAandMGF1}, {@code SHA512withRSAandMGF1}.</li>
+         *     <li>ECDSA: {@code SHA256withECDSA}, {@code SHA384withECDSA}, {@code SHA512withECDSA}.</li>
+         *     <li>DSA: {@code SHA256withDSA}, {@code SHA384withDSA}, {@code SHA512withDSA}.</li>
+         *     <li>SHA-3 variants: {@code SHA3-256withRSA}, {@code SHA3-384withRSA}, {@code SHA3-512withRSA},
+         *         {@code SHA3-256withECDSA}, {@code SHA3-384withECDSA}, {@code SHA3-512withECDSA}.</li>
+         *     <li>SM2: {@code SHA256withSM2} and {@code SM3withSM2}.</li>
+         * </ul>
+         * These are examples, not a whitelist. The name must be supported by the module's cryptographic provider, match your private key,
+         * and be understood by recipients' mail clients. Bouncy Castle's {@code DefaultSignatureAlgorithmIdentifierFinder} lists its recognized names;
+         * recognizing a name alone does not establish compatibility with a particular key or client.
          *
          * @param signatureAlgorithm S/MIME signature algorithm name, or null for the module's default.
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)

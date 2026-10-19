@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -13,7 +12,7 @@ import java.security.cert.X509Certificate;
 public class CertificationUtil {
 
 	public static X509Certificate readFromPem(File pemFile)
-			throws CertificateException, NoSuchProviderException, FileNotFoundException {
+			throws CertificateException, FileNotFoundException {
 		try (InputStream pemData = new FileInputStream(pemFile)) {
 			return readFromPem(pemData);
 		} catch (FileNotFoundException e) {
@@ -24,7 +23,7 @@ public class CertificationUtil {
 	}
 
 	public static X509Certificate readFromPem(InputStream pemData)
-			throws CertificateException, NoSuchProviderException {
+			throws CertificateException {
 		return (X509Certificate) CertificateFactory.getInstance("X.509")
 				.generateCertificate(pemData);
 	}

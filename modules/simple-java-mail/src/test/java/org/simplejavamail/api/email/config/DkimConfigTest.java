@@ -1,40 +1,53 @@
 package org.simplejavamail.api.email.config;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.internal.dkimsupport.DKIMSigner;
+import jakarta.mail.internet.MimeMessage;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class DkimConfigTest {
 
     @Test
-    public void rejectsFromExclusionsCaseInsensitively() {
-        assertThatThrownBy(() -> completeConfig()
-                .excludedHeadersFromDkimDefaultSigningList("from")
-                .build())
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
+    public void invalidDkimChoicesFailBeforeReadingOrSerializingMessageContent() {
+        final Email email = mock(Email.class);
+        final MimeMessage message = mock(MimeMessage.class);
+        final Recipient sender = mock(Recipient.class);
+        final DkimConfig config = completeConfig().excludedHeadersFromDkimDefaultSigningList("From").build();
 
-        final Set<String> exclusions = new HashSet<>(Arrays.asList("Message-ID", "FrOm"));
-        assertThatThrownBy(() -> completeConfig()
-                .excludedHeadersFromDkimDefaultSigningList(exclusions)
-                .build())
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("must include the From header");
+        assertThatThrownBy(() -> new DKIMSigner().signMessageWithDKIM(email, message, config, sender))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must include the From header");
+        verifyNoInteractions(email, message, sender);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"from", "FrOm", " FROM "})
+    public void dkimModuleRejectsFromExclusionsWhenSigning(final String header) {
+        final DkimConfig config = completeConfig().excludedHeadersFromDkimDefaultSigningList(header).build();
+        final Email email = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .from("sender@example.com").withPlainText("body").signWithDomainKey(config).buildEmail();
+
+        assertThat(config.getExcludedHeadersFromDkimDefaultSigningList()).containsExactly(header);
+        assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
+                .hasStackTraceContaining("DKIM signatures must include the From header");
     }
 
     @Test
-    public void rejectsFromExclusionsFromConvenienceBuilders() {
-        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-                .signWithDomainKey("key".getBytes(), "example.com", "selector", Collections.singleton(" FROM ")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("must include the From header");
+    public void convenienceBuildersCaptureChoicesWithoutApplyingDkimRules() {
+        final Email email = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .signWithDomainKey("key".getBytes(), "example.com", "selector", Collections.singleton(" FROM ")).buildEmail();
+        assertThat(email.getDkimConfig().getExcludedHeadersFromDkimDefaultSigningList()).containsExactly(" FROM ");
     }
 
     @Test

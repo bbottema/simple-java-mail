@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -113,8 +112,6 @@ public class SmimeEncryptionConfig implements Serializable {
                 return x509Certificate(CertificationUtil.readFromPem(pemStream));
             } catch (CertificateException e) {
                 throw new IllegalStateException("Was unable to convert PEM data to X509 certificate", e);
-            } catch (NoSuchProviderException e) {
-                throw new IllegalStateException("Unable to load certificate (missing bouncy castle), is the S/MIME module on the class path?", e);
             }
         }
 
@@ -122,6 +119,11 @@ public class SmimeEncryptionConfig implements Serializable {
          * Chooses how the S/MIME module protects the message's encryption key for the recipient, for example {@code RSA_OAEP_SHA256}.
          * Use a name supported by that module. Null leaves its default in place. Calling again replaces the preference;
          * {@link #clearKeyEncapsulationAlgorithm()} removes it without replacing the certificate or content-encryption algorithm.
+         * <p>
+         * The module supports {@code RSA} (the compatibility default), {@code RSA_OAEP_SHA224}, {@code RSA_OAEP_SHA256},
+         * {@code RSA_OAEP_SHA384}, and {@code RSA_OAEP_SHA512}. The OAEP choices use the named digest for RSA key encapsulation.
+         * Choose one supported by the recipient's certificate and mail client. The supported names are defined by the module's
+         * {@code org.simplejavamail.utils.mail.smime.KeyEncapsulationAlgorithm}.
          *
          * @param keyEncapsulationAlgorithm S/MIME key-encapsulation algorithm name, or null for the module's default.
          * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
@@ -135,6 +137,10 @@ public class SmimeEncryptionConfig implements Serializable {
          * Chooses the algorithm used to encrypt message content, for example {@code AES256_CBC}. Use a name supported by the S/MIME module.
          * Null leaves the choice to that module. Calling again replaces the preference; {@link #clearCipherAlgorithm()}
          * removes it without replacing the recipient certificate or key-encapsulation algorithm.
+         * <p>
+         * Common choices are {@code AES128_CBC}, {@code AES192_CBC}, and {@code AES256_CBC}. The module's compatibility default is
+         * {@code DES_EDE3_CBC}; leaving this unset does not select AES. Choose a cipher supported by the recipient's mail client.
+         * Names are resolved against Bouncy Castle's {@code CMSAlgorithm}; the module checks them when encryption is requested.
          *
          * @param cipherAlgorithm S/MIME content-encryption algorithm name, or null for the module's default.
          * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)

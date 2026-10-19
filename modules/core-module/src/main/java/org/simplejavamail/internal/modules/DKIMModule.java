@@ -14,15 +14,14 @@ public interface DKIMModule {
 	String NAME = "DKIM module";
 
 	/**
-	 * Primes the {@link MimeMessage} instance for signing with DKIM. The signing itself is performed by
-	 * {@code org.simplejavamail.utils.mail.dkim.DkimMessage} and {@code org.simplejavamail.utils.mail.dkim.DkimSigner}
-	 * during the physical sending of the message.
+	 * Validates the DKIM choices and signs the finalized message bytes. Configuration holders retain supplied values;
+	 * this module owns rules such as requiring the From header in the signature and compatibility with the signing key.
 	 *
-	 * @param email The Email from which the MimeMessage was produced. Used to take fixed Message-ID from, if applicable.
-	 * @param messageToSign The message to be signed when sent.
+	 * @param email The Email from which the MimeMessage was produced.
+	 * @param messageToSign The message to finalize and sign.
 	 * @param dkimConfig    The {@link DkimConfig} containing all DKIM signing details
 	 * @param fromRecipient The "From" recipient to be used as identity
-	 * @return The original mime message wrapped in a new one that performs signing when sent.
+	 * @return A message retaining the finalized, signed bytes.
 	 */
 	MimeMessage signMessageWithDKIM(@NotNull Email email, @NotNull MimeMessage messageToSign, @NotNull DkimConfig dkimConfig, @NotNull Recipient fromRecipient);
 

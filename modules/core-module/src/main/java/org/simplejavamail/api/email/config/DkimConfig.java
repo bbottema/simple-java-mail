@@ -38,7 +38,6 @@ public class DkimConfig implements Serializable {
     }
 
     private static final long serialVersionUID = 1234567L;
-    private static final String MANDATORY_SIGNED_HEADER = "From";
 
     /**
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
@@ -83,7 +82,7 @@ public class DkimConfig implements Serializable {
         this.dkimSigningDomain = dkimSigningDomain;
         this.dkimSelector = dkimSelector;
         this.useLengthParam = useLengthParam;
-        this.excludedHeadersFromDkimDefaultSigningList = copyAndValidateExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
+        this.excludedHeadersFromDkimDefaultSigningList = copyExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
         this.headerCanonicalization = headerCanonicalization;
         this.bodyCanonicalization = bodyCanonicalization;
         this.signingAlgorithm = signingAlgorithm;
@@ -238,7 +237,7 @@ public class DkimConfig implements Serializable {
 
         /**
          * Chooses whether the DKIM signature includes a body-length tag. Enabling it leaves content appended after that length unsigned,
-         * so use it only for a known relay that appends content. False explicitly disables the tag; null leaves the module's choice in place.
+         * so use it only for a known relay that appends content. False explicitly disables the tag; null uses the module's default, which omits it.
          * Calling again replaces the choice. {@link #clearUseLengthParam()} restores absence without changing the key or domain.
          *
          * @param useLengthParam Whether to include the length tag, or null to use the module's default.
@@ -250,15 +249,14 @@ public class DkimConfig implements Serializable {
 
         /**
          * Leaves selected headers out of the DKIM module's default signing list, for example when a known relay rewrites them.
-         * {@code From} is mandatory and cannot be excluded. Calling again replaces the exclusions rather than adding to them.
+         * The DKIM module rejects exclusion of {@code From} when signing, since a DKIM signature must cover that header.
+         * Calling again replaces the exclusions rather than adding to them.
          * Null or {@link #clearExcludedHeadersFromDkimDefaultSigningList()} restores the module's default list without replacing key material.
          *
          * @param excludedHeadersFromDkimDefaultSigningList Headers to exclude, or null for no supplied exclusion choice.
-         * @throws IllegalArgumentException When From is excluded, ignoring case and surrounding whitespace.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
-            validateExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
             this.excludedHeadersFromDkimDefaultSigningList = excludedHeadersFromDkimDefaultSigningList;
             return this;
         }
@@ -266,7 +264,6 @@ public class DkimConfig implements Serializable {
         /**
          * Delegates to {@link #excludedHeadersFromDkimDefaultSigningList(Set)}.
          *
-         * @throws IllegalArgumentException when {@code From} is excluded, case-insensitively
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
@@ -278,7 +275,7 @@ public class DkimConfig implements Serializable {
 
         /**
          * Chooses how the DKIM module normalizes headers before signing. SIMPLE preserves their form more closely; RELAXED tolerates
-         * certain whitespace and case changes. Null leaves the choice to the module. Calling again replaces the preference;
+         * certain whitespace and case changes. The module defaults to RELAXED when this is null. Calling again replaces the preference;
          * {@link #clearHeaderCanonicalization()} removes it without changing body normalization or key material.
          *
          * @param headerCanonicalization Header-normalization preference, or null for the module's default.
@@ -289,7 +286,8 @@ public class DkimConfig implements Serializable {
         }
 
         /**
-         * Chooses how the DKIM module normalizes the message body before signing. Null leaves the choice to the module.
+         * Chooses how the DKIM module normalizes the message body before signing. SIMPLE preserves body whitespace;
+         * RELAXED tolerates changes to spaces and tabs. Both normalize trailing empty lines. The module defaults to RELAXED when this is null.
          * Calling again replaces this preference; {@link #clearBodyCanonicalization()} removes it without changing header normalization or the key.
          *
          * @param bodyCanonicalization Body-normalization preference, or null for the module's default.
@@ -304,6 +302,9 @@ public class DkimConfig implements Serializable {
          * Chooses the signing algorithm understood by the DKIM module, for example {@code SHA256_WITH_RSA}.
          * Null leaves the choice to that module. Calling again replaces the preference; {@link #clearSigningAlgorithm()}
          * removes it without replacing the key, domain or selector.
+         * <p>
+         * The module accepts {@code SHA256_WITH_RSA} (the default), {@code SHA256_WITH_ED25519}, and {@code SHA1_WITH_RSA}
+         * for legacy compatibility. The private key must match the selected algorithm. Prefer the SHA-256 choices for new deployments.
          *
          * @param signingAlgorithm DKIM module algorithm name, or null for its default.
          */
@@ -405,19 +406,7 @@ public class DkimConfig implements Serializable {
     }
 
     @Nullable
-    private static Set<String> copyAndValidateExcludedHeaders(@Nullable final Set<String> excludedHeaders) {
-        validateExcludedHeaders(excludedHeaders);
+    private static Set<String> copyExcludedHeaders(@Nullable final Set<String> excludedHeaders) {
         return excludedHeaders == null ? null : Collections.unmodifiableSet(new HashSet<>(excludedHeaders));
-    }
-
-    private static void validateExcludedHeaders(@Nullable final Set<String> excludedHeaders) {
-        if (excludedHeaders == null) {
-            return;
-        }
-        for (String excludedHeader : excludedHeaders) {
-            if (excludedHeader != null && MANDATORY_SIGNED_HEADER.equalsIgnoreCase(excludedHeader.trim())) {
-                throw new IllegalArgumentException("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
-            }
-        }
     }
 }

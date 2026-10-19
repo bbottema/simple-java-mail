@@ -38,6 +38,11 @@ public final class PublicJavadocContractCheck {
         requireLinkedCompanions("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "getPkcs12Config", "clearSignatureAlgorithm");
         requireLinkedCompanions("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "getX509Certificate", "clearCipherAlgorithm",
                 "clearKeyEncapsulationAlgorithm");
+        requireText("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "SHA384withRSAandMGF1");
+        requireText("email/config/SmimeSigningConfig.SmimeSigningConfigBuilder", "examples, not a whitelist");
+        requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "RSA_OAEP_SHA512");
+        requireText("email/config/SmimeEncryptionConfig.SmimeEncryptionConfigBuilder", "DES_EDE3_CBC");
+        requireText("email/config/DkimConfig.DkimConfigBuilder", "SHA256_WITH_ED25519");
         requireLinkedCompanions("mailer/MailerGenericBuilder", "getDebugOutput", "resetDebugLogging", "clearDebugPrinter", "clearDebugOutput");
         if (read("email/Recipients").contains("id=\"&lt;init&gt;()\"")) {
             throw new IllegalStateException("Recipients Javadoc must not advertise a nonexistent no-argument constructor");
@@ -66,7 +71,7 @@ public final class PublicJavadocContractCheck {
 
     private void requireText(final String type, final String text) throws IOException {
         if (!read(type).contains(text)) {
-            throw new IllegalStateException(type + " is missing its builder source-of-truth link: " + text);
+            throw new IllegalStateException(type + " is missing documented guidance or its source-of-truth link: " + text);
         }
     }
 

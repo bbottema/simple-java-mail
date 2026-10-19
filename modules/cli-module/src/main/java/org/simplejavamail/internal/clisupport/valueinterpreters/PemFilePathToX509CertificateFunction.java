@@ -6,7 +6,6 @@ import org.simplejavamail.internal.util.CertificationUtil;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -27,7 +26,7 @@ public class PemFilePathToX509CertificateFunction extends FileBasedFunction<X509
 	protected X509Certificate convertFile(File msgFile) {
 		try {
 			return CertificationUtil.readFromPem(msgFile);
-		} catch (CertificateException | NoSuchProviderException | FileNotFoundException e) {
+		} catch (CertificateException | FileNotFoundException e) {
 			throw new IncompatibleTypeException(msgFile, String.class, X509Certificate.class, e);
 		}
 	}

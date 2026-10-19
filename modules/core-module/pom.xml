@@ -58,7 +58,6 @@
                         </Export-Package>
                         <Import-Package>
                             !org.jacoco.*,
-                            org.bouncycastle.jce.provider;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>

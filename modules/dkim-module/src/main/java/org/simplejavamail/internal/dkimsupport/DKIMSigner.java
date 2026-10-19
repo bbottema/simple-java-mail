@@ -63,6 +63,7 @@ public final class DKIMSigner implements DKIMModule {
                                            @NotNull final MimeMessage messageToSign,
                                            @NotNull final DkimConfig dkimConfig,
                                            @NotNull final Recipient fromRecipient) {
+        validateHeaderExclusions(dkimConfig);
         LOGGER.debug("signing finalized MimeMessage with DKIM...");
         try {
             final FinalizedMimeMessage finalized = messageToSign instanceof FinalizedMimeMessage
@@ -77,6 +78,13 @@ public final class DKIMSigner implements DKIMModule {
                     FinalizedMimeMessage.ProtectionState.FINAL_WIRE_SIGNED);
         } catch (Exception e) {
             throw new DKIMSigningException(DKIMSigningException.ERROR_SIGNING_DKIM_INVALID_DOMAINKEY, e);
+        }
+    }
+
+    private static void validateHeaderExclusions(final DkimConfig config) {
+        final Set<String> exclusions = config.getExcludedHeadersFromDkimDefaultSigningList();
+        if (exclusions != null && exclusions.stream().anyMatch(header -> header != null && "From".equalsIgnoreCase(header.trim()))) {
+            throw new IllegalArgumentException("DKIM signatures must include the From header; it cannot be excluded from the default signing list");
         }
     }
 
