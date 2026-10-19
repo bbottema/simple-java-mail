@@ -60,4 +60,4 @@ Verify API consumers, serialization, docs examples and the non-live reactor; obs
 - [Live progress](0032-live-mail-send-progress.md)
 - [Provider boundary](0007-provider-neutral-mime-boundary.md)
 - [Public API and internal construction](0031-public-api-and-internal-construction.md)
-- [Hook research and verification](../research/mail-send-progress-verification.md)
+- [Provider-hook research](../research/mail-send-progress-hooks.md)

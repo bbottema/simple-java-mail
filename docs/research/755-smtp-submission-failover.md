@@ -2,7 +2,7 @@
 
 - Research date: 2026-10-07.
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755), milestone **10.0.0**.
-- Status: Research supporting accepted ADR 0029. Implementation is planned, not implemented; common-outage classification is a required verification gate.
+- Status: Historical research supporting [ADR 0029](../adr/0029-smtp-submission-failover.md). Connection failover is implemented and accepted for unreleased 10.0.0; [the architecture guide](../failover/architecture.md) owns the current API, ownership and regression contracts.
 - SJM baseline: `codex/10.0.0` at `c365b6dc0e6dca655af5ebcf57b66c4641b9de1c`.
 - Supporting baselines: smtp-connection-pool 4.3.0 at `0e12e3925ba61af98034377429569ae877041cf7`,
   clustered-object-pool 4.2.0 at `cd55bb3572591c5426b66daa2a95c301ca36d620`, and generic-object-pool 2.5.1 at
@@ -29,20 +29,20 @@ expansion to pooling, clustering and load balancing; it supersedes the earlier c
 The maintainer also selected independent opt-ins for authentication failure and certificate-verification failure, both disabled by default.
 The expired-primary-certificate scenario must be documented as a use case: a permitted, independently verified failover can keep submission
 working while the original failure remains visible. ADR 0029 is now accepted with a practical common-outage coverage obligation and
-Mailer-specific inspection. Concrete FailoverPolicy methods and new property spelling belong in the implementation plan.
+Mailer-specific inspection. The final FailoverPolicy API and property namespace are recorded in ADR 0029 and the maintained architecture guide.
 
 | Decision | Accepted behavior | Boundary or cost |
 | --- | --- | --- |
-| Initial scope — accepted | Connection/acquisition failover, before provider submission invocation. | Broader retry/replay deferred to [#756](https://github.com/bbottema/simple-java-mail/issues/756). |
+| Initial scope — accepted | Connection/acquisition failover, before provider submission invocation. | Safe same-destination retries were implemented separately under [#756](https://github.com/bbottema/simple-java-mail/issues/756) and [ADR 0030](../adr/0030-safe-bounded-mail-send-retries.md); failover itself does not replay submissions. |
 | Busy primary — accepted | Preserve ordinary pool, executor and rate-limit waiting and timeouts. | No capacity-spillover option in failover; load expansion belongs to pooling, clustering and load balancing. |
 | Authentication and certificate verification — independent opt-ins accepted | Each failure stops by default; enabling its own option permits an eligible, independently checked failover. | Explicit fallback can still change performance; retain the original failure, selected destination and all applicable checks. |
-| Routing and timing shape — accepted | Try primary A once, then eligible B immediately; A's per-destination backoff does not throttle usable B. Later emails prefer A again after usable setup there. | Additional primary setup retries are configurable; concrete periods and exact API remain pending. No message replay or background recovery probe. |
-| Primary recheck timing — accepted | Configurable fixed interval by default; optionally use increasing backoff capped at a configured maximum. | Exact durations and parameters remain pending; do not silently delay B with A's backoff. |
+| Routing and timing shape — accepted | Try primary A once, then eligible B immediately; A's per-destination backoff does not throttle usable B. Later emails prefer A again after usable setup there. | Additional primary setup retries are configurable; the final periods and API are recorded in ADR 0029. No message replay or background recovery probe. |
+| Primary recheck timing — accepted | Configurable fixed interval by default; optionally use increasing backoff capped at a configured maximum. | The final durations and parameters are recorded in ADR 0029; do not silently delay B with A's backoff. |
 | Recovery during a simple batch — accepted | Finish the current email on B, then move the untouched remainder to usable A at an email boundary. | Preserve the same lazy iterator, operation, completion and deadline. Actual cancellation stops work; explicit open-connection scopes remain pinned. |
 | Connection-history ownership — accepted | Mailers from one factory share failure observations and coordinate primary rechecks for the same configured destination. | Separate factories remain independent; each invoking Mailer's permissions still apply. No hostname-based merging or global registry. |
 | Operational visibility — accepted | Automatic ERROR for genuine relay setup incidents, INFO for meaningful failover/recovery transitions and DEBUG for repeated rechecks. | Suppress duplicate notices across participating Mailers; visibility must not depend on registering an observer. A successful failover does not repair the primary. |
-| Structured history placement — accepted | Optional ordered connection-attempt history in the existing terminal observer diagnostics. | No per-server failure handler or send-result wrapper. Intermediate setup errors do not make a successful failover send fail; exact history signatures remain pending. |
-| Failover/policy entry point — accepted | Configure `withFailoverMailer(failoverMailer, policy)` on the primary's normal fluent builder. Replacement or clearing affects the pair. | No third resilient Mailer, standalone policy setter or staged intermediate interface. Named definitions supply the property-backed equivalent; final policy fields and property spelling remain pending. |
+| Structured history placement — accepted | Optional ordered connection-attempt history in the existing terminal observer diagnostics. | No per-server failure handler or send-result wrapper. Intermediate setup errors do not make a successful failover send fail; the final connection-history contract is recorded in ADR 0029. |
+| Failover/policy entry point — accepted | Configure `withFailoverMailer(failoverMailer, policy)` on the primary's normal fluent builder. Replacement or clearing affects the pair. | No third resilient Mailer, standalone policy setter or staged intermediate interface. Named definitions supply the property-backed equivalent; final policy fields and property spelling are recorded in ADR 0029. |
 | Independent message templates — accepted | Resolve the original Email with the actual selected Mailer's own complete ordinary defaults/overrides. Configure shared ordinary behavior on both Mailers or on the supplied Email. | No template hierarchy, merged precedence or relay-field whitelist. A's ordinary BCC/headers do not carry into B; mandatory message locks do. A B-only maintainers BCC remains valid. |
 | Nested failover Mailers and operation ownership — accepted | Honor B's configured fallback to C under B's policy, within A's one logical operation, initiating executor/observer, cancellation and deadline. | Do not flatten B into an endpoint, ignore its failover configuration or create independent public sends. Existing cluster ownership is a precedent for one owner per shared concern, not all settings. |
 | Failover lifetime — accepted and refined | An application-supplied failover Mailer remains borrowed; SJM-created private failover Mailers belong to the primary and close after its admitted work drains. | Lifecycle guards cover all admitted fallback use. Do not close supplied/shared Mailers through a primary, leak private descendants or add a factory close contract. |
@@ -121,12 +121,15 @@ made during this ADR pass. Include one canonical ownership matrix comparing send
 B sends; cover execution/observation, cancellation/deadlines, each fallback policy, selected templates/security/rates and shared cluster
 pool settings, plus scoped locks and approved relationships. Cross-link the matrix rather than duplicating inconsistent versions.
 
-## What the existing code actually does
+## Code at the inspected baseline
 
-| Owner | Current responsibility | Consequence for failover |
+This section describes the 7 October source baseline, before implementation. It is evidence for the design, not a current defect list.
+The maintained architecture and regression guide describe the corrected routing and ownership.
+
+| Owner | Responsibility at the baseline | Consequence for failover |
 | --- | --- | --- |
 | `MailerImpl` | Prepares the Email, selects a destination, verifies locks, obtains sending allowance, then constructs the send closure. | Reselection must happen above the destination-specific validation and reservation, not hidden inside a later claim. |
-| `EmailGovernanceImpl` | Resolves the invoking Mailer's templates; a different selected cluster member currently adds locks without reapplying its ordinary templates. | Selected-only governance during failover is planned behavior, not automatically supplied by today's cluster path. |
+| `EmailGovernanceImpl` at the inspected baseline | Applied the invoking Mailer's templates; a different selected cluster member added locks without reapplying its ordinary templates. | Corrected under [#757](https://github.com/bbottema/simple-java-mail/issues/757): the actual selected Mailer now owns ordinary templates, independently of failover. |
 | `BatchTransportEngine` | Delegates selection and acquisition to the upstream SMTP pool. | Reuse it for lease ownership; do not add another physical pool or independent retry loop. |
 | `SmtpTransportSelection` | Identifies one registration and later claims only from it. | No fallback is currently performed. Retirement cannot silently redirect a stale selection to a replacement. |
 | `ResourceClusters` | Runs the chosen load balancer, then claims from that selected pool. | Cluster membership/load balancing is not acquisition failover. |
@@ -244,7 +247,10 @@ losing the final reply. The classifications above additionally use local orchest
 they are not inferred from RFC reply codes alone. [Jakarta Mail's send contract](https://jakarta.ee/specifications/mail/2.1/apidocs/jakarta.mail/jakarta/mail/transport)
 does not provide a universal protocol-progress observation API.
 
-## Accepted architecture, not implemented
+## Architecture accepted before implementation
+
+This section preserves the research's rationale. Implementation is complete; use [ADR 0029](../adr/0029-smtp-submission-failover.md) and the
+[architecture guide](../failover/architecture.md) for final signatures and current behavior.
 
 ### One routing coordinator, not nested retry loops
 
@@ -342,7 +348,7 @@ support remains a separate capability, required consistently when a total deadli
 Keep one terminal observer outcome and one completion for the logical send, after ordinary cleanup. Return the exact receipt from the
 actual submission, preserving acceptance even if later cleanup fails. Candidate connection failures are history, not manufactured SMTP
 receipts. Final exhaustion must retain useful causes without implying SMTP rejection. The agreed home for bounded, ordered connection
-history is the existing observer diagnostics; concrete signatures remain pending and the current diagnostics expose only one endpoint.
+history is the existing observer diagnostics; the implemented connection-history contract is described by ADR 0029 and the architecture guide.
 A failed A setup followed by a successful B send produces one successful outcome with an empty `getFailure()`, not an application failure
 handler invocation. Distinguish current attempts from retained facts that explain why a destination was skipped.
 

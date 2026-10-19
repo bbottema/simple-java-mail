@@ -41,7 +41,7 @@ Future-only cancellation and ordinary transport close were explicitly investigat
 
 Caller-owned Sessions, custom socket factories, alternate providers and `CustomMailer` do not automatically acquire physical-abort support. Unsupported sending integrations retain untimed sending with cooperative cancellation but reject a configured total deadline before sending; logging-only mode is exempt. Timed pooled routing must validate every Session it could select, including subsequent registrations into that cluster.
 
-The [unreleased resource correction](../research/726-managed-angus-resource-verification.md) keeps that boundary. Owned custom-factory Sessions
+The [managed custom-factory handling](../concurrency/07-angus-transport-abort.md) keeps that boundary. Owned custom-factory Sessions
 disable omitted fallback and close a connected socket on a failed TLS handoff, but those decorators do not manufacture abort support.
 The managed write-timeout scheduler retains its connection reference through abort, releasing it only after complete physical disposal
 or failed acquisition cleanup. A socket timeout and the total-send deadline remain different controls.

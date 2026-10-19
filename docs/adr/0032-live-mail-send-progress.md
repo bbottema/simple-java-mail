@@ -74,4 +74,4 @@ Use real loopback SMTP for bytes, final-reply waits, retries, failover and disab
 - [ADR 0026](0026-actual-send-diagnostics.md): terminal measurements and immutable reports.
 - [ADR 0030](0030-safe-bounded-mail-send-retries.md): one logical outcome across attempts.
 - [ADR 0031](0031-public-api-and-internal-construction.md): read contracts versus internal construction.
-- [Hook research and verification](../research/mail-send-progress-verification.md).
+- [Provider-hook research](../research/mail-send-progress-hooks.md).

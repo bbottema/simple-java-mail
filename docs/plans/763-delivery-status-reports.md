@@ -2,7 +2,7 @@
 
 Accepted plan, 2026-10-16. Implementation verified and production review accepted, 2026-10-18.
 Tracking: [#763](https://github.com/bbottema/simple-java-mail/issues/763). Companion: [#764](https://github.com/bbottema/simple-java-mail/issues/764).
-Verification: [dated evidence and boundaries](../research/763-delivery-status-verification.md).
+Regression coverage: [DeliveryStatusReportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/DeliveryStatusReportTest.java); reading boundaries: [ADR 0035](../adr/0035-tolerant-reading-and-strict-production.md).
 
 This completed plan is retained temporarily because the independently reviewed #764 plan links to it. Retire the shared handoff reference when that
 companion is delivered; #763 itself has no remaining implementation work.

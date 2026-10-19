@@ -3,7 +3,7 @@
 - Assessment date: 2026-10-18.
 - Implementation refresh: 2026-10-15, adding accepted live progress under [#760](https://github.com/bbottema/simple-java-mail/issues/760), detailed connection/SMTP stages under [#761](https://github.com/bbottema/simple-java-mail/issues/761), retention corrections and a repeatable memory-pressure workbench. Safe retries under #756, connection failover under #755, selected-Mailer ownership corrections under #757 and earlier recipient-rejection/managed-transport updates remain part of the assessment.
 - Optional OpenTelemetry [#762](https://github.com/bbottema/simple-java-mail/issues/762) is implemented and accepted after production-only and holistic review on 2026-10-16. This is development-branch work for 10.0.0, not a released capability.
-- Incoming delivery-status interpretation [#763](https://github.com/bbottema/simple-java-mail/issues/763) is implemented, verified and accepted in production review on 2026-10-18. The [delivery-report verification](763-delivery-status-verification.md) records typed facts, tolerant recovery and preserved source/security boundaries.
+- Incoming delivery-status interpretation [#763](https://github.com/bbottema/simple-java-mail/issues/763) is implemented, verified and accepted in production review on 2026-10-18. The [tolerant-reading decision](../adr/0035-tolerant-reading-and-strict-production.md) explains typed facts, tolerant recovery and preserved source/security boundaries.
 - Competitor baseline: 2026-10-04. Symfony failover, Nodemailer pooling, MailKit SMTP capabilities and Vert.x PIPELINING documentation were rechecked on 2026-10-12 for this refresh; the wider comparison was not repeated.
 - Original research: [The World-Class SMTP Framework](simple-java-mail-world-class-smtp-research.pdf), dated 2026-08-29.
 - Implementation baseline: [`53eeb9ab`](https://github.com/bbottema/simple-java-mail/commit/53eeb9ab) on `codex/10.0.0`, adding accepted #763 typed delivery-report interpretation and tolerant reading to the earlier telemetry, live progress, retries and failover work. The implementation and evidence records linked below identify the reviewed scope.
@@ -64,7 +64,7 @@ The failover boundary is deliberately narrower than general delivery retry. Once
 
 Operational logs and optional bounded connection history explain failed, skipped and acquired destinations without requiring a separate listener. Named configuration, scoped locks and selected-destination sending limits use the same route ownership. Mail-send retry/backoff follows the separate contract in [ADR 0030](../adr/0030-safe-bounded-mail-send-retries.md), implemented under [#756](https://github.com/bbottema/simple-java-mail/issues/756). It does not expand failover's connection-only safety boundary.
 
-See [ADR 0029](../adr/0029-smtp-submission-failover.md), the [maintained architecture](../failover/architecture.md) and the [verification record](755-failover-state-refactor-verification.md). As checked on 2026-10-12, #755 is closed and Done on the 10.0.0 project board; Simple Java Mail 10.0.0 itself remains unreleased.
+See [ADR 0029](../adr/0029-smtp-submission-failover.md), the [maintained architecture](../failover/architecture.md) and its [regression map](../failover/architecture.md#10-regression-evidence-and-maintenance-verification). As checked on 2026-10-12, #755 is closed and Done on the 10.0.0 project board; Simple Java Mail 10.0.0 itself remains unreleased.
 
 ### Selected-Mailer configuration and ownership
 
@@ -80,7 +80,7 @@ As checked on 2026-10-12, [#757](https://github.com/bbottema/simple-java-mail/is
 
 An application adopting centrally supplied configuration can customize ordinary settings without accidentally displacing selected fixed requirements. Locks reuse the existing property names and types, apply through the factory and its Mailers, and reject incompatible operations rather than silently ignoring a requirement or rewriting exact content.
 
-This addresses configuration drift, not hostile application code. A deliberately independent configuration or transport remains possible. See [ADR 0025](../adr/0025-factory-scoped-locked-configuration.md) and the [verification record](740-locked-configuration-verification.md).
+This addresses configuration drift, not hostile application code. A deliberately independent configuration or transport remains possible. See [ADR 0025](../adr/0025-factory-scoped-locked-configuration.md).
 
 ### Measurements of actual sends
 
@@ -102,7 +102,7 @@ and DATA permission without debug transcripts. It attributes setup only to the e
 historical work. This improves live explanations around an already integrated sending workflow, not protocol throughput or final-delivery guarantees.
 Isolated DNS/TCP/proxy/implicit-TLS observations remain separate research. Packaged telemetry is the accepted #762 implementation below.
 No competitor capabilities were re-researched for this local implementation update. See [ADR 0032](../adr/0032-live-mail-send-progress.md),
-[ADR 0033](../adr/0033-detailed-mail-send-progress.md), and the [hook research and verification record](mail-send-progress-verification.md).
+[ADR 0033](../adr/0033-detailed-mail-send-progress.md), and the [provider-hook research](mail-send-progress-hooks.md).
 
 ### Optional OpenTelemetry integration
 
@@ -124,13 +124,13 @@ metric labels remain bounded, no message identities/content are exported, and SM
 OpenTelemetry guidance and is tested separately; lower-level spans from other instrumentation are not universally suppressed.
 
 See [ADR 0034](../adr/0034-optional-opentelemetry-integration.md) and its
-[research and verification record](762-opentelemetry-integration-verification.md). No competitor capability was re-researched for this update.
+[OpenTelemetry source research](762-opentelemetry-integration-research.md). No competitor capability was re-researched for this update.
 
 ### Message and recipient sending limits
 
 Users can express their service's restrictions as counts over periods instead of coordinating sleeps across workers, Mailers and batches. Named groups share allowance within a factory, and optional spreading avoids bursts. Ordinary waits happen before borrowing a connection; dedicated batch/open-connection scopes retain their intentional shared connection.
 
-These count local attempted provider submissions. They do not establish account-wide quota compliance across processes, persistent history, server-observed arrival timing or final delivery. See [ADR 0027](../adr/0027-factory-scoped-sending-limits.md) and the [verification record](sending-limits-verification.md).
+These count local attempted provider submissions. They do not establish account-wide quota compliance across processes, persistent history, server-observed arrival timing or final delivery. See [ADR 0027](../adr/0027-factory-scoped-sending-limits.md) and the [sending-limit regression map](../concurrency/09-sending-limits.md#regression-evidence-and-limits).
 
 ### Received delivery feedback
 
@@ -157,7 +157,7 @@ An unset choice preserves existing behavior. Requiring all recipients is not ato
 
 Provider support remains explicit: a requested choice is honored or rejected before submission, and conflicting advanced Angus settings are
 reported rather than silently weakening it. This closes an API-convenience gap, not a protocol-breadth gap. See
-[ADR 0028](../adr/0028-per-email-recipient-rejection-handling.md) and the [verification record](754-recipient-rejection-verification.md).
+[ADR 0028](../adr/0028-per-email-recipient-rejection-handling.md) and the [provider-boundary guide](../concurrency/07-angus-transport-abort.md#per-email-recipient-rejection-handling).
 
 ### Managed transport resource ownership
 
@@ -174,7 +174,7 @@ module exports.
 
 This strengthens the operational experience without adding another timeout abstraction or claiming broader SMTP support. See the
 [characterization and follow-up report](SMTP_TRANSPORT_OWNERSHIP_CHARACTERIZATION.md) and
-[implementation/verification record](726-managed-angus-resource-verification.md). These corrections are reviewed development-branch work,
+[Angus ownership guide](../concurrency/07-angus-transport-abort.md). These corrections are reviewed development-branch work,
 not a published release or part of the earlier hosted conformance run.
 
 Together, these additions remove useful application plumbing while retaining a clear account of what the library can and cannot control.
@@ -232,32 +232,30 @@ SMTP acceptance remains different from final delivery. Message-ID, ENVID and ret
 
 ## Evidence available for future assessments
 
-The [SMTP conformance verification report](smtp-conformance-verification.md) records the hosted 2026-09-29 run: 481 embedded fault/concurrency cases, 24 Postfix/Exim interoperability cases and ten independent protected-content checks, with eight separate runner self-tests. The report links sanitized hosted evidence and identifies the tested commit and runtime. It is not evidence that every later branch addition ran in that same hosted job.
+The [first hosted conformance run](../../tools/smtp-conformance/README.md#first-hosted-run) records the 2026-09-29 result against its exact commit:
+481 embedded cases, 24 Postfix/Exim scenarios and ten independent protected-content checks, with eight separate runner self-tests.
+It is not evidence that every later branch addition ran in that same job. The runner guide links the sanitized CI summary and current procedure.
 
-The [conformance runner guide](../../tools/smtp-conformance/README.md) provides the maintained scenarios and repeatable procedure. The locked-configuration and sending-limit verification reports retain their separate implementation evidence.
-
-The [recipient-rejection verification record](754-recipient-rejection-verification.md) records separate local Java 11/modern-JDK verification,
-Spring/CLI integration, exact/protected-content checks and pooled concurrency coverage. Its final focused lane passed 176 tests across nine suites,
-including concurrent true/false/unset attempts with mixed rejections. These later additions are not claimed as part of the earlier hosted run.
-
-Failover has its own evidence sequence: the [initial verification](755-connection-failover-verification.md), [public-boundary regression baseline](755-failover-blackbox-baseline.md) and [recovery-state/ownership verification record](755-failover-state-refactor-verification.md). They cover direct, pooled and clustered routes, no-replay boundaries, retained scopes, selected templates, cancellation/cleanup and concurrent recovery observations. The black-box baseline preserves the pre-fix defect; it is not itself a final green result.
-
-The later record includes the released Generic Object Pool 2.6.0, Clustered Object Pool 4.3.0 and SMTP Connection Pool 4.4.0 cascade, followed by real-JDK-11 integration and classpath/JPMS checks against those published dependencies. Supporting-library publication does not release SJM 10.0.0. Modern-JDK evidence combines an initial reactor run and documented correction/completion runs, rather than claiming one newly repeated uninterrupted green reactor. Earlier Postfix/Exim and Spring-matrix results retain their own dates and tested boundaries; this report refresh reran none of them.
+For later features, use the maintained [failover regression map](../failover/architecture.md#10-regression-evidence-and-maintenance-verification),
+[sending-limit coverage](../concurrency/09-sending-limits.md#regression-evidence-and-limits),
+[recipient-rejection boundary](../concurrency/07-angus-transport-abort.md#per-email-recipient-rejection-handling) and
+[configuration-lock obligations](../adr/0025-factory-scoped-locked-configuration.md#implementation-status-and-verification-obligations).
+They describe what to verify, not a freshly executed test run. Historical red/green sequences, intermediate failures and dated results remain in
+Git and CI history rather than separate per-feature diaries. The [published pool integration](../failover/architecture.md#6-pool-and-provider-integration-boundaries)
+does not itself release SJM 10.0.0.
 
 The [performance audit](smtp-performance/initial-audit-results.md), [inspection optimization](smtp-performance/inspection-optimization-results.md) and [provider-discovery follow-up](smtp-performance/provider-discovery-results.md) retain matched local measurements. They support internal improvements, not cross-library throughput leadership. The accepted decision retained content checks and SIZE handling without a speculative performance opt-out API.
 
 ## Carrying the research forward
 
-The [progress verification](mail-send-progress-verification.md) and [memory-pressure results](mail-send-memory-pressure-results.md) add separate,
-dated evidence for live reporting and retention. The observed pooled-success soak completed one million measured sends without accumulating
+The [provider-hook research](mail-send-progress-hooks.md) explains the visibility limits; the
+[memory-pressure results](mail-send-memory-pressure-results.md) retain measured reporting and retention profiles. The observed pooled-success soak completed one million measured sends without accumulating
 message/operation objects; deliberate-retention controls demonstrated that the workbench can expose growth. That strengthens confidence in this
 integration, not a claim of leak-freedom across every path or competitive throughput leadership.
 
-The [OpenTelemetry verification record](762-opentelemetry-integration-verification.md) adds SDK/loopback, real Java-agent, configuration,
-privacy and module-boundary evidence. It distinguishes the original full reactors/conformance run from later targeted revision checks.
-The final holistic lane passed 101 focused tests; delivery verification then passed 118 Java 21 tests and 114 real-Java-11 tests after
-correcting a stale reflective test helper. Packaged consumers, Javadocs, all 84 website checks and 4,240 internal links passed. This is
-local evidence, not a new hosted run, competitive benchmark or heap-profile proof.
+The [OpenTelemetry research](762-opentelemetry-integration-research.md) preserves source findings and integration rationale.
+The [telemetry guide](../concurrency/13-mail-send-telemetry.md#verification) maps SDK/loopback, agent coexistence, configuration, privacy and
+module-boundary checks. Its regression coverage is not a new hosted run, competitive benchmark or universal heap-leak proof.
 
 Use the PDF as the historical baseline and this report as the dated progress assessment. The PDF's original priorities and proposed API shapes are not all current decisions; consult the accepted ADRs, source, release history and live GitHub tracking before treating a research proposal as approved or complete.
 

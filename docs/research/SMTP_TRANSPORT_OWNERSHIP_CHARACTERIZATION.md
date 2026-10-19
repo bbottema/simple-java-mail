@@ -2,8 +2,9 @@
 
 Date: 2026-10-05. Target: unreleased 10.0.0. Production baseline: `codex/10.0.0` at `a5d8511ce44aa732ece452586a3520f309d39444`.
 Provider: Angus Mail 2.0.5. The original pass added tests and recorded evidence without changing production behavior.
-The findings below describe that baseline. The [correction verification record](726-managed-angus-resource-verification.md) records the
-2026-10-06 implementation follow-up under existing closed issues, rather than a new released-version bug ticket.
+The findings below describe that baseline. The [follow-up implementation](https://github.com/bbottema/simple-java-mail/commit/d17884adc9dca23d92beadd8a2c8ccf8b5cd5ea5)
+corrected those findings under the existing issues. Current contracts and regression landmarks live in the
+[Angus ownership guide](../concurrency/07-angus-transport-abort.md); do not treat the baseline's defects as current behavior.
 
 This follows the resource-ownership and custom-factory findings in the [Angus capability parity research](ANGUS_CAPABILITY_PARITY_RESEARCH.md).
 It is not another protocol implementation, a performance benchmark, or a proposal to wrap every Angus property in public API.

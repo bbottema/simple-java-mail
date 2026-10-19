@@ -118,6 +118,10 @@ not this decision record. Sending ownership, state machines and the shared concu
 
 [DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)
 implements interpreted notification facts within the shared MIME pass. [DeliveryStatusReportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/DeliveryStatusReportTest.java)
-and the [dated verification record](../research/763-delivery-status-verification.md) cover this extension separately from the historical evidence below.
+covers this extension, governed by the [tolerant-reading decision](0035-tolerant-reading-and-strict-production.md). Its presence is not a claim of a new test run.
+
+The international `message/global-delivery-status` part needs a narrow decoding adapter: Jakarta Mail normally ignores transfer encoding on
+`message/*`, while RFC 6533 permits it for this subtype. Delegate decoding to Jakarta Mail's utilities for that part only; do not introduce a
+global Session/JVM switch or change authoritative protected bytes to make optional report extraction succeed.
 
 [MimeMessageProducerHelper](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageProducerHelper.java), [SpecializedMimeMessageProducer](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java), [builder validation](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/EmailPopulatingBuilderImpl.java), and [EmailConverter](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/EmailConverter.java) implement these boundaries. [OpenPgpMimeTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/openpgp/OpenPgpMimeTest.java) and [OpenSSL S/MIME interoperability tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/internal/smimesupport/OpenSslSmimeInteroperabilityTest.java) are existing verification anchors, not newly executed tests for this record.

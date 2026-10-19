@@ -4,7 +4,7 @@
 
 This guide describes the current connection-failover implementation: its responsibilities, abstractions, ownership, routing boundaries and maintenance contracts. Keep it aligned with code changes together with the concurrency mechanism and shared infographic.
 
-Last aligned on **12 October 2026** with the unreleased 10.0.0 working-tree implementation on `codex/10.0.0`, including the explicit recovery-state and resource-scope refactor after local checkpoint `bb392ef0a5d1ff536dd12fd1584eb0d0889b8235`. The assessment includes the optional modules and current claim-context changes in the three local pool repositories. The [refactor verification record](../research/755-failover-state-refactor-verification.md) records runtime evidence separately from this source and diagram review.
+This guide describes the implemented recovery-state and resource-scope contracts. It supersedes the pre-refactor baseline and local-checkpoint notes. The [regression section](#10-regression-evidence-and-maintenance-verification) identifies maintained tests and verification boundaries; dated execution results remain in commit and CI history.
 
 ## Architectural overview
 
@@ -345,7 +345,7 @@ sequenceDiagram
     Note over Ticket: Generation and explicit visit lifetime gate publication
 ```
 
-The implementation uses published [SMTP Connection Pool 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0), [Clustered Object Pool 4.3.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.3.0) and [Generic Object Pool 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0). The supporting-library cascade was published on 12 October 2026. The SJM POM remains the dependency source of truth; publishing these dependencies does not publish or complete the SJM feature.
+The integration uses published [SMTP Connection Pool 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0), [Clustered Object Pool 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0). The original failover cascade included clustered 4.3.0; 4.4.0 adds retirement of disposed registrations. The [batch-module POM](../../modules/batch-module/pom.xml) remains the dependency source of truth. Publishing these libraries does not publish Simple Java Mail.
 
 Source anchors: [BatchModule](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java), [BatchTransportEngine](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchTransportEngine.java), [batch-module POM](../../modules/batch-module/pom.xml).
 
@@ -438,7 +438,7 @@ Source anchors: [ConfigLoader](../../modules/core-module/src/main/java/org/simpl
 | **Failure classification is structurally tied to exception evidence.** | Appropriate conservative choice, with provider-version sensitivity. Keep classification inside acquisition and retain wire tests for `[EOF]`, `421`, security precedence and local credential failures. New provider support needs explicit evidence rather than broader exception catching. |
 | **Ordinary and retained sending have different orchestration paths.** | Justified by lazy-batch recovery and callback pinning. Maintain parity for governance, security, allowance, cancellation and cleanup; changes to one path require checking the other. |
 | **Some helper classes are public for cross-package/module access.** | These are internal integration seams (`api.internal` / `internal`), despite Java visibility. Avoid treating them as customer extension APIs; intentional public additions are principally policy, paired builder methods and diagnostic history. |
-| **Pooling uses the published integration chain.** | SMTP Connection Pool 4.4.0 → Clustered Object Pool 4.3.0 → Generic Object Pool 2.6.0. Published artifacts and SJM dependency enforcement were verified; local tests alone do not establish artifact availability. |
+| **Pooling uses published integration contracts.** | SMTP Connection Pool 4.4.0, Clustered Object Pool 4.4.0 and Generic Object Pool 2.6.0 supply the integration. Check the selected POM versions and their published artifacts when updating these links; local tests alone do not establish artifact availability. |
 
 Routing uses the existing operation scheduler. Recovery remains factory-local bookkeeping, and provider adapters report evidence rather than coordinating routes. The main maintenance boundaries are destination ownership and resource lifetimes.
 
@@ -446,15 +446,7 @@ Routing uses the existing operation scheduler. Recovery remains factory-local bo
 
 The diagrams simplify forwarding calls. When changing a responsibility, update this guide, the [concurrency mechanism](../concurrency/10-connection-failover.md) and the [infographic maintenance source](../concurrency/inside-a-mail-send.md) together. Preserve the ownership and continuation contracts with the relevant regressions below.
 
-The latest runtime evidence is the **11–12 October 2026 [state-refactor verification record](../research/755-failover-state-refactor-verification.md)**. It records clean real-Java-11 library verification, Java-21 regression and reactor follow-ups, unchanged public-boundary and pool-free scenarios, Postfix/Exim conformance and content checks, and all three upstream pool suites. It distinguishes segmented runs and corrective reruns from a single all-passing reactor invocation; the final Windows TLS reruns resolved the recorded interception failure without changing certificate assertions.
-
-The **12 October architecture refresh** checked current production ownership and call paths, documentation links and six rendered Mermaid diagrams. It did not rerun the Java or SMTP suites. Use the dated verification record for runtime claims and the source review for the updated responsibility model.
-
-The later [12 October boundary follow-up](../research/755-failover-state-refactor-verification.md#boundary-follow-up-12-october-2026) fixes authenticated-proxy background prerequisites and cancellation evidence during failed setup cleanup, with red-before-fix public regressions. It reruns Java 11 and the full modern-JDK tests, records the successful packaging retry after a Windows metadata-file lock, and validates the complete concurrency documentation. Its scope and results supersede the documentation-only refresh for these boundaries.
-
-The earlier **10 October 2026 architecture baseline** passed **67 tests across nine suites, with zero failures, errors or skips** (10 in `core-module`, 57 in `simple-java-mail`). It predates the state/resource refactor. Its local log is `target/failover-architecture-focused-tests.log`; it remains historical evidence for that implementation.
-
-The baseline also rendered and visually inspected all five Mermaid UML diagrams and confirmed that production module contents were unchanged by the documentation work. After editing diagrams or moving documentation, check relative links and render the updated Markdown again.
+The coverage map below is a maintenance guide, not a claim that a suite was rerun for the latest documentation edit. Run the relevant public-boundary, model and integration checks against the source being changed, and retain the tested revision with its CI or commit evidence. After editing diagrams, check relative links and render the changed diagrams.
 
 | Contract | Existing regression evidence |
 | --- | --- |
@@ -468,9 +460,30 @@ The baseline also rendered and visually inspected all five Mermaid UML diagrams 
 | Greeting EOF, setup `421` and required-STARTTLS stopping on real loopback sockets | `SmtpConnectionFailoverWireTest` |
 | Bounded history, accumulated preparation and terminal outcome/exception identity | Diagnostics/attempt tests and public provider contracts, including observation-disabled scenarios |
 | Callback thread confinement, scope expiry, lease health and cleanup propagation | `ScopedMailSenderTest`, public `FailoverScopeContractTest` and failover open-connection regressions |
-| Named configuration, Spring and CLI identity | Named/Spring/CLI test sources and dated reactor follow-up evidence |
+| Named configuration, Spring and CLI identity | Named/Spring/CLI regression suites, the supported Spring matrix and packaged consumers |
 
-The [original implementation verification record](../research/755-connection-failover-verification.md) retains earlier reactor, compatibility and review-correction evidence. The [public-boundary baseline](../research/755-failover-blackbox-baseline.md) records the regression gate that preceded the refactor. Consult each record's date and scope when using its results.
+
+### Public-boundary tests
+
+The suites in `modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/failover` exercise public builders, execution views, observers, completions and results. They do not reflect into routing state or mock module availability. `FailoverDirectClasspathTest` runs common suites in a child JVM with the batch and pool artifacts removed and verifies their absence; pool-only tests remain separate. Count child scenarios separately from their parent launchers.
+
+`RecordingSmtpServer` records connections, commands and complete DATA transactions. A completed DATA transaction is not proof of acceptance or delivery. Wiser checks MIME and recipient occurrences separately: two emails with three recipients can produce six recipient deliveries, not six submissions. The supplemental ServiceLoader provider injects otherwise hard-to-reach cleanup failures; those cases are not real SMTP/TLS evidence.
+
+Concurrency tests must establish actual overlap. The default pool-free executor has one worker, and one pool serializes physical allocation. Use explicit caller-owned workers or separate Mailers from the same named definition where the timeline requires overlapping observations. Barriers and bounded watchdogs coordinate those tests; tiny elapsed-time assertions do not.
+
+The public tests complement, rather than replace, deterministic model/upstream tests for backoff arithmetic, stale-owner fencing, registration replacement and lease disposal. Real certificate rejection does not replace successful-TLS conformance, and injected cleanup errors cannot cover every provider or server interleaving.
+
+Run the public boundary selection from the repository root with a supported JDK:
+
+```powershell
+mvn -pl modules/simple-java-mail -am test `
+  '-Dtest=Failover*ContractTest,FailoverDirectClasspathTest,RecordingSmtpServerTest' `
+  '-Dsurefire.failIfNoSpecifiedTests=false' '-Dtest.forkCount=1' `
+  '-Dlicense.skip=true' '-Dspotbugs.skip=true' `
+  '-Dlog4j.configurationFile=log4j2-failover-contract.xml'
+```
+
+Dependency enforcement stays enabled with the published pool artifacts. Also run the [maintainer verification gates](../MAINTAINER_WORKFLOW.md#6-verify), including real-JDK-11 and modern-JDK lanes, packaged consumers, applicable upstream suites and [SMTP conformance](../../tools/smtp-conformance/README.md) when changing those boundaries. A focused green selection is not a full-reactor or hosted result.
 
 Related design records: [ADR 0029](../adr/0029-smtp-submission-failover.md), [connection failover concurrency mechanism](../concurrency/10-connection-failover.md), and [#755](https://github.com/bbottema/simple-java-mail/issues/755). The completed implementation plan is preserved in [commit-pinned history](https://github.com/bbottema/simple-java-mail/blob/c8baad90556a37de3fb7b23c4e39ed5c36c049ec/docs/plans/755-smtp-connection-failover.md); current guidance remains in this guide and the linked ADRs.
 

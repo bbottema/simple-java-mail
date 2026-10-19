@@ -21,7 +21,7 @@ Copying properties must not copy internal runtime ownership. The Angus adapter r
 controller to the dedicated probe; it retains any application-supplied scheduler. Probe setup retains its own connection reference before
 connecting, and failed setup or full probe close releases it after socket cleanup. It cannot borrow or stop the send Session's generation.
 Custom-factory fail-closed defaults and failed TLS-handoff cleanup also apply when the probe uses an owned source Session. See the
-[resource verification record](../research/726-managed-angus-resource-verification.md).
+[Angus resource-ownership guide](../concurrency/07-angus-transport-abort.md).
 
 Capture separate greeting, pre-TLS EHLO, STARTTLS, post-TLS EHLO and optional authentication facts through supported provider hooks. Retain unknown and repeated extensions. Reject stale discovery: a failed post-TLS EHLO must not authorize authentication using earlier advertisements. TLS metadata must preserve the configured trust and hostname-verifier decisions; missing metadata is preferable to changing that policy to populate a report.
 

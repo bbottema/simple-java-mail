@@ -101,4 +101,15 @@ On a development branch, start a pipeline with `run-smtp-conformance: true`; thi
 CI stores only sanitized evidence, including failed-run evidence. See [the maintainer workflow](../../docs/MAINTAINER_WORKFLOW.md#6-verify).
 
 Changing CI configuration locally is not proof that the CircleCI job ran. Record the tested commit and hosted result whenever using this suite as release evidence.
-The [29 September 2026 verification report](../../docs/research/smtp-conformance-verification.md) records the first successful hosted run and the fixture corrections it required.
+## First hosted run
+
+On 29 September 2026, [CircleCI pipeline 1287](https://app.circleci.com/pipelines/github/bbottema/simple-java-mail/1287), job 1333, passed against
+[`6109abf69e6ca7f4d3562ea750e4d1af826b8b02`](https://github.com/bbottema/simple-java-mail/commit/6109abf69e6ca7f4d3562ea750e4d1af826b8b02).
+Its [sanitized summary](https://output.circle-artifacts.com/output/job/1ef1ec7c-93d8-4c30-b3e6-1ddac78503b2/artifacts/0/artifacts/smtp-conformance/20260929T082001Z-a69311e2/summary.json)
+records run `20260929T082001Z-a69311e2`, runtime identities and source/configuration hashes: 481 embedded cases, 24 Postfix/Exim scenarios
+and ten independent protected-content checks passed; eight runner self-tests were separate. No deployment or release job ran.
+These results belong to that commit, not every later change or an eventual release candidate.
+
+Preserve the fixture lessons from that run: prepare signed fixtures with explicit CRLF bytes, retain the runner's two-fork CI setting on small
+workers, and give the host test user access to synthetic captures independently of the server's umask. Never publish fixture private keys or
+raw captures with the sanitized evidence, and never relax signature or timeout assertions to hide an environment problem.

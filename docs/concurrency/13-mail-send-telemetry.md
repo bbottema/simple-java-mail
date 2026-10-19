@@ -4,7 +4,7 @@
 
 The optional integration observes the existing operation. It does not add another send state machine, executor, delivery queue or callback dispatcher.
 [ADR 0034](../adr/0034-optional-opentelemetry-integration.md) owns the public architecture; the
-[research and verification record](../research/762-opentelemetry-integration-verification.md) retains the dated evidence.
+[source research](../research/762-opentelemetry-integration-research.md) records the inspected OpenTelemetry sources and their limitations.
 
 ## Owners and lifetimes
 
@@ -93,7 +93,21 @@ Endpoint extraction uses the actual transport's bounded logical host/port, never
 belongs to the initiating Mailer. Trace attributes can include its observation UUID; metrics cannot include observation/trace IDs, hosts or ports.
 No mail headers, protocol commands or serialized content change for telemetry.
 
-## Evidence
+## Verification
+
+Use the normal reactor so core, main and optional-module classes come from the same source revision. For a focused modern-JDK lane:
+
+```powershell
+mvn -B -ntp -pl modules/open-telemetry-module,modules/spring-module,modules/cli-module -am `
+  '-Dtest=MailerImplTest,MailSendTelemetry*Test,Otel*Test,TelemetryAgentCoexistenceTest,MailSendDiagnosticsRecorderTest,MailSendAttemptDiagnosticsTest,PublicApiBoundaryTest,SpringMailSendTelemetryTest,SpringModulePackagingTest,SimpleJavaMailSpringOAuth2ProviderTest,CliMailSendTelemetryTest' `
+  '-Dsurefire.failIfNoSpecifiedTests=false' '-Dlicense.skip=true' '-Dspotbugs.skip=true' verify
+```
+
+Also run the real-JDK-11 library lane and modern-JDK reactor, Spring compatibility and SMTP conformance checks from the
+[maintainer workflow](../MAINTAINER_WORKFLOW.md#6-verify) when the affected boundaries warrant them. A focused command does not replace those gates.
+For intercepted TLS on Windows, use the [local TLS guidance](../DEVELOPMENT.md#tls-interception-during-local-tests), never disabled certificate validation.
+
+### Regression landmarks
 
 - `MailSendTelemetryTest`: parentage through async execution, retries, failover, batches and pinned sends; sampling-independent metrics,
   observer handoff, partial/unknown acceptance, SDK failures and unchanged attachment-read/connection counts.

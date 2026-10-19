@@ -125,7 +125,7 @@ The ordinary runtime stays small and feature-specific failures occur at use. The
 The typed adapter is the explicit exception to runtime-only module availability: callers using it need its artifact at compile time as well.
 Verify it separately from core-only continuation, including rejection of wrong input types at compile time and preservation of the supplied
 instance and its ownership. Verify that ordinary property/core activation still reports a missing module through ModuleLoader, and that merely
-adapting an instance does not start runtime work. The [#762 research and verification record](../research/762-opentelemetry-integration-verification.md) retains its evidence.
+adapting an instance does not start runtime work. The [#762 source research](../research/762-opentelemetry-integration-research.md) explains the inspected OpenTelemetry conventions and integration boundaries.
 
 When adding a feature module, cover both presence and absence on the real runtime path. An all-modules reactor test alone cannot detect another #465. Keep constructor side effects and singleton state small enough that concurrent first use remains safe.
 

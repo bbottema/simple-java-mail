@@ -84,8 +84,7 @@ Managed Angus write timeouts follow that physical boundary, not executor or Mail
 shares a lazy daemon scheduler across its live connections. The last connection disposal stops its generation; a later connection can
 create another. A healthy lease return and raw-socket abort do not release a connection's reference. Clustered sends retain the selected
 Session's controller, so closing an unrelated invoking Mailer cannot stop it. Supplied schedulers are never shut down by this mechanism.
-See the [resource verification record](../research/726-managed-angus-resource-verification.md) and
-[scheduler state and races](../concurrency/07-angus-transport-abort.md#write-timeout-resource-ownership).
+See [scheduler ownership and races](../concurrency/07-angus-transport-abort.md#write-timeout-resource-ownership) and the guide's regression landmarks.
 
 ## Implementation anchors
 

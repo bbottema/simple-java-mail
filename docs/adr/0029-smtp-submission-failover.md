@@ -3,7 +3,7 @@
 - Status: **Accepted**.
 - Decision date: 2026-10-07.
 - Target: 10.0.0; connection-only initial scope accepted.
-- Implementation: **Implemented and accepted for unreleased 10.0.0** under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Current ownership and maintenance contracts live in the [architecture guide](../failover/architecture.md); the supporting pool integrations are published. See the [refactor and release verification](../research/755-failover-state-refactor-verification.md). Completing the issue does not release Simple Java Mail 10.0.0.
+- Implementation: **Implemented and accepted for unreleased 10.0.0** under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Current ownership, published pool dependencies and regression coverage live in the [architecture guide](../failover/architecture.md). Completing the issue does not release Simple Java Mail 10.0.0.
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755).
 - Evidence: [SMTP failover research](../research/755-smtp-submission-failover.md).
 

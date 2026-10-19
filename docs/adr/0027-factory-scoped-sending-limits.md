@@ -237,7 +237,7 @@ Implementing [#751](https://github.com/bbottema/simple-java-mail/issues/751) doe
 | [0018: Generated CLI](0018-cli-from-builder-contracts.md) | Expose the planned builder settings through the normal conversion and metadata routes. |
 | [0025: Factory-scoped locks](0025-factory-scoped-locked-configuration.md) | Configuration restrictions are independent of mutable allowance and are not an implementation prerequisite. |
 | [0026: Actual-send diagnostics](0026-actual-send-diagnostics.md) | Explain deliberate allowance waits separately from scheduling and acquisition without changing completion semantics. |
-| [0030: Safe mail-send retries](0030-safe-bounded-mail-send-retries.md) | The local #756 candidate charges every provider invocation to the selected allowance, without treating rate waiting as backoff or resetting counters between attempts; verification is complete; production-only review remains pending. |
+| [0030: Safe mail-send retries](0030-safe-bounded-mail-send-retries.md) | Every provider invocation is charged to the selected allowance, without treating rate waiting as backoff or resetting counters between attempts. |
 
 ## Implementation obligations
 
@@ -259,5 +259,5 @@ Implementation is tracked under [#751](https://github.com/bbottema/simple-java-m
 - **Configuration and diagnostics:** builder replacement/reset behavior, property precedence and isolation, Spring metadata, CLI
   options, safe provenance and honest wait reporting. Keep the disabled path's behavior unchanged.
 
-The [verification report](../research/sending-limits-verification.md) records the integration runs and holistic-review corrections.
+The [sending-limit guide](../concurrency/09-sending-limits.md#regression-evidence-and-limits) maps the maintained integration and race regressions.
 Documentation checks do not replace runtime tests or establish release readiness.

@@ -82,5 +82,6 @@ prove that recovery adds no unrelated attachment reads or getter-side I/O. Exist
 - [ADR 0014](0014-send-time-rehearsal.md): outgoing validation remains separate from incoming interpretation.
 - [API expansion workflow](../API_EXPANSION_WORKFLOW.md#4-message-conversion--processing-simple-java-mail): contributor checks for this boundary.
 
-The scoped delivery-report application and its test evidence belong to [#763's plan](../plans/763-delivery-status-reports.md) and
-[verification record](../research/763-delivery-status-verification.md), not this architectural decision.
+The scoped delivery-report application is described in [#763's plan](../plans/763-delivery-status-reports.md).
+[DeliveryStatusReportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/DeliveryStatusReportTest.java) supplies regression coverage;
+dated execution evidence belongs in commit and CI history, not this architectural decision.

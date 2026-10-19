@@ -225,7 +225,7 @@ Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding gu
 - Property precedence/isolation, diagnostics, Spring metadata, generated CLI/help and classpath/JPMS consumers.
 - Clear public Javadocs and current website examples for both behaviors. Keep the interface contract authoritative and implementation Javadocs linked to it.
 
-The [verification record](../research/754-recipient-rejection-verification.md) records the local runtime and documentation checks on 2026-10-05.
+The [provider-boundary guide](../concurrency/07-angus-transport-abort.md#per-email-recipient-rejection-handling) explains the submission contract and its regressions.
 The implementation, generated CLI metadata and documentation passed production-only and holistic review under #754.
 Release history lists this additive feature under Enhancements; it is implemented for 10.0.0, not released.
 Migration notes describe only genuine changed behavior against released versions, not this additive API or intermediate unreleased implementations.

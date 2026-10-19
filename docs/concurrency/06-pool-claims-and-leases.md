@@ -39,7 +39,7 @@ There are two different controls, with a deliberate handoff between them:
 | Clustered pool | [ResourceClusters][clusters], [ResourcePools][pools], [ResourcePool][resource-pool] |
 | Generic pool | [GenericObjectPool][generic], [ClaimAttempt][claim-attempt], [ClaimControl][claim-control], [AllocationContext][allocation-context] |
 
-The upstream source links pin the published controlled-claim foundation: SMTP and clustered pools **4.1.0**, generic pool **2.5.0**. Current failover development uses locally verified **4.4.0-SNAPSHOT**, **4.3.0-SNAPSHOT** and **2.6.0-SNAPSHOT** respectively; see the [batch-module POM](../../modules/batch-module/pom.xml) and [verification report](../research/755-failover-state-refactor-verification.md). Those snapshots add candidate traversal, claim attribution and background observation/gating. They are not published releases; refresh the pinned links when their release gate is approved.
+The upstream links pin published SMTP Connection Pool **4.4.0**, Clustered Object Pool **4.4.0** and Generic Object Pool **2.6.0**. They include candidate traversal, claim attribution and background observation/gating; clustered 4.4.0 also retires disposed registrations. The [batch-module POM](../../modules/batch-module/pom.xml) is the source of truth for SJM's selected dependencies. See the [failover integration boundaries](../failover/architecture.md#6-pool-and-provider-integration-boundaries); these are no longer unpublished SNAPSHOT dependencies.
 
 ### Background setup has its own prerequisites
 
@@ -229,15 +229,15 @@ The finite race test is not exhaustive scheduling verification. Provider-indepen
 [execution-tests]: ../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSendExecutionControlTest.java
 [batch-tests]: ../../modules/batch-module/src/test/java/org/simplejavamail/batch/BatchTransportExecutorTest.java
 [cleanup-tests]: ../../modules/batch-module/src/test/java/org/simplejavamail/internal/batchsupport/LifecycleDelegatingTransportImplTest.java
-[lease]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/SmtpTransportLease.java
-[allocator]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/TransportAllocator.java
-[smtp-cluster]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/SmtpConnectionPoolClustered.java
-[clusters]: https://github.com/bbottema/clustered-object-pool/blob/4.1.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourceClusters.java
-[pools]: https://github.com/bbottema/clustered-object-pool/blob/4.1.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourcePools.java
-[resource-pool]: https://github.com/bbottema/clustered-object-pool/blob/4.1.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourcePool.java
-[generic]: https://github.com/bbottema/generic-object-pool/blob/2.5.0/src/main/java/org/bbottema/genericobjectpool/GenericObjectPool.java
-[claim-attempt]: https://github.com/bbottema/generic-object-pool/blob/2.5.0/src/main/java/org/bbottema/genericobjectpool/ClaimAttempt.java
-[claim-control]: https://github.com/bbottema/generic-object-pool/blob/2.5.0/src/main/java/org/bbottema/genericobjectpool/ClaimControl.java
-[allocation-context]: https://github.com/bbottema/generic-object-pool/blob/2.5.0/src/main/java/org/bbottema/genericobjectpool/AllocationContext.java
-[lease-tests]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/smtp-connection-pool/src/test/java/org/simplejavamail/smtpconnectionpool/SmtpLeaseCancellationTest.java
-[claim-tests]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.1.0/smtp-connection-pool/src/test/java/org/simplejavamail/smtpconnectionpool/SmtpClaimCancellationTest.java
+[lease]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.4.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/SmtpTransportLease.java
+[allocator]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.4.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/TransportAllocator.java
+[smtp-cluster]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.4.0/smtp-connection-pool/src/main/java/org/simplejavamail/smtpconnectionpool/SmtpConnectionPoolClustered.java
+[clusters]: https://github.com/bbottema/clustered-object-pool/blob/4.4.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourceClusters.java
+[pools]: https://github.com/bbottema/clustered-object-pool/blob/4.4.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourcePools.java
+[resource-pool]: https://github.com/bbottema/clustered-object-pool/blob/4.4.0/src/main/java/org/bbottema/clusteredobjectpool/core/ResourcePool.java
+[generic]: https://github.com/bbottema/generic-object-pool/blob/2.6.0/src/main/java/org/bbottema/genericobjectpool/GenericObjectPool.java
+[claim-attempt]: https://github.com/bbottema/generic-object-pool/blob/2.6.0/src/main/java/org/bbottema/genericobjectpool/ClaimAttempt.java
+[claim-control]: https://github.com/bbottema/generic-object-pool/blob/2.6.0/src/main/java/org/bbottema/genericobjectpool/ClaimControl.java
+[allocation-context]: https://github.com/bbottema/generic-object-pool/blob/2.6.0/src/main/java/org/bbottema/genericobjectpool/AllocationContext.java
+[lease-tests]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.4.0/smtp-connection-pool/src/test/java/org/simplejavamail/smtpconnectionpool/SmtpLeaseCancellationTest.java
+[claim-tests]: https://github.com/simple-java-mail/smtp-connection-pool/blob/4.4.0/smtp-connection-pool/src/test/java/org/simplejavamail/smtpconnectionpool/SmtpClaimCancellationTest.java

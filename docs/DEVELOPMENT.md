@@ -142,6 +142,17 @@ Check changed commands through both one-shot and daemon routes. Each request own
 
 For connection diagnostics, `probe` calls the synchronous view and prints its report to request-owned stdout. `--authenticate` is an invocation choice, not a generated builder setting or part of a retained Mailer profile. Exit codes are 0 for success, 3 for a failed/unsupported report, and 2 for invalid arguments. The dedicated probe connection closes before the report returns. The [probe integration tests](../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpConnectionProbeTest.java), [loopback demo](../modules/simple-java-mail/src/test/java/demo/SmtpConnectionProbeDemoApp.java), and [ADR 0020](adr/0020-dedicated-smtp-connection-diagnostics.md) describe that separate path.
 
+## TLS interception during local tests
+
+A local security product can replace certificates even for loopback SMTP fixtures. If dependency downloads or test JVMs need the trusted
+Windows roots, configure `-Djavax.net.ssl.trustStoreType=Windows-ROOT` for those JVMs; do not disable certificate or hostname verification.
+Positive TLS fixtures can combine their test certificate with the configured roots in memory without installing a certificate into Windows.
+
+The Windows store cannot authorize an interception root that is not in that store. If a security product still replaces a fixture certificate,
+use an unintercepted test environment or the [conformance runner's container JVM](../tools/smtp-conformance/README.md#run-it).
+Keep the rejection assertions intact and report any excluded case explicitly; an environment-specific exclusion is not the normal verification recipe.
+The October 2026 Norton investigation is historical evidence, not a permanent instruction to skip the positive implicit-TLS fixture.
+
 ## Known Build Constraints
 
 - **Javadoc generation** uses classpath mode (`legacyMode`) because the Java sources live in

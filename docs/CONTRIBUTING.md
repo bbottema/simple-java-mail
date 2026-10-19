@@ -20,10 +20,9 @@ For a first code change, start with the development and coding guides, then read
 ## Active work and evidence
 
 - [GitHub issues](https://github.com/bbottema/simple-java-mail/issues) track ongoing work. Active implementation plans belong under `docs/plans/` while that work is being implemented or reviewed.
-- The [SMTP conformance runner](../tools/smtp-conformance/README.md) documents the repeatable checks delivered under [#747](https://github.com/bbottema/simple-java-mail/issues/747), within [#722](https://github.com/bbottema/simple-java-mail/issues/722). Its first hosted run is recorded in the [verification report](research/smtp-conformance-verification.md).
+- The [SMTP conformance runner](../tools/smtp-conformance/README.md) documents repeatable checks delivered under [#747](https://github.com/bbottema/simple-java-mail/issues/747), within [#722](https://github.com/bbottema/simple-java-mail/issues/722), and links its [first hosted run](../tools/smtp-conformance/README.md#first-hosted-run).
 - [Research reports](research/) retain investigations and measurements. Read each report's date and scope alongside the maintained guides and ADRs.
-- Completed connection-failover design and maintenance guidance lives in the [failover guide](failover/README.md), with dated [refactor and integration evidence](research/755-failover-state-refactor-verification.md). The completed #755 plan is preserved in Git history rather than retained as active work.
+- Completed connection-failover design, coverage and maintenance instructions live in the [failover guide](failover/README.md). Historical plans and implementation test diaries remain in Git history.
 - [Angus release compatibility research](research/ANGUS_RELEASE_COMPATIBILITY_RESEARCH.md) records the milestone findings and the review to resume after a newer final Angus release.
-- The [managed Angus resource verification record](research/726-managed-angus-resource-verification.md) retains the completed connection-cleanup,
-  custom-factory and write-timeout checks; current ownership contracts live in the [Angus concurrency catalogue](concurrency/07-angus-transport-abort.md).
+- The [Angus concurrency guide](concurrency/07-angus-transport-abort.md) covers connection cleanup, custom-factory trust, shared write-timeout resources and their regressions.
 - Follow the [documentation ownership and plan lifecycle instructions](MAINTAINER_WORKFLOW.md#7-update-documentation-and-release-notes) when moving documentation or completing a plan.

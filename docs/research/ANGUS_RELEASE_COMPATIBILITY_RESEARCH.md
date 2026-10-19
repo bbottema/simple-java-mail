@@ -180,7 +180,7 @@ Windows ROOT was propagated to Maven and forked/subprocess JVMs. The fixture com
 Handshake diagnostics show Norton replacing the localhost certificate with one signed by **Norton Web/Mail Shield Self-signed Root**;
 that differs from Norton's regular scanning root present in Windows Store. The identical positive TLS test passes on Linux JDK 11/21
 with pinned, Angus-only and aligned graphs: six passes with certificate validation intact.
-See the [existing Windows verification boundary](726-managed-angus-resource-verification.md#windows-verification-boundary).
+For current handling, see [TLS interception during local tests](../DEVELOPMENT.md#tls-interception-during-local-tests). This observation describes the audited environment, not a permanent test exclusion.
 Use controlled loopback/container fixtures for comparison, preserving certificate and hostname validation.
 
 The failover timing limitation also reproduces on pinned cold-JVM single-method runs using ControlledTransport, rather than Angus SMTPTransport.

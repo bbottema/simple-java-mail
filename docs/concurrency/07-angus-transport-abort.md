@@ -34,6 +34,9 @@ closes a connected socket if wrapping fails before handoff; it keeps the origina
 using public factory methods and module exports only. This does not add physical-abort support to an application factory.
 The SSL guard preserves Angus's `MailSSLSocketFactory` trust hook and forwards it to the original factory selected for that socket.
 This keeps custom trusted-host restrictions and subclass checks active after Angus's handshake, including class factories returning different instances.
+Keep that recognized subtype: a generic SSL decorator can otherwise bypass Angus's post-handshake trusted-host gate. Do not copy trust settings,
+perform an early handshake or replace the returned socket. The socket-to-factory association is removed at the trust check and uses weak keys
+for failed handshakes. Run the original trust callback outside the bookkeeping monitor; a missing association must never authorize a socket.
 
 ## Physical connection state
 

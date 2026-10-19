@@ -1,8 +1,7 @@
 # 09 — Sending limits
 
 This page describes factory-scoped sending limits implemented under [#751](https://github.com/bbottema/simple-java-mail/issues/751).
-The configuration decision is [ADR 0027](../adr/0027-factory-scoped-sending-limits.md);
-the [verification report](../research/sending-limits-verification.md) records the integration runs.
+The configuration decision is [ADR 0027](../adr/0027-factory-scoped-sending-limits.md); [regression landmarks below](#regression-evidence-and-limits) identify the contracts to preserve.
 
 [Catalogue](README.md) · [Stop control](04-stop-and-deadline-control.md) · [Stop registrations](05-stop-registration.md) ·
 [Pool claims and leases](06-pool-claims-and-leases.md)
@@ -86,8 +85,9 @@ The factory registry lock is used only during registration, not while reserving,
 ### Construction and registration ownership
 
 Each Mailer keeps its own allowance reference. The optional pool bridge retains a typed internal `SendingAllowance` reference for each
-cluster/Session registration, so another Mailer reusing that Session in a different cluster cannot replace it. Registering incompatible
-allowance owners for the same live pool fails explicitly; shared named-group participants can use the same owner.
+cluster/Session registration, independently of the conversion context. Registering incompatible allowance owners for the same live pool
+fails explicitly; shared named-group participants can use the same owner. These internal registration safeguards do not permit sharing
+one Session between live Mailers: public construction rejects duplicate ownership.
 
 `BatchSupport` replaces its per-cluster maps on registration/removal instead of modifying maps held by an in-flight selection. Selection
 waits happen outside its monitor. After selection, the original and current allowance references must agree for that destination; otherwise
@@ -166,8 +166,7 @@ Measurements finish at the existing terminal boundary before observer handoff; r
 
 ## Regression evidence and limits
 
-The [verification report](../research/sending-limits-verification.md) records the original integration runs and the
-holistic-review follow-up. Method names below identify the exact checks in each linked file.
+Method names below identify the exact checks in each linked file. Run them against the current source; the coverage map is not a claim of a fresh test run.
 
 | Test method | What it establishes |
 | --- | --- |
@@ -185,7 +184,7 @@ holistic-review follow-up. Method names below identify the exact checks in each 
 | [MailSendExecutionControlTest][execution-tests] — `totalDeadlineIncludesSendingLimitWaitWithoutTouchingTheIdlePooledConnection(boolean)` | Sync and async loopback sends time out at the rate gate with no receipt. A connection test still uses the same healthy pooled connection; the server received only the first message. This exercises the real deadline rather than a fake-clock boundary. |
 | [FactorySendingLimitsTest][registry-tests] — `namedGroupsShareByFactoryIdentityRatherThanMatchingConfiguration()` / `groupMembersMustAgreeIncludingExplicitlyDisabledRules()` | Equal rules within one named group reuse its limiter; distinct factories and contradictory declarations do not. Integration tests additionally exercise participant closure and independent-factory sending. |
 | Same class — `failedInitializationReleasesRulesButCannotRemoveAnEstablishedGroup()` / `concurrentSuccessfulParticipantSurvivesAnotherBuildersRollback()` / `concurrentFailedParticipantsLeaveNoRegisteredRules()` | Failed initialization cannot pin new rules or remove an established group. Latches keep initialization open while another builder succeeds or fails; initialization does not hold the registry lock. |
-| [MailerSendingLimitsTest][integration-tests] — `anotherMailerUsingTheSameSessionCannotReplaceTheInvokingMailersLimits()` / `reusedSessionKeepsLimitsAcrossIndividualAndRetainedSendPaths(boolean)` | Another factory reuses the same caller-owned Session without replacing the first Mailer's limits. Individual, custom, batch and open-connection paths retain the intended owner. |
+| [MailerSendingLimitsTest][integration-tests] — `rejectedSessionReuseAndIndependentMailersCannotReplaceTheInvokingMailersLimits()` / `independentSessionKeepsLimitsAcrossIndividualAndRetainedSendPaths(boolean)` | Duplicate ownership of a caller Session is rejected. Independently owned Sessions cannot replace another Mailer's allowance; individual, custom, batch and open-connection paths retain their intended owner. |
 | Same class — `failedMailerConstructionDoesNotKeepItsProvisionalGroupRules()` / `failedPoolRegistrationAlsoReleasesItsProvisionalGroup()` | Both early TLS validation failure and later pool registration failure allow a corrected build with different group rules. |
 | [BatchTransportSelectionTest][selection-tests] — `oneSessionCanHaveIndependentLimitsInDifferentClustersButCannotReplaceALivePoolsLimits()` / `selectionRejectsChangedOwnershipButNotAnUnrelatedRegistration(boolean)` | Pool selections retain the selected registration's allowance. A controlled registration change during selection rejects replaced ownership before acquisition, while an unrelated registration does not invalidate the selection. |
 | [MailerSendingLimitsTest][integration-tests] — `gracefulShutdownWaitsForAnAcceptedRateWaiterWithoutDiscardingItsCharge()` / `cancellationDuringARetainedBatchWaitStopsBeforeTheNextEmailIsRead()` | Shutdown waits for accepted rate-limited work. Cancellation during a blocked retained batch wait stops before reading the next email and records the rate wait as the failed step. |
@@ -195,8 +194,7 @@ holistic-review follow-up. Method names below identify the exact checks in each 
 Remaining evidence boundaries: no dedicated test freezes the exact final-stop-check/`wait` or final-stop-check/charge gap shown above.
 The shared registration-fence tests cover action retirement, but do not enumerate every limiter-specific late wake-up. Retained waits and
 graceful draining now have the focused checks above; no test simulates every server's idle-timeout behavior. None of these diagrams proves
-deadlock freedom for arbitrary provider or application callbacks. The verification report distinguishes the new checks
-from the earlier 2026-10-01 run.
+deadlock freedom for arbitrary provider or application callbacks. Dated run results belong to the tested revision's commit or CI evidence.
 
 [registry]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/ratelimit/FactorySendingLimits.java
 [limiter]: ../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/ratelimit/MailSendRateLimiter.java

@@ -18,8 +18,8 @@ is deliberately coalesced and lossy. Neither delivery mechanism can own authorit
 applications must not acquire an OpenTelemetry dependency merely to keep using those observers.
 
 The priorities are explicit activation, trustworthy completion, portable measurements, low-cardinality metrics, privacy-safe attributes,
-existing SDK ownership and unchanged SMTP behavior. The [research and verification record](../research/762-opentelemetry-integration-verification.md)
-retains the inspected sources and dated evidence; this record states the architecture, not implementation progress.
+existing SDK ownership and unchanged SMTP behavior. The [source research](../research/762-opentelemetry-integration-research.md)
+retains the inspected sources and the scope of those findings; this record states the architecture, not implementation progress.
 
 ## Decision
 
@@ -280,7 +280,7 @@ partial/uncertain acceptance, cleanup failure and retained scopes. Assert exact 
 active-send counts, independent sampling, privacy and unchanged content-read/protocol counts. Exercise failing SDK operations, observer
 handoff rejection, concurrent context isolation and release of per-send references.
 
-The research and verification record retains the dated checks, including the separate 2026-10-16 typed-adapter and final-review lanes.
+The [telemetry ownership guide](../concurrency/13-mail-send-telemetry.md#verification) identifies regression coverage and repeatable verification commands.
 Implementation and review acceptance do not imply release.
 
 ## Related decisions and evidence
@@ -302,5 +302,5 @@ Implementation and review acceptance do not imply release.
 - [OpenTelemetry error recording](https://opentelemetry.io/docs/specs/semconv/general/recording-errors/): recovered attempts versus failed operations.
 - [OpenTelemetry Java agent](https://opentelemetry.io/docs/zero-code/java/agent/): optional JVM instrumentation, not SJM activation.
 
-The dated [research findings](../research/762-opentelemetry-integration-verification.md#research-findings-2026-10-15) identify the OpenTelemetry repositories
+The dated [research findings](../research/762-opentelemetry-integration-research.md#research-findings-2026-10-15) identify the OpenTelemetry repositories
 and limits of the absence finding. They do not assert that SMTP has no standards or that no third-party mail instrumentation exists.

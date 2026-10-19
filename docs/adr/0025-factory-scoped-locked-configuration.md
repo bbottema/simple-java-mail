@@ -3,7 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-09-29
 - Target: 10.0.0
-- Implementation status: Original decision implemented for unreleased 10.0.0; verification recorded separately. The 2026-10-07 failover addendum is implemented and accepted under #755 for unreleased 10.0.0.
+- Implementation status: Original decision implemented for unreleased 10.0.0. The 2026-10-07 failover addendum is implemented and accepted under #755 for unreleased 10.0.0.
 - Tracking: [#740](https://github.com/bbottema/simple-java-mail/issues/740)
 
 ## Context and decision drivers
@@ -229,7 +229,7 @@ The following records retain their existing unlocked behavior. This ADR adds an 
 
 ## Implementation status and verification obligations
 
-Implementation under [#740](https://github.com/bbottema/simple-java-mail/issues/740) targets unreleased 10.0.0. The [verification record](../research/740-locked-configuration-verification.md) retains evidence separately from this architectural decision. Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Maintain coverage for:
+Implementation under [#740](https://github.com/bbottema/simple-java-mail/issues/740) targets unreleased 10.0.0. Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding guide](../CODING_STYLE_GUIDE.md). Maintain coverage for:
 
 - **Resolution and conflicts:** reuse schema parsing and validation, retain source precedence, allow equal parsed values, reject conflicting explicit customization, and keep unlocked behavior unchanged. Verify copying, clearing, builder reuse and replacement templates cannot accidentally lose a lock.
 - **Factory isolation:** all Mailers from one snapshot inherit its locks; separately configured factories and concurrent loads remain isolated. Do not introduce process-global lock state.
@@ -239,12 +239,12 @@ Implementation under [#740](https://github.com/bbottema/simple-java-mail/issues/
 - **Exact and protected messages:** prove unchanged bytes for compatible operations and clear rejection for incompatible requirements. Do not silently exempt exact submission or apply ordinary composition templates to it.
 - **Ownership and providers:** characterize selected cluster configurations, caller-owned Sessions, CustomMailer and provider adapters. Keep checks with the responsible owner and reject unsupported combinations before submission rather than claiming a guarantee the chosen path cannot provide.
 
-These are continuing implementation and test obligations, not proof from the ADR itself. GitHub owns delivery status; the verification record identifies the checks actually performed.
+These are continuing implementation and test obligations, not proof from the ADR itself. GitHub owns delivery status; commit and CI records identify the revisions and checks actually run.
 
 ### Implementation boundaries
 
 - `ConfigLoader` resolves ordinary and locked namespaces separately, parses the winning effective values once, and retains concrete lock values and sources in `ConfigurationLocks`. Snapshot copies preserve locked names. No runtime tracker or process-global state is added.
-- Mailer builders check their final values before resource initialization. `LockedSmtpConfiguration`, retained with the existing Session conversion context, checks low-level properties and the actual selected cluster owner. A caller-owned Session cannot be rebound across locked Mailers. A locked SMTP username or password requires factory-owned authentication: matching visible Session properties cannot rule out cached credentials or an Authenticator selecting different credentials. Custom TLS ownership is rejected when it prevents checking applicable locks.
+- Mailer builders check their final values before resource initialization. `LockedSmtpConfiguration`, retained with the existing Session conversion context, checks low-level properties and the actual selected cluster owner. A Session cannot belong to two live Mailers, with or without locks. A locked SMTP username or password requires factory-owned authentication: matching visible Session properties cannot rule out cached credentials or an Authenticator selecting different credentials. Custom TLS ownership is rejected when it prevents checking applicable locks.
 - `LockedEmailConfiguration` reapplies message restrictions after ordinary governance. `LockedMessageProtection` checks individual key/certificate/algorithm fields rather than freezing unrelated configuration. Required recipients are included in the actual envelope, including override receivers, before recipient-rate accounting.
 - Exact EML uses the same immutable source bytes. Compatible envelope changes and matching readable headers are allowed. Duplicate Subject, From or Reply-To fields prevent confirming a lock on that header, even when the parsed getter matches; inspect original headers without copying or reading the body. One Reply-To field may still contain multiple addresses. A requirement needing content or signature changes is rejected. Operational `defaults.*` settings are not mistaken for message-content requirements.
 - Locked DSN is marked explicitly on the provider-neutral `DeliveryEnvelope`. The backwards-compatible adapter capability defaults to unsupported, so an older adapter that accepts generic envelope options cannot silently omit this requirement. Angus checks usable DSN and rejects contradictory raw return options before MAIL FROM. This does not promise that a notification arrives.
