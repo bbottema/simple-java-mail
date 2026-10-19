@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.internet.MimeMessage;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.ToString;
@@ -285,9 +286,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@Override
 	@NotNull
 	public Email produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided) {
-		val builder = (provided == null || provided.getEmailToForward() == null)
+		final MimeMessage emailToForward = resolveEmailProperty(provided, EmailProperty.MAIL_TO_FORWARD);
+		val builder = emailToForward == null
 				? emailBuilder.startingBlank()
-				: emailBuilder.forwarding(provided.getEmailToForward());
+				: emailBuilder.forwarding(emailToForward);
 
 		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT);
 		final List<Recipient> replyToRecipients = resolveEmailCollectionProperty(provided, EmailProperty.REPLYTO_RECIPIENT);
