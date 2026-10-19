@@ -14,14 +14,16 @@ retry decisions and resource cleanup remain more important than delivering every
 
 ## Decision
 
-Keep two independent registrations: `withMailSendResultObserver` for the existing final outcome and `withMailSendProgressObserver` for live snapshots.
+Keep result and progress independently configurable inside `MailSendHandlers`, with `withResultObserver` for the final outcome and
+`withProgressObserver` for live snapshots. Register shared handlers or a per-send factory on Mailer as described in ADR 0012.
 Rename the terminal callback to `MailSendResultObserver`; retain its callback method, payload and existing dispatch contracts.
 Implicit lambdas would make same-name overloads for the two unrelated callback types ambiguous, so distinct names are intentional.
-Each registration can be removed independently with its corresponding `clearMailSendResultObserver()` or `clearMailSendProgressObserver()` method.
+Each registration can be removed independently with `MailSendHandlers.Builder.clearResultObserver()` or `clearProgressObserver()`.
 Clearing removes that callback and its dispatch choice from the builder, without altering already-built Mailers or another observation facility.
 
 One observation UUID identifies a logical individual-email send across progress, failover, retries and final result. It is not Message-ID, ENVID,
-a business deduplication key or telemetry trace context. Neither the Email nor transmitted bytes acquire this ID. Unobserved sends generate none.
+a business deduplication key or telemetry trace context. Neither the Email nor transmitted bytes acquire this ID. Every logical send generates one
+before preparation and admission, including sends without reporting enabled; configured factories receive this identity exactly once.
 
 Use immutable core read contracts and producer-owned internal assembly. Stages are coarse observations, not another send state machine.
 The initiating Mailer owns reporting; destination selection does not replace observers. Shared scope setup is not repeated as per-email work.
@@ -65,7 +67,7 @@ that caused it. Isolated DNS/TCP/proxy/implicit-TLS hooks remain separate resear
 
 The optional [OpenTelemetry integration](0034-optional-opentelemetry-integration.md) shares observation identity and authoritative send
 boundaries, not this lossy dispatcher. Telemetry-only sends must not enable progress snapshots/upload counting; progress-only sends
-remain independent of telemetry. The integration generates correlation IDs for telemetry-observed sends without transmitting them.
+remain independent of telemetry. The integration uses the logical send's correlation ID without transmitting it.
 
 Test deterministic throttling, bounds, ordering, late updates, callback/executor failures, reentrancy, shutdown, serialization and observation isolation.
 Use real loopback SMTP for bytes, final-reply waits, retries, failover and disabled-path cost. Preserve all content and result contracts.

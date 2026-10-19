@@ -11,6 +11,12 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+The accepted 19 October Java API grouping retains existing scalar debug/telemetry options and numeric millisecond timeout arguments through
+`CliMailerConfigurationBuilder`, an internal adapter implemented by the main builder. It delegates into `SessionDebugConfig`,
+`MailSendTelemetryConfig` and `Duration` choices; it does not restore removed flat methods to the application Java interfaces. Include this
+adapter in CLI roots and regenerate both metadata caches. Existing properties keep their names and millisecond units. Runtime handlers,
+factories, ID suppliers, streams and telemetry integrations remain Java-only.
+
 Keep the builder API and its Javadocs authoritative for ordinary email/Mailer CLI options. Traverse explicit builder nodes, select CLI-compatible public methods, apply option overrides/exclusions and convert supported parameter values from strings. Use Therapi runtime Javadocs for method and parameter help, formatted for Picocli. Keep CLI-only routing, lifecycle and invocation choices outside the builder model where they do not configure an Email or Mailer.
 
 Keep the CLI as a layer above the Java library in its own module. The library does not load a CLI implementation to send mail. A request invokes the same builders and sending contracts as a Java caller, with CLI converters taking responsibility for basic file/URL input handling.

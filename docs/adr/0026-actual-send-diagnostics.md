@@ -35,7 +35,9 @@ per-email measurements. CustomMailer is opaque and logging-only has no submissio
 
 Capture only the selected transport's logical host and port when available, with bounded escaping and no configured fallback or guessed port.
 This is not the physical peer, proxy route or proof of TLS. Default rendering omits endpoints, identifiers, exception messages and content.
-Preserve the exact produced receipt across later cleanup failure without changing the caller-facing throwable or first-failure arbitration.
+Preserve the exact produced receipt across later cleanup failure and retain first-failure arbitration. The accepted 19 October API revision
+also exposes it through `MailSendException.getSubmissionReceipt()`, including cleanup-only failures through `MailSendCleanupException`.
+This caller-facing retention is independent of whether diagnostic observers are enabled.
 
 ### Named snapshot construction
 

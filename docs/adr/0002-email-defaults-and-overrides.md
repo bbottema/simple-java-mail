@@ -36,6 +36,10 @@ This is a configuration-resolution contract, not a new promise about every runti
 
 The current constructor uses either the supplied defaults Email or the snapshot-derived defaults Email. It does **not** automatically fill a supplied defaults template's missing fields from the property snapshot. Repeated `withEmailDefaults(...)` calls replace the reference rather than accumulating templates. Any change to that behavior needs its own reviewed migration.
 
+Name the choice explicitly: `useConfiguredEmailDefaults()` restores the captured property-derived template, replacing the former
+`clearEmailDefaults()` name; `withoutEmailDefaults()` selects an empty ordinary defaults template. Neither operation disables configuration
+locks. `withEmailDefaults(...)` continues to replace the entire template.
+
 ## Resolution contract
 
 Resolution depends on the shape of the value. The following describes current behavior, subject to the submitted Email's suppression settings.
@@ -76,6 +80,12 @@ Copying an Email retains its global and per-property suppression choices. Rebuil
 - Explicit disabling is a value or a documented suppression operation, not a synonym for absence. DSN `NEVER`, for example, is an explicit notification preference.
 - `ignoringDefaults(...)` and `dontApplyDefaultValueFor(...)` suppress incoming defaults for the submitted Email. The corresponding override controls suppress incoming overrides. Flags on a reference template are not another nested policy layer.
 - An override has the scope and value-shape semantics documented above. It is not an enforcement boundary against application code: the submitted Email can opt out, and exact EML follows a separate preparation path.
+
+Per-property suppression composes across helpers: repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls add
+exclusions, and empty calls are no-ops. `allowDefaultValueFor(...)` / `allowOverrideValueFor(...)` remove only named local exclusions;
+`clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` remove all local exclusions in their family. None changes global
+ignoring flags, locks, message content or existing snapshots. This deliberately changes the earlier replacement/empty-call behavior for 10.0.0;
+callers that need replacement clear first and then add the desired exclusions. Detached inspection collections are not another mutation path.
 
 Existing APIs do not all express these distinctions consistently. Record those mismatches as migration work rather than redefining their runtime behavior through an ADR.
 

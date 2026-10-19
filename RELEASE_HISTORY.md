@@ -6,6 +6,14 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- Simplified the 10.0.0 API with per-send handler factories receiving a configurable UUID, grouped debug/telemetry configuration, `Duration`
+  timeout settings, direct `to`/`cc`/`bcc` and Path attachment conveniences, and independent signing/encryption clears. Explicit worker settings
+  now work without the batch module. Property keys and CLI millisecond arguments retain their units.
+- Standardized receipt-bearing failures on `MailSendException.getSubmissionReceipt()` returning `Optional`, including cleanup failures after
+  accepted submission. Suppression calls now accumulate; named removal/clear methods undo them. `useConfiguredEmailDefaults()` restores the
+  captured template, `withoutEmailDefaults()` selects none, and validation methods now return `void`. Telemetry integration and activation are
+  independent choices. These deliberate Java API breaks require migration and recompilation before 10.0.0.
+
 - [#763](https://github.com/bbottema/simple-java-mail/issues/763): expose structured delivery-status reports through the converted notification Email, with ordered recipient actions, strongly typed status codes, reported recipients/servers, diagnostics, correlation facts and parsing warnings. Internet-mailbox and SMTP-response views are available when interpretable. Existing MIME/protection conversion remains the gateway; reports are received claims, not final-delivery proof or automatic retry instructions.
 
 - [#762](https://github.com/bbottema/simple-java-mail/issues/762): added explicit optional OpenTelemetry integration for logical-send and provider-invocation spans, sampling-independent metrics and portable phase measurements. Applications supply and own their SDK; privacy-safe defaults exclude endpoints unless permitted, and telemetry stays independent of progress/result callbacks.
@@ -26,7 +34,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#725](https://github.com/bbottema/simple-java-mail/issues/725): added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost.
 - [#723](https://github.com/bbottema/simple-java-mail/issues/723): added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in [#722](https://github.com/bbottema/simple-java-mail/issues/722).
-- [#712](https://github.com/bbottema/simple-java-mail/issues/712): added one configurable `MailSendResultObserver` per `Mailer`, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends.
+- [#712](https://github.com/bbottema/simple-java-mail/issues/712): added `MailSendResultObserver` support, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends. Configure shared or factory-created callbacks through `MailSendHandlers`.
 - [#714](https://github.com/bbottema/simple-java-mail/issues/714): added automatic, independently backing-off `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` beans for Spring Boot 2.7 and 3.x, plus a dependency-only `simple-java-mail-spring-boot-starter` and a permanent compatibility matrix.
 - [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
 
@@ -51,7 +59,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - Added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining existing static methods and factory snapshots. DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
 
-- OpenPGP signing and encryption participate in Email defaults/overrides with the same whole-policy replacement and suppression rules as S/MIME and DKIM. Result and progress observers can be cleared independently on the Mailer builder. SMTP enhanced status codes use the same typed value as received delivery reports, without restricting raw provider replies or unfamiliar numeric combinations.
+- OpenPGP signing and encryption participate in Email defaults/overrides with the same whole-policy replacement and suppression rules as S/MIME and DKIM. Result and progress observers can be cleared independently on the `MailSendHandlers` builder. SMTP enhanced status codes use the same typed value as received delivery reports, without restricting raw provider replies or unfamiliar numeric combinations.
 
 - [#761](https://github.com/bbottema/simple-java-mail/issues/761): added supported connection and SMTP-stage progress for greeting, capabilities, TLS upgrades, authentication, envelope exchange and DATA permission. Scoped provider hooks preserve coarse fallback and prevent old pooled/retry observations from leaking into another send; no extra network or content work is performed.
 
@@ -73,6 +81,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
 
 ### Bug fixes
+
+- Copying an S/MIME-merged Email no longer appends its signed message's attachments and embedded images again. Repeated copies preserve intentional
+  duplicate resources and never open their content streams.
 
 - Forwarded messages in Email templates follow ordinary override/submitted/default precedence and suppression, without reading or copying their
   bodies during governance. Builder-entry Javadocs show the configured factory bootstrap rather than nonexistent static builder calls.

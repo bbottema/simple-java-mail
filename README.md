@@ -9,9 +9,17 @@
 
 Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, OpenPGP/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
 
-For application traces and metrics, add the optional `open-telemetry-module` and register
-`mailerBuilder.withMailSendTelemetry(OtelAdapter.wrap(openTelemetry))`, or set `simplejavamail.telemetry.enabled=true` to use the
-application-global instance for Mailers from the configured factory. Your application owns the SDK and exporters;
+For application traces and metrics, add the optional `open-telemetry-module` and configure:
+
+```java
+mailerBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder()
+    .withEnabled(true)
+    .withIntegration(OtelAdapter.wrap(openTelemetry))
+    .build());
+```
+
+Alternatively, set `simplejavamail.telemetry.enabled=true` to use the application-global instance for Mailers from the configured factory.
+Supplying an integration and enabling telemetry are independent choices. Your application owns the SDK and exporters;
 the library records logical sends and actual submission attempts without depending on observer delivery. Endpoint attributes are opt-in.
 See [OpenTelemetry setup, privacy and illustrative output](https://www.simplejavamail.org/opentelemetry.html).
 
@@ -61,7 +69,7 @@ SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
 
 Email email = mail.emailBuilder().startingBlank()
     .from("Sender", "sender@example.org")
-    .withRecipients(mail.recipientBuilder().to("Recipient", "recipient@example.net"))
+    .to("Recipient", "recipient@example.net")
     .withSubject("It works")
     .withPlainText("Your first Simple Java Mail message.")
     .buildEmail();
@@ -125,11 +133,12 @@ Choose message preflight by what your code needs back:
 | Only stop if this Mailer cannot prepare the Email; no prepared details are needed | `mailer.validate(email)` |
 | Inspect or retain the effective Email, EML bytes, size, Message-ID, or envelope addresses | `MailRehearsal rehearsal = mailer.rehearse(email)` |
 
-Both full calls perform the same no-SMTP preparation. `validate` is a success-or-exception convenience that discards the rehearsal result; it never reports invalid input by returning `false`. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
+Both full calls perform the same no-SMTP preparation. `validate` returns `void`: successful preparation returns normally, and invalid preparation throws. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
 Rehearsal uses the Mailer you call, not a future cluster or failover destination. A selected destination can apply different message rules.
 Built Emails own their recipient/header metadata and copy supplied content arrays; later builder changes do not change an earlier Email.
 Application-owned attachment data sources and forwarded MIME messages remain borrowed, so keep them stable while an operation consumes them.
+For a file attachment, use `.withAttachment(Path.of("report.pdf"))` or `.withAttachment("Quarterly report.pdf", path)`. Each read opens a fresh read-only stream; building or copying an Email does not read the file. Keep its filesystem open until content consumption finishes.
 
 When the application needs a durable checkpoint after SMTP submission, inspect the provider-neutral receipt returned by every single-email send:
 
@@ -142,7 +151,7 @@ try {
         receipt.getStatus(),
         receipt.getSubmittedAt());
 } catch (MailSubmissionException failure) {
-    MailSubmissionReceipt receipt = failure.getSubmissionReceipt();
+    MailSubmissionReceipt receipt = failure.getSubmissionReceipt().orElseThrow();
     log.warn("Submission {}: accepted={}, unsent={}, invalid={}",
         receipt.getStatus(),
         receipt.getAcceptedRecipients(),
@@ -153,6 +162,8 @@ try {
 ```
 
 `ACCEPTED` confirms SMTP submission for all envelope recipients, not final mailbox delivery. Failed and partial attempts throw `MailSubmissionException` while preserving the original Jakarta Mail exception and the same recipient facts. `UNKNOWN` means the transport cannot tell whether the server accepted anything; do not automatically retry that outcome unless duplicate submission is acceptable or prevented. The [submission receipt guide](https://www.simplejavamail.org/features.html#section-submission-receipts) covers asynchronous and open-connection use.
+
+Catch `MailSendException` to handle submission, timeout, cancellation and per-email cleanup failures together. Its `getSubmissionReceipt()` returns an `Optional`: missing facts do not prove that nothing was submitted. A cleanup failure can retain an `ACCEPTED` receipt. Preparation and admission failures retain their existing exception types.
 
 Choose how an Email handles a recipient rejection with `.withSendingToAcceptedRecipients(true)` to continue for accepted recipients, or `false` to withhold content for everyone after a known rejection. Continuing still fails the overall send with a `PARTIALLY_ACCEPTED` receipt if the server accepts only some recipients. Clearing the choice allows defaults and existing provider behavior to apply again; it is not an explicit false.
 
@@ -165,21 +176,37 @@ For cross-cutting audit and metrics code, configure one terminal observer on the
 ```java
 Mailer mailer = mail.mailerBuilder()
     .withSMTPServer("smtp.example.org", 587, "user", "password")
-    .withMailSendResultObserver(outcome -> {
-        Duration totalTime = Duration.between(
-            outcome.getRequestedAt(), outcome.getCompletedAt());
+    .withSendHandlers(MailSendHandlers.builder()
+        .withResultObserver(outcome -> {
+            Duration totalTime = Duration.between(
+                outcome.getRequestedAt(), outcome.getCompletedAt());
 
-        audit.record(
-            outcome.getEffectiveMessageId(),
-            outcome.isSuccessful(),
-            totalTime);
-    })
+            audit.record(
+                outcome.getEffectiveMessageId(),
+                outcome.isSuccessful(),
+                totalTime);
+        })
+        .withProgressObserver(progress -> log.info("{}", progress))
+        .build())
     .buildMailer();
 ```
 
-`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal—not a connection-lifecycle event stream—and concurrent sends can invoke it on different threads. The default observer returns before send completion. `withMailSendResultObserver(observer, applicationExecutor)` instead attempts handoff before completion, without waiting for callback or downstream work; the application owns the executor and its rejection policy.
+`MailSendOutcome` describes the whole Simple Java Mail attempt, including preparation and asynchronous queue time; its optional `MailSubmissionReceipt` describes SMTP submission facts only. The callback is terminal, and concurrent sends can invoke it on different threads. The default result observer returns before send completion. `MailSendHandlers.Builder.withResultObserver(observer, applicationExecutor)` instead attempts handoff before completion, without waiting for callback or downstream work; the application owns the executor and its rejection policy.
 
-For a dashboard that shows what an email is doing now, also register `withMailSendProgressObserver(progress -> log.info("{}", progress))`. Progress reports waiting, preparation, submission, upload where supported, retries and cleanup, without waiting for your callback. Its observation UUID matches `outcome.getObservationId()` across failover and retries; a separate send gets a new ID. Upload completion is not SMTP acceptance, and progress may be coalesced or delivered after the final result. See [live progress and final results](https://www.simplejavamail.org/analyzing-send-results.html#section-live-progress) and the manually runnable [observer demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+The progress observer shows waiting, preparation, submission, upload where supported, retries and cleanup, without waiting for your callback. Its observation UUID matches `outcome.getObservationId()` across failover and retries; a separate send gets a new ID. Upload completion is not SMTP acceptance, and progress may be coalesced or delivered after the final result. See [live progress and final results](https://www.simplejavamail.org/analyzing-send-results.html#section-live-progress) and the manually runnable [observer demo](modules/simple-java-mail/src/test/java/demo/MailSendObserverDemoApp.java).
+
+When callbacks need state belonging to one send, configure a factory on the reusable Mailer:
+
+```java
+mailerBuilder.withSendHandlersFactory(sendId -> MailSendHandlers.builder()
+    .withProgressObserver(progress -> dashboard.update(sendId, progress))
+    .withResultObserver(outcome -> audit.record(sendId, outcome))
+    .build());
+```
+
+The factory runs once per logical send, before preparation or individual queue admission, and its handlers are reused across retries and failover. Shared handlers and factory-created handlers both receive events, with shared handlers first. Singles initialize on the caller thread; lazy batches initialize each reached email on the execution thread. IDs default to `UUID::randomUUID`; `withSendIdGenerator(...)` accepts a thread-safe supplier of unique, non-null UUIDs. The ID identifies observation and does not change Message-ID or MIME content.
+
+`withSendHandlers(...)` replaces the shared group. Use its `toBuilder()` to retain one observer while changing the other; `clearResultObserver()` and `clearProgressObserver()` remove only their own callback and executor. On the Mailer builder, `clearSendHandlers()` removes shared handlers, `clearSendHandlersFactory()` removes the per-send factory, and `resetSendIdGenerator()` restores random UUIDs. None closes application-owned resources.
 
 Managed Angus connections can also show a slow greeting, STARTTLS or authentication exchange, followed by sender/recipient handling and DATA permission.
 Only setup caused by this email is reported; reused connections do not replay old work. Providers without those hooks keep coarse progress and send normally.
@@ -220,6 +247,21 @@ A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validatio
 
 `SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
 
+Java timeout, worker keep-alive and pool lifetime settings use `Duration`. Debug output is configured as one immutable group:
+
+```java
+mailerBuilder
+    .withSessionTimeout(Duration.ofSeconds(10))
+    .withThreadPoolKeepAliveTime(Duration.ofSeconds(30))
+    .withDebugConfig(SessionDebugConfig.builder()
+        .withEnabled(true)
+        .withOutput(SessionDebugOutput.SLF4J)
+        .build());
+```
+
+These settings accept whole milliseconds within the supported integer range; property and CLI values retain their numeric millisecond units.
+Replacing a debug or telemetry group replaces its supplied choices; omitted fields inherit the factory snapshot. Use `toBuilder()` to edit an existing group, or `useConfiguredDebugConfig()` / `useConfiguredTelemetryConfig()` on the Mailer builder to restore inherited choices. Builder group getters expose supplied choices; `mailer.getOperationalConfig()` exposes resolved settings. Explicit worker count and keep-alive choices also apply without the batch module.
+
 Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.
@@ -237,6 +279,9 @@ Mailer mailer = mail.mailerBuilder()
 ```
 
 This template replaces the factory's property-derived message defaults. To retain those defaults, first materialize them with `buildEmailCompletedWithDefaultsAndOverrides()` and edit a copy. See the [defaults and overrides guide](https://www.simplejavamail.org/configuration.html#section-config-mailer) for precedence, clearing, and per-email opt-outs. Actual sends still require a sender and recipients after defaults have been applied.
+
+`useConfiguredEmailDefaults()` restores factory defaults; `withoutEmailDefaults()` removes ordinary defaults while retaining configuration locks.
+On an email builder, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings.
 
 ### Spring Boot
 

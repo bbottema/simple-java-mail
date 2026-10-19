@@ -31,6 +31,10 @@ The existing recipient builders provide a useful precedent. An S/MIME certificat
 
 The aim is practical: a caller should know where a setting belongs and how to reuse it without learning a separate defaulting mechanism for each feature.
 
+The composed Email builder's `to`, `cc` and `bcc` conveniences add one recipient through the same single-recipient construction path as
+`recipientBuilder()`. Each has address-only and name/address forms. They preserve the established address representation, order and duplicates;
+they do not introduce address-list parsing or another recipient-policy owner. Recipient/group builders remain the route for reusable metadata.
+
 ## Configuration ownership
 
 ### Mailer
@@ -87,6 +91,10 @@ This describes precedence, not a required runtime object hierarchy. Group defaul
 - Preserve recipient settings through copying, group construction, governance, and transport preparation. Duplicate envelope recipients must not lose their individual metadata through address-keyed deduplication.
 - Resolve each policy at its declared value boundary. For example, an explicit NOTIFY preference is a complete preference set, not an invitation to merge in events from less-specific defaults.
 - Keep source objects immutable. Resolving a fallback for one send must not mutate a reusable Email, group, recipient, configuration snapshot, or caller-owned Session.
+
+Signing and encryption are independent message choices. Their named S/MIME and OpenPGP clear operations remove only that local choice;
+aggregate `clearSmime()` and `clearOpenPgp()` remain available. Clearing allows ordinary governance fallback and does not remove recipient
+certificates, suppress templates, or change previously built messages.
 
 The shared distinction between clearing, disabling, and overriding is defined in [ADR 0002](0002-email-defaults-and-overrides.md#clear-disable-and-override-are-different-operations). For recipient settings, DSN `NEVER` is an explicit preference, while clearing a certificate restores fallback. Existing `withFixedSmimeCertificate(...)` replaces the certificates on the group's produced recipients; it is not a default.
 

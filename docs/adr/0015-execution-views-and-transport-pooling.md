@@ -30,6 +30,13 @@ has finished, the shared batch bridge forgets the empty upstream cluster and its
 Closing one member must not discard another member's settings, and a captured selection must never become a selection of a replacement registration.
 The globally cached batch module must not accumulate metadata for every short-lived Mailer ever constructed.
 
+### Explicit executor tuning (accepted 19 October 2026)
+
+An explicit worker count or keep-alive configures the Mailer's owned executor even without the batch module. This includes Java choices,
+resets selecting a published value, and captured property choices. Preserve provenance independently of resolved values: absent choices retain
+one worker with zero keep-alive without batch, and the existing ten-worker/batch defaults with batch. A caller-owned executor remains untouched.
+Transport pooling still activates through the existing optional-module boundary; worker tuning neither enables nor disables pooling.
+
 ### Caller-supplied Session baseline
 
 A supplied Jakarta Mail Session retains its connection configuration unless the application explicitly customizes those settings on the
