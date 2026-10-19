@@ -1,6 +1,6 @@
 # Angus PIPELINING proposal: code and contribution review
 
-Reviewed 2026-10-12 for [SJM #699](https://github.com/bbottema/simple-java-mail/issues/699) and [Angus #213](https://github.com/eclipse-ee4j/angus-mail/issues/213). The [proposal](../plans/699-angus-pipelining-proposal.md) contains the suggested scope and behavior; this note records the evidence behind it.
+Reviewed 2026-10-12 for [SJM #699](https://github.com/bbottema/simple-java-mail/issues/699) and [Angus #213](https://github.com/eclipse-ee4j/angus-mail/issues/213). The [proposal](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-proposal.md) contains the suggested scope and behavior; this note records the evidence behind it.
 
 ## Basis and conclusion
 

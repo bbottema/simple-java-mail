@@ -6,7 +6,9 @@
 - Implementation: **Implemented for 10.0.0**.
 - Tracking: [#756](https://github.com/bbottema/simple-java-mail/issues/756), covering the ADR research and implementation.
 
-The [implementation record](../plans/756-safe-mail-send-retries.md) contains the concrete API, resource limits and verification evidence.
+The [retry concurrency guide](../concurrency/11-mail-send-retries.md) describes the current API, resource limits and lifecycle.
+The completed [implementation record](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/756-safe-mail-send-retries.md)
+preserves historical verification evidence.
 
 ## Context
 

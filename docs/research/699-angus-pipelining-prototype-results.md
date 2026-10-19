@@ -356,7 +356,7 @@ The Angus diff has 11 files; the SJM diff has five. Final review against the con
 - SJM `ManagedAngusTransport.java`: common SIZE preparation hook and ordered response bookkeeping only; raw-socket ownership and cancellation boundaries retained. No pool-policy change or new public implementation type.
 - SJM's two new test classes: enabled duplicate-recipient/DSN/SIZE/receipt/abort tests and explicit on/off pool-policy characterization. `pom.xml` contains an opt-in local alignment profile; `07-angus-transport-abort.md` documents the changed bookkeeping and experimental scope.
 
-`git diff --check` passes in both implementation worktrees. No generated sources, dependency additions, unrelated formatting or copied NioSmtpClient implementation enter the Angus patch. Git normalizes new text files to LF; existing file styles and encodings are retained. No commit, push or upstream post was made. The [draft explanation](../plans/699-angus-pipelining-prototype-pr-draft.md) presents the implementation and TLS concern together, with AI assistance disclosed and no internal research links in the proposed public body.
+`git diff --check` passes in both implementation worktrees. No generated sources, dependency additions, unrelated formatting or copied NioSmtpClient implementation enter the Angus patch. Git normalizes new text files to LF; existing file styles and encodings are retained. No commit, push or upstream post was made. The [draft explanation](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-prototype-pr-draft.md) presents the implementation and TLS concern together, with AI assistance disclosed and no internal research links in the proposed public body.
 
 ## Stage-one diff review (historical)
 
@@ -364,7 +364,7 @@ The Angus diff has 11 files; the SJM diff has five. Final review against the con
 - `SMTPReplyReaderTest.java`: combined provider's test tree, JUnit 4 and explicit existing assertions. Real sockets and the existing keystore/write-timeout wrapper, no mocking framework. New fixtures isolate wire-pressure behavior without changing shared fixtures. Watchdog process isolation is needed for the deliberately failing key-update diagnostic.
 - Both new Java files have an accurate 2026 Benny Bottema copyright line and the neighboring EPL/GPL Classpath SPDX header. Existing headers/encodings were not changed. New files use UTF-8, four-space indentation and LF in Git.
 - No property, protected API or release change was made, so generated property Javadoc, release notes and `@since` tags are deferred with the feature. Full JDK 11/17/21 CI, exhaustive response semantics, interruption/custom-socket coverage, SJM integration and latency measurements remain outstanding.
-- Research, security overlay, watchdog script and [draft explanation](../plans/699-angus-pipelining-prototype-pr-draft.md) stay in SJM. Nothing has been committed, pushed or posted upstream.
+- Research, security overlay, watchdog script and [draft explanation](https://github.com/bbottema/simple-java-mail/blob/45c8182b6f52429424ae08a28490bd708e4a4881/docs/plans/699-angus-pipelining-prototype-pr-draft.md) stay in SJM. Nothing has been committed, pushed or posted upstream.
 
 ## NioSmtpClient checklist
 
