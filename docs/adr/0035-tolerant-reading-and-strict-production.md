@@ -102,3 +102,6 @@ The delivery-report application is tracked by [#763](https://github.com/bbottema
 [delivery-status report guide](https://www.simplejavamail.org/delivery-reports.html).
 [DeliveryStatusReportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/DeliveryStatusReportTest.java) supplies regression coverage;
 dated execution evidence belongs in commit and CI history, not this architectural decision.
+
+[OutlookAddressImportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/OutlookAddressImportTest.java) covers the import/composition
+boundary for sender, Reply-To, receipt and bounce fields, including legacy first-mailbox interpretation, retained source headers and neighboring message content.
