@@ -1308,13 +1308,23 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearOpenPgpEncryption();
 
 	/**
-	 * Resets <em>dispositionNotificationTo</em> to empty.
+	 * Clears the local read-receipt request and destination to their unset defaults. Both getters return null afterwards.
+	 * Normal Email defaults or overrides may request a receipt again during governance; this does not explicitly disable inherited requests.
+	 * Use template suppression to exclude such contributions. No configuration sources are reloaded.
+	 *
+	 * @see #withDispositionNotificationTo()
+	 * @see #withTemplateOptions(EmailTemplateOptions)
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearDispositionNotificationTo();
 
 	/**
-	 * Resets <em>returnReceiptTo</em> to empty.
+	 * Clears the local return-receipt request and destination to their unset defaults. Both getters return null afterwards.
+	 * Normal Email defaults or overrides may request a receipt again during governance; this does not explicitly disable inherited requests.
+	 * Use template suppression to exclude such contributions. No configuration sources are reloaded.
+	 *
+	 * @see #withReturnReceiptTo()
+	 * @see #withTemplateOptions(EmailTemplateOptions)
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearReturnReceiptTo();

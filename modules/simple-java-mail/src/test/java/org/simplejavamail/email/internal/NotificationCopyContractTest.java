@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NotificationCopyContractTest {
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 
-    enum Choice { UNSET, AUTOMATIC, EXPLICIT, DISABLED }
+    enum Choice { UNSET, AUTOMATIC, EXPLICIT, CLEARED, DISABLED }
 
     @ParameterizedTest
     @EnumSource(Choice.class)
@@ -79,7 +79,11 @@ class NotificationCopyContractTest {
                 builder.withDispositionNotificationTo("read@example.org").withReturnReceiptTo("received@example.org");
                 break;
             case DISABLED:
-                builder.clearDispositionNotificationTo().clearReturnReceiptTo();
+                // Preserve explicit-false snapshots created by earlier versions, independently of public clear semantics.
+                ((InternalEmailPopulatingBuilder) builder).withDispositionNotificationToState(false, null).withReturnReceiptToState(false, null);
+                break;
+            case CLEARED:
+                builder.withDispositionNotificationTo().withReturnReceiptTo().clearDispositionNotificationTo().clearReturnReceiptTo();
                 break;
             default:
                 break;

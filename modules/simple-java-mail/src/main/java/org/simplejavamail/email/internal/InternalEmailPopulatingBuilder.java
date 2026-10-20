@@ -37,4 +37,9 @@ public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, 
 	@NotNull InternalEmailPopulatingBuilder withOriginalSmimeDetails(@NotNull OriginalSmimeDetails originalSmimeDetails);
 	@NotNull InternalEmailPopulatingBuilder withOriginalOpenPgpDetails(@NotNull OriginalOpenPgpDetails originalOpenPgpDetails);
 	@NotNull InternalEmailPopulatingBuilder withDeliveryStatusReport(@Nullable DeliveryStatusReport deliveryStatusReport);
+
+	/** Retains the exact request state when copying or governing existing snapshots, including legacy explicit false choices. */
+	@NotNull InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable Boolean requested, @Nullable Recipient recipient);
+	/** Retains the exact request state when copying or governing existing snapshots, including legacy explicit false choices. */
+	@NotNull InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable Boolean requested, @Nullable Recipient recipient);
 }

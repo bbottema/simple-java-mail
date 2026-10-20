@@ -2297,8 +2297,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearDispositionNotificationTo() {
-		this.useDispositionNotificationTo = false;
-		this.dispositionNotificationTo = null;
+		return withDispositionNotificationToState(null, null);
+	}
+
+	/** @see InternalEmailPopulatingBuilder#withDispositionNotificationToState(Boolean, Recipient) */
+	@Override
+	@NotNull
+	public InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable final Boolean requested, @Nullable final Recipient recipient) {
+		this.useDispositionNotificationTo = requested;
+		this.dispositionNotificationTo = recipient;
 		return this;
 	}
 	
@@ -2307,8 +2314,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearReturnReceiptTo() {
-		this.useReturnReceiptTo = false;
-		this.returnReceiptTo = null;
+		return withReturnReceiptToState(null, null);
+	}
+
+	/** @see InternalEmailPopulatingBuilder#withReturnReceiptToState(Boolean, Recipient) */
+	@Override
+	@NotNull
+	public InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable final Boolean requested, @Nullable final Recipient recipient) {
+		this.useReturnReceiptTo = requested;
+		this.returnReceiptTo = recipient;
 		return this;
 	}
 
