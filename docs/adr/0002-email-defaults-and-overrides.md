@@ -147,6 +147,15 @@ This slice does not change recipient precedence, collection/header resolution, e
 
 ## Consequences and review requirements
 
+### Receipt clearing correction (accepted 20 October 2026)
+
+`clearDispositionNotificationTo()` and `clearReturnReceiptTo()` restore the fresh Email state: both the request flag and its
+address are unset. This supersedes their earlier explicit-false behavior. Normal Email defaults and overrides can supply a
+request again; existing template suppression remains the way to exclude those contributions. Clearing does not reload properties.
+There are no dedicated property keys for these message-header receipt requests. Configured From/Reply-To values can provide the
+destination when a request is enabled without an explicit address. Existing false request states in copied or serialized Emails
+retain their meaning through internal copying and governance; the public clear operations no longer create that state.
+
 ### Selected-member ownership correction
 
 [#757](https://github.com/bbottema/simple-java-mail/issues/757) restores this decision in ordinary clustered sends, independently of failover.

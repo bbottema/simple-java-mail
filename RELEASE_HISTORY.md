@@ -95,6 +95,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - Recipient String address setters now extract a single embedded display name and mailbox, honoring explicit names in either setter order.
   Malformed input, groups and address lists remain intact for send-time validation; explicit address-only helpers keep their name-preserving behavior.
+- Clearing read/return receipt requests now restores unset flags and addresses, allowing normal Email defaults and overrides again.
+  Copying older snapshots still preserves explicit disabled requests. Receipt requests have no dedicated property keys.
 
 - Copying an S/MIME-merged Email no longer appends its signed message's attachments and embedded images again. Repeated copies preserve intentional
   duplicate resources and never open their content streams.
