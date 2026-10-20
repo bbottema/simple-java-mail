@@ -33,7 +33,7 @@ contain explicit configuration, not fabricated empty/default entries. Present wi
 Keep explicit/configured/fallback precedence and supplied-object ownership. A supplied empty String is absent to the
 selection helper; its existing treatment of whitespace, zero and false is retained. Schema reads do not reopen sources,
 resolve runtime defaults, alter named isolation or weaken mandatory locks. Diagnostics retain their original source,
-parser representation and redaction. See [the implementation ledger](../plans/10.0.0-typed-configuration-keys.md).
+parser representation and redaction. See [the implementation ledger](https://github.com/bbottema/simple-java-mail/blob/e3fbaf777082955e6ea3d387b245254996d49505/docs/plans/10.0.0-typed-configuration-keys.md).
 
 Use an ordered, instance-based `ConfigLoader` to sample configured sources and produce a detached `SimpleJavaMailConfig`. Sources are ordered from lower to higher priority; later non-blank values win, and only winning scalar values are parsed through the central `PropertySchema`. Apply the same ordering to scalar properties, extra Jakarta Mail properties and pool-cluster configuration; the loader resolves wildcard entries and parses cluster fields separately. Caller-supplied sources are strict by default; whole-process environment/system sources ignore unrelated names.
 
@@ -82,6 +82,8 @@ A group assignment replaces all previously supplied choices for that group. Unse
 not the previous group. Inspection of supplied values retains absence; built-object inspection describes resolved choices. Removing
 a local optional choice and restoring captured configuration retain their existing distinct meanings, as do mandatory locks and the
 caller-supplied Session baseline. Group construction and inspection allocate no workers or connections and read no message content.
+An explicit empty Java string remains a supplied group choice with the original setter's validation or clearing behavior.
+It must not silently restore a captured value by applying the separate blank-property-source inheritance rule.
 Per-cluster pool overrides retain their distinct fallback scope. Core validates representation; optional feature modules retain semantic validation.
 
 Remove moved scalar methods and their inspection/reset/clear companions from the supported Java root builders in the 10.0.0 migration;
