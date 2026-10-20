@@ -20,6 +20,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -32,6 +33,7 @@ import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.MailSendDiagnosticsRecorder;
 import org.simplejavamail.mailer.internal.MailSendProgressScope;
+import org.simplejavamail.mailer.internal.MailerException;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import org.slf4j.Logger;
 
@@ -248,9 +250,19 @@ public class TransportRunner {
 			return sendUsingConnectionPool(ModuleLoader.loadBatchModule(), clusterKey, session, stickySession, null,
 					MailSendDiagnosticsRecorder.unobserved(), operation);
 		}
+		boolean operationCompleted = false;
 		try (Transport transport = transportFor(session)) {
 			TransportConnectionHelper.connectTransport(transport, session);
-			return operation.run(transport, session);
+			final T result = operation.run(transport, session);
+			operationCompleted = true;
+			return result;
+		} catch (MessagingException failure) {
+			if (operationCompleted) {
+				throw new MailerException(MailFailureKind.CLEANUP,
+						"Unable to close the SMTP transport after a successful connection check", failure);
+			}
+			// Try-with-resources retains any secondary close failure on the original setup failure.
+			throw failure;
 		} finally {
 			LOGGER.trace("closing transport");
 		}

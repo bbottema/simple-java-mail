@@ -27,6 +27,12 @@ Capture separate greeting, pre-TLS EHLO, STARTTLS, post-TLS EHLO and optional au
 
 Return immutable, bounded and escaped display facts and phase-specific failures. Do not retain message content, authentication exchanges, raw provider exceptions or transport references in the report. A capability advertisement is evidence of the server's response, not proof that a later send used it. Inspecting a connection never sends an Email or produces a mail-send observer event.
 
+Asynchronous health checks and probes normalize executor admission rejection to `MailSendRejectedException` with kind `CAPACITY`,
+retaining a borrowed executor's original rejection as the cause. This follows the common failure contract without adding send observers,
+total-send deadlines or admitted-send lifecycle tracking to these helpers. Other application failures and shutdown guards retain their
+existing propagation. A simple health check that connects successfully but cannot close its owned transport reports `CLEANUP`;
+if setup already failed, that failure remains primary and a secondary close failure is suppressed. Neither case invents a submission receipt.
+
 Under the accepted 20 October [outgoing result absence policy](0009-nullability-and-cli-optionality.md#outgoing-operation-result-absence-policy-accepted-20-october-2026),
 greeting, observed authentication mechanism, first failure phase/description, positive SIZE maximum and custom-verifier result are nullable scalar facts.
 Required endpoint host/protocol, probe timestamps and status flags stay plain values; an unspecified provider port is nullable rather than exposing -1.

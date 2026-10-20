@@ -15,9 +15,11 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
+import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
 import org.simplejavamail.api.mailer.AsyncQueueSnapshot;
 import org.simplejavamail.api.mailer.MailRehearsal;
 import org.simplejavamail.api.mailer.MailSend;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
 import org.simplejavamail.api.mailer.MailSendResultObserver;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
@@ -56,6 +58,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -548,7 +551,7 @@ public class MailerImpl implements Mailer {
 			// Hand off outside the Mailer monitor: the executor may wait for its worker, which rechecks shutdown under that monitor.
 			return executeMailOperationAsync("testSMTPConnection process", this::testConnectionSynchronously);
 		} catch (RuntimeException failure) {
-			return AsyncOperationHelper.failedFuture(failure);
+			return failedConnectionCheckAdmission(failure);
 		}
 	}
 
@@ -573,8 +576,14 @@ public class MailerImpl implements Mailer {
 		try {
 			return CompletableFuture.supplyAsync(() -> probeConnectionSynchronously(authenticate), operationalConfig.getExecutorService());
 		} catch (RuntimeException failure) {
-			return AsyncOperationHelper.failedFuture(failure);
+			return failedConnectionCheckAdmission(failure);
 		}
+	}
+
+	/** Maps only scheduling rejection; failures from the actual connection work are already captured by its future. */
+	private static <T> CompletableFuture<T> failedConnectionCheckAdmission(final RuntimeException failure) {
+		return AsyncOperationHelper.failedFuture(failure instanceof RejectedExecutionException
+				? new MailSendRejectedException(AsyncQueueRejectionReason.EXECUTOR_REJECTED, failure) : failure);
 	}
 
 	/**

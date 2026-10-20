@@ -17,6 +17,7 @@ import org.mockito.MockedStatic;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSend;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -125,6 +127,81 @@ class MailFailureContractTest {
             final Throwable failure = fail(mailer, email(), true);
             assertThat(failure).isInstanceOf(MailSendRejectedException.class).isInstanceOf(MailException.class).hasCause(original);
             assertFailure(failure, "CAPACITY", observed, false);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void asyncConnectionChecksNormalizeOnlyExecutorRejection(final boolean probe) throws Exception {
+        final RejectedExecutionException rejection = new RejectedExecutionException("external capacity exhausted");
+        final IllegalStateException applicationFailure = new IllegalStateException("application executor failure");
+        final ExecutorService executor = mock(ExecutorService.class);
+        doAnswer(call -> { throw rejection; }).doAnswer(call -> { throw applicationFailure; }).when(executor).execute(any());
+        final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
+        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true)
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build())
+                .withSendHandlers(handlers(observed)).buildMailer()) {
+            final Throwable failure = completionFailure(probe ? mailer.async().probeConnection() : mailer.async().testConnection());
+            assertThat(failure).isInstanceOf(MailSendRejectedException.class).hasCause(rejection);
+            assertThat(((MailSendRejectedException) failure).getReason()).isEqualTo(AsyncQueueRejectionReason.EXECUTOR_REJECTED);
+            assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CAPACITY);
+            assertThat(((MailException) failure).getSubmissionReceipt()).isEmpty();
+            assertThat(completionFailure(probe ? mailer.async().probeConnection() : mailer.async().testConnection()))
+                    .isSameAs(applicationFailure);
+            assertThat(observed).isEmpty();
+        }
+        org.mockito.Mockito.verify(executor, org.mockito.Mockito.never()).shutdown();
+    }
+
+    @Test
+    void asyncConnectionCheckDoesNotRelabelARejectionThrownByCustomConnectionWork() throws Exception {
+        final RejectedExecutionException original = new RejectedExecutionException("application connection work rejected");
+        final CustomMailer customMailer = new CustomMailer() {
+            @Override public void testConnection(final OperationalConfig config, final Session session) { throw original; }
+            @Override public void sendMessage(final OperationalConfig config, final Session session, final Email email, final MimeMessage message) {
+                throw new AssertionError("A connection check must not send an email");
+            }
+        };
+        try (Mailer mailer = mail.mailerBuilder().withCustomMailer(customMailer)
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inline()).build()).buildMailer()) {
+            assertThat(completionFailure(mailer.async().testConnection())).isSameAs(original);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void connectionCheckCleanupFailureHasItsOwnKindWithoutSubmissionFacts(final boolean async) throws Exception {
+        final State state = new State();
+        final MessagingException original = state.close = new MessagingException("transport close failed");
+        final List<MailSendOutcome> observed = new CopyOnWriteArrayList<>();
+        try (MockedStatic<ModuleLoader> ignored = withoutPool();
+                Mailer mailer = mail.mailerBuilder(session(state))
+                        .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inline()).build())
+                        .withSendHandlers(handlers(observed)).buildMailer()) {
+            final Throwable failure = async ? completionFailure(mailer.async().testConnection()) : catchThrowable(mailer.sync()::testConnection);
+            assertThat(failure).isInstanceOf(MailException.class).hasCause(original);
+            assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CLEANUP);
+            assertThat(((MailException) failure).getSubmissionReceipt()).isEmpty();
+            assertThat(state.connections).isOne();
+            assertThat(observed).isEmpty();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void failedConnectionCheckRetainsSetupFailureAndSuppressesCleanup(final boolean async) throws Exception {
+        final State state = new State();
+        final MessagingException setup = state.connect = new MessagingException("connection failed");
+        final MessagingException cleanup = state.close = new MessagingException("cleanup also failed");
+        try (MockedStatic<ModuleLoader> ignored = withoutPool();
+                Mailer mailer = mail.mailerBuilder(session(state))
+                        .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inline()).build()).buildMailer()) {
+            final Throwable failure = async ? completionFailure(mailer.async().testConnection()) : catchThrowable(mailer.sync()::testConnection);
+            assertThat(failure).isInstanceOf(MailException.class).hasCause(setup);
+            assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CONNECTION);
+            assertThat(((MailException) failure).getSubmissionReceipt()).isEmpty();
+            assertThat(setup.getSuppressed()).containsExactly(cleanup);
+            assertThat(state.connections).isOne();
         }
     }
 
@@ -270,7 +347,11 @@ class MailFailureContractTest {
     }
 
     private static Throwable completionFailure(final MailSend<?> send) throws Exception {
-        try { send.getCompletion().get(5, TimeUnit.SECONDS); throw new AssertionError("Expected failed completion"); }
+        return completionFailure(send.getCompletion());
+    }
+
+    private static Throwable completionFailure(final CompletableFuture<?> completion) throws Exception {
+        try { completion.get(5, TimeUnit.SECONDS); throw new AssertionError("Expected failed completion"); }
         catch (ExecutionException failure) { return failure.getCause(); }
     }
 
