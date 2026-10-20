@@ -6,7 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Execution admission was rejected before worker execution (or before a synchronous send on a closed Mailer), so it acquired no SMTP transport or proxy resources.
+ * Execution admission for a send or asynchronous connection check was rejected before worker execution
+ * (or before a synchronous send on a closed Mailer), so it acquired no SMTP transport or proxy resources.
  * Ordinary sends report this same exception through their completion and terminal observer; rejected simple batches remain uniterated.
  */
 public final class MailSendRejectedException extends MailSendException {

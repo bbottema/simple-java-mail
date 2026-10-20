@@ -137,10 +137,12 @@ public interface Mailer extends AutoCloseable {
 		 * Connects to the configured SMTP server, including authentication and configured proxy routing, on the calling thread.
 		 * This health check also connects in logging-only mode. It sends no email and does not notify the mail-send observer.
 		 * Connection/proxy cleanup completes before returning or throwing. Provider connection/read timeouts apply, not total send deadlines.
+		 * Failure to close an owned transport after a successful check has kind {@link MailFailureKind#CLEANUP};
+		 * an earlier setup failure remains primary, with any secondary cleanup failure suppressed. No submission receipt is produced.
 		 * Coordination uses the owning Mailer, shared with its asynchronous view and shutdown. Once shutdown begins, use a new Mailer
 		 * for further connection checks.
 		 *
-		 * @throws MailException If connecting or authenticating fails.
+		 * @throws MailException If connecting, authenticating or owned-resource cleanup fails.
 		 * @throws IllegalStateException If this Mailer has started shutting down.
 		 * @see Async#testConnection()
 		 */
@@ -229,6 +231,8 @@ public interface Mailer extends AutoCloseable {
 		/**
 		 * Schedules the SMTP health check described by {@link Sync#testConnection()} on this Mailer's executor.
 		 * Scheduling, connection and authentication failures complete the returned future exceptionally.
+		 * Executor rejection uses {@link MailSendRejectedException} with kind {@link MailFailureKind#CAPACITY}, retaining a
+		 * borrowed executor's original rejection as its cause. Other application failures retain their documented propagation.
 		 * Completion follows connection/proxy cleanup; this is not a send operation and does not use observers or total send deadlines.
 		 * If shutdown starts before the check runs, the future fails without opening a connection.
 		 * Cancelling the future does not abort socket I/O; configure provider connection/read timeouts.
@@ -247,6 +251,7 @@ public interface Mailer extends AutoCloseable {
 		/**
 		 * Schedules the dedicated connection inspection described by {@link Sync#probeConnection(boolean)}.
 		 * Connection failures are returned as safe reports; scheduling or Mailer-shutdown failures complete the future exceptionally.
+		 * Executor rejection follows {@link #testConnection()}: a {@link MailSendRejectedException} retains the original cause.
 		 * Timing in the report starts when execution begins, excluding executor queue time. Cancelling this future does not abort network I/O;
 		 * configure the provider's connection/read timeouts. No send observers or total send deadlines are involved.
 		 *

@@ -622,7 +622,9 @@ class SmtpConnectionProbeTest {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.shutdown();
         try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", 25).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build()).buildMailer()) {
-            assertThatThrownBy(() -> mailer.async().probeConnection().get(2, SECONDS)).hasCauseInstanceOf(RejectedExecutionException.class);
+            assertThatThrownBy(() -> mailer.async().probeConnection().get(2, SECONDS))
+                    .hasCauseInstanceOf(MailSendRejectedException.class)
+                    .hasRootCauseInstanceOf(RejectedExecutionException.class);
         }
     }
 
