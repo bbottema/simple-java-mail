@@ -256,6 +256,13 @@ delivery remain in the main implementation. Companion Javadocs link to the sette
 
 ## Consequences and verification
 
+Accepted recipient follow-up, 20 October 2026: `IRecipientBuilder.withAddress(String)` must honor its documented lenient
+named-mailbox interpretation. Extract the address and embedded display name from one parseable mailbox. A separately supplied
+name wins in either setter order; removing that explicit name restores the embedded name. Replacing the address replaces its
+inferred name. Retain malformed input, groups and multiple-mailbox strings for normal validation rather than silently selecting
+one recipient. Existing explicit first-mailbox helpers keep their contracts, including address-only name preservation.
+This supersedes the earlier decision to leave this setter unchanged during the Email convenience migration.
+
 The supported surface becomes easier to discover and internal assembly can evolve independently. Internal builders and shared contracts remain technically
 callable where Java visibility permits it; this is library API discipline, not a sandbox.
 

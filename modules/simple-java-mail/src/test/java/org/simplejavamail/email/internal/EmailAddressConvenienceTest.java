@@ -184,15 +184,14 @@ class EmailAddressConvenienceTest {
     @Test
     void preparedRecipientsKeepRawAddressesMetadataOrderAndDuplicates() {
         final X509Certificate certificate = mock(X509Certificate.class);
-        final Recipient prepared = mail.recipientBuilder().withName("Chosen").withAddress("Embedded <alice@example.org>")
-                .withType(TO).withSmimeCertificate(certificate).withDeliveryStatusNotificationNotifyOptions(FAILURE).build();
+        final Recipient prepared = new Recipient("Chosen", "Embedded <alice@example.org>", TO, certificate,
+                java.util.Collections.singleton(FAILURE));
         final Email email = blank().clearRecipients().withRecipients(prepared).to("Bob <bob@example.org>")
                 .withRecipients(asList(prepared, prepared)).buildEmail();
         assertThat(email.getRecipients()).containsExactly(prepared, new Recipient("Bob", "bob@example.org", TO, null), prepared, prepared);
         assertThat(email.getRecipients().get(0).getAddress()).isEqualTo("Embedded <alice@example.org>");
         assertThat(email.getRecipients().get(0).getSmimeCertificate()).isSameAs(certificate);
         assertThat(email.getRecipients().get(0).getDeliveryStatusNotificationNotifyOptions()).containsExactly(FAILURE);
-        assertThat(mail.recipientBuilder().to("Embedded <alice@example.org>").getAddress()).isEqualTo("Embedded <alice@example.org>");
     }
 
     private EmailPopulatingBuilder blank() {

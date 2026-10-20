@@ -33,6 +33,10 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Nullable
     private String name;
 
+    /** Display name inferred from the current address, used only when no explicit name is supplied. */
+    @Nullable
+    private String addressName;
+
     /**
      * @see IRecipientBuilder#withAddress(String)
      */
@@ -106,7 +110,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
         if (address == null) {
             throw new RecipientException(MISSING_ADDRESS);
         }
-        return new Recipient(name, address, type, smimeCertificate, deliveryStatusNotificationNotifyOptions);
+        return new Recipient(getName(), address, type, smimeCertificate, deliveryStatusNotificationNotifyOptions);
     }
 
     /**
@@ -133,6 +137,17 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     public IRecipientBuilder withAddress(@NotNull String address) {
         this.address = checkNonEmptyArgument(address, "address");
+        this.addressName = null;
+        try {
+            final InternetAddress[] addresses = InternetAddress.parse(address, false);
+            // This setter represents one recipient. Keep plural/group sources intact for normal send-time validation.
+            if (addresses.length == 1 && !addresses[0].isGroup()) {
+                this.address = addresses[0].getAddress();
+                this.addressName = addresses[0].getPersonal();
+            }
+        } catch (final AddressException invalidAddress) {
+            // Lenient construction retains the original input for the configured validator.
+        }
         return this;
     }
 
@@ -141,7 +156,8 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressOnlyFrom(@NotNull InternetAddress address) {
-        return withAddress(checkNonEmptyArgument(address, "address").getAddress());
+        this.address = checkNonEmptyArgument(checkNonEmptyArgument(address, "address").getAddress(), "address");
+        return this;
     }
 
     /**
@@ -151,7 +167,8 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     public IRecipientBuilder withAddressOnlyFrom(@NotNull String address) {
         checkNonEmptyArgument(address, "address");
         final InternetAddress parsedAddress = parseFirstMailbox(address);
-        return withAddress(parsedAddress == null ? address : parsedAddress.getAddress());
+        this.address = checkNonEmptyArgument(parsedAddress == null ? address : parsedAddress.getAddress(), "address");
+        return this;
     }
 
     /**
@@ -159,6 +176,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName) {
+        this.addressName = null;
         return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
                 .withName(defaultTo(address.getPersonal(), defaultName));
     }
@@ -176,6 +194,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName) {
+        this.addressName = null;
         return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
                 .withName(defaultTo(fixedName, address.getPersonal()));
     }
@@ -265,7 +284,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     @Nullable
     public String getName() {
-        return name;
+        return defaultTo(name, addressName);
     }
 
     /**
