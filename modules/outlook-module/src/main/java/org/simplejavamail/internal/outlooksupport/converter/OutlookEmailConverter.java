@@ -10,6 +10,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -39,6 +40,7 @@ import static jakarta.mail.Message.RecipientType.CC;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.extractCID;
+import static org.simplejavamail.internal.util.MiscUtil.interpretRecipient;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -101,12 +103,12 @@ public class OutlookEmailConverter implements OutlookModule {
 						.forEach(headerValue -> parseHeader(entry.getKey(), MimeUtility.unfold(headerValue), builder))
 				);
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
-		builder.from(outlookMessage.getFromName(), fromEmail);
+		builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
 		builder.fixingMessageId(outlookMessage.getMessageId());
 		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime())
 				.orElse(outlookMessage.getDate())); // TODO creation date?
 		if (!valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
-			builder.withReplyTo(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail());
+			builder.withReplyTo(importedRecipient(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail()));
 		}
 		copyReceiversFromOutlookMessage(builder, outlookMessage);
 		builder.withSubject(outlookMessage.getSubject());
@@ -184,16 +186,25 @@ public class OutlookEmailConverter implements OutlookModule {
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
 		if (isEmailHeader(headerName, headerValue, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
-			builder.withDispositionNotificationTo(headerValue);
+			builder.withDispositionNotificationTo(importedRecipient(null, headerValue));
 		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
-			builder.withReturnReceiptTo(headerValue);
+			builder.withReturnReceiptTo(importedRecipient(null, headerValue));
 		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_PATH.getName())) {
-			builder.withBounceTo(headerValue);
+			builder.withBounceTo(importedRecipient(null, headerValue));
 		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
+	}
+
+	/**
+	 * Preserve Outlook's existing first-mailbox/name interpretation and malformed-input fallback.
+	 * Imported fields do not pass through the stricter outgoing Email convenience API.
+	 */
+	@SuppressWarnings("deprecation")
+	private static Recipient importedRecipient(@Nullable final String name, @NotNull final String address) {
+		return interpretRecipient(name, true, address, null);
 	}
 
 	private static boolean isEmailHeader(String name, String value, String emailHeaderName) {
