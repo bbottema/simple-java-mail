@@ -16,21 +16,21 @@ import java.util.Set;
 public interface IRecipientBuilder {
 
     /**
-     * Creates one TO recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * Creates one TO recipient, using an embedded display name when present. Removes a previous explicit name and retains other recipient options.
      * The address remains one value; address lists are not split.
      * @see #to(String, String)
      */
     @NotNull Recipient to(@NotNull String address);
 
     /**
-     * Creates one CC recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * Creates one CC recipient, using an embedded display name when present. Removes a previous explicit name and retains other recipient options.
      * The address remains one value; address lists are not split.
      * @see #cc(String, String)
      */
     @NotNull Recipient cc(@NotNull String address);
 
     /**
-     * Creates one BCC recipient without an explicit display name. Replaces a previous name with null and retains other recipient options.
+     * Creates one BCC recipient, using an embedded display name when present. Removes a previous explicit name and retains other recipient options.
      * The address remains one value; address lists are not split.
      * @see #bcc(String, String)
      */
@@ -40,8 +40,8 @@ public interface IRecipientBuilder {
      * Creates one TO recipient directly from a name and an address.
      * <p>
      * This is a shortcut for setting the name, address and type on this builder and calling {@link #build()}. Any S/MIME certificate or delivery
-     * notification preference already configured on the builder is retained. A null name removes a previously configured name. The address is kept
-     * as one value; comma- or semicolon-separated address lists are not split. Use {@link IRecipientsBuilder} for multiple addresses.
+     * notification preference already configured on the builder is retained. A null name removes a previously configured explicit name and allows an
+     * embedded display name. Comma- or semicolon-separated address lists are not split. Use {@link IRecipientsBuilder} for multiple addresses.
      *
      * @param name Optional explicit display name.
      * @param address One email address, validated as with {@link #withAddress(String)}.
@@ -55,7 +55,7 @@ public interface IRecipientBuilder {
      * Creates one CC recipient directly from a name and an address.
      * <p>
      * Like {@link #to(String, String)}, this replaces the builder's name, address and type, retains its other configured options and returns the
-     * completed recipient. A null name removes a previously configured name; address lists are not split.
+     * completed recipient. A null name removes a previously configured explicit name and allows an embedded name; address lists are not split.
      *
      * @param name Optional explicit display name.
      * @param address One email address, validated as with {@link #withAddress(String)}.
@@ -68,7 +68,7 @@ public interface IRecipientBuilder {
      * Creates one BCC recipient directly from a name and an address.
      * <p>
      * Like {@link #to(String, String)}, this replaces the builder's name, address and type, retains its other configured options and returns the
-     * completed recipient. A null name removes a previously configured name; address lists are not split.
+     * completed recipient. A null name removes a previously configured explicit name and allows an embedded name; address lists are not split.
      *
      * @param name Optional explicit display name.
      * @param address One email address, validated as with {@link #withAddress(String)}.
@@ -83,6 +83,9 @@ public interface IRecipientBuilder {
     IRecipientBuilder withType(@NotNull Message.RecipientType type);
 
     /**
+     * Supplies the explicit display name independently of the address. It wins over an embedded name regardless of setter order.
+     * A null value removes the explicit name and reveals any name inferred from the current address.
+     *
      * @param name Optional explicit name of the recipient, otherwise taken from inside the address (if provided, for example "Joe Sixpack
      *             &lt;joesixpack@beerme.com&gt;"). Note that in {@link Recipients}, this can still be overridden by the {@code defaultName} and
      *             {@code overridingName} fields.
@@ -90,8 +93,12 @@ public interface IRecipientBuilder {
     IRecipientBuilder withName(@Nullable String name);
 
     /**
-     * @param address The email address of the recipient, can contain a name, but is ignored if a name was seperately provided, this includes names possibly
-     *                provided by {@link Recipients}.
+     * Accepts one mailbox leniently, extracting its address and embedded display name. A name supplied separately with {@link #withName(String)}
+     * takes precedence. Replacing the address replaces its inferred name, retaining the explicit name and other recipient options.
+     * Unparseable input, groups and multiple-mailbox strings remain intact for normal send-time validation rather than being split or truncated.
+     *
+     * @param address The nonempty recipient address, optionally including a display name, such as {@code Alice <alice@example.org>}.
+     * @see #withAddressOnlyFrom(String)
      */
     IRecipientBuilder withAddress(@NotNull String address);
 
