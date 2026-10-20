@@ -67,7 +67,7 @@ remain under their existing contracts.
 An OAuth2 password lock compares the fixed token, not the unrelated `mail.*.auth=true` flag used by the password
 Authenticator route. Preserve token equality and strategy-mechanism restrictions without requiring that unused flag.
 
-The implementation and local-fixture verification ledger is [the SMTPS OAuth2 plan](../plans/10.0.0-smtps-oauth2.md).
+The implementation and local-fixture verification ledger is [the SMTPS OAuth2 plan](https://github.com/bbottema/simple-java-mail/blob/e3fbaf777082955e6ea3d387b245254996d49505/docs/plans/10.0.0-smtps-oauth2.md).
 
 - [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), especially `validateMandatoryStartTls(...)` and its constructor call before resource setup.
 - [SmtpTlsConfigurationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpTlsConfigurationTest.java), [Spring TLS configuration tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringTlsConfigurationTest.java) and [CLI TLS configuration tests](../../modules/cli-module/src/test/java/org/simplejavamail/internal/clisupport/CliTlsConfigurationTest.java).
