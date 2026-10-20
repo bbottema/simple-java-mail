@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
 import org.simplejavamail.MailException;
@@ -26,18 +28,19 @@ import java.util.Set;
 public final class ConnectionSetupFailure extends MailException {
 
 	private static final long serialVersionUID = 1L;
-	private final Kind kind;
+	private final Kind connectionKind;
 
 	public ConnectionSetupFailure(final Throwable cause) {
-		super("Couldn't obtain a usable SMTP connection; no message was submitted to this destination.", cause);
-		kind = classify(cause);
+		super(MailFailureKind.CONNECTION,
+				"Couldn't obtain a usable SMTP connection; no message was submitted to this destination.", cause, null);
+		connectionKind = classify(cause);
 	}
 
 	boolean allowsFailover(final FailoverPolicy policy) {
 		if (hasUnresolvedCleanup()) {
 			return false;
 		}
-		switch (kind) {
+		switch (connectionKind) {
 			case AVAILABILITY:
 				return true;
 			case AUTHENTICATION:
@@ -55,7 +58,7 @@ public final class ConnectionSetupFailure extends MailException {
 	}
 
 	String explanation() {
-		switch (kind) {
+		switch (connectionKind) {
 			case AVAILABILITY: return "Connection unavailable";
 			case AUTHENTICATION: return "The server rejected authentication";
 			case CERTIFICATE: return "Certificate or server identity verification failed";

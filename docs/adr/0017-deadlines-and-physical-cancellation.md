@@ -25,6 +25,11 @@ Carry cancellation and the remaining budget into pool claims. Fence acquisition 
 
 Preserve protocol facts independently of the stop reason. If the final commit may have reached SMTP but its reply was lost, report unknown acceptance and duplicate risk. Preserve observed acceptance when cancellation arrives during later cleanup. Socket closure is not an SMTP rollback.
 
+Accepted 20 October 2026: timeout and cancellation remain meaningful subclasses of core `MailException`, classified as `TIMEOUT` and
+`CANCELLED`. Optional receipts are read on the common root, so stop translation retains facts from every library-owned failure without a
+`MailSendException`-specific cast. Translation does not relabel programmer errors or application callback RuntimeExceptions merely because
+a stop request races their propagation. Existing first-failure, cleanup and physical-stop ordering remain binding.
+
 ## Recorded reasoning and implementation trail
 
 | Evidence | What it establishes |

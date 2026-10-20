@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Address;
 import jakarta.mail.internet.MimeMessage;
@@ -56,7 +58,8 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 			}
 			return sendWithSendingAllowance(prepared, control, diagnostics);
 		} catch (MessagingException failure) {
-			throw control.translateFailure(new MailerException("Couldn't send the email through the selected shared connection. Check the cause.", failure));
+			throw control.translateFailure(new MailerException(MailFailureKind.PREPARATION,
+					"Couldn't send the email through the selected shared connection. Check the cause.", failure));
 		} catch (RuntimeException failure) {
 			throw control.translateFailure(failure);
 		}
@@ -145,7 +148,8 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 		try {
 			super.close();
 		} catch (MessagingException failure) {
-			throw new MailerException("Couldn't close the selected shared SMTP connection. Already submitted emails were not retried.", failure);
+			throw new MailerException(MailFailureKind.CLEANUP,
+					"Couldn't close the selected shared SMTP connection. Already submitted emails were not retried.", failure);
 		}
 	}
 }

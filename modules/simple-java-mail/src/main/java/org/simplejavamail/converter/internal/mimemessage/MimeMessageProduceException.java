@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -13,6 +14,6 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 class MimeMessageProduceException extends MailException {
 
 	MimeMessageProduceException(@NotNull final String message, @Nullable final Exception cause) {
-		super(checkNonEmptyArgument(message, "message"), cause);
+		super(MailFailureKind.PREPARATION, checkNonEmptyArgument(message, "message"), cause, null);
 	}
 }

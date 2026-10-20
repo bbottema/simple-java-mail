@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
@@ -53,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -106,12 +111,12 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void trueFalseAndUnsetAlternateOnOneHealthyPooledConnectionWithoutLeakingChoicesOrResponses() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			for (final Boolean choice : Arrays.asList(true, false, null, true, null, false)) {
 				final MailSubmissionReceipt receipt = mailer.sync().sendMail(emailWithChoice(choice, "accepted-" + outcomes.size()));
 				assertThat(receipt.getRecipientResults()).singleElement().satisfies(result ->
-						assertThat(result.getRcptResponse().orElseThrow().getResponse()).contains(result.getEnvelopeAddress().orElseThrow()));
+						assertThat(result.getRcptResponse().orElseThrow().getResponse()).contains(result.getEnvelopeAddress()));
 			}
 			assertThat(server.connections).hasValue(1);
 			assertThat(server.messages).hasValue(6);
@@ -133,8 +138,8 @@ class SmtpRecipientRepliesTest {
 	void concurrentPooledChoicesAndRecipientFactsRemainAttemptLocal() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		final List<Boolean> choices = Arrays.asList(true, false, null);
-		try (RecipientSmtpServer server = new RecipientSmtpServer(null, new CyclicBarrier(3)); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(null, new CyclicBarrier(3)); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(3).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(3).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> warmups = new ArrayList<>();
 			for (int index = 0; index < choices.size(); index++) {
 				warmups.add(mailer.async().sendMail(emailWithChoice(choices.get(index), "accepted-warmup-" + index)).getCompletion());
@@ -171,7 +176,7 @@ class SmtpRecipientRepliesTest {
 							? List.of("temporary-" + tag + "@example.org")
 							: List.of("accepted-" + tag + "@example.org", "temporary-" + tag + "@example.org"));
 					assertThat(receipt.getRecipientResults()).allSatisfy(recipient -> {
-						assertThat(recipient.getEnvelopeAddress()).contains(recipient.getOriginalAddress());
+						assertThat(recipient.getEnvelopeAddress()).isEqualTo(recipient.getOriginalAddress());
 						assertThat(recipient.getRcptResponse().orElseThrow().getResponse()).contains(recipient.getOriginalAddress());
 					});
 					assertThat(server.contents.stream().filter(content -> content.contains("accepted-" + tag + "@example.org")).count())
@@ -196,8 +201,8 @@ class SmtpRecipientRepliesTest {
 
 	@Test
 	void localSessionConflictDoesNotIssueMailFromOrInvalidateAHealthyLease() throws Exception {
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).withProperty("mail.smtp.sendpartial", true)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withProperty("mail.smtp.sendpartial", true)
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())).buildMailer()) {
 			mailer.sync().sendMail(email("accepted-before"));
 			final MailSubmissionReceipt receipt = failure(mailer, emailWithChoice(false, "accepted-conflict")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
@@ -221,7 +226,7 @@ class SmtpRecipientRepliesTest {
 			properties.setProperty("mail.smtp.localhost", "probe.example.test");
 			final Session session = Session.getInstance(properties);
 			try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-					.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+					.withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
 				assertThat(failure(mailer, emailWithChoice(true, "accepted-first", "temporary-first")).getSubmissionReceipt().orElseThrow().getStatus())
 						.isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
 				assertThat(failure(mailer, emailWithChoice(false, "accepted-second", "temporary-second")).getSubmissionReceipt().orElseThrow().getStatus())
@@ -239,9 +244,9 @@ class SmtpRecipientRepliesTest {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final UUID cluster = UUID.randomUUID();
 		try (RecipientSmtpServer firstServer = new RecipientSmtpServer(); RecipientSmtpServer secondServer = new RecipientSmtpServer();
-			 Mailer first = builder(factory, firstServer).withClusterKey(cluster).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+			 Mailer first = updateMailer(builder(factory, firstServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withCoreSize(0).withMaxSize(1).build()))
 					.withProperty("mail.smtp.sendpartial", true).buildMailer();
-			 Mailer second = builder(factory, secondServer).withClusterKey(cluster).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+			 Mailer second = updateMailer(builder(factory, secondServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withCoreSize(0).withMaxSize(1).build())).buildMailer()) {
 			int localConflicts = 0;
 			int accepted = 0;
 			for (int index = 0; index < 6; index++) {
@@ -316,7 +321,7 @@ class SmtpRecipientRepliesTest {
 		final Email exact = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.startingFromExactEml(eml.getBytes(StandardCharsets.US_ASCII))
 				.withEnvelopeRecipients("accepted@example.org", "accepted@example.org", "temporary@example.org")
-				.withSendingToAcceptedRecipients(continueSending).buildEmail();
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(continueSending).build()).buildEmail();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
 			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getRecipientResults()).extracting(MailRecipientResult::getOriginalAddress)
@@ -347,7 +352,7 @@ class SmtpRecipientRepliesTest {
 			signedBytes = input.readAllBytes();
 		}
 		final Email exact = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingFromExactEml(signedBytes)
-				.withEnvelopeRecipients("accepted@example.org", "temporary@example.org").withSendingToAcceptedRecipients(continueSending).buildEmail();
+				.withEnvelopeRecipients("accepted@example.org", "temporary@example.org").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(continueSending).build()).buildEmail();
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
 			assertThat(mailer.rehearse(exact).getEmlBytes()).containsExactly(signedBytes);
 			final MailSubmissionReceipt receipt = failure(mailer, exact).getSubmissionReceipt().orElseThrow();
@@ -384,14 +389,14 @@ class SmtpRecipientRepliesTest {
 			assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.DO_NOT_RETRY);
 			assertThat(receipt.getRecipientResults()).hasSize(2).allSatisfy(recipient -> {
 				assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.ACCEPTED);
-				assertThat(recipient.getRcptAttempted()).contains(true);
+				assertThat(recipient.getRcptAttempted()).isEqualTo(true);
 				assertThat(recipient.getRcptResponse()).hasValueSatisfying(reply -> {
 					assertThat(reply.getReturnCode()).isEqualTo(250);
 					assertThat(reply.getEnhancedStatusCode()).hasValueSatisfying(status -> {
 						assertThat(status.isSuccess()).isTrue();
 						assertThat(status.toString()).isEqualTo("2.1.5");
 					});
-					assertThat(reply.getResponse()).contains(recipient.getEnvelopeAddress().orElseThrow());
+					assertThat(reply.getResponse()).contains(recipient.getEnvelopeAddress());
 				});
 			});
 		}
@@ -469,7 +474,7 @@ class SmtpRecipientRepliesTest {
 		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server).buildMailer()) {
 			final MailSubmissionReceipt receipt = failure(mailer, email("rcpteof", "untouched")).getSubmissionReceipt().orElseThrow();
 			assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_ALL);
-			assertThat(receipt.getRecipientResults().get(0).getRcptAttempted()).contains(true);
+			assertThat(receipt.getRecipientResults().get(0).getRcptAttempted()).isEqualTo(true);
 			assertThat(receipt.getRecipientResults().get(0).getRcptResponse()).isEmpty();
 			assertThat(receipt.getRecipientResults().get(1).getRcptStatus()).isEqualTo(SmtpRecipientStatus.NOT_ATTEMPTED);
 		}
@@ -479,8 +484,8 @@ class SmtpRecipientRepliesTest {
 	@ValueSource(ints = {1, 3})
 	void pooledAsyncAttemptsNeverShareRecipientReplies(final int poolSize) throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(poolSize).withThreadPoolSize(6)
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(poolSize).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(6).build()))
 				.withProperty("mail.smtp.sendpartial", true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.async().sendMail(email("accepted-warmup")).getCompletion().get(10, TimeUnit.SECONDS);
 			final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
@@ -504,7 +509,7 @@ class SmtpRecipientRepliesTest {
 				final MailSubmissionReceipt receipt = outcome.getSubmissionReceipt().orElseThrow();
 				assertThat(receipt.getRecipientResults()).allSatisfy(recipient ->
 						assertThat(recipient.getRcptResponse().orElseThrow().getResponse())
-								.contains(recipient.getEnvelopeAddress().orElseThrow()));
+								.contains(recipient.getEnvelopeAddress()));
 			}
 			assertThat(server.connections.get()).as("Failed leases require replacement connections").isGreaterThan(1);
 			assertThat(server.messages.get()).isEqualTo(22);
@@ -514,8 +519,8 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void overlappingPartialFailuresKeepRepliesLocalToEachConnection() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(new CyclicBarrier(3)); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(3).withThreadPoolSize(3)
+		try (RecipientSmtpServer server = new RecipientSmtpServer(new CyclicBarrier(3)); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(3).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(3).build()))
 				.withProperty("mail.smtp.sendpartial", true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			for (int wave = 0; wave < 3; wave++) {
 				final List<CompletableFuture<MailSubmissionReceipt>> attempts = new ArrayList<>();
@@ -534,7 +539,7 @@ class SmtpRecipientRepliesTest {
 				final MailSubmissionReceipt receipt = outcome.getSubmissionReceipt().orElseThrow();
 				assertThat(receipt.getRecipientResults()).allSatisfy(recipient ->
 						assertThat(recipient.getRcptResponse().orElseThrow().getResponse())
-								.contains(recipient.getEnvelopeAddress().orElseThrow()));
+								.contains(recipient.getEnvelopeAddress()));
 			}
 		}
 	}
@@ -542,8 +547,8 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void simpleBatchStopsAfterTheFirstTransportFailureAndDoesNotReportUntouchedEmails() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build()))
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final ExecutionException failedBatch = catchThrowableOfType(() -> mailer.async().sendMailsInSimpleBatch(
 					List.of(email("accepted-first"), email("temporary-second"), email("untouched-third"))).getCompletion()
@@ -563,8 +568,8 @@ class SmtpRecipientRepliesTest {
 	void successfulReportingReleasesPoolBeforeReentrantObserverSend() throws Exception {
 		final AtomicReference<Mailer> configuredMailer = new AtomicReference<>();
 		final List<MailSubmissionReceipt> receipts = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(2000))
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(2000)).build()))
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					receipts.add(outcome.getSubmissionReceipt().orElseThrow());
 					if (receipts.size() == 1) {
@@ -581,8 +586,8 @@ class SmtpRecipientRepliesTest {
 	@Test
 	void simpleBatchAndOpenConnectionPublishEachReceiptWhileSharingTheTransport() throws Exception {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = builder(server)
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+		try (RecipientSmtpServer server = new RecipientSmtpServer(); Mailer mailer = updateMailer(builder(server), fixture -> fixture
+				.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.async().sendMailsInSimpleBatch(List.of(email("accepted-batch-one"), email("accepted-batch-two"))).getCompletion().get(10, TimeUnit.SECONDS);
 			mailer.withOpenConnection(sender -> {
 				final MailSubmissionReceipt first = sender.sendMail(email("accepted-open-one"));
@@ -611,9 +616,8 @@ class SmtpRecipientRepliesTest {
 		// Keep EHLO and Message-ID hostname lookup outside batch completion and pooled-attempt timing.
 		return factory.mailerBuilder()
 				.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.port())
-				.withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
-				.withSessionTimeout(Duration.ofMillis(1200))
-				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(1200)).build()).withProperty("mail.from", "sender@example.org")
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(5000)).build())
 				.withProperty("mail.smtp.connectiontimeout", 3000).withProperty("mail.smtp.timeout", 1200)
 				.withProperty("mail.smtp.writetimeout", 3000);
 	}
@@ -629,7 +633,7 @@ class SmtpRecipientRepliesTest {
 		final EmailPopulatingBuilder builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig())
 				.emailBuilder().copying(email(recipientNames));
 		if (choice != null) {
-			builder.withSendingToAcceptedRecipients(choice);
+			builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withSendingToAcceptedRecipients(choice).build());
 		}
 		return builder.buildEmail();
 	}

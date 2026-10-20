@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal;
 
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.jetbrains.annotations.ApiStatus;
 
 /**
@@ -21,6 +22,6 @@ public class EmailConverterException extends MailException {
 			+ "Make sure its content and attachment sources remain available until conversion finishes.";
 
 	public EmailConverterException(final String message, final Exception cause) {
-		super(message, cause);
+		super(MailFailureKind.CONVERSION, message, cause, null);
 	}
 }

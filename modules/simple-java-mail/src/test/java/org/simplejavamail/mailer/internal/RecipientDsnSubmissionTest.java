@@ -1,5 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
@@ -44,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.SocketFactory;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -79,7 +86,7 @@ class RecipientDsnSubmissionTest {
             acceptRecipients(peer, command(ADDRESS, "DELAY")); // Same lease; no previous explicit NEVER/SUCCESS.
             finishConnection(peer);
         }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
-                .withEmailOverrides(mail.emailBuilder().startingBlank().withDeliveryStatusNotificationNotifyOptions(DELAY).buildEmail()).buildMailer()) {
+                .withEmailOverrides(mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(DELAY).build()).buildEmail()).buildMailer()) {
             final Email email = email(recipient(RecipientType.BCC), recipient(RecipientType.CC, SUCCESS), recipient(RecipientType.TO, NEVER));
             final MailSubmissionReceipt first = send(mailer, email, async);
             final MailSubmissionReceipt second = send(mailer, email(recipient(RecipientType.TO)), async);
@@ -130,7 +137,7 @@ class RecipientDsnSubmissionTest {
             // Keep Message-ID generation local while the compatibility rejection returns the same five-second pooled lease.
             properties.setProperty("mail.from", "sender@example.test");
             final MailerGenericBuilder<?> mailerBuilder = mail.mailerBuilder(Session.getInstance(properties))
-                    .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+                    .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
             try (Mailer mailer = mailerBuilder.buildMailer()) {
                 final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(recipient(RecipientType.TO, NEVER))));
                 assertThat(failure).hasCauseInstanceOf(MailTransportCompatibilityException.class);
@@ -166,10 +173,10 @@ class RecipientDsnSubmissionTest {
             assertThat(acceptRecipients(peer, command(ADDRESS, "NEVER"), command(ADDRESS, "SUCCESS")).getBytes(US_ASCII)).containsExactly(eml);
             finishConnection(peer);
         }); Mailer mailer = builder(server).withEmailOverrides(mail.emailBuilder().startingBlank()
-                .withDeliveryStatusNotificationNotifyOptions(DELAY).buildEmail()).buildMailer()) {
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(DELAY).build()).buildEmail()).buildMailer()) {
             final Email exact = mail.emailBuilder().startingFromExactEml(eml)
                     .withEnvelopeRecipients(recipient(RecipientType.TO, NEVER), recipient(RecipientType.TO, SUCCESS))
-                    .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).buildEmail();
+                    .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).build()).buildEmail();
             assertThat(mailer.sync().sendMail(exact).getAcceptedRecipients()).containsExactly(ADDRESS, ADDRESS);
         }
     }
@@ -216,12 +223,12 @@ class RecipientDsnSubmissionTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             for (int round = 0; round < 3; round++) {
                 final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
                 for (final NotifyOption option : List.of(NEVER, SUCCESS)) {
                     sends.add(mailer.async().sendMail(mail.emailBuilder().copying(email(recipient(RecipientType.TO, option)))
-                            .fixingEnvelopeId(option.name()).buildEmail()));
+                            .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId(option.name()).build()).buildEmail()));
                 }
                 for (final MailSend<MailSubmissionReceipt> send : sends) {
                     final MailSubmissionReceipt receipt = send.getCompletion().get(15, SECONDS);
@@ -381,6 +388,7 @@ class RecipientDsnSubmissionTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void recipientPreferencesUsePostTlsCapabilitiesNotTheEarlierGreeting(final boolean supportedAfterTls) throws Exception {
+        final Properties properties = SmtpCapabilityProbeCharacterizationTest.session(false).getProperties();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.greet(supportedAfterTls ? "250-localhost\r\n250 STARTTLS" : "250-localhost\r\n250-DSN\r\n250 STARTTLS");
             peer.expect("STARTTLS");
@@ -394,10 +402,10 @@ class RecipientDsnSubmissionTest {
                 acceptRecipients(peer, command(ADDRESS, "NEVER"));
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withSMTPServer("localhost", server.port(), "test-user", "test-password")
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withSMTPServer("localhost", server.port(), "test-user", "test-password")
                 .withTransportStrategy(TransportStrategy.SMTP_TLS)
-                .withProperties(SmtpCapabilityProbeCharacterizationTest.session(false).getProperties())
-                .trustingSSLHosts("localhost").buildMailer()) { // Trust only this loopback fixture's certificate; keep hostname verification enabled.
+                .withProperties(properties)
+                .withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build())).buildMailer()) { // Trust only this loopback fixture's certificate; keep hostname verification enabled.
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email(recipient(RecipientType.TO, NEVER))));
             if (supportedAfterTls) {
                 assertThat(failure).isNull();
@@ -426,7 +434,7 @@ class RecipientDsnSubmissionTest {
     @Test
     void recipientPolicyUsesTheMailboxSpellingAfterMimeHeaderParsing() throws Exception {
         final Email email = email(new Recipient(null, "  receiver@example.test  ", RecipientType.TO, null, List.of(NEVER)));
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).disablingAllClientValidation(true).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).build()).buildMailer()) {
             final Email effectiveEmail = mailer.rehearse(email).getEffectiveEmail();
             final PreparedMail prepared = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), effectiveEmail);
             final String address = ((InternetAddress) prepared.getRecipients()[0]).getAddress();
@@ -443,7 +451,7 @@ class RecipientDsnSubmissionTest {
     void rehearsalAndValidationRejectTheSameEnvelopePolicyMismatchAsSendPreparation(final boolean processSecurity) throws Exception {
         final Email email = mail.emailBuilder().copying(email(recipient(RecipientType.TO, NEVER)))
                 .withHeader("To", "additional@example.test").buildEmailCompletedWithDefaultsAndOverrides();
-        try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolCoreSize(0).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
             final Throwable preparationFailure = catchThrowable(() ->
                     SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), email));
             assertThat(preparationFailure).isInstanceOf(MailTransportCompatibilityException.class)
@@ -467,9 +475,9 @@ class RecipientDsnSubmissionTest {
     void rehearsalAndValidationLeaveServerCapabilitiesToTheActualSend(final boolean processSecurity, final boolean exact) throws Exception {
         final byte[] eml = "From: sender@example.test\r\nTo: visible@example.test\r\n\r\nExact content.\r\n".getBytes(US_ASCII);
         final Email email = exact ? mail.emailBuilder().startingFromExactEml(eml).withEnvelopeRecipients(recipient(RecipientType.TO, NEVER))
-                .fixingEnvelopeId("requires-dsn-on-send").buildEmail()
-                : mail.emailBuilder().copying(email(recipient(RecipientType.TO, NEVER))).fixingEnvelopeId("requires-dsn-on-send").buildEmail();
-        try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolCoreSize(0).buildMailer()) {
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("requires-dsn-on-send").build()).buildEmail()
+                : mail.emailBuilder().copying(email(recipient(RecipientType.TO, NEVER))).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("requires-dsn-on-send").build()).buildEmail();
+        try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
             final MailRehearsal rehearsal = mailer.rehearse(email, processSecurity);
             assertThat(rehearsal.getEnvelopeRecipients()).containsExactly(ADDRESS);
             if (exact) {
@@ -481,9 +489,9 @@ class RecipientDsnSubmissionTest {
 
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // Message-ID generation must not wait for machine-hostname lookup while a reusable lease can expire.
-        return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
+        return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.from", "sender@example.test")
-                .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(10000));
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(10000)).build());
     }
 
     private Email email(final Recipient... recipients) {

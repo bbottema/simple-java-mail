@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -69,10 +71,10 @@ class EnvelopeChoiceClearingTest {
 		final Recipient recipient = mail.recipientBuilder().withDeliveryStatusNotificationNotifyOptions(FAILURE)
 				.to("Recipient", "recipient@example.org");
 		final ExactEmailBuilder builder = exactBuilder().withEnvelopeRecipients(recipient)
-				.withDeliveryStatusNotification(completeDsn());
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(completeDsn()).build());
 		final Email first = builder.buildEmail();
-		assertThat(builder.clearDeliveryStatusNotification()).isSameAs(builder);
-		assertThat(builder.clearDeliveryStatusNotification().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotification().build())).isSameAs(builder);
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotification().build()).getSmtpDeliveryOptions().getDeliveryStatusNotification()).isNull();
 		final Email second = builder.buildEmail();
 		assertThat(first.getDeliveryStatusNotification()).isEqualTo(completeDsn());
 		assertThat(second.getDeliveryStatusNotification()).isNull();
@@ -83,16 +85,16 @@ class EnvelopeChoiceClearingTest {
 	@Test
 	void exactComponentClearsRetainUnrelatedDsnOptionsAndFinallyRestoreAbsence() {
 		final ExactEmailBuilder builder = exactBuilder().withEnvelopeRecipients("recipient@example.org")
-				.withDeliveryStatusNotification(completeDsn());
-		builder.clearDeliveryStatusNotificationReturnOption();
-		assertThat(builder.getDeliveryStatusNotification().getReturnOption()).isNull();
-		assertThat(builder.getDeliveryStatusNotification().getNotifyOptions()).containsExactly(FAILURE);
-		assertThat(builder.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
-		builder.clearDeliveryStatusNotificationNotifyOptions();
-		assertThat(builder.getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
-		assertThat(builder.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
-		builder.clearEnvelopeId().clearEnvelopeId();
-		assertThat(builder.getDeliveryStatusNotification()).isNull();
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(completeDsn()).build());
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotificationReturnOption().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getReturnOption()).isNull();
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getNotifyOptions()).containsExactly(FAILURE);
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotificationNotifyOptions().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearEnvelopeId().clearEnvelopeId().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification()).isNull();
 		assertThat(builder.buildEmail().getDeliveryStatusNotification()).isNull();
 		assertExactBytes(builder.buildEmail());
 	}
@@ -100,45 +102,41 @@ class EnvelopeChoiceClearingTest {
 	@Test
 	void eachExactDsnComponentCanBeClearedWhenItWasTheOnlyChoice() {
 		final ExactEmailBuilder builder = exactBuilder().withEnvelopeRecipients("recipient@example.org");
-		assertThat(builder.withDeliveryStatusNotificationReturnOption(HEADERS_ONLY)
-				.clearDeliveryStatusNotificationReturnOption().buildEmail().getDeliveryStatusNotification()).isNull();
-		assertThat(builder.withDeliveryStatusNotificationNotifyOptions(FAILURE)
-				.clearDeliveryStatusNotificationNotifyOptions().buildEmail().getDeliveryStatusNotification()).isNull();
-		assertThat(builder.fixingEnvelopeId("fixed-id").clearEnvelopeId().buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationReturnOption(HEADERS_ONLY).clearDeliveryStatusNotificationReturnOption().build()).buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions(FAILURE).clearDeliveryStatusNotificationNotifyOptions().build()).buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().fixingEnvelopeId("fixed-id").clearEnvelopeId().build()).buildEmail().getDeliveryStatusNotification()).isNull();
 	}
 
 	@Test
 	void composedComponentClearsRetainOtherOptionsAndPreviouslyBuiltEmails() {
-		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withDeliveryStatusNotification(completeDsn());
+		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(completeDsn()).build());
 		final Email first = builder.buildEmail();
-		builder.clearDeliveryStatusNotificationReturnOption();
-		assertThat(builder.getDeliveryStatusNotification().getReturnOption()).isNull();
-		assertThat(builder.getDeliveryStatusNotification().getNotifyOptions()).containsExactly(FAILURE);
-		assertThat(builder.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
-		builder.clearDeliveryStatusNotificationNotifyOptions();
-		assertThat(builder.getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
-		assertThat(builder.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
-		builder.clearEnvelopeId().clearEnvelopeId();
-		assertThat(builder.getDeliveryStatusNotification()).isNull();
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotificationReturnOption().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getReturnOption()).isNull();
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getNotifyOptions()).containsExactly(FAILURE);
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearDeliveryStatusNotificationNotifyOptions().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("fixed-id");
+		builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearEnvelopeId().clearEnvelopeId().build());
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification()).isNull();
 		assertThat(first.getDeliveryStatusNotification()).isEqualTo(completeDsn());
 	}
 
 	@Test
 	void eachComposedDsnComponentCanBeClearedWhenItWasTheOnlyChoice() {
 		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank();
-		assertThat(builder.withDeliveryStatusNotificationReturnOption(HEADERS_ONLY)
-				.clearDeliveryStatusNotificationReturnOption().buildEmail().getDeliveryStatusNotification()).isNull();
-		assertThat(builder.withDeliveryStatusNotificationNotifyOptions(FAILURE)
-				.clearDeliveryStatusNotificationNotifyOptions().buildEmail().getDeliveryStatusNotification()).isNull();
-		assertThat(builder.fixingEnvelopeId("fixed-id").clearEnvelopeId().buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationReturnOption(HEADERS_ONLY).clearDeliveryStatusNotificationReturnOption().build()).buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions(FAILURE).clearDeliveryStatusNotificationNotifyOptions().build()).buildEmail().getDeliveryStatusNotification()).isNull();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().fixingEnvelopeId("fixed-id").clearEnvelopeId().build()).buildEmail().getDeliveryStatusNotification()).isNull();
 	}
 
 	@Test
 	void exactTlsGetterReflectsOnlyTheBuildersOwnRequirement() {
 		final ExactEmailBuilder builder = exactBuilder().withEnvelopeRecipients("recipient@example.org");
-		assertThat(builder.isTlsRequiredForOnwardDelivery()).isFalse();
-		assertThat(builder.withTlsRequiredForOnwardDelivery().isTlsRequiredForOnwardDelivery()).isTrue();
-		assertThat(builder.clearTlsRequiredForOnwardDelivery().isTlsRequiredForOnwardDelivery()).isFalse();
+		assertThat(builder.getSmtpDeliveryOptions().isTlsRequiredForOnwardDelivery()).isFalse();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withTlsRequiredForOnwardDelivery().build()).getSmtpDeliveryOptions().isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearTlsRequiredForOnwardDelivery().build()).getSmtpDeliveryOptions().isTlsRequiredForOnwardDelivery()).isFalse();
 	}
 
 	@Test
@@ -146,9 +144,9 @@ class EnvelopeChoiceClearingTest {
 		final SimpleJavaMail configured = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
 				"simplejavamail.defaults.delivery.status.notification.return.option", "HDRS")).load());
 		final EmailPopulatingBuilder builder = configured.emailBuilder().startingBlank()
-				.withDeliveryStatusNotificationReturnOption(FULL_MESSAGE).clearDeliveryStatusNotificationReturnOption();
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationReturnOption(FULL_MESSAGE).clearDeliveryStatusNotificationReturnOption().build());
 		assertThat(builder.buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification().getReturnOption()).isEqualTo(HEADERS_ONLY);
-		assertThat(builder.dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION)
+		assertThat(builder.withTemplateOptions(builder.getTemplateOptions().toBuilder().dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION).build())
 				.buildEmailCompletedWithDefaultsAndOverrides().getDeliveryStatusNotification()).isNull();
 	}
 
@@ -156,12 +154,11 @@ class EnvelopeChoiceClearingTest {
 	void clearingAndSuppressingDsnDoesNotBypassConfiguredLocksOrRewriteExactBytes() throws Exception {
 		final SimpleJavaMail configured = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
 				"simplejavamail.locked.defaults.delivery.status.notification.return.option", "HDRS")).load());
-		final Email composed = configured.emailBuilder().startingBlank().clearDeliveryStatusNotificationReturnOption()
-				.clearDeliveryStatusNotification().ignoringDefaults().dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION)
+		final Email composed = configured.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().clearDeliveryStatusNotificationReturnOption().clearDeliveryStatusNotification().build()).withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION).build())
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		assertThat(composed.getDeliveryStatusNotification().getReturnOption()).isEqualTo(HEADERS_ONLY);
 		final Email exact = exactBuilder().withEnvelopeRecipients("recipient@example.org")
-				.withDeliveryStatusNotificationReturnOption(FULL_MESSAGE).clearDeliveryStatusNotification().buildEmail();
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationReturnOption(FULL_MESSAGE).clearDeliveryStatusNotification().build()).buildEmail();
 		try (Mailer mailer = configured.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
 			final Email effective = mailer.rehearse(exact).getEffectiveEmail();
 			assertThat(effective.getDeliveryStatusNotification().getReturnOption()).isEqualTo(HEADERS_ONLY);

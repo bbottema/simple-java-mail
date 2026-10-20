@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
@@ -88,7 +92,7 @@ class SmtpServerConformanceIT {
 			final SmtpCapabilities capabilities = report.getAfterTls().orElseThrow();
 			assertThat(capabilities.getExtensions().keySet()).contains("AUTH", "DSN", "SIZE", "8BITMIME", "SMTPUTF8");
 			assertThat(capabilities.supports("REQUIRETLS")).isFalse();
-			assertThat(capabilities.getMaximumMessageSize()).hasValue(1048576);
+			assertThat(capabilities.getMaximumMessageSize()).isEqualTo(1048576);
 			Files.writeString(RealSmtpServer.runDirectory().resolve("evidence/" + server.serverName() + "-probe.txt"), report.toString());
 		}
 	}
@@ -172,8 +176,7 @@ class SmtpServerConformanceIT {
 	@EnumSource(RealSmtpServer.class)
 	void negotiatesInternationalEnvelopeEightBitBodyAndDsn(final RealSmtpServer server) throws Exception {
 		final Email email = server.email("international").clearRecipients().withRecipients(new Recipient(null, "josé@conformance.test", TO, null))
-				.withPlainTextContentTransferEncoding(BIT8).withDeliveryStatusNotification(HEADERS_ONLY, NEVER)
-				.fixingEnvelopeId(server.serverName() + "-attempt +42=").buildEmail();
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BIT8).build()).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, NEVER).fixingEnvelopeId(server.serverName() + "-attempt +42=").build()).buildEmail();
 		try (Mailer mailer = server.mailer().buildMailer()) {
 			final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 			assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -201,7 +204,7 @@ class SmtpServerConformanceIT {
 	@ParameterizedTest
 	@EnumSource(RealSmtpServer.class)
 	void rejectsOnwardTlsWhenThePinnedServerDoesNotAdvertiseIt(final RealSmtpServer server) throws Exception {
-		final Email email = server.email("requiretls").withTlsRequiredForOnwardDelivery().buildEmail();
+		final Email email = server.email("requiretls").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()).buildEmail();
 		try (Mailer mailer = server.mailer().buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMail(email)).isInstanceOf(MailSubmissionException.class);
 		}
@@ -275,8 +278,8 @@ class SmtpServerConformanceIT {
 				server.email("dkim").from("fixture@supersecret-testing-domain.com")
 						.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData(Files.readAllBytes(fixture.resolve("private-key.pem")))
 								.dkimSigningDomain("supersecret-testing-domain.com").dkimSelector("fixture").build()).buildEmail(),
-				server.email("smime-signed").signWithSmime(fixture.resolve("identity.p12"), "fixture-password", "fixture", "fixture-password", null).buildEmail(),
-				server.email("smime-encrypted").encryptWithSmime(fixture.resolve("certificate.pem"), null, null).buildEmail(),
+				server.email("smime-signed").signWithSmime(SmimeSigningConfig.builder().pkcs12Config(fixture.resolve("identity.p12"), "fixture-password", "fixture", "fixture-password").signatureAlgorithm(null).build()).buildEmail(),
+				server.email("smime-encrypted").encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(fixture.resolve("certificate.pem")).keyEncapsulationAlgorithm(null).cipherAlgorithm(null).build()).buildEmail(),
 				server.email("pgp-signed").signWithOpenPgp(signing).buildEmail(),
 				server.email("pgp-encrypted").signWithOpenPgp(signing).encryptWithOpenPgp(OpenPgpEncryptionConfig.builder()
 						.addRecipientPublicKeyRing(Files.readAllBytes(openPgp.resolve("public-key.asc"))).build()).buildEmail());
@@ -291,7 +294,7 @@ class SmtpServerConformanceIT {
 					assertThat(terminal).isNotNull();
 				} while (terminal.getStage() != MailSendProgressStage.FINISHED);
 				assertThat(terminal.getEffectiveMessageId()).isEqualTo(email.getId());
-				assertThat(terminal.getBytesWritten()).isPresent().isEqualTo(terminal.getTotalBytes());
+				assertThat(terminal.getBytesWritten()).isNotNull().isEqualTo(terminal.getTotalBytes());
 			}
 		}
 	}

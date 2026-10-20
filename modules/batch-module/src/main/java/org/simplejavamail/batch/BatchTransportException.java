@@ -1,5 +1,8 @@
 package org.simplejavamail.batch;
 
+import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 /**
  * Reports configuration, transport acquisition, scheduling, or shutdown failures from the batch facade.
  * <p>
@@ -7,7 +10,7 @@ package org.simplejavamail.batch;
  * or its properties, because those properties can contain passwords and OAuth2 access tokens. The original cause
  * remains available through {@link #getCause()}.
  */
-public class BatchTransportException extends RuntimeException {
+public class BatchTransportException extends MailException {
 
 	private static final long serialVersionUID = 1L;
 
@@ -17,7 +20,7 @@ public class BatchTransportException extends RuntimeException {
 	 * @param message a credential-safe description of the failed operation
 	 */
 	public BatchTransportException(final String message) {
-		super(message);
+		this(MailFailureKind.CONFIGURATION, message, null);
 	}
 
 	/**
@@ -27,6 +30,11 @@ public class BatchTransportException extends RuntimeException {
 	 * @param cause the original failure
 	 */
 	public BatchTransportException(final String message, final Throwable cause) {
-		super(message, cause);
+		this(MailFailureKind.CONFIGURATION, message, cause);
+	}
+
+	/** Creates a classified batch failure while retaining its original cause and any captured submission facts. */
+	public BatchTransportException(final MailFailureKind kind, final String message, final Throwable cause) {
+		super(kind, message, cause, cause instanceof MailException ? ((MailException) cause).getSubmissionReceipt().orElse(null) : null);
 	}
 }

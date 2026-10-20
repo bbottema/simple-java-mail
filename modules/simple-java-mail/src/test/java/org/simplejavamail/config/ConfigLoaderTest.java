@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,10 +53,10 @@ class ConfigLoaderTest {
 		intermediate.setProperty(SMTP_HOST.key(), "changed.example.test");
 		final SimpleJavaMailConfig second = loader.load();
 
-		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("inherited.example.test");
-		assertThat(first.getIntegerProperty(SMTP_PORT)).isEqualTo(587);
-		assertThat(first.getPropertySource(SMTP_HOST)).isEqualTo("application");
-		assertThat(second.getStringProperty(SMTP_HOST)).isEqualTo("changed.example.test");
+		assertThat(first.get(ConfigKeys.SMTP_HOST)).isEqualTo("inherited.example.test");
+		assertThat(first.get(ConfigKeys.SMTP_PORT)).isEqualTo(587);
+		assertThat(first.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("application");
+		assertThat(second.get(ConfigKeys.SMTP_HOST)).isEqualTo("changed.example.test");
 	}
 
 	@Test
@@ -67,11 +69,11 @@ class ConfigLoaderTest {
 		supplied.setProperty(SMTP_HOST.key(), "ordinary.example.test");
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties("company configuration", supplied).load();
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("approved.example.test");
-		assertThat(config.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).containsEntry("mail.smtp.ehlo", "false");
-		final Map<String, SimpleJavaMailConfig> named = config.getProperty(ConfigLoader.Property.NAMED_MAILERS);
-		assertThat(named.get("secondary").getStringProperty(SMTP_HOST)).isEqualTo("secondary.example.test");
-		assertThat(ConfigLoader.builder().withConfig(config).load().getStringProperty(SMTP_HOST)).isEqualTo("approved.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("approved.example.test");
+		assertThat(config.get(ConfigKeys.EXTRA_PROPERTIES)).containsEntry("mail.smtp.ehlo", "false");
+		final Map<String, SimpleJavaMailConfig> named = config.get(ConfigKeys.NAMED_MAILERS);
+		assertThat(named.get("secondary").get(ConfigKeys.SMTP_HOST)).isEqualTo("secondary.example.test");
+		assertThat(ConfigLoader.builder().withConfig(config).load().get(ConfigKeys.SMTP_HOST)).isEqualTo("approved.example.test");
 		assertThatThrownBy(() -> SimpleJavaMail.withConfig(config).mailerBuilder()
 				.withSMTPServerHost("unapproved.example.test").buildMailer())
 				.hasMessageContaining("simplejavamail.locked.smtp.host");
@@ -86,7 +88,7 @@ class ConfigLoaderTest {
 
 		assertThatThrownBy(() -> ConfigLoader.builder().withProperties("application", supplied).load())
 				.hasMessageContaining("unrelated.property").hasMessageContaining("application");
-		assertThat(ConfigLoader.builder().withSystemProperties(supplied).load().getStringProperty(SMTP_HOST))
+		assertThat(ConfigLoader.builder().withSystemProperties(supplied).load().get(ConfigKeys.SMTP_HOST))
 				.isEqualTo("inherited.example.test");
 	}
 
@@ -103,8 +105,8 @@ class ConfigLoaderTest {
 				.hasMessageContaining(SMTP_PORT.key());
 		supplied.remove(SMTP_PORT.key());
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(supplied).load();
-		assertThat(config.hasProperty(SMTP_HOST)).isFalse();
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(587);
+		assertThat(config.hasProperty(ConfigKeys.SMTP_HOST)).isFalse();
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(587);
 	}
 
 	@Test
@@ -113,12 +115,12 @@ class ConfigLoaderTest {
 		source.setProperty(DEFAULT_SUBJECT.key(), "configured");
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(source).load();
 
-		assertThat(config.valueOrProperty("explicit", DEFAULT_SUBJECT, "fallback")).isEqualTo("explicit");
-		assertThat(config.valueOrProperty(null, DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
-		assertThat(config.valueOrProperty("", DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
-		assertThat(config.valueOrProperty(null, SMTP_HOST, "fallback")).isEqualTo("fallback");
-		assertThat(config.hasProperty(DEFAULT_SUBJECT)).isTrue();
-		assertThat(config.hasProperty(SMTP_HOST)).isFalse();
+		assertThat(config.valueOrProperty("explicit", ConfigKeys.DEFAULT_SUBJECT, "fallback")).isEqualTo("explicit");
+		assertThat(config.valueOrProperty(null, ConfigKeys.DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
+		assertThat(config.valueOrProperty("", ConfigKeys.DEFAULT_SUBJECT, "fallback")).isEqualTo("configured");
+		assertThat(config.valueOrProperty(null, ConfigKeys.SMTP_HOST, "fallback")).isEqualTo("fallback");
+		assertThat(config.hasProperty(ConfigKeys.DEFAULT_SUBJECT)).isTrue();
+		assertThat(config.hasProperty(ConfigKeys.SMTP_HOST)).isFalse();
 	}
 
 	@Test
@@ -127,15 +129,15 @@ class ConfigLoaderTest {
 				.withClasspathResource(ConfigLoader.DEFAULT_CONFIG_FILENAME)
 				.load();
 
-		assertThat(config.getBooleanProperty(JAVAXMAIL_DEBUG)).isTrue();
-		assertThat(config.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
-		assertThat(config.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("smtp.default.com");
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(config.getStringProperty(SMTP_PASSWORD)).isEqualTo("password");
-		assertThat(config.getStringProperty(DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
-		assertThat(config.<ContentTransferEncoding>getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)).isEqualTo(ContentTransferEncoding.BINARY);
-		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("classpath:" + ConfigLoader.DEFAULT_CONFIG_FILENAME);
+		assertThat(config.get(ConfigKeys.JAVAXMAIL_DEBUG)).isTrue();
+		assertThat(config.get(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.STDERR);
+		assertThat(config.get(ConfigKeys.TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTPS);
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.default.com");
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(25);
+		assertThat(config.get(ConfigKeys.SMTP_PASSWORD)).isEqualTo("password");
+		assertThat(config.get(ConfigKeys.DEFAULT_FROM_ADDRESS)).isEqualTo("from@default.com");
+		assertThat(config.get(ConfigKeys.DEFAULT_CONTENT_TRANSFER_ENCODING)).isEqualTo(ContentTransferEncoding.BINARY);
+		assertThat(config.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("classpath:" + ConfigLoader.DEFAULT_CONFIG_FILENAME);
 	}
 
 	@Test
@@ -152,11 +154,11 @@ class ConfigLoaderTest {
 								"simplejavamail.proxy.username=proxy-user\n"))
 				.load();
 
-		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("base.example.test");
-		assertThat(merged.getStringProperty(SMTP_HOST)).isEqualTo("override.example.test");
-		assertThat(merged.getIntegerProperty(SMTP_PORT)).isEqualTo(25);
-		assertThat(merged.getStringProperty(PROXY_USERNAME)).isEqualTo("proxy-user");
-		assertThat(merged.getPropertySource(SMTP_HOST)).isEqualTo("override");
+		assertThat(first.get(ConfigKeys.SMTP_HOST)).isEqualTo("base.example.test");
+		assertThat(merged.get(ConfigKeys.SMTP_HOST)).isEqualTo("override.example.test");
+		assertThat(merged.get(ConfigKeys.SMTP_PORT)).isEqualTo(25);
+		assertThat(merged.get(ConfigKeys.PROXY_USERNAME)).isEqualTo("proxy-user");
+		assertThat(merged.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("override");
 	}
 
 	@Test
@@ -173,10 +175,10 @@ class ConfigLoaderTest {
 				.withSystemProperties(system)
 				.load();
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("system.example.test");
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(2525);
-		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("system properties");
-		assertThat(config.getPropertySource(SMTP_PORT)).isEqualTo("environment variables");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("system.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(2525);
+		assertThat(config.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("system properties");
+		assertThat(config.getPropertySource(ConfigKeys.SMTP_PORT)).isEqualTo("environment variables");
 	}
 
 	@Test
@@ -189,10 +191,10 @@ class ConfigLoaderTest {
 
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withEnvironmentVariables(environment).load();
 
-		assertThat(config.<Map<String, String>>getProperty(EXTRA_PROPERTIES))
+		assertThat(config.get(ConfigKeys.EXTRA_PROPERTIES))
 				.hasSize(1)
 				.containsEntry("mail.smtp.timeout", "1234");
-		assertThat(config.<Map<UUID, ConnectionPoolClusterConfig>>getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)
+		assertThat(config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)
 				.get(clusterKey).getMaxSize()).isEqualTo(4);
 	}
 
@@ -212,9 +214,9 @@ class ConfigLoaderTest {
 		final SimpleJavaMailConfig config = ConfigLoader.builder()
 				.withProperties(source)
 				.load();
-		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 
-		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
+		assertThat(config.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(450000));
 		assertThat(clusters).containsOnlyKeys(ordersKey, bulkKey);
 		assertThat(clusters.get(ordersKey).getCoreSize()).isEqualTo(0);
 		assertThat(clusters.get(ordersKey).getMaxSize()).isEqualTo(2);
@@ -248,8 +250,8 @@ class ConfigLoaderTest {
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withMap(Map.of(
 				DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key(), Integer.toString(value),
 				"simplejavamail.defaults.connectionpool.clusters." + cluster + ".expireaftercreation.millis", Integer.toString(value))).load();
-		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
-		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(config.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(value));
 		assertThat(clusters.get(cluster).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(value));
 	}
 
@@ -263,10 +265,10 @@ class ConfigLoaderTest {
 		final SimpleJavaMailConfig second = ConfigLoader.builder().withConfig(first).withProperties("second", source).load();
 		final SimpleJavaMailConfig blankOverride = ConfigLoader.builder().withConfig(second).withMap(singleton(property, " ")).load();
 
-		assertThat(first.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isOne();
-		assertThat(second.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(2);
-		assertThat(blankOverride.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(2);
-		assertThat(ConfigLoader.builder().load().getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isNull();
+		assertThat(first.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(1));
+		assertThat(second.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(2));
+		assertThat(blankOverride.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(2));
+		assertThat(ConfigLoader.builder().load().get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isNull();
 	}
 
 	@Test
@@ -275,7 +277,7 @@ class ConfigLoaderTest {
 		process.setProperty("unrelated.jvm.property", "ignored");
 		process.setProperty(SMTP_HOST.key(), "smtp.example.test");
 
-		assertThat(ConfigLoader.builder().withSystemProperties(process).load().getStringProperty(SMTP_HOST))
+		assertThat(ConfigLoader.builder().withSystemProperties(process).load().get(ConfigKeys.SMTP_HOST))
 				.isEqualTo("smtp.example.test");
 		assertThatThrownBy(() -> ConfigLoader.builder()
 				.withMap(singleton("simplejavamail.unknown", "value"))

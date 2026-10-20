@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.util;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Provider;
@@ -133,22 +135,29 @@ public final class MailTransportLifecycleResolver {
                 throw unsupportedTimeout(transport);
             }
         } catch (MessagingException failure) {
-            throw new IllegalStateException("Couldn't create or close the Session's transport while checking the total send timeout. "
+            throw new ConfigurationFailure("Couldn't create or close the Session's transport while checking the total send timeout. "
                     + "Check the cause, your Jakarta Mail provider dependency, and the Session's mail.transport.protocol setting.", failure);
         }
     }
 
-    private static IllegalStateException conflictingAdapters(final String transportClassName,
+    private static ConfigurationFailure conflictingAdapters(final String transportClassName,
             final MailTransportLifecycleAdapter first, final MailTransportLifecycleAdapter second) {
-        return new IllegalStateException("Two MailTransportLifecycleAdapter implementations match transport '" + transportClassName
+        return new ConfigurationFailure("Two MailTransportLifecycleAdapter implementations match transport '" + transportClassName
                 + "': '" + first.getClass().getName() + "' and '" + second.getClass().getName()
-                + "'. Keep only one matching adapter in your dependencies or service registrations.");
+                + "'. Keep only one matching adapter in your dependencies or service registrations.", null);
     }
 
-    private static IllegalStateException unsupportedTimeout(final Transport transport) {
-        return new IllegalStateException("Don't configure a total send timeout with transport '" + transport.getClass().getName()
+    private static ConfigurationFailure unsupportedTimeout(final Transport transport) {
+        return new ConfigurationFailure("Don't configure a total send timeout with transport '" + transport.getClass().getName()
                 + "': Simple Java Mail can't stop its network calls. Remove the total timeout from your builder or configuration "
                 + "and use the provider's own timeouts instead. If you can't change the configuration that sets it, "
-                + "call resetMailSendTimeout() on the builder to disable it.");
+                + "call resetMailSendTimeout() on the builder to disable it.", null);
+    }
+
+    private static final class ConfigurationFailure extends org.simplejavamail.MailException {
+        private static final long serialVersionUID = 1L;
+        private ConfigurationFailure(final String message, final Throwable cause) {
+            super(MailFailureKind.CONFIGURATION, message, cause, null);
+        }
     }
 }

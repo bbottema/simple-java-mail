@@ -76,11 +76,11 @@ class MailSendProgressRecorderTest {
             recorder.contentBytesWritten(50);
             take(executor).run();
             assertThat(latest.get().getSequence()).isEqualTo(beforeUpload + 1);
-            assertThat(latest.get().getBytesWritten()).contains(50L);
+            assertThat(latest.get().getBytesWritten()).isEqualTo(50L);
             assertThat(latest.get().getElapsed()).isEqualTo(Duration.ofMillis(250));
             recorder.contentTransferFinished(100);
             take(executor).run();
-            assertThat(latest.get().getTotalBytes()).contains(100L);
+            assertThat(latest.get().getTotalBytes()).isEqualTo(100L);
             recorder.waitingForResponse();
             take(executor).run();
             assertThat(latest.get().getStage()).isEqualTo(MailSendProgressStage.WAITING_FOR_RESPONSE);
@@ -89,7 +89,7 @@ class MailSendProgressRecorderTest {
             diagnostics.submissionInvoked();
             take(executor).run();
             assertThat(latest.get().getSubmissionAttempt()).isEqualTo(2);
-            assertThat(latest.get().getBytesWritten()).isEmpty();
+            assertThat(latest.get().getBytesWritten()).isNull();
             recorder.contentTransferStarted(100L);
             recorder.contentTransferFinished(80); // Content changed: do not pretend the old total still describes it.
             recorder.finish("effective-private-id");
@@ -98,8 +98,8 @@ class MailSendProgressRecorderTest {
                 take(executor).run();
             }
             assertThat(latest.get().getObservationId()).isEqualTo(id);
-            assertThat(latest.get().getTotalBytes()).isEmpty();
-            assertThat(latest.get().getBytesWritten()).contains(80L);
+            assertThat(latest.get().getTotalBytes()).isNull();
+            assertThat(latest.get().getBytesWritten()).isEqualTo(80L);
             assertThat(latest.get().getEffectiveMessageId()).isEqualTo("effective-private-id");
             recorder.contentBytesWritten(150);
             recorder.stage(MailSendProgressStage.PREPARING);

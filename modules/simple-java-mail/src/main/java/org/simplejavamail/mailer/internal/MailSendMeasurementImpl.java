@@ -8,7 +8,6 @@ import org.simplejavamail.api.mailer.MailSendMeasurement;
 import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.time.Duration;
-import java.util.Optional;
 
 /** Library-owned immutable implementation of {@link MailSendMeasurement}. */
 @ApiStatus.Internal
@@ -42,16 +41,16 @@ public final class MailSendMeasurementImpl implements MailSendMeasurement {
 
 	/** @see MailSendMeasurement#getElapsed() */
 	@Override
-	@NotNull
-	public Optional<Duration> getElapsed() {
-		return Optional.ofNullable(elapsed);
+	@Nullable
+	public Duration getElapsed() {
+		return elapsed;
 	}
 
 	/** @see MailSendMeasurement#getUnavailableReason() */
 	@Override
-	@NotNull
-	public Optional<String> getUnavailableReason() {
-		return Optional.ofNullable(unavailableReason);
+	@Nullable
+	public String getUnavailableReason() {
+		return unavailableReason;
 	}
 
 	/** @see MailSendMeasurement#isFailureObservedHere() */

@@ -23,6 +23,13 @@ Expose that lifetime through blocking `close()` and non-blocking `closeAsync()`,
 `CompletableFuture<Void>` for composition: completing or cancelling a caller's view cannot alter resource cleanup or another caller's completion view.
 The historical `shutdownConnectionPool()` name is removed because it misleadingly names one resource instead of the Mailer being closed.
 
+Accepted public exception refinement, 20 October 2026: `Mailer.close()` declares only `ExecutionException` and `InterruptedException`, matching its
+existing implementation's wait on the cleanup future. An execution failure retains the original cleanup cause. Interrupting the caller's wait does
+not cancel shutdown or establish that draining/cleanup finished; callers can observe the same operation through `closeAsync()`. Self-worker
+rejection, borrowed executors, observer boundaries and send results remain unchanged. The JVM descriptor stays `()V`, but a source implementation
+that overrides the released broader `throws Exception` contract may need to narrow its declaration when recompiled. No new lifecycle operation or
+shutdown exception type is added.
+
 Use a dedicated daemon cleanup thread to wait outside the Mailer monitor. Reject blocking `close()` from the Mailer's own operation or owned worker to prevent a direct self-wait. Graceful shutdown does not request cancellation. Inline observer work is part of draining; accepted offloaded observer callbacks are application-owned after handoff and are not joined.
 
 ## Recorded reasoning

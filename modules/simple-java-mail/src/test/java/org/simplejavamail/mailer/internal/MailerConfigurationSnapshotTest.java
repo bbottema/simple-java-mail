@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -10,6 +11,7 @@ import org.simplejavamail.config.ConfigLoader;
 import java.util.List;
 import java.util.Properties;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MailerConfigurationSnapshotTest {
@@ -90,13 +92,13 @@ class MailerConfigurationSnapshotTest {
     @Test
     void trustedHostInputAndInspectionDoNotMutateStoredChoices() throws Exception {
         final String[] hosts = {"first.example.org", "second.example.org"};
-        final MailerRegularBuilder<?> builder = builder().trustingSSLHosts(hosts);
+        final MailerRegularBuilder<?> builder = updateMailer(builder(), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts(hosts).build()));
         hosts[0] = "source-change.example.org";
-        assertThat(builder.getSslHostsToTrust()).containsExactly("first.example.org", "second.example.org");
-        assertInspectionCannotChangeStoredHosts(builder.getSslHostsToTrust(), builder);
+        assertThat(builder.getTlsConfig().getSslHostsToTrust()).containsExactly("first.example.org", "second.example.org");
+        assertInspectionCannotChangeStoredHosts(builder.getTlsConfig().getSslHostsToTrust(), builder);
 
         try (Mailer mailer = builder.buildMailer()) {
-            builder.trustingSSLHosts("replacement.example.org");
+            builder.withTlsConfig(builder.getTlsConfig().toBuilder().trustingSSLHosts("replacement.example.org").build());
             assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).containsExactly("first.example.org", "second.example.org");
             assertThat(mailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo("first.example.org second.example.org");
         }
@@ -108,7 +110,7 @@ class MailerConfigurationSnapshotTest {
         } catch (UnsupportedOperationException immutableInspection) {
             // An immutable view and a detached mutable copy both protect the stored choice.
         }
-        assertThat(builder.getSslHostsToTrust()).containsExactly("first.example.org", "second.example.org");
+        assertThat(builder.getTlsConfig().getSslHostsToTrust()).containsExactly("first.example.org", "second.example.org");
     }
 
     private static MailerRegularBuilder<?> builder() {

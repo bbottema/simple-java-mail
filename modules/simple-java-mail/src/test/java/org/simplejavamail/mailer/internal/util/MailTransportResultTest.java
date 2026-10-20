@@ -76,7 +76,7 @@ class MailTransportResultTest {
 		final List<MailRecipientResult> recipients = result.getRecipientResults();
 		assertThat(recipients).singleElement().satisfies(recipient -> {
 			assertThat(recipient.getOriginalAddress()).isEqualTo("Before <before@example.org>");
-			assertThat(recipient.getEnvelopeAddress()).contains("before@example.org");
+			assertThat(recipient.getEnvelopeAddress()).isEqualTo("before@example.org");
 			assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.ACCEPTED);
 		});
 		assertThat(result.getRecipientResults()).isSameAs(recipients);
@@ -114,7 +114,7 @@ class MailTransportResultTest {
 		address.value = "changed custom recipient";
 		assertThat(basic.getRecipientResults()).singleElement().satisfies(recipient -> {
 			assertThat(recipient.getOriginalAddress()).isEqualTo("original custom recipient");
-			assertThat(recipient.getEnvelopeAddress()).isEmpty();
+			assertThat(recipient.getEnvelopeAddress()).isNull();
 		});
 		assertThat(basic.withEnvelopeRecipients(new Address[]{new MutableAddress("original custom recipient")}).getRecipientResults())
 				.extracting(MailRecipientResult::getDisposition).containsExactly(MailRecipientDisposition.ACCEPTED);

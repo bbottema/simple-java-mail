@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import jakarta.activation.DataSource;
@@ -13,6 +15,10 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -38,7 +44,6 @@ import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
-import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -78,7 +83,6 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_I
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
-import static org.simplejavamail.internal.util.MiscUtil.interpretRecipient;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
@@ -94,6 +98,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
 	@NotNull
 	private final SimpleJavaMailConfig config;
+	@NotNull private ImageResolutionConfig imageResolutionConfig = ImageResolutionConfig.builder().build();
 
 	/**
 	 * @see #ignoringDefaults(boolean)
@@ -140,7 +145,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	private DeliveryStatusNotification deliveryStatusNotification;
 	private boolean tlsRequiredForOnwardDelivery;
-	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withSendingToAcceptedRecipients(boolean) */
 	@Nullable
 	private Boolean sendingToAcceptedRecipients;
 
@@ -286,25 +291,25 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
 	/**
 	 * @see #signWithDomainKey(DkimConfig)
-	 * @see #signWithDomainKey(byte[], String, String, Set)
+	 * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
 	 */
 	@Nullable
 	private DkimConfig dkimConfig;
 
 	/**
 	 * @see #signWithSmime(SmimeSigningConfig)
-	 * @see #signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 * @see #encryptWithSmime(SmimeEncryptionConfig)
-	 * @see #encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 */
 	@Nullable
 	private SmimeSigningConfig smimeSigningConfig;
 
 	/**
 	 * @see #encryptWithSmime(SmimeEncryptionConfig)
-	 * @see #encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 * @see #signWithSmime(SmimeSigningConfig)
-	 * @see #signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 */
 	@Nullable
 	private SmimeEncryptionConfig smimeEncryptionConfig;
@@ -380,6 +385,92 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	private Date sentDate;
 
+
+    /** @see EmailPopulatingBuilder#withImageResolutionConfig(ImageResolutionConfig) */
+    @Override
+    public EmailPopulatingBuilder withImageResolutionConfig(@NotNull final ImageResolutionConfig choices) {
+        requireNonNull(choices, "config");
+        restoreCapturedImageResolution();
+        if (choices.getEmbeddedImageAutoResolutionForFiles() != null) embeddedImageAutoResolutionForFiles = choices.getEmbeddedImageAutoResolutionForFiles();
+        if (choices.getEmbeddedImageAutoResolutionForClassPathResources() != null) embeddedImageAutoResolutionForClassPathResources = choices.getEmbeddedImageAutoResolutionForClassPathResources();
+        if (choices.getEmbeddedImageAutoResolutionForURLs() != null) embeddedImageAutoResolutionForURLs = choices.getEmbeddedImageAutoResolutionForURLs();
+        if (choices.isEmbeddedImageBaseDirConfigured()) embeddedImageBaseDir = choices.getEmbeddedImageBaseDir();
+        if (choices.isEmbeddedImageBaseClassPathConfigured()) embeddedImageBaseClassPath = choices.getEmbeddedImageBaseClassPath();
+        if (choices.isEmbeddedImageBaseUrlConfigured()) embeddedImageBaseUrl = choices.getEmbeddedImageBaseUrl();
+        if (choices.getAllowEmbeddedImageOutsideBaseDir() != null) allowEmbeddedImageOutsideBaseDir = choices.getAllowEmbeddedImageOutsideBaseDir();
+        if (choices.getAllowEmbeddedImageOutsideBaseClassPath() != null) allowEmbeddedImageOutsideBaseClassPath = choices.getAllowEmbeddedImageOutsideBaseClassPath();
+        if (choices.getAllowEmbeddedImageOutsideBaseUrl() != null) allowEmbeddedImageOutsideBaseUrl = choices.getAllowEmbeddedImageOutsideBaseUrl();
+        if (choices.getEmbeddedImageAutoResolutionMustBeSuccesful() != null) embeddedImageAutoResolutionMustBeSuccesful = choices.getEmbeddedImageAutoResolutionMustBeSuccesful();
+        imageResolutionConfig = choices;
+        return this;
+    }
+    /** @see EmailPopulatingBuilder#withImageResolutionConfig(ImageResolutionConfig) */
+    @Override @NotNull public ImageResolutionConfig getImageResolutionConfig() { return imageResolutionConfig; }
+    /** @see EmailPopulatingBuilder#withImageResolutionConfig(ImageResolutionConfig) */
+    @Override public EmailPopulatingBuilder useConfiguredImageResolutionConfig() { return withImageResolutionConfig(ImageResolutionConfig.builder().build()); }
+
+    /** @see EmailPopulatingBuilder#withContentEncodingConfig(ContentEncodingConfig) */
+    @Override
+    public EmailPopulatingBuilder withContentEncodingConfig(@NotNull final ContentEncodingConfig choices) {
+        requireNonNull(choices, "config");
+        contentTransferEncoding = choices.getContentTransferEncoding();
+        plainTextContentTransferEncoding = choices.getPlainTextContentTransferEncoding();
+        htmlTextContentTransferEncoding = choices.getHTMLTextContentTransferEncoding();
+        calendarTextContentTransferEncoding = choices.getCalendarTextContentTransferEncoding();
+        return this;
+    }
+    /** @see EmailPopulatingBuilder#withContentEncodingConfig(ContentEncodingConfig) */
+    @Override @NotNull public ContentEncodingConfig getContentEncodingConfig() {
+        final ContentEncodingConfig.Builder choices = ContentEncodingConfig.builder();
+        if (contentTransferEncoding != null) choices.withContentTransferEncoding(contentTransferEncoding);
+        if (plainTextContentTransferEncoding != null) choices.withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
+        if (htmlTextContentTransferEncoding != null) choices.withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);
+        if (calendarTextContentTransferEncoding != null) choices.withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
+        return choices.build();
+    }
+    /** @see EmailPopulatingBuilder#withContentEncodingConfig(ContentEncodingConfig) */
+    @Override public EmailPopulatingBuilder useConfiguredContentEncodingConfig() { return withContentEncodingConfig(ContentEncodingConfig.builder().build()); }
+
+    /** @see EmailPopulatingBuilder#withTemplateOptions(EmailTemplateOptions) */
+    @Override
+    public EmailPopulatingBuilder withTemplateOptions(@NotNull final EmailTemplateOptions choices) {
+        requireNonNull(choices, "config");
+        ignoringDefaults = choices.isIgnoreDefaults();
+        ignoringOverrides = choices.isIgnoreOverrides();
+        propertiesNotToApplyDefaultValueFor = choices.getPropertiesNotToApplyDefaultValueFor() == null ? null : new HashSet<>(choices.getPropertiesNotToApplyDefaultValueFor());
+        propertiesNotToApplyOverrideValueFor = choices.getPropertiesNotToApplyOverrideValueFor() == null ? null : new HashSet<>(choices.getPropertiesNotToApplyOverrideValueFor());
+        return this;
+    }
+    /** @see EmailPopulatingBuilder#withTemplateOptions(EmailTemplateOptions) */
+    @Override @NotNull public EmailTemplateOptions getTemplateOptions() {
+        final EmailTemplateOptions.Builder choices = EmailTemplateOptions.builder().ignoringDefaults(ignoringDefaults).ignoringOverrides(ignoringOverrides);
+        if (propertiesNotToApplyDefaultValueFor != null) choices.clearDefaultValueSuppressions().dontApplyDefaultValueFor(propertiesNotToApplyDefaultValueFor.toArray(new EmailProperty[0]));
+        if (propertiesNotToApplyOverrideValueFor != null) choices.clearOverrideValueSuppressions().dontApplyOverrideValueFor(propertiesNotToApplyOverrideValueFor.toArray(new EmailProperty[0]));
+        return choices.build();
+    }
+    /** @see EmailPopulatingBuilder#withTemplateOptions(EmailTemplateOptions) */
+    @Override public EmailPopulatingBuilder useConfiguredTemplateOptions() { return withTemplateOptions(EmailTemplateOptions.builder().build()); }
+
+    /** @see EmailPopulatingBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override
+    public EmailPopulatingBuilder withSmtpDeliveryOptions(@NotNull final SmtpDeliveryOptions choices) {
+        requireNonNull(choices, "config");
+        deliveryStatusNotification = choices.getDeliveryStatusNotification();
+        tlsRequiredForOnwardDelivery = choices.isTlsRequiredForOnwardDelivery();
+        sendingToAcceptedRecipients = choices.getSendingToAcceptedRecipients();
+        return this;
+    }
+    /** @see EmailPopulatingBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override @NotNull public SmtpDeliveryOptions getSmtpDeliveryOptions() {
+        final SmtpDeliveryOptions.Builder choices = SmtpDeliveryOptions.builder().withDeliveryStatusNotification(deliveryStatusNotification);
+        if (tlsRequiredForOnwardDelivery) choices.withTlsRequiredForOnwardDelivery();
+        if (sendingToAcceptedRecipients != null) choices.withSendingToAcceptedRecipients(sendingToAcceptedRecipients);
+        return choices.build();
+    }
+    /** @see EmailPopulatingBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override public EmailPopulatingBuilder useConfiguredSmtpDeliveryOptions() { return withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().build()); }
+
+
 	/**
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
@@ -418,39 +509,55 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		}
 	}
 
-	EmailPopulatingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
-		this.config = requireNonNull(config, "config");
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
-			withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
+    EmailPopulatingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+        this.config = requireNonNull(config, "config");
+        restoreCapturedImageResolution();
+        imageResolutionConfig = ImageResolutionConfig.builder().build();
+    }
+
+    private void restoreCapturedImageResolution() {
+        embeddedImageAutoResolutionForFiles = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_FILES;
+        embeddedImageAutoResolutionForClassPathResources = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_CLASSPATH_RESOURCES;
+        embeddedImageAutoResolutionForURLs = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_URLS;
+        embeddedImageBaseDir = null;
+        embeddedImageBaseClassPath = null;
+        embeddedImageBaseUrl = null;
+        allowEmbeddedImageOutsideBaseDir = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_DIR;
+        allowEmbeddedImageOutsideBaseClassPath = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_CLASSPATH;
+        allowEmbeddedImageOutsideBaseUrl = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_URL;
+        embeddedImageAutoResolutionMustBeSuccesful = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_MUST_BE_SUCCESSFUL;
+
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
+			withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
-			withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
+			withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
-			withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
+			withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
-			withEmbeddedImageBaseDir(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
+			withEmbeddedImageBaseDir(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-			withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
+			withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
-			withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(config.getStringProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
+			withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
-			allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
+			allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
-			allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
+			allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
-			allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
+			allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
 		}
-		if (config.hasProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
-			embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
+		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
+			embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
 		}
-	}
+    }
 
 	/**
 	 * @see EmailPopulatingBuilder#buildEmailCompletedWithDefaultsAndOverrides()
@@ -527,7 +634,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringDefaults()
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringDefaults()
 	 */
 	@Override
 	public EmailPopulatingBuilder ignoringDefaults() {
@@ -535,7 +642,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringDefaults(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults) {
@@ -544,7 +651,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringOverrides()
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringOverrides()
 	 */
 	@Override
 	public EmailPopulatingBuilder ignoringOverrides() {
@@ -552,7 +659,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringOverrides(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder ignoringOverrides(boolean ignoreOverrides) {
@@ -561,7 +668,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	@Override
 	public EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
@@ -575,7 +682,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)
 	 */
 	@Override
 	public EmailPopulatingBuilder dontApplyOverrideValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
@@ -588,7 +695,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#allowDefaultValueFor(EmailProperty...) */
+	/** @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#allowDefaultValueFor(EmailProperty...) */
 	@Override
 	public EmailPopulatingBuilder allowDefaultValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
 		requireNonNull(emailProperties, "emailProperties");
@@ -598,7 +705,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#allowOverrideValueFor(EmailProperty...) */
+	/** @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#allowOverrideValueFor(EmailProperty...) */
 	@Override
 	public EmailPopulatingBuilder allowOverrideValueFor(@NotNull EmailProperty @NotNull ...emailProperties) {
 		requireNonNull(emailProperties, "emailProperties");
@@ -608,14 +715,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#clearDefaultValueSuppressions() */
+	/** @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#clearDefaultValueSuppressions() */
 	@Override
 	public EmailPopulatingBuilder clearDefaultValueSuppressions() {
 		propertiesNotToApplyDefaultValueFor = new HashSet<>();
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#clearOverrideValueSuppressions() */
+	/** @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#clearOverrideValueSuppressions() */
 	@Override
 	public EmailPopulatingBuilder clearOverrideValueSuppressions() {
 		propertiesNotToApplyOverrideValueFor = new HashSet<>();
@@ -646,7 +753,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final String fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(interpretRecipient(fixedName, true, fromAddress, null));
+		return from(EmailAddressConvenience.interpret(fixedName, fromAddress, null, "fromAddress"));
 	}
 	
 	/**
@@ -655,7 +762,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@Nullable final String fixedName, @NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fixedName, fromAddress.getAddress(), null, null));
+		return from(EmailAddressConvenience.interpret(fixedName, fromAddress, null, "fromAddress"));
 	}
 	
 	/**
@@ -664,7 +771,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder from(@NotNull final InternetAddress fromAddress) {
 		checkNonEmptyArgument(fromAddress, "fromAddress");
-		return from(new Recipient(fromAddress.getPersonal(), fromAddress.getAddress(), null, null));
+		return from(EmailAddressConvenience.interpret(null, fromAddress, null, "fromAddress"));
 	}
 	
 	/**
@@ -683,7 +790,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@NotNull final String replyToAddress) {
-		return withReplyTo(interpretRecipient(null, false, replyToAddress, null));
+		return withReplyTo(EmailAddressConvenience.interpret(null, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -692,7 +799,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final String replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(interpretRecipient(fixedName, true, replyToAddress, null));
+		return withReplyTo(EmailAddressConvenience.interpret(fixedName, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -701,7 +808,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(replyToAddress.getPersonal(), replyToAddress.getAddress(), null, null));
+		return withReplyTo(EmailAddressConvenience.interpret(null, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -710,7 +817,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(new Recipient(fixedName, replyToAddress.getAddress(), null, null));
+		return withReplyTo(EmailAddressConvenience.interpret(fixedName, replyToAddress, null, "replyToAddress"));
 	}
 
 	/**
@@ -739,7 +846,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String bounceToAddress) {
-		return withBounceTo(bounceToAddress != null ? interpretRecipient(null, false, bounceToAddress, null) : null);
+		return withBounceTo(bounceToAddress != null ? EmailAddressConvenience.interpret(null, bounceToAddress, null, "bounceToAddress") : null);
 	}
 	
 	/**
@@ -748,7 +855,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final String bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(interpretRecipient(name, true, bounceToAddress, null));
+		return withBounceTo(EmailAddressConvenience.interpret(name, bounceToAddress, null, "bounceToAddress"));
 	}
 	
 	/**
@@ -757,7 +864,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(bounceToAddress.getPersonal(), bounceToAddress.getAddress(), null, null));
+		return withBounceTo(EmailAddressConvenience.interpret(null, bounceToAddress, null, "bounceToAddress"));
 	}
 	
 	/**
@@ -767,7 +874,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	public EmailPopulatingBuilder withBounceTo(@Nullable final String name, @NotNull final InternetAddress bounceToAddress) {
 		checkNonEmptyArgument(bounceToAddress, "bounceToAddress");
-		return withBounceTo(new Recipient(name, bounceToAddress.getAddress(), null, null));
+		return withBounceTo(EmailAddressConvenience.interpret(name, bounceToAddress, null, "bounceToAddress"));
 	}
 	
 	/**
@@ -780,7 +887,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
@@ -790,7 +897,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
@@ -800,7 +907,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification.NotifyOption...)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification.NotifyOption...)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
@@ -809,7 +916,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
 	 */
 	@Override
 	public EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(
@@ -818,7 +925,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
 	 */
 	@Override
 	public EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable final DeliveryStatusNotification.ReturnOption returnOption) {
@@ -830,7 +937,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	@Override
 	public EmailPopulatingBuilder fixingEnvelopeId(@Nullable final String envelopeId) {
@@ -840,14 +947,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return withDeliveryStatusNotification(deliveryStatusNotificationBuilder().envelopeId(envelopeId).build());
 	}
 
-	/** @see EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withTlsRequiredForOnwardDelivery() */
 	@Override
 	public EmailPopulatingBuilder withTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = true;
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withSendingToAcceptedRecipients(boolean) */
 	@Override
 	public EmailPopulatingBuilder withSendingToAcceptedRecipients(final boolean sendingToAcceptedRecipients) {
 		this.sendingToAcceptedRecipients = sendingToAcceptedRecipients;
@@ -1083,7 +1190,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Override
 	public EmailPopulatingBuilder withContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
@@ -1092,7 +1199,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Override
 	public EmailPopulatingBuilder withPlainTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
@@ -1101,7 +1208,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Override
 	public EmailPopulatingBuilder withHTMLTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
@@ -1110,7 +1217,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Override
 	public EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull final ContentTransferEncoding contentTransferEncoding) {
@@ -1160,7 +1267,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#to(String, String) */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(new RecipientBuilderImpl().to(name, address));
+		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.TO, "address"));
 	}
 
 	/** @see EmailPopulatingBuilder#cc(String) */
@@ -1172,7 +1279,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#cc(String, String) */
 	@Override
 	public EmailPopulatingBuilder cc(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(new RecipientBuilderImpl().cc(name, address));
+		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.CC, "address"));
 	}
 
 	/** @see EmailPopulatingBuilder#bcc(String) */
@@ -1184,7 +1291,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#bcc(String, String) */
 	@Override
 	public EmailPopulatingBuilder bcc(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(new RecipientBuilderImpl().bcc(name, address));
+		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.BCC, "address"));
 	}
 	
 	private void addParsedRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
@@ -1196,52 +1303,57 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseDir(String)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageBaseDir(String)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir) {
 		this.embeddedImageBaseDir = checkNonEmptyArgument(embeddedImageBaseDir, "embeddedImageBaseDir");
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageBaseDir(embeddedImageBaseDir).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForFiles(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageAutoResolutionForFiles(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForFiles(final boolean embeddedImageAutoResolutionForFiles) {
 		this.embeddedImageAutoResolutionForFiles = embeddedImageAutoResolutionForFiles;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageAutoResolutionForFiles(embeddedImageAutoResolutionForFiles).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForClassPathResources(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageAutoResolutionForClassPathResources(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForClassPathResources(final boolean embeddedImageAutoResolutionForClassPathResources) {
 		this.embeddedImageAutoResolutionForClassPathResources = embeddedImageAutoResolutionForClassPathResources;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageAutoResolutionForClassPathResources(embeddedImageAutoResolutionForClassPathResources).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageAutoResolutionForURLs(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageAutoResolutionForURLs(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs) {
 		this.embeddedImageAutoResolutionForURLs = embeddedImageAutoResolutionForURLs;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageAutoResolutionForURLs(embeddedImageAutoResolutionForURLs).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseClassPath(String)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageBaseClassPath(String)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath) {
 		this.embeddedImageBaseClassPath = checkNonEmptyArgument(embeddedImageBaseClassPath, "embeddedImageBaseClassPath");
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageBaseClassPath(embeddedImageBaseClassPath).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseUrl(String)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageBaseUrl(String)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl) {
@@ -1253,47 +1365,52 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImageBaseUrl(URL)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageBaseUrl(URL)
 	 */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl) {
 		this.embeddedImageBaseUrl = checkNonEmptyArgument(embeddedImageBaseUrl, "embeddedImageBaseUrl");
+		imageResolutionConfig = imageResolutionConfig.toBuilder().withEmbeddedImageBaseUrl(embeddedImageBaseUrl).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseDir(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#allowingEmbeddedImageOutsideBaseDir(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir) {
 		this.allowEmbeddedImageOutsideBaseDir = allowEmbeddedImageOutsideBaseDir;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().allowingEmbeddedImageOutsideBaseDir(allowEmbeddedImageOutsideBaseDir).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseClassPath(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#allowingEmbeddedImageOutsideBaseClassPath(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath) {
 		this.allowEmbeddedImageOutsideBaseClassPath = allowEmbeddedImageOutsideBaseClassPath;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().allowingEmbeddedImageOutsideBaseClassPath(allowEmbeddedImageOutsideBaseClassPath).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#allowingEmbeddedImageOutsideBaseUrl(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#allowingEmbeddedImageOutsideBaseUrl(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseUrl(final boolean allowEmbeddedImageOutsideBaseUrl) {
 		this.allowEmbeddedImageOutsideBaseUrl = allowEmbeddedImageOutsideBaseUrl;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().allowingEmbeddedImageOutsideBaseUrl(allowEmbeddedImageOutsideBaseUrl).build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#embeddedImageAutoResolutionMustBeSuccesful(boolean)
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#embeddedImageAutoResolutionMustBeSuccesful(boolean)
 	 */
 	@Override
 	public EmailPopulatingBuilder embeddedImageAutoResolutionMustBeSuccesful(final boolean embeddedImageAutoResolutionMustBeSuccesful) {
 		this.embeddedImageAutoResolutionMustBeSuccesful = embeddedImageAutoResolutionMustBeSuccesful;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().embeddedImageAutoResolutionMustBeSuccesful(embeddedImageAutoResolutionMustBeSuccesful).build();
 		return this;
 	}
 
@@ -1614,7 +1731,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+	 * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithDomainKey(final byte@NotNull[] dkimPrivateKey, @NotNull final String signingDomain, @NotNull final String dkimSelector, @Nullable final Set<String> excludedHeadersFromDkimDefaultSigningList) {
@@ -1632,7 +1749,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @param keyAlias The key we need for signing
 	 * @param keyPassword The password for the key
 	 *
-	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithSmime(@NotNull final File pkcs12StoreFile, @NotNull final String storePassword, @NotNull final String keyAlias, @NotNull final String keyPassword, @Nullable final String signatureAlgorithm) {
@@ -1640,7 +1757,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#signWithSmime(Path, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(Path, String, String, String)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
@@ -1662,7 +1779,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 */
 	@Override
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final File pemFile, @Nullable final String keyEncapsulationAlgorithm, @Nullable final String cipherAlgorithm) {
@@ -1670,7 +1787,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#encryptWithSmime(Path, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(Path)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
@@ -1724,7 +1841,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(interpretRecipient(null, false, address, null));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpret(null, address, null, "address"));
 	}
 	
 	/**
@@ -1733,7 +1850,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(interpretRecipient(name, true, address, null));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpret(name, address, null, "address"));
 	}
 	
 	/**
@@ -1742,7 +1859,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpret(null, address, null, "address"));
 	}
 	
 	/**
@@ -1751,7 +1868,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(new Recipient(fixedName, address.getAddress(), null, null));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpret(fixedName, address, null, "address"));
 	}
 	
 	/**
@@ -1783,7 +1900,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(interpretRecipient(null, false, address, null));
+		return withReturnReceiptTo(EmailAddressConvenience.interpret(null, address, null, "address"));
 	}
 	
 	/**
@@ -1792,7 +1909,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(interpretRecipient(name, true, address, null));
+		return withReturnReceiptTo(EmailAddressConvenience.interpret(name, address, null, "address"));
 	}
 	
 	/**
@@ -1801,7 +1918,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(address.getPersonal(), address.getAddress(), null, null));
+		return withReturnReceiptTo(EmailAddressConvenience.interpret(null, address, null, "address"));
 	}
 	
 	/**
@@ -1810,7 +1927,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(new Recipient(fixedName, address.getAddress(), null, null));
+		return withReturnReceiptTo(EmailAddressConvenience.interpret(fixedName, address, null, "address"));
 	}
 	
 	/**
@@ -1933,7 +2050,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearDeliveryStatusNotification()
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotification()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearDeliveryStatusNotification() {
@@ -1941,7 +2058,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#clearDeliveryStatusNotificationNotifyOptions() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotificationNotifyOptions() */
 	@Override
 	public EmailPopulatingBuilder clearDeliveryStatusNotificationNotifyOptions() {
 		if (deliveryStatusNotification == null) {
@@ -1953,26 +2070,26 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return withDeliveryStatusNotification(deliveryStatusNotification.toBuilder().notifyOptions().build());
 	}
 
-	/** @see EmailPopulatingBuilder#clearDeliveryStatusNotificationReturnOption() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotificationReturnOption() */
 	@Override
 	public EmailPopulatingBuilder clearDeliveryStatusNotificationReturnOption() {
 		return withDeliveryStatusNotificationReturnOption(null);
 	}
 
-	/** @see EmailPopulatingBuilder#clearEnvelopeId() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearEnvelopeId() */
 	@Override
 	public EmailPopulatingBuilder clearEnvelopeId() {
 		return fixingEnvelopeId(null);
 	}
 
-	/** @see EmailPopulatingBuilder#clearTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearTlsRequiredForOnwardDelivery() */
 	@Override
 	public EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = false;
 		return this;
 	}
 
-	/** @see EmailPopulatingBuilder#clearSendingToAcceptedRecipients() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearSendingToAcceptedRecipients() */
 	@Override
 	public EmailPopulatingBuilder clearSendingToAcceptedRecipients() {
 		sendingToAcceptedRecipients = null;
@@ -2008,7 +2125,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#clearContentTransferEncoding()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearContentTransferEncoding() {
@@ -2017,7 +2134,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearPlainTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#clearPlainTextContentTransferEncoding()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearPlainTextContentTransferEncoding() {
@@ -2026,7 +2143,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearHTMLTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#clearHTMLTextContentTransferEncoding()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearHTMLTextContentTransferEncoding() {
@@ -2035,7 +2152,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearCalendarTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#clearCalendarTextContentTransferEncoding()
 	 */
 	@Override
 	public EmailPopulatingBuilder clearCalendarTextContentTransferEncoding() {
@@ -2071,26 +2188,29 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseDir()
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#clearEmbeddedImageBaseDir()
 	 */
 	public EmailPopulatingBuilder clearEmbeddedImageBaseDir() {
 		this.embeddedImageBaseDir = null;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().clearEmbeddedImageBaseDir().build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseClassPath()
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#clearEmbeddedImageBaseClassPath()
 	 */
 	public EmailPopulatingBuilder clearEmbeddedImageBaseClassPath() {
 		this.embeddedImageBaseClassPath = null;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().clearEmbeddedImageBaseClassPath().build();
 		return this;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#clearEmbeddedImageBaseUrl()
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#clearEmbeddedImageBaseUrl()
 	 */
 	public EmailPopulatingBuilder clearEmbeddedImageBaseUrl() {
 		this.embeddedImageBaseUrl = null;
+		imageResolutionConfig = imageResolutionConfig.toBuilder().clearEmbeddedImageBaseUrl().build();
 		return this;
 	}
 	
@@ -2227,7 +2347,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getPropertiesNotToApplyDefaultValueFor()
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#getPropertiesNotToApplyDefaultValueFor()
 	 */
 	@Override
 	@Nullable
@@ -2236,7 +2356,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getPropertiesNotToApplyOverrideValueFor()
+	 * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#getPropertiesNotToApplyOverrideValueFor()
 	 */
 	@Override
 	@Nullable
@@ -2285,7 +2405,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getDeliveryStatusNotification()
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getDeliveryStatusNotification()
 	 */
 	@Override
 	@Nullable
@@ -2293,13 +2413,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return deliveryStatusNotification;
 	}
 
-	/** @see EmailPopulatingBuilder#isTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#isTlsRequiredForOnwardDelivery() */
 	@Override
 	public boolean isTlsRequiredForOnwardDelivery() {
 		return tlsRequiredForOnwardDelivery;
 	}
 
-	/** @see EmailPopulatingBuilder#getSendingToAcceptedRecipients() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getSendingToAcceptedRecipients() */
 	@Override
 	@Nullable
 	public Boolean getSendingToAcceptedRecipients() {
@@ -2343,7 +2463,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#getContentTransferEncoding()
 	 */
 	@Override
 	@Nullable
@@ -2352,7 +2472,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getPlainTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#getPlainTextContentTransferEncoding()
 	 */
 	@Override
 	@Nullable
@@ -2361,7 +2481,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getHTMLTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#getHTMLTextContentTransferEncoding()
 	 */
 	@Override
 	@Nullable
@@ -2370,7 +2490,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getCalendarTextContentTransferEncoding()
+	 * @see org.simplejavamail.api.email.config.ContentEncodingConfig.Builder#getCalendarTextContentTransferEncoding()
 	 */
 	@Override
 	@Nullable

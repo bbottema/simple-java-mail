@@ -55,16 +55,16 @@ public final class MailRecipientResult implements Serializable {
 		return disposition;
 	}
 
-	/** @return The normalized mailbox used in the envelope, when the provider exposes it. */
-	@NotNull
-	public Optional<String> getEnvelopeAddress() {
-		return Optional.ofNullable(envelopeAddress);
+	/** @return The normalized mailbox used in the envelope, or {@code null} when the provider does not expose it. */
+	@Nullable
+	public String getEnvelopeAddress() {
+		return envelopeAddress;
 	}
 
-	/** @return True or false when the provider knows whether RCPT TO was attempted; empty when it does not. */
-	@NotNull
-	public Optional<Boolean> getRcptAttempted() {
-		return Optional.ofNullable(rcptAttempted);
+	/** @return True or false when the provider knows whether RCPT TO was attempted; {@code null} when it does not. */
+	@Nullable
+	public Boolean getRcptAttempted() {
+		return rcptAttempted;
 	}
 
 	/** @return The actual RCPT reply, never a synthesized final DATA reply or EOF sentinel. */

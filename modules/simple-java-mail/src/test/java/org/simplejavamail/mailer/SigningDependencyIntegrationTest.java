@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +49,7 @@ class SigningDependencyIntegrationTest {
                     .withRecipients(new Recipient(null, "recipient@example.org", TO, null))
                     .withSubject("Unicode DKIM body")
                     .withPlainText(text)
-                    .withContentTransferEncoding(BIT8)
+                    .withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BIT8).build())
                     .signWithDomainKey(DkimConfig.builder()
                             .dkimPrivateKeyData(keys.generateKeyPair().getPrivate().getEncoded())
                             .dkimSigningDomain("supersecret-testing-domain.com")

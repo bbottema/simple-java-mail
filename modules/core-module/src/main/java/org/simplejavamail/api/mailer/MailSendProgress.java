@@ -6,7 +6,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -76,16 +75,18 @@ public interface MailSendProgress extends Serializable {
      * It measures serialized MIME bytes before SMTP framing, dot escaping and TLS, so it is not a count of bytes sent over the network.
      * Some bytes may still be buffered; this count does not prove that the server received them.
      *
-     * @return The number of bytes successfully handed to the content stream, or empty when no count is available.
+     * @return The number of bytes successfully handed to the content stream, or {@code null} when no count is available.
      */
-    @NotNull Optional<Long> getBytesWritten();
+    @Nullable
+    Long getBytesWritten();
 
     /**
      * Gives you a total to compare with {@link #getBytesWritten()}, when a matching serialized-message size is available.
      * This is not the SMTP SIZE value. Reaching the total means the content has been handed to the provider's stream;
      * the SMTP server may still reject it, and final delivery is a separate matter.
      *
-     * @return The matching total, or empty if it is unknown or no longer agrees with the content being written.
+     * @return The matching total, or {@code null} if it is unknown or no longer agrees with the content being written.
      */
-    @NotNull Optional<Long> getTotalBytes();
+    @Nullable
+    Long getTotalBytes();
 }

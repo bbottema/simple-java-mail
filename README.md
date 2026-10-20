@@ -93,9 +93,9 @@ The port and transport strategy must match your SMTP server. Build the `Mailer` 
 
 For an approved alternative SMTP route, configure `.withFailoverMailer(alternative, FailoverPolicy.builder().build())`. [Connection failover](https://www.simplejavamail.org/smtp-connection-failover.html) works for sync/async sends with or without pooling and returns to the primary after recovery. Failover never replays a message after provider invocation. A separately configured [retry policy](https://www.simplejavamail.org/mail-send-retries.html) may retry a safely refused submission on the selected destination, without reopening failover. The selected Mailer owns ordinary Email templates and SMTP settings; mandatory message locks remain binding along the route. Busy pools still wait normally rather than triggering failover.
 
-On managed Angus connections, sending also checks the prepared email against the server's advertised SIZE limit before submitting it. `receipt.getMessageSize()` and `receipt.getServerMaximumMessageSize()` show the measured content size and reliable server limit in bytes, or `null` when unavailable. An oversized email fails locally with these facts in its failure receipt. This is separate from your own `withMaximumEmailSize(...)` limit and offline rehearsal. See [message size diagnostics](https://www.simplejavamail.org/analyzing-send-results.html#section-message-size).
+On managed Angus connections, sending also checks the prepared email against the server's advertised SIZE limit before submitting it. `receipt.getMessageSize()` and `receipt.getServerMaximumMessageSize()` show the measured content size and reliable server limit in bytes, or `null` when unavailable. An oversized email fails locally with these facts in its failure receipt. This is separate from your own `ValidationConfig.Builder.withMaximumEmailSize(...)` limit and offline rehearsal. See [message size diagnostics](https://www.simplejavamail.org/analyzing-send-results.html#section-message-size).
 
-For bursty background work, `mailerBuilder.withAsyncQueueCapacity(100)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/sending-and-execution.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue.
+For bursty background work, `AsyncExecutionConfig.builder().withQueueCapacity(100).rejectWhenFull().build()`, supplied with `withAsyncExecutionConfig(...)` bounds waiting async tasks and reports saturation through their futures and the mail-send observer. The [queue and backpressure guide](https://www.simplejavamail.org/sending-and-execution.html#section-async-queue) covers bounded admission waits, diagnostics, and graceful shutdown. The default remains unbounded; this is not a durable mail queue.
 
 For an obsolete notification, retain its `MailSend` and call `requestCancellation()`. A total budget is opt-in with `withMailSendTimeout(Duration.ofSeconds(30))`. Neither a request nor a timeout proves non-acceptance: inspect the eventual completion and any receipt. See [deadlines and cancellation](https://www.simplejavamail.org/sending-and-execution.html#section-send-deadlines).
 
@@ -103,9 +103,9 @@ Before sending, `mailer.sync().testConnection()` checks the SMTP path. For a str
 
 The CLI exposes the same report through `sjm probe`, optionally with `--authenticate`, for both one-shot and daemon execution. Failed and unsupported reports remain on stdout with exit code 3; successful probes return 0. See the [CLI probe examples](https://www.simplejavamail.org/cli.html#section-probe).
 
-To match a later delivery-status notification to a particular send, retain `receipt.getEnvelopeId()`. The bundled Angus adapter generates a fresh UUID on each DSN-capable send; otherwise the value is `null` and sending continues normally. Use `.fixingEnvelopeId("order-42-attempt-1")` to supply a fixed value instead; that explicit request fails before submission if DSN is unsupported. ENVID is separate from Message-ID and leaves MIME bytes unchanged. Your application fetches later notifications; Simple Java Mail interprets their delivery reports when you convert them to Email. See the [ENVID usage and sample report](https://www.simplejavamail.org/features.html#section-dsn-envelope-id).
+To match a later delivery-status notification to a particular send, retain `receipt.getEnvelopeId()`. The bundled Angus adapter generates a fresh UUID on each DSN-capable send; otherwise the value is `null` and sending continues normally. Use `SmtpDeliveryOptions.Builder.fixingEnvelopeId("order-42-attempt-1")` to supply a fixed value instead; that explicit request fails before submission if DSN is unsupported. ENVID is separate from Message-ID and leaves MIME bytes unchanged. Your application fetches later notifications; Simple Java Mail interprets their delivery reports when you convert them to Email. See the [ENVID usage and sample report](https://www.simplejavamail.org/features.html#section-dsn-envelope-id).
 
-For a message whose later SMTP hops must also use TLS, add `.withTlsRequiredForOnwardDelivery()`. The bundled Angus adapter sends it only when the actual first-hop connection uses authenticated TLS and advertises RFC 8689 REQUIRETLS after TLS negotiation; otherwise the attempt fails before `MAIL FROM`. `receipt.isRequireTlsUsed()` confirms that the parameter was actually issued, not that every later relay complied or that delivery occurred. Use `simplejavamail.defaults.requiretls=true` for an ordinary suppressible Email default. See [first-hop TLS versus onward REQUIRETLS](https://www.simplejavamail.org/security.html#section-requiretls).
+For a message whose later SMTP hops must also use TLS, supply `SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()` through `withSmtpDeliveryOptions(...)`. The bundled Angus adapter sends it only when the actual first-hop connection uses authenticated TLS and advertises RFC 8689 REQUIRETLS after TLS negotiation; otherwise the attempt fails before `MAIL FROM`. `receipt.isRequireTlsUsed()` confirms that the parameter was actually issued, not that every later relay complied or that delivery occurred. Use `simplejavamail.defaults.requiretls=true` for an ordinary suppressible Email default. See [first-hop TLS versus onward REQUIRETLS](https://www.simplejavamail.org/security.html#section-requiretls).
 
 Recipients can choose their own DSN notifications with `.withDeliveryStatusNotificationNotifyOptions(...)`; groups provide default/fixed/clear policies using the same pattern as S/MIME certificates. Explicit recipient preferences beat the Email fallback and require provider/DSN support. The managed Angus transport also adds ORCPT from actual envelope recipients when supported, without changing MIME content or requesting extra notifications. See [recipient DSN examples and provider boundaries](https://www.simplejavamail.org/features.html#section-dsn-recipients).
 
@@ -115,10 +115,12 @@ For an SMTP service with sending limits, configure counts and periods instead of
 Mailer mailer = mail.mailerBuilder()
     .withSMTPServer("relay.example.org", 587, user, password)
     .withTransportStrategy(TransportStrategy.SMTP_TLS)
-    .withMessageRateLimit(30, Duration.ofMinutes(1))
-    .withRecipientRateLimit(100, Duration.ofMinutes(1))
-    .withRateLimitGroup("company-account")
-    .withRateLimitBurstsAllowed(false)
+    .withSendingLimitsConfig(SendingLimitsConfig.builder()
+        .withMessageRateLimit(30, Duration.ofMinutes(1))
+        .withRecipientRateLimit(100, Duration.ofMinutes(1))
+        .withRateLimitGroup("company-account")
+        .withRateLimitBurstsAllowed(false)
+        .build())
     .buildMailer();
 ```
 
@@ -165,7 +167,7 @@ try {
 
 Catch `MailSendException` to handle submission, timeout, cancellation and per-email cleanup failures together. Its `getSubmissionReceipt()` returns an `Optional`: missing facts do not prove that nothing was submitted. A cleanup failure can retain an `ACCEPTED` receipt. Preparation and admission failures retain their existing exception types.
 
-Choose how an Email handles a recipient rejection with `.withSendingToAcceptedRecipients(true)` to continue for accepted recipients, or `false` to withhold content for everyone after a known rejection. Continuing still fails the overall send with a `PARTIALLY_ACCEPTED` receipt if the server accepts only some recipients. Clearing the choice allows defaults and existing provider behavior to apply again; it is not an explicit false.
+Choose how an Email handles a recipient rejection with `SmtpDeliveryOptions.Builder.withSendingToAcceptedRecipients(true)` to continue for accepted recipients, or `false` to withhold content for everyone after a known rejection. Continuing still fails the overall send with a `PARTIALLY_ACCEPTED` receipt if the server accepts only some recipients. Clearing the choice allows defaults and existing provider behavior to apply again; it is not an explicit false.
 
 Use `simplejavamail.defaults.sendtoacceptedrecipients` for a default, or `simplejavamail.locked.defaults.sendtoacceptedrecipients` to keep the choice fixed within a factory. Exact emails carry the choice without changing their bytes. See the [three-recipient walkthrough](https://www.simplejavamail.org/analyzing-send-results.html#section-partial-send) for both choices, output and advanced-provider compatibility.
 
@@ -251,8 +253,12 @@ Java timeout, worker keep-alive and pool lifetime settings use `Duration`. Debug
 
 ```java
 mailerBuilder
-    .withSessionTimeout(Duration.ofSeconds(10))
-    .withThreadPoolKeepAliveTime(Duration.ofSeconds(30))
+    .withConnectionConfig(ConnectionConfig.builder()
+        .withSessionTimeout(Duration.ofSeconds(10))
+        .build())
+    .withAsyncExecutionConfig(AsyncExecutionConfig.builder()
+        .withKeepAliveTime(Duration.ofSeconds(30))
+        .build())
     .withDebugConfig(SessionDebugConfig.builder()
         .withEnabled(true)
         .withOutput(SessionDebugOutput.SLF4J)
@@ -260,7 +266,7 @@ mailerBuilder
 ```
 
 These settings accept whole milliseconds within the supported integer range; property and CLI values retain their numeric millisecond units.
-Replacing a debug or telemetry group replaces its supplied choices; omitted fields inherit the factory snapshot. Use `toBuilder()` to edit an existing group, or `useConfiguredDebugConfig()` / `useConfiguredTelemetryConfig()` on the Mailer builder to restore inherited choices. Builder group getters expose supplied choices; `mailer.getOperationalConfig()` exposes resolved settings. Explicit worker count and keep-alive choices also apply without the batch module.
+Advanced settings use immutable groups: `ConnectionPoolConfig`, `AsyncExecutionConfig`, `SocksProxyConfig`, `SendingLimitsConfig`, `ConnectionConfig`, `TlsConfig` and `ValidationConfig`. Replacing a group replaces its supplied choices; omitted fields inherit the factory snapshot. Use `toBuilder()` to edit an existing group, or `useConfiguredDebugConfig()` / `useConfiguredTelemetryConfig()` on the Mailer builder to restore inherited choices. Builder group getters expose supplied choices; `mailer.getOperationalConfig()` exposes resolved settings. Explicit worker count and keep-alive choices also apply without the batch module.
 
 Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
 
@@ -281,7 +287,7 @@ Mailer mailer = mail.mailerBuilder()
 This template replaces the factory's property-derived message defaults. To retain those defaults, first materialize them with `buildEmailCompletedWithDefaultsAndOverrides()` and edit a copy. See the [defaults and overrides guide](https://www.simplejavamail.org/configuration.html#section-config-mailer) for precedence, clearing, and per-email opt-outs. Actual sends still require a sender and recipients after defaults have been applied.
 
 `useConfiguredEmailDefaults()` restores factory defaults; `withoutEmailDefaults()` removes ordinary defaults while retaining configuration locks.
-On an email builder, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings.
+On `EmailTemplateOptions.Builder`, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings. Supply the completed options through `emailBuilder.withTemplateOptions(...)`.
 
 ### Spring Boot
 

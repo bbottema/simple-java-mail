@@ -19,6 +19,12 @@ Return an immutable, deterministically grouped report from `SimpleJavaMailConfig
 
 Declare type, diagnostic group and sensitivity in the central `PropertySchema`. Known sensitive properties are redacted; extra-property names are normalized and checked against sensitive markers. The schema rejects missing diagnostic metadata for a declared property. Composite sources may identify the underlying winner per property; Spring skips its synthetic aggregate when locating the diagnostic source without taking over Spring's value resolution.
 
+Accepted 20 October 2026: ordinary snapshot reads use schema-bound `ConfigKey<T>` values, with their parsers/projections
+registered by the authoritative `ConfigKeys` declarations. The Java view can expose `Duration` while raw source/lock storage
+and diagnostics retain a legacy property's numeric millisecond representation. This does not resample sources, change
+winning-source names, render secret values, or turn a raw map into the diagnostic API. Presence and source inspection take
+the same typed key. See [ADR 0003](0003-immutable-configuration-snapshots.md#schema-bound-property-keys-accepted-20-october-2026).
+
 Configuration rendering must protect known secrets before and after construction. Builders must not expose private-key bytes or passwords
 through automatic rendering merely because the completed value already excludes them. Explicit programmatic accessors remain separate;
 redaction is not a substitute for protecting configuration objects or serialized key material.

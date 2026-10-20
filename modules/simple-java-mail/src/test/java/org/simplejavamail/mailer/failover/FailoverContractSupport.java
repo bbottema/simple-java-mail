@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
@@ -40,11 +43,11 @@ final class FailoverContractSupport {
 
     static MailerRegularBuilder<?> builder(final SimpleJavaMail factory, final int port) {
         return factory.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(SMTP)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(30000))
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(30000)).build())
                 // Message-ID generation must not spend this fixture's barrier budget resolving the workstation's hostname.
                 .withProperty("mail.host", "localhost")
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(2).withConnectionPoolClaimTimeout(Duration.ofMillis(6000))
-                .withThreadPoolSize(4);
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(2).withClaimTimeout(Duration.ofMillis(6000)).build())
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(4).build());
     }
 
     static FailoverPolicy policy() {

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 
@@ -34,7 +36,7 @@ final class ConnectionRecovery {
 		}
 		if (state instanceof ConnectionRecheckInProgress || clock.getAsLong() - incident.failedAt < recheckIntervalNanos(policy, incident.failedRechecks)) {
 			if (!incident.failure.allowsFailover(policy)) {
-				throw new MailerException("An earlier connection attempt failed, and this Mailer's failover policy does not allow another destination "
+				throw new MailerException(MailFailureKind.CONNECTION, "An earlier connection attempt failed, and this Mailer's failover policy does not allow another destination "
 						+ "for that failure. No new connection was attempted; a primary recheck is not due or is already running. "
 						+ "Review the cause and this route's authentication/certificate permissions.", incident.failure);
 			}

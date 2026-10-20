@@ -48,7 +48,7 @@ class AngusSubmissionResultTest {
 		assertThat(result.getRecipientResults()).extracting(recipient -> recipient.getRcptResponse().orElseThrow().getReturnCode())
 				.containsExactly(550, 250, 450);
 		assertThat(result.getRecipientResults().get(1).getOriginalAddress()).isEqualTo(accepted.toString());
-		assertThat(result.getRecipientResults().get(1).getEnvelopeAddress()).contains("CaseSensitive@example.org");
+		assertThat(result.getRecipientResults().get(1).getEnvelopeAddress()).isEqualTo("CaseSensitive@example.org");
 		assertThat(result.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_UNACCEPTED);
 	}
 
@@ -96,7 +96,7 @@ class AngusSubmissionResultTest {
 		assertThat(result.getRetryDisposition()).isEqualTo(MailRetryDisposition.CALLER_POLICY_REQUIRED);
 		assertThat(result.getRecipientResults()).allSatisfy(recipient -> {
 			assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.VALID_UNSENT);
-			assertThat(recipient.getRcptAttempted()).isEmpty();
+			assertThat(recipient.getRcptAttempted()).isNull();
 			assertThat(recipient.getRcptResponse()).isEmpty();
 		});
 	}

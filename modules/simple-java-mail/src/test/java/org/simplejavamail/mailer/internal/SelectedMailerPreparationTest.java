@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
@@ -31,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,9 +85,9 @@ class SelectedMailerPreparationTest {
                 throw new AssertionError(interrupted);
             }
         };
-		try (Mailer primaryMailer = builder(clusterKey, messagesSentByPrimary, waitForBoth).withThreadPoolSize(2).withConnectionPoolExpireAfter(Duration.ofMillis(0))
+		try (Mailer primaryMailer = updateMailer(builder(clusterKey, messagesSentByPrimary, waitForBoth), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build()).withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withExpireAfter(Duration.ofMillis(0)).build()))
 						.withEmailOverrides(template("primary")).buildMailer();
-				 Mailer failoverMailer = builder(clusterKey, messagesSentByFailoverMailer, waitForBoth).withConnectionPoolExpireAfter(Duration.ofMillis(0))
+				 Mailer failoverMailer = updateMailer(builder(clusterKey, messagesSentByFailoverMailer, waitForBoth), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withExpireAfter(Duration.ofMillis(0)).build()))
 						.withEmailOverrides(template("failover")).buildMailer()) {
             final Email original = mail.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("customer@example.org").withType(RecipientType.TO).build())
                     .withPlainText("Original content").buildEmail();
@@ -131,7 +134,7 @@ class SelectedMailerPreparationTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         final List<Thread> observers = new CopyOnWriteArrayList<>();
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 25).withTransportModeLoggingOnly(true)
-                .withExecutorService(executor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                     outcomes.add(outcome);
                     observers.add(Thread.currentThread());
                 }).build()).buildMailer()) {
@@ -146,8 +149,8 @@ class SelectedMailerPreparationTest {
             assertThat(failure).isNotNull();
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
-            assertThat(outcomes.get(0).getReadyAt()).isPresent();
-            assertThat(outcomes.get(0).getStartedAt()).isPresent();
+            assertThat(outcomes.get(0).getReadyAt()).isNotNull();
+            assertThat(outcomes.get(0).getStartedAt()).isNotNull();
             assertThat(outcomes.get(0).getSubmissionReceipt()).isEmpty();
             assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getPreparation().isFailureObservedHere()).isTrue();
             assertThat(observers.get(0)).isNotSameAs(Thread.currentThread());
@@ -183,8 +186,7 @@ class SelectedMailerPreparationTest {
         final Session session = Session.getInstance(properties);
         final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", RecordingTransport.class.getName(), "test", "1");
         session.setProvider(provider);
-        return (MailerFromSessionBuilderImpl) mail.mailerBuilder(session).withClusterKey(cluster).withConnectionPoolCoreSize(0)
-                .withConnectionPoolMaxSize(1).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN);
+        return (MailerFromSessionBuilderImpl) mail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).withCoreSize(0).withMaxSize(1).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build());
     }
 
     public static final class RecordingTransport extends Transport {

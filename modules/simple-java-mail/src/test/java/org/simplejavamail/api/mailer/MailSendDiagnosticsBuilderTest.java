@@ -67,8 +67,8 @@ class MailSendDiagnosticsBuilderTest {
 		assertThat(report.getCleanup()).isSameAs(cleanup);
 		assertThat(report.getRateLimitWait()).isSameAs(rateWait);
 		assertThat(report.getRetryWait()).isSameAs(retryWait);
-		assertThat(report.getSmtpHost()).contains("private\\nrelay");
-		assertThat(report.getSmtpPort()).contains(2525);
+		assertThat(report.getSmtpHost()).isEqualTo("private\\nrelay");
+		assertThat(report.getSmtpPort()).isEqualTo(2525);
 		assertThat(report.getConnectionHistory()).containsExactly(connection);
 		assertThat(report.getSubmissionHistory()).containsExactly(invocation);
 		assertThat(report.getOmittedConnectionSteps()).isEqualTo(2);
@@ -78,8 +78,8 @@ class MailSendDiagnosticsBuilderTest {
 		assertThat(copy.toString()).isEqualTo(report.toString());
 		assertThat(copy.getSmtpHost()).isEqualTo(report.getSmtpHost());
 		assertThat(copy.getSmtpPort()).isEqualTo(report.getSmtpPort());
-		assertThat(copy.getRateLimitWait().getElapsed()).contains(Duration.ofMillis(7));
-		assertThat(copy.getRetryWait().getElapsed()).contains(Duration.ofMillis(8));
+		assertThat(copy.getRateLimitWait().getElapsed()).isEqualTo(Duration.ofMillis(7));
+		assertThat(copy.getRetryWait().getElapsed()).isEqualTo(Duration.ofMillis(8));
 		assertThat(copy.getOmittedConnectionSteps()).isEqualTo(2);
 		assertThat(copy.getOmittedSubmissionSteps()).isEqualTo(3);
 	}
@@ -87,12 +87,12 @@ class MailSendDiagnosticsBuilderTest {
 	@Test
 	void optionalFactsStartAbsentWithoutInventingMeasurements() {
 		final MailSendDiagnostics built = requiredBuilder().build();
-		assertThat(built.getRateLimitWait().getElapsed()).isEmpty();
-		assertThat(built.getRateLimitWait().getUnavailableReason()).isPresent();
-		assertThat(built.getRetryWait().getElapsed()).isEmpty();
-		assertThat(built.getRetryWait().getUnavailableReason()).isPresent();
-		assertThat(built.getSmtpHost()).isEmpty();
-		assertThat(built.getSmtpPort()).isEmpty();
+		assertThat(built.getRateLimitWait().getElapsed()).isNull();
+		assertThat(built.getRateLimitWait().getUnavailableReason()).isNotNull();
+		assertThat(built.getRetryWait().getElapsed()).isNull();
+		assertThat(built.getRetryWait().getUnavailableReason()).isNotNull();
+		assertThat(built.getSmtpHost()).isNull();
+		assertThat(built.getSmtpPort()).isNull();
 		assertThat(built.getConnectionHistory()).isEmpty();
 		assertThat(built.getSubmissionHistory()).isEmpty();
 		assertThat(built.getOmittedConnectionSteps()).isZero();
@@ -154,8 +154,8 @@ class MailSendDiagnosticsBuilderTest {
 	void aFreshBuilderCannotInheritAnotherBuildersOptionalFacts() {
 		requiredBuilder().smtpHost("private-relay").smtpPort(587).submissionHistory(List.of(submissionStep())).build();
 		final MailSendDiagnostics separate = requiredBuilder().build();
-		assertThat(separate.getSmtpHost()).isEmpty();
-		assertThat(separate.getSmtpPort()).isEmpty();
+		assertThat(separate.getSmtpHost()).isNull();
+		assertThat(separate.getSmtpPort()).isNull();
 		assertThat(separate.getSubmissionHistory()).isEmpty();
 	}
 

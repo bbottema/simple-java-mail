@@ -19,7 +19,7 @@ class AngusSmtpCapabilitiesTest {
         final String response = "250-localhost\r\n250-SIZE " + value + "\r\n250 DSN\r\n";
         final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse(response, unused -> { });
         assertThat(capabilities.supports("SIZE")).isTrue();
-        assertThat(capabilities.getMaximumMessageSize()).isEmpty();
+        assertThat(capabilities.getMaximumMessageSize()).isNull();
         assertThat(AngusSmtpCapabilities.parseSizeSupport(response).isAdvertised()).isTrue();
         assertThat(AngusSmtpCapabilities.parseSizeSupport(response).getMaximumMessageSize()).isNull();
     }
@@ -27,7 +27,7 @@ class AngusSmtpCapabilitiesTest {
     @Test
     void identicalDuplicatesRetainOneReliablePositiveLimit() {
         final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse("250-localhost\r\n250-size 00123\r\n250 SIZE 123\r\n", unused -> { });
-        assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+        assertThat(capabilities.getMaximumMessageSize()).isEqualTo(123);
         assertThat(capabilities.getExtensions().get("SIZE")).containsExactly("00123", "123");
     }
 
@@ -39,7 +39,7 @@ class AngusSmtpCapabilitiesTest {
         final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse(response, warnings::add);
 
         assertThat(capabilities.getExtensions().get("SIZE")).hasSize(3);
-        assertThat(capabilities.getMaximumMessageSize()).isEmpty();
+        assertThat(capabilities.getMaximumMessageSize()).isNull();
         assertThat(capabilities.toString()).doesNotContain(malformed);
         assertThat(AngusSmtpCapabilities.parseSizeSupport(response).getMaximumMessageSize()).isNull();
         assertThat(warnings).isEmpty();
@@ -52,7 +52,7 @@ class AngusSmtpCapabilitiesTest {
         final String response = "250-localhost\r\n" + "250-X-test\r\n".repeat(400) + "250 SIZE 123" + (trailingNewline ? "\r\n" : "");
         final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse(response, warnings::add);
 
-        assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+        assertThat(capabilities.getMaximumMessageSize()).isEqualTo(123);
         assertThat(capabilities.getExtensions().get("X-TEST")).hasSize(400);
         assertThat(warnings).isEmpty();
     }
@@ -111,7 +111,7 @@ class AngusSmtpCapabilitiesTest {
     void malformedLineWarningsAreAggregatedWithoutLosingTheValidSize() {
         final List<String> warnings = new ArrayList<>();
         final String response = "250-hello\n" + "250-\n".repeat(10000) + "250 SIZE 123\n";
-        assertThat(AngusSmtpCapabilities.parse(response, warnings::add).getMaximumMessageSize()).hasValue(123);
+        assertThat(AngusSmtpCapabilities.parse(response, warnings::add).getMaximumMessageSize()).isEqualTo(123);
         assertThat(warnings).containsExactly("Ignored 10000 invalid EHLO extension lines.");
         assertThat(AngusSmtpCapabilities.parseSizeSupport(response).getMaximumMessageSize()).isEqualTo(123L);
     }
@@ -130,6 +130,6 @@ class AngusSmtpCapabilitiesTest {
     void retainsSizeFromPublishedLegacyStyleReplies(final String response) {
         final SmtpCapabilities capabilities = AngusSmtpCapabilities.parse(response, unused -> { });
         assertThat(capabilities.supports("SIZE")).isTrue();
-        assertThat(capabilities.getMaximumMessageSize()).hasValue(AngusSmtpCapabilities.parseSizeSupport(response).getMaximumMessageSize());
+        assertThat(capabilities.getMaximumMessageSize()).isEqualTo(AngusSmtpCapabilities.parseSizeSupport(response).getMaximumMessageSize());
     }
 }

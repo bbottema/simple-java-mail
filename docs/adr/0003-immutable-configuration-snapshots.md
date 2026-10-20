@@ -15,6 +15,26 @@ Earlier defects show why source resolution also needed a single contract. [#538]
 
 ## Decision
 
+### Schema-bound property keys (accepted 20 October 2026)
+
+Ordinary Java reads use opaque invariant `ConfigKey<T>` values exposed by `ConfigKeys`: `config.get(ConfigKeys.SMTP_PORT)`
+returns `Integer`, while `config.get(ConfigKeys.SESSION_TIMEOUT)` returns `Duration`. The key declaration selects the
+authoritative schema parser and Java projection together; do not maintain a separate key/type catalogue that can drift.
+Use the same invariant key in both `valueOrProperty` overloads, presence and provenance inspection. Remove the unsafe
+caller-inferred generic getter and the parallel scalar-name getter families. Applications cannot construct arbitrary keys.
+
+Retain `ConfigLoader.Property` as the textual/raw-integration identity. The raw heterogeneous map and source/lock storage
+keep the parser representation and existing property-file units. In particular the six legacy integer-millisecond
+properties project to Java `Duration` values without changing accepted text/types, signed integer bounds or whole-millisecond
+precision. Existing ISO-duration properties retain their own precision and feature validation. Raw maps remain explicitly
+dynamic; canonical Java reads use keys. Missing configured values, including aggregate maps, remain absent/null: snapshots
+contain explicit configuration, not fabricated empty/default entries. Present wildcard maps are detached and immutable.
+
+Keep explicit/configured/fallback precedence and supplied-object ownership. A supplied empty String is absent to the
+selection helper; its existing treatment of whitespace, zero and false is retained. Schema reads do not reopen sources,
+resolve runtime defaults, alter named isolation or weaken mandatory locks. Diagnostics retain their original source,
+parser representation and redaction. See [the implementation ledger](../plans/10.0.0-typed-configuration-keys.md).
+
 Use an ordered, instance-based `ConfigLoader` to sample configured sources and produce a detached `SimpleJavaMailConfig`. Sources are ordered from lower to higher priority; later non-blank values win, and only winning scalar values are parsed through the central `PropertySchema`. Apply the same ordering to scalar properties, extra Jakarta Mail properties and pool-cluster configuration; the loader resolves wildcard entries and parses cluster fields separately. Caller-supplied sources are strict by default; whole-process environment/system sources ignore unrelated names.
 
 Pass the snapshot to `SimpleJavaMail.withConfig(...)`. That factory supplies fresh builders and a configured converter while retaining one configuration identity. Propagate the captured configuration through Email governance, Mailers, Sessions and optional modules instead of reopening a global loader in each consumer. Explicit builder values override captured defaults.
@@ -49,6 +69,26 @@ Selecting a debug output or telemetry integration does not enable that feature. 
 Represent Java socket/worker/queue/pool durations with `Duration`, including public cluster and standalone-pool configuration. These migrated
 settings retain whole-millisecond precision and existing limits; reject fractional milliseconds and overflow instead of truncating. Property
 keys and numeric millisecond inputs remain unchanged. Convert at the configuration/provider boundary, preserving zero and unset meanings.
+
+### Advanced configuration groups (accepted 20 October 2026)
+
+Keep ordinary SMTP setup and message composition directly discoverable. Move advanced Mailer choices into immutable core-owned
+`ConnectionPoolConfig`, `AsyncExecutionConfig`, `SocksProxyConfig`, `SendingLimitsConfig`, `ConnectionConfig`, `TlsConfig`, and
+`ValidationConfig` values with explicit application builders. Move advanced Email choices into `ImageResolutionConfig`,
+`ContentEncodingConfig`, `EmailTemplateOptions`, and `SmtpDeliveryOptions`. Keep recipient metadata, resource-level encoding,
+read receipts, and typed signing/encryption operations at their existing scopes.
+
+A group assignment replaces all previously supplied choices for that group. Unset members inherit the captured factory configuration,
+not the previous group. Inspection of supplied values retains absence; built-object inspection describes resolved choices. Removing
+a local optional choice and restoring captured configuration retain their existing distinct meanings, as do mandatory locks and the
+caller-supplied Session baseline. Group construction and inspection allocate no workers or connections and read no message content.
+Per-cluster pool overrides retain their distinct fallback scope. Core validates representation; optional feature modules retain semantic validation.
+
+Remove moved scalar methods and their inspection/reset/clear companions from the supported Java root builders in the 10.0.0 migration;
+do not retain deprecated aliases. Internal runtime and CLI adapters may retain scalar operations without exposing them on application contracts.
+The asynchronous queue builder offers `rejectWhenFull()` or `waitForCapacity(Duration)`, keeping the admission wait and its policy together.
+Waiting occurs on the submitting thread; it neither executes SMTP work there nor changes the total send deadline. Existing scalar properties
+and CLI options retain their names and representations.
 
 ### Built-in defaults stay together on the key builders
 

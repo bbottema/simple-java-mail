@@ -38,19 +38,19 @@ public interface OperationalConfig {
 	 */
 	@Nullable
 	FailoverPolicy getFailoverPolicy();
-	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
+	/** @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withMessageRateLimit(int, Duration) */
 	@Nullable SendingRateLimit getMessageRateLimit();
 
-	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
+	/** @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withRecipientRateLimit(int, Duration) */
 	@Nullable SendingRateLimit getRecipientRateLimit();
 
-	/** @see MailerGenericBuilder#withRateLimitGroup(String) */
+	/** @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withRateLimitGroup(String) */
 	@Nullable String getRateLimitGroup();
 
-	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
+	/** @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withRateLimitBurstsAllowed(boolean) */
 	boolean isRateLimitBurstsAllowed();
 
-	/** @see MailerGenericBuilder#withAsyncQueueCapacity(int) */
+	/** @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withQueueCapacity(int) */
 	@NotNull
 	AsyncQueueConfig getAsyncQueueConfig();
 
@@ -59,7 +59,7 @@ public interface OperationalConfig {
 	 * In particular, {@code null} does not mean unlimited: a caller-supplied Session may configure three different timeouts, omit some of them,
 	 * or leave their interpretation to its provider. The snapshot does not guess provider defaults.
 	 *
-	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSessionTimeout(Duration)
 	 */
 	@Nullable
 	Duration getSessionTimeout();
@@ -71,25 +71,25 @@ public interface OperationalConfig {
 	@Nullable Duration getMailSendTimeout();
 
 	/**
-	 * @see MailerGenericBuilder#withLocalBindAddress(String)
-	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String, Integer)
 	 */
 	@Nullable
 	String getLocalBindAddress();
 
 	/**
-	 * @see MailerGenericBuilder#withLocalBindAddress(String, Integer)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String, Integer)
 	 */
 	@Nullable
 	Integer getLocalBindPort();
 
 	/**
-	 * @see MailerGenericBuilder#withSmtpClientHostname(String)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSmtpClientHostname(String)
 	 */
 	@Nullable
 	String getSmtpClientHostname();
 
-	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLegacySmtpContentSupport(boolean) */
 	boolean isLegacySmtpContentSupportEnabled();
 
 	/**
@@ -99,43 +99,43 @@ public interface OperationalConfig {
 	@NotNull MailSendTelemetryConfig getTelemetryConfig();
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolSize(Integer)
+	 * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withThreadPoolSize(Integer)
 	 */
 	int getThreadPoolSize();
 
 	/**
-	 * @see MailerGenericBuilder#withThreadPoolKeepAliveTime(Duration)
+	 * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withKeepAliveTime(Duration)
 	 */
 	Duration getThreadPoolKeepAliveTime();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withCoreSize(Integer)
 	 */
 	int getConnectionPoolCoreSize();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withMaxSize(Integer)
 	 */
 	int getConnectionPoolMaxSize();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withClaimTimeout(Duration)
 	 */
 	Duration getConnectionPoolClaimTimeout();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfter(Duration)
 	 */
 	Duration getConnectionPoolExpireAfter();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfterCreation(Duration)
 	 */
 	@Nullable
 	Duration getConnectionPoolExpireAfterCreation();
 
 	/**
-	 * @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withLoadBalancingStrategy(LoadBalancingStrategy)
 	 */
 	@NotNull
 	LoadBalancingStrategy getConnectionPoolLoadBalancingStrategy();
@@ -158,24 +158,24 @@ public interface OperationalConfig {
 	@NotNull SessionDebugConfig getDebugConfig();
 
 	/**
-	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#disablingAllClientValidation(boolean)
 	 */
 	boolean isDisableAllClientValidation();
 
 	/**
 	 * Returns the immutable list of host names captured when this Mailer was built.
-	 * @see MailerGenericBuilder#trustingSSLHosts(String...)
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
 	 */
 	@NotNull
 	List<String> getSslHostsToTrust();
 
 	/**
-	 * @see MailerGenericBuilder#trustingAllHosts(boolean)
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingAllHosts(boolean)
 	 */
 	boolean isTrustAllSSLHost();
 
 	/**
-	 * @see MailerRegularBuilder#verifyingServerIdentity(boolean)
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#verifyingServerIdentity(boolean)
 	 */
 	boolean isVerifyingServerIdentity();
 	
@@ -188,13 +188,13 @@ public interface OperationalConfig {
 	Properties getProperties();
 
 	/**
-	 * @see MailerGenericBuilder#withClusterKey(UUID)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withClusterKey(UUID)
 	 */
 	@NotNull
 	UUID getClusterKey();
 
 	/**
-	 * @see MailerGenericBuilder#withExecutorService(ExecutorService)
+	 * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withExecutorService(ExecutorService)
 	 */
 	@NotNull
 	ExecutorService getExecutorService();

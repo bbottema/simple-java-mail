@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -23,19 +25,19 @@ final class ConfiguredFailover {
 
 	@Nullable
 	static FailoverPolicy policy(final SimpleJavaMailConfig config) {
-		if (!config.hasProperty(Property.FAILOVER_MAILER)) {
+		if (!config.hasProperty(ConfigKeys.FAILOVER_MAILER)) {
 			rejectPolicyWithoutFailoverDestination(config);
 			return null;
 		}
-		final Duration initialRecheckInterval = config.valueOrProperty(null, Property.FAILOVER_PRIMARY_RECHECK_INTERVAL, DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
-		final int recheckBackoffMultiplier = config.valueOrProperty(null, Property.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER,
+		final Duration initialRecheckInterval = config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_RECHECK_INTERVAL, DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
+		final int recheckBackoffMultiplier = config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER,
 				DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER);
 		verifyRecheckBackoffHasMaximum(config, recheckBackoffMultiplier);
-		return new FailoverPolicy(config.valueOrProperty(null, Property.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS),
-				config.valueOrProperty(null, Property.FAILOVER_PRIMARY_RETRY_DELAY, DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY), initialRecheckInterval,
-				recheckBackoffMultiplier, config.valueOrProperty(null, Property.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL, initialRecheckInterval),
-				config.valueOrProperty(null, Property.FAILOVER_ON_AUTHENTICATION_FAILURE, DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE),
-				config.valueOrProperty(null, Property.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE, DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE));
+		return new FailoverPolicy(config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS),
+				config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_RETRY_DELAY, DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY), initialRecheckInterval,
+				recheckBackoffMultiplier, config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL, initialRecheckInterval),
+				config.valueOrProperty(null, ConfigKeys.FAILOVER_ON_AUTHENTICATION_FAILURE, DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE),
+				config.valueOrProperty(null, ConfigKeys.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE, DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE));
 	}
 
 	private static void rejectPolicyWithoutFailoverDestination(final SimpleJavaMailConfig config) {
@@ -46,7 +48,7 @@ final class ConfiguredFailover {
 	}
 
 	private static void verifyRecheckBackoffHasMaximum(final SimpleJavaMailConfig config, final int recheckBackoffMultiplier) {
-		if (recheckBackoffMultiplier > 1 && !config.hasProperty(Property.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL)) {
+		if (recheckBackoffMultiplier > 1 && !config.hasProperty(ConfigKeys.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL)) {
 			throw new IllegalArgumentException("Increasing failover backoff needs simplejavamail.failover.primary.maximumrecheckinterval. "
 					+ "Supply a positive ISO-8601 duration, or use a backoff multiplier of one for a fixed interval.");
 		}

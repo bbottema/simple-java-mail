@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
@@ -64,13 +66,13 @@ class ConfigLoaderInstanceTest {
 				.withProperties("high", highPriority)
 				.load();
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("high.example.test");
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(2525);
-		assertThat(config.getStringProperty(SMTP_PASSWORD)).isEqualTo("123456");
-		assertThat(config.getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("true");
-		assertThat(config.getBooleanProperty(JAVAXMAIL_DEBUG)).isTrue();
-		assertThat(config.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_TLS);
-		assertThat(config.getBooleanProperty(DEFAULT_REQUIRE_TLS)).isTrue();
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("high.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(2525);
+		assertThat(config.get(ConfigKeys.SMTP_PASSWORD)).isEqualTo("123456");
+		assertThat(config.get(ConfigKeys.DEFAULT_SUBJECT)).isEqualTo("true");
+		assertThat(config.get(ConfigKeys.JAVAXMAIL_DEBUG)).isTrue();
+		assertThat(config.get(ConfigKeys.TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_TLS);
+		assertThat(config.get(ConfigKeys.DEFAULT_REQUIRE_TLS)).isTrue();
 	}
 
 	@Test
@@ -85,7 +87,7 @@ class ConfigLoaderInstanceTest {
 				.withProperties("high", highPriority)
 				.load();
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("smtp.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.example.test");
 	}
 
 	@Test
@@ -98,12 +100,12 @@ class ConfigLoaderInstanceTest {
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(source).load();
 		source.setProperty(SMTP_HOST.key(), "mutated.example.test");
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("smtp.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.example.test");
 		assertThat(config.toString()).doesNotContain("do-not-print-me");
 		assertThat(config.toString()).contains("<redacted>");
 		assertThatThrownBy(() -> config.asMap().put(SMTP_HOST, "other"))
 				.isInstanceOf(UnsupportedOperationException.class);
-		assertThatThrownBy(() -> config.<Map<String, String>>getProperty(EXTRA_PROPERTIES).put("x", "y"))
+		assertThatThrownBy(() -> config.get(ConfigKeys.EXTRA_PROPERTIES).put("x", "y"))
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 
@@ -115,8 +117,8 @@ class ConfigLoaderInstanceTest {
 
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(source).load();
 
-		assertThat(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)).isTrue();
-		assertThat(config.getBooleanProperty(EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)).isFalse();
+		assertThat(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)).isTrue();
+		assertThat(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)).isFalse();
 	}
 
 	@Test
@@ -131,8 +133,8 @@ class ConfigLoaderInstanceTest {
 				.withSource(second)
 				.load();
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("second.example.test");
-		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("second");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("second.example.test");
+		assertThat(config.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("second");
 	}
 
 	@Test
@@ -145,8 +147,8 @@ class ConfigLoaderInstanceTest {
 		final SimpleJavaMailConfig configA = ConfigLoader.builder().withProperties(sourceA).load();
 		final SimpleJavaMailConfig configB = ConfigLoader.builder().withProperties(sourceB).load();
 
-		assertThat(configA.getStringProperty(SMTP_HOST)).isEqualTo("a.example.test");
-		assertThat(configB.getStringProperty(SMTP_HOST)).isEqualTo("b.example.test");
+		assertThat(configA.get(ConfigKeys.SMTP_HOST)).isEqualTo("a.example.test");
+		assertThat(configB.get(ConfigKeys.SMTP_HOST)).isEqualTo("b.example.test");
 	}
 
 	@Test
@@ -160,7 +162,7 @@ class ConfigLoaderInstanceTest {
 				.withProperties("invalid but overridden", invalidLowPriority)
 				.withProperties("winner", validHighPriority)
 				.load()
-				.getIntegerProperty(SMTP_PORT)).isEqualTo(2525);
+				.get(ConfigKeys.SMTP_PORT)).isEqualTo(2525);
 
 		assertThatThrownBy(() -> ConfigLoader.builder()
 				.withProperties("valid but overridden", validHighPriority)
@@ -194,8 +196,8 @@ class ConfigLoaderInstanceTest {
 		final SimpleJavaMailConfig second = loader.load();
 
 		assertThat(samples).hasValue(2);
-		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("first.example.test");
-		assertThat(second.getStringProperty(SMTP_HOST)).isEqualTo("second.example.test");
+		assertThat(first.get(ConfigKeys.SMTP_HOST)).isEqualTo("first.example.test");
+		assertThat(second.get(ConfigKeys.SMTP_HOST)).isEqualTo("second.example.test");
 	}
 
 	@Test
@@ -205,7 +207,7 @@ class ConfigLoaderInstanceTest {
 		final ConfigLoader loader = ConfigLoader.builder().withInputStream("tracked", valid);
 
 		assertThat(valid.closed).isTrue();
-		assertThat(loader.load().getStringProperty(SMTP_HOST)).isEqualTo("smtp.example.test");
+		assertThat(loader.load().get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.example.test");
 
 		final BrokenInputStream broken = new BrokenInputStream();
 		assertThatThrownBy(() -> ConfigLoader.builder().withInputStream("broken", broken))
@@ -232,7 +234,7 @@ class ConfigLoaderInstanceTest {
 				.load();
 
 		assertThat(lookups).hasValue(1);
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("custom.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("custom.example.test");
 	}
 
 	@Test
@@ -248,14 +250,14 @@ class ConfigLoaderInstanceTest {
 
 		final SimpleJavaMailConfig config = ConfigLoader.builder().withProperties(source).load();
 
-		assertThat(config.getBooleanProperty(JAVAXMAIL_DEBUG)).isTrue();
-		assertThat(config.<SessionDebugOutput>getProperty(JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.SLF4J);
-		assertThat(config.<TransportStrategy>getProperty(TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_OAUTH2);
-		assertThat(config.<ContentTransferEncoding>getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING)).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);
-		assertThat(config.<DeliveryStatusNotification.ReturnOption>getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION))
+		assertThat(config.get(ConfigKeys.JAVAXMAIL_DEBUG)).isTrue();
+		assertThat(config.get(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo(SessionDebugOutput.SLF4J);
+		assertThat(config.get(ConfigKeys.TRANSPORT_STRATEGY)).isEqualTo(TransportStrategy.SMTP_OAUTH2);
+		assertThat(config.get(ConfigKeys.DEFAULT_CONTENT_TRANSFER_ENCODING)).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);
+		assertThat(config.get(ConfigKeys.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION))
 				.isEqualTo(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY);
-		assertThat(config.<LoadBalancingStrategy>getProperty(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
-		assertThat(config.<DkimConfig.Canonicalization>getProperty(DKIM_SIGNING_HEADER_CANONICALIZATION)).isEqualTo(DkimConfig.Canonicalization.RELAXED);
+		assertThat(config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)).isEqualTo(LoadBalancingStrategy.ROUND_ROBIN);
+		assertThat(config.get(ConfigKeys.DKIM_SIGNING_HEADER_CANONICALIZATION)).isEqualTo(DkimConfig.Canonicalization.RELAXED);
 	}
 
 	@Test
@@ -286,9 +288,9 @@ class ConfigLoaderInstanceTest {
 				.withMap("overrides", overrides)
 				.load();
 
-		assertThat(merged.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).containsEntry("mail.smtp.timeout", "2000");
-		assertThat(merged.<Map<UUID, ?>>getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).containsKey(clusterKey);
-		assertThat(merged.getStringProperty(SMTP_HOST)).isEqualTo("smtp.example.test");
+		assertThat(merged.get(ConfigKeys.EXTRA_PROPERTIES)).containsEntry("mail.smtp.timeout", "2000");
+		assertThat(merged.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).containsKey(clusterKey);
+		assertThat(merged.get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.example.test");
 	}
 
 	@Test
@@ -304,7 +306,7 @@ class ConfigLoaderInstanceTest {
 						return ConfigLoader.builder()
 								.withMap(Collections.<String, Object>singletonMap(SMTP_HOST.key(), expected))
 								.load()
-								.getStringProperty(SMTP_HOST);
+								.get(ConfigKeys.SMTP_HOST);
 					}
 				}));
 			}

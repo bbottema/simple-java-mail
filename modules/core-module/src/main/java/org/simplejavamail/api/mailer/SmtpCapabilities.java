@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.TreeMap;
 
 /**
@@ -61,13 +60,12 @@ public final class SmtpCapabilities implements Serializable {
 
     /**
      * Returns a positive SIZE limit only when every SIZE advertisement supplies the same valid integer.
-     * Empty also covers SIZE without a limit, zero (no fixed maximum), malformed/overflowing limits and contradictory duplicates.
+     * Returns {@code null} for SIZE without a limit, zero (no fixed maximum), malformed/overflowing limits and contradictory duplicates.
      * Use {@link #supports(String)} to distinguish those from SIZE not being advertised at all.
      */
-    @NotNull
-    public OptionalLong getMaximumMessageSize() {
-        final Long maximum = sizeSupport.getMaximumMessageSize();
-        return maximum == null ? OptionalLong.empty() : OptionalLong.of(maximum);
+    @Nullable
+    public Long getMaximumMessageSize() {
+        return sizeSupport.getMaximumMessageSize();
     }
 
     private static SmtpSizeSupport resolveSizeSupport(final Map<String, List<String>> extensions) {

@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROPERTY;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
+import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS_OAUTH2;
 
 /**
  * Keeps OAuth2 credential validation separate from connection-time token resolution so providers remain lazy.
@@ -28,7 +29,7 @@ public final class OAuth2AccessTokenResolver {
 		final Object sessionProvider = session.getProperties().get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object additionalProvider = additionalProperties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object configuredProvider = selectProvider(explicitProvider, sessionProvider, additionalProvider);
-		final boolean oauth2Transport = transportStrategy == SMTP_OAUTH2
+		final boolean oauth2Transport = isOAuth2Transport(transportStrategy)
 				|| (transportStrategy == null && hasOAuth2AuthenticationMechanism(session));
 
 		if (configuredProvider != null && !(configuredProvider instanceof Supplier)) {
@@ -95,7 +96,8 @@ public final class OAuth2AccessTokenResolver {
 	}
 
 	private static boolean hasOAuth2AuthenticationMechanism(@NotNull Session session) {
-		final String authenticationMechanisms = session.getProperty("mail.smtp.auth.mechanisms");
+		final String protocol = session.getProperties().getProperty("mail.transport.protocol", "smtp");
+		final String authenticationMechanisms = session.getProperty("mail." + protocol + ".auth.mechanisms");
 		if (authenticationMechanisms == null) {
 			return false;
 		}
@@ -105,6 +107,10 @@ public final class OAuth2AccessTokenResolver {
 			}
 		}
 		return false;
+	}
+
+	static boolean isOAuth2Transport(@Nullable final TransportStrategy strategy) {
+		return strategy == SMTP_OAUTH2 || strategy == SMTPS_OAUTH2;
 	}
 
 	private OAuth2AccessTokenResolver() {

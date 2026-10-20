@@ -6,6 +6,17 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- Configuration reads use schema-bound `ConfigKeys` and `get(ConfigKey<T>)`, including Duration views of time settings.
+  Keys also constrain explicit/fallback values at compile time. Textual property names, numeric units, locks and raw-map integration remain unchanged.
+
+- Added `TransportStrategy.SMTPS_OAUTH2` for XOAUTH2 over implicit TLS, using port 465 by default. Existing fixed access tokens and
+  application-owned token providers work with it; `SMTP_OAUTH2` retains required STARTTLS and default port 587.
+
+- Grouped advanced Java settings into seven Mailer configuration values and four Email configuration values, keeping common SMTP setup and
+  message composition direct. Moved scalar methods and their companion methods are removed; edit reusable values with `toBuilder()`.
+  Async queue admission is expressed as `rejectWhenFull()` or `waitForCapacity(Duration)`. Existing property keys and scalar CLI options remain available.
+  DKIM/S/MIME signing and encryption retain their direct typed configuration methods; the positional shortcuts are removed.
+
 - Simplified the 10.0.0 API with per-send handler factories receiving a configurable UUID, grouped debug/telemetry configuration, `Duration`
   timeout settings, direct `to`/`cc`/`bcc` and Path attachment conveniences, and independent signing/encryption clears. Explicit worker settings
   now work without the batch module. Property keys and CLI millisecond arguments retain their units.

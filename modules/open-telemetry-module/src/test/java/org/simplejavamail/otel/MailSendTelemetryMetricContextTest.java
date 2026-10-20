@@ -1,5 +1,8 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
@@ -196,12 +199,10 @@ class MailSendTelemetryMetricContextTest {
         return mail.mailerBuilder()
                 .withSMTPServer("localhost", port)
                 .withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false)
-                .withSmtpClientHostname("telemetry.example.test")
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("telemetry.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.host", "localhost")
-                .withConnectionPoolCoreSize(0)
-                .withConnectionPoolMaxSize(2)
-                .withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(2).build())
                 .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build());
     }
 

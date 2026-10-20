@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 				serverSocketToClose.close();
 			}
 		} catch (final IOException e) {
-			throw new SocksException(e.getMessage(), e);
+			throw new SocksException(MailFailureKind.CLEANUP, e.getMessage(), e);
 		}
 
 		if (listenerThreadToJoin != null && listenerThreadToJoin != Thread.currentThread()) {
@@ -108,7 +109,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 				listenerThreadToJoin.join();
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
-				throw new SocksException("interrupted while stopping socks5bridge server", e);
+				throw new SocksException(MailFailureKind.CLEANUP, "interrupted while stopping socks5bridge server", e);
 			}
 		}
 	}

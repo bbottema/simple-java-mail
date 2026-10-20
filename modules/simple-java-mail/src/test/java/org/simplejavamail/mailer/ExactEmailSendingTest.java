@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import com.sanctionco.jmail.EmailValidator;
 import jakarta.mail.Session;
@@ -112,7 +113,7 @@ class ExactEmailSendingTest {
 				.withSMTPServer("unreachable.example.invalid", 25)
 				.withEmailDefaults(defaults)
 				.withEmailOverrides(overrides)
-				.withEmailValidator(validator)
+				.withValidationConfig(ValidationConfig.builder().withEmailValidator(validator).build())
 				.withCustomMailer(customMailer)
 				.buildMailer()) {
 			mailer.sync().sendMail(email);

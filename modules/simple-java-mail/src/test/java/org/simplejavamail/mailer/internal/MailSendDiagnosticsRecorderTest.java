@@ -29,8 +29,8 @@ class MailSendDiagnosticsRecorderTest {
 		recorder.connectionAcquired(transport("first.example.test", 2525));
 		recorder.connectionAcquired(mock(Transport.class));
 		final MailSendDiagnostics report = recorder.finish(true);
-		assertThat(report.getSmtpHost()).isEmpty();
-		assertThat(report.getSmtpPort()).isEmpty();
+		assertThat(report.getSmtpHost()).isNull();
+		assertThat(report.getSmtpPort()).isNull();
 	}
 	@Test
 	void providerSentinelCodesDoNotBecomeDiagnosticFailuresOrFakeReplyFacts() {
@@ -49,7 +49,7 @@ class MailSendDiagnosticsRecorderTest {
 			.build();
 		recorder.receiptProduced(receipt);
 		recorder.submissionStep(1, receipt, null, false);
-		assertThat(recorder.finish(true).getSubmissionHistory().get(0).getSmtpReplyCode()).isEmpty();
+		assertThat(recorder.finish(true).getSubmissionHistory().get(0).getSmtpReplyCode()).isNull();
 	}
 	@Test
 	void retryWaitAndActualInvocationHistoryAccumulateWithBoundedRetention() {
@@ -70,8 +70,8 @@ class MailSendDiagnosticsRecorderTest {
 			}
 		}
 		final MailSendDiagnostics report = recorder.finish(true);
-		assertThat(report.getSubmission().getElapsed()).contains(Duration.ofNanos(400));
-		assertThat(report.getRetryWait().getElapsed()).contains(Duration.ofNanos(790));
+		assertThat(report.getSubmission().getElapsed()).isEqualTo(Duration.ofNanos(400));
+		assertThat(report.getRetryWait().getElapsed()).isEqualTo(Duration.ofNanos(790));
 		assertThat(report.getSubmissionHistory()).hasSize(64);
 		assertThat(report.getSubmissionHistory().get(62).getAttemptNumber()).isEqualTo(63);
 		assertThat(report.getSubmissionHistory().get(63).getAttemptNumber()).isEqualTo(80);
@@ -92,10 +92,10 @@ class MailSendDiagnosticsRecorderTest {
 			recorder.continuingAfterConnectionFailure();
 		}
 		final MailSendDiagnostics report = recorder.finish(false);
-		assertThat(report.getPreparation().getElapsed()).contains(Duration.ofNanos(160));
+		assertThat(report.getPreparation().getElapsed()).isEqualTo(Duration.ofNanos(160));
 		assertThat(report.getConnectionHistory()).hasSize(64);
-		assertThat(report.getConnectionHistory().get(62).getConfiguredName()).contains("destination-62");
-		assertThat(report.getConnectionHistory().get(63).getConfiguredName()).contains("destination-79");
+		assertThat(report.getConnectionHistory().get(62).getConfiguredName()).isEqualTo("destination-62");
+		assertThat(report.getConnectionHistory().get(63).getConfiguredName()).isEqualTo("destination-79");
 		assertThat(report.getOmittedConnectionSteps()).isEqualTo(16);
 	}
 
@@ -115,8 +115,8 @@ class MailSendDiagnosticsRecorderTest {
 		clock.set(58);
 		recorder.connectionAcquired(transport("relay", 25));
 		final MailSendDiagnostics report = recorder.finish(true);
-		assertThat(report.getRateLimitWait().getElapsed()).contains(Duration.ofNanos(40));
-		assertThat(report.getConnectionAcquisition().getElapsed()).contains(Duration.ofNanos(15));
+		assertThat(report.getRateLimitWait().getElapsed()).isEqualTo(Duration.ofNanos(40));
+		assertThat(report.getConnectionAcquisition().getElapsed()).isEqualTo(Duration.ofNanos(15));
 		assertThat(report.getElapsed()).isEqualTo(Duration.ofNanos(58));
 	}
 
@@ -149,14 +149,14 @@ class MailSendDiagnosticsRecorderTest {
 		final MailSendDiagnostics report = recorder.finish(true);
 		clock.set(1000000); // Application observer work cannot change the frozen report.
 		assertThat(report.getElapsed()).isEqualTo(Duration.ofNanos(234));
-		assertThat(report.getPreparation().getElapsed()).contains(Duration.ofNanos(20));
-		assertThat(report.getScheduling().getElapsed()).contains(Duration.ofNanos(10));
-		assertThat(report.getConnectionAcquisition().getElapsed()).contains(Duration.ofNanos(40));
-		assertThat(report.getMimePreparation().getElapsed()).contains(Duration.ofNanos(30));
-		assertThat(report.getSubmission().getElapsed()).contains(Duration.ofNanos(60));
-		assertThat(report.getCleanup().getElapsed()).contains(Duration.ofNanos(20));
-		assertThat(report.getSmtpHost()).contains("selected.example");
-		assertThat(report.getSmtpPort()).contains(2525);
+		assertThat(report.getPreparation().getElapsed()).isEqualTo(Duration.ofNanos(20));
+		assertThat(report.getScheduling().getElapsed()).isEqualTo(Duration.ofNanos(10));
+		assertThat(report.getConnectionAcquisition().getElapsed()).isEqualTo(Duration.ofNanos(40));
+		assertThat(report.getMimePreparation().getElapsed()).isEqualTo(Duration.ofNanos(30));
+		assertThat(report.getSubmission().getElapsed()).isEqualTo(Duration.ofNanos(60));
+		assertThat(report.getCleanup().getElapsed()).isEqualTo(Duration.ofNanos(20));
+		assertThat(report.getSmtpHost()).isEqualTo("selected.example");
+		assertThat(report.getSmtpPort()).isEqualTo(2525);
 	}
 
 	@Test
@@ -165,7 +165,7 @@ class MailSendDiagnosticsRecorderTest {
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(clock::get);
 		recorder.startPreparation();
 		clock.set(Long.MIN_VALUE + 4);
-		assertThat(recorder.finish(false).getPreparation().getElapsed()).contains(Duration.ofNanos(10));
+		assertThat(recorder.finish(false).getPreparation().getElapsed()).isEqualTo(Duration.ofNanos(10));
 	}
 
 	@Test
@@ -183,10 +183,10 @@ class MailSendDiagnosticsRecorderTest {
 		recorder.failed();
 		final MailSendDiagnostics report = recorder.finish(false);
 		assertThat(report.getSubmission().isFailureObservedHere()).isTrue();
-		assertThat(report.getSubmission().getElapsed()).contains(Duration.ofNanos(10));
+		assertThat(report.getSubmission().getElapsed()).isEqualTo(Duration.ofNanos(10));
 		assertThat(report.getCleanup().isFailureObservedHere()).isFalse();
-		assertThat(report.getCleanup().getElapsed()).contains(Duration.ofNanos(15));
-		assertThat(report.getSmtpPort()).isEmpty();
+		assertThat(report.getCleanup().getElapsed()).isEqualTo(Duration.ofNanos(15));
+		assertThat(report.getSmtpPort()).isNull();
 		assertThat(recorder.capturedReceipt()).isNull();
 	}
 
@@ -214,9 +214,9 @@ class MailSendDiagnosticsRecorderTest {
 		scheduling.useAsyncScheduling();
 		scheduling.readyForAdmission();
 		final MailSendDiagnostics report = scheduling.finish(false);
-		assertThat(report.getScheduling().getElapsed()).contains(Duration.ZERO);
+		assertThat(report.getScheduling().getElapsed()).isEqualTo(Duration.ZERO);
 		assertThat(report.getScheduling().isFailureObservedHere()).isTrue();
-		assertThat(report.getSubmission().getElapsed()).isEmpty();
+		assertThat(report.getSubmission().getElapsed()).isNull();
 	}
 
 	@Test
@@ -233,8 +233,8 @@ class MailSendDiagnosticsRecorderTest {
 		recorder.startCleanup();
 		final MailSendDiagnostics report = recorder.finish(true);
 		assertThat(recorder.capturedReceipt()).isSameAs(receipt);
-		assertThat(report.getConnectionAcquisition().getUnavailableReason()).get().asString().contains("outside");
-		assertThat(report.getCleanup().getElapsed()).isEmpty();
+		assertThat(report.getConnectionAcquisition().getUnavailableReason()).asString().contains("outside");
+		assertThat(report.getCleanup().getElapsed()).isNull();
 		recorder.releaseReceipt();
 		assertThat(recorder.capturedReceipt()).isNull();
 	}
@@ -245,7 +245,7 @@ class MailSendDiagnosticsRecorderTest {
 		when(transport.getURLName()).thenThrow(new IllegalStateException("provider metadata unavailable"));
 		final MailSendDiagnosticsRecorder recorder = new MailSendDiagnosticsRecorder(() -> 0);
 		recorder.connectionAcquired(transport);
-		assertThat(recorder.finish(true).getSmtpHost()).isEmpty();
+		assertThat(recorder.finish(true).getSmtpHost()).isNull();
 	}
 
 	@Test

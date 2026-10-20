@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
@@ -27,9 +29,9 @@ class LockedConfigLoaderTest {
 				.withMap("application", Map.of(SMTP_HOST.key(), "elsewhere.example.org", SMTP_PORT.key(), "invalid-shadowed-value",
 						ConfigurationLocks.lockedName(SMTP_PORT.key()), "2525"))
 				.load();
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("relay.example.org");
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(2525);
-		assertThat(config.getPropertySource(SMTP_HOST)).isEqualTo("central");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("relay.example.org");
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(2525);
+		assertThat(config.getPropertySource(ConfigKeys.SMTP_HOST)).isEqualTo("central");
 		assertThat(config.getDiagnostics().toString()).contains("simplejavamail.locked.smtp.port = 2525 (source: application)");
 		locksOf(config).verify(SMTP_PORT, 2525);
 		assertThatThrownBy(() -> locksOf(config).verify(SMTP_PORT, 587)).hasMessageContaining("locked.smtp.port");
@@ -43,10 +45,10 @@ class LockedConfigLoaderTest {
 		values.put(ConfigurationLocks.lockedName(SMTP_HOST.key()), "changed.example.org");
 		final SimpleJavaMailConfig copy = ConfigLoader.builder().withConfig(first)
 				.withMap(Map.of(SMTP_HOST.key(), "ignored.example.org", ConfigurationLocks.lockedName(SMTP_HOST.key()), " ")).load();
-		assertThat(copy.getStringProperty(SMTP_HOST)).isEqualTo("relay.example.org");
+		assertThat(copy.get(ConfigKeys.SMTP_HOST)).isEqualTo("relay.example.org");
 		assertThat(locksOf(copy).contains(SMTP_HOST)).isTrue();
 		assertThatThrownBy(() -> locksOf(copy).getValues().clear()).isInstanceOf(UnsupportedOperationException.class);
-		assertThat(ConfigLoader.builder().withMap(values).load().getStringProperty(SMTP_HOST)).isEqualTo("changed.example.org");
+		assertThat(ConfigLoader.builder().withMap(values).load().get(ConfigKeys.SMTP_HOST)).isEqualTo("changed.example.org");
 	}
 
 	@Test
@@ -58,10 +60,10 @@ class LockedConfigLoaderTest {
 				.withMap("central", Map.of(ConfigurationLocks.lockedName(maximum), "5", ConfigurationLocks.lockedName(timeout), "1000"))
 				.withMap("application", Map.of(maximum, "20", timeout, "2000", "simplejavamail.extraproperties.mail.smtp.auth", "true"))
 				.load();
-		assertThat(config.<Map<String, String>>getProperty(EXTRA_PROPERTIES)).containsEntry("mail.smtp.timeout", "1000");
+		assertThat(config.get(ConfigKeys.EXTRA_PROPERTIES)).containsEntry("mail.smtp.timeout", "1000");
 		assertThat(locksOf(config).getValues()).containsEntry(maximum, 5).containsEntry(timeout, "1000");
 		assertThat(ConfigLoader.builder().withConfig(config).load().asMap()).isEqualTo(config.asMap());
-		assertThat(config.hasProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isTrue();
+		assertThat(config.hasProperty(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isTrue();
 	}
 
 	@Test
@@ -100,7 +102,7 @@ class LockedConfigLoaderTest {
 	void environmentAndUnknownPropertyHandlingApplyToLockedCounterparts() {
 		final SimpleJavaMailConfig config = ConfigLoader.builder()
 				.withEnvironmentVariables(Map.of("SIMPLEJAVAMAIL_LOCKED_SMTP_PORT", "587")).load();
-		assertThat(config.getIntegerProperty(SMTP_PORT)).isEqualTo(587);
+		assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(587);
 		assertThat(locksOf(config).contains(SMTP_PORT)).isTrue();
 		assertThatThrownBy(() -> ConfigLoader.builder().withMap(Map.of("simplejavamail.locked.mispelled", "secret")).load())
 				.hasMessageContaining("Unknown Simple Java Mail property").hasMessageNotContaining("secret")

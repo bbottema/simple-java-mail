@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+import org.simplejavamail.config.ConfigKey;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.jetbrains.annotations.Nullable;
@@ -98,20 +101,20 @@ final class LockedMessageProtection {
 		return DkimConfig.builder()
 				.dkimPrivateKeyData(lockedValue(DKIM_PRIVATE_KEY_FILE_OR_DATA, supplied.getDkimPrivateKeyData(),
 						defaults == null ? null : defaults.getDkimPrivateKeyData()))
-				.dkimSigningDomain(configuredValue(DKIM_SIGNING_DOMAIN, supplied.getDkimSigningDomain()))
-				.dkimSelector(configuredValue(DKIM_SELECTOR, supplied.getDkimSelector()))
-				.useLengthParam(configuredValue(DKIM_SIGNING_USE_LENGTH_PARAM, supplied.getUseLengthParam()))
+				.dkimSigningDomain(configuredValue(ConfigKeys.DKIM_SIGNING_DOMAIN, supplied.getDkimSigningDomain()))
+				.dkimSelector(configuredValue(ConfigKeys.DKIM_SELECTOR, supplied.getDkimSelector()))
+				.useLengthParam(configuredValue(ConfigKeys.DKIM_SIGNING_USE_LENGTH_PARAM, supplied.getUseLengthParam()))
 				.excludedHeadersFromDkimDefaultSigningList(lockedValue(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST,
 						supplied.getExcludedHeadersFromDkimDefaultSigningList(), configuredExcludedHeaders()))
-				.headerCanonicalization(configuredValue(DKIM_SIGNING_HEADER_CANONICALIZATION, supplied.getHeaderCanonicalization()))
-				.bodyCanonicalization(configuredValue(DKIM_SIGNING_BODY_CANONICALIZATION, supplied.getBodyCanonicalization()))
-				.signingAlgorithm(configuredValue(DKIM_SIGNING_ALGORITHM, supplied.getSigningAlgorithm()))
+				.headerCanonicalization(configuredValue(ConfigKeys.DKIM_SIGNING_HEADER_CANONICALIZATION, supplied.getHeaderCanonicalization()))
+				.bodyCanonicalization(configuredValue(ConfigKeys.DKIM_SIGNING_BODY_CANONICALIZATION, supplied.getBodyCanonicalization()))
+				.signingAlgorithm(configuredValue(ConfigKeys.DKIM_SIGNING_ALGORITHM, supplied.getSigningAlgorithm()))
 				.build();
 	}
 
 	@Nullable
 	private Set<String> configuredExcludedHeaders() {
-		final String configured = config.getStringProperty(DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST);
+		final String configured = config.get(ConfigKeys.DKIM_EXCLUDED_HEADERS_FROM_DEFAULT_SIGNING_LIST);
 		return configured == null ? null : Set.of(configured);
 	}
 
@@ -121,16 +124,16 @@ final class LockedMessageProtection {
 		final Pkcs12Config resolvedKey = Pkcs12Config.builder()
 				.pkcs12Store(lockedValue(SMIME_SIGNING_KEYSTORE, key.getPkcs12StoreData(),
 						defaults == null ? null : defaults.getPkcs12Config().getPkcs12StoreData()))
-				.storePassword(lockedValue(SMIME_SIGNING_KEYSTORE_PASSWORD, key.getStorePassword(), configuredPassword(SMIME_SIGNING_KEYSTORE_PASSWORD)))
-				.keyAlias(configuredValue(SMIME_SIGNING_KEY_ALIAS, key.getKeyAlias()))
-				.keyPassword(lockedValue(SMIME_SIGNING_KEY_PASSWORD, key.getKeyPassword(), configuredPassword(SMIME_SIGNING_KEY_PASSWORD)))
+				.storePassword(lockedValue(SMIME_SIGNING_KEYSTORE_PASSWORD, key.getStorePassword(), configuredPassword(ConfigKeys.SMIME_SIGNING_KEYSTORE_PASSWORD)))
+				.keyAlias(configuredValue(ConfigKeys.SMIME_SIGNING_KEY_ALIAS, key.getKeyAlias()))
+				.keyPassword(lockedValue(SMIME_SIGNING_KEY_PASSWORD, key.getKeyPassword(), configuredPassword(ConfigKeys.SMIME_SIGNING_KEY_PASSWORD)))
 				.build();
-		return new SmimeSigningConfig(resolvedKey, configuredValue(SMIME_SIGNING_ALGORITHM, supplied.getSignatureAlgorithm()));
+		return new SmimeSigningConfig(resolvedKey, configuredValue(ConfigKeys.SMIME_SIGNING_ALGORITHM, supplied.getSignatureAlgorithm()));
 	}
 
 	@Nullable
-	private char[] configuredPassword(final Property property) {
-		final String value = config.getStringProperty(property);
+	private char[] configuredPassword(final ConfigKey<String> property) {
+		final String value = config.get(property);
 		return value == null ? null : value.toCharArray();
 	}
 
@@ -138,18 +141,23 @@ final class LockedMessageProtection {
 		final SmimeEncryptionConfig defaults = configuredDefaults.getSmimeEncryptionConfig();
 		return new SmimeEncryptionConfig(lockedValue(SMIME_ENCRYPTION_CERTIFICATE, supplied.getX509Certificate(),
 				defaults == null ? null : defaults.getX509Certificate()),
-				configuredValue(SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM, supplied.getKeyEncapsulationAlgorithm()),
-				configuredValue(SMIME_ENCRYPTION_CIPHER, supplied.getCipherAlgorithm()));
+				configuredValue(ConfigKeys.SMIME_ENCRYPTION_KEY_ENCAPSULATION_ALGORITHM, supplied.getKeyEncapsulationAlgorithm()),
+				configuredValue(ConfigKeys.SMIME_ENCRYPTION_CIPHER, supplied.getCipherAlgorithm()));
 	}
 
 	@Nullable
-	private <T> T configuredValue(final Property property, @Nullable final T supplied) {
-		return lockedValue(property, supplied, config.getProperty(property));
+	private <T> T configuredValue(final ConfigKey<T> property, @Nullable final T supplied) {
+		return lockedValue(property.key(), supplied, config.get(property));
 	}
 
 	@Nullable
 	private <T> T lockedValue(final Property property, @Nullable final T supplied, @Nullable final T configured) {
-		if (!locks.contains(property)) {
+        return lockedValue(property.key(), supplied, configured);
+    }
+
+    @Nullable
+    private <T> T lockedValue(final String property, @Nullable final T supplied, @Nullable final T configured) {
+		if (!locks.getValues().containsKey(property)) {
 			return supplied;
 		}
 		if (supplied != null && !Objects.deepEquals(supplied, configured)) {

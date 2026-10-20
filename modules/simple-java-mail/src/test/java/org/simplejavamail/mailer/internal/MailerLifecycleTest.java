@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -62,7 +63,7 @@ class MailerLifecycleTest {
     @Test
     void asynchronousCloseLeavesApplicationExecutorRunning() throws Exception {
         final ExecutorService applicationExecutor = Executors.newSingleThreadExecutor();
-        try (Mailer mailer = mail().mailerBuilder().withSMTPServer("localhost", 25).withExecutorService(applicationExecutor).buildMailer()) {
+        try (Mailer mailer = mail().mailerBuilder().withSMTPServer("localhost", 25).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer()) {
             mailer.closeAsync().get(5, SECONDS);
             assertThat(applicationExecutor.submit(() -> "still application-owned").get(5, SECONDS)).isEqualTo("still application-owned");
         } finally {
@@ -74,7 +75,7 @@ class MailerLifecycleTest {
     @Test
     void completionViewsCannotCancelOrCompleteTheActualCleanup() throws Exception {
         final BlockingCustomMailer delivery = new BlockingCustomMailer();
-        final Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withThreadPoolSize(1).buildMailer();
+        final Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build()).buildMailer();
         try {
             final CompletableFuture<?> send = mailer.async().sendMail(email()).getCompletion();
             assertThat(delivery.entered.await(5, SECONDS)).isTrue();
@@ -121,6 +122,53 @@ class MailerLifecycleTest {
         } finally {
             originalExecutor.shutdownNow();
             assertThat(originalExecutor.awaitTermination(5, SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void interruptedCloseWaitDoesNotCancelDrainingOrTakeTheApplicationExecutor() throws Exception {
+        final BlockingCustomMailer delivery = new BlockingCustomMailer();
+        final ExecutorService applicationExecutor = Executors.newSingleThreadExecutor();
+        final Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery)
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer();
+        final AtomicReference<Throwable> closeFailure = new AtomicReference<>();
+        final CountDownLatch closeStarted = new CountDownLatch(1);
+        final CountDownLatch closeReturned = new CountDownLatch(1);
+        final Thread closingThread = new Thread(() -> {
+            closeStarted.countDown();
+            try {
+                mailer.close();
+                closeFailure.set(new AssertionError("Close cannot finish while the accepted send is blocked"));
+            } catch (ExecutionException | InterruptedException failure) {
+                closeFailure.set(failure);
+            } finally {
+                closeReturned.countDown();
+            }
+        }, "test-mailer-close-waiter");
+        try {
+            final CompletableFuture<?> send = mailer.async().sendMail(email()).getCompletion();
+            assertThat(delivery.entered.await(5, SECONDS)).isTrue();
+            closingThread.start();
+            assertThat(closeStarted.await(5, SECONDS)).isTrue();
+            closingThread.interrupt();
+            assertThat(closeReturned.await(5, SECONDS)).isTrue();
+            assertThat(closeFailure.get()).isInstanceOf(InterruptedException.class);
+            final CompletableFuture<Void> cleanup = mailer.closeAsync();
+            assertThat(cleanup).isNotDone();
+            assertThat(send).isNotDone();
+            assertThat(applicationExecutor.isShutdown()).isFalse();
+            delivery.finish.countDown();
+            send.get(5, SECONDS);
+            cleanup.get(5, SECONDS);
+            mailer.close();
+            assertThat(applicationExecutor.submit(() -> "still application-owned").get(5, SECONDS)).isEqualTo("still application-owned");
+        } finally {
+            delivery.finish.countDown();
+            closingThread.join(5000);
+            mailer.close();
+            applicationExecutor.shutdownNow();
+            assertThat(applicationExecutor.awaitTermination(5, SECONDS)).isTrue();
+            assertThat(closingThread.isAlive()).isFalse();
         }
     }
 

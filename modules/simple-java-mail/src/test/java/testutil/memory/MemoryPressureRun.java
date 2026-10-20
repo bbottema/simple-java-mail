@@ -1,5 +1,9 @@
 package testutil.memory;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.activation.FileDataSource;
 import jakarta.mail.Message.RecipientType;
@@ -118,12 +122,10 @@ final class MemoryPressureRun implements AutoCloseable {
 
     private MailerRegularBuilder<?> builder(final int port, final boolean observers) {
         final MailerRegularBuilder<?> builder = factory.mailerBuilder().withSMTPServer("127.0.0.1", port)
-                .withTransportStrategy(TransportStrategy.SMTP).withOpportunisticTLS(false)
-                .withSmtpClientHostname("memory.example.test").withProperty("mail.host", "memory.example.test")
-                .withSessionTimeout(Duration.ofMillis(15000)).withConnectionPoolClaimTimeout(Duration.ofMillis(15000))
-                .withThreadPoolSize(options.concurrency).withThreadPoolKeepAliveTime(Duration.ofMillis(3600000))
-                .withAsyncQueueCapacity(options.inflight).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(options.concurrency)
-                .withConnectionPoolExpireAfter(Duration.ofMillis(3600000));
+                .withTransportStrategy(TransportStrategy.SMTP).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("memory.example.test").withSessionTimeout(Duration.ofMillis(15000)).build()).withProperty("mail.host", "memory.example.test")
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(15000)).withCoreSize(0).withMaxSize(options.concurrency).withExpireAfter(Duration.ofMillis(3600000)).build())
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(options.concurrency).withKeepAliveTime(Duration.ofMillis(3600000)).withQueueCapacity(options.inflight).build());
         if (observers) {
             final MailSendHandlers.Builder handlers = MailSendHandlers.builder();
             if (options.hasResultObserver()) {

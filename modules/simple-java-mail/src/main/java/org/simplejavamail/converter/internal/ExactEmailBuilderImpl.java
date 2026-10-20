@@ -13,6 +13,7 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
@@ -37,7 +38,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * @see ExactEmailBuilder
  */
 @ApiStatus.Internal
-public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
+public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simplejavamail.api.internal.clisupport.CliExactEmailConfigurationBuilder {
 
 	private final SimpleJavaMailConfig config;
 	private final byte[] emlBytes;
@@ -55,6 +56,27 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	private Boolean sendingToAcceptedRecipients;
 	@Nullable
 	private final DeliveryStatusReport deliveryStatusReport;
+
+
+    /** @see ExactEmailBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override public ExactEmailBuilder withSmtpDeliveryOptions(@NotNull final SmtpDeliveryOptions choices) {
+        requireNonNull(choices, "config");
+        clearDeliveryStatusNotification();
+        if (choices.getDeliveryStatusNotification() != null) withDeliveryStatusNotification(choices.getDeliveryStatusNotification());
+        tlsRequiredForOnwardDelivery = choices.isTlsRequiredForOnwardDelivery();
+        sendingToAcceptedRecipients = choices.getSendingToAcceptedRecipients();
+        return this;
+    }
+    /** @see ExactEmailBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override @NotNull public SmtpDeliveryOptions getSmtpDeliveryOptions() {
+        final SmtpDeliveryOptions.Builder choices = SmtpDeliveryOptions.builder().withDeliveryStatusNotification(getDeliveryStatusNotification());
+        if (tlsRequiredForOnwardDelivery) choices.withTlsRequiredForOnwardDelivery();
+        if (sendingToAcceptedRecipients != null) choices.withSendingToAcceptedRecipients(sendingToAcceptedRecipients);
+        return choices.build();
+    }
+    /** @see ExactEmailBuilder#withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Override public ExactEmailBuilder useConfiguredSmtpDeliveryOptions() { return withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().build()); }
+
 
 	public ExactEmailBuilderImpl(@NotNull final SimpleJavaMailConfig config, final byte @NotNull [] emlBytes) {
 		this.config = requireNonNull(config, "config");
@@ -132,7 +154,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	}
 
 	/**
-	 * @see ExactEmailBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
@@ -144,7 +166,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearDeliveryStatusNotification() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotification() */
 	@Override
 	public ExactEmailBuilder clearDeliveryStatusNotification() {
 		notificationEvents = emptySet();
@@ -154,7 +176,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#getDeliveryStatusNotification() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getDeliveryStatusNotification() */
 	@Override
 	@Nullable
 	public DeliveryStatusNotification getDeliveryStatusNotification() {
@@ -169,7 +191,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	}
 
 	/**
-	 * @see ExactEmailBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull final NotifyOption @NotNull ...notifyOptions) {
@@ -178,7 +200,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearDeliveryStatusNotificationNotifyOptions() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotificationNotifyOptions() */
 	@Override
 	public ExactEmailBuilder clearDeliveryStatusNotificationNotifyOptions() {
 		notificationEvents = emptySet();
@@ -187,7 +209,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	}
 
 	/**
-	 * @see ExactEmailBuilder#withDeliveryStatusNotificationReturnOption(ReturnOption)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationReturnOption(ReturnOption)
 	 */
 	@Override
 	public ExactEmailBuilder withDeliveryStatusNotificationReturnOption(@NotNull final ReturnOption returnOption) {
@@ -196,7 +218,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearDeliveryStatusNotificationReturnOption() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearDeliveryStatusNotificationReturnOption() */
 	@Override
 	public ExactEmailBuilder clearDeliveryStatusNotificationReturnOption() {
 		notificationReturnOption = null;
@@ -209,7 +231,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 	}
 
 	/**
-	 * @see ExactEmailBuilder#fixingEnvelopeId(String)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	@Override
 	public ExactEmailBuilder fixingEnvelopeId(@Nullable final String envelopeId) {
@@ -217,7 +239,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearEnvelopeId() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearEnvelopeId() */
 	@Override
 	public ExactEmailBuilder clearEnvelopeId() {
 		envelopeId = null;
@@ -225,41 +247,41 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#withTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withTlsRequiredForOnwardDelivery() */
 	@Override
 	public ExactEmailBuilder withTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = true;
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearTlsRequiredForOnwardDelivery() */
 	@Override
 	public ExactEmailBuilder clearTlsRequiredForOnwardDelivery() {
 		tlsRequiredForOnwardDelivery = false;
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#isTlsRequiredForOnwardDelivery() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#isTlsRequiredForOnwardDelivery() */
 	@Override
 	public boolean isTlsRequiredForOnwardDelivery() {
 		return tlsRequiredForOnwardDelivery;
 	}
 
-	/** @see ExactEmailBuilder#withSendingToAcceptedRecipients(boolean) */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withSendingToAcceptedRecipients(boolean) */
 	@Override
 	public ExactEmailBuilder withSendingToAcceptedRecipients(final boolean sendingToAcceptedRecipients) {
 		this.sendingToAcceptedRecipients = sendingToAcceptedRecipients;
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#clearSendingToAcceptedRecipients() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#clearSendingToAcceptedRecipients() */
 	@Override
 	public ExactEmailBuilder clearSendingToAcceptedRecipients() {
 		sendingToAcceptedRecipients = null;
 		return this;
 	}
 
-	/** @see ExactEmailBuilder#getSendingToAcceptedRecipients() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getSendingToAcceptedRecipients() */
 	@Override
 	@Nullable
 	public Boolean getSendingToAcceptedRecipients() {
@@ -278,13 +300,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder {
 		if (envelopeSender != null) {
 			parsedEmailBuilder.withBounceTo(envelopeSender);
 		}
-		parsedEmailBuilder.withDeliveryStatusNotification(getDeliveryStatusNotification());
-		if (tlsRequiredForOnwardDelivery) {
-			parsedEmailBuilder.withTlsRequiredForOnwardDelivery();
-		}
-		if (sendingToAcceptedRecipients != null) {
-			parsedEmailBuilder.withSendingToAcceptedRecipients(sendingToAcceptedRecipients);
-		}
+		parsedEmailBuilder.withSmtpDeliveryOptions(getSmtpDeliveryOptions());
 		return new InternalEmail(parsedEmailBuilder, emlBytes);
 	}
 

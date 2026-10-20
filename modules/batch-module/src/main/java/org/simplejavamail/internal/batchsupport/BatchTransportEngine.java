@@ -11,6 +11,7 @@ import org.bbottema.genericobjectpool.ClaimOptions;
 import org.bbottema.genericobjectpool.AllocationContext;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.batch.BatchTransportException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.batch.BatchTransportOperation;
 import org.simplejavamail.batch.BatchTransportPoolConfiguration;
 import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
@@ -175,9 +176,9 @@ public final class BatchTransportEngine<K> {
 					: smtpConnectionPool.selectTransport(new ResourceClusterAndPoolKey<>(clusterKey, stickySession), options);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new BatchTransportException("Interrupted while selecting an SMTP destination; no connection was borrowed", interrupted);
+			throw new BatchTransportException(MailFailureKind.CAPACITY, "Interrupted while selecting an SMTP destination; no connection was borrowed", interrupted);
 		} catch (RuntimeException failure) {
-			final RuntimeException mapped = new BatchTransportException("Unable to select an SMTP destination; no connection was borrowed", failure);
+			final RuntimeException mapped = new BatchTransportException(MailFailureKind.CAPACITY, "Unable to select an SMTP destination; no connection was borrowed", failure);
 			throw control == null ? mapped : control.translateFailure(mapped);
 		}
 	}
@@ -189,7 +190,7 @@ public final class BatchTransportEngine<K> {
 			return smtpConnectionPool.selectTransportCandidates(clusterKey, claimOptions(claimTimeoutMillis, control, claimControl));
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new BatchTransportException("Interrupted while selecting SMTP destinations; no connection was borrowed", interrupted);
+			throw new BatchTransportException(MailFailureKind.CAPACITY, "Interrupted while selecting SMTP destinations; no connection was borrowed", interrupted);
 		}
 	}
 
@@ -237,10 +238,10 @@ public final class BatchTransportEngine<K> {
 		synchronized (lifecycleMonitor) {
 			ensureClaimsOpen("claim a transport");
 			if (!registeredSessions.containsKey(clusterKey)) {
-				throw new BatchTransportException("No Sessions are registered for the requested cluster");
+				throw new BatchTransportException(MailFailureKind.CONFIGURATION, "No Sessions are registered for the requested cluster", null);
 			}
 			if (stickySession != null && !registeredSessions.get(clusterKey).contains(stickySession)) {
-				throw new BatchTransportException("The requested Session is not registered for the requested cluster");
+				throw new BatchTransportException(MailFailureKind.CONFIGURATION, "The requested Session is not registered for the requested cluster", null);
 			}
 			if (control != null && control.isDeadlineEnabled()) {
 				registeredSessions.get(clusterKey).forEach(BatchTransportEngine::requireDeadlineSupport);
@@ -265,19 +266,19 @@ public final class BatchTransportEngine<K> {
 			lease = observer == null ? acquireLease(clusterKey, stickySession, selected, options) : claimWithObserver(selected, options.start(), observer);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new BatchTransportException("Interrupted while waiting for an SMTP transport", interrupted);
+			throw new BatchTransportException(MailFailureKind.CAPACITY, "Interrupted while waiting for an SMTP transport", interrupted);
 		} catch (RuntimeException failure) {
 			if (control != null && selected != null) {
 				throwIfRecordedConnectionSetupFailed(failure);
 			}
-			final RuntimeException mapped = new BatchTransportException("Unable to claim an SMTP transport", failure);
+			final RuntimeException mapped = new BatchTransportException(MailFailureKind.CAPACITY, "Unable to claim an SMTP transport", failure);
 			throw control == null ? mapped : control.translateFailure(mapped);
 		}
 
 		synchronized (lifecycleMonitor) {
 			if (!claimsOpen) {
 				lease.invalidate();
-				throw new BatchTransportException("The batch transport executor is shutting down");
+				throw new BatchTransportException(MailFailureKind.CAPACITY, "The batch transport executor is shutting down", null);
 			}
 			activeLeases.add(lease);
 		}
@@ -334,7 +335,7 @@ public final class BatchTransportEngine<K> {
 		try {
 			lease.release();
 		} catch (RuntimeException failure) {
-			throw new BatchTransportException("Unable to return an SMTP transport to the pool", failure);
+			throw new BatchTransportException(MailFailureKind.CLEANUP, "Unable to return an SMTP transport to the pool", failure);
 		} finally {
 			activeLeases.remove(lease);
 		}
@@ -344,7 +345,7 @@ public final class BatchTransportEngine<K> {
 		try {
 			lease.invalidate();
 		} catch (RuntimeException failure) {
-			throw new BatchTransportException("Unable to invalidate a failed SMTP transport", failure);
+			throw new BatchTransportException(MailFailureKind.CLEANUP, "Unable to invalidate a failed SMTP transport", failure);
 		} finally {
 			activeLeases.remove(lease);
 		}
@@ -435,7 +436,7 @@ public final class BatchTransportEngine<K> {
 		} catch (BatchTransportException failure) {
 			throw failure;
 		} catch (MessagingException failure) {
-			throw new BatchTransportException("Unable to inspect the Session's default transport provider", failure);
+			throw new BatchTransportException(MailFailureKind.CONFIGURATION, "Unable to inspect the Session's default transport provider", failure);
 		} finally {
 			if (selectedTransport != null) {
 				try {
@@ -460,6 +461,6 @@ public final class BatchTransportEngine<K> {
 	}
 
 	private static BatchTransportException doublePoolingException() {
-		return new BatchTransportException("The Session selects the smtppool provider; exactly one component may own the physical connection pool");
+		return new BatchTransportException(MailFailureKind.CONFIGURATION, "The Session selects the smtppool provider; exactly one component may own the physical connection pool", null);
 	}
 }

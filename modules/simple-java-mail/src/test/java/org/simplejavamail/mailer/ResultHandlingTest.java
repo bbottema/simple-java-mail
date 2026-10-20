@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import jakarta.mail.Header;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -39,7 +40,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -301,7 +302,7 @@ public class ResultHandlingTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 0)
 				.withCustomMailer(new MySimulatingMailer(true))
-				.withExecutorService(executorService)
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executorService).build())
 				.buildMailer()) {
 			executorService.shutdown();
 			final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
@@ -325,7 +326,7 @@ public class ResultHandlingTest {
 		assertThat(asyncResult).isCompletedExceptionally();
 		assertThatThrownBy(asyncResult::get)
 				.isInstanceOf(ExecutionException.class)
-				.hasCauseInstanceOf(RejectedExecutionException.class);
+				.hasCauseInstanceOf(MailSendRejectedException.class);
 	}
 
 	@Test

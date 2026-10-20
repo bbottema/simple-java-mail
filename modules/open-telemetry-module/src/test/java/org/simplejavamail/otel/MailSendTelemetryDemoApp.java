@@ -1,5 +1,7 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -42,9 +44,9 @@ public final class MailSendTelemetryDemoApp {
             try (Mailer mailer = mail.mailerBuilder()
                     .withSMTPServer("localhost", relay.port())
                     .withTransportStrategy(TransportStrategy.SMTP)
-                    .withOpportunisticTLS(false)
+                    .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
                     .withProperty("mail.host", "localhost")
-                    .withConnectionPoolCoreSize(0)
+                    .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build())
                     .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry)).withEnabled(true).build())
                     .buildMailer()) {
                 try (Scope ignored = request.makeCurrent()) {

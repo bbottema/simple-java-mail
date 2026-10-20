@@ -1,5 +1,9 @@
 package testutil.conformance;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -62,14 +66,12 @@ public enum RealSmtpServer {
 		final MailerRegularBuilder builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer(endpoints.getProperty(serverName() + ".host", "localhost"), Integer.parseInt(endpoints.getProperty(serverName() + "." + endpoint)))
 				.withTransportStrategy(strategy)
-				.withSmtpClientHostname("client.conformance.test")
-				.withSessionTimeout(Duration.ofMillis(10000))
-				.withConnectionPoolCoreSize(0)
-				.withConnectionPoolMaxSize(2)
-				.withThreadPoolSize(2);
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("client.conformance.test").withSessionTimeout(Duration.ofMillis(10000)).build())
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(2).build())
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(2).build());
 		if (strategy != SMTP) {
 			builder.withSMTPServerUsername("fixture").withSMTPServerPassword("fixture-password")
-					.withCustomSSLFactoryInstance(fixtureTlsContext().getSocketFactory())
+					.withTlsConfig(builder.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(fixtureTlsContext().getSocketFactory()).build())
 					.withProperty(strategy == SMTPS ? "mail.smtps.socketFactory.fallback" : "mail.smtp.socketFactory.fallback", "false");
 		}
 		return builder;

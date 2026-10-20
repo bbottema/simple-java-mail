@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.MessagingException;
@@ -43,6 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -158,8 +163,8 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
                 assertThat(connectionsReady.await(5, SECONDS)).as("all three physical pool connections were opened").isTrue();
                 acceptMessage(peer, "MAIL FROM:<sender@example.test>", "", "receiver@example.test");
                 finishConnection(peer);
-            }); Mailer mailer = builder(server.port()).withProperties(properties).withThreadPoolSize(3)
-                    .withConnectionPoolMaxSize(3).buildMailer()) {
+            }); Mailer mailer = updateMailer(builder(server.port()), fixture -> fixture.withProperties(properties).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(3).build())
+                    .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(3).build())).buildMailer()) {
                 final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
                 for (int index = 0; index < 3; index++) {
                     sends.add(mailer.async().sendMail(email));
@@ -272,9 +277,9 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
                 .fixingMessageId("cluster-ownership@example.test").withPlainText("Synthetic cluster ownership test.").buildEmail();
         ScheduledThreadPoolExecutor secondGeneration = null;
         try (ScriptedSmtpServer firstPeer = sendingPeer(1); ScriptedSmtpServer secondPeer = sendingPeer(2);
-             Mailer first = builder(firstPeer.port()).withClusterKey(cluster)
-                     .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer();
-             Mailer second = builder(secondPeer.port()).withClusterKey(cluster).withConnectionPoolExpireAfter(Duration.ofMillis(60000)).buildMailer()) {
+             Mailer first = updateMailer(builder(firstPeer.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withExpireAfter(Duration.ofMillis(60000)).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()))
+                     .buildMailer();
+             Mailer second = updateMailer(builder(secondPeer.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withExpireAfter(Duration.ofMillis(60000)).build())).buildMailer()) {
             assertThat(second.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
             assertThat(second.sync().sendMail(email).getStatus()).isEqualTo(ACCEPTED);
             final Object firstController = first.getSession().getProperties().get("mail.smtp.executor.writetimeout");
@@ -395,8 +400,8 @@ class SmtpWriteTimeoutOwnershipCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port) {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-                .withSMTPServer("localhost", port).withTransportStrategy(SMTP).withOpportunisticTLS(false)
-                .withSmtpClientHostname("probe.example.test").withConnectionPoolCoreSize(0);
+                .withSMTPServer("localhost", port).withTransportStrategy(SMTP).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").build()).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build());
     }
 
     private static ScriptedSmtpServer connectionPeer(final int connections) throws Exception {

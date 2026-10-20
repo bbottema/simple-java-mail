@@ -1,5 +1,10 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import io.opentelemetry.api.common.AttributeKey;
@@ -26,7 +31,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSend;
@@ -83,12 +87,10 @@ class MailSendTelemetryTest {
         return mail.mailerBuilder()
                 .withSMTPServer("localhost", port)
                 .withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false)
-                .withSmtpClientHostname("telemetry.example.test")
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("telemetry.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.host", "localhost")
-                .withConnectionPoolCoreSize(0)
-                .withConnectionPoolMaxSize(2)
-                .withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(2).build())
                 .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build());
     }
 
@@ -225,7 +227,7 @@ class MailSendTelemetryTest {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk();
              MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-            try (Mailer mailer = mail.mailerBuilder(session).withExecutorService(executor).withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build())
+            try (Mailer mailer = mail.mailerBuilder(session).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build()).withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(telemetry.sdk)).withEnabled(true).build())
                     .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome::set).build()).buildMailer()) {
                 final Throwable failure = asynchronous
                         ? mailer.async().sendMail(email()).getCompletion().handle((receipt, cause) -> cause).get(5, SECONDS)
@@ -283,7 +285,7 @@ class MailSendTelemetryTest {
                             .withAddress("rejected@example.test")
                             .withType(Message.RecipientType.TO)
                             .build())
-                    .withSendingToAcceptedRecipients(true)
+                    .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(true).build())
                     .buildEmail();
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(mixed));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
@@ -299,7 +301,7 @@ class MailSendTelemetryTest {
     @Test
     void preparationAndSchedulingFailuresDoNotManufactureSubmissionChildren() throws Exception {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
-        try (TelemetryTestSdk telemetry = new TelemetryTestSdk(); Mailer mailer = builder(0, telemetry).withExecutorService(executor).buildMailer()) {
+        try (TelemetryTestSdk telemetry = new TelemetryTestSdk(); Mailer mailer = builder(0, telemetry).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build()).buildMailer()) {
             final Email incomplete = mail.emailBuilder().startingBlank().buildEmail();
             assertThat(catchThrowable(() -> mailer.sync().sendMail(incomplete))).isNotNull();
             executor.shutdown();
@@ -338,8 +340,8 @@ class MailSendTelemetryTest {
     void queuedCancellationBalancesAnUnstartedObservationAndLeavesNoContextAttached() throws Exception {
         final CountDownLatch entered = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
-        try (TelemetryTestSdk telemetry = new TelemetryTestSdk(); Mailer mailer = builder(0, telemetry).withThreadPoolSize(1)
-                .withAsyncQueueCapacity(1).withCustomMailer(callback((email, message) -> {
+        try (TelemetryTestSdk telemetry = new TelemetryTestSdk(); Mailer mailer = builder(0, telemetry).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).withQueueCapacity(1).build())
+                .withCustomMailer(callback((email, message) -> {
                     entered.countDown();
                     try {
                         assertThat(release.await(5, SECONDS)).isTrue();
@@ -567,9 +569,9 @@ class MailSendTelemetryTest {
                 throw actualFailure;
             }))
                     .withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(broken)).withEnabled(true).build()).buildMailer()) {
-                // CustomMailer failures already cross SJM's MailerException boundary; SDK failure must not replace that original cause.
+                // Application failures retain their identity; SDK failure must not wrap or replace them.
                 assertThat(catchThrowable(() -> mailer.sync().sendMail(email())))
-                        .isInstanceOf(MailException.class).hasCause(actualFailure);
+                        .isSameAs(actualFailure);
             }
         }
     }

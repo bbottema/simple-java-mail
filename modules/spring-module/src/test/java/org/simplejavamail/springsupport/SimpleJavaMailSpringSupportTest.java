@@ -1,5 +1,7 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -49,23 +51,23 @@ public abstract class SimpleJavaMailSpringSupportTest {
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).isEqualTo("base64"); // from normal simplejavamail.properties
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)).isEqualTo("FAILURE,DELAY"); // from normal simplejavamail.properties
 		assertThat(getProperty(ConfigLoader.Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)).isEqualTo("HEADERS_ONLY"); // from Spring application.properties
-		assertThat(config.getBooleanProperty(ConfigLoader.Property.DEFAULT_REQUIRE_TLS)).isTrue(); // from Spring application.properties
+		assertThat(config.get(ConfigKeys.DEFAULT_REQUIRE_TLS)).isTrue(); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.JAVAXMAIL_DEBUG_OUTPUT)).isEqualTo("STDERR"); // from Spring application.properties
 		assertThat(getProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME)).isEqualTo("mailer.spring.example.com"); // from Spring application.properties
-		assertThat(config.getBooleanProperty(ConfigLoader.Property.SMTP_LEGACY_CONTENT_SUPPORT)).isTrue();
+		assertThat(config.get(ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT)).isTrue();
 		assertThat(defaultMailer.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isTrue();
 		assertThat(getProperty(ConfigLoader.Property.SMTP_LOCAL_ADDRESS)).isEqualTo("192.0.2.30"); // from Spring application.properties
-		assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
-		assertThat(config.<Duration>getProperty(ConfigLoader.Property.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
+		assertThat(config.get(ConfigKeys.SMTP_LOCAL_PORT)).isEqualTo(25259); // from Spring application.properties
+		assertThat(config.get(ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
 		assertThat(defaultMailer.getOperationalConfig().getMailSendTimeout()).isEqualTo(Duration.ofSeconds(30));
-		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(900000);
+		assertThat(config.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(900000));
 		assertThat(defaultMailer.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900000));
 		assertThat(getProperty(ConfigLoader.Property.DKIM_SELECTOR)).isNull(); // not set in any properties
 	}
 
 	private void assertConnectionPoolClusterResolution() {
 		final UUID ordersCluster = UUID.fromString("00000000-0000-0000-0000-000000000301");
-		final Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		final Map<UUID, ConnectionPoolClusterConfig> clusterConfigs = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 		assertThat(clusterConfigs).containsKey(ordersCluster);
 		assertThat(clusterConfigs.get(ordersCluster).getCoreSize()).isEqualTo(0);
 		assertThat(clusterConfigs.get(ordersCluster).getMaxSize()).isEqualTo(3);
@@ -74,7 +76,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 	}
 
 	private void assertExtraPropertyResolution() {
-		final Map<String, String> loaded = config.getProperty(EXTRA_PROPERTIES);
+		final Map<String, String> loaded = config.get(ConfigKeys.EXTRA_PROPERTIES);
 		final Map<String, String> expected = new HashMap<>();
 		expected.put("one", "1"); // from normal simplejavamail.properties
 		expected.put("two", "two"); // overridden from Spring application.properties
@@ -90,7 +92,7 @@ public abstract class SimpleJavaMailSpringSupportTest {
 	}
 
 	private @Nullable String getProperty(final ConfigLoader.Property property) {
-		final Object value = config.getProperty(property);
+		final Object value = config.asMap().get(property);
 		return value != null ? value.toString() : null;
 	}
 }

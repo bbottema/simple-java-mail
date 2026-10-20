@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Authenticator;
@@ -46,6 +51,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
+import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -80,7 +87,7 @@ class SmtpConnectionProbeTest {
             assertThat(report.isSuccessful()).isTrue();
             assertThat(report.getBeforeTls().orElseThrow().getExtensions().get("SIZE")).containsExactly("100", "200");
             assertThat(report.getBeforeTls().orElseThrow().getExtensions().get("X-UNKNOWN")).containsExactly("one two");
-            assertThat(report.getBeforeTls().orElseThrow().getMaximumMessageSize()).isEmpty();
+            assertThat(report.getBeforeTls().orElseThrow().getMaximumMessageSize()).isNull();
             assertThat(report.getWarnings()).contains("An invalid EHLO extension line was ignored.");
         }
     }
@@ -141,7 +148,7 @@ class SmtpConnectionProbeTest {
             peer.quit();
         }); Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user", "probe-secret")
                 .withProperty("mail.smtp.localhost", "probe.example.test")
-                .withTransportModeLoggingOnly(true).withOpportunisticTLS(false).buildMailer()) {
+                .withTransportModeLoggingOnly(true).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).buildMailer()) {
             final SmtpConnectionReport report = async ? mailer.async().probeConnection(authenticate).get(10, SECONDS)
                     : mailer.sync().probeConnection(authenticate);
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
@@ -176,13 +183,13 @@ class SmtpConnectionProbeTest {
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.STARTTLS);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.STARTTLS);
             assertThat(report.isStartTlsCompleted()).isFalse();
             assertThat(CLASS_VERIFIER_CALLS).hasValue(1);
             if (byClass) {
                 assertThat(report.getTlsDetails()).isEmpty();
             } else {
-                assertThat(report.getTlsDetails().orElseThrow().getCustomHostnameVerifierAccepted()).contains(false);
+                assertThat(report.getTlsDetails().orElseThrow().getCustomHostnameVerifierAccepted()).isEqualTo(false);
             }
         }
     }
@@ -202,7 +209,7 @@ class SmtpConnectionProbeTest {
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.STARTTLS);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.STARTTLS);
             assertThat(report.getAfterTls()).isEmpty();
             assertThat(report.isTlsActive()).isFalse();
         }
@@ -224,7 +231,7 @@ class SmtpConnectionProbeTest {
             assertThatThrownBy(peer::upgradeToTls).isInstanceOf(IOException.class);
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.STARTTLS);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.STARTTLS);
             assertThat(report.isStartTlsCompleted()).isFalse();
             assertThat(report.getTlsDetails()).isEmpty();
             verify(mismatchedPeer).createSocket(any(Socket.class), anyString(), anyInt(), anyBoolean());
@@ -240,8 +247,8 @@ class SmtpConnectionProbeTest {
             final SmtpConnectionReport earlier = mailer.sync().probeConnection();
             atEndpoint(session, second);
             final SmtpConnectionReport later = mailer.sync().probeConnection();
-            assertThat(later.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).hasValue(4096);
-            assertThat(earlier.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).hasValue(1024);
+            assertThat(later.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).isEqualTo(4096);
+            assertThat(earlier.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).isEqualTo(1024);
             assertThat(earlier.getBeforeTls().orElseThrow().supports("DSN")).isFalse();
         }
     }
@@ -271,11 +278,11 @@ class SmtpConnectionProbeTest {
             final Provider provider = session.getProvider("smtp");
             final SmtpConnectionReport report = async ? mailer.async().probeConnection().get(10, SECONDS) : mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
-            assertThat(report.getGreeting()).contains("220 localhost capability test peer");
-            assertThat(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).hasValue(1024);
+            assertThat(report.getGreeting()).isEqualTo("220 localhost capability test peer");
+            assertThat(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).isEqualTo(1024);
             assertThat(report.getBeforeTls()).isPresent();
             assertThat(report.getAfterTls()).isEmpty();
-            assertThat(report.getAuthenticationMechanism()).isEmpty();
+            assertThat(report.getAuthenticationMechanism()).isNull();
             assertThat(report.getWarnings()).isEmpty();
             assertThat(report.isAuthenticated()).isFalse();
             assertThat(report.getCompletedAt()).isAfterOrEqualTo(report.getStartedAt());
@@ -327,7 +334,7 @@ class SmtpConnectionProbeTest {
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
             assertThat(report.isAuthenticationRequested()).isTrue();
             assertThat(report.isAuthenticated()).isTrue();
-            assertThat(report.getAuthenticationMechanism()).contains("LOGIN");
+            assertThat(report.getAuthenticationMechanism()).isEqualTo("LOGIN");
             assertThat(requested).hasValue(cached ? 0 : 1);
             // Match the authentication exchange, not digits that can also occur in the random port or elapsed time.
             assertThat(report.toString()).doesNotContain("probe-user", "probe-secret",
@@ -341,7 +348,7 @@ class SmtpConnectionProbeTest {
     void regularBuilderPasswordReachesTheAuthenticatedProbe() throws Exception {
         try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.authenticate(); peer.quit(); });
              Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user", "probe-secret")
-                     .withProperty("mail.smtp.localhost", "probe.example.test").withOpportunisticTLS(false).buildMailer()) {
+                     .withProperty("mail.smtp.localhost", "probe.example.test").withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).buildMailer()) {
             assertThat(mailer.sync().probeConnection(true).isAuthenticated()).isTrue();
         }
     }
@@ -354,7 +361,7 @@ class SmtpConnectionProbeTest {
                      .withTransportStrategy(TransportStrategy.SMTP_OAUTH2).withOAuth2AccessTokenProvider(() -> {
                          tokenRequests.incrementAndGet();
                          return "secret-oauth-token";
-                     }).withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory"))
+                     }).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory")).build())
                      .withProperty("mail.smtp.localhost", "probe.example.test")
                      .buildMailer()) {
             assertThat(mailer.sync().probeConnection().isSuccessful()).isTrue();
@@ -376,13 +383,13 @@ class SmtpConnectionProbeTest {
                 .withTransportStrategy(TransportStrategy.SMTP_OAUTH2).withOAuth2AccessTokenProvider(() -> {
                     tokenRequests.incrementAndGet();
                     return "secret-oauth-token";
-                }).withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory"))
+                }).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance((SSLSocketFactory) session(true).getProperties().get("mail.smtp.ssl.socketFactory")).build())
                 .withProperty("mail.smtp.localhost", "probe.example.test")
                 .buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
             assertThat(report.isAuthenticated()).isTrue();
-            assertThat(report.getAuthenticationMechanism()).contains("XOAUTH2");
+            assertThat(report.getAuthenticationMechanism()).isEqualTo("XOAUTH2");
             assertThat(mailer.getTransportStrategy()).isEqualTo(TransportStrategy.SMTP_OAUTH2);
             assertThat(tokenRequests).hasValue(1);
             // Match the authentication reply, not digits that can also occur in the random port or elapsed time.
@@ -399,8 +406,8 @@ class SmtpConnectionProbeTest {
                 }).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
             assertThat(report.isSuccessful()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.AUTHENTICATION);
-            assertThat(report.getGreeting()).isEmpty();
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.AUTHENTICATION);
+            assertThat(report.getGreeting()).isNull();
             assertThat(report.toString()).doesNotContain("credential-service", "secret-token");
         }
     }
@@ -409,10 +416,10 @@ class SmtpConnectionProbeTest {
     void incompatibleAuthMechanismsAreAnAuthenticationFailureEvenWithoutAnAuthCommand() throws Exception {
         try (Peer server = new Peer(false, peer -> { peer.greet("250-localhost\r\n250 AUTH X-NOT-SUPPORTED"); peer.expectClosed(); });
              Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user", "probe-secret")
-                     .withOpportunisticTLS(false).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
+                     .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.AUTHENTICATION);
-            assertThat(report.getAuthenticationMechanism()).isEmpty();
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.AUTHENTICATION);
+            assertThat(report.getAuthenticationMechanism()).isNull();
             assertThat(report.getBeforeTls()).isPresent();
         }
     }
@@ -476,7 +483,7 @@ class SmtpConnectionProbeTest {
             final SmtpConnectionReport report = mailer.async().probeConnection().get(5, SECONDS);
             assertThat(report.isSuccessful()).isFalse();
             assertThat(report.isConnected()).isTrue();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.CLOSE);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.CLOSE);
             assertThat(report.getEffectiveCapabilities().orElseThrow().supports("SIZE")).isTrue();
         }
     }
@@ -485,12 +492,12 @@ class SmtpConnectionProbeTest {
     void missingAuthAdvertisementDoesNotBecomeAnAuthenticationSuccess() throws Exception {
         try (Peer server = new Peer(false, peer -> { peer.greet("250-localhost\r\n250 SIZE 100"); peer.quit(); });
              Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user", "probe-secret")
-                     .withOpportunisticTLS(false).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
+                     .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
             assertThat(report.isConnected()).isTrue();
             assertThat(report.isSuccessful()).isFalse();
             assertThat(report.isAuthenticated()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.AUTHENTICATION);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.AUTHENTICATION);
         }
     }
 
@@ -502,10 +509,10 @@ class SmtpConnectionProbeTest {
             peer.reply("535 refused probe-user probe-secret bearer-token");
             peer.expectClosed();
         }); Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.port(), "probe-user", "probe-secret")
-                .withOpportunisticTLS(false).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection(true);
             assertThat(report.isSuccessful()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.AUTHENTICATION);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.AUTHENTICATION);
             assertThat(report.getBeforeTls()).isPresent();
             assertThat(report.toString()).doesNotContain("probe-secret", "probe-user", "bearer-token", "535 refused");
         }
@@ -523,10 +530,10 @@ class SmtpConnectionProbeTest {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).as(report.toString()).isTrue();
             assertThat(report.isStartTlsCompleted()).isTrue();
-            assertThat(report.getBeforeTls().orElseThrow().getMaximumMessageSize()).hasValue(1024);
-            assertThat(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).hasValue(4096);
+            assertThat(report.getBeforeTls().orElseThrow().getMaximumMessageSize()).isEqualTo(1024);
+            assertThat(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize()).isEqualTo(4096);
             assertThat(report.getTlsDetails().orElseThrow().getProtocol()).startsWith("TLS");
-            assertThat(report.getTlsDetails().orElseThrow().getCustomHostnameVerifierAccepted()).contains(true);
+            assertThat(report.getTlsDetails().orElseThrow().getCustomHostnameVerifierAccepted()).isEqualTo(true);
             assertThat(verifications).hasValue(1);
             assertThat(session.getProperties().get("mail.smtp.ssl.hostnameverifier")).isSameAs(verifier);
         }
@@ -541,7 +548,7 @@ class SmtpConnectionProbeTest {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isFalse();
             assertThat(report.isStartTlsCompleted()).isTrue();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.EHLO);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.EHLO);
             assertThat(report.getBeforeTls()).isPresent();
             assertThat(report.getAfterTls()).isEmpty();
             assertThat(report.getEffectiveCapabilities()).isEmpty();
@@ -560,7 +567,7 @@ class SmtpConnectionProbeTest {
         }); Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSuccessful()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.STARTTLS);
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.STARTTLS);
             assertThat(report.getBeforeTls()).isPresent();
             assertThat(report.isStartTlsCompleted()).isFalse();
         }
@@ -589,8 +596,8 @@ class SmtpConnectionProbeTest {
         try (Peer server = new Peer(false, SmtpConversation::expectClosed);
              Mailer mailer = factory().mailerBuilder(atEndpoint(session, server)).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.GREETING);
-            assertThat(report.getFailureDescription()).hasValueSatisfying(description -> assertThat(description).contains("timed out"));
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.GREETING);
+            assertThat(report.getFailureDescription()).contains("timed out");
         }
     }
 
@@ -606,7 +613,7 @@ class SmtpConnectionProbeTest {
         try (Mailer mailer = factory().mailerBuilder(session).buildMailer()) {
             final SmtpConnectionReport report = mailer.sync().probeConnection();
             assertThat(report.isSupported()).isFalse();
-            assertThat(report.getFailureDescription()).hasValueSatisfying(description -> assertThat(description).contains("not.a.real.Provider"));
+            assertThat(report.getFailureDescription()).contains("not.a.real.Provider");
         }
     }
 
@@ -614,7 +621,7 @@ class SmtpConnectionProbeTest {
     void executorRejectionCompletesFutureExceptionallyWithoutOpeningAConnection() throws Exception {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.shutdown();
-        try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", 25).withExecutorService(executor).buildMailer()) {
+        try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", 25).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executor).build()).buildMailer()) {
             assertThatThrownBy(() -> mailer.async().probeConnection().get(2, SECONDS)).hasCauseInstanceOf(RejectedExecutionException.class);
         }
     }
@@ -624,7 +631,10 @@ class SmtpConnectionProbeTest {
         final Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
         mailer.close();
         assertThatThrownBy(mailer.sync()::probeConnection).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> mailer.async().probeConnection().get(2, SECONDS)).hasCauseInstanceOf(RejectedExecutionException.class);
+        assertThatThrownBy(() -> mailer.async().probeConnection().get(2, SECONDS))
+                .hasCauseInstanceOf(MailSendRejectedException.class)
+                .satisfies(failure -> assertThat(((MailSendRejectedException) failure.getCause()).getReason())
+                        .isEqualTo(AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN));
     }
 
     @Test
@@ -633,8 +643,8 @@ class SmtpConnectionProbeTest {
         server.start();
         // The bound checks pool isolation, not reverse DNS for Angus's automatically chosen EHLO name.
         try (Mailer mailer = factory().mailerBuilder().withSMTPServer("localhost", server.getServer().getPortAllocated())
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(500))
-                .withOpportunisticTLS(false).withSmtpClientHostname("localhost").buildMailer()) {
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(500)).build())
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build()).buildMailer()) {
             final LifecycleDelegatingTransport lease = ModuleLoader.loadBatchModule().acquireTransport(
                     mailer.getOperationalConfig().getClusterKey(), mailer.getSession(), true, null);
             try {
@@ -654,8 +664,8 @@ class SmtpConnectionProbeTest {
     void probeHonorsAnonymousSocksProxyConfiguration() throws Exception {
         final RunningSocksServer proxy = new SyncSocksServer().startServer(0);
         try (Peer server = new Peer(false, peer -> { peer.greet(PLAIN); peer.quit(); });
-             Mailer mailer = factory().mailerBuilder().withProxy("localhost", proxy.getPort())
-                     .withSMTPServer("localhost", server.port()).withOpportunisticTLS(false)
+             Mailer mailer = factory().mailerBuilder().withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxy.getPort()).build())
+                     .withSMTPServer("localhost", server.port()).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
                      .withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             assertThat(mailer.sync().probeConnection().isSuccessful()).isTrue();
         } finally {
@@ -674,9 +684,9 @@ class SmtpConnectionProbeTest {
                 peer.authenticate();
             }
             peer.quit();
-        }); Mailer mailer = factory().mailerBuilder().withProxy("localhost", proxy.getPort(), PROXY_USERNAME, PROXY_PASSWORD)
-                .withSMTPServer("localhost", server.port(), "probe-user", "probe-secret").withOpportunisticTLS(false)
-                .withSessionTimeout(Duration.ofMillis(2000)).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
+        }); Mailer mailer = factory().mailerBuilder().withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxy.getPort()).withUsername(PROXY_USERNAME).withPassword(PROXY_PASSWORD).build())
+                .withSMTPServer("localhost", server.port(), "probe-user", "probe-secret").withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(2000)).build()).withProperty("mail.smtp.localhost", "probe.example.test").buildMailer()) {
             final SmtpConnectionReport report = asynchronous ? mailer.async().probeConnection(authenticateSmtp).get(5, SECONDS)
                     : mailer.sync().probeConnection(authenticateSmtp);
 
@@ -697,9 +707,9 @@ class SmtpConnectionProbeTest {
         final AtomicInteger proxyAuthenticationAttempts = new AtomicInteger();
         final RunningSocksServer proxy = startAuthenticatedProxy(proxyAuthenticationAttempts);
         try (ServerSocket smtpEndpoint = new ServerSocket(0, 1, InetAddress.getByName("localhost"));
-             Mailer mailer = factory().mailerBuilder().withProxy("localhost", proxy.getPort(), username, password)
-                     .withSMTPServer("localhost", smtpEndpoint.getLocalPort()).withOpportunisticTLS(false)
-                     .withSessionTimeout(Duration.ofMillis(2000)).buildMailer()) {
+             Mailer mailer = factory().mailerBuilder().withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxy.getPort()).withUsername(username).withPassword(password).build())
+                     .withSMTPServer("localhost", smtpEndpoint.getLocalPort()).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                     .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(2000)).build()).buildMailer()) {
             final SmtpConnectionReport report = asynchronous ? mailer.async().probeConnection().get(5, SECONDS)
                     : mailer.sync().probeConnection();
 
@@ -707,8 +717,8 @@ class SmtpConnectionProbeTest {
             assertThat(report.isSupported()).isTrue();
             assertThat(report.isSuccessful()).isFalse();
             assertThat(report.isConnected()).isFalse();
-            assertThat(report.getFailurePhase()).contains(SmtpConnectionPhase.CONNECT);
-            assertThat(report.getGreeting()).isEmpty();
+            assertThat(report.getFailurePhase()).isEqualTo(SmtpConnectionPhase.CONNECT);
+            assertThat(report.getGreeting()).isNull();
             assertThat(report.getEffectiveCapabilities()).isEmpty();
             assertThat(report.toString()).doesNotContain(PROXY_USERNAME, PROXY_PASSWORD, username, password);
             assertNoSmtpConnection(smtpEndpoint);

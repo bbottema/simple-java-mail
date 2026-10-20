@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -20,9 +21,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
@@ -164,15 +166,15 @@ class MailSendHandlersTest {
 		rejectedExecutor.shutdown();
 		final AtomicInteger factories = new AtomicInteger();
 		final List<MailSendOutcome> results = new ArrayList<>();
-		try (Mailer mailer = builder().withExecutorService(rejectedExecutor).withSendHandlersFactory(id -> {
+		try (Mailer mailer = updateMailer(builder(), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(rejectedExecutor).build())).withSendHandlersFactory(id -> {
 			factories.incrementAndGet();
 			return MailSendHandlers.builder().withResultObserver(results::add).build();
 		}).buildMailer()) {
 			final Throwable failure = mailer.async().sendMail(email()).getCompletion().handle((receipt, cause) -> cause).join();
-			assertThat(failure).isInstanceOf(RejectedExecutionException.class);
+			assertThat(failure).isInstanceOf(MailSendRejectedException.class);
 			assertThat(results).hasSize(1);
 			assertThat(results.get(0).getFailure()).containsSame(failure);
-			assertThat(results.get(0).getStartedAt()).isEmpty();
+			assertThat(results.get(0).getStartedAt()).isNull();
 			assertThat(factories).hasValue(1);
 		}
 	}

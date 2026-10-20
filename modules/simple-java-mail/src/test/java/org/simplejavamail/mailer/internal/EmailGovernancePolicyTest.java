@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -60,15 +63,15 @@ class EmailGovernancePolicyTest {
 
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(submitted).getDkimConfig()).isSameAs(overrides.getDkimConfig());
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().copying(submitted)
-				.ignoringOverrides().buildEmail()).getDkimConfig()).isSameAs(submitted.getDkimConfig());
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringOverrides().build()).buildEmail()).getDkimConfig()).isSameAs(submitted.getDkimConfig());
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().copying(submitted)
-				.dontApplyOverrideValueFor(DKIM_SIGNING_CONFIG).buildEmail()).getDkimConfig()).isSameAs(submitted.getDkimConfig());
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(DKIM_SIGNING_CONFIG).build()).buildEmail()).getDkimConfig()).isSameAs(submitted.getDkimConfig());
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().startingBlank()
-				.ignoringOverrides().buildEmail()).getDkimConfig()).isSameAs(defaults.getDkimConfig());
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringOverrides().build()).buildEmail()).getDkimConfig()).isSameAs(defaults.getDkimConfig());
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().startingBlank()
-				.ignoringOverrides().ignoringDefaults().buildEmail()).getDkimConfig()).isNull();
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringOverrides().ignoringDefaults().build()).buildEmail()).getDkimConfig()).isNull();
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().startingBlank()
-				.dontApplyOverrideValueFor(DKIM_SIGNING_CONFIG).dontApplyDefaultValueFor(DKIM_SIGNING_CONFIG)
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(DKIM_SIGNING_CONFIG).dontApplyDefaultValueFor(DKIM_SIGNING_CONFIG).build())
 				.buildEmail()).getDkimConfig()).isNull();
 		assertThat(submitted.getDkimConfig()).isEqualTo(signingConfig("submitted"));
 	}
@@ -111,7 +114,7 @@ class EmailGovernancePolicyTest {
 					.isSameAs(signingTemplate.getDkimConfig());
 		}
 		assertThat(propertyTemplate.getDkimConfig().getDkimSelector()).isEqualTo("property");
-		assertThat(configured.getConfig().getStringProperty(DKIM_SELECTOR)).isEqualTo("property");
+		assertThat(configured.getConfig().get(ConfigKeys.DKIM_SELECTOR)).isEqualTo("property");
 	}
 
 	@Test
@@ -138,7 +141,7 @@ class EmailGovernancePolicyTest {
 		final Email cleared = mail.emailBuilder().copying(signingTemplate("provided")).clearDkim().buildEmail();
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(cleared).getDkimConfig()).isEqualTo(signingConfig("default"));
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(mail.emailBuilder().copying(cleared)
-				.dontApplyDefaultValueFor(DKIM_SIGNING_CONFIG).buildEmail()).getDkimConfig()).isNull();
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(DKIM_SIGNING_CONFIG).build()).buildEmail()).getDkimConfig()).isNull();
 	}
 
 	@Test

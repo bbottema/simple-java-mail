@@ -59,7 +59,9 @@ public final class ConfigLoader {
 	private final List<ConfigSource> sources = new ArrayList<>();
 
 	/**
-	 * List of all the properties recognized by Simple Java Mail. Can be used to programmatically get, set or remove default values.
+	 * Textual property identities recognized by Simple Java Mail. Use {@link Property#key()} with dynamic input maps or
+	 * {@link SimpleJavaMailConfig#asMap()} for explicit raw integration. Ordinary type-safe Java reads use {@link ConfigKeys}.
+	 * Constants and their textual names retain their parser/property-file meaning; they do not carry a caller-selectable value type.
 	 *
 	 * @see <a href="https://www.simplejavamail.org">simplejavamail.org</a>
 	 */

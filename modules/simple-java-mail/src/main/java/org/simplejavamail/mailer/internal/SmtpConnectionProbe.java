@@ -62,7 +62,7 @@ final class SmtpConnectionProbe {
 
     private static SmtpConnectionReport withProxyCleanupFailure(final SmtpConnectionReport report, final Instant startedAt) {
         final SmtpConnectionReport.SmtpConnectionReportBuilder completed = report.toBuilder().startedAt(startedAt).completedAt(Instant.now());
-        if (report.getFailurePhase().isPresent()) {
+        if (report.getFailurePhase() != null) {
             final List<String> warnings = new ArrayList<>(report.getWarnings());
             warnings.add("Proxy cleanup also failed; the first failure is retained.");
             return completed.warnings(warnings).build();

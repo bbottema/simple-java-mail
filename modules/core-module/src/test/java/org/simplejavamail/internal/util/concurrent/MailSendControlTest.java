@@ -18,6 +18,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 class MailSendControlTest {
+    private static final class OwnedFailure extends org.simplejavamail.MailException {
+        private OwnedFailure(final String message, final Throwable cause) {
+            super(org.simplejavamail.api.mailer.MailFailureKind.CAPACITY, message, cause, null);
+        }
+    }
+
+    @Test
+    void anApplicationRuntimeFailureIsNotReclassifiedByARacingCancellation() {
+        final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
+        try (MailSendControl control = new MailSendControl(null, watcher)) {
+            final RuntimeException callbackFailure = new IllegalStateException("application defect");
+            control.requestCancellation();
+            assertThat(control.translateFailure(callbackFailure)).isSameAs(callbackFailure);
+        } finally {
+            watcher.shutdownNow();
+        }
+    }
+
     @Test
     void anExpiredBoundaryDoesNotDependOnTheWatcherHavingRun() throws Exception {
         final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
@@ -26,7 +44,7 @@ class MailSendControlTest {
         try (MailSendControl control = new MailSendControl(Duration.ofMillis(20), watcher)) {
             new CountDownLatch(1).await(100, MILLISECONDS);
             assertThat(control.isStopRequested()).isFalse();
-            final RuntimeException original = new IllegalStateException("pool wait expired");
+            final RuntimeException original = new OwnedFailure("pool wait expired", null);
             assertThat(control.translateFailure(original)).isInstanceOf(MailSendTimeoutException.class).hasCause(original);
         } finally {
             release.countDown();
@@ -38,10 +56,10 @@ class MailSendControlTest {
     void aLaterCleanupCancellationCannotReplaceAnEarlierPrimaryFailure() {
         final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
         try (MailSendControl control = new MailSendControl(null, watcher)) {
-            final RuntimeException original = new IllegalStateException("real transport failure");
+            final RuntimeException original = new OwnedFailure("real transport failure", null);
             assertThat(control.translateFailure(original)).isSameAs(original);
             control.requestCancellation();
-            final RuntimeException wrapper = new RuntimeException("caller-facing context", original);
+            final RuntimeException wrapper = new OwnedFailure("caller-facing context", original);
             assertThat(control.translateFailure(wrapper)).isSameAs(wrapper);
         } finally {
             watcher.shutdownNow();

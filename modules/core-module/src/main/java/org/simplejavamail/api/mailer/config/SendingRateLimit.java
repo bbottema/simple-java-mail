@@ -44,16 +44,16 @@ public class SendingRateLimit implements Serializable {
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withMessageRateLimit(int, Duration)
-	 * @see MailerGenericBuilder#withRecipientRateLimit(int, Duration)
+	 * @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withMessageRateLimit(int, Duration)
+	 * @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withRecipientRateLimit(int, Duration)
 	 */
 	public int getCount() {
 		return count;
 	}
 
 	/**
-	 * @see MailerGenericBuilder#withMessageRateLimit(int, Duration)
-	 * @see MailerGenericBuilder#withRecipientRateLimit(int, Duration)
+	 * @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withMessageRateLimit(int, Duration)
+	 * @see org.simplejavamail.api.mailer.config.SendingLimitsConfig.Builder#withRecipientRateLimit(int, Duration)
 	 */
 	@NotNull
 	public Duration getPeriod() {

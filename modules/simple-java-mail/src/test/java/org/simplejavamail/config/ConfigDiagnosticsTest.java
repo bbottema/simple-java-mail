@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -72,7 +74,7 @@ class ConfigDiagnosticsTest {
 
 		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), SMTP_HOST.key());
 
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("smtp.example.test");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("smtp.example.test");
 		assertThat(diagnostic.getSourceName()).isEqualTo("base configuration");
 	}
 
@@ -196,8 +198,8 @@ class ConfigDiagnosticsTest {
 		assertThat(diagnostic(diagnostics, cluster("orders", "maxsize")).getDisplayValue()).isEqualTo("3");
 		assertThat(diagnostic(diagnostics, cluster("orders", "coresize")).getSourceName()).isEqualTo("low priority");
 		assertThat(diagnostic(diagnostics, cluster("orders", "maxsize")).getSourceName()).isEqualTo("high priority");
-		assertThat(config.getPropertySource(EXTRA_PROPERTIES)).isEqualTo("high priority");
-		assertThat(config.getPropertySource(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isEqualTo("high priority");
+		assertThat(config.getPropertySource(ConfigKeys.EXTRA_PROPERTIES)).isEqualTo("high priority");
+		assertThat(config.getPropertySource(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isEqualTo("high priority");
 		final ConfigPropertyDiagnostic globalCreationAge = diagnostic(diagnostics, DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key());
 		assertThat(globalCreationAge.getDisplayValue()).isEqualTo("450000");
 		assertThat(globalCreationAge.getGroup()).isEqualTo(EXECUTION_AND_POOLING);
@@ -241,8 +243,8 @@ class ConfigDiagnosticsTest {
 
 		assertThat(diagnostic(config.getDiagnostics(), timeoutProperty).getSourceName()).isEqualTo("application properties");
 		assertThat(diagnostic(config.getDiagnostics(), clusterSizeProperty).getSourceName()).isEqualTo("pool profile");
-		assertThat(config.getPropertySource(EXTRA_PROPERTIES)).isEqualTo("composite configuration");
-		assertThat(config.getPropertySource(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isEqualTo("composite configuration");
+		assertThat(config.getPropertySource(ConfigKeys.EXTRA_PROPERTIES)).isEqualTo("composite configuration");
+		assertThat(config.getPropertySource(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isEqualTo("composite configuration");
 	}
 
 	@Test
@@ -263,7 +265,7 @@ class ConfigDiagnosticsTest {
 
 		assertThat(clusterPropertyNames).containsExactly(clusterKeyProperty, clusterSizeProperty);
 		assertThat(diagnostic(reused.getDiagnostics(), clusterSizeProperty).getDisplayValue()).isEqualTo("3");
-		assertThat(reused.<Map<UUID, ?>>getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).containsKey(clusterKey);
+		assertThat(reused.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).containsKey(clusterKey);
 	}
 
 	@Test

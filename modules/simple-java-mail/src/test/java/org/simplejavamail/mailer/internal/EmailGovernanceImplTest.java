@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -35,13 +37,12 @@ public class EmailGovernanceImplTest {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(Map.of(DEFAULT_REQUIRE_TLS, true)));
 		final Email defaulted = factory.emailBuilder().startingBlank().buildEmail();
 		final Email cleared = factory.emailBuilder().startingBlank()
-				.withTlsRequiredForOnwardDelivery()
-				.clearTlsRequiredForOnwardDelivery()
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().clearTlsRequiredForOnwardDelivery().build())
 				.buildEmail();
 		final Email suppressed = factory.emailBuilder().startingBlank()
-				.dontApplyDefaultValueFor(TLS_REQUIRED_FOR_ONWARD_DELIVERY)
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(TLS_REQUIRED_FOR_ONWARD_DELIVERY).build())
 				.buildEmail();
-		final Email overrides = factory.emailBuilder().startingBlank().withTlsRequiredForOnwardDelivery().buildEmail();
+		final Email overrides = factory.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()).buildEmail();
 		final EmailGovernanceImpl defaultGovernance = new EmailGovernanceImpl(factory.getConfig(), factory.emailBuilder(), null, null, null, null);
 		final EmailGovernanceImpl overrideGovernance = new EmailGovernanceImpl(null, null, overrides, null);
 
@@ -77,8 +78,7 @@ public class EmailGovernanceImplTest {
 		val governance = new EmailGovernanceImpl(null, defaults, overrides, null);
 
 		Email blankIgnoringBoth = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-				.ignoringDefaults()
-				.ignoringOverrides()
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().build())
 				.buildEmail();
 
 		assertThat(blankIgnoringBoth.isIgnoreDefaults()).isTrue();
@@ -88,8 +88,7 @@ public class EmailGovernanceImplTest {
 		assertThat(resolvedBlank.getPlainText()).isNull();
 
 		Email copyIgnoringOnlyDefaults = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail())
-				.ignoringDefaults()
-				.ignoringOverrides(false)
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides(false).build())
 				.buildEmail();
 
 		Email resolvedCopy = governance.produceEmailApplyingDefaultsAndOverrides(copyIgnoringOnlyDefaults);
@@ -97,8 +96,7 @@ public class EmailGovernanceImplTest {
 		assertThat(resolvedCopy.getPlainText()).isEqualTo("override body");
 
 		Email copyIgnoringOnlyOverrides = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().buildEmail())
-				.ignoringDefaults(false)
-				.ignoringOverrides()
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).ignoringOverrides().build())
 				.buildEmail();
 
 		Email resolvedCopyIgnoringOverrides = governance.produceEmailApplyingDefaultsAndOverrides(copyIgnoringOnlyOverrides);
@@ -204,18 +202,18 @@ public class EmailGovernanceImplTest {
     public void produceEmailApplyingDefaultsAndOverrides_DeliveryStatusNotification() {
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withDeliveryStatusNotification(HEADERS_ONLY, FAILURE)
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE).build())
                 .buildEmail();
         val overrides = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withDeliveryStatusNotification(FULL_MESSAGE, DELAY)
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(FULL_MESSAGE, DELAY).build())
                 .buildEmail();
         val userEmail = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withDeliveryStatusNotification(SUCCESS)
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(SUCCESS).build())
                 .buildEmail();
         val userEmailWithoutDsn = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
                 .buildEmail();
         val userEmailIgnoringDsnDefault = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(DELIVERY_STATUS_NOTIFICATION).build())
                 .buildEmail();
 
         assertThat(new EmailGovernanceImpl(null, null, null, null).produceEmailApplyingDefaultsAndOverrides(userEmail)

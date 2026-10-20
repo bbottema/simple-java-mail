@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -69,7 +70,7 @@ class EmailHeaderAndRecipientContractTest {
 	void explicitHeadersBeatDefaultsAndSuppressedOverridesStaySuppressed() throws Exception {
 		final Email defaults = message().withHeader("X-Route", "default").withHeader("X-Default", "kept").buildEmail();
 		final Email overrides = message().withHeader("X-ROUTE", "override").buildEmail();
-		final Email provided = message().withHeader("x-route", "provided").dontApplyOverrideValueFor(HEADERS).buildEmail();
+		final Email provided = message().withHeader("x-route", "provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(HEADERS).build()).buildEmail();
 		final Email effective = new EmailGovernanceImpl(null, defaults, overrides, null)
 				.produceEmailApplyingDefaultsAndOverrides(provided);
 
@@ -81,7 +82,7 @@ class EmailHeaderAndRecipientContractTest {
 	void suppressingHeaderDefaultsRetainsProvidedAndUnrelatedOverrideHeaders() throws Exception {
 		final Email defaults = message().withHeader("X-Route", "default").withHeader("X-Default", "removed").buildEmail();
 		final Email overrides = message().withHeader("X-Other", "override").buildEmail();
-		final Email provided = message().withHeader("x-route", "provided").dontApplyDefaultValueFor(HEADERS).buildEmail();
+		final Email provided = message().withHeader("x-route", "provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(HEADERS).build()).buildEmail();
 		final Email effective = new EmailGovernanceImpl(null, defaults, overrides, null)
 				.produceEmailApplyingDefaultsAndOverrides(provided);
 

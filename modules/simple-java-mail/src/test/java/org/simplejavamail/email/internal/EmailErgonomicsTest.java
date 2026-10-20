@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -32,11 +33,11 @@ class EmailErgonomicsTest {
     @Test
     void independentHelpersAccumulateDefaultAndOverrideSuppressions() {
         final EmailPopulatingBuilder builder = blank()
-                .dontApplyDefaultValueFor(SUBJECT).dontApplyDefaultValueFor(BODY_TEXT)
-                .dontApplyOverrideValueFor(SUBJECT).dontApplyOverrideValueFor(BODY_TEXT);
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(SUBJECT).dontApplyDefaultValueFor(BODY_TEXT).dontApplyOverrideValueFor(SUBJECT).dontApplyOverrideValueFor(BODY_TEXT).build());
         final Email original = builder.buildEmail();
-        final Email copied = mail.emailBuilder().copying(original)
-                .dontApplyDefaultValueFor().dontApplyOverrideValueFor().buildEmail();
+        final EmailPopulatingBuilder copy = mail.emailBuilder().copying(original);
+        final Email copied = copy.withTemplateOptions(copy.getTemplateOptions().toBuilder()
+                .dontApplyDefaultValueFor().dontApplyOverrideValueFor().build()).buildEmail();
 
         assertThat(copied.getPropertiesNotToApplyDefaultValueFor()).containsExactlyInAnyOrder(SUBJECT, BODY_TEXT);
         assertThat(copied.getPropertiesNotToApplyOverrideValueFor()).containsExactlyInAnyOrder(SUBJECT, BODY_TEXT);
@@ -48,13 +49,13 @@ class EmailErgonomicsTest {
     @Test
     void allowingOnePropertyLeavesOtherSuppressionsAndSnapshotsAlone() {
         final EmailPopulatingBuilder builder = blank()
-                .dontApplyDefaultValueFor(SUBJECT, BODY_TEXT).dontApplyOverrideValueFor(SUBJECT, BODY_TEXT);
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(SUBJECT, BODY_TEXT).dontApplyOverrideValueFor(SUBJECT, BODY_TEXT).build());
         final Email original = builder.buildEmail();
 
-        builder.allowDefaultValueFor(SUBJECT).allowDefaultValueFor(SUBJECT).allowDefaultValueFor();
+        builder.withTemplateOptions(builder.getTemplateOptions().toBuilder().allowDefaultValueFor(SUBJECT).allowDefaultValueFor(SUBJECT).allowDefaultValueFor().build());
         assertThat(govern(builder.buildEmail()).getSubject()).isEqualTo("default");
         assertThat(govern(builder.buildEmail()).getPlainText()).isNull();
-        builder.allowOverrideValueFor(SUBJECT).allowOverrideValueFor(SUBJECT).allowOverrideValueFor();
+        builder.withTemplateOptions(builder.getTemplateOptions().toBuilder().allowOverrideValueFor(SUBJECT).allowOverrideValueFor(SUBJECT).allowOverrideValueFor().build());
         assertThat(govern(builder.buildEmail()).getSubject()).isEqualTo("override");
         assertThat(govern(builder.buildEmail()).getPlainText()).isNull();
         assertThat(govern(original).getSubject()).isNull();
@@ -63,15 +64,13 @@ class EmailErgonomicsTest {
 
     @Test
     void clearingSuppressionsDoesNotResetGlobalIgnoreFlags() {
-        final EmailPopulatingBuilder builder = blank().ignoringDefaults().ignoringOverrides()
-                .dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(BODY_TEXT)
-                .clearDefaultValueSuppressions().clearOverrideValueSuppressions();
+        final EmailPopulatingBuilder builder = blank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(BODY_TEXT).clearDefaultValueSuppressions().clearOverrideValueSuppressions().build());
 
-        assertThat(builder.getPropertiesNotToApplyDefaultValueFor()).isEmpty();
-        assertThat(builder.getPropertiesNotToApplyOverrideValueFor()).isEmpty();
+        assertThat(builder.getTemplateOptions().getPropertiesNotToApplyDefaultValueFor()).isEmpty();
+        assertThat(builder.getTemplateOptions().getPropertiesNotToApplyOverrideValueFor()).isEmpty();
         assertThat(govern(builder.buildEmail()).getSubject()).isNull();
         assertThat(govern(builder.buildEmail()).getPlainText()).isNull();
-        builder.ignoringDefaults(false).ignoringOverrides(false);
+        builder.withTemplateOptions(builder.getTemplateOptions().toBuilder().ignoringDefaults(false).ignoringOverrides(false).build());
         assertThat(govern(builder.buildEmail()).getSubject()).isEqualTo("override");
         assertThat(govern(builder.buildEmail()).getPlainText()).isEqualTo("override body");
     }
@@ -80,10 +79,7 @@ class EmailErgonomicsTest {
     void editingLocalSuppressionsLeavesConfiguredLocksIntact() throws Exception {
         final SimpleJavaMail locked = SimpleJavaMail.withConfig(ConfigLoader.builder()
                 .withMap(singletonMap("simplejavamail.locked.defaults.subject", "locked subject")).load());
-        final Email email = blank().ignoringDefaults().ignoringOverrides()
-                .dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(SUBJECT)
-                .allowDefaultValueFor(SUBJECT).allowOverrideValueFor(SUBJECT)
-                .clearDefaultValueSuppressions().clearOverrideValueSuppressions().buildEmail();
+        final Email email = blank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(SUBJECT).allowDefaultValueFor(SUBJECT).allowOverrideValueFor(SUBJECT).clearDefaultValueSuppressions().clearOverrideValueSuppressions().build()).buildEmail();
 
         try (Mailer mailer = locked.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(email).getSubject()).isEqualTo("locked subject");
@@ -91,7 +87,7 @@ class EmailErgonomicsTest {
     }
 
     @Test
-    void emailRecipientShortcutsMatchRecipientBuilderAndPreserveOccurrences() {
+    void emailRecipientShortcutsParseOneMailboxAndPreserveOccurrences() {
         final String rawAddress = "Alice <alice@example.org>";
         final String unsplit = "one@example.org;two@example.org";
         final Email email = blank().to(rawAddress).cc("Audit", "audit@example.org")
@@ -99,10 +95,10 @@ class EmailErgonomicsTest {
                 .cc("cc@example.org").bcc("Archive", "archive@example.org").buildEmail();
 
         assertThat(email.getRecipients()).containsExactly(
-                mail.recipientBuilder().to(rawAddress),
+                new Recipient("Alice", "alice@example.org", TO, null),
                 new Recipient("Audit", "audit@example.org", CC, null),
                 new Recipient(null, "archive@example.org", BCC, null),
-                mail.recipientBuilder().to(rawAddress),
+                new Recipient("Alice", "alice@example.org", TO, null),
                 new Recipient("Team", unsplit, TO, null),
                 new Recipient(null, "cc@example.org", CC, null),
                 new Recipient("Archive", "archive@example.org", BCC, null));

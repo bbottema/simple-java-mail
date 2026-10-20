@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.openpgpsupport;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
@@ -35,6 +37,13 @@ public final class OpenPgpSupport implements OpenPgpModule {
 
     private final PgpainlessOpenPgpAdapter pgpainlessAdapter = new PgpainlessOpenPgpAdapter();
 
+    private static final class PreparationFailure extends org.simplejavamail.MailException {
+        private static final long serialVersionUID = 1L;
+        private PreparationFailure(final String message, final Throwable cause) {
+            super(MailFailureKind.PREPARATION, message, cause, null);
+        }
+    }
+
     @NotNull
     @Override
     public MimeMessage signMessage(@NotNull final Session session, @NotNull final Email email,
@@ -50,7 +59,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             return FinalizedMimeMessage.fromMessageBytes(session, protectedMessage,
                     FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
         } catch (IOException | PGPException | MessagingException | KeyException e) {
-            throw new IllegalStateException("Unable to sign OpenPGP/MIME message", e);
+            throw new PreparationFailure("Unable to sign OpenPGP/MIME message", e);
         }
     }
 
@@ -67,7 +76,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             return FinalizedMimeMessage.fromMessageBytes(session, protectedMessage,
                     FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
         } catch (IOException | PGPException | MessagingException | KeyException e) {
-            throw new IllegalStateException("Unable to encrypt OpenPGP/MIME message", e);
+            throw new PreparationFailure("Unable to encrypt OpenPGP/MIME message", e);
         }
     }
 

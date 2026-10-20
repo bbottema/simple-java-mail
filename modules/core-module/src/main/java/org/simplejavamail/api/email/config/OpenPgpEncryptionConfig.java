@@ -2,6 +2,9 @@ package org.simplejavamail.api.email.config;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,8 +13,14 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
 
-/** Public-key material and algorithm preference for an RFC 3156 encrypted message. */
-public final class OpenPgpEncryptionConfig {
+/**
+ * Public-key material and algorithm preference for an RFC 3156 encrypted message. Key-ring lists and their arrays are
+ * defensively copied. Java serialization retains all recipient public key rings and the cipher preference, including in
+ * an {@link org.simplejavamail.api.email.Email} snapshot. This encryption-only configuration contains no secret keys or passphrase.
+ */
+public final class OpenPgpEncryptionConfig implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public enum SymmetricAlgorithm {
         AES_128, AES_192, AES_256
@@ -28,6 +37,17 @@ public final class OpenPgpEncryptionConfig {
         }
         this.recipientPublicKeyRings = immutableDeepCopy(recipientPublicKeyRings);
         this.symmetricAlgorithm = requireNonNull(symmetricAlgorithm, "symmetricAlgorithm");
+    }
+
+    /** Reapply validation and detach lists/arrays that may be aliased elsewhere in the serialized graph. */
+    private Object readResolve() throws ObjectStreamException {
+        try {
+            return new OpenPgpEncryptionConfig(recipientPublicKeyRings, symmetricAlgorithm);
+        } catch (RuntimeException cause) {
+            final InvalidObjectException failure = new InvalidObjectException("Invalid OpenPGP encryption configuration");
+            failure.initCause(cause);
+            throw failure;
+        }
     }
 
     public static OpenPgpEncryptionConfigBuilder builder() {

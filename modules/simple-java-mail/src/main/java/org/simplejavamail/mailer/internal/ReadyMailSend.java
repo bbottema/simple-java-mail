@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Address;
 import org.jetbrains.annotations.Nullable;
@@ -61,7 +63,7 @@ final class ReadyMailSend extends RoutedConnectionScope {
 				diagnostics.useCustomMailer();
 			}
 		} catch (MessagingException failure) {
-			throw new MailerException("Unable to resolve the delivery recipients before waiting for sending allowance. "
+			throw new MailerException(MailFailureKind.PREPARATION, "Unable to resolve the delivery recipients before waiting for sending allowance. "
 					+ "Check the email's recipient addresses and any custom To, Cc or Bcc headers; no message was submitted.", failure);
 		}
 	}
@@ -104,7 +106,7 @@ final class ReadyMailSend extends RoutedConnectionScope {
 			@Override public void reacquire(final Address[] recipients) {
 				// Retry allowance may wait. Reserve it before borrowing another connection, just as the initial routed attempt does.
 				try { reservation = reserve(recipients); }
-				catch (MessagingException failure) { throw new MailerException("Couldn't reserve sending allowance for this email's retry.", failure); }
+				catch (MessagingException failure) { throw new MailerException(MailFailureKind.CAPACITY, "Couldn't reserve sending allowance for this email's retry.", failure); }
 				acquireConnection(selected, control, selectedDestination.connectionObserver());
 			}
 			@Override public void releaseAttempt() throws MessagingException { closeAttemptResources(); }

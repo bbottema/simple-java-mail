@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +39,7 @@ class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
 				TransportRunner.connect(operationalConfig.getClusterKey(), session);
 			}
 		} catch (final MessagingException e) {
-			throw new MailerException(MailerException.ERROR_CONNECTING_SMTP_SERVER, e);
+			throw new MailerException(MailFailureKind.CONNECTION, MailerException.ERROR_CONNECTING_SMTP_SERVER, e);
 		}
 	}
 }

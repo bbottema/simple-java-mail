@@ -31,9 +31,13 @@ The existing recipient builders provide a useful precedent. An S/MIME certificat
 
 The aim is practical: a caller should know where a setting belongs and how to reuse it without learning a separate defaulting mechanism for each feature.
 
-The composed Email builder's `to`, `cc` and `bcc` conveniences add one recipient through the same single-recipient construction path as
-`recipientBuilder()`. Each has address-only and name/address forms. They preserve the established address representation, order and duplicates;
-they do not introduce address-list parsing or another recipient-policy owner. Recipient/group builders remain the route for reusable metadata.
+The composed Email builder's `from`, `to`, `cc`, `bcc`, Reply-To, bounce and receipt-address conveniences interpret one mailbox consistently.
+They separate an embedded display name from its address; an explicit nonblank name wins, while a null/blank name uses the embedded name.
+Successfully parsed lists and RFC address groups are rejected at this singular boundary rather than silently selecting the first mailbox.
+Nonempty unparseable input remains available to the configured send-time validator, as described in [ADR 0035](0035-tolerant-reading-and-strict-production.md).
+This Email-only interpretation does not change the separate Recipient builders or reparse already constructed Recipient values.
+Recipient/group builders remain the route for address-list expansion and reusable metadata; adding their prepared values preserves order,
+duplicates and recipient options.
 
 ## Configuration ownership
 

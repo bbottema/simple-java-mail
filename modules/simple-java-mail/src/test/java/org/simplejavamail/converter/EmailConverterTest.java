@@ -1,5 +1,6 @@
 package org.simplejavamail.converter;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import jakarta.mail.Session;
 import jakarta.mail.util.ByteArrayDataSource;
 import net.fortuna.ical4j.data.CalendarBuilder;
@@ -409,7 +410,7 @@ public class EmailConverterTest {
 	public void testContentTransferEncodingBase64() {
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
-				.withContentTransferEncoding(ContentTransferEncoding.BASE_64).buildEmail();
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(ContentTransferEncoding.BASE_64).build()).buildEmail();
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
 		final String emlRoundtrip = normalizeNewlines(EmailConverter.emailToEML(EmailConverter.emlToEmail(EmailConverter.emailToEML(email))));
 
@@ -450,9 +451,7 @@ public class EmailConverterTest {
 				.withPlainText("plain body")
 				.withHTMLText("<b>html body</b>")
 				.withCalendarText(CalendarMethod.REQUEST, calendarText)
-				.withContentTransferEncoding(BIT7)
-				.withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64)
-				.withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BIT7).withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64).withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build())
 				.buildEmail();
 
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));

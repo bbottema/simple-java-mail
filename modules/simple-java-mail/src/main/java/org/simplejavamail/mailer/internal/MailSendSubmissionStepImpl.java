@@ -9,7 +9,6 @@ import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.time.Duration;
-import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -64,20 +63,20 @@ public final class MailSendSubmissionStepImpl implements MailSendSubmissionStep 
 	public MailSubmissionStatus getSubmissionStatus() { return submissionStatus; }
     /** @see MailSendSubmissionStep#getSmtpReplyCode() */
 	@Override
-	@NotNull
-	public Optional<Integer> getSmtpReplyCode() { return Optional.ofNullable(smtpReplyCode); }
+	@Nullable
+	public Integer getSmtpReplyCode() { return smtpReplyCode; }
     /** @see MailSendSubmissionStep#getElapsed() */
 	@Override
 	@NotNull
 	public Duration getElapsed() { return elapsed; }
     /** @see MailSendSubmissionStep#getRetryDelay() */
 	@Override
-	@NotNull
-	public Optional<Duration> getRetryDelay() { return Optional.ofNullable(retryDelay); }
+	@Nullable
+	public Duration getRetryDelay() { return retryDelay; }
     /** @see MailSendSubmissionStep#getExplanation() */
 	@Override
-	@NotNull
-	public Optional<String> getExplanation() { return Optional.ofNullable(explanation); }
+	@Nullable
+	public String getExplanation() { return explanation; }
 
 	/** @see MailSendSubmissionStep#toString() */
 	@Override

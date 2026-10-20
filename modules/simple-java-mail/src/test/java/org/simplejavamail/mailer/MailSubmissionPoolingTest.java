@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
@@ -80,9 +82,8 @@ class MailSubmissionPoolingTest {
 			state.plan("bounded-" + index, Attempt.blockingSuccess(250, "250 bounded " + index, started, release));
 		}
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
-				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(connectionPoolSize)
-				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000)).withConnectionPoolExpireAfter(Duration.ofMillis(0))
-				.withThreadPoolSize(2).withAsyncQueueCapacity(3).buildMailer();
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(connectionPoolSize).withClaimTimeout(Duration.ofMillis(5000)).withExpireAfter(Duration.ofMillis(0)).build())
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(2).withQueueCapacity(3).build()).buildMailer();
 		try {
 			for (int index = 0; index < 2; index++) {
 				sends.add(mailer.async().sendMail(email("bounded-" + index, "recipient-" + index + "@example.org")).getCompletion());
@@ -185,8 +186,8 @@ class MailSubmissionPoolingTest {
 
 		assertThat(outcomes).hasSize(4);
 		assertThat(outcomes).allSatisfy(outcome -> {
-			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isPresent();
-			assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isNotNull();
+			assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isNotNull();
 			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isEqualTo(!outcome.isSuccessful());
 		});
 		assertThat(outcomes).extracting(outcome -> outcome.getDiagnostics().orElseThrow()).doesNotHaveDuplicates();
@@ -227,7 +228,7 @@ class MailSubmissionPoolingTest {
 		assertThat(rejectedFailure.getCause()).isSameAs(rejectedProviderFailure);
 		assertThat(rejectedFailure.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
 		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isTrue();
-		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().isAcceptedByServer()).isFalse();
+		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().isAcceptedForAtLeastOneRecipient()).isFalse();
 		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
 		assertThat(rejectedFailure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients())
 				.containsExactly("valid-unsent@example.com");
@@ -320,7 +321,7 @@ class MailSubmissionPoolingTest {
 				.isEqualTo("250 queued concurrent two");
 		assertThat(outcomes).hasSize(2);
 		assertThat(outcomes).allSatisfy(outcome -> {
-			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isPresent();
+			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isNotNull();
 			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isEqualTo(!outcome.isSuccessful());
 		});
 		assertThat(outcomes).extracting(outcome -> outcome.getSubmissionReceipt().orElseThrow())
@@ -417,7 +418,7 @@ class MailSubmissionPoolingTest {
 				.containsExactly("outer-send@example.org", "nested-send@example.org");
 		assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(outerReceipt);
 		assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(nestedReceipt.get());
-		assertThat(outcomes).allSatisfy(outcome -> assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isPresent());
+		assertThat(outcomes).allSatisfy(outcome -> assertThat(outcome.getDiagnostics().orElseThrow().getCleanup().getElapsed()).isNotNull());
 	}
 
 	@Test
@@ -485,9 +486,9 @@ class MailSubmissionPoolingTest {
 		assertThat(stateA.submittedSubjects).allMatch(subject -> subject.startsWith("cluster-a-"));
 		assertThat(stateB.submittedSubjects).allMatch(subject -> subject.startsWith("cluster-b-"));
 		assertThat(outcomesA).hasSize(4).allSatisfy(outcome ->
-				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).contains("cluster-a.example"));
+				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).isEqualTo("cluster-a.example"));
 		assertThat(outcomesB).hasSize(4).allSatisfy(outcome ->
-				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).contains("cluster-b.example"));
+				assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).isEqualTo("cluster-b.example"));
 	}
 
 	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize) {
@@ -497,12 +498,8 @@ class MailSubmissionPoolingTest {
 	private static Mailer pooledMailer(final Session session, final UUID clusterKey, final int maxPoolSize, final int threadPoolSize,
 			@Nullable final MailSendResultObserver mailSendResultObserver) {
 		final MailerFromSessionBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-				.withClusterKey(clusterKey)
-				.withConnectionPoolCoreSize(0)
-				.withConnectionPoolMaxSize(maxPoolSize)
-				.withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
-				.withConnectionPoolExpireAfter(Duration.ofMillis(0))
-				.withThreadPoolSize(threadPoolSize);
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(clusterKey).withCoreSize(0).withMaxSize(maxPoolSize).withClaimTimeout(Duration.ofMillis(5000)).withExpireAfter(Duration.ofMillis(0)).build())
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(threadPoolSize).build());
 		if (mailSendResultObserver != null) {
 			builder.withSendHandlers(MailSendHandlers.builder().withResultObserver(mailSendResultObserver).build());
 		}

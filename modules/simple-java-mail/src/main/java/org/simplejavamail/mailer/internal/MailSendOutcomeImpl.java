@@ -99,16 +99,16 @@ public final class MailSendOutcomeImpl implements MailSendOutcome {
 
 	/** @see MailSendOutcome#getReadyAt() */
 	@Override
-	@NotNull
-	public Optional<Instant> getReadyAt() {
-		return Optional.ofNullable(readyAt);
+	@Nullable
+	public Instant getReadyAt() {
+		return readyAt;
 	}
 
 	/** @see MailSendOutcome#getStartedAt() */
 	@Override
-	@NotNull
-	public Optional<Instant> getStartedAt() {
-		return Optional.ofNullable(startedAt);
+	@Nullable
+	public Instant getStartedAt() {
+		return startedAt;
 	}
 
 	/** @see MailSendOutcome#getCompletedAt() */

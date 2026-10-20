@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import jakarta.mail.MessagingException;
 import org.eclipse.angus.mail.smtp.SMTPAddressFailedException;
 import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
@@ -89,7 +90,7 @@ class SmtpSubmissionFaultBoundaryTest {
 		final MailSubmissionException failure = attempt.requireFailure();
 		assertThat(failure.getStatus()).isEqualTo(UNKNOWN);
 		assertThat(failure.getSubmissionReceipt().orElseThrow().hasServerAcceptanceInformation()).isFalse();
-		assertThat(failure.getSubmissionReceipt().orElseThrow().isAcceptedByServer()).isFalse();
+		assertThat(failure.getSubmissionReceipt().orElseThrow().isAcceptedForAtLeastOneRecipient()).isFalse();
 		assertThat(failure.getSubmissionReceipt().orElseThrow().getSmtpResponse()).isEmpty();
 		assertThat(failure.getSubmissionReceipt().orElseThrow().getAcceptedRecipients()).isEmpty();
 		assertThat(failure.getSubmissionReceipt().orElseThrow().getValidUnsentRecipients()).isEmpty();
@@ -199,7 +200,7 @@ class SmtpSubmissionFaultBoundaryTest {
 			// Machine-hostname lookup must not consume the scripted peer's SMTP fault-boundary budget.
 			final MailerRegularBuilder<?> mailerBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), smtpServer.getPort())
-					.withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
+					.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").build()).withProperty("mail.from", "sender@example.org")
 					.withProperty("mail.smtp.connectiontimeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.timeout", IO_TIMEOUT_MILLIS)
 					.withProperty("mail.smtp.writetimeout", IO_TIMEOUT_MILLIS)

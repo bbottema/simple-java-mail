@@ -77,9 +77,9 @@ class MailSendTelemetryDiagnosticsTest {
             telemetry = recorder.telemetryReport(false, false, null, null);
         }
         assertThat(telemetry.getElapsed()).isEqualTo(Duration.ofNanos(50)).isEqualTo(diagnostics.getElapsed());
-        assertThat(telemetry.getConnectionAcquisition()).isEqualTo(diagnostics.getConnectionAcquisition().getElapsed().orElseThrow());
-        assertThat(telemetry.getMimePreparation()).isEqualTo(diagnostics.getMimePreparation().getElapsed().orElseThrow());
-        assertThat(telemetry.getCleanup()).isEqualTo(diagnostics.getCleanup().getElapsed().orElseThrow());
+        assertThat(telemetry.getConnectionAcquisition()).isEqualTo(diagnostics.getConnectionAcquisition().getElapsed());
+        assertThat(telemetry.getMimePreparation()).isEqualTo(diagnostics.getMimePreparation().getElapsed());
+        assertThat(telemetry.getCleanup()).isEqualTo(diagnostics.getCleanup().getElapsed());
         assertThat(telemetry.getFailurePhase()).isEqualTo("mime_preparation");
         assertThat(diagnostics.getMimePreparation().isFailureObservedHere()).isTrue();
         assertThat(diagnostics.getCleanup().isFailureObservedHere()).isFalse();

@@ -203,7 +203,7 @@ public class MailerHelper {
 	 * This method does not repeat that validation. Making client-validation findings non-blocking does not disable ENVID validation or encoding.
 	 *
 	 * @see #scanForInjectionAttack
-	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	public static void scanForInjectionAttacks(final @NotNull Email email) {
 		// check for illegal values

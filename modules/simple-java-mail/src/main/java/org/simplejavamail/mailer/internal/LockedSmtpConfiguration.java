@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import jakarta.mail.Session;
@@ -150,22 +152,23 @@ final class LockedSmtpConfiguration {
 		map(config, DEFAULT_VERIFY_SERVER_IDENTITY, strategy.propertyNameCheckServerIdentity());
 		map(config, CUSTOM_SSLFACTORY_CLASS, strategy.propertyNameSSLSocketFactoryClass());
 		if (locks.contains(SMTP_PASSWORD)) {
-			put(SMTP_PASSWORD, strategy.propertyNameAuthenticate(), true);
-			if (strategy == TransportStrategy.SMTP_OAUTH2) {
-				put(SMTP_PASSWORD, TransportStrategy.OAUTH2_TOKEN_PROPERTY, config.getStringProperty(SMTP_PASSWORD));
+			if (OAuth2AccessTokenResolver.isOAuth2Transport(strategy)) {
+				put(SMTP_PASSWORD, TransportStrategy.OAUTH2_TOKEN_PROPERTY, config.get(ConfigKeys.SMTP_PASSWORD));
+			} else {
+				put(SMTP_PASSWORD, strategy.propertyNameAuthenticate(), true);
 			}
 		}
 		mapProxyConnection(strategy);
 		if (locks.contains(TRANSPORT_STRATEGY)) {
-			final TransportStrategy lockedStrategy = config.getProperty(TRANSPORT_STRATEGY);
+			final TransportStrategy lockedStrategy = config.get(ConfigKeys.TRANSPORT_STRATEGY);
 			transportRequirements(lockedStrategy).forEach((key, value) -> put(TRANSPORT_STRATEGY, key.toString(), value));
 		}
 		if (locks.contains(OPPORTUNISTIC_TLS) && strategy == TransportStrategy.SMTP) {
-			put(OPPORTUNISTIC_TLS, "mail.smtp.starttls.enable", config.getBooleanProperty(OPPORTUNISTIC_TLS));
+			put(OPPORTUNISTIC_TLS, "mail.smtp.starttls.enable", config.get(ConfigKeys.OPPORTUNISTIC_TLS));
 		}
 		if (Boolean.TRUE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key())) || locks.contains(DEFAULT_TRUSTED_HOSTS)) {
 			final boolean trustAll = operational.isTrustAllSSLHost();
-			final String trusted = config.getStringProperty(DEFAULT_TRUSTED_HOSTS);
+			final String trusted = config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS);
 			if (trustAll && locks.contains(DEFAULT_TRUSTED_HOSTS) && !"*".equals(trusted)) {
 				throw locks.conflict(DEFAULT_TRUSTED_HOSTS, "The SMTP configuration trusts every server certificate, but this lock requires the trusted-host list. "
 						+ "Use trustingAllHosts(false) and remove any trust-all property, "
@@ -227,7 +230,7 @@ final class LockedSmtpConfiguration {
 
 	private void map(final SimpleJavaMailConfig config, final Property property, final String sessionKey) {
 		if (locks.contains(property)) {
-			put(property, sessionKey, config.getProperty(property));
+			put(property, sessionKey, config.asMap().get(property));
 		}
 	}
 

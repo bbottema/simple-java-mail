@@ -197,7 +197,7 @@ public final class MailTransportResult {
 		final String mailbox = address instanceof InternetAddress ? ((InternetAddress) address).getAddress() : address.toString();
 		for (int index = 0; index < recipients.size(); index++) {
 			final MailRecipientResult candidate = recipients.get(index);
-			if (Objects.equals(mailbox, candidate.getEnvelopeAddress().orElse(candidate.getOriginalAddress()))) {
+			if (Objects.equals(mailbox, Objects.requireNonNullElse(candidate.getEnvelopeAddress(), candidate.getOriginalAddress()))) {
 				return recipients.remove(index).getDisposition();
 			}
 		}

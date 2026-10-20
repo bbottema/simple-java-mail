@@ -33,7 +33,18 @@ released `9.3.5` tag, whereas the diagnostics overloads were introduced during u
 
 ## Decision
 
+Accepted API consolidation, 20 October 2026: advanced Email and Mailer settings use the immutable groups recorded in
+[ADR 0003](0003-immutable-configuration-snapshots.md#advanced-configuration-groups-accepted-20-october-2026). Their explicit
+application builders own detailed setters, inspection and clearing/resetting. Root builders expose group assignment, supplied-group inspection
+and restoration. Removed scalar routes may remain only on internal runtime or CLI contracts; they are not deprecated application aliases.
+Preserve core-only continuing usage, borrowed provider identity, secret redaction and optional-module ownership across these new boundaries.
+
 ### Keep the API module independent of its implementations
+
+The accepted schema-bound configuration read API puts `ConfigKey<T>` and `ConfigKeys` in core's supported
+`org.simplejavamail.config` package. Keys are opaque library-owned values, not an extension registry or caller construction
+API. Ordinary key-based reads, presence/provenance and fallback selection compile without the main implementation.
+Schema parsing/projection stays internal to core's existing loader; typed keys do not expose parser/descriptor assembly.
 
 Use the existing artifacts; this decision does not rename `core-module` or introduce a second API artifact.
 
@@ -46,6 +57,11 @@ Use the existing artifacts; this decision does not rename `core-module` or intro
 After bootstrap, application code should be able to configure an Email/Mailer, send through its public contract and inspect the results using
 types from core and its declared API dependencies. Do not make a fluent return type or result accessor require a concrete implementation type
 from `simple-java-mail`. This is a compile-time boundary, not a claim that sending works without the implementation at runtime.
+
+The accepted 20 October common failure contract keeps `MailException`, its `MailFailureKind` classification and optional submission-receipt
+reading in core. Generic continuing application catches therefore need no main implementation type. Existing main-owned public validation
+subclasses retain their released package names and meaningful catches; moving only part of `org.simplejavamail.mailer` into core would create
+a JPMS split package. Internal producer exceptions remain with their implementing modules. This introduces no result-assembly entry point.
 
 Keep optional-feature configuration in core and its main-runtime bootstrap/builders in `simple-java-mail`. The main implementation invokes the
 optional module through `ModuleLoader` when it needs the requested behavior. Module support classes and runtime bridges remain internal;
@@ -188,6 +204,13 @@ preserve the intended serialized fields, identifiers and absence behavior withou
 For the report classes replaced with read interfaces, 10.0.0 deliberately breaks construction/binary and old Java-report-snapshot compatibility:
 recompile integrations and export persisted observations before upgrading. This does not remove the supported Email, Recipient or attachment
 snapshot contract. A relocated public field selector retains its historic serialized enum names through an internal compatibility representation.
+
+OpenPGP signing/encryption configurations are immutable application values and participate in the existing Email snapshot
+contract, just like S/MIME configuration. Their serializable form retains supplied material and algorithm preferences;
+restoration preserves construction invariants and defensive copying without interpreting keys in core. Signing snapshots
+contain the secret key ring and passphrase, even though automatic rendering hides them. Earlier snapshots which omitted
+these values remain readable with absent OpenPGP configuration. This is separate from public construction changes and
+does not introduce a restoration API or change exact EML's authoritative-source boundary; see ADR 0036.
 
 ### Inspect incomplete configuration without building it
 

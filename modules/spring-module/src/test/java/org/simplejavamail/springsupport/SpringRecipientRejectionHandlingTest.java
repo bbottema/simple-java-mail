@@ -1,5 +1,6 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -29,7 +30,7 @@ class SpringRecipientRejectionHandlingTest {
             assertThat(local.getSendingToAcceptedRecipients()).isNull();
             try (Mailer mailer = factory.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
                 assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(local).getSendingToAcceptedRecipients()).isEqualTo(choice);
-                final Email conflicting = factory.emailBuilder().startingBlank().withSendingToAcceptedRecipients(!choice).buildEmail();
+                final Email conflicting = factory.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!choice).build()).buildEmail();
                 if (locked) {
                     assertThatThrownBy(() -> mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(conflicting)).hasMessageContaining(key);
                 } else {

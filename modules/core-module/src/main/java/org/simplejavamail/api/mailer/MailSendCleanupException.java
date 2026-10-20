@@ -11,6 +11,6 @@ public final class MailSendCleanupException extends MailSendException {
 	/** Retains the original cleanup cause and any immutable facts captured for this individual send. */
 	public MailSendCleanupException(@NotNull final String message, @NotNull final Throwable cause,
 			@Nullable final MailSubmissionReceipt submissionReceipt) {
-		super(message, cause, submissionReceipt);
+		super(MailFailureKind.CLEANUP, message, cause, submissionReceipt);
 	}
 }

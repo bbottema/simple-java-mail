@@ -40,7 +40,7 @@ public class AsyncQueueConfig {
     /**
      * <strong>Builder Default:</strong> {@value MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_CAPACITY} (unbounded).
      *
-     * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
+     * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withQueueCapacity(int)
      */
     public int getCapacity() {
         return capacity;
@@ -49,7 +49,7 @@ public class AsyncQueueConfig {
     /**
      * <strong>Builder Default:</strong> {@link MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY} (immediate rejection).
      *
-     * @see MailerGenericBuilder#withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy)
+     * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#rejectWhenFull()
      */
     @NotNull
     public AsyncQueueOverflowPolicy getOverflowPolicy() {
@@ -59,7 +59,7 @@ public class AsyncQueueConfig {
     /**
      * <strong>Builder Default:</strong> {@link MailerGenericBuilder#DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT} (one second).
      *
-     * @see MailerGenericBuilder#withAsyncQueueWaitTimeout(Duration)
+     * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#waitForCapacity(java.time.Duration)
      */
     @NotNull
     public Duration getWaitTimeout() {

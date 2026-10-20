@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
-
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import java.time.Duration;
 import org.simplejavamail.api.SimpleJavaMail;
 
@@ -23,19 +24,18 @@ public class MailerBuilderTest {
 	public void clearEmailValidatorRemovesAddressPolicy() {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0);
 
-		builder.clearEmailValidator();
+		builder.withValidationConfig(builder.getValidationConfig().toBuilder().clearEmailValidator().build());
 
-		assertThat(builder.getEmailValidator()).isNull();
+		assertThat(builder.getValidationConfig().getEmailValidator()).isNull();
 		builder.buildMailer(); // clearing the address policy is a valid configuration; see #335
 	}
 
 	@Test
 	public void resetEmailValidatorRestoresStrictDefault() {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
-				.clearEmailValidator()
-				.resetEmailValidator();
+				.withValidationConfig(ValidationConfig.builder().clearEmailValidator().resetEmailValidator().build());
 
-		final EmailValidator restoredValidator = builder.getEmailValidator();
+		final EmailValidator restoredValidator = builder.getValidationConfig().getEmailValidator();
 		assertThat(restoredValidator).isNotNull();
 		assertThat(restoredValidator.isValid("alice@example.com")).isTrue();
 		assertThat(restoredValidator.isValid("not-an-address")).isFalse();
@@ -44,64 +44,63 @@ public class MailerBuilderTest {
 	@Test
 	public void resetConnectionPoolMaxSizeRestoresOnlyMaxSize() {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
-				.withConnectionPoolCoreSize(2)
-				.withConnectionPoolMaxSize(12)
-				.resetConnectionPoolMaxSize();
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(2).withMaxSize(12).resetMaxSize().build());
 
-		assertThat(builder.getConnectionPoolCoreSize()).isEqualTo(2);
-		assertThat(builder.getConnectionPoolMaxSize()).isEqualTo(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+		assertThat(builder.getConnectionPoolConfig().getCoreSize()).isEqualTo(2);
+		assertThat(builder.getConnectionPoolConfig().getMaxSize()).isEqualTo(DEFAULT_CONNECTIONPOOL_MAX_SIZE);
 	}
 
 	@Test
 	public void resetConnectionPoolClaimTimeoutRestoresOnlyClaimTimeout() {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
-				.withConnectionPoolClaimTimeout(Duration.ofMillis(1_000))
-				.withConnectionPoolExpireAfter(Duration.ofMillis(60_000))
-				.resetConnectionPoolClaimTimeout();
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(1_000)).withExpireAfter(Duration.ofMillis(60_000)).resetClaimTimeout().build());
 
-		assertThat(builder.getConnectionPoolClaimTimeout()).isEqualTo(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
-		assertThat(builder.getConnectionPoolExpireAfter()).isEqualTo(Duration.ofMillis(60_000));
+		assertThat(builder.getConnectionPoolConfig().getClaimTimeout()).isEqualTo(DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
+		assertThat(builder.getConnectionPoolConfig().getExpireAfter()).isEqualTo(Duration.ofMillis(60_000));
 	}
 
 	@Test
 	public void resetConnectionPoolExpiryRestoresOnlyExpiry() {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0)
-				.withConnectionPoolClaimTimeout(Duration.ofMillis(1_000))
-				.withConnectionPoolExpireAfter(Duration.ofMillis(60_000))
-				.resetConnectionPoolExpireAfter();
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(1_000)).withExpireAfter(Duration.ofMillis(60_000)).resetExpireAfter().build());
 
-		assertThat(builder.getConnectionPoolClaimTimeout()).isEqualTo(Duration.ofMillis(1_000));
-		assertThat(builder.getConnectionPoolExpireAfter()).isEqualTo(DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
+		assertThat(builder.getConnectionPoolConfig().getClaimTimeout()).isEqualTo(Duration.ofMillis(1_000));
+		assertThat(builder.getConnectionPoolConfig().getExpireAfter()).isEqualTo(DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
 	}
 
 	@Test
 	public void creationAgeExpiryCanBeConfiguredAndClearedIndependently() throws Exception {
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("moo", 0);
-		assertThat(builder.getConnectionPoolExpireAfterCreation()).isNull();
-		builder.withConnectionPoolExpireAfter(Duration.ofMillis(60_000))
-				.withConnectionPoolExpireAfterCreation(Duration.ofMillis(900_000));
+		assertThat(builder.getConnectionPoolConfig().getExpireAfterCreation()).isNull();
+		builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withExpireAfter(Duration.ofMillis(60_000)).withExpireAfterCreation(Duration.ofMillis(900_000)).build());
 
-		assertThat(builder.getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
+		assertThat(builder.getConnectionPoolConfig().getExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
 		try (final Mailer mailer = builder.buildMailer()) {
 			assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
 		}
-		assertThat(builder.clearConnectionPoolExpireAfterCreation()
-				.getConnectionPoolExpireAfterCreation()).isNull();
-		assertThat(builder.getConnectionPoolExpireAfter()).isEqualTo(Duration.ofMillis(60_000));
-		assertThat(builder.withConnectionPoolExpireAfterCreation(Duration.ofMillis(0)).getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ZERO);
+		assertThat(builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().clearExpireAfterCreation().build())
+				.getConnectionPoolConfig().getExpireAfterCreation()).isNull();
+		assertThat(builder.getConnectionPoolConfig().getExpireAfter()).isEqualTo(Duration.ofMillis(60_000));
+		assertThat(builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withExpireAfterCreation(Duration.ofMillis(0)).build()).getConnectionPoolConfig().getExpireAfterCreation()).isEqualTo(Duration.ZERO);
 		assertThatThrownBy(builder::buildMailer)
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test
-	public void creationAgeExpiryOverridesRemainLocalToTheBuilder() {
+	public void creationAgeExpiryOverridesRemainLocalToTheBuilder() throws Exception {
 		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(
 				singletonMap(ConfigLoader.Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, 900_000)));
 		final MailerRegularBuilder<?> builder = mail.mailerBuilder();
 
-		assertThat(builder.getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
-		assertThat(builder.withConnectionPoolExpireAfterCreation(Duration.ofMillis(600_000)).getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(600_000));
-		assertThat(builder.clearConnectionPoolExpireAfterCreation().getConnectionPoolExpireAfterCreation()).isNull();
-		assertThat(mail.mailerBuilder().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
+		assertThat(builder.getConnectionPoolConfig().getExpireAfterCreation()).isNull();
+		try (Mailer inherited = builder.withSMTPServerHost("localhost").buildMailer()) {
+			assertThat(inherited.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
+		}
+		assertThat(builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withExpireAfterCreation(Duration.ofMillis(600_000)).build()).getConnectionPoolConfig().getExpireAfterCreation()).isEqualTo(Duration.ofMillis(600_000));
+		assertThat(builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().clearExpireAfterCreation().build()).getConnectionPoolConfig().getExpireAfterCreation()).isNull();
+		assertThat(mail.mailerBuilder().getConnectionPoolConfig().getExpireAfterCreation()).isNull();
+		try (Mailer unchanged = mail.mailerBuilder().withSMTPServerHost("localhost").buildMailer()) {
+			assertThat(unchanged.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(900_000));
+		}
 	}
 }

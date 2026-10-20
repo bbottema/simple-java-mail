@@ -17,6 +17,8 @@ import java.util.Optional;
  * A successful {@code mailer.sync().sendMail(...)} call returns this type; asynchronous send completion carries the same receipt.
  * When submission fails or only some recipients were accepted,
  * {@link MailSubmissionException#getSubmissionReceipt()} exposes the same facts together with the original Jakarta Mail failure.
+ * The common {@link org.simplejavamail.MailException#getSubmissionReceipt()} accessor also exposes captured facts after cleanup, timeout or
+ * cancellation failures. A missing receipt means facts are unavailable, not proof that no recipient was accepted.
  *
  * @see Mailer.Sync#sendMail(org.simplejavamail.api.email.Email)
  * @see Mailer.Async#sendMail(org.simplejavamail.api.email.Email)
@@ -60,7 +62,7 @@ public interface MailSubmissionReceipt extends Serializable {
 	 *
 	 * @return The effective identifier, or {@code null} when unavailable, including unsupported DSN, local pre-submission checks, logging-only,
 	 * CustomMailer and adapters that do not report it. Unvalidated raw MAIL extensions are not reported here.
-	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	@Nullable
 	String getEnvelopeId();
@@ -73,7 +75,7 @@ public interface MailSubmissionReceipt extends Serializable {
 	 * This is not proof of server acceptance, later-relay compliance or final delivery.
 	 *
 	 * @return Whether REQUIRETLS was issued for this first-hop submission attempt.
-	 * @see org.simplejavamail.api.email.EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery()
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#withTlsRequiredForOnwardDelivery()
 	 */
 	boolean isRequireTlsUsed();
 
@@ -109,9 +111,18 @@ public interface MailSubmissionReceipt extends Serializable {
 	Optional<SmtpServerResponse> getSmtpResponse();
 
 	/**
+	 * Returns true for ACCEPTED and PARTIALLY_ACCEPTED. Partial acceptance still fails the send operation.
+	 * A false result for UNKNOWN does not prove rejection; this predicate describes SMTP submission, not final delivery.
 	 * @return {@code true} when at least one recipient is known to have been accepted for submission.
 	 */
-	boolean isAcceptedByServer();
+	boolean isAcceptedForAtLeastOneRecipient();
+
+	/**
+	 * Returns true only for ACCEPTED: every submitted recipient is known accepted for submission. PARTIALLY_ACCEPTED, REJECTED and UNKNOWN
+	 * return false. UNKNOWN is not proven rejection, and full SMTP acceptance does not establish final mailbox delivery or successful cleanup.
+	 * @return Whether all submitted recipients are known accepted for SMTP submission.
+	 */
+	boolean isFullyAcceptedForSubmission();
 
 	/**
 	 * @return Whether this send path could determine server acceptance. If false, some recipients may still have been accepted.

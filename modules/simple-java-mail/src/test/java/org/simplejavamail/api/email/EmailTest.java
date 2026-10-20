@@ -1,5 +1,7 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.api.email.config.DkimConfig;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,7 +105,7 @@ public class EmailTest {
 				.withHeader("dummyHeader1", "dummyHeaderValue1")
 				.withHeader("dummyHeader2", "dummyHeaderValue2")
 				.withCalendarText(CalendarMethod.ADD, "Calendar text")
-				.signWithDomainKey("dkim_key".getBytes(UTF_8), "dkim_domain", "dkim_selector", null)
+				.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("dkim_key".getBytes(UTF_8)).dkimSigningDomain("dkim_domain").dkimSelector("dkim_selector").build())
 				.withEmbeddedImage("the_image", produceThumbsUpImage(), "image/png")
 				.withAttachment("the_attachment", produceThumbsUpImage(), "image/png")
 				.withAttachment("described_attachment", "blah".getBytes(defaultCharset()), "text/plain", "cool description", BASE_64)
@@ -236,14 +238,14 @@ public class EmailTest {
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().withCalendarText(REPLY, "moo").buildEmail(), false);
 		assertEmailEqual(b().withCalendarText(ADD, "moo").buildEmail(), b().buildEmail(), false);
 		// contentTransferEncoding
-		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BASE_64).buildEmail(), true);
-		assertEmailEqual(b().withContentTransferEncoding(BASE_64).buildEmail(), b().withContentTransferEncoding(BIT7).buildEmail(), false);
-		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), true);
-		assertEmailEqual(b().withPlainTextContentTransferEncoding(BASE_64).buildEmail(), b().withPlainTextContentTransferEncoding(BIT7).buildEmail(), false);
-		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), true);
-		assertEmailEqual(b().withHTMLTextContentTransferEncoding(BASE_64).buildEmail(), b().withHTMLTextContentTransferEncoding(BIT7).buildEmail(), false);
-		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), true);
-		assertEmailEqual(b().withCalendarTextContentTransferEncoding(BASE_64).buildEmail(), b().withCalendarTextContentTransferEncoding(BIT7).buildEmail(), false);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BASE_64).build()).buildEmail(), true);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withContentTransferEncoding(BIT7).build()).buildEmail(), false);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64).build()).buildEmail(), true);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BIT7).build()).buildEmail(), false);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withHTMLTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withHTMLTextContentTransferEncoding(BASE_64).build()).buildEmail(), true);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withHTMLTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withHTMLTextContentTransferEncoding(BIT7).build()).buildEmail(), false);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withCalendarTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withCalendarTextContentTransferEncoding(BASE_64).build()).buildEmail(), true);
+		assertEmailEqual(b().withContentEncodingConfig(ContentEncodingConfig.builder().withCalendarTextContentTransferEncoding(BASE_64).build()).buildEmail(), b().withContentEncodingConfig(ContentEncodingConfig.builder().withCalendarTextContentTransferEncoding(BIT7).build()).buildEmail(), false);
 		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),
 				b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(), true);
 		assertEmailEqual(b().withPreEncodedAttachment("attachment.txt", "encoded".getBytes(defaultCharset()), "text/plain", BASE_64).buildEmail(),

@@ -13,6 +13,7 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Mailing tool created exclusively using {@link MailerRegularBuilder}. This class is the facade to most Simple Java Mail functionality
@@ -47,7 +48,7 @@ public interface Mailer extends AutoCloseable {
 	 * Connection pools and the standalone BatchTransportExecutor are separate resources; their activity is not included.
 	 *
 	 * @return Diagnostic activity snapshot; never use its estimates as a check-then-send admission guard.
-	 * @see MailerGenericBuilder#withAsyncQueueCapacity(int)
+	 * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withQueueCapacity(int)
 	 */
 	@NotNull
 	Optional<AsyncQueueSnapshot> getAsyncQueueSnapshot();
@@ -91,6 +92,10 @@ public interface Mailer extends AutoCloseable {
 		 * matters; failures still throw. Logging-only and CustomMailer sends have {@link MailSubmissionStatus#UNKNOWN} receipts because no SMTP
 		 * acceptance is observable. A failed or partial submission throws {@link MailSubmissionException} with that attempt's receipt and original cause.
 		 * An unknown result may already have reached the server; do not blindly retry it.
+		 * Library-owned operational failures share {@link MailException}; its kind, original cause and optional receipt can be inspected without
+		 * downcasting. Specific catches, including {@link EmailTooBigException} and {@link MailSendRejectedException}, remain available.
+		 * A cleanup failure can retain an accepted receipt. Application callbacks, invalid arguments and programming errors retain their own
+		 * documented failure boundaries and are not blanket-wrapped as library failures.
 		 * <p>
 		 * Ordinary pooled sends release or invalidate their lease before reporting the outcome. An inline observer runs before this call returns or
 		 * throws; an application-executor observer is handed off first, but its execution is not awaited. Total send deadlines exclude observer work.
@@ -98,7 +103,7 @@ public interface Mailer extends AutoCloseable {
 		 * @param email The email to prepare and send.
 		 * @return The exact successful receipt supplied to the configured observer.
 		 * @throws IllegalArgumentException If {@code email} is {@code null}.
-		 * @throws MailException If preparation, connection, sending, cancellation or the total send deadline fails.
+		 * @throws MailException If validation, size, preparation, admission, connection, submission, cleanup, cancellation or the total send deadline fails.
 		 * @throws MailSubmissionException If submission fails or only partially succeeds; inspect its receipt for known recipient facts.
 		 * @see Async#sendMail(Email)
 		 */
@@ -186,6 +191,8 @@ public interface Mailer extends AutoCloseable {
 		 * Uses the same composed/exact-email processing and receipt semantics as {@link Sync#sendMail(Email)}.
 		 * The successful completion contains the exact receipt reported to the observer. Failed/partial submissions retain
 		 * {@link MailSubmissionException} and its receipt. Receipts describe SMTP submission, not mailbox delivery, and are optional to inspect.
+		 * Library-owned failures share {@link MailException}, including admission and size rejection; inspect its kind, cause and optional receipt
+		 * after normal future unwrapping. Application extension RuntimeExceptions retain their documented propagation and identity.
 		 * <p>
 		 * An inline observer runs before completion; with an application executor only the observer handoff is attempted first.
 		 * Requesting cancellation through {@link MailSend#requestCancellation()} does not immediately complete the send:
@@ -405,14 +412,16 @@ public interface Mailer extends AutoCloseable {
 	 * mean every email succeeded. Inline observers and observer handoffs are drained; offloaded callbacks are not. Graceful close is not cancellation.
 	 * Do not call this blocking method from a send operation or inline observer: it would wait for itself and is rejected.
 	 * <p>
-	 * An executor service provided through {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
+	 * An executor service provided through {@link org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
 	 * and is not shut down.
 	 *
-	 * @throws Exception If resource cleanup is interrupted or fails.
+	 * @throws ExecutionException If resource cleanup fails; the original failure is retained as the cause.
+	 * @throws InterruptedException If the calling thread is interrupted while waiting. Shutdown continues; interruption does not mean cleanup is complete.
+	 * @throws IllegalStateException If a send operation or this Mailer's owned worker would wait for its own shutdown.
 	 * @see <a href="https://www.simplejavamail.org/sending-and-execution.html#section-mailer-lifecycle">Mailer lifecycle and resource ownership</a>
 	 */
 	@Override
-	void close() throws Exception;
+	void close() throws ExecutionException, InterruptedException;
 
 	/**
 	 * Gracefully closes this Mailer without waiting for its accepted sends and resource cleanup to finish.
@@ -423,7 +432,7 @@ public interface Mailer extends AutoCloseable {
 	 * It is safe to initiate cleanup from a Mailer worker, but do not wait for the returned future there: that would wait for the current task itself.
 	 * <p>
 	 * In a cluster, call this method or {@link #close()} on every Mailer so every pool registration is removed. An executor service provided through
-	 * {@link MailerGenericBuilder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.
+	 * {@link org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.
 	 * <p>
 	 * Prefer {@link #close()} for normal application lifecycle management.
 	 * <p>

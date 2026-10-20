@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import jakarta.mail.Session;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -82,7 +83,7 @@ public class MailerImplTest {
 
 			try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServer("localhost", 25)
-					.withExecutorService(callerOwnedExecutor)
+					.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(callerOwnedExecutor).build())
 					.buildMailer()) {
 				assertThat(mailer.getOperationalConfig().getExecutorService()).isSameAs(callerOwnedExecutor);
 			}
@@ -254,7 +255,7 @@ public class MailerImplTest {
 		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withEmailDefaults(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
-						.signWithDomainKey("key".getBytes(), "inline-default.com", "inline-default", Collections.singleton("Reply-To")).buildEmail())
+						.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("key".getBytes()).dkimSigningDomain("inline-default.com").dkimSelector("inline-default").excludedHeadersFromDkimDefaultSigningList(Collections.singleton("Reply-To")).build()).buildEmail())
 				.buildMailer();
 		final Email userEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
 				.from("from@inline-default.com")

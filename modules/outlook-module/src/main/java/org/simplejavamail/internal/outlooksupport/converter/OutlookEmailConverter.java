@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.outlooksupport.converter;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.simplejavamail.internal.outlooksupport.model.EmailFromOutlookMessageImpl;
 
 import org.simplejavamail.internal.outlooksupport.model.OutlookMessageDataImpl;
@@ -55,7 +56,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.startingBlank().ignoringDefaults(),
+				emailStartingBuilder.startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()),
 				parseOutlookMsg(checkNonEmptyArgument(msgFile, "msgFile")),
 				builderFactory,
 				internalEmailConverter);
@@ -68,7 +69,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.startingBlank().ignoringDefaults(),
+				emailStartingBuilder.startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()),
 				parseOutlookMsg(checkNonEmptyArgument(msgFileName, "msgFile")),
 				builderFactory,
 				internalEmailConverter);
@@ -81,7 +82,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		return buildEmailFromOutlookMessage(
-				emailStartingBuilder.startingBlank().ignoringDefaults(),
+				emailStartingBuilder.startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()),
 				parseOutlookMsg(checkNonEmptyArgument(msgInputStream, "msgInputStream")),
 				builderFactory,
 				internalEmailConverter);

@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.smimesupport;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -175,13 +176,13 @@ public class ReadSmimeAttachmentsTest {
 
 		Email emailWithCopiedMerginBehavior = SimpleJavaMail.fromDefaults().emailBuilder()
 				.copying(emailParsedFromMsg)
-				.ignoringDefaults()
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build())
 				.buildEmail();
 		EmailAssert.assertThat(emailWithCopiedMerginBehavior).isEqualTo(emailParsedFromMsg);
 
 		Email emailWithDefaultMerginBehavior = SimpleJavaMail.fromDefaults().emailBuilder()
 				.copying(emailParsedFromMsg)
-				.ignoringDefaults()
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build())
 				.clearSMIMESignedAttachmentMergingBehavior()
 				.buildEmail();
 		EmailAssert.assertThat(emailWithDefaultMerginBehavior)
@@ -192,7 +193,7 @@ public class ReadSmimeAttachmentsTest {
 		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) SimpleJavaMail.fromDefaults()
 				.emailBuilder()
 				.copying(email);
-		builder.ignoringDefaults();
+		builder.withTemplateOptions(builder.getTemplateOptions().toBuilder().ignoringDefaults().build());
 		builder.withOriginalSmimeDetails(provenanceSource.getOriginalSmimeDetails());
 		return builder.buildEmail();
 	}

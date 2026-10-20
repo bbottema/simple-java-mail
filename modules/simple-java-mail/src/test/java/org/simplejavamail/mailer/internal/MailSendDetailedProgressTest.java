@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -35,6 +39,7 @@ import java.util.Properties;
 import javax.net.SocketFactory;
 import jakarta.mail.Session;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.*;
 import static org.simplejavamail.api.mailer.MailSendProgressStage.*;
@@ -149,13 +154,13 @@ class MailSendDetailedProgressTest {
             properties.setProperty("mail.smtp.localhost", "probe.example.test");
             properties.setProperty("mail.smtp.timeout", "20000");
             final Session session = Session.getInstance(properties);
-            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
+            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
                 assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
                 stages.await(FINISHED);
                 assertThat(stages.observed).extracting(MailSendProgress::getStage).doesNotContain(WAITING_FOR_GREETING,
                         NEGOTIATING_CAPABILITIES, NEGOTIATING_TLS, AUTHENTICATING, SUBMITTING_SENDER, SUBMITTING_RECIPIENTS,
                         WAITING_FOR_DATA_PERMISSION, UPLOADING, WAITING_FOR_RESPONSE);
-                assertThat(stages.observed).allSatisfy(event -> assertThat(event.getBytesWritten()).isEmpty());
+                assertThat(stages.observed).allSatisfy(event -> assertThat(event.getBytesWritten()).isNull());
                 assertThat(session.getProvider("smtp").getClassName()).isEqualTo("org.eclipse.angus.mail.smtp.SMTPTransport");
             }
         }
@@ -171,8 +176,8 @@ class MailSendDetailedProgressTest {
             connection.greet(peer, "250 localhost");
             ready.countDown();
             connection.acceptMessages(peer);
-        }); Mailer mailer = builder(server.port(), false, "LOGIN").withSMTPServerUsername(null).withSMTPServerPassword(null)
-                .withConnectionPoolCoreSize(background ? 1 : 0).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server.port(), false, "LOGIN"), fixture -> fixture.withSMTPServerUsername(null).withSMTPServerPassword(null)
+                .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(background ? 1 : 0).build())).withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             if (background) {
                 assertThat(ready.await(15, SECONDS)).isTrue();
                 assertThat(stages.observed).isEmpty();
@@ -308,10 +313,10 @@ class MailSendDetailedProgressTest {
 
     private MailerRegularBuilder<?> builder(final int port, final boolean tls, final String mechanism) {
         return mail.mailerBuilder().withSMTPServer("localhost", port, "private-user", "private-password")
-                .withTransportStrategy(tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP).withOpportunisticTLS(false)
-                .trustingAllHosts(true).verifyingServerIdentity(false).withSmtpClientHostname("probe.example.test")
+                .withTransportStrategy(tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).trustingAllHosts(true).verifyingServerIdentity(false).build())
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000)).build())
                 .withProperty("mail.smtp.auth.mechanisms", mechanism).withProperty("mail.host", "localhost")
-                .withSessionTimeout(Duration.ofMillis(20000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build());
     }
 
     private Email email() {

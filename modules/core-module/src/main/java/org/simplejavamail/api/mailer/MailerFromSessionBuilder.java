@@ -30,10 +30,10 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * Only use this API if you <em>must</em> use your own {@link Session} instance. It assumes that all protocol-specific connection properties are
 	 * configured, including host, port, authentication, transport protocol and any custom SSL factory.
 	 * <p>
-	 * Explicit generic connection setters, such as {@link #withSessionTimeout(java.time.Duration)}, replace the corresponding supplied settings.
+	 * Explicit generic connection setters, such as {@link org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSessionTimeout(java.time.Duration)}, replace the corresponding supplied settings.
 	 * Leaving those setters unused preserves the Session baseline rather than applying ordinary SJM connection defaults.
-	 * Configured additional Jakarta Mail properties still apply. Calling {@link #withProxy(String, Integer)} or
-	 * {@link #withProxy(String, Integer, String, String)} updates the supported SOCKS route too.
+	 * Configured additional Jakarta Mail properties still apply. Supplying endpoint and optional authentication choices through
+	 * {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withProxyConfig(org.simplejavamail.api.mailer.config.SocksProxyConfig)} updates the supported SOCKS route too.
 	 * Clearing a connection setting inherited through {@link java.util.Properties} defaults is rejected if removing it would simply reactivate
 	 * that default. Use a new Session with independent Properties containing only the desired settings, or supply an explicit replacement value.
 	 * <p>

@@ -1,10 +1,10 @@
 package org.simplejavamail.api.mailer;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Optional;
 
 /**
  * Safe diagnostic facts about one actual provider invocation in a retry-enabled logical send. It is not a receipt
@@ -18,17 +18,20 @@ public interface MailSendSubmissionStep extends Serializable {
 	/** Submission knowledge for this invocation, not final mailbox delivery. */
 	@NotNull MailSubmissionStatus getSubmissionStatus();
 
-	/** Genuine primary SMTP code when available; excludes raw reply text. */
-	@NotNull Optional<Integer> getSmtpReplyCode();
+	/** Genuine primary SMTP code, or {@code null} when unavailable; excludes raw reply text. */
+	@Nullable
+	Integer getSmtpReplyCode();
 
 	/** Time inside the provider invocation through result capture, not pure network or server-processing time. */
 	@NotNull Duration getElapsed();
 
-	/** Selected delay before another invocation; not a promise of exact resumption time. Absent when no retry was scheduled. */
-	@NotNull Optional<Duration> getRetryDelay();
+	/** Selected delay before another invocation; not a promise of exact resumption time. Returns {@code null} when no retry was scheduled. */
+	@Nullable
+	Duration getRetryDelay();
 
-	/** Human-readable bounded explanation, not a value applications must parse. */
-	@NotNull Optional<String> getExplanation();
+	/** Human-readable bounded explanation, or {@code null} when absent; not a value applications must parse. */
+	@Nullable
+	String getExplanation();
 
 	@Override String toString();
 }

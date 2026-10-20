@@ -10,11 +10,11 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
-import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.api.mailer.MailSendException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
@@ -30,8 +30,6 @@ import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
-import static org.simplejavamail.mailer.internal.MailerException.MAILER_ERROR;
-import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
 
 /**
  * Runs caller-managed send logic while one SMTP connection is open.
@@ -97,20 +95,14 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			operationFailure = callbackFailure.getCause();
 			throw callbackFailure;
 		} catch (final MessagingException failure) {
-			operationFailure = createMailerException(failure, GENERIC_ERROR);
-			throw (MailerException) operationFailure;
-		} catch (final MailerException failure) {
-			operationFailure = failure;
-			throw failure;
-		} catch (final EmailTooBigException failure) {
-			operationFailure = createMailerException(failure, MAILER_ERROR);
+			operationFailure = createMailerException(failure, GENERIC_ERROR, MailFailureKind.CONNECTION);
 			throw (MailerException) operationFailure;
 		} catch (final MailException failure) {
 			operationFailure = failure;
 			throw failure;
-		} catch (final Exception failure) {
-			operationFailure = createMailerException(failure, UNKNOWN_ERROR);
-			throw (MailerException) operationFailure;
+		} catch (final RuntimeException failure) {
+			operationFailure = failure;
+			throw failure;
 		} catch (final Error failure) {
 			operationFailure = failure;
 			throw failure;
@@ -173,9 +165,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			}
 		} catch (final MessagingException failure) {
 			if (receipt != null) { throw control.translateFailure(new MailSendCleanupException("Individual send cleanup failed on the shared connection", failure, receipt)); }
-			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR));
-		} catch (final EmailTooBigException failure) {
-			throw control.translateFailure(createMailerException(failure, MAILER_ERROR));
+			throw control.translateFailure(createMailerException(failure, GENERIC_ERROR, MailFailureKind.PREPARATION));
 		} catch (final RuntimeException failure) {
 			if (receipt != null && !(failure instanceof MailSendException)) {
 				throw control.translateFailure(new MailSendCleanupException("Individual send cleanup failed on the shared connection", failure, receipt));
@@ -188,7 +178,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 		final ScopedMailSender scopedSender = new ScopedMailSender(sender);
 		try {
 			openConnectionCallback.accept(scopedSender);
-		} catch (final MailException | EmailTooBigException failure) {
+		} catch (final MailException failure) {
 			throw failure;
 		} catch (final RuntimeException callbackFailure) {
 			throw new RuntimeCallbackException(callbackFailure);
@@ -221,7 +211,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 				}
 				return null;
 			} catch (MessagingException failure) {
-				throw opening.control().translateFailure(createMailerException(failure, GENERIC_ERROR));
+				throw opening.control().translateFailure(createMailerException(failure, GENERIC_ERROR, MailFailureKind.CONNECTION));
 			}
 		});
 	}
@@ -244,7 +234,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 			if (closeFailure instanceof Error) {
 				throw (Error) closeFailure;
 			}
-			throw new MailerException("Was unable to close SMTP transport", (Exception) closeFailure);
+			throw new MailerException(MailFailureKind.CLEANUP, "Was unable to close SMTP transport", closeFailure);
 		}
 	}
 
@@ -255,17 +245,17 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	}
 
 	@NotNull
-	private MailerException createMailerException(@NotNull final Exception cause, @NotNull final String errorMessage) {
+	private MailerException createMailerException(@NotNull final Exception cause, @NotNull final String errorMessage, final MailFailureKind kind) {
 		if (currentEmail == null) {
 			LOGGER.trace("Failed to send emails with open connection\n\t{}", errorMessage);
-			return new MailerException(format(errorMessage, "open connection"), cause);
+			return new MailerException(kind, format(errorMessage, "open connection"), cause);
 		}
 
 		LOGGER.trace("Failed to send email {}\n{}\n\t{}", currentEmail.getId(), currentEmail, errorMessage);
 		val emailId = ofNullable(currentEmail.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", currentEmail.getSubject()));
-		return new MailerException(format(errorMessage, emailId), cause);
+		return new MailerException(kind, format(errorMessage, emailId), cause);
 	}
 
 	private static class CheckedCallbackException extends RuntimeException {

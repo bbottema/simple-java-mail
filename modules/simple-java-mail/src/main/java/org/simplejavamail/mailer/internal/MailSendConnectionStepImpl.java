@@ -8,7 +8,6 @@ import org.simplejavamail.api.mailer.MailSendConnectionStep;
 import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.time.Duration;
-import java.util.Optional;
 
 /** Library-owned immutable implementation of {@link MailSendConnectionStep}. */
 @ApiStatus.Internal
@@ -40,21 +39,21 @@ public final class MailSendConnectionStepImpl implements MailSendConnectionStep 
 
 	/** @see MailSendConnectionStep#getConfiguredName() */
 	@Override
-	@NotNull
-	public Optional<String> getConfiguredName() {
-		return Optional.ofNullable(configuredName);
+	@Nullable
+	public String getConfiguredName() {
+		return configuredName;
 	}
 	/** @see MailSendConnectionStep#getSmtpHost() */
 	@Override
-	@NotNull
-	public Optional<String> getSmtpHost() {
-		return Optional.ofNullable(smtpHost);
+	@Nullable
+	public String getSmtpHost() {
+		return smtpHost;
 	}
 	/** @see MailSendConnectionStep#getSmtpPort() */
 	@Override
-	@NotNull
-	public Optional<Integer> getSmtpPort() {
-		return Optional.ofNullable(smtpPort);
+	@Nullable
+	public Integer getSmtpPort() {
+		return smtpPort;
 	}
 	/** @see MailSendConnectionStep#isConnectionAttempted() */
 	@Override
@@ -68,15 +67,15 @@ public final class MailSendConnectionStepImpl implements MailSendConnectionStep 
 	}
 	/** @see MailSendConnectionStep#getElapsed() */
 	@Override
-	@NotNull
-	public Optional<Duration> getElapsed() {
-		return Optional.ofNullable(elapsed);
+	@Nullable
+	public Duration getElapsed() {
+		return elapsed;
 	}
 	/** @see MailSendConnectionStep#getExplanation() */
 	@Override
-	@NotNull
-	public Optional<String> getExplanation() {
-		return Optional.ofNullable(explanation);
+	@Nullable
+	public String getExplanation() {
+		return explanation;
 	}
 
 	/** @see MailSendConnectionStep#toString() */

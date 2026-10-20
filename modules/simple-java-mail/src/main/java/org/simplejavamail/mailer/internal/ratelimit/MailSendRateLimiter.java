@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal.ratelimit;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
@@ -80,8 +82,9 @@ public final class MailSendRateLimiter implements SendingAllowance {
 			throw new IllegalArgumentException("Recipient count cannot be negative.");
 		}
 		if (count > recipientLimit) {
-			throw new IllegalArgumentException("This email has " + count + " envelope recipients, but the sending limit allows only " + recipientLimit
-					+ " in a whole period. Use fewer recipients or increase the configured recipient limit; the email has not been submitted.");
+			throw new org.simplejavamail.mailer.internal.MailerException(MailFailureKind.VALIDATION,
+					"This email has " + count + " envelope recipients, but the sending limit allows only " + recipientLimit
+					+ " in a whole period. Use fewer recipients or increase the configured recipient limit; the email has not been submitted.", null);
 		}
 	}
 
@@ -120,7 +123,8 @@ public final class MailSendRateLimiter implements SendingAllowance {
 			TimeUnit.NANOSECONDS.timedWait(monitor, nanos);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("Interrupted while waiting for SMTP sending allowance; the email has not been submitted.", interrupted);
+			throw new org.simplejavamail.mailer.internal.MailerException(MailFailureKind.CAPACITY,
+					"Interrupted while waiting for SMTP sending allowance; the email has not been submitted.", interrupted);
 		}
 	}
 

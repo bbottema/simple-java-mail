@@ -14,11 +14,29 @@ import org.springframework.core.env.StandardEnvironment;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleJavaMailSpringOAuth2ProviderTest {
+
+	@Test
+	void implicitTlsPresetFromPropertiesAcceptsTheProviderBeanWithoutResolvingIt() throws Exception {
+		final DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		final AtomicInteger calls = new AtomicInteger();
+		registerProvider(beanFactory, "tokens", () -> { calls.incrementAndGet(); return "synthetic-token"; }, false);
+		final SimpleJavaMail configured = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
+				ConfigLoader.Property.TRANSPORT_MODE_LOGGING_ONLY.key(), true,
+				ConfigLoader.Property.TRANSPORT_STRATEGY.key(), "SMTPS_OAUTH2")).load());
+		try (Mailer mailer = springSupport().defaultMailer(configured, beanFactory.getBeanProvider(OAuth2AccessTokenProvider.class),
+				beanFactory.getBeanProvider(MailSendTelemetry.class))) {
+			assertThat(mailer.getTransportStrategy()).isEqualTo(TransportStrategy.SMTPS_OAUTH2);
+			assertThat(mailer.getSession().getProperties()).containsEntry("mail.transport.protocol", "smtps")
+					.containsEntry("mail.smtps.auth.mechanisms", "XOAUTH2").doesNotContainKey("mail.smtp.auth.mechanisms");
+			assertThat(calls).hasValue(0);
+		}
+	}
 
 	@Test
 	void noProviderBeanShouldLeaveDefaultMailerWithoutAProvider() throws Exception {

@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -128,13 +127,13 @@ public final class MailSendDiagnosticsImpl implements MailSendDiagnostics {
 
 	/** @see MailSendDiagnostics#getSmtpHost() */
 	@Override
-	@NotNull
-	public Optional<String> getSmtpHost() { return Optional.ofNullable(smtpHost); }
+	@Nullable
+	public String getSmtpHost() { return smtpHost; }
 
 	/** @see MailSendDiagnostics#getSmtpPort() */
 	@Override
-	@NotNull
-	public Optional<Integer> getSmtpPort() { return Optional.ofNullable(smtpPort); }
+	@Nullable
+	public Integer getSmtpPort() { return smtpPort; }
 
 	/** @see MailSendDiagnostics#getConnectionHistory() */
 	@Override

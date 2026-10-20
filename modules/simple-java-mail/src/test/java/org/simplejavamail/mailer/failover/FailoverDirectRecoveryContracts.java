@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.simplejavamail.api.mailer.MailSend;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -42,7 +44,7 @@ class FailoverDirectRecoveryContracts {
                 connection.greet(peer, "250 localhost");
                 connection.acceptMessages(peer);
             }
-        }); Mailer independent = builder(shared.port()).withConnectionPoolMaxSize(2).buildMailer();
+        }); Mailer independent = updateMailer(builder(shared.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build())).buildMailer();
              Mailer initiating = builder(entry.port()).withFailoverMailer(independent,
                      FailoverPolicy.builder().withPrimaryConnectionAttempts(2).withPrimaryRecheckInterval(Duration.ofMillis(1))
                              .withPrimaryRecheckBackoff(1_000_000, Duration.ofHours(1)).build()).buildMailer()) {

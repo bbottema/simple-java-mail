@@ -52,6 +52,18 @@ class PublicApiBoundaryTest {
     private String compilationDetails;
 
     @Test
+    void mailerTryWithResourcesNeedsOnlyItsTwoShutdownExceptions() throws Exception {
+        final Path source = output.resolve("MailerLifetime.java");
+        Files.writeString(source, "import org.simplejavamail.api.mailer.Mailer;\n"
+                + "import java.util.concurrent.ExecutionException;\n"
+                + "class MailerLifetime {\n"
+                + " void finish(Mailer mailer) throws ExecutionException, InterruptedException {\n"
+                + "  try (Mailer owned = mailer) { owned.getTransportStrategy(); }\n"
+                + " }\n}\n");
+        assertThat(compile(source)).as(compilationDetails).isTrue();
+    }
+
+    @Test
     void telemetryConfigurationDoesNotExposeRecordingOrFrameworkTypes() {
         assertThat(MailSendTelemetry.class.getMethods()).isEmpty();
         assertThat(MailerGenericBuilder.class.getMethods())
@@ -172,6 +184,7 @@ class PublicApiBoundaryTest {
                 "new org.simplejavamail.recipient.RecipientBuilder()",
                 "new org.simplejavamail.converter.ConfiguredEmailConverter(null)",
                 "((org.simplejavamail.api.mailer.MailSender) null).sendMailAndGetReceipt(null)",
+                "((org.simplejavamail.api.mailer.MailSubmissionReceipt) null).isAcceptedByServer()",
                 "((org.simplejavamail.api.mailer.Mailer) null).shutdownConnectionPool()",
                 "((org.simplejavamail.api.mailer.MailSendTelemetry) null).bind(false)",
                 "io.opentelemetry.api.OpenTelemetry.noop()",
@@ -212,7 +225,11 @@ class PublicApiBoundaryTest {
         for (final String relativePath : List.of("api/mailer/config/ConnectionPoolClusterConfig.java", "api/mailer/config/FailoverPolicy.java",
                 "api/mailer/config/MailSendRetryPolicy.java", "api/email/config/DkimConfig.java", "api/email/config/SmimeSigningConfig.java",
                 "api/email/config/SmimeEncryptionConfig.java", "api/email/config/DeliveryStatusNotification.java", "api/mailer/config/Pkcs12Config.java",
-                "api/email/config/OpenPgpSigningConfig.java", "api/email/config/OpenPgpEncryptionConfig.java", "api/email/config/OpenPgpReceiveConfig.java")) {
+                "api/email/config/OpenPgpSigningConfig.java", "api/email/config/OpenPgpEncryptionConfig.java", "api/email/config/OpenPgpReceiveConfig.java",
+                "api/mailer/config/ConnectionPoolConfig.java", "api/mailer/config/AsyncExecutionConfig.java", "api/mailer/config/SocksProxyConfig.java",
+                "api/mailer/config/SendingLimitsConfig.java", "api/mailer/config/ConnectionConfig.java", "api/mailer/config/TlsConfig.java",
+                "api/mailer/config/ValidationConfig.java", "api/email/config/ImageResolutionConfig.java", "api/email/config/ContentEncodingConfig.java",
+                "api/email/config/EmailTemplateOptions.java", "api/email/config/SmtpDeliveryOptions.java")) {
             final String source = Files.readString(Path.of("src/main/java/org/simplejavamail", relativePath));
             assertThat(source).as(relativePath).doesNotContain("import lombok.Builder", "@Builder");
             final Matcher builderDeclaration = Pattern.compile("public static (?:final )?class \\w*Builder\\b").matcher(source);

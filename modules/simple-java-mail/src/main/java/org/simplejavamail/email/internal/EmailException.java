@@ -1,6 +1,7 @@
 package org.simplejavamail.email.internal;
 
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 /**
  * This exception is used to communicate errors during the creation of an email.
@@ -14,10 +15,10 @@ class EmailException extends MailException {
     static final String ERROR_PARSING_URL = "Unable to parse URL: %s";
 
     EmailException(@SuppressWarnings("SameParameterValue") final String message) {
-        super(message);
+        super(MailFailureKind.PREPARATION, message, null, null);
     }
 
     EmailException(@SuppressWarnings("SameParameterValue") final String message, final Exception cause) {
-        super(message, cause);
+        super(MailFailureKind.PREPARATION, message, cause, null);
     }
 }

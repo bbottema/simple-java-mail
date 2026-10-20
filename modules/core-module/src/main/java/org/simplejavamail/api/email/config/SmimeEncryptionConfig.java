@@ -69,7 +69,7 @@ public class SmimeEncryptionConfig implements Serializable {
 
         /**
          * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
-         * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
+         * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final X509Certificate x509Certificate) {
             this.x509Certificate = x509Certificate;
@@ -84,7 +84,13 @@ public class SmimeEncryptionConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #x509Certificate(InputStream)}.
+         * Reads and closes the PEM file immediately, parsing the recipient's public X.509 certificate for encryption.
+         * Select key and content algorithms separately through {@link #keyEncapsulationAlgorithm(String)} and {@link #cipherAlgorithm(String)};
+         * omitted algorithms retain the S/MIME module's defaults. The optional S/MIME module performs encryption when converting or sending.
+         * @param pemFile The recipient's public certificate to use for encryption.
+         * @return This builder.
+         * @see #x509Certificate(Path)
+         * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final File pemFile) {
             return x509Certificate(pemFile.toPath());
@@ -93,7 +99,9 @@ public class SmimeEncryptionConfig implements Serializable {
         /**
          * Reads the certificate immediately through {@link #x509Certificate(InputStream)} and closes the stream opened for the path.
          *
-         * @param pemPath Path to a PEM-encoded X.509 certificate.
+         * This accepts non-default Java filesystems. Choose key and content algorithms separately through
+         * {@link #keyEncapsulationAlgorithm(String)} and {@link #cipherAlgorithm(String)}; null retains the owning module's defaults.
+         * @param pemPath The recipient's public certificate path to use for encryption.
          * @return This builder.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final Path pemPath) {
@@ -105,7 +113,10 @@ public class SmimeEncryptionConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #x509Certificate(X509Certificate)}.
+         * Parses the recipient's public X.509 certificate immediately and delegates to {@link #x509Certificate(X509Certificate)}.
+         * The supplied stream remains caller-owned and is not closed.
+         * @param pemStream Application-owned PEM certificate stream.
+         * @return This builder.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final InputStream pemStream) {
             try {

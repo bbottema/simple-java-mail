@@ -2,6 +2,7 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -21,10 +22,10 @@ class SmimeException extends MailException {
         static final String ERROR_ENCRYPTING_SMIME_FOR_RECIPIENTS = "Error encrypting S/MIME message for per-recipient certificates";
 
 	SmimeException(@NotNull final String message) {
-		super(checkNonEmptyArgument(message, "message"));
+		super(MailFailureKind.PREPARATION, checkNonEmptyArgument(message, "message"), null, null);
 	}
 
 	SmimeException(@SuppressWarnings("SameParameterValue") @NotNull final String message, @NotNull final Exception cause) {
-		super(checkNonEmptyArgument(message, "message"), cause);
+		super(MailFailureKind.PREPARATION, checkNonEmptyArgument(message, "message"), cause, null);
 	}
 }

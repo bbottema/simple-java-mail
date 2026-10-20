@@ -88,7 +88,7 @@ public final class MailSubmissionReceiptImpl implements MailSubmissionReceipt {
 		final List<String> addresses = new ArrayList<>();
 		for (final MailRecipientResult recipient : recipients) {
 			if (recipient.getDisposition() == disposition) {
-				addresses.add(recipient.getEnvelopeAddress().orElse(recipient.getOriginalAddress()));
+				addresses.add(java.util.Objects.requireNonNullElse(recipient.getEnvelopeAddress(), recipient.getOriginalAddress()));
 			}
 		}
 		return Collections.unmodifiableList(addresses);
@@ -178,10 +178,16 @@ public final class MailSubmissionReceiptImpl implements MailSubmissionReceipt {
 		return Optional.ofNullable(smtpResponse);
 	}
 
-	/** @see MailSubmissionReceipt#isAcceptedByServer() */
+	/** @see MailSubmissionReceipt#isAcceptedForAtLeastOneRecipient() */
 	@Override
-	public boolean isAcceptedByServer() {
+	public boolean isAcceptedForAtLeastOneRecipient() {
 		return getStatus().isAcceptedForAtLeastOneRecipient();
+	}
+
+	/** @see MailSubmissionReceipt#isFullyAcceptedForSubmission() */
+	@Override
+	public boolean isFullyAcceptedForSubmission() {
+		return getStatus().isFullyAcceptedForSubmission();
 	}
 
 	/** @see MailSubmissionReceipt#hasServerAcceptanceInformation() */

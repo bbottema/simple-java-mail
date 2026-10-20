@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -54,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -83,7 +87,7 @@ class ConnectionFailoverTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(usePooling);
             try (Mailer alternative = builder(secondary).buildMailer()) {
-                final MailerFromSessionBuilderImpl configured = builder(primary).withExecutorService(workers).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
+                final MailerFromSessionBuilderImpl configured = updateMailer(builder(primary), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(workers).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
                 if (configuredFailover) {
                     configured.withFailoverMailer(alternative, FailoverPolicy.builder().build());
                 }
@@ -129,7 +133,7 @@ class ConnectionFailoverTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             try (Mailer alternative = builder(secondary).buildMailer()) {
-                final MailerFromSessionBuilderImpl configured = builder(primary).withExecutorService(workers)
+                final MailerFromSessionBuilderImpl configured = updateMailer(builder(primary), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(workers).build()))
                         .withFailoverMailer(alternative, FailoverPolicy.builder().build());
                 if (observed) {
                     configured.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build());
@@ -219,7 +223,7 @@ class ConnectionFailoverTest {
     @ValueSource(booleans = {false, true})
     void buildingWithoutFailoverLeavesBackgroundRecoveryEnabled(final boolean callerOwnedSession) throws Exception {
         try (Mailer plain = callerOwnedSession ? builder(new State()).buildMailer()
-                : mail.mailerBuilder().withSMTPServer("localhost", 2525).withConnectionPoolCoreSize(0).buildMailer()) {
+                : mail.mailerBuilder().withSMTPServer("localhost", 2525).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
             final DestinationConnectionObserver observer = ((MailerImpl) plain).connectionObserver();
             observer.connectionStarting().failed(new ConnectException("temporary outage"));
             assertThat(plain.getOperationalConfig().getFailoverPolicy()).isNull();
@@ -271,7 +275,7 @@ class ConnectionFailoverTest {
         };
         server.onClose = () -> server.connectFailure = null;
 
-        try (Mailer plain = builder(server).withConnectionPoolCoreSize(1).buildMailer()) {
+        try (Mailer plain = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).build())).buildMailer()) {
             // Release the failure only after the actual builder has finished configuring the recovery gate.
             try {
                 await(initialConnectionStarted);
@@ -315,9 +319,9 @@ class ConnectionFailoverTest {
         };
         final FailoverPolicy policy = FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofSeconds(30)).build();
         try (Mailer alternative = builder(secondary).buildMailer();
-             Mailer initiating = builder(primary, runtime).withConnectionPoolCoreSize(2).withConnectionPoolMaxSize(2)
+             Mailer initiating = updateMailer(builder(primary, runtime), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(2).withMaxSize(2).withExpireAfter(Duration.ofMillis(0)).build()))
                      // Count recovery allocations, not replacements caused by wall-clock idle expiry.
-                     .withConnectionPoolExpireAfter(Duration.ofMillis(0))
+
                      .withFailoverMailer(alternative, policy).buildMailer()) {
             try {
                 await(initialConnectionStarted);
@@ -396,7 +400,7 @@ class ConnectionFailoverTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             try (Mailer b = builder(secondary).buildMailer();
-                 Mailer a = builder(primary).withExecutorService(direct).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
+                 Mailer a = updateMailer(builder(primary), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(direct).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build())
                          .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
                 final var synchronous = a.sync().sendMail(email());
                 final var asynchronous = a.async().sendMail(email()).getCompletion().get(5, TimeUnit.SECONDS);
@@ -470,7 +474,7 @@ class ConnectionFailoverTest {
         final AtomicReference<OperationalConfig> failedConfiguration = new AtomicReference<>();
         final AtomicReference<MailerImpl> owned = new AtomicReference<>();
         try (Mailer established = new MailerRegularBuilderImpl(config, runtime).clearFailoverMailer().withTransportModeLoggingOnly(true)
-                .withRateLimitGroup("shared").withMessageRateLimit(1, Duration.ofSeconds(1)).buildMailer()) {
+                .withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(1, Duration.ofSeconds(1)).build()).buildMailer()) {
             final MailerRegularBuilderImpl failing = new MailerRegularBuilderImpl(config, runtime) {
                 @Override OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
                     final OperationalConfig supplied = super.buildOperationalConfig(sessionSettings);
@@ -479,8 +483,8 @@ class ConnectionFailoverTest {
                     return supplied;
                 }
             };
-            assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withRateLimitGroup("shared")
-                    .withMessageRateLimit(2, Duration.ofSeconds(1)).buildMailer()).hasMessageContaining("sharing a rate-limit group");
+            assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withSendingLimitsConfig(failing.getSendingLimitsConfig().toBuilder().withRateLimitGroup("shared").withMessageRateLimit(2, Duration.ofSeconds(1)).build())
+                    .buildMailer()).hasMessageContaining("sharing a rate-limit group");
             assertThat(failedConfiguration.get().getExecutorService().isShutdown()).isTrue();
             assertThat(owned.get().getOperationalConfig().getExecutorService().isShutdown()).isTrue();
             assertThat(established.getOperationalConfig().getExecutorService().isShutdown()).isFalse();
@@ -526,7 +530,7 @@ class ConnectionFailoverTest {
         final CountDownLatch rechecking = new CountDownLatch(1);
         final CountDownLatch finishRecheck = new CountDownLatch(1);
         try (Mailer b = builder(secondary, runtime).buildMailer();
-             Mailer a = builder(primary, runtime).withThreadPoolSize(3).withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
+             Mailer a = updateMailer(builder(primary, runtime), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(3).build())).withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
             a.sync().sendMail(email());
             primary.connectFailure = null;
             primary.onConnect = () -> { rechecking.countDown(); await(finishRecheck); };
@@ -576,13 +580,13 @@ class ConnectionFailoverTest {
         final CountDownLatch release = new CountDownLatch(1);
         primary.onSend = () -> { sending.countDown(); await(release); };
         try (Mailer b = builder(secondary).buildMailer();
-             Mailer a = builder(primary).withConnectionPoolClaimTimeout(Duration.ofMillis(50)).withThreadPoolSize(2)
+             Mailer a = updateMailer(builder(primary), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClaimTimeout(Duration.ofMillis(50)).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build()))
                      .withFailoverMailer(b, FailoverPolicy.builder().build()).buildMailer()) {
             final var occupied = a.async().sendMail(email());
             try {
                 assertThat(sending.await(5, TimeUnit.SECONDS)).isTrue();
                 assertThatThrownBy(() -> a.async().sendMail(email()).getCompletion().get(5, TimeUnit.SECONDS))
-                        .hasCauseInstanceOf(MailerException.class).hasRootCauseInstanceOf(IllegalStateException.class)
+                        .hasCauseInstanceOf(org.simplejavamail.batch.BatchTransportException.class).hasRootCauseInstanceOf(IllegalStateException.class)
                         .rootCause().hasMessageContaining("Timed out waiting for an available SMTP transport");
                 assertThat(secondary.connections).hasValue(0);
             } finally {
@@ -728,7 +732,7 @@ class ConnectionFailoverTest {
         final SimpleJavaMail configured = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
         assertThatThrownBy(() -> configured.mailerBuilder().clearFailoverMailer().buildMailer())
                 .hasMessageContaining("simplejavamail.locked.failover.mailer");
-        try (MailerImpl primary = (MailerImpl) configured.mailerBuilder().withConnectionPoolCoreSize(0).buildMailer()) {
+        try (MailerImpl primary = (MailerImpl) configured.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
             assertThat(primary.failoverMailer().getServerConfig().getHost()).isEqualTo("secondary.example.org");
             assertThat(primary.failoverMailer().getOperationalConfig().getFailoverPolicy()).isNull();
             assertThat(primary.getOperationalConfig().getFailoverPolicy()).isEqualTo(FailoverPolicy.builder().build());
@@ -772,7 +776,7 @@ class ConnectionFailoverTest {
             assertThat(outcomes).hasSize(4).allMatch(MailSendOutcome::isSuccessful);
             assertThat(outcomes).allSatisfy(outcome -> {
                 assertThat(outcome.getDiagnostics().orElseThrow().getConnectionHistory()).isEmpty();
-                assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isEmpty();
+                assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isNull();
             });
         }
     }
@@ -1080,7 +1084,7 @@ class ConnectionFailoverTest {
         properties.put("test.state", state);
         final Session session = Session.getInstance(properties);
         session.setProvider(new Provider(Provider.Type.TRANSPORT, "smtp", ControlledTransport.class.getName(), "test", "1"));
-        return new MailerFromSessionBuilderImpl(config, runtime).usingSession(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+        return new MailerFromSessionBuilderImpl(config, runtime).usingSession(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
     }
 
     private static final class State {

@@ -1,8 +1,8 @@
 package org.simplejavamail.api.email;
 
 /** Selects which Email fields should skip ordinary defaults or overrides. This does not suppress configured locks.
- * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
- * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+ * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)
+ * @see org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)
  */
 public enum EmailProperty {
     HEADERS,

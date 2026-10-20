@@ -43,7 +43,8 @@ public class TransportConnectionHelper {
 	}
 
 	private static void connectWithOAuth2Token(final Transport transport, final Session session, final String accessToken) throws MessagingException {
-		final String username = session.getProperty(TransportStrategy.SMTP_TLS.propertyNameUsername());
+		final String protocol = session.getProperties().getProperty("mail.transport.protocol", "smtp");
+		final String username = session.getProperty("mail." + protocol + ".user");
 		transport.connect(username, accessToken);
 	}
 }

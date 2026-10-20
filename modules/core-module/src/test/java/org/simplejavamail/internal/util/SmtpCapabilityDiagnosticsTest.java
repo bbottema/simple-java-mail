@@ -118,7 +118,7 @@ class SmtpCapabilityDiagnosticsTest {
     void sizeInterpretationIsIndependentOfAnyReportingBudget() {
         final String longNumber = "0".repeat(70000) + "123";
         final SmtpCapabilities capabilities = new SmtpCapabilities(Map.of("size", List.of(longNumber), "SIZE", List.of("123")));
-        assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+        assertThat(capabilities.getMaximumMessageSize()).isEqualTo(123);
         assertThat(SmtpCapabilityDiagnostics.fits(capabilities)).isFalse();
         assertThat(capabilities.getExtensions().get("SIZE")).contains(longNumber, "123");
     }

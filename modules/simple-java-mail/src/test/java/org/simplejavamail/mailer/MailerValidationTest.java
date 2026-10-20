@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import com.sanctionco.jmail.JMail;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,10 +69,10 @@ class MailerValidationTest {
 				.buildEmail();
 
 		try (Mailer mailerWithoutOverride = mailerBuilder()
-				.withEmailValidator(JMail.strictValidator())
+				.withValidationConfig(ValidationConfig.builder().withEmailValidator(JMail.strictValidator()).build())
 				.buildMailer();
 			 Mailer mailerWithOverride = mailerBuilder()
-					.withEmailValidator(JMail.strictValidator())
+					.withValidationConfig(ValidationConfig.builder().withEmailValidator(JMail.strictValidator()).build())
 					.withEmailOverrides(overrides)
 					.buildMailer()) {
 			assertThatThrownBy(() -> mailerWithoutOverride.validate(draft, false))
@@ -114,7 +115,7 @@ class MailerValidationTest {
 		final Email email = validEmail("sender@example.com");
 
 		try (Mailer mailer = mailerBuilder()
-				.withMaximumEmailSize(4)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(4).build())
 				.buildMailer()) {
 			mailer.validate(email, false);
 			assertThatThrownBy(() -> mailer.validate(email))

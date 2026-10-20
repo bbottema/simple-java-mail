@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
+import org.simplejavamail.api.internal.clisupport.CliExactEmailConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.config.ConfigLoader;
@@ -103,9 +104,9 @@ class CliEnvelopeIdTest {
     @Test
     void recipientPoliciesRemainJavaOnlyWithoutHidingExistingSharedDsnOptions() throws Exception {
         assertThat(ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", Recipient[].class).getAnnotation(Cli.ExcludeApi.class)).isNotNull();
-        assertThat(ExactEmailBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class)
+        assertThat(CliExactEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class)
                 .getAnnotation(Cli.ExcludeApi.class)).isNull();
-        assertThat(ExactEmailBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class)
+        assertThat(CliExactEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class)
                 .getAnnotation(Cli.ExcludeApi.class)).isNull();
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), mock(MailerProvider.class))) {
             final CliExecutionResult help = execute(environment, List.of("send", "--help"));

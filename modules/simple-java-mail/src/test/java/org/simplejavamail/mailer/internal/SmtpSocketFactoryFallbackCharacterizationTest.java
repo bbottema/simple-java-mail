@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.eclipse.angus.mail.util.MailSSLSocketFactory;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static jakarta.mail.Message.RecipientType.TO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -201,7 +205,7 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
             }
         })) {
             try {
-                final MailerRegularBuilder<?> builder = builder(server.port(), SMTPS).withCustomSSLFactoryInstance(factory)
+                final MailerRegularBuilder<?> builder = updateMailer(builder(server.port(), SMTPS), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(factory).build()))
                         .withProperty("mail.smtps.ssl.protocols", "TLSv1.2");
                 if (!"absent".equals(fallback)) {
                     builder.withProperty("mail.smtps.socketFactory.fallback", fallback);
@@ -241,7 +245,7 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
             peer.expect("STARTTLS");
             peer.reply("220 begin TLS");
             peer.expectClosed();
-        }); Mailer mailer = builder(server.port(), SMTP_TLS).withCustomSSLFactoryInstance(factory)
+        }); Mailer mailer = updateMailer(builder(server.port(), SMTP_TLS), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(factory).build()))
                 .withProperty("mail.smtp.socketFactory.fallback", fallback).buildMailer()) {
             try {
                 assertThatThrownBy(() -> mailer.sync().sendMail(email())).hasRootCause(rejection);
@@ -271,9 +275,9 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
                     .withProperty(strategy == SMTPS ? "mail.smtps.ssl.protocols" : "mail.smtp.ssl.protocols", "TLSv1.2");
             if (classFactory) {
                 TrustedSslFactory.application = application;
-                settings.withCustomSSLFactoryClass(TrustedSslFactory.class.getName());
+                settings.withTlsConfig(settings.getTlsConfig().toBuilder().withCustomSSLFactoryClass(TrustedSslFactory.class.getName()).build());
             } else {
-                settings.withCustomSSLFactoryInstance(application);
+                settings.withTlsConfig(settings.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(application).build());
             }
             try (Mailer mailer = settings.buildMailer()) {
                 if (trusted) {
@@ -306,7 +310,7 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             beginTls(peer, strategy);
             acceptAfterTls(peer, strategy);
-        }); Mailer mailer = builder(server.port(), strategy).withCustomSSLFactoryInstance(application)
+        }); Mailer mailer = updateMailer(builder(server.port(), strategy), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(application).build()))
                 .withProperty(strategy == SMTPS ? "mail.smtps.ssl.protocols" : "mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
             assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(ACCEPTED);
         }
@@ -327,7 +331,7 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
                 // JSSE can send handshake_failure or internal_error for the client's empty trust store, depending on the JDK.
                 // The client-side assertion below still requires the original certificate-trust failure.
             }
-        }); Mailer mailer = builder(server.port(), strategy).withCustomSSLFactoryInstance(application)
+        }); Mailer mailer = updateMailer(builder(server.port(), strategy), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(application).build()))
                 .withProperty(strategy == SMTPS ? "mail.smtps.ssl.protocols" : "mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).hasStackTraceContaining("trustAnchors parameter must be non-empty");
         }
@@ -343,7 +347,7 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             beginTls(peer, strategy);
             peer.expectClosed();
-        }); Mailer mailer = builder(server.port(), strategy).withCustomSSLFactoryInstance(application)
+        }); Mailer mailer = updateMailer(builder(server.port(), strategy), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(application).build()))
                 .withProperty(prefix + ".ssl.protocols", "TLSv1.2")
                 .withProperty(prefix + ".ssl.hostnameverifier", (HostnameVerifier) (host, session) -> false).buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).hasStackTraceContaining("Unable to check server identity for: localhost");
@@ -381,8 +385,8 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port, final TransportStrategy strategy) {
         return factory().mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(strategy)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build());
     }
 
     private static SimpleJavaMail factory() {

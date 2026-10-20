@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,9 +41,9 @@ class MailSendProgressSmtpTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000))
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000)).build())
                 .withProperty("mail.host", "localhost")
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build());
     }
 
     private Email email() {
@@ -98,7 +102,7 @@ class MailSendProgressSmtpTest {
                 // Angus 2.0.5 also dot-escapes BDAT input. Progress must not change that baseline or count its extra framing byte.
                 assertThat(serverReceived.await(5, SECONDS)).isTrue();
                 assertThat(received.toByteArray()).isEqualTo(baseline.toByteArray());
-                assertThat(atFinalReply.get().getBytesWritten()).contains((long) exactContent.length);
+                assertThat(atFinalReply.get().getBytesWritten()).isEqualTo((long) exactContent.length);
                 assertThat(reportedStages).doesNotContain(MailSendProgressStage.WAITING_FOR_DATA_PERMISSION);
                 assertThat(atFinalReply.get().getTotalBytes()).isEqualTo(atFinalReply.get().getBytesWritten());
                 assertThat(send.getCompletion().isDone()).isFalse();
@@ -118,7 +122,7 @@ class MailSendProgressSmtpTest {
             assertThatThrownBy(() -> mailer.sync().sendMail(mail.emailBuilder().startingBlank().buildEmail())).isInstanceOf(RuntimeException.class);
             final MailSendProgress failed = awaitFinished(progress);
             assertThat(failed.getSubmissionAttempt()).isZero();
-            assertThat(failed.getBytesWritten()).isEmpty();
+            assertThat(failed.getBytesWritten()).isNull();
             assertThat(results.get(0).isSuccessful()).isFalse();
             mailer.sync().sendMail(email());
             final MailSendProgress logged = awaitFinished(progress);
@@ -216,7 +220,7 @@ class MailSendProgressSmtpTest {
                 assertThat(send.getCompletion().isDone()).isFalse();
                 final MailSendProgress uploading = progress.get(progress.size() - 1);
                 assertThat(uploading.getSubmissionAttempt()).isEqualTo(1);
-                assertThat(uploading.getBytesWritten()).isPresent();
+                assertThat(uploading.getBytesWritten()).isNotNull();
                 assertThat(uploading.getTotalBytes()).isEqualTo(uploading.getBytesWritten());
                 allowReply.countDown();
                 final MailSubmissionReceipt receipt = send.getCompletion().get(5, SECONDS);

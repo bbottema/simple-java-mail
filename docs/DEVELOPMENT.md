@@ -113,11 +113,13 @@ mvn com.mycila:license-maven-plugin:3.0:remove
 ## Generated CLI Metadata
 
 The CLI is generated from builder interfaces and their Javadocs. [ADR 0018](adr/0018-cli-from-builder-contracts.md) records why; the [API expansion workflow](API_EXPANSION_WORKFLOW.md#2-api-interface-expansion-core-module) defines the rules for exposing a new method.
+`CliBuilderApi.roots()` is the authoritative root inventory, including internal scalar adapters for the immutable Email and Mailer groups.
+Those adapters preserve established option names and millisecond arguments without exposing removed scalar routes on the application Java builders.
 
 The build/runtime path is:
 
 1. Therapi's annotation processor makes selected API Javadocs available at runtime.
-2. [CliSupport](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java) supplies the roots `EmailStartingBuilder`, `MailerRegularBuilder`, and `MailerFromSessionBuilder`.
+2. [CliSupport](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java) uses `CliBuilderApi.roots()` for the public bootstrap contracts and internal scalar adapters, including the regular-Mailer and exact-Email scopes.
 3. [BuilderApiToPicocliCommandsMapper](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java) walks public methods on `@Cli.BuilderApiNode` types, skips bean accessors and excluded/incompatible methods, and builds Picocli options with registered string converters.
 4. [TherapiJavadocHelper](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/therapijavadoc/TherapiJavadocHelper.java) resolves method/parameter documentation; `JavadocForCliFormatter` formats it for terminal help.
 5. Kryo serializes the option model to `modules/cli-module/src/main/resources/cli.data`; resolved Javadoc lookups are cached in `modules/cli-module/src/main/resources/therapi.data`.

@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
@@ -116,8 +121,8 @@ public class MailerTest {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
 		final UUID clusterKey = UUID.randomUUID();
-		try (Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null).withClusterKey(clusterKey).buildMailer();
-			 Mailer otherMailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25).withClusterKey(clusterKey).buildMailer()) {
+		try (Mailer mailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25, null, null).withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(clusterKey).build()).buildMailer();
+			 Mailer otherMailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25).withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(clusterKey).build()).buildMailer()) {
 			assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).isEmpty();
 			final Session session = mailer.getSession();
 
@@ -142,7 +147,7 @@ public class MailerTest {
 			assertThat(session.getProperty("extra-properties-property2")).isNull();
 			assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(clusterKey);
 
-			assertThatThrownBy(() -> simpleJavaMail.mailerBuilder(session).withClusterKey(clusterKey).buildMailer())
+			assertThatThrownBy(() -> simpleJavaMail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(clusterKey).build()).buildMailer())
 					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already belongs to another Mailer");
 			assertThat(session.getProperties()).isNotEqualTo(otherMailer.getSession().getProperties());
 
@@ -177,7 +182,7 @@ public class MailerTest {
 
 		Mailer trustAllMailer = simpleJavaMail.mailerBuilder().withSMTPServer("host", 25)
 				.withTransportStrategy(SMTP_TLS)
-				.trustingAllHosts(true)
+				.withTlsConfig(TlsConfig.builder().trustingAllHosts(true).build())
 				.buildMailer();
 		assertThat(trustAllMailer.getOperationalConfig().isTrustAllSSLHost()).isTrue();
 		assertThat(trustAllMailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
@@ -185,7 +190,7 @@ public class MailerTest {
 
 		Mailer trustedHostMailer = simpleJavaMail.mailerBuilder().withSMTPServer("smtp.internal.example", 465)
 				.withTransportStrategy(SMTPS)
-				.trustingSSLHosts("smtp.internal.example")
+				.withTlsConfig(TlsConfig.builder().trustingSSLHosts("smtp.internal.example").build())
 				.buildMailer();
 		assertThat(trustedHostMailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
 		assertThat(trustedHostMailer.getSession().getProperty("mail.smtps.ssl.trust")).isEqualTo("smtp.internal.example");
@@ -232,7 +237,7 @@ public class MailerTest {
 		final Session session = Session.getInstance(properties);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withProxy("proxy.example.com", 1080)
+				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).build())
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
 			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
@@ -256,8 +261,7 @@ public class MailerTest {
 		final Session session = Session.getInstance(properties);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
-				.withProxy("proxy.example.com", 1080, "proxy-user", "proxy-password")
-				.withProxyBridgePort(8181)
+				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").withBridgePort(8181).build())
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
 			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
@@ -411,7 +415,7 @@ public class MailerTest {
 
 		Mailer mailer = configuredMail.mailerBuilder()
 				.withTransportStrategy(TransportStrategy.SMTP)
-				.withOpportunisticTLS(true)
+				.withTlsConfig(TlsConfig.builder().withOpportunisticTLS(true).build())
 				.buildMailer();
 		Session session = mailer.getSession();
 		
@@ -528,7 +532,7 @@ public class MailerTest {
 	public void testSSLSocketFactoryClassConfig() {
 		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withCustomSSLFactoryClass("teh_class")
+				.withTlsConfig(TlsConfig.builder().withCustomSSLFactoryClass("teh_class").build())
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -542,8 +546,8 @@ public class MailerTest {
 		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withTransportStrategy(SMTPS)
-				.clearProxy()
-				.withCustomSSLFactoryClass("teh_class")
+				.withProxyConfig(SocksProxyConfig.builder().clearProxy().build())
+				.withTlsConfig(TlsConfig.builder().withCustomSSLFactoryClass("teh_class").build())
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -559,7 +563,7 @@ public class MailerTest {
 
 		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withCustomSSLFactoryInstance(mockFactory)
+				.withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(mockFactory).build())
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -575,8 +579,8 @@ public class MailerTest {
 		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
 				.withTransportStrategy(SMTPS)
-				.clearProxy()
-				.withCustomSSLFactoryInstance(mockFactory)
+				.withProxyConfig(SocksProxyConfig.builder().clearProxy().build())
+				.withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(mockFactory).build())
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -592,8 +596,7 @@ public class MailerTest {
 
 		final Mailer mailer = simpleJavaMail.mailerBuilder()
 				.withSMTPServer("host", 25, null, null)
-				.withCustomSSLFactoryInstance(mockFactory)
-				.withCustomSSLFactoryClass("teh_class")
+				.withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(mockFactory).withCustomSSLFactoryClass("teh_class").build())
 				.buildMailer();
 
 		final Session session = mailer.getSession();
@@ -632,8 +635,8 @@ public class MailerTest {
 				.dkimSigningDomain("supersecret-testing-domain.com")
 				.dkimSelector("select")
 				.build());
-		emailPopulatingBuilder.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null);
-		emailPopulatingBuilder.encryptWithSmime(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"), null, null);
+		emailPopulatingBuilder.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build());
+		emailPopulatingBuilder.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt")).keyEncapsulationAlgorithm(null).cipherAlgorithm(null).build());
 
 		MimeMessage mimeMessage = EmailConverter.emailToMimeMessage(emailPopulatingBuilder.buildEmail());
 		// success, signing did not produce an error
@@ -696,7 +699,7 @@ public class MailerTest {
 		assertThat(receipt.getSubmittedAt()).isNotNull();
 		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 		assertThat(receipt.hasServerAcceptanceInformation()).isTrue();
-		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.isAcceptedForAtLeastOneRecipient()).isTrue();
 		assertThat(receipt.getAcceptedRecipients()).containsExactly("receipt@example.com");
 		assertThat(receipt.getValidUnsentRecipients()).isEmpty();
 		assertThat(receipt.getInvalidRecipients()).isEmpty();
@@ -721,7 +724,7 @@ public class MailerTest {
 
 		assertThat(transportState.connectCount.get()).isEqualTo(1);
 		assertThat(transportState.closeCount.get()).isEqualTo(1);
-		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.isAcceptedForAtLeastOneRecipient()).isTrue();
 		assertThat(receipt.getSmtpResponse()).isPresent();
 		assertThat(receipt.getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
 	}
@@ -739,7 +742,7 @@ public class MailerTest {
 		assertThat(receipt.getEmailId()).isEqualTo(email.getId());
 		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
 		assertThat(receipt.hasServerAcceptanceInformation()).isFalse();
-		assertThat(receipt.isAcceptedByServer()).isFalse();
+		assertThat(receipt.isAcceptedForAtLeastOneRecipient()).isFalse();
 		assertThat(receipt.getAcceptedRecipients()).isEmpty();
 		assertThat(receipt.getSmtpResponse()).isNotPresent();
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
@@ -795,7 +798,7 @@ public class MailerTest {
 		assertThat(receipt.getEmailId()).isNotNull();
 		assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.PARTIALLY_ACCEPTED);
 		assertThat(receipt.hasServerAcceptanceInformation()).isTrue();
-		assertThat(receipt.isAcceptedByServer()).isTrue();
+		assertThat(receipt.isAcceptedForAtLeastOneRecipient()).isTrue();
 		assertThat(receipt.getAcceptedRecipients()).containsExactly("accepted@example.com");
 		assertThat(receipt.getValidUnsentRecipients()).containsExactly("unsent@example.com");
 		assertThat(receipt.getInvalidRecipients()).containsExactly("invalid@example.com");
@@ -980,7 +983,7 @@ public class MailerTest {
 		assertThat(transportState.closeCount.get()).isEqualTo(1);
 		assertThat(transportState.sentMessages).hasSize(2);
 		assertThat(receipts).hasSize(2);
-		assertThat(receipts).extracting(MailSubmissionReceipt::isAcceptedByServer).containsExactly(true, true);
+		assertThat(receipts).extracting(MailSubmissionReceipt::isAcceptedForAtLeastOneRecipient).containsExactly(true, true);
 		assertThat(receipts.get(0).getAcceptedRecipients()).containsExactly("first@example.com");
 		assertThat(receipts.get(1).getAcceptedRecipients()).containsExactly("second@example.com");
 		assertThat(receipts.get(0).getSmtpResponse().get().getResponse()).isEqualTo("250 queued as simple-java-mail-test-1");
@@ -1240,7 +1243,7 @@ public class MailerTest {
 			@Nullable final TransportStrategy transportStrategy) {
 		MailerRegularBuilder<?> mailerBuilder = configuredMail.mailerBuilder()
 				.withSMTPServer(prefix + "smtp host", 25, prefix + "username smtp", prefix + "password smtp")
-				.verifyingServerIdentity(true)
+				.withTlsConfig(TlsConfig.builder().verifyingServerIdentity(true).build())
 				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build());
 
 		if (transportStrategy != null) {
@@ -1250,13 +1253,12 @@ public class MailerTest {
 		if (transportStrategy == SMTP_TLS) {
 			if (authenticateProxy) {
 				mailerBuilder
-						.withProxy(prefix + "proxy host", 1080, prefix + "username proxy", prefix + "password proxy")
-						.withProxyBridgePort(999);
+						.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().withHost(prefix + "proxy host").withPort(1080).withUsername(prefix + "username proxy").withPassword(prefix + "password proxy").withBridgePort(999).build());
 			} else {
-				mailerBuilder.withProxy(prefix + "proxy host", 1080);
+				mailerBuilder.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().withHost(prefix + "proxy host").withPort(1080).build());
 			}
 		} else if (transportStrategy == SMTPS) {
-			mailerBuilder.clearProxy();
+			mailerBuilder.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().clearProxy().build());
 		}
 
 		return mailerBuilder

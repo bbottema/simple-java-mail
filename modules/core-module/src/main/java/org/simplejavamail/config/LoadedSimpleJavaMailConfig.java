@@ -18,10 +18,10 @@ import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 /**
  * An immutable, thread-safe snapshot of resolved Simple Java Mail configuration.
  * <p>
- * A snapshot contains only explicitly configured values. Runtime defaults such as generated cluster identifiers remain builder concerns. All input and
- * wildcard maps are detached during construction and all returned maps are unmodifiable.
+ * A snapshot contains only explicitly configured values. Runtime defaults such as generated cluster identifiers remain builder concerns. Stored input and
+ * wildcard maps are detached during construction; snapshot maps returned by typed reads or {@link #asMap()} are unmodifiable.
  * <p>
- * The typed property getters and {@link #asMap()} return actual configured values and may therefore expose credentials. Use {@link #getDiagnostics()} for
+ * Typed key reads and {@link #asMap()} return actual configured values and may therefore expose credentials. Use {@link #getDiagnostics()} for
  * structured output intended for diagnostic logs.
  * <p>
  * Properties under {@code simplejavamail.locked.} supply their ordinary counterpart's effective value and remain restrictions on later customization
@@ -62,47 +62,25 @@ final class LoadedSimpleJavaMailConfig implements ConfigurationSnapshot {
 		return locks;
 	}
 
-	/** @see SimpleJavaMailConfig#hasProperty(ConfigLoader.Property) */
-	@Override
-	public boolean hasProperty(@NotNull final ConfigLoader.Property property) {
-		return !valueNullOrEmpty(values.get(property));
-	}
+    /** @see SimpleJavaMailConfig#hasProperty(ConfigKey) */
+    @Override
+    public boolean hasProperty(@NotNull final ConfigKey<?> key) {
+        return !valueNullOrEmpty(values.get(java.util.Objects.requireNonNull(key, "key").property()));
+    }
 
-	/** @see SimpleJavaMailConfig#getProperty(ConfigLoader.Property) */
-	@Override
-	@SuppressWarnings("unchecked")
-	@Nullable
-	public <T> T getProperty(@NotNull final ConfigLoader.Property property) {
-		return (T) values.get(property);
-	}
+    /** @see SimpleJavaMailConfig#get(ConfigKey) */
+    @Override
+    @Nullable
+    public <T> T get(@NotNull final ConfigKey<T> key) {
+        return java.util.Objects.requireNonNull(key, "key").read(values.get(key.property()));
+    }
 
-	/** @see SimpleJavaMailConfig#getStringProperty(ConfigLoader.Property) */
-	@Override
-	@Nullable
-	public String getStringProperty(@NotNull final ConfigLoader.Property property) {
-		return getProperty(property);
-	}
-
-	/** @see SimpleJavaMailConfig#getIntegerProperty(ConfigLoader.Property) */
-	@Override
-	@Nullable
-	public Integer getIntegerProperty(@NotNull final ConfigLoader.Property property) {
-		return getProperty(property);
-	}
-
-	/** @see SimpleJavaMailConfig#getBooleanProperty(ConfigLoader.Property) */
-	@Override
-	@Nullable
-	public Boolean getBooleanProperty(@NotNull final ConfigLoader.Property property) {
-		return getProperty(property);
-	}
-
-	/** @see SimpleJavaMailConfig#getPropertySource(ConfigLoader.Property) */
-	@Override
-	@Nullable
-	public String getPropertySource(@NotNull final ConfigLoader.Property property) {
-		return propertySources.get(property);
-	}
+    /** @see SimpleJavaMailConfig#getPropertySource(ConfigKey) */
+    @Override
+    @Nullable
+    public String getPropertySource(@NotNull final ConfigKey<?> key) {
+        return propertySources.get(java.util.Objects.requireNonNull(key, "key").property());
+    }
 
 	/** @see SimpleJavaMailConfig#getDiagnostics() */
 	@Override
@@ -111,23 +89,23 @@ final class LoadedSimpleJavaMailConfig implements ConfigurationSnapshot {
 		return diagnostics;
 	}
 
-	/** @see SimpleJavaMailConfig#valueOrProperty(Object, ConfigLoader.Property, Object) */
+	/** @see SimpleJavaMailConfig#valueOrProperty(Object, ConfigKey, Object) */
 	@Override
 	@Nullable
 	public <T> T valueOrProperty(@Nullable final T explicitValue,
-			@NotNull final ConfigLoader.Property property,
+			@NotNull final ConfigKey<T> key,
 			@Nullable final T fallbackValue) {
 		if (!valueNullOrEmpty(explicitValue)) {
 			return explicitValue;
 		}
-		return hasProperty(property) ? this.<T>getProperty(property) : fallbackValue;
+		return hasProperty(key) ? get(key) : fallbackValue;
 	}
 
-	/** @see SimpleJavaMailConfig#valueOrProperty(Object, ConfigLoader.Property) */
+	/** @see SimpleJavaMailConfig#valueOrProperty(Object, ConfigKey) */
 	@Override
 	@Nullable
-	public <T> T valueOrProperty(@Nullable final T explicitValue, @NotNull final ConfigLoader.Property property) {
-		return valueOrProperty(explicitValue, property, null);
+	public <T> T valueOrProperty(@Nullable final T explicitValue, @NotNull final ConfigKey<T> key) {
+		return valueOrProperty(explicitValue, key, null);
 	}
 
 	/** @see SimpleJavaMailConfig#asMap() */

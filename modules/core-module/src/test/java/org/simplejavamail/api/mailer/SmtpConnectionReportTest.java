@@ -45,7 +45,7 @@ class SmtpConnectionReportTest {
         input.clear();
         assertThat(capabilities.getExtensions().keySet()).containsExactly("DSN", "SIZE", "X-UNKNOWN");
         assertThat(capabilities.getExtensions().get("SIZE")).containsExactly("123", "123");
-        assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+        assertThat(capabilities.getMaximumMessageSize()).isEqualTo(123);
         assertThat(capabilities.supports("dSn")).isTrue();
         assertThat(capabilities.toString()).contains("one\\ntwo").doesNotContain("\n");
         assertThatThrownBy(() -> capabilities.getExtensions().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -57,14 +57,14 @@ class SmtpConnectionReportTest {
     void doesNotInventAFixedSizeLimit(final String parameter) {
         final SmtpCapabilities capabilities = new SmtpCapabilities(Map.of("SIZE", List.of(parameter)));
         assertThat(capabilities.supports("SIZE")).isTrue();
-        assertThat(capabilities.getMaximumMessageSize()).isEmpty();
+        assertThat(capabilities.getMaximumMessageSize()).isNull();
     }
 
     @Test
     void contradictorySizeAndAbsentSizeAreNotReportedAsLimits() {
-        assertThat(new SmtpCapabilities(Map.of("SIZE", List.of("1", "2"))).getMaximumMessageSize()).isEmpty();
-        assertThat(new SmtpCapabilities(Map.of()).getMaximumMessageSize()).isEmpty();
-        assertThat(new SmtpCapabilities(Map.of("SIZE", List.of("9223372036854775807"))).getMaximumMessageSize()).hasValue(Long.MAX_VALUE);
+        assertThat(new SmtpCapabilities(Map.of("SIZE", List.of("1", "2"))).getMaximumMessageSize()).isNull();
+        assertThat(new SmtpCapabilities(Map.of()).getMaximumMessageSize()).isNull();
+        assertThat(new SmtpCapabilities(Map.of("SIZE", List.of("9223372036854775807"))).getMaximumMessageSize()).isEqualTo(Long.MAX_VALUE);
     }
 
     @Test
@@ -102,9 +102,9 @@ class SmtpConnectionReportTest {
                 .failureDescription("bad\u0000reply").build();
         warnings.clear();
         assertThat(report.getHost()).isEqualTo("host\\nforged");
-        assertThat(report.getGreeting()).contains("220 hello\\tworld\\u2028");
+        assertThat(report.getGreeting()).isEqualTo("220 hello\\tworld\\u2028");
         assertThat(report.getWarnings()).containsExactly("note\\r\\nforged\\u202e");
-        assertThat(report.getFailureDescription()).contains("bad\\u0000reply");
+        assertThat(report.getFailureDescription()).isEqualTo("bad\\u0000reply");
         assertThat(report.toString()).doesNotContain("\u001b", "\u0000", "\u2028", "\u202e", "\r");
         assertThat(tls.getPeerIdentities()).containsExactly("CN=peer\\nforged log line");
         assertThatThrownBy(() -> report.getWarnings().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -114,7 +114,7 @@ class SmtpConnectionReportTest {
     @Test
     void boundsDisplayedServerTextAndSurvivesSerialization() throws Exception {
         final SmtpConnectionReport original = report().greeting("A".repeat(10000)).beforeTls(new SmtpCapabilities(Map.of("DSN", List.of("")))).build();
-        assertThat(original.getGreeting().orElseThrow()).hasSizeLessThanOrEqualTo(2055);
+        assertThat(original.getGreeting()).hasSizeLessThanOrEqualTo(2055);
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
             output.writeObject(original);
@@ -155,7 +155,7 @@ class SmtpConnectionReportTest {
         final String longNumber = "0".repeat(5000) + "123";
         final SmtpCapabilities original = new SmtpCapabilities(Map.of("SIZE", List.of(longNumber), "X-TEXT", List.of("one\ntwo\u202e😀")));
         final SmtpCapabilities copy = (SmtpCapabilities) roundTrip(original);
-        assertThat(copy.getMaximumMessageSize()).hasValue(123);
+        assertThat(copy.getMaximumMessageSize()).isEqualTo(123);
         assertThat(copy.getExtensions()).isEqualTo(original.getExtensions());
         assertThat(copy.getExtensions().get("SIZE")).containsExactly(longNumber);
         assertThat(((SmtpCapabilities) roundTrip(copy)).toString()).isEqualTo(original.toString());
@@ -172,7 +172,7 @@ class SmtpConnectionReportTest {
                 + "cQB+AAkAAAABdwQAAAABdAAIb25lXG50d294eA==";
         try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(fixture)))) {
             final SmtpCapabilities capabilities = (SmtpCapabilities) input.readObject();
-            assertThat(capabilities.getMaximumMessageSize()).hasValue(123);
+            assertThat(capabilities.getMaximumMessageSize()).isEqualTo(123);
             assertThat(capabilities.getExtensions().get("X-OLD")).containsExactly("one\\ntwo");
             assertThatThrownBy(() -> capabilities.getExtensions().clear()).isInstanceOf(UnsupportedOperationException.class);
         }

@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,7 +58,7 @@ class MailSendProgressBoundaryTest {
                 await(allowReplies);
                 return "250 queued";
             });
-        }); Mailer mailer = builder(server.port()).withThreadPoolSize(2).withConnectionPoolMaxSize(2)
+        }); Mailer mailer = updateMailer(builder(server.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build()).withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build()))
                 .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).withProgressObserver(event -> {
                     progress.add(event);
                     if (event.getStage() == MailSendProgressStage.WAITING_FOR_RESPONSE && waitingIds.add(event.getObservationId())) {
@@ -81,7 +87,7 @@ class MailSendProgressBoundaryTest {
                     if (event.getStage() == MailSendProgressStage.FINISHED) {
                         finished.add(event.getObservationId());
                         assertThat(event.getSubmissionAttempt()).isEqualTo(1);
-                        assertThat(event.getBytesWritten()).isPresent().isEqualTo(event.getTotalBytes());
+                        assertThat(event.getBytesWritten()).isNotNull().isEqualTo(event.getTotalBytes());
                     }
                 }
                 assertThat(outcomes).extracting(MailSendOutcome::getObservationId).containsExactlyInAnyOrderElementsOf(finished);
@@ -106,7 +112,7 @@ class MailSendProgressBoundaryTest {
                 await(release);
             }
         };
-        try (Mailer mailer = builder(25).withCustomMailer(custom).withAsyncQueueCapacity(0)
+        try (Mailer mailer = updateMailer(builder(25), fixture -> fixture.withCustomMailer(custom).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withQueueCapacity(0).build()))
                 .withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             try {
                 final MailSend<MailSubmissionReceipt> first = mailer.async().sendMail(email());
@@ -116,7 +122,7 @@ class MailSendProgressBoundaryTest {
                 final List<MailSendProgress> delivered = throughFinished(progress);
                 final MailSendProgress terminal = delivered.get(delivered.size() - 1);
                 assertThat(terminal.getSubmissionAttempt()).isZero();
-                assertThat(terminal.getBytesWritten()).isEmpty();
+                assertThat(terminal.getBytesWritten()).isNull();
                 assertThat(outcomes).hasSize(1);
                 assertThat(outcomes.get(0).getObservationId()).isEqualTo(terminal.getObservationId());
                 assertThat(outcomes.get(0).getFailure()).containsSame(rejected);
@@ -207,8 +213,8 @@ class MailSendProgressBoundaryTest {
     void cancelledRateWaitFinishesBeforeAnySecondAcquisitionOrSubmission() throws Exception {
         final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = builder(server.port())
-                .withMessageRateLimit(1, Duration.ofHours(1)).withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
+        try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = updateMailer(builder(server.port()), fixture -> fixture
+                .withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).build())).withSendHandlers(MailSendHandlers.builder().withProgressObserver(progress::add).withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.sync().sendMail(email());
             throughFinished(progress);
             final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email());
@@ -255,8 +261,8 @@ class MailSendProgressBoundaryTest {
                 } while (submitting.getSubmissionAttempt() == 0);
                 assertThat(submitting.getStage()).isEqualTo(MailSendProgressStage.SUBMITTING);
                 assertThat(submitting.getEffectiveMessageId()).isNotBlank();
-                assertThat(submitting.getBytesWritten()).isEmpty();
-                assertThat(submitting.getTotalBytes()).isEmpty();
+                assertThat(submitting.getBytesWritten()).isNull();
+                assertThat(submitting.getTotalBytes()).isNull();
                 release.countDown();
                 send.getCompletion().get(5, SECONDS);
                 assertThat(throughFinished(progress)).extracting(MailSendProgress::getStage)
@@ -269,8 +275,8 @@ class MailSendProgressBoundaryTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000))
-                .withProperty("mail.host", "localhost").withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withThreadPoolSize(1);
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(20000)).build())
+                .withProperty("mail.host", "localhost").withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build());
     }
 
     private Email email() {

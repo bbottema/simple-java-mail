@@ -1,5 +1,7 @@
 package org.simplejavamail.api;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,8 +59,8 @@ class Java11ApiConvenienceTest {
 		Files.writeString(propertiesFile, SMTP_HOST.key() + "=second.example.test\n", StandardCharsets.UTF_8);
 		final SimpleJavaMailConfig second = loader.load();
 
-		assertThat(first.getStringProperty(SMTP_HOST)).isEqualTo("first.example.test");
-		assertThat(second.getStringProperty(SMTP_HOST)).isEqualTo("second.example.test");
+		assertThat(first.get(ConfigKeys.SMTP_HOST)).isEqualTo("first.example.test");
+		assertThat(second.get(ConfigKeys.SMTP_HOST)).isEqualTo("second.example.test");
 		assertThat(findDiagnostic(first, SMTP_HOST.key()).getSourceName()).isEqualTo("file:" + propertiesFile);
 		assertThat(ConfigLoader.builder().withPropertiesFile("deployment file", propertiesFile).load()
 				.getDiagnostics().toString()).contains("source: deployment file");
@@ -160,16 +162,16 @@ class Java11ApiConvenienceTest {
 		assertThat(fileSigningConfig.getPkcs12Config().getPkcs12StoreData()).containsExactly(Files.readAllBytes(pkcs12Path));
 		assertThat(fileEncryptionConfig.getX509Certificate()).isNotNull();
 		assertThat(simpleJavaMail.emailBuilder().startingBlank()
-				.signWithSmime(pkcs12Path, "letmein", "smime_test_user_alias_rsa", "letmein", null)
+				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(pkcs12Path, "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build())
 				.buildEmail().getSmimeSigningConfig()).isNotNull();
 		assertThat(simpleJavaMail.emailBuilder().startingBlank()
-				.encryptWithSmime(certificatePath, null, null)
+				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(certificatePath).keyEncapsulationAlgorithm(null).cipherAlgorithm(null).build())
 				.buildEmail().getSmimeEncryptionConfig()).isNotNull();
 		assertThat(simpleJavaMail.emailBuilder().startingBlank()
-				.signWithSmime(pkcs12Path.toFile(), "letmein", "smime_test_user_alias_rsa", "letmein", null)
+				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(pkcs12Path.toFile(), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build())
 				.buildEmail().getSmimeSigningConfig()).isNotNull();
 		assertThat(simpleJavaMail.emailBuilder().startingBlank()
-				.encryptWithSmime(certificatePath.toFile(), null, null)
+				.encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(certificatePath.toFile()).keyEncapsulationAlgorithm(null).cipherAlgorithm(null).build())
 				.buildEmail().getSmimeEncryptionConfig()).isNotNull();
 
 		assertThat(Files.deleteIfExists(dkimPath)).isTrue();
@@ -201,8 +203,10 @@ class Java11ApiConvenienceTest {
 		assertExcluded(EmailPopulatingBuilder.class, "withHTMLText", Path.class);
 		assertExcluded(EmailPopulatingBuilder.class, "prependTextHTML", Path.class);
 		assertExcluded(EmailPopulatingBuilder.class, "appendTextHTML", Path.class);
-		assertExcluded(EmailPopulatingBuilder.class, "signWithSmime", Path.class, String.class, String.class, String.class, String.class);
-		assertExcluded(EmailPopulatingBuilder.class, "encryptWithSmime", Path.class, String.class, String.class);
+		assertExcluded(org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder.class,
+				"signWithSmime", Path.class, String.class, String.class, String.class, String.class);
+		assertExcluded(org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder.class,
+				"encryptWithSmime", Path.class, String.class, String.class);
 		assertExcluded(EmailPopulatingBuilder.class, "fixingSentDate", Instant.class);
 	}
 

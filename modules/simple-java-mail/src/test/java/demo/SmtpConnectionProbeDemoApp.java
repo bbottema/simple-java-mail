@@ -1,5 +1,7 @@
 package demo;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -42,7 +44,7 @@ public final class SmtpConnectionProbeDemoApp extends DemoAppBase {
             final CompletableFuture<Void> peer = CompletableFuture.runAsync(() -> serveLocalGreeting(endpoint));
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder()
                     .withSMTPServer(endpoint.getInetAddress().getHostAddress(), endpoint.getLocalPort())
-                    .withOpportunisticTLS(false).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
+                    .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(5000)).build()).buildMailer()) {
                 printReport(mailer.async().probeConnection().get(10, TimeUnit.SECONDS));
             }
             peer.get(10, TimeUnit.SECONDS);
@@ -53,7 +55,10 @@ public final class SmtpConnectionProbeDemoApp extends DemoAppBase {
         System.out.println(report);
         report.getEffectiveCapabilities().ifPresent(capabilities -> {
             System.out.println("DSN advertised: " + capabilities.supports("DSN"));
-            capabilities.getMaximumMessageSize().ifPresent(bytes -> System.out.println("Advertised size limit: " + bytes + " bytes"));
+            final Long maximum = capabilities.getMaximumMessageSize();
+            if (maximum != null) {
+                System.out.println("Advertised size limit: " + maximum + " bytes");
+            }
         });
         System.out.println("No email was submitted. Advertisements are not a guarantee that a later send will succeed.");
     }

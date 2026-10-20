@@ -19,7 +19,8 @@ final class MailSendRetryWait {
 			control.checkStopped();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new MailerException("The thread waiting to retry this email was interrupted. No further submission was started.", interrupted);
+			throw new MailerException(org.simplejavamail.api.mailer.MailFailureKind.CAPACITY,
+					"The thread waiting to retry this email was interrupted. No further submission was started.", interrupted);
 		}
 	}
 }

@@ -212,7 +212,7 @@ class MailSubmissionReceiptTest {
 		assertStableViews(restored);
 		assertThat(restored.getRetryDisposition()).isEqualTo(MailRetryDisposition.CALLER_POLICY_REQUIRED);
 		assertThat(restored.getRecipientResults()).hasSize(2).allSatisfy(recipient -> {
-			assertThat(recipient.getRcptAttempted()).isEmpty();
+			assertThat(recipient.getRcptAttempted()).isNull();
 			assertThat(recipient.getRcptResponse()).isEmpty();
 		});
 	}
@@ -230,11 +230,11 @@ class MailSubmissionReceiptTest {
 		assertThat(result.getRecipientResults()).extracting(MailRecipientResult::getDisposition).containsExactly(
 				MailRecipientDisposition.VALID_UNSENT, MailRecipientDisposition.UNKNOWN, MailRecipientDisposition.ACCEPTED);
 		assertThat(result.getRecipientResults()).allSatisfy(recipient -> {
-			assertThat(recipient.getRcptAttempted()).isEmpty();
+			assertThat(recipient.getRcptAttempted()).isNull();
 			assertThat(recipient.getRcptResponse()).isEmpty();
 		});
 		accepted.setAddress("mutated@example.org");
-		assertThat(result.getRecipientResults().get(2).getEnvelopeAddress()).contains("Case@example.org");
+		assertThat(result.getRecipientResults().get(2).getEnvelopeAddress()).isEqualTo("Case@example.org");
 		assertThatThrownBy(() -> result.getRecipientResults().clear()).isInstanceOf(UnsupportedOperationException.class);
 	}
 
@@ -261,7 +261,7 @@ class MailSubmissionReceiptTest {
 				new SmtpServerResponse(250, "250 OK"))).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> new MailRecipientResult("a", "a", MailRecipientDisposition.UNKNOWN, true,
 				new SmtpServerResponse(-1, "[EOF]"))).isInstanceOf(IllegalArgumentException.class);
-		assertThat(new MailRecipientResult("custom address", null, MailRecipientDisposition.UNKNOWN, null, null).getEnvelopeAddress()).isEmpty();
+		assertThat(new MailRecipientResult("custom address", null, MailRecipientDisposition.UNKNOWN, null, null).getEnvelopeAddress()).isNull();
 		assertThat(new MailRecipientResult("a", "a", MailRecipientDisposition.VALID_UNSENT, false, null).getRcptStatus())
 				.isEqualTo(SmtpRecipientStatus.NOT_ATTEMPTED);
 	}

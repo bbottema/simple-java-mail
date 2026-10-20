@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -99,18 +101,26 @@ class MailerBuilderCompanionTest {
     void booleanResetsUseLibraryDefaultsRatherThanCapturedProperties() throws Exception {
         final SimpleJavaMail factory = factory(Map.of("smtp.host", "relay.example.org", "opportunistic.tls", "false", "smtp.legacycontentsupport", "true"));
         final MailerRegularBuilder<?> builder = factory.mailerBuilder();
-        assertThat(builder.isOpportunisticTLS()).isFalse();
-        assertThat(builder.isLegacySmtpContentSupportEnabled()).isTrue();
-        assertThat(builder.resetOpportunisticTLS()).isSameAs(builder);
-        assertThat(builder.resetLegacySmtpContentSupport()).isSameAs(builder);
-        assertThat(builder.isOpportunisticTLS()).isEqualTo(MailerGenericBuilder.DEFAULT_OPPORTUNISTIC_TLS);
-        assertThat(builder.isLegacySmtpContentSupportEnabled()).isEqualTo(MailerGenericBuilder.DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
+        assertThat(builder.getTlsConfig().getOpportunisticTLS()).isNull();
+        assertThat(builder.getConnectionConfig().getLegacySmtpContentSupport()).isNull();
+        try (Mailer inherited = builder.buildMailer()) {
+            assertThat(inherited.getSession().getProperty("mail.smtp.starttls.enable")).isNull();
+            assertThat(inherited.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isTrue();
+        }
+        assertThat(builder.withTlsConfig(builder.getTlsConfig().toBuilder().resetOpportunisticTLS().build())).isSameAs(builder);
+        assertThat(builder.withConnectionConfig(builder.getConnectionConfig().toBuilder().resetLegacySmtpContentSupport().build())).isSameAs(builder);
+        assertThat(builder.getTlsConfig().getOpportunisticTLS()).isEqualTo(MailerGenericBuilder.DEFAULT_OPPORTUNISTIC_TLS);
+        assertThat(builder.getConnectionConfig().getLegacySmtpContentSupport()).isEqualTo(MailerGenericBuilder.DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
         try (Mailer reset = builder.buildMailer()) {
             assertThat(reset.getSession().getProperty("mail.smtp.starttls.enable")).isEqualTo("true");
             assertThat(reset.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isFalse();
         }
-        assertThat(factory.mailerBuilder().isOpportunisticTLS()).isFalse();
-        assertThat(factory.mailerBuilder().isLegacySmtpContentSupportEnabled()).isTrue();
+        assertThat(factory.mailerBuilder().getTlsConfig().getOpportunisticTLS()).isNull();
+        assertThat(factory.mailerBuilder().getConnectionConfig().getLegacySmtpContentSupport()).isNull();
+        try (Mailer unchanged = factory.mailerBuilder().buildMailer()) {
+            assertThat(unchanged.getSession().getProperty("mail.smtp.starttls.enable")).isNull();
+            assertThat(unchanged.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isTrue();
+        }
     }
 
     @Test
@@ -123,16 +133,16 @@ class MailerBuilderCompanionTest {
                 .hasMessageContaining("locked.smtp.username");
         assertThatThrownBy(() -> factory(Map.of("locked.smtp.password", "secret")).mailerBuilder().clearSMTPServerPassword().buildMailer())
                 .hasMessageContaining("locked.smtp.password");
-        assertThatThrownBy(() -> factory(Map.of("locked.opportunistic.tls", "false")).mailerBuilder().resetOpportunisticTLS().buildMailer())
+        assertThatThrownBy(() -> factory(Map.of("locked.opportunistic.tls", "false")).mailerBuilder().withTlsConfig(TlsConfig.builder().resetOpportunisticTLS().build()).buildMailer())
                 .hasMessageContaining("locked.opportunistic.tls");
         assertThatThrownBy(() -> factory(Map.of("locked.smtp.legacycontentsupport", "true")).mailerBuilder()
-                .resetLegacySmtpContentSupport().buildMailer()).hasMessageContaining("locked.smtp.legacycontentsupport");
+                .withConnectionConfig(ConnectionConfig.builder().resetLegacySmtpContentSupport().build()).buildMailer()).hasMessageContaining("locked.smtp.legacycontentsupport");
 
         final SimpleJavaMail locked = factory(Map.of("locked.smtp.host", "relay.example.org", "locked.opportunistic.tls", "true",
                 "locked.smtp.legacycontentsupport", "false", "locked.smtp.username", "user", "locked.smtp.password", "secret"));
         try (Mailer mailer = locked.mailerBuilder().withCustomMailer(new CountingCustomMailer()).clearCustomMailer()
                 .withOAuth2AccessTokenProvider(new CountingTokenProvider()).clearOAuth2AccessTokenProvider()
-                .resetOpportunisticTLS().resetLegacySmtpContentSupport().buildMailer()) {
+                .withTlsConfig(TlsConfig.builder().resetOpportunisticTLS().build()).withConnectionConfig(ConnectionConfig.builder().resetLegacySmtpContentSupport().build()).buildMailer()) {
             assertThat(mailer.getServerConfig().getUsername()).isEqualTo("user");
         }
     }

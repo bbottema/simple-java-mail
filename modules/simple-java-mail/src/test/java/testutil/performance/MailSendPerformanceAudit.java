@@ -1,5 +1,9 @@
 package testutil.performance;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jdk.jfr.Configuration;
 import jdk.jfr.Recording;
@@ -88,13 +92,12 @@ public final class MailSendPerformanceAudit {
     private static Mailer mailer(final SimpleJavaMail factory, final AuditSmtpServer server, final String scenario,
             final AuditMeasurements measurements) {
         final MailerRegularBuilder<?> builder = factory.mailerBuilder().withSMTPServer("127.0.0.1", server.port())
-                .withSmtpClientHostname("audit.example.test").withSessionTimeout(Duration.ofMillis(30000))
-                .withThreadPoolSize(WORKERS).withThreadPoolKeepAliveTime(Duration.ofMillis(3600000)).withAsyncQueueCapacity(64)
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(WORKERS)
-                .withConnectionPoolExpireAfter(Duration.ofMillis(3600000))
-                .withConnectionPoolClaimTimeout(Duration.ofMillis(30000)).withSendHandlers(MailSendHandlers.builder().withResultObserver(measurements::observe).build());
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("audit.example.test").withSessionTimeout(Duration.ofMillis(30000)).build())
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(WORKERS).withKeepAliveTime(Duration.ofMillis(3600000)).withQueueCapacity(64).build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(WORKERS).withExpireAfter(Duration.ofMillis(3600000)).withClaimTimeout(Duration.ofMillis(30000)).build())
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(measurements::observe).build());
         if (scenario.startsWith("limit-")) {
-            builder.withMaximumEmailSize(AuditSmtpServer.MAXIMUM_MESSAGE_BYTES);
+            builder.withValidationConfig(builder.getValidationConfig().toBuilder().withMaximumEmailSize(AuditSmtpServer.MAXIMUM_MESSAGE_BYTES).build());
         }
         return builder.buildMailer();
     }

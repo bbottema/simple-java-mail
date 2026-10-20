@@ -157,7 +157,7 @@ public interface ConfiguredEmailConverter {
 	/**
 	 * Converts an Outlook MSG source and can retain its Outlook-specific metadata. Outlook imports deliberately suppress ordinary Email defaults,
 	 * including when supplied governance is used for export; overrides still follow their usual rules. To opt into defaults, obtain the Email builder
-	 * with {@link #toEmailBuilder()}, call {@link EmailPopulatingBuilder#ignoringDefaults(boolean) ignoringDefaults(false)}, then complete or export
+	 * with {@link #toEmailBuilder()}, call {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringDefaults(boolean) ignoringDefaults(false)}, then complete or export
 	 * the resulting Email.
 	 */
 	interface OutlookConversion {

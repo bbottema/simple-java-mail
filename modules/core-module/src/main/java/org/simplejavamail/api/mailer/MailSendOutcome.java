@@ -15,6 +15,10 @@ import java.util.UUID;
  * {@link MailSubmissionReceipt} provides the transport-neutral acceptance facts. It does not describe final mailbox delivery.
  * <p>
  * Applications normally receive instances through a configured {@link MailSendResultObserver}.
+ * <p>
+ * Outgoing operation results expose unavailable scalar facts as {@code null}, including optional timestamps, identifiers and measurements.
+ * Required facts remain non-null, while optional whole sections such as receipts, diagnostics and failures use non-null {@link Optional} values.
+ * Collections are non-null with their documented empty meaning. No zero, false or empty-string value is substituted for an unknown fact.
  */
 public interface MailSendOutcome extends Serializable {
 
@@ -48,16 +52,16 @@ public interface MailSendOutcome extends Serializable {
 	Instant getRequestedAt();
 
 	/**
-	 * @return The time the attempt became ready for execution admission, before destination-specific preparation. Empty if admission readiness was not reached.
+	 * @return The time the attempt became ready for execution admission, before destination-specific preparation. Returns {@code null} if admission readiness was not reached.
 	 */
-	@NotNull
-	Optional<Instant> getReadyAt();
+	@Nullable
+	Instant getReadyAt();
 
 	/**
-	 * @return The time execution began, before destination-specific preparation. Empty for rejected or unstarted cancelled/expired work.
+	 * @return The time execution began, before destination-specific preparation. Returns {@code null} for rejected or unstarted cancelled/expired work.
 	 */
-	@NotNull
-	Optional<Instant> getStartedAt();
+	@Nullable
+	Instant getStartedAt();
 
 	/**
 	 * @return The time at which the attempt reached its terminal result, before observer handoff or execution.
@@ -83,7 +87,8 @@ public interface MailSendOutcome extends Serializable {
 	Optional<MailSubmissionReceipt> getSubmissionReceipt();
 
 	/**
-	 * @return The exact failure exposed to the caller, or empty for a successful attempt.
+	 * @return The exact failure exposed to the caller (after normal future unwrapping), or empty for a successful attempt.
+	 * Library-owned operational failures share {@link org.simplejavamail.MailException}; application extension failures retain their documented identity.
 	 */
 	@NotNull
 	Optional<Throwable> getFailure();

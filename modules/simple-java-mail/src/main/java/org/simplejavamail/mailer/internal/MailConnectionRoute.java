@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
@@ -171,7 +173,7 @@ final class MailConnectionRoute<T extends RoutedConnectionScope> {
 		diagnostics.failedConnectionStep(failure.explanation());
 		checkStoppedAfterConnectionFailure(failure);
 		if (failure.hasUnresolvedCleanup()) {
-			throw new MailerException("The SMTP connection failed, and cleaning it up also failed. Failover has stopped so another "
+			throw new MailerException(MailFailureKind.CONNECTION, "The SMTP connection failed, and cleaning it up also failed. Failover has stopped so another "
 					+ "connection isn't started while the first one's cleanup is unresolved. Check the cause and its suppressed cleanup failure.", failure);
 		}
 		if (Thread.currentThread().isInterrupted() || policy == null || !failure.allowsFailover(policy)) {
@@ -197,7 +199,7 @@ final class MailConnectionRoute<T extends RoutedConnectionScope> {
 			while (remainingNanos > 0) {
 				control.checkStopped();
 				if (waitingThread.isInterrupted()) {
-					throw new MailerException("Interrupted while waiting to retry an SMTP connection; no message was submitted.");
+					throw new MailerException(MailFailureKind.CONNECTION, "Interrupted while waiting to retry an SMTP connection; no message was submitted.", null);
 				}
 				LockSupport.parkNanos(this, Math.min(remainingNanos, control.remainingNanos()));
 				remainingNanos = nanos - (System.nanoTime() - waitStartedAt);
@@ -206,7 +208,7 @@ final class MailConnectionRoute<T extends RoutedConnectionScope> {
 	}
 
 	private MailerException connectionRouteExhausted() {
-		return new MailerException("No configured SMTP destination could provide a usable connection. This send had " + failedAcquisitions
+		return new MailerException(MailFailureKind.CONNECTION, "No configured SMTP destination could provide a usable connection. This send had " + failedAcquisitions
 				+ " failed connection acquisition(s) and skipped " + cachedSkips + " destination(s) with an earlier failure awaiting recheck. "
 				+ "No message was submitted. Check the final cause and the configured failover destinations.",
 				lastFailure);

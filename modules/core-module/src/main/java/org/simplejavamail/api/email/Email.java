@@ -1,7 +1,8 @@
 package org.simplejavamail.api.email;
 
-
-
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -62,12 +63,16 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  *
  * <h2>Java serialization</h2>
  * Since 9.2.0, Java serialization produces a send-ready snapshot. Attachment, embedded-image and decrypted-attachment data is read into
- * byte-backed resources; a forwarded {@link MimeMessage} is stored in RFC 822 form; and {@link SmimeSigningConfig} is retained. Deserialized
+ * byte-backed resources; a forwarded {@link MimeMessage} is stored in RFC 822 form; and {@link SmimeSigningConfig} is retained. Since 10.0.0,
+ * {@link OpenPgpSigningConfig} and {@link OpenPgpEncryptionConfig} are retained too, including their key and algorithm preferences. Deserialized
  * resources are read-only, and the concrete {@link DataSource} implementations and the forwarded message's original {@link Session} are not retained.
  * Any lazy or remote data source is therefore consumed while the {@code Email} is serialized, and serialization fails if its data cannot be read.
  *
- * <p>The serialized form can contain message content, credentials, S/MIME private keys and passwords. Protect it accordingly. OpenPGP sending
- * configuration, secret keys and passphrases are deliberately excluded and must be supplied again after deserialization. Streams created before
+ * <p>The serialized form can contain message content, credentials, S/MIME private keys and passwords, and OpenPGP secret key rings and passphrases.
+ * Protect it accordingly; automatic rendering hides known secrets but serialization retains them. Encryption-only OpenPGP configuration contains
+ * recipient public key rings and the cipher preference. Earlier snapshots that omitted OpenPGP configuration remain readable with that state absent;
+ * data that was never stored cannot be recovered. Exact protected EML retains its authoritative bytes and is not protected again on restoration.
+ * Streams created before
  * 9.2.0 remain readable for ordinary message fields, but those versions never stored attachment data, forwarded MIME content or S/MIME signing
  * configuration. Accessing missing legacy attachment data fails with an exception that identifies the pre-9.2.0 format.</p>
  */
@@ -79,23 +84,23 @@ public class Email implements Serializable {
 	private final int serializationFormatVersion;
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 * @see EmailTemplateOptions.Builder#ignoringDefaults(boolean)
 	 */
 	private final boolean ignoreDefaults;
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 * @see EmailTemplateOptions.Builder#ignoringOverrides(boolean)
 	 */
 	private final boolean ignoreOverrides;
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 * @see EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	private final Set<? extends Enum<?>> propertiesNotToApplyDefaultValueFor;
 	private transient Set<EmailProperty> defaultSuppression;
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 * @see EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)
 	 */
 	private final Set<? extends Enum<?>> propertiesNotToApplyOverrideValueFor;
 	private transient Set<EmailProperty> overrideSuppression;
@@ -142,25 +147,25 @@ public class Email implements Serializable {
 	private final String textCalendar;
 
 	/**
-	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
-	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding plainTextContentTransferEncoding;
 
 	/**
-	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding htmlTextContentTransferEncoding;
 
 	/**
-	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding calendarTextContentTransferEncoding;
@@ -230,14 +235,14 @@ public class Email implements Serializable {
 	private final Recipient returnReceiptTo;
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
 	@Nullable
 	private final DeliveryStatusNotification deliveryStatusNotification;
 	@Nullable
 	private final DeliveryStatusReport deliveryStatusReport;
 	private final boolean tlsRequiredForOnwardDelivery;
-	/** @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean) */
+	/** @see SmtpDeliveryOptions.Builder#withSendingToAcceptedRecipients(boolean) */
 	@Nullable
 	private final Boolean sendingToAcceptedRecipients;
 
@@ -254,27 +259,27 @@ public class Email implements Serializable {
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+	 * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
 	 */
 	private final DkimConfig dkimConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
-	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 */
 	private final SmimeEncryptionConfig smimeEncryptionConfig;
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 */
 	private final SmimeSigningConfig smimeSigningConfig;
 
-	/** OpenPGP secret material is deliberately excluded from Java serialization. */
-	private final transient OpenPgpSigningConfig openPgpSigningConfig;
+	/** Retained in Java snapshots, including secret key material and passphrase. */
+	private final OpenPgpSigningConfig openPgpSigningConfig;
 
-	/** OpenPGP sending configuration is deliberately excluded from Java serialization. */
-	private final transient OpenPgpEncryptionConfig openPgpEncryptionConfig;
+	/** Retained in Java snapshots, including recipient public key rings and cipher preference. */
+	private final OpenPgpEncryptionConfig openPgpEncryptionConfig;
 
 	@NotNull
 	private OriginalOpenPgpDetails originalOpenPgpDetails;
@@ -311,12 +316,15 @@ public class Email implements Serializable {
 	protected Email(@NotNull final EmailPopulatingBuilder builder) {
 		checkNonEmptyArgument(builder, "builder");
 		serializationFormatVersion = SERIALIZATION_FORMAT_VERSION;
+		final EmailTemplateOptions templateOptions = builder.getTemplateOptions();
+		final ContentEncodingConfig encodingConfig = builder.getContentEncodingConfig();
+		final SmtpDeliveryOptions deliveryOptions = builder.getSmtpDeliveryOptions();
 
-		ignoreDefaults = builder.isIgnoreDefaults();
-		ignoreOverrides = builder.isIgnoreOverrides();
+		ignoreDefaults = templateOptions.isIgnoreDefaults();
+		ignoreOverrides = templateOptions.isIgnoreOverrides();
 		// Preserve the enum names stored by released Email snapshots; the public getters use the API selectors.
-		propertiesNotToApplyDefaultValueFor = serializedSelectors(builder.getPropertiesNotToApplyDefaultValueFor());
-		propertiesNotToApplyOverrideValueFor = serializedSelectors(builder.getPropertiesNotToApplyOverrideValueFor());
+		propertiesNotToApplyDefaultValueFor = serializedSelectors(templateOptions.getPropertiesNotToApplyDefaultValueFor());
+		propertiesNotToApplyOverrideValueFor = serializedSelectors(templateOptions.getPropertiesNotToApplyOverrideValueFor());
 		restorePropertySelectors();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
@@ -344,19 +352,19 @@ public class Email implements Serializable {
 		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
 		calendarMethod = builder.getCalendarMethod();
 		textCalendar = builder.getTextCalendar();
-		contentTransferEncoding = builder.getContentTransferEncoding();
-		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : builder.getPlainTextContentTransferEncoding();
-		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : builder.getHTMLTextContentTransferEncoding();
-		calendarTextContentTransferEncoding = builder.getCalendarTextContentTransferEncoding();
+		contentTransferEncoding = encodingConfig.getContentTransferEncoding();
+		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : encodingConfig.getPlainTextContentTransferEncoding();
+		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : encodingConfig.getHTMLTextContentTransferEncoding();
+		calendarTextContentTransferEncoding = encodingConfig.getCalendarTextContentTransferEncoding();
 		subject = builder.getSubject();
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
 		dispositionNotificationTo = builder.getDispositionNotificationTo();
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
 		returnReceiptTo = builder.getReturnReceiptTo();
-		deliveryStatusNotification = builder.getDeliveryStatusNotification();
+		deliveryStatusNotification = deliveryOptions.getDeliveryStatusNotification();
 		deliveryStatusReport = builder.getDeliveryStatusReport();
-		tlsRequiredForOnwardDelivery = builder.isTlsRequiredForOnwardDelivery();
-		sendingToAcceptedRecipients = builder.getSendingToAcceptedRecipients();
+		tlsRequiredForOnwardDelivery = deliveryOptions.isTlsRequiredForOnwardDelivery();
+		sendingToAcceptedRecipients = deliveryOptions.getSendingToAcceptedRecipients();
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
@@ -585,21 +593,21 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringDefaults(boolean)
+	 * @see EmailTemplateOptions.Builder#ignoringDefaults(boolean)
 	 */
 	public boolean isIgnoreDefaults() {
 		return ignoreDefaults;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#ignoringOverrides(boolean)
+	 * @see EmailTemplateOptions.Builder#ignoringOverrides(boolean)
 	 */
 	public boolean isIgnoreOverrides() {
 		return ignoreOverrides;
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyDefaultValueFor(EmailProperty...)
+	 * @see EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)
 	 */
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor() {
@@ -607,7 +615,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#dontApplyOverrideValueFor(EmailProperty...)
+	 * @see EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)
 	 */
 	@Nullable
 	public Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor() {
@@ -699,7 +707,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+	 * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
 	 */
 	@Nullable
 	public DeliveryStatusNotification getDeliveryStatusNotification() {
@@ -708,7 +716,7 @@ public class Email implements Serializable {
 
 	/**
 	 * @return Whether this email requires RFC 8689 REQUIRETLS for onward SMTP delivery.
-	 * @see EmailPopulatingBuilder#withTlsRequiredForOnwardDelivery()
+	 * @see SmtpDeliveryOptions.Builder#withTlsRequiredForOnwardDelivery()
 	 */
 	public boolean isTlsRequiredForOnwardDelivery() {
 		return tlsRequiredForOnwardDelivery;
@@ -716,7 +724,7 @@ public class Email implements Serializable {
 
 	/**
 	 * @return Whether this Email is set to continue for accepted recipients after a recipient rejection, or {@code null} when unset.
-	 * @see EmailPopulatingBuilder#withSendingToAcceptedRecipients(boolean)
+	 * @see SmtpDeliveryOptions.Builder#withSendingToAcceptedRecipients(boolean)
 	 */
 	@Nullable
 	public Boolean getSendingToAcceptedRecipients() {
@@ -850,7 +858,7 @@ public class Email implements Serializable {
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-	 * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+	 * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
 	 */
 	@Nullable
 	public DkimConfig getDkimConfig() {
@@ -858,7 +866,7 @@ public class Email implements Serializable {
 	}
 	/**
 	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
-	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 */
 	@Nullable
 	public SmimeEncryptionConfig getSmimeEncryptionConfig() {
@@ -867,7 +875,7 @@ public class Email implements Serializable {
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 */
 	@Nullable
 	public SmimeSigningConfig getSmimeSigningConfig() {
@@ -926,7 +934,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
@@ -934,7 +942,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withPlainTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getPlainTextContentTransferEncoding() {
@@ -942,7 +950,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withHTMLTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getHTMLTextContentTransferEncoding() {
@@ -950,7 +958,7 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
+	 * @see ContentEncodingConfig.Builder#withCalendarTextContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getCalendarTextContentTransferEncoding() {

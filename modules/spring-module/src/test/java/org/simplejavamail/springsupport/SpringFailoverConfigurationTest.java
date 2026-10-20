@@ -1,5 +1,8 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
@@ -32,8 +35,8 @@ class SpringFailoverConfigurationTest {
             context.register(SimpleJavaMailSpringSupport.class);
             context.refresh();
             final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
-            final Map<String, SimpleJavaMailConfig> namedMailerConfigurations = factory.getConfig().getProperty(ConfigLoader.Property.NAMED_MAILERS);
-            assertThat(namedMailerConfigurations.get("other").getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("other.example.org");
+            final Map<String, SimpleJavaMailConfig> namedMailerConfigurations = factory.getConfig().get(ConfigKeys.NAMED_MAILERS);
+            assertThat(namedMailerConfigurations.get("other").get(ConfigKeys.SMTP_HOST)).isEqualTo("other.example.org");
             assertThat(locksOf(namedMailerConfigurations.get("other")).contains(ConfigLoader.Property.TRANSPORT_STRATEGY)).isTrue();
             assertThat(factory.getConfig().getDiagnostics().getProperties(ConfigDiagnosticGroup.SMTP_CONNECTION))
                     .filteredOn(SpringFailoverConfigurationTest::isFailoverConfigurationDiagnostic)
@@ -41,7 +44,7 @@ class SpringFailoverConfigurationTest {
                     .allSatisfy(entry -> assertThat(entry.getSourceName()).isEqualTo("platform"));
             assertThat(factory.getConfig().getDiagnostics().toString()).contains("<redacted>").doesNotContain("secret");
             assertThatThrownBy(() -> factory.mailerBuilder().clearFailoverMailer().buildMailer()).hasMessageContaining("locked.failover.mailer");
-            try (Mailer mailer = factory.mailerBuilder().withConnectionPoolCoreSize(0).buildMailer()) {
+            try (Mailer mailer = factory.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
                 assertThat(mailer.getOperationalConfig().getFailoverPolicy().getPrimaryRecheckInterval()).isEqualTo(Duration.ofSeconds(5));
             }
         }

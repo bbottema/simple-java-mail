@@ -173,7 +173,8 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 	}
 
 	private static String duration(final MailSendMeasurement measurement) {
-		return measurement.getElapsed().map(Duration::toMillis).map(millis -> millis + "ms").orElse("n/a")
+		final Duration elapsed = measurement.getElapsed();
+		return (elapsed == null ? "n/a" : elapsed.toMillis() + "ms")
 				+ (measurement.isFailureObservedHere() ? " (failed)" : "");
 	}
 }

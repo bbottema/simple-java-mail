@@ -20,7 +20,18 @@ Progress dispatch neither delays terminal publication nor participates in its or
 
 Register one `MailSendResultObserver` on a Mailer and report one terminal `MailSendOutcome` per reached individual email attempt. Reuse the optional `MailSubmissionReceipt` for SMTP facts and preserve the exact caller-facing failure for unsuccessful attempts. Do not invent a competing submission-result hierarchy.
 
+Accepted common failure contract, 20 October 2026: library-owned operational failures share core `MailException`, with typed kind and optional
+submission facts on that root. Normalize at the producing boundary, rather than wrapping again while building the outcome. Caller, unwrapped
+async completion and terminal observer receive the same exception instance. Application handler/ID factories, iterators and other extension
+callbacks retain their documented propagation or isolation, including original exception identity; a broad catch does not convert application
+bugs into library-owned operational failures. [ADR 0011](0011-transport-neutral-submission-outcomes.md#common-failure-and-explicit-acceptance-contracts-accepted-20-october-2026)
+owns receipt facts and the explicit any/full acceptance predicates.
+
 An outcome contains initial and effective Message-IDs, request/ready/start/completion timestamps, configured logging-only mode and whole-attempt success/failure. Preparation and scheduling failures have no receipt; unstarted work has no start timestamp. `isSuccessful()` describes completion of the configured operation, not final delivery or even observed SMTP acceptance.
+
+The accepted 20 October [outgoing result absence policy](0009-nullability-and-cli-optionality.md#outgoing-operation-result-absence-policy-accepted-20-october-2026)
+returns nullable ready/start timestamps directly. Required request/completion timestamps remain non-null; whole receipt, diagnostics and failure sections
+remain Optional. This return-shape correction does not change when an attempt reaches readiness, execution or completion, and preserves serialized fields.
 
 Keep the public result event small and terminal. Do not expose the Email, rendered content, Transport, lease, pool, proxy or executor. Do not turn this result callback into a phase-event stream; ADR 0032 defines a separate best-effort progress view without promising every transition. Timestamps permit latency analysis. Message-IDs are correlation hints, not unique attempt identifiers: repeated or concurrent sends can use the same Email/Message-ID, and exact EML may omit one. The observation UUID identifies the logical invocation, while applications own stronger business correlation.
 

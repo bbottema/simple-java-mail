@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +11,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.ServerConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
@@ -31,7 +34,7 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  * @see MailerRegularBuilder
  */
 @Slf4j
-public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerRegularBuilderImpl> implements MailerRegularBuilder<MailerRegularBuilderImpl> {
+public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerRegularBuilderImpl> implements InternalMailerRegularBuilder<MailerRegularBuilderImpl>, org.simplejavamail.api.internal.clisupport.CliRegularMailerConfigurationBuilder {
 
 	/**
 	 * @see MailerRegularBuilder#withSMTPServerHost(String)
@@ -91,15 +94,15 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	MailerRegularBuilderImpl(final FactoryMailerRuntime.Definition definition, final FactoryMailerRuntime runtime) {
 		super(definition, runtime);
 		final SimpleJavaMailConfig config = definition.config;
-		this.opportunisticTLS = config.valueOrProperty(null, OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
-		this.host = config.getStringProperty(SMTP_HOST);
-		this.port = config.getIntegerProperty(SMTP_PORT);
-		this.username = config.getStringProperty(SMTP_USERNAME);
-		this.password = config.getStringProperty(SMTP_PASSWORD);
-		this.transportStrategy = config.hasProperty(TRANSPORT_STRATEGY)
-				? verifyNonnullOrEmpty(config.getProperty(TRANSPORT_STRATEGY))
+		this.opportunisticTLS = config.valueOrProperty(null, ConfigKeys.OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
+		this.host = config.get(ConfigKeys.SMTP_HOST);
+		this.port = config.get(ConfigKeys.SMTP_PORT);
+		this.username = config.get(ConfigKeys.SMTP_USERNAME);
+		this.password = config.get(ConfigKeys.SMTP_PASSWORD);
+		this.transportStrategy = config.hasProperty(ConfigKeys.TRANSPORT_STRATEGY)
+				? verifyNonnullOrEmpty(config.get(ConfigKeys.TRANSPORT_STRATEGY))
 				: TransportStrategy.SMTP;
-		this.customSSLFactory = config.getStringProperty(CUSTOM_SSLFACTORY_CLASS);
+		this.customSSLFactory = config.get(ConfigKeys.CUSTOM_SSLFACTORY_CLASS);
 	}
 
 	/**
@@ -368,4 +371,16 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	public SSLSocketFactory getCustomSSLFactoryInstance() {
 		return customSSLFactoryInstance;
 	}
+
+    @Override void validateTlsConstructionScope(final TlsConfig choices) { }
+    @Override void applyRegularTlsChoices(final TlsConfig choices) {
+        customSSLFactory = choices.isCustomSSLFactoryClassCleared() ? null
+                : stringChoice(choices.getCustomSSLFactoryClass(), ConfigKeys.CUSTOM_SSLFACTORY_CLASS);
+        customSSLFactoryInstance = choices.getCustomSSLFactoryInstance();
+        opportunisticTLS = configuration().valueOrProperty(choices.getOpportunisticTLS(), ConfigKeys.OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
+        if (choices.getCustomSSLFactoryClass() != null || choices.isCustomSSLFactoryClassCleared()) {
+            customizedSessionSetting(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
+        }
+        if (choices.getOpportunisticTLS() != null) { customizedSessionSetting(OPPORTUNISTIC_TLS, opportunisticTLS); }
+    }
 }

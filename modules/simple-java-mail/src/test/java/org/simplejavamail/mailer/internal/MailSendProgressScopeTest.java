@@ -152,8 +152,8 @@ class MailSendProgressScopeTest {
             second.contentTransferFinished(4);
             final MailSendProgress last = take(events);
             assertThat(last.getStage()).isEqualTo(UPLOADING);
-            assertThat(last.getBytesWritten()).contains(4L);
-            assertThat(last.getTotalBytes()).contains(4L);
+            assertThat(last.getBytesWritten()).isEqualTo(4L);
+            assertThat(last.getTotalBytes()).isEqualTo(4L);
             second.close();
         }
     }

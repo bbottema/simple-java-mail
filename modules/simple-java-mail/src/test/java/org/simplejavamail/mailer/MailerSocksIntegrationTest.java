@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
-
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import jakarta.mail.Session;
 import org.bbottema.javasocksproxyserver.RunningSocksServer;
 import org.bbottema.javasocksproxyserver.SyncSocksServer;
@@ -74,7 +75,7 @@ public class MailerSocksIntegrationTest {
 		startPlainSmtpServer();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
-				.withProxy("localhost", proxyServer.getPort())
+				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).build())
 				.buildMailer()) {
 			assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
 		}
@@ -87,7 +88,7 @@ public class MailerSocksIntegrationTest {
 		startPlainSmtpServer();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
-				.withProxy("localhost", proxyServer.getPort(), "username", "password")
+				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 				.buildMailer()) {
 			assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
 		}
@@ -152,7 +153,7 @@ public class MailerSocksIntegrationTest {
 		final Session session = Session.getInstance(properties);
 
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-				.withProxy("localhost", proxyServer.getPort(), "username", "password")
+				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				assertThat(Integer.parseInt(session.getProperty("mail.smtp.socks.port"))).isPositive();
@@ -171,8 +172,7 @@ public class MailerSocksIntegrationTest {
 
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
-				.withProxy("localhost", proxyServer.getPort(), "username", "password")
-				.withProxyBridgePort(fixedBridgePort)
+				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").withBridgePort(fixedBridgePort).build())
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> assertThat(mailer.getSession().getProperty("mail.smtp.socks.port"))
 					.isEqualTo(String.valueOf(fixedBridgePort)));
@@ -236,15 +236,13 @@ public class MailerSocksIntegrationTest {
 			try (Mailer mailer = authenticatingProxy
 					? SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
 							.withTransportStrategy(TransportStrategy.SMTPS)
-							.withProxy("localhost", proxyServer.getPort(), "username", "password")
-							.trustingAllHosts(true)
-							.verifyingServerIdentity(false)
+							.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
+							.withTlsConfig(TlsConfig.builder().trustingAllHosts(true).verifyingServerIdentity(false).build())
 							.buildMailer()
 					: SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
 							.withTransportStrategy(TransportStrategy.SMTPS)
-							.withProxy("localhost", proxyServer.getPort())
-							.trustingAllHosts(true)
-							.verifyingServerIdentity(false)
+							.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).build())
+							.withTlsConfig(TlsConfig.builder().trustingAllHosts(true).verifyingServerIdentity(false).build())
 							.buildMailer()) {
 				assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false, smtpsServer);
 			}
@@ -265,7 +263,7 @@ public class MailerSocksIntegrationTest {
 	private Mailer newAuthenticatedMailer() {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
-				.withProxy("localhost", proxyServer.getPort(), "username", "password")
+				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 				.buildMailer();
 	}
 

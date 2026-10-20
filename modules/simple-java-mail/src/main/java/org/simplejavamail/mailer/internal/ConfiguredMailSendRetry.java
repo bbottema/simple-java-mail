@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
@@ -31,20 +33,20 @@ final class ConfiguredMailSendRetry {
     }
 
     private static MailSendRetryPolicy resolve(final SimpleJavaMailConfig config, @Nullable final MailSendRetryPolicy current) {
-        final Integer attempts = config.valueOrProperty(null, Property.SMTP_RETRY_ATTEMPTS, current == null ? null : current.getMaximumAttempts());
-        final Duration delay = config.valueOrProperty(null, Property.SMTP_RETRY_DELAY, current == null ? null : current.getRetryDelay());
+        final Integer attempts = config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_ATTEMPTS, current == null ? null : current.getMaximumAttempts());
+        final Duration delay = config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_DELAY, current == null ? null : current.getRetryDelay());
         requireCompleteConfiguredSchedule(config, attempts, delay);
 
         return new MailSendRetryPolicy(attempts, delay,
-                config.valueOrProperty(null, Property.SMTP_RETRY_BACKOFF_MULTIPLIER,
+                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_BACKOFF_MULTIPLIER,
                         current == null ? DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER : current.getRetryBackoffMultiplier()),
-                config.valueOrProperty(null, Property.SMTP_RETRY_MAXIMUM_DELAY, current == null ? null : current.getMaximumRetryDelay()),
-                config.valueOrProperty(null, Property.SMTP_RETRY_JITTER, current == null ? DEFAULT_MAIL_SEND_RETRY_JITTER : current.getRetryJitter()),
-                config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
+                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_MAXIMUM_DELAY, current == null ? null : current.getMaximumRetryDelay()),
+                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_JITTER, current == null ? DEFAULT_MAIL_SEND_RETRY_JITTER : current.getRetryJitter()),
+                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
                         current == null ? DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY : current.getWaitingCapacity()),
-                config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE,
+                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE,
                         current == null ? DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE : current.getMaximumMessageSize()),
-                config.valueOrProperty(null, Property.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT,
+                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT,
                         current == null ? DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT : current.getMemoryLimit()));
     }
 

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.Mailer;
@@ -20,7 +21,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
-				.withLocalBindAddress("192.0.2.20", 25256)
+				.withConnectionConfig(ConnectionConfig.builder().withLocalBindAddress("192.0.2.20", 25256).build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 
@@ -36,7 +37,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
-				.withLocalBindAddress("192.0.2.21")
+				.withConnectionConfig(ConnectionConfig.builder().withLocalBindAddress("192.0.2.21").build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 
@@ -69,7 +70,7 @@ public class MailerBuilderLocalBindConfigTest {
 						"simplejavamail.smtp.localport=25258\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
-				.clearLocalBindAddress()
+				.withConnectionConfig(ConnectionConfig.builder().clearLocalBindAddress().clearLocalBindPort().build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 
@@ -83,7 +84,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
-				.withSmtpClientHostname("orders-service.prod.example.com")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("orders-service.prod.example.com").build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 
@@ -98,7 +99,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 465)
 				.withTransportStrategy(TransportStrategy.SMTPS)
-				.withSmtpClientHostname("bulk-mailer.corp.example.com")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("bulk-mailer.corp.example.com").build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 
@@ -127,7 +128,7 @@ public class MailerBuilderLocalBindConfigTest {
 				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
-				.clearSmtpClientHostname()
+				.withConnectionConfig(ConnectionConfig.builder().clearSmtpClientHostname().build())
 				.buildMailer()) {
 			Session session = mailer.getSession();
 

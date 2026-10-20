@@ -62,18 +62,18 @@ public final class ThirdPartyProbeConsumer {
                     check(authenticationCalls.get() == previousAuthenticationCalls + (authenticate ? 1 : 0),
                             "Credentials were resolved outside the opted-in probe");
                     check(report.isTlsActive() && report.getTlsDetails().isEmpty(), "Missing TLS metadata was invented");
-                    check(report.getAuthenticationMechanism().isEmpty(), "An unobserved AUTH mechanism was invented");
+                    check(report.getAuthenticationMechanism() == null, "An unobserved AUTH mechanism was invented");
                     check(report.getBeforeTls().isEmpty(), "A plaintext snapshot was invented for this TLS-only provider");
                     check(report.getAfterTls().isPresent() == capabilitiesAvailable, "Unknown capabilities became an empty known snapshot");
                     check(report.getEffectiveCapabilities().isPresent() == capabilitiesAvailable, "Effective capabilities misrepresented missing facts");
                     if (capabilitiesAvailable) {
                         check(report.getEffectiveCapabilities().orElseThrow().supports("X-FIXTURE"), "An unknown extension was lost");
-                        check(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize().orElseThrow() == 4096,
+                        check(report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize() == 4096,
                                 "The observed SIZE limit was lost");
                     } else {
                         check(report.toString().contains("After TLS: not available"), "Unknown capabilities were not explained");
                     }
-                    check(report.getGreeting().orElseThrow().equals("220 fixture\\r\\nsecond line"), "Adapter display fields were not escaped");
+                    check(report.getGreeting().equals("220 fixture\\r\\nsecond line"), "Adapter display fields were not escaped");
                     check(report.toString().contains("TLS details: not available"), "Missing TLS metadata was not explained");
                 }
             }
@@ -90,7 +90,7 @@ public final class ThirdPartyProbeConsumer {
                 source.getProperties().setProperty("fixture.fail.close", Boolean.toString(!"connect".equals(failure)));
                 final SmtpConnectionReport report = probeAndCheckIsolation(mailer, source, async, false);
                 check(!report.isSuccessful() && report.isSupported(), "A provider failure became success or unsupported");
-                check(report.getFailurePhase().orElseThrow() == ("close".equals(failure) ? SmtpConnectionPhase.CLOSE : SmtpConnectionPhase.CONNECT),
+                check(report.getFailurePhase() == ("close".equals(failure) ? SmtpConnectionPhase.CLOSE : SmtpConnectionPhase.CONNECT),
                         "Cleanup erased the first failure phase");
                 check(report.getEffectiveCapabilities().isPresent() == "close".equals(failure), "Cleanup lost facts or connection failure invented them");
                 if ("both".equals(failure)) {
@@ -105,7 +105,7 @@ public final class ThirdPartyProbeConsumer {
             source.getProperties().setProperty("fixture.fail.adapter", "true");
             final int previousTransports = FixtureTransport.CREATED.size();
             final SmtpConnectionReport adapterFailure = probe(mailer, async, false);
-            check(!adapterFailure.isSuccessful() && adapterFailure.getFailurePhase().orElseThrow() == SmtpConnectionPhase.SETUP,
+            check(!adapterFailure.isSuccessful() && adapterFailure.getFailurePhase() == SmtpConnectionPhase.SETUP,
                     "An adapter setup exception escaped the report contract");
             check(FixtureTransport.CREATED.size() == previousTransports, "Failed setup opened a transport");
             assertSafeText(adapterFailure);

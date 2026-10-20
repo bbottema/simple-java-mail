@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
@@ -25,6 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,7 +46,7 @@ class LockedConfigurationSendingTest {
 	void concurrentPooledSendsAlwaysIncludeTheArchiveWithoutLeakingRecipientsOrOutcomes() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("defaults.bcc.address", "archive@example.org", "smtp.host", "localhost"));
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(factory).withConnectionPoolMaxSize(3).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(factory), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(3).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			final List<CompletableFuture<MailSubmissionReceipt>> completions = new ArrayList<>();
 			for (int index = 0; index < 12; index++) {
 				completions.add(mailer.async().sendMail(email("mail-" + index)).getCompletion());
@@ -63,7 +67,7 @@ class LockedConfigurationSendingTest {
 		final Email conflict = ordinary.emailBuilder().copying(email("conflict")).withSubject("Other").buildEmail();
 		try (Mailer mailer = builder(factory).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(List.of(email("first"), conflict, email("untouched"))))
-					.hasRootCauseInstanceOf(IllegalArgumentException.class);
+					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("locked.defaults.subject");
 			assertThat(outcomes).hasSize(2);
 			assertThat(outcomes.get(0).isSuccessful()).isTrue();
 			assertThat(outcomes.get(1).getSubmissionReceipt()).isEmpty();
@@ -75,8 +79,8 @@ class LockedConfigurationSendingTest {
 
 	@Test
 	void theActualArchiveEnvelopeIsCostedBeforeWaitingForRecipientAllowance() throws Exception {
-		try (Mailer mailer = builder(locked(Map.of("defaults.bcc.address", "archive@example.org")))
-				.withRecipientRateLimit(1, java.time.Duration.ofMinutes(1)).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(locked(Map.of("defaults.bcc.address", "archive@example.org"))), fixture -> fixture
+				.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRecipientRateLimit(1, java.time.Duration.ofMinutes(1)).build())).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMail(email("recipient")))
 					.hasMessageContaining("2 envelope recipients").hasMessageContaining("only 1");
 		}
@@ -89,8 +93,8 @@ class LockedConfigurationSendingTest {
 			peer.greet("250 localhost");
 			finishConnection(peer); // Only health checks and QUIT; MAIL FROM here makes the script fail.
 		}); Mailer mailer = locked(Map.of("defaults.delivery.status.notification.notify", "FAILURE")).mailerBuilder()
-				.withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
+				.withSMTPServer("localhost", server.port()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMail(email("notify"))).isInstanceOf(MailSubmissionException.class)
 					.hasRootCauseMessage("This send requires its delivery-notification settings to be honored, "
 							+ "but the connected SMTP server does not advertise DSN support. Simple Java Mail cannot submit the email with that requirement. "
@@ -103,9 +107,9 @@ class LockedConfigurationSendingTest {
 	void compatibleClusterMembersRetainTheSameLocksWhileConflictingDestinationsAreRejected() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("smtp.host", "localhost", "defaults.bcc.address", "archive@example.org"));
 		final UUID cluster = UUID.randomUUID();
-		try (Mailer first = builder(factory).withClusterKey(cluster).buildMailer();
-				Mailer second = builder(factory).withClusterKey(cluster).buildMailer();
-				Mailer incompatible = ordinary.mailerBuilder().withSMTPServer("elsewhere.invalid", 25).withConnectionPoolCoreSize(0).buildMailer()) {
+		try (Mailer first = updateMailer(builder(factory), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build())).buildMailer();
+				Mailer second = updateMailer(builder(factory), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build())).buildMailer();
+				Mailer incompatible = ordinary.mailerBuilder().withSMTPServer("elsewhere.invalid", 25).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
 			SessionBasedEmailToMimeMessageConverter.verifySelectedSession(first.getSession(), second.getSession());
 			first.sync().sendMail(email("cluster"));
 			assertThatThrownBy(() -> SessionBasedEmailToMimeMessageConverter.verifySelectedSession(first.getSession(), incompatible.getSession()))
@@ -117,8 +121,8 @@ class LockedConfigurationSendingTest {
 	private MailerRegularBuilder<?> builder(final SimpleJavaMail factory) {
 		// Keep EHLO and MIME Message-ID generation local; workstation DNS is unrelated to locked-recipient concurrency.
 		return factory.mailerBuilder().withSMTPServer("localhost", smtp.getWiser().getServer().getPortAllocated())
-				.withSmtpClientHostname("localhost").withProperty("mail.host", "localhost")
-				.withProperty("mail.from", "sender@example.org").withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build()).withProperty("mail.host", "localhost")
+				.withProperty("mail.from", "sender@example.org").withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
 	}
 
 	private Email email(final String id) {

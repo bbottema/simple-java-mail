@@ -7,8 +7,6 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import javax.net.ssl.SSLSocketFactory;
-
 /**
  * Configure an SMTP connection and build a Mailer with {@code SimpleJavaMail.fromDefaults().mailerBuilder()}.
  * If you have a configured SimpleJavaMail factory, call its {@code mailerBuilder()} instead to use its immutable configuration snapshot.
@@ -21,30 +19,6 @@ import javax.net.ssl.SSLSocketFactory;
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.MAILER)
 public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends MailerGenericBuilder<T> {
-	/**
-	 * Controls whether plain {@link TransportStrategy#SMTP} attempts an optional STARTTLS upgrade when the server offers it.
-	 * It defaults to {@value MailerGenericBuilder#DEFAULT_OPPORTUNISTIC_TLS};
-	 * setting it to {@code false} is an escape hatch for SMTP servers that break during STARTTLS negotiation.
-	 * <p>
-	 * A configured snapshot supplies the initial value when this builder is created. Calling this method afterwards overrides that value for the Mailer
-	 * built from this builder.
-	 * <p>
-	 * This setting is deliberately limited to plain SMTP. It has no effect on mandatory TLS in {@link TransportStrategy#SMTP_TLS}, OAuth2 transport, or
-	 * implicit TLS in {@link TransportStrategy#SMTPS}.
-	 * {@link #resetOpportunisticTLS()} restores the built-in default rather than the captured property; configuration locks still apply.
-	 *
-	 * @param opportunisticTLS Whether plain SMTP should attempt STARTTLS when offered.
-	 */
-	T withOpportunisticTLS(boolean opportunisticTLS);
-
-	/** @see #withOpportunisticTLS(boolean) */
-	boolean isOpportunisticTLS();
-
-	/**
-	 * Restores the built-in opportunistic TLS setting rather than the captured property.
-	 * @see #withOpportunisticTLS(boolean)
-	 */
-	T resetOpportunisticTLS();
 
 	/**
 	 * Selects how the Mailer connects and whether TLS is optional or required. See {@link TransportStrategy} for the protocols,
@@ -54,10 +28,13 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * connection type uses a different default port.
 	 * <p>
 	 * Supplying credentials does not change the strategy. Choose {@link TransportStrategy#SMTP_TLS} when password authentication must require TLS;
-	 * plain {@link TransportStrategy#SMTP} remains opportunistic. See {@link #buildMailer()} for validation of conflicting extra properties.
+	 * plain {@link TransportStrategy#SMTP} remains opportunistic. See {@link org.simplejavamail.api.mailer.MailerRegularBuilder#buildMailer()} for validation of conflicting extra properties.
+	 * The OAuth2 presets use a fixed token in the password position or the runtime provider configured through
+	 * {@link #withOAuth2AccessTokenProvider(org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider)}.
 	 *
 	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS},
-	 *                                {@link TransportStrategy#SMTP_TLS}, or {@link TransportStrategy#SMTP_OAUTH2}. Defaults to {@link TransportStrategy#SMTP}.
+	 *                                {@link TransportStrategy#SMTP_TLS}, {@link TransportStrategy#SMTP_OAUTH2}, or
+	 *                                {@link TransportStrategy#SMTPS_OAUTH2}. Defaults to {@link TransportStrategy#SMTP}.
 	 */
 	T withTransportStrategy(@NotNull TransportStrategy transportStrategy);
 
@@ -166,68 +143,6 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T clearSMTPServerPassword();
 
 	/**
-	 * Uses your SSL socket factory class, for example to supply a client certificate or a private trust store.
-	 * <p>
-	 * A supplied factory instance takes precedence. The class needs a public static {@code getDefault()} method returning an
-	 * {@link SSLSocketFactory}; initialization stays lazy until the factory is used. For a modular application using the managed Angus
-	 * provider, export its package to {@code org.simplejavamail.mailprovider.angus}, or supply an instance instead.
-	 * <p>
-	 * On an owned Angus Session, a failure in your factory stops connection setup by default instead of retrying with the default factory.
-	 * An explicit {@code mail.smtp.socketFactory.fallback=true} (or the {@code mail.smtps} equivalent) retains that advanced behavior,
-	 * but can abandon your factory's client identity or trust decisions. Failed TLS wrapping closes its connected socket before cleanup or fallback.
-	 * This does not add physical cancellation support to a custom factory. Caller-owned Sessions keep their own settings.
-	 * <p>
-	 * Sets {@code mail.smtp.ssl.socketFactory.class} or {@code mail.smtps.ssl.socketFactory.class}. A custom factory can bypass the provider's
-	 * SOCKS socket creation, so check authenticated-proxy usage with your factory.
-	 * <p>
-	 * Passing null or calling {@link #clearCustomSSLFactoryClass()} removes only the stored class name; a supplied instance stays in place.
-	 * Clearing does not restore a captured property value, and configuration locks still apply.
-	 *
-	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
-	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
-	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
-	 */
-	T withCustomSSLFactoryClass(@Nullable @Cli.Optional String factoryClass);
-
-	/**
-	 * Removes only the stored SSL factory class name.
-	 * @see #withCustomSSLFactoryClass(String)
-	 */
-	T clearCustomSSLFactoryClass();
-
-	/**
-	 * Uses your SSL socket factory instance, for example to supply a client certificate or a private trust store.
-	 * <p>
-	 * Takes precedence over a configured factory class. No reflective module access to your implementation package is needed.
-	 * For an owned Angus Session, omitted fallback is disabled: failure in your factory stops connection setup rather than silently
-	 * trying the default factory. Explicit transport-specific {@code socketFactory.fallback=true} remains available for deliberate fallback.
-	 * Failed TLS wrapping closes the connected socket, retaining the factory failure and suppressing any secondary close failure.
-	 * The owned Session holds a cleanup decorator; keep your original reference for implementation-specific factory operations.
-	 * <p>
-	 * Sets {@code mail.smtp.ssl.socketFactory} or {@code mail.smtps.ssl.socketFactory}. A custom factory can bypass the provider's SOCKS
-	 * socket creation, so check authenticated-proxy usage with your factory. This does not add physical cancellation support.
-	 * Caller-owned Sessions keep their own settings.
-	 * <p>
-	 * Passing null or calling {@link #clearCustomSSLFactoryInstance()} removes this instance so a configured factory class can be used again.
-	 * This never closes the supplied factory or removes the stored class name.
-	 *
-	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
-	 *
-	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
-	 * @see #withCustomSSLFactoryClass(String)
-	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	T withCustomSSLFactoryInstance(@Nullable @Cli.Optional SSLSocketFactory sslSocketFactoryInstance);
-
-	/**
-	 * Removes only the supplied SSL factory instance.
-	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
-	 */
-	@Cli.ExcludeApi(reason = "Factory instances are configured only through Java")
-	T clearCustomSSLFactoryInstance();
-	
-	/**
 	 * Builds the actual {@link Mailer} instance with everything configured on this builder instance.
 	 * <p>
 	 * Values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its configured
@@ -238,7 +153,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * making ordinary mail depend on SMTPUTF8. An address such as {@code José <jose@example.org>} still uses MIME encoding for the display name.
 	 * <p>
 	 * The managed transport checks what each email actually needs and won't send it if the server doesn't advertise support. If you've verified
-	 * that a legacy server and its onward delivery route can handle the unchanged email anyway, you can opt in with {@link #withLegacySmtpContentSupport(boolean)}.
+	 * that a legacy server and its onward delivery route can handle the unchanged email anyway, you can opt in with {@link org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLegacySmtpContentSupport(boolean)}.
 	 * <p>
 	 * If you want UTF-8 encoding disabled, use {@code withProperty("mail.mime.allowutf8", false)}. If you supply your own Session, we leave its settings alone.
 	 * <p>
@@ -248,11 +163,14 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * to keep mandatory TLS. For opportunistic username/password authentication, choose {@link TransportStrategy#SMTP} instead;
 	 * do not switch access tokens to the password strategy as a workaround.
 	 * <p>
+	 * For {@link TransportStrategy#SMTPS_OAUTH2}, an extra {@code mail.transport.protocol} must retain {@code smtps}.
+	 * A contradictory protocol fails construction before resource setup rather than sending an access token through another transport.
+	 * <p>
 	 * This check applies to Sessions created by this builder, unless a {@link CustomMailer} owns the transport. Caller-supplied Sessions are not checked.
 	 * It validates this particular override at construction time; it does not freeze the Session, validate custom providers or socket factories, or
 	 * change certificate-trust and server-identity settings.
 	 *
-	 * @throws org.simplejavamail.MailException If an extra property disables mandatory STARTTLS on a library-owned SMTP transport.
+	 * @throws org.simplejavamail.MailException If an extra property contradicts mandatory TLS on a library-owned SMTP transport.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Mailer buildMailer();
@@ -287,17 +205,4 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	@Nullable
 	TransportStrategy getTransportStrategy();
 
-	/**
-	 * Returns the stored factory class name, even when a supplied instance takes precedence.
-	 * @see #withCustomSSLFactoryClass(String)
-	 */
-	@Nullable
-	String getCustomSSLFactory();
-
-	/**
-	 * Returns the supplied factory instance itself, or null when none is configured.
-	 * @see #withCustomSSLFactoryInstance(SSLSocketFactory)
-	 */
-	@Nullable
-	SSLSocketFactory getCustomSSLFactoryInstance();
 }

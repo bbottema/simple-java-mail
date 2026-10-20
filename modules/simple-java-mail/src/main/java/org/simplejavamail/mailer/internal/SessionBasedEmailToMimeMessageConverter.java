@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.Address;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
@@ -38,7 +40,6 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
-import static org.simplejavamail.converter.EmailConverter.mimeMessageToEML;
 import static org.simplejavamail.internal.util.MiscUtil.asInternetAddresses;
 import static org.simplejavamail.mailer.internal.MailerException.INVALID_ENCODING;
 import static org.simplejavamail.mailer.internal.util.MailboxAddressMapper.requireMailboxAddresses;
@@ -134,10 +135,15 @@ public class SessionBasedEmailToMimeMessageConverter {
 
     @NotNull
     public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
-        val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
-        val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
-        mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
-        return mimeMessage;
+        try {
+            val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
+            val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
+            mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
+            return mimeMessage;
+        } catch (MessagingException failure) {
+            throw new MailerException(MailFailureKind.PREPARATION,
+                    "Unable to prepare the email's MIME content; check its content, encoding and attachment sources.", failure);
+        }
     }
 
     @NotNull
@@ -273,7 +279,7 @@ public class SessionBasedEmailToMimeMessageConverter {
             mimeMessage.writeTo(counter);
             return counter.getCount();
         } catch (IOException e) {
-            throw new RuntimeException("error trying to calculate email size", e);
+            throw new MailerException(MailFailureKind.PREPARATION, "Error trying to calculate email size", e);
         }
     }
 
@@ -344,20 +350,20 @@ public class SessionBasedEmailToMimeMessageConverter {
             return InternalEmail.requireInternalEmail(email).renderMimeMessage(session, processSecurity);
         } catch (UnsupportedEncodingException e) {
             LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
-            throw new MailerException(format(INVALID_ENCODING, email.getId()), e);
+            throw new MailerException(MailFailureKind.PREPARATION, format(INVALID_ENCODING, email.getId()), e);
         }
     }
 
-    private static void logEmail(final MimeMessage message, final boolean transportModeLoggingOnly, final Email email) {
+    private static void logEmail(final MimeMessage message, final boolean transportModeLoggingOnly, final Email email) throws MessagingException {
         if (transportModeLoggingOnly) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("\n\nEmail: {}\n", email);
-                LOGGER.info("\n\nMimeMessage: {}\n", mimeMessageToEML(message));
+                LOGGER.info("\n\nMimeMessage: {}\n", new String(serializeMimeMessage(message), StandardCharsets.UTF_8));
             }
         } else {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("\t\nEmail: {}", email);
-                LOGGER.trace("\t\nMimeMessage: {}\n", mimeMessageToEML(message));
+                LOGGER.trace("\t\nMimeMessage: {}\n", new String(serializeMimeMessage(message), StandardCharsets.UTF_8));
             }
         }
     }
