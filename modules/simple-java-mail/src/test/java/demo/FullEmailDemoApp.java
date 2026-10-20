@@ -1,5 +1,6 @@
 package demo;
 
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.internet.MimeMessage;
@@ -48,9 +49,7 @@ public class FullEmailDemoApp extends DemoAppBase {
 		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
 
 		final EmailPopulatingBuilder emailPopulatingBuilderNormal = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true);
+				.withImageResolutionConfig(ImageResolutionConfig.builder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build());
 
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->

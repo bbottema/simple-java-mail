@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -57,9 +58,9 @@ class EmailGovernanceOpenPgpTest {
         final Email overrides = protectedEmail((byte) 2);
         final EmailGovernanceImpl governance = governance(defaults, overrides);
 
-        assertPolicies(governance.produceEmailApplyingDefaultsAndOverrides(blank().ignoringOverrides().buildEmail()), defaults);
-        assertNoPolicies(governance.produceEmailApplyingDefaultsAndOverrides(blank().ignoringDefaults().ignoringOverrides().buildEmail()));
-        assertNoPolicies(governance(defaults, null).produceEmailApplyingDefaultsAndOverrides(blank().ignoringDefaults().buildEmail()));
+        assertPolicies(governance.produceEmailApplyingDefaultsAndOverrides(blank().withTemplateOptions(EmailTemplateOptions.builder().ignoringOverrides().build()).buildEmail()), defaults);
+        assertNoPolicies(governance.produceEmailApplyingDefaultsAndOverrides(blank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().build()).buildEmail()));
+        assertNoPolicies(governance(defaults, null).produceEmailApplyingDefaultsAndOverrides(blank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmail()));
     }
 
     @Test
@@ -68,16 +69,16 @@ class EmailGovernanceOpenPgpTest {
         final Email supplied = protectedEmail((byte) 2);
         final Email overrides = protectedEmail((byte) 3);
         final Email encryptionFromDefault = blank()
-                .dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG).build())
                 .buildEmail();
         final Email signingFromDefault = blank()
-                .dontApplyDefaultValueFor(OPENPGP_ENCRYPTION_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(OPENPGP_ENCRYPTION_CONFIG).build())
                 .buildEmail();
         final Email explicitSigning = factory.emailBuilder().copying(supplied)
-                .dontApplyOverrideValueFor(OPENPGP_SIGNING_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(OPENPGP_SIGNING_CONFIG).build())
                 .buildEmail();
         final Email explicitEncryption = factory.emailBuilder().copying(supplied)
-                .dontApplyOverrideValueFor(OPENPGP_ENCRYPTION_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(OPENPGP_ENCRYPTION_CONFIG).build())
                 .buildEmail();
 
         final Email onlyEncryption = governance(defaults, null).produceEmailApplyingDefaultsAndOverrides(encryptionFromDefault);
@@ -107,10 +108,7 @@ class EmailGovernanceOpenPgpTest {
     @Test
     void copyingPreservesKeysAndAllGovernanceSuppressionChoices() {
         final Email original = factory.emailBuilder().copying(protectedEmail((byte) 1))
-                .ignoringDefaults()
-                .ignoringOverrides()
-                .dontApplyDefaultValueFor(SUBJECT, OPENPGP_SIGNING_CONFIG)
-                .dontApplyOverrideValueFor(SUBJECT, OPENPGP_ENCRYPTION_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SUBJECT, OPENPGP_SIGNING_CONFIG).dontApplyOverrideValueFor(SUBJECT, OPENPGP_ENCRYPTION_CONFIG).build())
                 .buildEmail();
 
         final Email copy = factory.emailBuilder().copying(original).buildEmail();
@@ -124,7 +122,7 @@ class EmailGovernanceOpenPgpTest {
 
     @Test
     void copyingRetainsSuppressionBehaviorForExistingOrdinaryFields() {
-        final Email original = blank().dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(SUBJECT).buildEmail();
+        final Email original = blank().withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(SUBJECT).dontApplyOverrideValueFor(SUBJECT).build()).buildEmail();
         final Email copied = factory.emailBuilder().copying(original).buildEmail();
         final Email defaults = blank().withSubject("default subject").buildEmail();
         final Email overrides = blank().withSubject("override subject").buildEmail();
@@ -135,10 +133,9 @@ class EmailGovernanceOpenPgpTest {
     }
 
     @Test
-    void serializationPreservesSuppressionWithoutPersistingOpenPgpKeyMaterial() throws Exception {
+    void serializationPreservesOpenPgpMaterialAndSuppressionPrecedence() throws Exception {
         final Email original = factory.emailBuilder().copying(protectedEmail((byte) 1))
-                .dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG)
-                .dontApplyOverrideValueFor(OPENPGP_ENCRYPTION_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG).dontApplyOverrideValueFor(OPENPGP_ENCRYPTION_CONFIG).build())
                 .buildEmail();
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
@@ -149,13 +146,13 @@ class EmailGovernanceOpenPgpTest {
             restored = (Email) input.readObject();
         }
 
-        assertNoPolicies(restored);
+        assertPolicies(restored, original);
         assertThat(restored.getPropertiesNotToApplyDefaultValueFor()).containsExactly(OPENPGP_SIGNING_CONFIG);
         assertThat(restored.getPropertiesNotToApplyOverrideValueFor()).containsExactly(OPENPGP_ENCRYPTION_CONFIG);
         final Email resolved = governance(protectedEmail((byte) 2), protectedEmail((byte) 3))
                 .produceEmailApplyingDefaultsAndOverrides(restored);
         assertThat(resolved.getOpenPgpSigningConfig()).isEqualTo(signing((byte) 3));
-        assertThat(resolved.getOpenPgpEncryptionConfig()).isEqualTo(encryption((byte) 2));
+        assertThat(resolved.getOpenPgpEncryptionConfig()).isEqualTo(encryption((byte) 1));
     }
 
     @Test
@@ -168,15 +165,13 @@ class EmailGovernanceOpenPgpTest {
         assertThatThrownBy(() -> governance(null, openPgp).produceEmailApplyingDefaultsAndOverrides(smime))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("S/MIME and OpenPGP/MIME are both configured");
         final Email suppressOpenPgp = factory.emailBuilder().copying(smime)
-                .dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG, OPENPGP_ENCRYPTION_CONFIG)
-                .dontApplyOverrideValueFor(OPENPGP_SIGNING_CONFIG, OPENPGP_ENCRYPTION_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(OPENPGP_SIGNING_CONFIG, OPENPGP_ENCRYPTION_CONFIG).dontApplyOverrideValueFor(OPENPGP_SIGNING_CONFIG, OPENPGP_ENCRYPTION_CONFIG).build())
                 .buildEmail();
         final Email resolvedSmime = governance(openPgp, openPgp).produceEmailApplyingDefaultsAndOverrides(suppressOpenPgp);
         assertNoPolicies(resolvedSmime);
         assertThat(resolvedSmime.getSmimeSigningConfig()).isSameAs(smime.getSmimeSigningConfig());
         final Email suppressSmime = factory.emailBuilder().copying(openPgp)
-                .dontApplyDefaultValueFor(SMIME_SIGNING_CONFIG)
-                .dontApplyOverrideValueFor(SMIME_SIGNING_CONFIG)
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(SMIME_SIGNING_CONFIG).dontApplyOverrideValueFor(SMIME_SIGNING_CONFIG).build())
                 .buildEmail();
         assertPolicies(governance(smime, smime).produceEmailApplyingDefaultsAndOverrides(suppressSmime), openPgp);
     }

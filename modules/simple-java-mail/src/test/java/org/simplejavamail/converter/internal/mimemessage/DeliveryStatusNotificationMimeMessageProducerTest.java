@@ -1,5 +1,6 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
@@ -25,7 +26,7 @@ public class DeliveryStatusNotificationMimeMessageProducerTest {
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "receiver@example.com"))
 				.withPlainText("Hello")
 				.withBounceTo("bounce@example.com")
-				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY).build())
 				.buildEmailCompletedWithDefaultsAndOverrides());
 
 		assertThat(preparedMail.getMimeMessage()).isInstanceOf(FinalizedMimeMessage.class);

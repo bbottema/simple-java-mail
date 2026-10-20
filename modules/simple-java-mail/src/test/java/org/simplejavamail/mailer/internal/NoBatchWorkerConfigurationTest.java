@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -24,7 +25,7 @@ class NoBatchWorkerConfigurationTest {
             try (Mailer fromProperties = factory(Map.of("simplejavamail.defaults.poolsize.keepalivetime", "7"))
                     .mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
                  Mailer explicit = factory(Map.of()).mailerBuilder().withSMTPServer("localhost", 25)
-                         .withThreadPoolKeepAliveTime(Duration.ofMillis(11)).buildMailer()) {
+                         .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withKeepAliveTime(Duration.ofMillis(11)).build()).buildMailer()) {
                 final ThreadPoolExecutor inheritedExecutor = (ThreadPoolExecutor) fromProperties.getOperationalConfig().getExecutorService();
                 final ThreadPoolExecutor explicitExecutor = (ThreadPoolExecutor) explicit.getOperationalConfig().getExecutorService();
                 assertThat(inheritedExecutor.getMaximumPoolSize()).isOne();
@@ -41,7 +42,7 @@ class NoBatchWorkerConfigurationTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             try (Mailer mailer = factory(Map.of()).mailerBuilder().withSMTPServer("localhost", 25)
-                    .withThreadPoolSize(3).buildMailer()) {
+                    .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(3).build()).buildMailer()) {
                 final ThreadPoolExecutor executor = (ThreadPoolExecutor) mailer.getOperationalConfig().getExecutorService();
                 assertThat(executor.getMaximumPoolSize()).isEqualTo(3);
                 assertThat(mailer.getAsyncQueueSnapshot().orElseThrow().getWorkerLimit()).isEqualTo(3);

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -15,7 +16,7 @@ public class MailerBuilderProxyConfigTest {
 	public void authenticatedProxyUsesAutomaticBridgePortByDefault() throws Exception {
 		try (org.simplejavamail.api.mailer.Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 25)
-				.withProxy("proxy.example.com", 1080, "username", "password")
+				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("username").withPassword("password").build())
 				.buildMailer()) {
 			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isZero();
 			assertThat(mailer.getProxyConfig().toString()).contains("proxy bridge @ loopback:automatic");
@@ -37,7 +38,7 @@ public class MailerBuilderProxyConfigTest {
 			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
-					.withProxy("host", null)
+					.withProxyConfig(SocksProxyConfig.builder().withHost("host").withPort(null).build())
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
 		} catch (IllegalArgumentException e) {
@@ -47,7 +48,7 @@ public class MailerBuilderProxyConfigTest {
 			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
-					.withProxy("host", null, null, null)
+					.withProxyConfig(SocksProxyConfig.builder().withHost("host").withPort(null).withUsername(null).withPassword(null).build())
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
 		} catch (IllegalArgumentException e) {
@@ -61,7 +62,7 @@ public class MailerBuilderProxyConfigTest {
 		try {
 			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServerHost("host")
 					.withSMTPServerPort(123)
-					.withProxy("host", 1234, "username", null)
+					.withProxyConfig(SocksProxyConfig.builder().withHost("host").withPort(1234).withUsername("username").withPassword(null).build())
 					.buildMailer();
 			fail("IllegalArgumentException expected for password");
 		} catch (IllegalArgumentException e) {
@@ -71,7 +72,7 @@ public class MailerBuilderProxyConfigTest {
 			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					.withSMTPServerHost("host")
 					.withSMTPServerPort(1234)
-					.withProxy("host", 1234, null, "password")
+					.withProxyConfig(SocksProxyConfig.builder().withHost("host").withPort(1234).withUsername(null).withPassword("password").build())
 					.buildMailer();
 			fail("IllegalArgumentException expected for username");
 		} catch (IllegalArgumentException e) {

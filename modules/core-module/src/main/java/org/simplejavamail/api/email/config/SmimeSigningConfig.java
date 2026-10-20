@@ -35,7 +35,7 @@ public class SmimeSigningConfig implements Serializable {
 
     /**
      * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-     * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+     * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
      */
     @NotNull
     private final Pkcs12Config pkcs12Config;
@@ -65,7 +65,7 @@ public class SmimeSigningConfig implements Serializable {
 
         /**
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-         * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+         * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull Pkcs12Config pkcs12Config) {
             this.pkcs12Config = pkcs12Config;
@@ -73,7 +73,16 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #pkcs12Config(InputStream, String, String, String)}.
+         * Reads and closes the PKCS12 key-store file immediately, retaining the complete store bytes, passwords and selected alias.
+         * The actual S/MIME signature is produced when converting or sending using the optional S/MIME module.
+         * Select the signature algorithm separately with {@link #signatureAlgorithm(String)}; an omitted algorithm keeps the module's default.
+         * @param pkcs12StoreFile The key store file to use to find the indicated key.
+         * @param storePassword The store's password.
+         * @param keyAlias The name of the certificate in the key store to use.
+         * @param keyPassword The password of the certificate.
+         * @return This builder.
+         * @see #pkcs12Config(Path, String, String, String)
+         * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull File pkcs12StoreFile, @NotNull String storePassword,
                 @NotNull String keyAlias, @NotNull String keyPassword) {
@@ -83,7 +92,9 @@ public class SmimeSigningConfig implements Serializable {
         /**
          * Reads the PKCS12 store immediately through {@link #pkcs12Config(InputStream, String, String, String)} and closes the stream opened for the path.
          *
-         * @param pkcs12StorePath Path to the PKCS12 store.
+         * The selected alias and passwords are retained with the bytes. Select the signing algorithm separately through
+         * {@link #signatureAlgorithm(String)}; null keeps the module's default. This works with non-default Java filesystems.
+         * @param pkcs12StorePath The key store path to use to find the indicated key.
          * @param storePassword Password for the store.
          * @param keyAlias Alias of the signing key.
          * @param keyPassword Password for the signing key.
@@ -99,7 +110,13 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #pkcs12Config(byte[], String, String, String)}.
+         * Reads the PKCS12 store immediately and delegates to {@link #pkcs12Config(byte[], String, String, String)}.
+         * The supplied stream remains caller-owned and is not closed.
+         * @param pkcs12StoreStream Application-owned PKCS12 store stream.
+         * @param storePassword The store's password.
+         * @param keyAlias The signing-key alias.
+         * @param keyPassword The signing-key password.
+         * @return This builder.
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword,
                 @NotNull String keyAlias, @NotNull String keyPassword) {
@@ -113,7 +130,12 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #pkcs12Config(Pkcs12Config)}.
+         * Copies the complete PKCS12 bytes immediately and delegates to {@link #pkcs12Config(Pkcs12Config)}.
+         * @param pkcs12StoreData Complete PKCS12 store bytes.
+         * @param storePassword The store's password.
+         * @param keyAlias The signing-key alias.
+         * @param keyPassword The signing-key password.
+         * @return This builder.
          */
         public SmimeSigningConfigBuilder pkcs12Config(byte @NotNull [] pkcs12StoreData, @NotNull String storePassword,
                 @NotNull String keyAlias, @NotNull String keyPassword) {

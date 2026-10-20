@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.smimesupport;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.activation.CommandMap;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.MimeMessage;
@@ -24,7 +25,7 @@ class SmimeGlobalStateIsolationTest {
     @Test
     void configuringSigningAndReadingSmimeDoesNotChangeJvmProvidersOrTheApplicationCommandMap() throws Exception {
         final Email source = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-                .ignoringDefaults(true)
+                .withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(true).build())
                 .from("sender@example.com")
                 .withRecipients(new Recipient(null, "receiver@example.com", RecipientType.TO, null))
                 .withSubject("S/MIME isolation")

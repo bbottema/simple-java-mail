@@ -1,5 +1,6 @@
 package org.simplejavamail.managedangus;
 
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import jakarta.mail.Transport;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Provider;
@@ -49,7 +50,7 @@ public final class ManagedAngusConsumer {
                 final SmtpConnectionReport report = probe.probe(dedicated, false, candidate -> {
                     throw new MessagingException("Stop before network access");
                 });
-                if (!report.isSupported() || report.isSuccessful() || report.getFailurePhase().isEmpty()) {
+                if (!report.isSupported() || report.isSuccessful() || report.getFailurePhase() == null) {
                     throw new AssertionError("Connection-probe adapter could not produce a safe failure report");
                 }
             }
@@ -61,7 +62,7 @@ public final class ManagedAngusConsumer {
 
     private static void verifyExportedFactory(final SimpleJavaMail mail) throws Exception {
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 465).withTransportStrategy(TransportStrategy.SMTPS)
-                .withCustomSSLFactoryClass(ExportedTlsFactory.class.getName()).buildMailer(); Socket socket = new Socket()) {
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryClass(ExportedTlsFactory.class.getName()).build()).buildMailer(); Socket socket = new Socket()) {
             try {
                 configuredFactory(mailer).createSocket(socket, "localhost", 465, true);
                 throw new AssertionError("The exported factory should retain its fixture failure");
@@ -75,7 +76,7 @@ public final class ManagedAngusConsumer {
 
     private static void verifyHiddenFactory(final SimpleJavaMail mail) throws Exception {
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 465).withTransportStrategy(TransportStrategy.SMTPS)
-                .withCustomSSLFactoryClass(HiddenTlsFactory.class.getName()).buildMailer(); Socket socket = new Socket()) {
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryClass(HiddenTlsFactory.class.getName()).build()).buildMailer(); Socket socket = new Socket()) {
             try {
                 configuredFactory(mailer).createSocket(socket, "localhost", 465, true);
                 throw new AssertionError("A non-exported class factory must not bypass module visibility");
@@ -90,7 +91,7 @@ public final class ManagedAngusConsumer {
 
     private static void verifySuppliedFactory(final SimpleJavaMail mail) throws Exception {
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 465).withTransportStrategy(TransportStrategy.SMTPS)
-                .withCustomSSLFactoryInstance(new HiddenTlsFactory()).buildMailer(); Socket socket = new Socket()) {
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(new HiddenTlsFactory()).build()).buildMailer(); Socket socket = new Socket()) {
             try {
                 configuredFactory(mailer).createSocket(socket, "localhost", 465, true);
                 throw new AssertionError("A supplied instance must remain usable without reflective package access");

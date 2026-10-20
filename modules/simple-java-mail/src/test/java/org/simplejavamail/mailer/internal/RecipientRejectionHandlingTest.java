@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,17 +54,17 @@ class RecipientRejectionHandlingTest {
     @ValueSource(booleans = {true, false})
     void composedChoiceIsNullableReplaceableCopyableAndSerializable(final boolean choice) throws Exception {
         final EmailPopulatingBuilder builder = ordinary.emailBuilder().startingBlank();
-        assertThat(builder.getSendingToAcceptedRecipients()).isNull();
-        assertThat(builder.withSendingToAcceptedRecipients(!choice)).isSameAs(builder);
-        assertThat(builder.withSendingToAcceptedRecipients(choice).getSendingToAcceptedRecipients()).isEqualTo(choice);
+        assertThat(builder.getSmtpDeliveryOptions().getSendingToAcceptedRecipients()).isNull();
+        assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withSendingToAcceptedRecipients(!choice).build())).isSameAs(builder);
+        assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withSendingToAcceptedRecipients(choice).build()).getSmtpDeliveryOptions().getSendingToAcceptedRecipients()).isEqualTo(choice);
         final Email email = builder.buildEmail();
         assertThat(email.getSendingToAcceptedRecipients()).isEqualTo(choice);
         assertThat(email.toString()).contains("sendingToAcceptedRecipients=" + choice);
         assertThat(ordinary.emailBuilder().copying(email).buildEmail()).isEqualTo(email);
         assertThat(roundTrip(email).getSendingToAcceptedRecipients()).isEqualTo(choice);
-        assertThat(ordinary.emailBuilder().copying(email).withSendingToAcceptedRecipients(!choice).buildEmail()).isNotEqualTo(email);
-        assertThat(builder.clearSendingToAcceptedRecipients()).isSameAs(builder);
-        assertThat(builder.getSendingToAcceptedRecipients()).isNull();
+        assertThat(ordinary.emailBuilder().copying(email).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!choice).build()).buildEmail()).isNotEqualTo(email);
+        assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearSendingToAcceptedRecipients().build())).isSameAs(builder);
+        assertThat(builder.getSmtpDeliveryOptions().getSendingToAcceptedRecipients()).isNull();
         assertThat(builder.buildEmail().getSendingToAcceptedRecipients()).isNull();
     }
 
@@ -68,9 +72,9 @@ class RecipientRejectionHandlingTest {
     @ValueSource(booleans = {true, false})
     void exactChoiceSurvivesCopyingAndSerializationWithoutChangingBytes(final boolean choice) throws Exception {
         final ExactEmailBuilder builder = exactBuilder();
-        assertThat(builder.getSendingToAcceptedRecipients()).isNull();
-        assertThat(builder.withSendingToAcceptedRecipients(!choice)).isSameAs(builder);
-        final Email email = builder.withSendingToAcceptedRecipients(choice).buildEmail();
+        assertThat(builder.getSmtpDeliveryOptions().getSendingToAcceptedRecipients()).isNull();
+        assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withSendingToAcceptedRecipients(!choice).build())).isSameAs(builder);
+        final Email email = builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withSendingToAcceptedRecipients(choice).build()).buildEmail();
         final Email copied = ordinary.emailBuilder().copying(email).buildEmail();
         assertThat(copied.getSendingToAcceptedRecipients()).isEqualTo(choice);
         final Email restored = roundTrip(email);
@@ -81,8 +85,8 @@ class RecipientRejectionHandlingTest {
                 assertThat(mailer.rehearse(retained).getEmlBytes()).containsExactly(exactBytes);
             }
         }
-        assertThat(builder.clearSendingToAcceptedRecipients()).isSameAs(builder);
-        assertThat(builder.getSendingToAcceptedRecipients()).isNull();
+        assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearSendingToAcceptedRecipients().build())).isSameAs(builder);
+        assertThat(builder.getSmtpDeliveryOptions().getSendingToAcceptedRecipients()).isNull();
         assertThat(builder.buildEmail().getSendingToAcceptedRecipients()).isNull();
     }
 
@@ -92,24 +96,24 @@ class RecipientRejectionHandlingTest {
         final SimpleJavaMail factory = configured(Map.of("simplejavamail.defaults.sendtoacceptedrecipients", defaultChoice));
         final Email unset = factory.emailBuilder().startingBlank().buildEmail();
         assertThat(unset.getSendingToAcceptedRecipients()).as("Properties do not populate the local Email choice").isNull();
-        final Email explicit = ordinary.emailBuilder().startingBlank().withSendingToAcceptedRecipients(!defaultChoice).buildEmail();
+        final Email explicit = ordinary.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!defaultChoice).build()).buildEmail();
         try (Mailer mailer = factory.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(prepared(mailer, unset).getSendingToAcceptedRecipients()).isEqualTo(defaultChoice);
             assertThat(prepared(mailer, explicit).getSendingToAcceptedRecipients()).isEqualTo(!defaultChoice);
-            assertThat(prepared(mailer, ordinary.emailBuilder().copying(explicit).clearSendingToAcceptedRecipients().buildEmail())
+            assertThat(prepared(mailer, ordinary.emailBuilder().copying(explicit).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().clearSendingToAcceptedRecipients().build()).buildEmail())
                     .getSendingToAcceptedRecipients()).isEqualTo(defaultChoice);
-            assertThat(prepared(mailer, ordinary.emailBuilder().startingBlank().ignoringDefaults().buildEmail())
+            assertThat(prepared(mailer, ordinary.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmail())
                     .getSendingToAcceptedRecipients()).isNull();
-            assertThat(prepared(mailer, ordinary.emailBuilder().startingBlank().dontApplyDefaultValueFor(SENDING_TO_ACCEPTED_RECIPIENTS)
+            assertThat(prepared(mailer, ordinary.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).build())
                     .buildEmail()).getSendingToAcceptedRecipients()).isNull();
         }
-        final Email override = ordinary.emailBuilder().startingBlank().withSendingToAcceptedRecipients(defaultChoice).buildEmail();
+        final Email override = ordinary.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(defaultChoice).build()).buildEmail();
         try (Mailer mailer = factory.mailerBuilder().withEmailOverrides(override).withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(prepared(mailer, explicit).getSendingToAcceptedRecipients()).isEqualTo(defaultChoice);
-            assertThat(prepared(mailer, ordinary.emailBuilder().copying(explicit).ignoringOverrides().buildEmail())
+            assertThat(prepared(mailer, ordinary.emailBuilder().copying(explicit).withTemplateOptions(EmailTemplateOptions.builder().ignoringOverrides().build()).buildEmail())
                     .getSendingToAcceptedRecipients()).isEqualTo(!defaultChoice);
             assertThat(prepared(mailer, ordinary.emailBuilder().copying(explicit)
-                    .dontApplyOverrideValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).buildEmail()).getSendingToAcceptedRecipients()).isEqualTo(!defaultChoice);
+                    .withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).build()).buildEmail()).getSendingToAcceptedRecipients()).isEqualTo(!defaultChoice);
         }
         final Email replacement = ordinary.emailBuilder().startingBlank().buildEmail();
         try (Mailer mailer = factory.mailerBuilder().withEmailDefaults(replacement).withTransportModeLoggingOnly(true).buildMailer()) {
@@ -126,11 +130,9 @@ class RecipientRejectionHandlingTest {
         final SimpleJavaMail factory = configured(Map.of("simplejavamail.locked.defaults.sendtoacceptedrecipients", lockedChoice,
                 "simplejavamail.defaults.sendtoacceptedrecipients", !lockedChoice));
         final Email emptyTemplate = ordinary.emailBuilder().startingBlank().buildEmail();
-        final Email suppressed = ordinary.emailBuilder().startingBlank().withSendingToAcceptedRecipients(!lockedChoice)
-                .clearSendingToAcceptedRecipients().ignoringDefaults().ignoringOverrides()
-                .dontApplyDefaultValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).dontApplyOverrideValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).buildEmail();
-        final Email equal = ordinary.emailBuilder().startingBlank().withSendingToAcceptedRecipients(lockedChoice).buildEmail();
-        final Email conflicting = ordinary.emailBuilder().startingBlank().withSendingToAcceptedRecipients(!lockedChoice).buildEmail();
+        final Email suppressed = ordinary.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!lockedChoice).clearSendingToAcceptedRecipients().build()).withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).dontApplyOverrideValueFor(SENDING_TO_ACCEPTED_RECIPIENTS).build()).buildEmail();
+        final Email equal = ordinary.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(lockedChoice).build()).buildEmail();
+        final Email conflicting = ordinary.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!lockedChoice).build()).buildEmail();
         try (Mailer mailer = factory.mailerBuilder().withEmailDefaults(emptyTemplate).withEmailOverrides(emptyTemplate)
                 .withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(prepared(mailer, suppressed).getSendingToAcceptedRecipients()).isEqualTo(lockedChoice);
@@ -149,9 +151,9 @@ class RecipientRejectionHandlingTest {
     @ValueSource(booleans = {true, false})
     void exactEmailsBypassOrdinaryTemplatesButRetainCompatibleEnvelopeLocks(final boolean choice) throws Exception {
         final SimpleJavaMail factory = configured(Map.of("simplejavamail.defaults.sendtoacceptedrecipients", !choice));
-        final Email explicit = exactBuilder().withSendingToAcceptedRecipients(choice).buildEmail();
+        final Email explicit = exactBuilder().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(choice).build()).buildEmail();
         try (Mailer mailer = factory.mailerBuilder().withEmailOverrides(ordinary.emailBuilder().startingBlank()
-                .withSendingToAcceptedRecipients(!choice).buildEmail()).withTransportModeLoggingOnly(true).buildMailer()) {
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!choice).build()).buildEmail()).withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(prepared(mailer, explicit).getSendingToAcceptedRecipients()).isEqualTo(choice);
             assertThat(prepared(mailer, exactBuilder().buildEmail())
                     .getSendingToAcceptedRecipients()).isNull();
@@ -162,7 +164,7 @@ class RecipientRejectionHandlingTest {
             assertThat(prepared(mailer, absent).getSendingToAcceptedRecipients()).isEqualTo(choice);
             assertThat(mailer.rehearse(absent).getEmlBytes()).containsExactly(exactBytes);
             assertThat(mailer.rehearse(explicit).getEmlBytes()).containsExactly(exactBytes);
-            final Email conflict = exactBuilder().withSendingToAcceptedRecipients(!choice).buildEmail();
+            final Email conflict = exactBuilder().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(!choice).build()).buildEmail();
             assertThatThrownBy(() -> mailer.rehearse(conflict)).hasMessageContaining("locked.defaults.sendtoacceptedrecipients");
         }
     }
@@ -193,15 +195,15 @@ class RecipientRejectionHandlingTest {
     void propertyHasBooleanTypeProvenanceAndAnUnredactedEmailDefaultDiagnostic(final boolean choice) {
         final SimpleJavaMailConfig config = ConfigLoader.builder().withMap("deployment", Map.of(
                 "simplejavamail.defaults.sendtoacceptedrecipients", Boolean.toString(choice))).load();
-        assertThat(config.getBooleanProperty(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isEqualTo(choice);
-        assertThat(config.getPropertySource(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isEqualTo("deployment");
+        assertThat(config.get(ConfigKeys.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isEqualTo(choice);
+        assertThat(config.getPropertySource(ConfigKeys.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isEqualTo("deployment");
         assertThat(config.getDiagnostics().getProperties(ConfigDiagnosticGroup.EMAIL_DEFAULTS)).anySatisfy(entry -> {
             assertThat(entry.getPropertyName()).isEqualTo("simplejavamail.defaults.sendtoacceptedrecipients");
             assertThat(entry.getDisplayValue()).isEqualTo(Boolean.toString(choice));
             assertThat(entry.getSourceName()).isEqualTo("deployment");
             assertThat(entry.isRedacted()).isFalse();
         });
-        assertThat(ConfigLoader.builder().load().hasProperty(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isFalse();
+        assertThat(ConfigLoader.builder().load().hasProperty(ConfigKeys.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)).isFalse();
     }
 
     @ParameterizedTest
@@ -212,7 +214,7 @@ class RecipientRejectionHandlingTest {
                 .withSendHandlers(MailSendHandlers.builder().withResultObserver(observed::set).build()).buildMailer()) {
             final Email email = ordinary.emailBuilder().startingBlank().from("sender@example.org")
                     .withRecipients(new Recipient(null, "receiver@example.org", jakarta.mail.Message.RecipientType.TO, null))
-                    .withPlainText("body").withSendingToAcceptedRecipients(choice).buildEmail();
+                    .withPlainText("body").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(choice).build()).buildEmail();
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
             assertThat(observed.get().isLoggingOnly()).isTrue();
             assertThat(observed.get().isSuccessful()).isTrue();

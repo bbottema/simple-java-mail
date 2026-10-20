@@ -42,6 +42,11 @@ Managed Angus observes real DATA/BDAT content stream input. Counts exclude frami
 Reuse existing serialization for total measurement; distinguish input length from canonical SMTP SIZE. No extra reads, serialization, commands or flushes.
 Unsupported and caller-owned providers retain coarse progress, never fail sending just to fill in observations. Transport-local observation is cleared per invocation.
 
+Accepted 20 October result ergonomics: upload counts use nullable boxed Long values under the scoped
+[outgoing result absence policy](0009-nullability-and-cli-optionality.md#outgoing-operation-result-absence-policy-accepted-20-october-2026).
+An available zero is a real count; null means no count is available. Required observation identity, stage, sequence and elapsed/observed times remain
+plain values. This changes no publication, throttling, content-read, cancellation or serialization behavior.
+
 ## Alternatives considered
 
 - Inline progress: simple, but slow dashboards hold transport resources and affect deadlines and throughput.

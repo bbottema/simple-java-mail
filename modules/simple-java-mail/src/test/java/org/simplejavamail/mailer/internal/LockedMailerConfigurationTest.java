@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
@@ -151,7 +156,7 @@ class LockedMailerConfigurationTest {
 	@Test
 	void callerOwnedExecutorsAndRuntimeCredentialsExplainTheirConflictWithLocks() {
 		assertThatThrownBy(() -> locked(Map.of("defaults.poolsize", "1")).mailerBuilder()
-				.withExecutorService(mock(ExecutorService.class)).buildMailer())
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(mock(ExecutorService.class)).build()).buildMailer())
 				.hasMessageContaining("withExecutorService(...)").hasMessageContaining("factory locks worker or queue settings")
 				.hasMessageContaining("cannot configure or verify").hasMessageContaining("remove the corresponding locks");
 		assertThatThrownBy(() -> locked(Map.of("smtp.password", "central-secret")).mailerBuilder()
@@ -200,7 +205,7 @@ class LockedMailerConfigurationTest {
 	@Test
 	void embeddedImageLocksAreCheckedBeforeResolution() {
 		final SimpleJavaMail factory = locked(Map.of("embeddedimages.dynamicresolution.enable.dir", "false"));
-		assertThatThrownBy(() -> factory.emailBuilder().startingBlank().withEmbeddedImageAutoResolutionForFiles(true).buildEmail())
+		assertThatThrownBy(() -> factory.emailBuilder().startingBlank().withImageResolutionConfig(ImageResolutionConfig.builder().withEmbeddedImageAutoResolutionForFiles(true).build()).buildEmail())
 				.hasMessageContaining("locked.embeddedimages");
 	}
 
@@ -222,9 +227,9 @@ class LockedMailerConfigurationTest {
 		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").buildMailer()) {
 			assertThat(mailer.getSession().getProperty("mail.smtp.timeout")).isEqualTo("1000");
 		}
-		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(Duration.ofMillis(2000)).buildMailer())
+		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(2000)).build()).buildMailer())
 				.hasMessageContaining("locked.extraproperties.mail.smtp.timeout");
-		try (Mailer ignored = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withSessionTimeout(Duration.ofMillis(1000)).buildMailer()) {
+		try (Mailer ignored = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1000)).build()).buildMailer()) {
 			assertThat(ignored.getSession().getProperty("mail.smtp.timeout")).isEqualTo("1000");
 		}
 	}
@@ -241,18 +246,18 @@ class LockedMailerConfigurationTest {
 	@Test
 	void trustAllCannotBypassALockedTrustedHostList() {
 		assertThatThrownBy(() -> locked(Map.of("defaults.trustedhosts", "relay.example.org")).mailerBuilder()
-				.withSMTPServerHost("relay.example.org").trustingAllHosts(true).buildMailer()).hasMessageContaining("locked.defaults.trustedhosts");
+				.withSMTPServerHost("relay.example.org").withTlsConfig(TlsConfig.builder().trustingAllHosts(true).build()).buildMailer()).hasMessageContaining("locked.defaults.trustedhosts");
 	}
 
 	@Test
 	void lockedClusterIdentifiersCompareTheirUuidValueRatherThanLetterCase() throws Exception {
 		final UUID cluster = UUID.randomUUID();
 		final SimpleJavaMail factory = locked(Map.of("defaults.connectionpool.clusterkey.uuid", cluster.toString().toUpperCase(ROOT)));
-		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withConnectionPoolCoreSize(0)
-				.withClusterKey(cluster).buildMailer()) {
+		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withClusterKey(cluster).build())
+				.buildMailer()) {
 			assertThat(mailer.getOperationalConfig().getClusterKey()).isEqualTo(cluster);
 		}
-		assertThatThrownBy(() -> factory.mailerBuilder().withClusterKey(UUID.randomUUID()).buildMailer()).hasMessageContaining("locked.defaults");
+		assertThatThrownBy(() -> factory.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).build()).buildMailer()).hasMessageContaining("locked.defaults");
 	}
 
 	@Test
@@ -261,7 +266,7 @@ class LockedMailerConfigurationTest {
 		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").buildMailer()) {
 			assertThat(mailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo("relay.example.org backup.example.org");
 		}
-		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").trustingSSLHosts("other.example.org").buildMailer())
+		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withTlsConfig(TlsConfig.builder().trustingSSLHosts("other.example.org").build()).buildMailer())
 				.hasMessageContaining("locked.defaults.trustedhosts");
 	}
 
@@ -284,7 +289,7 @@ class LockedMailerConfigurationTest {
 	@Test
 	void lockingSmtpDoesNotImplicitlyLockItsSeparateOpportunisticTlsSetting() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("transportstrategy", "SMTP"));
-		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withOpportunisticTLS(false).buildMailer()) {
+		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).buildMailer()) {
 			assertThat(mailer.getSession().getProperty("mail.smtp.starttls.enable")).isNull();
 		}
 	}
@@ -295,7 +300,7 @@ class LockedMailerConfigurationTest {
 		try (Mailer mailer = factory.mailerBuilder().withSMTPServerHost("relay.example.org").buildMailer()) {
 			assertThat(mailer.getSession().getProperty("mail.smtp.starttls.enable")).isNull();
 		}
-		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withOpportunisticTLS(true).buildMailer())
+		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("relay.example.org").withTlsConfig(TlsConfig.builder().withOpportunisticTLS(true).build()).buildMailer())
 				.hasMessageContaining("locked.opportunistic.tls");
 	}
 }

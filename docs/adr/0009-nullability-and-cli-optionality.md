@@ -17,6 +17,22 @@ Use official `org.jetbrains:annotations` for Java/API nullability. Use the separ
 
 Retain the build's ability to instrument nullability contracts, with explicit exclusions for assertion helpers and `ServerReply`, but record its actual state: the root POM sets `se.eris.notnull.instrument=false`. The configured `instrument` and `tests-instrument` goals therefore do not establish default runtime enforcement in this checkout. This ADR neither enables instrumentation nor replaces explicit validation in production code.
 
+### Outgoing operation-result absence policy (accepted 20 October 2026)
+
+For outgoing submission receipts, rehearsals, terminal outcomes, progress, send measurements/history and connection probes, expose required facts as
+ordinary non-null values or primitives. Expose possibly absent scalar facts as explicitly annotated nullable references: identifiers, text, timestamps,
+durations, boxed numeric values, boxed Booleans and optional enum facts. A known zero, false or epoch remains a known value; do not invent a sentinel
+for an unknown fact. Public probe ports are nullable when the provider port is unspecified, while the existing serialized int field remains unchanged.
+
+Keep conditional whole sections as non-null `Optional` values: receipts, diagnostics, failures, SMTP responses, capability snapshots and TLS details.
+Collections remain non-null and retain their documented empty meaning. A measurement object itself remains required and explains why its duration is
+unavailable; a missing duration does not require another wrapper around the whole measurement. Do not add parallel nullable/Optional getter families.
+
+This is a selective correction of 25 outgoing result accessors, not a normalization of every public object graph. Inbound Email/content interpretation
+models and their parsed delivery-report values, ordinary Email metadata, configuration inheritance and JDK Throwable cause conventions remain outside
+this change. Existing Message-ID/observation getter names and all status meanings remain. Keep serialized nullable fields and serial UIDs independent
+of accessor wrappers: `Optional` is not Serializable. Read an actual pre-change result graph and verify required values, absent facts and known zero/false.
+
 ## Rationale and evidence
 
 [#616](https://github.com/bbottema/simple-java-mail/issues/616) is an unusually explicit architectural record. It identifies the coupling as brittle, chooses official annotations plus dedicated CLI metadata, and rejects preserving or simply renaming the fork. The trigger was #610's scanner mapping of the tiny annotation artifact to JetBrains Runtime; the issue explains that these are different products, not an established vulnerability in the annotations.

@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -168,7 +171,7 @@ class SmtpDsnCharacterizationTest {
             final Email email = factory().emailBuilder().startingFromExactEml(exactEml.getBytes(US_ASCII))
                     .withEnvelopeSender("sender@example.test")
                     .withEnvelopeRecipients(FIRST_RECIPIENT, FIRST_RECIPIENT)
-                    .withDeliveryStatusNotification(DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY))
+                    .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(DeliveryStatusNotification.of(HEADERS_ONLY, FAILURE, DELAY)).build())
                     .buildEmail();
             assertAccepted(mailer.sync().sendMail(email), FIRST_RECIPIENT, FIRST_RECIPIENT);
         }
@@ -181,9 +184,9 @@ class SmtpDsnCharacterizationTest {
     private static MailerRegularBuilder<?> mailerBuilder(final int port) {
         // Message-ID hostname lookup must not consume the idle lease's lifetime between these pooled sends.
         return factory().mailerBuilder().withSMTPServer("localhost", port)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.from", "sender@example.test")
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build());
     }
 
     private static Email email(final boolean requestNotifications) {
@@ -191,7 +194,7 @@ class SmtpDsnCharacterizationTest {
                 .withRecipients(new Recipient(null, FIRST_RECIPIENT, TO, null), new Recipient(null, SECOND_RECIPIENT, TO, null))
                 .withSubject("Local DSN characterization").withPlainText("Synthetic loopback test only.");
         if (requestNotifications) {
-            builder.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY);
+            builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY).build());
         }
         return builder.buildEmail();
     }

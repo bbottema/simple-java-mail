@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -33,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -199,8 +202,8 @@ class FailoverScopeContractTest {
             connection.greet(peer, "250 localhost");
             connection.acceptMessages(peer);
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withThreadPoolSize(1).withAsyncQueueCapacity(0)
-                     .withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.REJECT).withFailoverMailer(selected, policy()).buildMailer()) {
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(1).withQueueCapacity(0).rejectWhenFull().build()))
+                     .withFailoverMailer(selected, policy()).buildMailer()) {
             try {
                 final var occupied = initiating.async().sendMail(email());
                 await(connected);
@@ -221,7 +224,7 @@ class FailoverScopeContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withMessageRateLimit(1, Duration.ofHours(1))
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).build()))
                      .withFailoverMailer(selected, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             initiating.sync().sendMail(email());
             final var waiting = initiating.async().sendMail(email());
@@ -245,9 +248,9 @@ class FailoverScopeContractTest {
         final SimpleJavaMail factory = factory();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
-             Mailer seed = builder(factory, primary.port()).withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared").buildMailer();
+             Mailer seed = updateMailer(builder(factory, primary.port()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared").build())).buildMailer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(factory, primary.port()).withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared")
+             Mailer initiating = updateMailer(builder(factory, primary.port()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).withRateLimitGroup("shared").build()))
                      .withMailSendTimeout(Duration.ofSeconds(1)).withFailoverMailer(selected, policy())
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             // Spend the shared allowance without imposing the waiting send's deadline on the initial connection setup.

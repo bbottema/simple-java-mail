@@ -27,6 +27,12 @@ Capture separate greeting, pre-TLS EHLO, STARTTLS, post-TLS EHLO and optional au
 
 Return immutable, bounded and escaped display facts and phase-specific failures. Do not retain message content, authentication exchanges, raw provider exceptions or transport references in the report. A capability advertisement is evidence of the server's response, not proof that a later send used it. Inspecting a connection never sends an Email or produces a mail-send observer event.
 
+Under the accepted 20 October [outgoing result absence policy](0009-nullability-and-cli-optionality.md#outgoing-operation-result-absence-policy-accepted-20-october-2026),
+greeting, observed authentication mechanism, first failure phase/description, positive SIZE maximum and custom-verifier result are nullable scalar facts.
+Required endpoint host/protocol, probe timestamps and status flags stay plain values; an unspecified provider port is nullable rather than exposing -1.
+Known protocol defaults remain facts, and no unknown-protocol port is guessed. Capability snapshots and TLS-details sections remain Optional.
+Preserve unknown versus known false and retain the existing serialized int port and all serial UIDs.
+
 HELO-only discovery leaves capabilities unknown. Each capability snapshot has a 64 KiB escaped UTF-8 reporting budget, including names, duplicate parameters and formatting. A snapshot that exceeds it is omitted in full with a warning, without failing setup; there is no independent line-count or line-length cutoff. Early Angus collection and the provider-neutral report boundary share the accounting, so other adapters receive the same reporting treatment. Repeated malformed-line warnings are aggregated. This bounds retained capability text, not Angus's socket reads or total Java heap usage.
 
 The budget's sizing reference is the 35 IANA-registered keywords recorded on 28 September 2026: one full 512-octet reply line per keyword plus a greeting would be 18 KiB. The selected 64 KiB leaves headroom for private extensions and unusual replies, not a new protocol validity rule. [RFC 5321 section 4.5.3.1.5](https://www.rfc-editor.org/rfc/rfc5321.html#section-4.5.3.1.5) limits individual reply lines, not the number of EHLO extensions; the [IANA registry](https://www.iana.org/assignments/smtp/) is a dated sizing reference, not an allowlist.

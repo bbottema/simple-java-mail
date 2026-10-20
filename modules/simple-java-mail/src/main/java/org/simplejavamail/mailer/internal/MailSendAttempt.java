@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendHandlers;
-import org.simplejavamail.api.mailer.MailSendException;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSendDiagnostics;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -143,8 +143,8 @@ final class MailSendAttempt {
 		if (!diagnostics.hasEnteredSubmission()) {
 			return null;
 		}
-		if (failure instanceof MailSendException) {
-			return ((MailSendException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
+		if (failure instanceof MailException) {
+			return ((MailException) failure).getSubmissionReceipt().orElse(diagnostics.capturedReceipt());
 		}
 		return diagnostics.capturedReceipt();
 	}

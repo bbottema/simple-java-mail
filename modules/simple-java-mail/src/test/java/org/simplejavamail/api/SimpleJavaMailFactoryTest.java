@@ -140,7 +140,9 @@ class SimpleJavaMailFactoryTest {
 		assertThat(builderA1.getPort()).isEqualTo(2525);
 		assertThat(builderB.getHost()).isEqualTo("b.example.test");
 		assertThat(builderB.getPort()).isEqualTo(2526);
-		assertThat(builderA1.getClusterKey()).isNotEqualTo(builderA2.getClusterKey());
+		assertThat(builderA1).isNotSameAs(builderA2);
+		assertThat(builderA1.getConnectionPoolConfig().getClusterKey()).isNull();
+		assertThat(builderA2.getConnectionPoolConfig().getClusterKey()).isNull();
 
 		builderA1.withSMTPServerHost("override.example.test");
 		assertThat(builderA2.getHost()).isEqualTo("a.example.test");

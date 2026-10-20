@@ -39,6 +39,15 @@ Deserialization restores these guarantees even when an older snapshot contains m
 Preserve supported field identities and serialization identifiers. Never normalize an internal Email subtype into a plain Email or lose its
 authoritative source merely to copy collections.
 
+Java serialization retains the OpenPGP signing and encryption configuration of a composed Email, consistently with
+the existing S/MIME snapshot contract. The immutable configuration values restore their construction invariants and
+detach nested arrays/lists even when another object in the serialized graph refers to their storage. Signing material
+includes the secret key ring and passphrase; encryption-only configuration holds recipient public key rings and cipher
+preference. Treat snapshots containing signing material as sensitive, regardless of redacted automatic rendering.
+Keep Email/InternalEmail serialized identities and the existing format: earlier snapshots remain readable, but omitted
+OpenPGP configuration cannot be recovered. Serializing exact protected EML retains authoritative bytes and does not
+apply new protection. This adds no persistent requirement marker, mandatory restoration step or general persistence policy.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

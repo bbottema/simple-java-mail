@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.simplejavamail.api.mailer.MailSend;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -95,7 +97,10 @@ final class MailSendOperation<T> implements Runnable {
             }
         } catch (RuntimeException | Error rejection) {
             if (state.compareAndSet(State.ADMITTING, State.FINISHING)) {
-                finish(null, rejection instanceof RuntimeException ? control.translateFailure((RuntimeException) rejection) : rejection);
+                final Throwable admissionFailure = rejection instanceof java.util.concurrent.RejectedExecutionException
+                        ? new org.simplejavamail.api.mailer.MailSendRejectedException(
+                                org.simplejavamail.api.mailer.AsyncQueueRejectionReason.EXECUTOR_REJECTED, rejection) : rejection;
+                finish(null, admissionFailure instanceof RuntimeException ? control.translateFailure((RuntimeException) admissionFailure) : admissionFailure);
             }
             if (rejection instanceof Error) {
                 throw (Error) rejection;
@@ -167,7 +172,7 @@ final class MailSendOperation<T> implements Runnable {
         if (ticket != null) {
             try { ticket.activate(delay); }
             catch (RuntimeException | Error unavailableTimer) {
-                final MailerException explanation = new MailerException("Couldn't schedule this email's retry timer. No further submission was started.");
+                final MailerException explanation = new MailerException(MailFailureKind.CAPACITY, "Couldn't schedule this email's retry timer. No further submission was started.", null);
                 explanation.addSuppressed(unavailableTimer);
                 retryResumeRejected(explanation);
             }

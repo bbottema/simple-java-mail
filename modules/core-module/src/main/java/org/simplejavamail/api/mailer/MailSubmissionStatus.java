@@ -41,6 +41,13 @@ public enum MailSubmissionStatus {
 	}
 
 	/**
+	 * @return {@code true} only for ACCEPTED. UNKNOWN false is not proof of rejection; SMTP acceptance is not final delivery.
+	 */
+	public boolean isFullyAcceptedForSubmission() {
+		return this == ACCEPTED;
+	}
+
+	/**
 	 * @return {@code true} unless the send path could not determine server acceptance.
 	 */
 	public boolean isServerAcceptanceKnown() {

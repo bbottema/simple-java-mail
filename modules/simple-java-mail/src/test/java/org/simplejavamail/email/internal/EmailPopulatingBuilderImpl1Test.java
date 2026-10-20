@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
@@ -811,7 +812,7 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		final Email email = builder
 				.from("a.b.com")
-				.signWithDomainKey(buf, "domain", "selector", null)
+				.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData(buf).dkimSigningDomain("domain").dkimSelector("selector").build())
 				.buildEmail();
 
 		assertThat(email.getDkimConfig()).isNotNull();
@@ -826,9 +827,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final File file = new File(RESOURCES_PATH + "/log4j2.xml");
 
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + file.getAbsolutePath() + "\"/>")
 				.buildEmail();
@@ -839,10 +838,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithNoBasedir() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"log4j2.xml\"/>");
 
@@ -855,10 +851,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeFilePathWithBasedir()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseDir(RESOURCES_PATH)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"pkcs12/about all this.txt\"/>")
 				.buildEmail();
@@ -870,11 +863,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathNestedUnderBasedir_AllowFlagTrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseDir(RESOURCES_PATH)
-				.allowingEmbeddedImageOutsideBaseDir(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).allowingEmbeddedImageOutsideBaseDir(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
 				.buildEmail();
@@ -886,11 +875,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathNestedUnderBasedir_AllowFlagFalseSameAsTrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseDir(RESOURCES_PATH)
-				.allowingEmbeddedImageOutsideBaseDir(false)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).allowingEmbeddedImageOutsideBaseDir(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
 				.buildEmail();
@@ -902,11 +887,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathOutsideBasedir_AllowedTrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12")
-				.allowingEmbeddedImageOutsideBaseDir(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12").allowingEmbeddedImageOutsideBaseDir(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>")
 				.buildEmail();
@@ -917,12 +898,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteFilePathOutsideBasedir_AllowedFalse() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12")
-				.allowingEmbeddedImageOutsideBaseDir(false)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12").allowingEmbeddedImageOutsideBaseDir(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>");
 
@@ -937,9 +913,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final String howToUrl = testResourceUrlString("pkcs12/how-to.html");
 
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
@@ -950,10 +924,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlWithNoBaseUrl() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"download.html\"/>");
 
@@ -966,10 +937,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlAWithBaseUrl()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"how-to.html\"/>")
 				.buildEmail();
@@ -981,10 +949,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlBWithBaseUrl()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"\\how-to.html\"/>")
 				.buildEmail();
@@ -996,10 +961,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeUrlCWithBaseUrl()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>")
 				.buildEmail();
@@ -1013,11 +975,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final String howToUrl = testResourceUrlString("pkcs12/how-to.html");
 
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
-				.allowingEmbeddedImageOutsideBaseUrl(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
@@ -1031,11 +989,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final String howToUrl = testResourceUrlString("pkcs12/how-to.html");
 
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
-				.allowingEmbeddedImageOutsideBaseUrl(false)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
@@ -1049,11 +1003,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final String log4jUrl = testResourceUrlString("log4j2.xml");
 
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
-				.allowingEmbeddedImageOutsideBaseUrl(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + log4jUrl + "\"/>")
 				.buildEmail();
@@ -1067,12 +1017,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final String log4jUrl = testResourceUrlString("log4j2.xml");
 
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseUrl(testResourceUrl("pkcs12"))
-				.allowingEmbeddedImageOutsideBaseUrl(false)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"" + log4jUrl + "\"/>");
 
@@ -1085,9 +1030,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_classPathPath()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
@@ -1098,10 +1041,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathWithNoClassPathBase() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>");
 
@@ -1114,10 +1054,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_relativeClassPathWithClassPathBase()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseClassPath("/pkcs12")
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/how-to.html\"/>")
 				.buildEmail();
@@ -1129,11 +1066,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathNestedUnderBaseClassPath_AllowFlagTrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseClassPath("/pkcs12")
-				.allowingEmbeddedImageOutsideBaseClassPath(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
@@ -1145,11 +1078,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathNestedUnderBaseClassPath_AllowFlagFalseSameAstrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseClassPath("/pkcs12")
-				.allowingEmbeddedImageOutsideBaseClassPath(false)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
@@ -1161,11 +1090,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathOutsideBaseClassPath_AllowFlagTrue()
 			throws IOException {
 		final Email email = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseClassPath("/pkcs12")
-				.allowingEmbeddedImageOutsideBaseClassPath(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/log4j2.xml\"/>")
 				.buildEmail();
@@ -1176,12 +1101,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testEmbeddingImagesWithDynamicDataSourceResolution_absoluteClassPathOutsideBaseClassPath_AllowFlagFalse() {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageBaseClassPath("/pkcs12")
-				.allowingEmbeddedImageOutsideBaseClassPath(false)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
 				.appendTextHTML("<img src=\"/log4j2.xml\"/>");
 

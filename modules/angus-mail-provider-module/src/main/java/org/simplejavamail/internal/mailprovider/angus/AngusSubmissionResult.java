@@ -50,7 +50,7 @@ final class AngusSubmissionResult {
 		if (progress != null) {
 			for (int index = 0; index < recipients.size(); index++) {
 				final MailRecipientResult recipient = recipients.get(index);
-				recipients.set(index, new MailRecipientResult(recipient.getOriginalAddress(), recipient.getEnvelopeAddress().orElse(null),
+				recipients.set(index, new MailRecipientResult(recipient.getOriginalAddress(), recipient.getEnvelopeAddress(),
 						recipient.getDisposition(), index < replies.size(), recipient.getRcptResponse().orElse(null)));
 			}
 		}
@@ -258,7 +258,7 @@ final class AngusSubmissionResult {
 
 	@NotNull
 	private static String mailboxIdentity(final MailRecipientResult recipient) {
-		final String mailbox = recipient.getEnvelopeAddress().orElse(recipient.getOriginalAddress());
+		final String mailbox = java.util.Objects.requireNonNullElse(recipient.getEnvelopeAddress(), recipient.getOriginalAddress());
 		final int domainStart = mailbox.lastIndexOf('@') + 1;
 		// Domains are case-insensitive, but preserve the potentially case-sensitive local part.
 		return mailbox.substring(0, domainStart) + mailbox.substring(domainStart).toLowerCase(Locale.ROOT);

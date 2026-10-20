@@ -15,8 +15,8 @@ public interface ServerConfig {
 	@Nullable String getUsername();
 	/** @see MailerRegularBuilder#withSMTPServerPassword(String) */
 	@Nullable String getPassword();
-	/** @see MailerRegularBuilder#withCustomSSLFactoryClass(String) */
+	/** @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryClass(String) */
 	@Nullable String getCustomSSLFactoryClass();
-	/** @see MailerRegularBuilder#withCustomSSLFactoryInstance(SSLSocketFactory) */
+	/** @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryInstance(SSLSocketFactory) */
 	@Nullable SSLSocketFactory getCustomSSLFactoryInstance();
 }

@@ -102,20 +102,24 @@ public final class SmtpConnectionReport implements Serializable {
         return supported && connected && failurePhase == null && (!authenticationRequested || authenticated);
     }
 
-    /** The initial SMTP greeting, if it was read; never an AUTH response. */
-    @NotNull public Optional<String> getGreeting() { return Optional.ofNullable(greeting); }
+    /** The initial SMTP greeting, or {@code null} if unread; never an AUTH response. */
+    @Nullable
+    public String getGreeting() { return greeting; }
     /** Empty for implicit TLS, rejected/disabled EHLO, failure before discovery or a snapshot exceeding the reporting budget. */
     @NotNull public Optional<SmtpCapabilities> getBeforeTls() { return Optional.ofNullable(beforeTls); }
     /** Only a successful EHLO on the encrypted connection that fits the reporting budget; never a reused pre-TLS map. */
     @NotNull public Optional<SmtpCapabilities> getAfterTls() { return Optional.ofNullable(afterTls); }
     /** Metadata, not a trust verdict; empty when the provider/configuration could not safely expose it. */
     @NotNull public Optional<SmtpTlsDetails> getTlsDetails() { return Optional.ofNullable(tlsDetails); }
-    /** Mechanism observed in an AUTH command, not simply the first configured or advertised mechanism. */
-    @NotNull public Optional<String> getAuthenticationMechanism() { return Optional.ofNullable(authenticationMechanism); }
-    /** The first failed step; later cleanup failures appear in warnings without erasing earlier facts. */
-    @NotNull public Optional<SmtpConnectionPhase> getFailurePhase() { return Optional.ofNullable(failurePhase); }
-    /** A safe, actionable description rather than a provider exception message or authentication reply. */
-    @NotNull public Optional<String> getFailureDescription() { return Optional.ofNullable(failureDescription); }
+    /** Mechanism observed in an AUTH command, or {@code null} if unobserved; not simply the first configured or advertised mechanism. */
+    @Nullable
+    public String getAuthenticationMechanism() { return authenticationMechanism; }
+    /** The first failed step, or {@code null} when none failed; later cleanup failures appear in warnings without erasing earlier facts. */
+    @Nullable
+    public SmtpConnectionPhase getFailurePhase() { return failurePhase; }
+    /** A safe, actionable description, or {@code null} when absent; never a provider exception message or authentication reply. */
+    @Nullable
+    public String getFailureDescription() { return failureDescription; }
 
     /**
      * The successful EHLO snapshot applicable at the end of setup. Empty after any failed STARTTLS attempt,
@@ -133,16 +137,21 @@ public final class SmtpConnectionReport implements Serializable {
     public String toString() {
         final StringBuilder report = new StringBuilder("SMTP connection probe: ")
                 .append(isSuccessful() ? "SUCCESS" : supported ? "FAILED" : "UNSUPPORTED")
-                .append("\nEndpoint: ").append(host).append(':').append(port).append(" (").append(protocol).append(")")
-                .append("\nGreeting: ").append(getGreeting().orElse("not observed"))
+                .append("\nEndpoint: ").append(host).append(':').append(port < 0 ? "not specified" : port).append(" (").append(protocol).append(")")
+                .append("\nGreeting: ").append(greeting == null ? "not observed" : greeting)
                 .append("\nBefore TLS: ").append(getBeforeTls().map(Object::toString).orElse("not available"))
                 .append("\nSTARTTLS: ").append(startTlsCompleted ? "completed" : startTlsAttempted ? "failed" : "not attempted")
                 .append("\nAfter TLS: ").append(getAfterTls().map(Object::toString).orElse("not available"))
                 .append("\nTLS active during setup: ").append(tlsActive)
                 .append("\nTLS details: ").append(getTlsDetails().map(Object::toString).orElse("not available"))
                 .append("\nAuthentication: ").append(!authenticationRequested ? "not requested" : authenticated ? "succeeded" : "not completed");
-        getAuthenticationMechanism().ifPresent(mechanism -> report.append(" (").append(mechanism).append(')'));
-        getFailurePhase().ifPresent(phase -> report.append("\nFailure at ").append(phase).append(": ").append(getFailureDescription().orElse("not available")));
+        if (authenticationMechanism != null) {
+            report.append(" (").append(authenticationMechanism).append(')');
+        }
+        if (failurePhase != null) {
+            report.append("\nFailure at ").append(failurePhase).append(": ")
+                    .append(failureDescription == null ? "not available" : failureDescription);
+        }
         warnings.forEach(warning -> report.append("\nNote: ").append(warning));
         return report.append("\nElapsed: ").append(Duration.between(startedAt, completedAt).toMillis()).append("ms").toString();
     }
@@ -157,9 +166,10 @@ public final class SmtpConnectionReport implements Serializable {
         return host;
     }
 
-    /** Configured port; a negative value represents an unspecified provider port. */
-    public int getPort() {
-        return port;
+    /** Configured or established provider-default port, or {@code null} when unspecified. No default is guessed for an unknown protocol. */
+    @Nullable
+    public Integer getPort() {
+        return port < 0 ? null : port;
     }
 
     /** Jakarta Mail protocol used for the dedicated probe. */

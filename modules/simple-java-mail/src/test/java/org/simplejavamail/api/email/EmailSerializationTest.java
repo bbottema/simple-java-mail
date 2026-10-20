@@ -1,5 +1,7 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.EncodingAware;
@@ -13,6 +15,8 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
+import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
@@ -44,10 +48,41 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 class EmailSerializationTest {
 
 	@Test
+	void retainsOpenPgpSendingConfigurationAndCopyingAfterSerialization() throws Exception {
+		final Email original = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+				.from("sender@example.org").to("recipient@example.org").withPlainText("protected after restoration")
+				.signWithOpenPgp(OpenPgpSigningConfig.builder().secretKeyRing(new byte[]{1, 2}).passphrase("test-only")
+						.signingKeyId(42).hashAlgorithm(OpenPgpSigningConfig.HashAlgorithm.SHA512).build())
+				.encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(new byte[]{3, 4})
+						.symmetricAlgorithm(OpenPgpEncryptionConfig.SymmetricAlgorithm.AES_128).build()).buildEmail();
+
+		final Email restored = roundTrip(original, Email.class);
+		assertThat(restored).isEqualTo(original).isInstanceOf(org.simplejavamail.email.internal.InternalEmail.class);
+		assertThat(restored.getOpenPgpSigningConfig()).isEqualTo(original.getOpenPgpSigningConfig()).isNotSameAs(original.getOpenPgpSigningConfig());
+		assertThat(restored.getOpenPgpEncryptionConfig()).isEqualTo(original.getOpenPgpEncryptionConfig());
+		assertThat(SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(restored).buildEmail()).isEqualTo(original);
+	}
+
+	@Test
+	void readsEarlierSnapshotWithoutInventingTheOmittedOpenPgpConfiguration() throws Exception {
+		final byte[] fixture;
+		try (InputStream input = Objects.requireNonNull(EmailSerializationTest.class.getResourceAsStream(
+				"/serialization/email-10.0.0-openpgp-omitted.base64"))) {
+			fixture = Base64.getDecoder().decode(new String(readAllBytes(input), UTF_8).trim());
+		}
+		final Email restored = deserialize(fixture, Email.class);
+		assertThat(restored.getSubject()).isEqualTo("OpenPGP omitted by an earlier 10.0.0 snapshot");
+		assertThat(restored.getPlainText()).isEqualTo("legacy OpenPGP snapshot");
+		assertThat(restored.getOpenPgpSigningConfig()).isNull();
+		assertThat(restored.getOpenPgpEncryptionConfig()).isNull();
+		assertThat(restored).isInstanceOf(org.simplejavamail.email.internal.InternalEmail.class);
+		assertThat(EmailConverter.emailToMimeMessage(restored).isMimeType("text/plain")).isTrue();
+	}
+
+	@Test
 	void keepsReleasedSelectorNamesWhileExposingPublicSelectors() throws Exception {
 		final Email original = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-				.dontApplyDefaultValueFor(EmailProperty.SUBJECT, EmailProperty.BCC_RECIPIENTS)
-				.dontApplyOverrideValueFor(EmailProperty.HEADERS).buildEmail();
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(EmailProperty.SUBJECT, EmailProperty.BCC_RECIPIENTS).dontApplyOverrideValueFor(EmailProperty.HEADERS).build()).buildEmail();
 		final byte[] bytes = serialize(original);
 		assertThat(new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1))
 				.contains("org.simplejavamail.internal.config.EmailProperty");
@@ -113,8 +148,7 @@ class EmailSerializationTest {
 				.withPlainText("Main message")
 				.withHTMLText("<p>Main message</p><img src=\"cid:logo-cid\">")
 				.withHeader("X-Round-Trip", "preserved")
-				.withTlsRequiredForOnwardDelivery()
-				.withSendingToAcceptedRecipients(false)
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().withSendingToAcceptedRecipients(false).build())
 				.withAttachment("report.txt", "attachment data".getBytes(UTF_8), "text/plain", "report", BIT7)
 				.withPreEncodedAttachment("encoded.txt", alreadyBase64Encoded, "text/plain", "already encoded", BASE_64)
 				.withEmbeddedImage("logo.png", "image data".getBytes(UTF_8), "image/png")
@@ -194,6 +228,8 @@ class EmailSerializationTest {
 				.containsExactly("legacy-decrypted.txt");
 		assertThat(restored.getEmailToForward()).isNull();
 		assertThat(restored.getSmimeSigningConfig()).isNull();
+		assertThat(restored.getOpenPgpSigningConfig()).isNull();
+		assertThat(restored.getOpenPgpEncryptionConfig()).isNull();
 		assertThat(restored.toString()).contains("9.1.7 serialized email", "legacy.txt");
 		assertThatNoException().isThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(restored).buildEmail());
 

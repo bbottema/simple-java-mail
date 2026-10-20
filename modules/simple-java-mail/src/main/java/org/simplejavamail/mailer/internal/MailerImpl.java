@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import com.sanctionco.jmail.EmailValidator;
@@ -216,6 +218,7 @@ public class MailerImpl implements Mailer {
 		}
 		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			validateMandatoryStartTls(transportStrategy, operationalConfig.getProperties());
+			validateImplicitTlsOAuth2Protocol(transportStrategy, operationalConfig.getProperties());
 		}
 		this.session = session;
 		this.operationalConfig = operationalConfig;
@@ -361,6 +364,16 @@ public class MailerImpl implements Mailer {
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#buildMailer()
 	 */
+	private static void validateImplicitTlsOAuth2Protocol(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
+		if (transportStrategy == TransportStrategy.SMTPS_OAUTH2) {
+			final Object protocolOverride = additionalProperties.get("mail.transport.protocol");
+			if (protocolOverride != null && !"smtps".equals(protocolOverride)) {
+				throw new MailerException("SMTPS_OAUTH2 requires implicit TLS, but mail.transport.protocol changes the smtps transport. "
+						+ "Remove that override or set it to smtps so the access token is sent only over implicit TLS.");
+			}
+		}
+	}
+
 	private static void validateMandatoryStartTls(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
 		if (transportStrategy != SMTP_TLS && transportStrategy != SMTP_OAUTH2) {
 			return;
@@ -432,7 +445,7 @@ public class MailerImpl implements Mailer {
 			}
 
 			if (serverConfig.getPassword() != null) {
-				if (transportStrategy != SMTP_OAUTH2) {
+				if (!OAuth2AccessTokenResolver.isOAuth2Transport(transportStrategy)) {
 					props.put(transportStrategy.propertyNameAuthenticate(), "true");
 					return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
 				} else {
@@ -901,7 +914,7 @@ public class MailerImpl implements Mailer {
 			}
 			return rehearsal;
 		} catch (MessagingException e) {
-			throw new MailerException(format(VALIDATION_ERROR, governedEmail.getId()), e);
+			throw new MailerException(MailFailureKind.PREPARATION, format(VALIDATION_ERROR, governedEmail.getId()), e);
 		}
 	}
 

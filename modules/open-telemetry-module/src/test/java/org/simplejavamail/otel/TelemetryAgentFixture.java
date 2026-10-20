@@ -1,5 +1,7 @@
 package org.simplejavamail.otel;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
@@ -60,9 +62,9 @@ public final class TelemetryAgentFixture {
             final var smtpBuilder = mail.mailerBuilder()
                     .withSMTPServer("localhost", server.port())
                     .withTransportStrategy(TransportStrategy.SMTP)
-                    .withOpportunisticTLS(false)
+                    .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
                     .withProperty("mail.host", "localhost")
-                    .withConnectionPoolCoreSize(0);
+                    .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build());
             if (!propertyActivation) {
                 customBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(supplied)).withEnabled(true).build());
                 smtpBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder().withIntegration(OtelAdapter.wrap(supplied)).withEnabled(true).build());

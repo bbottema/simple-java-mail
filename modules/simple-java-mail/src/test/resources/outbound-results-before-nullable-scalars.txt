@@ -1,0 +1,9 @@
+Pre-change outbound operation-result fixture
+
+Generated on real JDK11 from the complete pre-decision9 working-tree core/main JARs, after the accepted OpenPGP snapshot work. These are unreleased10 APIs; the POM9.3.6 is not the released source baseline.
+
+Generator and all21 graph entries are retained under: C:\Users\Benny Bottema\AppData\Local\Temp\sjm-result-absence-y5sht5gr
+
+before-core-module-9.3.6.jar: SHA256 d4002742d617efd8d19d7d80f43b3ea8c95cbcc7fe93cb09ec71a330bcf6aa66
+before-simple-java-mail-9.3.6.jar: SHA256 f51c06d9efe9ce45e0e1795de6b2a84388f855f7c7d2cec31dcf222a70b7d6b5
+outbound-results-before-nullable-scalars.base64: SHA256 385fec06e85828ef893d4caabf4d654cce4255c88926137d864985f0be511e91

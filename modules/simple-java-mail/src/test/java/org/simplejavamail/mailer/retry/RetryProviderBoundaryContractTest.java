@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.retry;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -40,7 +42,7 @@ class RetryProviderBoundaryContractTest {
 
     private Mailer mailer(final RetryProviderTransport.State state, final List<MailSendOutcome> outcomes) throws Exception {
         final Session session = RetryProviderTransport.session(state);
-        return mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000))
+        return mail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build())
                 .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofMillis(1)).build())
                 .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
     }
@@ -84,8 +86,8 @@ class RetryProviderBoundaryContractTest {
         state.temporaryRefusals = Integer.MAX_VALUE;
         final Session session = RetryProviderTransport.session(state);
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-        try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withThreadPoolSize(1)
+        try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build())
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build())
                 .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofHours(1))
                         .withWaitingCapacity(1).build())
                 .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
@@ -99,7 +101,7 @@ class RetryProviderBoundaryContractTest {
             assertThat(state.invocations).hasValue(2);
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
-            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory().get(0).getRetryDelay()).isEmpty();
+            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory().get(0).getRetryDelay()).isNull();
             first.requestCancellation();
             first.getCompletion().handle((value, cause) -> cause).get(5, SECONDS);
             final var third = mailer.async().sendMail(email());
@@ -130,7 +132,7 @@ class RetryProviderBoundaryContractTest {
                 assertThat(outcomes.get(0).getFailure()).containsSame(failure);
                 assertThat(outcomes.get(0).getSubmissionReceipt().orElseThrow().getStatus())
                         .isEqualTo(accepted ? MailSubmissionStatus.ACCEPTED : MailSubmissionStatus.REJECTED);
-                assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory().get(0).getRetryDelay()).isEmpty();
+                assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory().get(0).getRetryDelay()).isNull();
                 if (!accepted) { assertThat(failure).isInstanceOf(MailSubmissionException.class); }
             }
         }

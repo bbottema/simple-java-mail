@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -31,7 +32,7 @@ class TransportStrategyOpportunisticTlsTest {
 				.mailerBuilder()
 				.withSMTPServerHost("localhost")
 				.withTransportStrategy(strategy)
-				.withOpportunisticTLS(opportunisticTls);
+				.withTlsConfig(TlsConfig.builder().withOpportunisticTLS(opportunisticTls).build());
 		if (strategy == TransportStrategy.SMTP_OAUTH2) {
 			builder.withSMTPServerUsername("test-user")
 					.withOAuth2AccessTokenProvider(() -> "test-token");

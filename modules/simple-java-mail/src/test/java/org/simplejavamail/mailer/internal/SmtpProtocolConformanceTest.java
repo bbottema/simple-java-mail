@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.junit.jupiter.api.Test;
@@ -132,8 +134,8 @@ class SmtpProtocolConformanceTest {
 	}
 
 	private static MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
-		return MAIL.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-				.withSessionTimeout(Duration.ofMillis(3000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+		return MAIL.mailerBuilder().withSMTPServer("localhost", server.port()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(3000)).build())
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
 	}
 
 	private static Email email() {

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -27,7 +28,7 @@ class LockedEmailConfigurationTest {
 	@Test
 	void singleValueLocksSurviveSuppressionAndTemplateReplacementButRejectExplicitConflicts() throws Exception {
 		final SimpleJavaMail factory = locked(Map.of("defaults.subject", "Company mail", "defaults.requiretls", "true"));
-		final Email blank = ordinary.emailBuilder().startingBlank().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SUBJECT).buildEmail();
+		final Email blank = ordinary.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(SUBJECT).build()).buildEmail();
 		try (Mailer mailer = factory.mailerBuilder().withTransportModeLoggingOnly(true).withEmailDefaults(blank).withEmailOverrides(blank).buildMailer()) {
 			final Email prepared = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(blank);
 			assertThat(prepared.getSubject()).isEqualTo("Company mail");
@@ -207,7 +208,7 @@ class LockedEmailConfigurationTest {
 		final SimpleJavaMail factory = locked(Map.of("smime.encryption.certificate", certificate));
 		try (Mailer mailer = factory.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
 			final Email protectedEmail = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(
-					ordinary.emailBuilder().startingBlank().ignoringDefaults().buildEmail());
+					ordinary.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmail());
 			assertThat(protectedEmail.getSmimeEncryptionConfig().getX509Certificate()).isNotNull();
 			final java.security.cert.X509Certificate other = org.simplejavamail.api.email.config.SmimeEncryptionConfig.builder()
 					.x509Certificate("src/test/resources/pkcs12/ca.crt").build().getX509Certificate();

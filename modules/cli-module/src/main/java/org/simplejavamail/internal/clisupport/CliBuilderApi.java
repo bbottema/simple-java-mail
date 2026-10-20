@@ -1,10 +1,13 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.internal.clisupport.CliExactEmailConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailSendRetryBuilder;
+import org.simplejavamail.api.internal.clisupport.CliRegularMailerConfigurationBuilder;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 
@@ -12,10 +15,13 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 public final class CliBuilderApi {
 	private static final Class<?>[] ROOTS = {
 			EmailStartingBuilder.class,
+			CliEmailConfigurationBuilder.class,
 			CliEmailRecipientBuilder.class,
+			CliExactEmailConfigurationBuilder.class,
 			CliFailoverMailerBuilder.class,
 			CliMailSendRetryBuilder.class,
 			CliMailerConfigurationBuilder.class,
+			CliRegularMailerConfigurationBuilder.class,
 			MailerRegularBuilder.class,
 			MailerFromSessionBuilder.class
 	};

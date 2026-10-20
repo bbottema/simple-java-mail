@@ -52,7 +52,9 @@ class CliMetadataConcurrencyTest {
                 for (final Future<CliExecutionResult> pending : results) {
                     final CliExecutionResult result = pending.get(30, SECONDS);
                     assertThat(result.exitCode()).as(result.stderr()).isZero();
-                    assertThat(result.stdout()).contains("--email:fixingEnvelopeId");
+                    assertThat(result.stdout()).contains("--email:fixingEnvelopeId", "--email:fixingExactEnvelopeId",
+                            "--email:withContentTransferEncoding", "--mailer:withConnectionPoolMaxSize",
+                            "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withOpportunisticTLS");
                 }
             } finally {
                 start.countDown();

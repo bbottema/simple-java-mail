@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class MailerConnectionTestLifecycleTest {
     void asynchronousTestAfterCloseDoesNotInvokeConnectionWorkOnAnApplicationExecutor() throws Exception {
         final CountingCustomMailer delivery = new CountingCustomMailer();
         final ExecutorService applicationExecutor = Executors.newSingleThreadExecutor();
-        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withExecutorService(applicationExecutor).buildMailer()) {
+        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer()) {
             mailer.close();
 
             assertShutdownFailure(mailer.async().testConnection());
@@ -95,7 +96,7 @@ class MailerConnectionTestLifecycleTest {
             workerEntered.countDown();
             await(releaseWorker);
         });
-        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withExecutorService(applicationExecutor).buildMailer()) {
+        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer()) {
             assertThat(workerEntered.await(5, SECONDS)).isTrue();
             final CompletableFuture<Void> test = mailer.async().testConnection();
             assertThat(test).isNotDone();
@@ -117,7 +118,7 @@ class MailerConnectionTestLifecycleTest {
     void openMailerStillTestsSynchronouslyAndOnAnApplicationExecutor() throws Exception {
         final CountingCustomMailer delivery = new CountingCustomMailer();
         final ExecutorService applicationExecutor = Executors.newSingleThreadExecutor();
-        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withExecutorService(applicationExecutor).buildMailer()) {
+        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer()) {
             mailer.sync().testConnection();
             mailer.async().testConnection().get(5, SECONDS);
 
@@ -143,7 +144,7 @@ class MailerConnectionTestLifecycleTest {
     void applicationExecutorMayWaitForItsWorkerToFinishBeforeReturningFromExecute() throws Exception {
         final CountingCustomMailer delivery = new CountingCustomMailer();
         final ExecutorService applicationExecutor = new JoiningExecutor();
-        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withExecutorService(applicationExecutor).buildMailer()) {
+        try (Mailer mailer = mail().mailerBuilder().withCustomMailer(delivery).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(applicationExecutor).build()).buildMailer()) {
             mailer.async().testConnection().get(5, SECONDS);
 
             assertThat(delivery.connectionTests.get()).isEqualTo(1);

@@ -8,6 +8,6 @@ public final class MailSendCancelledException extends MailSendException {
 
     /** Retains the original operation failure, if any, and the same immutable submission facts used by the observer. */
     public MailSendCancelledException(@Nullable final Throwable cause, @Nullable final MailSubmissionReceipt submissionReceipt) {
-        super("Mail send was cancelled; inspect the submission receipt before retrying", cause, submissionReceipt);
+        super(MailFailureKind.CANCELLED, "Mail send was cancelled; inspect the submission receipt before retrying", cause, submissionReceipt);
     }
 }

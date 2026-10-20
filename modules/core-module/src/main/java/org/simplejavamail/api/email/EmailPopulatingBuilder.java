@@ -8,6 +8,10 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
@@ -43,11 +47,104 @@ import static java.util.regex.Pattern.compile;
  * Collection getters return detached, modifiable copies: changing those copies does not configure this builder or change an Email already built.
  * Data sources and forwarded MIME messages remain borrowed resources; their contents are not copied by building an Email.
  * <p>
+ * Address conveniences interpret exactly one mailbox, separating an embedded display name from its address. A nonblank explicit name wins;
+ * a null or blank name uses the embedded name. This applies to String and equivalent InternetAddress overloads for From, To/Cc/Bcc, Reply-To,
+ * bounce and receipt-request addresses; see {@link #from(String, String)} for parsing and validation boundaries. Prepared Recipient values
+ * retain their supplied name/address and are not reparsed. To/Cc/Bcc, {@code withRecipients}, Reply-To and delivery-recipient overrides are
+ * additive: calls retain existing entries, including those populated by {@link EmailStartingBuilder#copying(Email)}. Clear a collection before
+ * replacing it. Scalar From, bounce and receipt-request addresses replace their local value instead.
+ * <p>
  * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
  */
 @Cli.BuilderApiNode(builderApiType = CliBuilderApiType.EMAIL)
 public interface EmailPopulatingBuilder {
+    /** Built-in template participation; ordinary defaults apply unless the Email opts out. */
+    boolean DEFAULT_IGNORE_DEFAULTS = false;
+    /** Built-in template participation; ordinary overrides apply unless the Email opts out. */
+    boolean DEFAULT_IGNORE_OVERRIDES = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_FILES = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_CLASSPATH_RESOURCES = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_URLS = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_DIR = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_CLASSPATH = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_URL = false;
+    /** Built-in fallback for automatic image resolution; configured snapshots can supply another value. */
+    boolean DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_MUST_BE_SUCCESSFUL = false;
+
+    /**
+     * Replaces the complete supplied ImageResolutionConfig group; earlier choices from that group are discarded.
+     * Unset fields inherit this factory's captured configuration. Explicit base clears remove a captured image base.
+     * Mandatory configuration locks still apply. Configuration sources and borrowed content are not read by this call.
+     * @param config Immutable choices to apply.
+     * @return This builder.
+     */
+    @Cli.ExcludeApi(reason = "The CLI uses internal typed scalar adapters")
+    EmailPopulatingBuilder withImageResolutionConfig(@NotNull ImageResolutionConfig config);
+    /** Returns the supplied group, including its unset choices.
+     * @see #withImageResolutionConfig(ImageResolutionConfig) */
+    @NotNull ImageResolutionConfig getImageResolutionConfig();
+    /** Removes this group's supplied choices and restores captured inheritance.
+     * @see #withImageResolutionConfig(ImageResolutionConfig) */
+    @Cli.ExcludeApi(reason = "A fresh CLI builder already inherits configuration")
+    EmailPopulatingBuilder useConfiguredImageResolutionConfig();
+
+    /**
+     * Replaces the complete supplied ContentEncodingConfig group; earlier choices from that group are discarded.
+     * Unset fields permit ordinary Email governance and provider fallback; this does not apply defaults eagerly.
+     * Mandatory configuration locks still apply. Configuration sources and borrowed content are not read by this call.
+     * @param config Immutable choices to apply.
+     * @return This builder.
+     */
+    @Cli.ExcludeApi(reason = "The CLI uses internal typed scalar adapters")
+    EmailPopulatingBuilder withContentEncodingConfig(@NotNull ContentEncodingConfig config);
+    /** Returns the supplied group, including its unset choices.
+     * @see #withContentEncodingConfig(ContentEncodingConfig) */
+    @NotNull ContentEncodingConfig getContentEncodingConfig();
+    /** Removes this group's supplied choices and restores captured inheritance.
+     * @see #withContentEncodingConfig(ContentEncodingConfig) */
+    @Cli.ExcludeApi(reason = "A fresh CLI builder already inherits configuration")
+    EmailPopulatingBuilder useConfiguredContentEncodingConfig();
+
+    /**
+     * Replaces the complete supplied TemplateOptions group; earlier choices from that group are discarded.
+     * These flags and exclusions control template participation for this Email. They do not recursively govern reference templates.
+     * Mandatory configuration locks still apply. Configuration sources and borrowed content are not read by this call.
+     * @param config Immutable choices to apply.
+     * @return This builder.
+     */
+    @Cli.ExcludeApi(reason = "The CLI uses internal typed scalar adapters")
+    EmailPopulatingBuilder withTemplateOptions(@NotNull EmailTemplateOptions config);
+    /** Returns the supplied group, including its unset choices.
+     * @see #withTemplateOptions(EmailTemplateOptions) */
+    @NotNull EmailTemplateOptions getTemplateOptions();
+    /** Removes this group's supplied choices and restores captured inheritance.
+     * @see #withTemplateOptions(EmailTemplateOptions) */
+    @Cli.ExcludeApi(reason = "A fresh CLI builder already inherits configuration")
+    EmailPopulatingBuilder useConfiguredTemplateOptions();
+
+    /**
+     * Replaces the complete supplied SmtpDeliveryOptions group; earlier choices from that group are discarded.
+     * Unset fields permit ordinary Email governance and provider fallback; this does not apply defaults eagerly.
+     * Mandatory configuration locks still apply. Configuration sources and borrowed content are not read by this call.
+     * @param config Immutable choices to apply.
+     * @return This builder.
+     */
+    @Cli.ExcludeApi(reason = "The CLI uses internal typed scalar adapters")
+    EmailPopulatingBuilder withSmtpDeliveryOptions(@NotNull SmtpDeliveryOptions config);
+    /** Returns the supplied group, including its unset choices.
+     * @see #withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @NotNull SmtpDeliveryOptions getSmtpDeliveryOptions();
+    /** Removes this group's supplied choices and restores captured inheritance.
+     * @see #withSmtpDeliveryOptions(SmtpDeliveryOptions) */
+    @Cli.ExcludeApi(reason = "A fresh CLI builder already inherits configuration")
+    EmailPopulatingBuilder useConfiguredSmtpDeliveryOptions();
 
 	/**
 	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any
@@ -97,103 +194,6 @@ public interface EmailPopulatingBuilder {
 	Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);
 
 	/**
-	 * Configures this email to ignore all default values when governance is applied.
-	 *
-	 * @return This builder.
-	 * @see #ignoringDefaults(boolean)
-	 * @see #dontApplyDefaultValueFor(EmailProperty...)
-	 */
-	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringDefaults(boolean)")
-	EmailPopulatingBuilder ignoringDefaults();
-
-	/**
-	 * Sets whether this email should ignore all default values when governance is applied.
-	 *
-	 * @param ignoreDefaults Whether to ignore all default values or not for this email.
-	 *
-	 * @see #dontApplyDefaultValueFor(EmailProperty...)
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailDefaults(Email)
-	 */
-	@Cli.OptionNameOverride("ignoringDefaultsYesNo")
-	EmailPopulatingBuilder ignoringDefaults(boolean ignoreDefaults);
-
-	/**
-	 * Configures this email to ignore all override values when governance is applied.
-	 *
-	 * @return This builder.
-	 * @see #ignoringOverrides(boolean)
-	 * @see #dontApplyOverrideValueFor(EmailProperty...)
-	 */
-	@Cli.ExcludeApi(reason = "Convenience overload; CLI uses ignoringOverrides(boolean)")
-	EmailPopulatingBuilder ignoringOverrides();
-
-	/**
-	 * Sets whether this email should ignore all override values when governance is applied.
-	 *
-	 * @param ignoreOverrides Whether to ignore all override values or not for this email.
-	 *
-	 * @see #dontApplyOverrideValueFor(EmailProperty...)
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withEmailOverrides(Email)
-	 */
-	@Cli.OptionNameOverride("ignoringOverridesYesNo")
-	EmailPopulatingBuilder ignoringOverrides(boolean ignoreOverrides);
-
-	/**
-	 * Allows you to prevent a property to be configured with default values. This might be useful if you have defined defaults (either through (system) properties,
-	 * config files, or on mailer level on the {@link org.simplejavamail.api.mailer.config.EmailGovernance}), but for a specific case or under certain conditions
-	 * you might want to have this email untouched by the defaults.
-	 * Repeated calls add to the existing local exclusions; an empty call changes nothing. Use {@link #allowDefaultValueFor(EmailProperty...)}
-	 * to remove individual exclusions or {@link #clearDefaultValueSuppressions()} to remove them all. These operations do not change
-	 * {@link #ignoringDefaults(boolean)} or configuration locks.
-	 * <br>
-	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
-	 * as defaults or overrides reference.
-	 *
-	 * @param configProperties The properties that should not be configured with default values, if any, when sending the email.
-	 * @see #ignoringDefaults()
-	 * @see #ignoringDefaults(boolean)
-	 */
-	EmailPopulatingBuilder dontApplyDefaultValueFor(@NotNull EmailProperty @NotNull ...configProperties);
-
-	/**
-	 * Allows you to prevent a property to be configured with override values. This might be useful if you have defined overrides on mailer level on the
-	 * {@link org.simplejavamail.api.mailer.config.EmailGovernance}), but for a specific case or under certain conditions you might want
-	 * to have this email untouched by the overrides.
-	 * Repeated calls add to the existing local exclusions; an empty call changes nothing. Use {@link #allowOverrideValueFor(EmailProperty...)}
-	 * to remove individual exclusions or {@link #clearOverrideValueSuppressions()} to remove them all. These operations do not change
-	 * {@link #ignoringOverrides(boolean)} or configuration locks.
-	 *
-	 * @param configProperties The properties that should not be overridden when sending the email.
-	 */
-	EmailPopulatingBuilder dontApplyOverrideValueFor(@NotNull EmailProperty @NotNull ...configProperties);
-
-	/**
-	 * Removes the supplied properties from this builder's local default exclusions. Missing properties and an empty call change nothing.
-	 * Global default suppression and configuration locks remain unchanged.
-	 * @see #dontApplyDefaultValueFor(EmailProperty...)
-	 */
-	EmailPopulatingBuilder allowDefaultValueFor(@NotNull EmailProperty @NotNull ...configProperties);
-
-	/**
-	 * Removes the supplied properties from this builder's local override exclusions. Missing properties and an empty call change nothing.
-	 * Global override suppression and configuration locks remain unchanged.
-	 * @see #dontApplyOverrideValueFor(EmailProperty...)
-	 */
-	EmailPopulatingBuilder allowOverrideValueFor(@NotNull EmailProperty @NotNull ...configProperties);
-
-	/**
-	 * Removes all local default exclusions without changing global default suppression or configuration locks.
-	 * @see #dontApplyDefaultValueFor(EmailProperty...)
-	 */
-	EmailPopulatingBuilder clearDefaultValueSuppressions();
-
-	/**
-	 * Removes all local override exclusions without changing global override suppression or configuration locks.
-	 * @see #dontApplyOverrideValueFor(EmailProperty...)
-	 */
-	EmailPopulatingBuilder clearOverrideValueSuppressions();
-
-	/**
 	 * Sets optional ID to a fixed value, which is otherwise generated by the underlying JavaMail framework when sending the email.
 	 * <p>
 	 * <strong>Note 1:</strong> ID is user-controlled. Only when converting an email, Simple Java Mail might fill the sent-date.
@@ -205,7 +205,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder fixingMessageId(@Nullable @Cli.Optional String id);
 
 	/**
-	 * Delegates to {@link #from(String, String)} with empty name.
+	 * Replaces the sender using the single-mailbox interpretation of {@link #from(String, String)}, with no explicit name.
 	 *
 	 * @param fromAddress The sender address visible to receivers of the email.
 	 */
@@ -213,25 +213,39 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder from(@NotNull String fromAddress);
 
 	/**
-	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 * Replaces the sender with one interpreted mailbox, delegating the resulting name/address to {@link #from(Recipient)}.
+	 * A bare address has no display name; {@code "Alice <alice@example.org>"} supplies both. A nonblank explicit name wins over the embedded name;
+	 * null or blank uses the embedded name instead. Quoted names containing commas are one mailbox.
+	 * <p>
+	 * Successfully parsed address lists and RFC address groups (including single-member or empty groups) are rejected rather than selecting
+	 * the first address. Use the factory's {@code recipientsBuilder()} for multiple addresses. Nonempty text that cannot be parsed or produces
+	 * no mailbox is retained unchanged for the configured send-time validator. Parsing does not validate deliverability or perform DNS/network
+	 * checks; address validation and injection checks retain their separate send-time contracts.
 	 *
-	 * @param fixedName The name that will be visible to the receivers of this email (if empty, the name part of the address will be used, if any).
-	 * @param fromAddress The address that will be visible to the receivers of this email.
+	 * @param fixedName The visible sender name; if null or blank, use the name in the mailbox, if any.
+	 * @param fromAddress One sender mailbox visible to receivers of the email.
+	 * @throws IllegalArgumentException If the required address is missing or parsing produces several mailboxes or an RFC address group.
 	 */
 	EmailPopulatingBuilder from(@Nullable @Cli.Optional String fixedName, @NotNull String fromAddress);
 
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
+	 * Uses the same single-mailbox checks and name precedence as {@link #from(String, String)} without changing the supplied InternetAddress.
+	 * @param fixedName The visible sender name; if null or blank, use the InternetAddress's personal name, if any.
+	 * @param fromAddress One sender mailbox visible to receivers of the email.
 	 */
 	EmailPopulatingBuilder from(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress fromAddress);
 
 	/**
 	 * Delegates to {@link #from(Recipient)} with a new {@link Recipient} wrapped around the given email address.
+	 * Uses its personal name and the single-mailbox checks of {@link #from(String, String)} without changing the supplied InternetAddress.
+	 * @param fromAddress One sender mailbox visible to receivers of the email.
 	 */
 	EmailPopulatingBuilder from(@NotNull InternetAddress fromAddress);
 
 	/**
 	 * Sets the address of the sender of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
+	 * Replaces the previous sender; copies the supplied name/address without reparsing them.
 	 * <p>
 	 * Can be used in conjunction with one of the {@code replyTo(...)} methods, which is then prioritized by email clients when replying to this
 	 * email.
@@ -245,7 +259,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder from(@NotNull Recipient recipient);
 
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given email address.
+	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
+	 * with the single-mailbox interpretation of {@link #from(String, String)} and no explicit name.
 	 *
 	 * @param replyToAddress The address that receivers will get when they reply to the email.
 	 */
@@ -253,41 +268,57 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReplyTo(@NotNull String replyToAddress);
 
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and email address.
+	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
+	 * with the single-mailbox interpretation and explicit-name precedence of {@link #from(String, String)}.
 	 *
-	 * @param fixedName Optional name that receivers will get when they reply to the email.
-	 * @param replyToAddress The address that receivers will get when they reply to the email. Any name included in the address will be ignored.
+	 * @param fixedName Name receivers see when replying; if null or blank, use the embedded mailbox name, if any.
+	 * @param replyToAddress One mailbox that receivers will get when they reply to the email.
 	 */
 	EmailPopulatingBuilder withReplyTo(@Nullable @Cli.Optional String fixedName, @NotNull String replyToAddress);
 
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a  new {@link Recipient} wrapped around the given address.
+	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
+	 * with the supplied personal name and the single-mailbox checks of {@link #from(String, String)}.
+	 * @param replyToAddress One reply destination; the supplied InternetAddress is not changed.
 	 */
 	EmailPopulatingBuilder withReplyTo(@NotNull InternetAddress replyToAddress);
 
 	/**
-	 * Delegates to {@link #withReplyTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
+	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
+	 * with the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * @param fixedName Name receivers see when replying; if null or blank, use the supplied personal name, if any.
+	 * @param replyToAddress One reply destination; the supplied InternetAddress is not changed.
 	 */
 	EmailPopulatingBuilder withReplyTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress replyToAddress);
 
 	/**
-	 * Delegates to #withReplyTo(Recipient...)
+	 * Appends the supplied name/address without reparsing them, ignoring its recipient type. Existing Reply-To entries, order and duplicates
+	 * remain, including on a copied Email. Use {@code clearReplyTo().withReplyTo(recipient)} to replace the local destinations.
+	 * @param recipient Preconfigured reply destination with optional name and mandatory address.
+	 * @see #withReplyTo(List)
 	 */
 	EmailPopulatingBuilder withReplyTo(@NotNull Recipient recipient);
 
 	/**
-	 * Sets the <em>replyTo</em> address of this email with given {@link Recipient} (ignoring its {@link Message.RecipientType} if provided).
+	 * Appends the supplied <em>replyTo</em> destinations, copying their names/addresses without reparsing and ignoring their
+	 * {@link Message.RecipientType}. Existing entries are retained, including those already populated by copying an Email.
+	 * Repeated calls and lists preserve iteration order and duplicate occurrences. An empty list is a no-op, not a clear.
 	 * <p>
 	 * If provided, email clients should prioritize the <em>replyTo</em> recipient over the <em>from</em> recipient when replying to this email.
+	 * To replace destinations on a copy, use {@code mail.emailBuilder().copying(original).clearReplyTo().withReplyTo("support@example.org")}.
+	 * The original Email is unchanged; configured defaults, overrides and mandatory locks still apply later.
 	 *
 	 * @param recipients Preconfigured recipients which each includes optional name and mandatory email address.
 	 *
 	 * @see #withReplyTo(String, String)
+	 * @see #clearReplyTo()
 	 */
 	EmailPopulatingBuilder withReplyTo(@NotNull List<Recipient> recipients);
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the email address (or null if missing).
+	 * Replaces the previous bounce address. Non-null input uses the single-mailbox interpretation of {@link #from(String, String)};
+	 * null clears the local choice.
 	 *
 	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
@@ -297,21 +328,27 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given name and email address.
+	 * Replaces the previous bounce address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
 	 * The name is retained on the {@link Email}, but it has no meaning in the SMTP envelope and is not sent with the address.
 	 *
-	 * @param name Name retained with the configured recipient; ignored when setting the SMTP envelope sender.
+	 * @param name Name retained with the configured recipient; null/blank uses the embedded name. Ignored when setting the SMTP envelope sender.
 	 * @param bounceToAddress The SMTP envelope sender to which delivery failures are normally returned.
 	 */
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional String name, @NotNull String bounceToAddress);
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given address.
+	 * Replaces the previous bounce address using its personal name and the single-mailbox checks of {@link #from(String, String)}.
+	 * @param bounceToAddress One envelope sender; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder withBounceTo(@NotNull InternetAddress bounceToAddress);
 
 	/**
 	 * Delegates to {@link #withBounceTo(Recipient)} with a new {@link Recipient} wrapped around the given fixed name and address.
+	 * Replaces the previous bounce address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * @param name Name retained with the envelope address; null/blank uses the supplied personal name. Not sent in the SMTP envelope.
+	 * @param bounceToAddress One envelope sender; the supplied InternetAddress is not changed.
 	 */
 	@Cli.ExcludeApi(reason = "Method is not detailed enough for CLI")
 	@SuppressWarnings("unused")
@@ -320,6 +357,7 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Sets the SMTP envelope sender ({@code MAIL FROM}) for this email using the given {@link Recipient}. The recipient's name and
 	 * {@link Message.RecipientType} are not part of the SMTP envelope.
+	 * Replaces the previous local choice; copies the supplied name/address without reparsing them.
 	 * <p>
 	 * Delivery failures are normally returned to this address. The value is applied to this message only and does not modify the mailer's shared
 	 * {@link jakarta.mail.Session}. It is separate from {@link #withReplyTo(Recipient)}: {@code Reply-To} is a message header used by mail clients
@@ -331,129 +369,6 @@ public interface EmailPopulatingBuilder {
 	 * @see #withBounceTo(String, String)
 	 */
 	EmailPopulatingBuilder withBounceTo(@Nullable @Cli.Optional Recipient recipient);
-
-	/**
-	 * Sets the SMTP Delivery Status Notification (DSN) options for this email.
-	 * <p>
-	 * These options are passed to the SMTP transport as NOTIFY, RET and optionally ENVID parameters, never as message headers.
-	 * NOTIFY/RET-only requests are best-effort when the server does not support DSN. Supplying an envelope identifier requires DSN support:
-	 * the bundled Angus adapter refuses the send before MAIL FROM if support is unavailable. Calling this method replaces the complete DSN value.
-	 * The NOTIFY set is a fallback: explicit recipient/group preferences win, including when this Email value comes from Mailer overrides.
-	 * Clearing this value does not clear recipient preferences. Those require managed-provider support and usable DSN, unlike this best-effort fallback.
-	 * @see IRecipientBuilder#withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
-	 *
-	 * @param deliveryStatusNotification DSN options, or {@code null} to clear them.
-	 *
-	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification.ReturnOption, DeliveryStatusNotification.NotifyOption...)
-	 * @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
-	 * @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
-	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable @Cli.Optional DeliveryStatusNotification deliveryStatusNotification);
-
-	/**
-	 * Delegates to {@link #withDeliveryStatusNotification(DeliveryStatusNotification)}.
-	 *
-	 * @param returnOption See {@link DeliveryStatusNotification.ReturnOption}.
-	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
-	 *
-	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
-	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailPopulatingBuilder withDeliveryStatusNotification(@Nullable @Cli.Optional DeliveryStatusNotification.ReturnOption returnOption,
-			@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
-
-	/**
-	 * Delegates to {@link #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)}.
-	 *
-	 * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
-	 *
-	 * @see DeliveryStatusNotification.NotifyOption
-	 */
-	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
-	EmailPopulatingBuilder withDeliveryStatusNotification(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
-
-	/**
-	 * Chooses which delivery notifications to request, leaving any already configured return option and envelope identifier untouched.
-	 * These are later delivery notifications, not read receipts or the immediate send result. Server support does not guarantee a notification will arrive.
-	 *
-	 * @param notifyOptions Requested events: {@code SUCCESS}, {@code FAILURE}, or {@code DELAY}, or {@code NEVER} alone.
-	 *                      The CLI accepts comma/semicolon-separated names, ignoring case.
-	 *
-	 * @see DeliveryStatusNotification.NotifyOption
-	 */
-	EmailPopulatingBuilder withDeliveryStatusNotificationNotifyOptions(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions);
-
-	/**
-	 * Chooses how much of the original email a delivery-failure notification may return, leaving notification events and the envelope identifier untouched.
-	 *
-	 * @param returnOption {@code FULL_MESSAGE} or {@code HEADERS_ONLY}, or {@code null} to clear the return preference in Java.
-	 *                     The CLI requires a value and also accepts {@code FULL} and {@code HDRS}, ignoring case.
-	 *
-	 * @see DeliveryStatusNotification.ReturnOption
-	 */
-	EmailPopulatingBuilder withDeliveryStatusNotificationReturnOption(@Nullable DeliveryStatusNotification.ReturnOption returnOption);
-
-	/**
-	 * Fixes the SMTP transaction identifier (ENVID), retaining the notification events and return option. A later DSN can return this value as
-	 * Original-Envelope-ID so the application can match it to this send. It is not the MIME Message-ID and does not change message bytes.
-	 * <p>
-	 * By default, the bundled Angus adapter generates a fresh UUID for each send on a DSN-capable connection, without modifying the Email.
-	 * If DSN is unavailable, it sends normally without ENVID. The effective identifier is available through
-	 * {@link org.simplejavamail.api.mailer.MailSubmissionReceipt#getEnvelopeId()}, including the receipt supplied to a mail-send observer.
-	 * <p>
-	 * Supply an unencoded, non-empty printable ASCII value. Spaces, plus signs and equals signs are encoded automatically; the encoded value must
-	 * fit in 94 characters (100 including {@code ENVID=}). The value is preserved exactly, without trimming or generating a fallback.
-	 * Copying or reusing an Email deliberately retains a fixed identifier; choose a distinct value for sends you need to distinguish, including retries.
-	 * <p>
-	 * With an identifier configured, the transport adapter must support ENVID and the actual send connection must advertise DSN.
-	 * Otherwise submission fails before MAIL FROM; the identifier is never silently omitted. This does not guarantee a later notification or final
-	 * mailbox delivery. Logging-only mode does not contact a server. A CustomMailer receives this value on the Email and owns its enforcement.
-	 * There is no global configuration-property default for a per-send identifier.
-	 *
-	 * @param envelopeId The unencoded fixed identifier, or {@code null} to resume automatic generation while retaining other DSN options.
-	 * @return This builder.
-	 * @throws IllegalArgumentException If the identifier is empty, contains non-printable/non-ASCII characters, or exceeds the encoded limit.
-	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
-	 */
-	EmailPopulatingBuilder fixingEnvelopeId(@Nullable @Cli.Optional String envelopeId);
-
-	/**
-	 * Requires supporting mail servers to keep using TLS for this email's onward delivery. Normally, TLS protects only the connection from your
-	 * application to its SMTP server; onward delivery may still continue without TLS. With this requirement, a supporting server
-	 * must return the message as undeliverable rather than send it over an unencrypted connection.
-	 * <p>
-	 * The bundled Angus adapter applies the RFC 8689 {@code REQUIRETLS} option. It submits the email only when the current SMTP connection uses
-	 * authenticated TLS and the server confirms support; otherwise sending fails before the email is submitted. This protects transport between
-	 * cooperating mail servers, not message content stored on those servers, and cannot prove that every later server complied.
-	 * <p>
-	 * Email defaults and overrides may configure this value. Clearing removes a value set directly on this builder and resumes that fallback; use
-	 * {@link #dontApplyDefaultValueFor(EmailProperty...)} or
-	 * {@link #dontApplyOverrideValueFor(EmailProperty...)} with {@link EmailProperty#TLS_REQUIRED_FOR_ONWARD_DELIVERY} to opt out of a template.
-	 *
-	 * @return This builder.
-	 * @see org.simplejavamail.api.mailer.MailSubmissionReceipt#isRequireTlsUsed()
-	 */
-	EmailPopulatingBuilder withTlsRequiredForOnwardDelivery();
-
-	/**
-	 * Chooses what to do when the SMTP server rejects one of this email's recipients. For example, if Alice and Bob are accepted but Carol is
-	 * rejected, {@code true} allows the content to be submitted for Alice and Bob; {@code false} withholds the content for everyone.
-	 * <p>
-	 * Continuing does not make the whole send successful: partial acceptance still throws a
-	 * {@link org.simplejavamail.api.mailer.MailSubmissionException}, or completes the async send exceptionally, with its receipt identifying who
-	 * was accepted and who was not. Inspect that receipt before deciding what to retry. If every recipient is rejected, no content is submitted.
-	 * Stopping after a known rejection is not an atomic-delivery guarantee and cannot prevent later bounces.
-	 * This setting never changes visible recipient headers, splits messages, retries or weakens validation or security requirements.
-	 * <p>
-	 * Calling this method again replaces the value set on this builder. When no value is set here, configured Email defaults/overrides and existing
-	 * provider settings apply. {@link #clearSendingToAcceptedRecipients()} removes this builder's value so they can apply again. Template suppression uses
-	 * {@link EmailProperty#SENDING_TO_ACCEPTED_RECIPIENTS}; settings fixed by {@code simplejavamail.locked.*} properties cannot be suppressed.
-	 *
-	 * @param sendingToAcceptedRecipients {@code true} to continue for accepted recipients, or {@code false} to withhold content after a known rejection.
-	 * @return This builder.
-	 */
-	EmailPopulatingBuilder withSendingToAcceptedRecipients(boolean sendingToAcceptedRecipients);
 
 	/**
 	 * Sets the optional subject of this email.
@@ -657,45 +572,9 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withCalendarText(@NotNull CalendarMethod calendarMethod, @NotNull String textCalendar);
 
 	/**
-	 * Determines what encoding is applied to text/html/iCalendar content in the MimeMessage/EML. Default is {@link ContentTransferEncoding#QUOTED_PRINTABLE}, which basically means plain
-	 * text, so you can just read the content of the EML (if not encrypted). This acts as the shared fallback for all body parts unless a body-specific content transfer encoding is set.
-	 * <p>
-	 * However, you can choose another encoding as supported by Jakarta Mail. The list is quite extensive, but the most common alternative is base64. This might be useful for example for obfuscating
-	 * the content to some extent.
-	 *
-	 * @param contentTransferEncoding The encoder to use for the text/html/iCalendar content.
-	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
-	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
-	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
-	 */
-	EmailPopulatingBuilder withContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Determines what encoding is applied to the plain text body part in the MimeMessage/EML. If unset,
-	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
-	 *
-	 * @param contentTransferEncoding The encoder to use for the plain text content.
-	 */
-	EmailPopulatingBuilder withPlainTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Determines what encoding is applied to the HTML body part in the MimeMessage/EML. If unset,
-	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
-	 *
-	 * @param contentTransferEncoding The encoder to use for the HTML content.
-	 */
-	EmailPopulatingBuilder withHTMLTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Determines what encoding is applied to the iCalendar body part in the MimeMessage/EML. If unset,
-	 * {@link #withContentTransferEncoding(ContentTransferEncoding)} is used as fallback.
-	 *
-	 * @param contentTransferEncoding The encoder to use for the iCalendar content.
-	 */
-	EmailPopulatingBuilder withCalendarTextContentTransferEncoding(@NotNull ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Adds copies of the provided recipients, preserving name, address, recipient type and optional per-recipient S/MIME certificate.
+	 * Appends the provided recipients, preserving their supplied name, address, type, S/MIME certificate and notification preferences without reparsing.
+	 * Existing recipients, including those from copying an Email, remain in order. Repeated calls retain duplicates; an empty array adds nothing.
+	 * Use {@link #clearRecipients()} before adding replacements. The provided array's structure is not retained.
 	 * <p>
 	 * If the recipients are reused and their certificate state should not be carried into this email, first pass them through
 	 * {@link IRecipientsBuilder#clearingSmimeCertificates()}.
@@ -703,209 +582,73 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipients(@NotNull Recipient @NotNull ...recipients);
 
 	/**
-	 * Adds one TO recipient without an explicit display name, retaining recipient order and duplicates.
-	 * The address is one value, exactly as with {@link IRecipientBuilder#to(String)}; address lists are not split.
+	 * Appends one TO mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
+	 * Uses the single-mailbox parsing and validation boundary of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder to(@NotNull String address);
 
 	/**
-	 * Adds one TO recipient with an optional display name, exactly as with {@link IRecipientBuilder#to(String, String)}.
-	 * The address is retained as one value; comma- or semicolon-separated address lists are not split. Existing recipients, their metadata,
-	 * order and duplicates remain unchanged. Use {@link #withRecipients(Collection)} for prepared recipient groups or per-recipient options.
+	 * Appends one TO mailbox, retaining existing recipients, their metadata, order and duplicates, including on a copied Email.
+	 * Uses the single-mailbox parsing and explicit-name precedence of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * Use the factory's {@code recipientsBuilder()} for multiple addresses, then {@link #withRecipients(Collection)} for their prepared values
+	 * and per-recipient options. Clear the local recipient collection before adding replacements.
+	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
+	 * @param address One bare or named mailbox.
 	 * @see #clearRecipients()
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder to(@Nullable String name, @NotNull String address);
 
 	/**
-	 * Adds one CC recipient without an explicit display name, retaining recipient order and duplicates. Address lists are not split.
+	 * Appends one CC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
+	 * Uses the single-mailbox parsing of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * @param address One bare or named mailbox.
 	 * @see #cc(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder cc(@NotNull String address);
 
 	/**
-	 * Adds one CC recipient with an optional display name, using the same single-address behavior as {@link #to(String, String)}.
+	 * Appends one CC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
+	 * Uses the same single-mailbox parsing and explicit-name precedence as {@link #to(String, String)}.
+	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
+	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder cc(@Nullable String name, @NotNull String address);
 
 	/**
-	 * Adds one BCC recipient without an explicit display name, retaining recipient order and duplicates. Address lists are not split.
+	 * Appends one BCC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
+	 * Uses the single-mailbox parsing of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * @param address One bare or named mailbox.
 	 * @see #bcc(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder bcc(@NotNull String address);
 
 	/**
-	 * Adds one BCC recipient with an optional display name, using the same single-address behavior as {@link #to(String, String)}.
+	 * Appends one BCC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
+	 * Uses the same single-mailbox parsing and explicit-name precedence as {@link #to(String, String)}.
+	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
+	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder bcc(@Nullable String name, @NotNull String address);
 
 	/**
-	 * Adds copies of the provided recipients, preserving name, address, recipient type and optional per-recipient S/MIME certificate.
+	 * Appends the provided recipients, preserving their supplied name, address, type, S/MIME certificate and notification preferences without reparsing.
+	 * Existing recipients, including those from copying an Email, remain in order. Repeated calls retain duplicates; an empty collection adds nothing.
+	 * Use {@link #clearRecipients()} before adding replacements. The provided collection's structure is not retained.
 	 * <p>
 	 * If the recipients are reused and their certificate state should not be carried into this email, first pass them through
 	 * {@link IRecipientsBuilder#clearingSmimeCertificates()}.
 	 */
 	EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients);
-
-	/**
-	 * Enables auto resolution of file datasources for embedded images.
-	 * <p>
-	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
-	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
-	 * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
-	 * <p>
-	 * This option is disabled by default. Enabling it lets HTML image references read from the filesystem. When the HTML is not fully trusted, set
-	 * {@link #withEmbeddedImageBaseDir(String)} and leave {@link #allowingEmbeddedImageOutsideBaseDir(boolean)} disabled.
-	 *
-	 * @param embeddedImageAutoResolutionForFiles Enables auto resolution of file datasources for embedded images.
-	 *
-	 * @see #withEmbeddedImageBaseDir(String)
-	 * @see #allowingEmbeddedImageOutsideBaseDir(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForFiles(final boolean embeddedImageAutoResolutionForFiles);
-
-	/**
-	 * Enables auto resolution of classpath datasources for embedded images.
-	 * <p>
-	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
-	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
-	 * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
-	 * <p>
-	 * This option is disabled by default. Enabling it lets HTML image references read classpath resources. When the HTML is not fully trusted, set
-	 * {@link #withEmbeddedImageBaseClassPath(String)} and leave {@link #allowingEmbeddedImageOutsideBaseClassPath(boolean)} disabled.
-	 *
-	 * @param embeddedImageAutoResolutionForClassPathResources Enables auto resolution of classpath datasources for embedded images.
-	 *
-	 * @see #withEmbeddedImageBaseClassPath(String)
-	 * @see #allowingEmbeddedImageOutsideBaseClassPath(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForClassPathResources(final boolean embeddedImageAutoResolutionForClassPathResources);
-
-	/**
-	 * Enables auto resolution of URL's for embedded images.
-	 * <p>
-	 * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
-	 * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
-	 * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
-	 * <p>
-	 * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
-	 * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.
-	 *
-	 * @param embeddedImageAutoResolutionForURLs Enables auto resolution of URL's for embedded images.
-	 *
-	 * @see #withEmbeddedImageBaseUrl(String)
-	 * @see #withEmbeddedImageBaseUrl(URL)
-	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageAutoResolutionForURLs(final boolean embeddedImageAutoResolutionForURLs);
-
-	/**
-	 * Sets the base folder used when resolving image sources in HTML text.
-	 * <p>
-	 * By default, a resolved file must remain below this directory after normalizing the path and following symbolic links. Without a base directory,
-	 * file resolution is unrestricted and may use absolute paths or paths relative to the working directory.
-	 *
-	 * @param embeddedImageBaseDir The base folder used when resolving images sources in HTML text.
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
-	 * @see #allowingEmbeddedImageOutsideBaseDir(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageBaseDir(@NotNull final String embeddedImageBaseDir);
-
-	/**
-	 * Sets the classpath base used when resolving image sources in HTML text.
-	 * <p>
-	 * By default, normalized resource paths must remain below this classpath location. Without a classpath base, classpath resolution accepts absolute
-	 * classpath resource names without a containment boundary.
-	 *
-	 * @param embeddedImageBaseClassPath The classpath base used when resolving images sources in HTML text.
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
-	 * @see #allowingEmbeddedImageOutsideBaseClassPath(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageBaseClassPath(@NotNull final String embeddedImageBaseClassPath);
-
-	/**
-	 * Delegates to {@link #withEmbeddedImageBaseUrl(URL)}.
-	 *
-	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
-	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
-	 */
-	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final String embeddedImageBaseUrl);
-
-	/**
-	 * Sets the base URL used when resolving image sources in HTML text.
-	 * <p>
-	 * By default, resolved URLs and every HTTP redirect must use the same scheme, host and effective port as this URL, and their normalized path must
-	 * remain below its path. Without a base URL, URL resolution accepts absolute URLs without a containment boundary.
-	 *
-	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
-	 * @see #allowingEmbeddedImageOutsideBaseUrl(boolean)
-	 */
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	EmailPopulatingBuilder withEmbeddedImageBaseUrl(@NotNull final URL embeddedImageBaseUrl);
-
-	/**
-	 * Allows embedded-image file resolution outside the configured base directory. Disabled by default.
-	 * <p>
-	 * Enabling this deliberately removes the filesystem containment boundary and is unsafe for untrusted HTML.
-	 *
-	 * @param allowEmbeddedImageOutsideBaseDir Whether files should be resolved that reside outside the baseDir (if set)
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForFiles(boolean)
-	 * @see #withEmbeddedImageBaseDir(String)
-	 */
-	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseDir(final boolean allowEmbeddedImageOutsideBaseDir);
-
-	/**
-	 * Allows embedded-image classpath resolution outside the configured classpath base. Disabled by default.
-	 * <p>
-	 * Enabling this deliberately removes the classpath containment boundary and is unsafe for untrusted HTML.
-	 *
-	 * @param allowEmbeddedImageOutsideBaseClassPath Whether image sources should be resolved that reside outside the baseClassPath (if set)
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForClassPathResources(boolean)
-	 * @see #withEmbeddedImageBaseClassPath(String)
-	 */
-	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseClassPath(final boolean allowEmbeddedImageOutsideBaseClassPath);
-
-	/**
-	 * Allows embedded-image URL resolution outside the configured base URL. Disabled by default.
-	 * <p>
-	 * Enabling this deliberately removes the URL origin and path boundary and is unsafe for untrusted HTML.
-	 *
-	 * @param allowEmbeddedImageOutsideBaseUrl Whether url's should be resolved that reside outside the baseUrl (if set)
-	 *
-	 * @see #withEmbeddedImageAutoResolutionForURLs(boolean)
-	 * @see #withEmbeddedImageBaseUrl(String)
-	 * @see #withEmbeddedImageBaseUrl(URL)
-	 */
-	EmailPopulatingBuilder allowingEmbeddedImageOutsideBaseUrl(final boolean allowEmbeddedImageOutsideBaseUrl);
-
-	/**
-	 * When embedded image auto resolution is enabled, this option will make sure unresolved images sources result in an exception.
-	 * <p>
-	 * Not using this option effectively means a more lenient approach to image sources.
-	 * References blocked by a configured base boundary count as unresolved.
-	 * <p>
-	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
-	 * when viewing the email in some client (e.g. relative url's).
-	 *
-	 * @param embeddedImageAutoResolutionMustBeSuccesful Whether auto resolution is enforced and bubbles up failure to do so.
-	 */
-	EmailPopulatingBuilder embeddedImageAutoResolutionMustBeSuccesful(final boolean embeddedImageAutoResolutionMustBeSuccesful);
 
 	/**
 	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
@@ -1190,64 +933,19 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.DKIMModule#NAME}.
 	 * <p>
-	 * <strong>Note:</strong> for more fine-grained control over the DKIM signing process, use {@link #signWithDomainKey(DkimConfig)} instead.
-	 *
-	 * @param dkimPrivateKey                            De key content used to sign for the sending party.
-	 * @param signingDomain                             The domain being authorized to send.
-	 * @param dkimSelector                              Additional domain specifier.
-	 * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date}.
-	 *                                                 The DKIM module rejects exclusion of {@code From} when signing, since that header must be covered.
+	 * The supplied configuration also chooses <em>useLengthParam</em>, <em>signingAlgorithm</em>,
+	 * <em>headerCanonicalization</em> and <em>bodyCanonicalizationAlgorithm</em>.
 	 *
 	 * @see <a href="https://postmarkapp.com/guides/dkim">more on DKIM 1</a>
 	 * @see <a href="https://github.com/markenwerk/java-utils-mail-dkim">more on DKIM 2</a>
 	 * @see <a href="http://www.gettingemaildelivered.com/dkim-explained-how-to-set-up-and-use-domainkeys-identified-mail-effectively">more on DKIM 3</a>
 	 * @see <a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">more on DKIM 4</a>
 	 * @see <a href="https://github.com/bbottema/dkim-verify">List of explanations all tags in a <em>DKIM-Signature</em> header</a>
-	 * @see #signWithDomainKey(DkimConfig)
-	 */
-	@SuppressWarnings("unused")
-	EmailPopulatingBuilder signWithDomainKey(byte@NotNull[] dkimPrivateKey, @NotNull String signingDomain, @NotNull String dkimSelector, @Nullable @Cli.Optional Set<String> excludedHeadersFromDkimDefaultSigningList);
-
-	/**
-	 * Allows for more customization of the DKIM signing process by providing a {@link DkimConfig} instance. Added config includes: <em>useLengthParam</em>,
-	 * <em>signingAlgorithm</em>, <em>headerCanonicalization</em> and <em>bodyCanonicalizationAlgorithm</em>.
-	 *
+	 * @param dkimConfig Signing key, domain, selector, header exclusions and optional DKIM preferences.
 	 * @see DkimConfig
-	 * @see #signWithDomainKey(byte[], String, String, Set)
 	 */
-	@Cli.ExcludeApi(reason = "delegated method is an identical api from CLI point of view")
-	@SuppressWarnings("unused")
+	@Cli.ExcludeApi(reason = "The CLI uses its internal key-input adapter")
 	EmailPopulatingBuilder signWithDomainKey(@NotNull DkimConfig dkimConfig);
-
-	/**
-	 * Delegates to {@link #signWithSmime(SmimeSigningConfig)}.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 *
-	 * @param pkcs12StoreFile The key store file to use to find the indicated key
-	 * @param storePassword The store's password
-     * @param keyAlias The name of the certificate in the key store to use
-     * @param keyPassword The password of the certificate
-	 * @param signatureAlgorithm The signature algorithm to use for signing. If omitted, the default algorithm is used.
-	 *                           See {@link SmimeSigningConfig} for details.
-	 *
-     * @see SmimeSigningConfig
-     */
-	EmailPopulatingBuilder signWithSmime(@NotNull File pkcs12StoreFile, @NotNull String storePassword, @NotNull String keyAlias, @NotNull String keyPassword, @Nullable @Cli.Optional String signatureAlgorithm);
-
-	/**
-	 * Delegates to {@link #signWithSmime(SmimeSigningConfig)} after reading and closing the PKCS12 store at the supplied path.
-	 *
-	 * @param pkcs12StorePath The key store path to use to find the indicated key.
-	 * @param storePassword The store's password.
-	 * @param keyAlias The name of the certificate in the key store to use.
-	 * @param keyPassword The password of the certificate.
-	 * @param signatureAlgorithm The signature algorithm to use for signing, or {@code null} for the default.
-	 * @return This builder.
-	 */
-	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder signWithSmime(@NotNull Path pkcs12StorePath, @NotNull String storePassword, @NotNull String keyAlias,
-			@NotNull String keyPassword, @Nullable @Cli.Optional String signatureAlgorithm);
 
 	/**
 	 * Signs this email with an <a href="https://tools.ietf.org/html/rfc5751">S/MIME</a> signature, so the receiving client
@@ -1262,31 +960,6 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Cli.ExcludeApi(reason = "delegated method contains CLI compatible arguments")
 	EmailPopulatingBuilder signWithSmime(@NotNull SmimeSigningConfig smimeSigningConfig);
-
-	/**
-	 * Delegates to {@link #encryptWithSmime(SmimeEncryptionConfig)} using the provided PEM file.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 *
-	 * @param pemFile The recipient's public key to use for encryption.
-	 * @param keyEncapsulationAlgorithm The key encapsulation algorithm to use for encryption. See {@link SmimeEncryptionConfig} for available values.
-	 * @param cipherAlgorithm The cipher algorithm to use for encryption. See {@link SmimeEncryptionConfig} for available values.
-	 *
-	 * @see SmimeEncryptionConfig
-	 */
-	EmailPopulatingBuilder encryptWithSmime(@NotNull File pemFile, @Nullable @Cli.Optional String keyEncapsulationAlgorithm, @Nullable @Cli.Optional String cipherAlgorithm);
-
-	/**
-	 * Delegates to {@link #encryptWithSmime(SmimeEncryptionConfig)} after reading and closing the PEM certificate at the supplied path.
-	 *
-	 * @param pemPath The recipient's public certificate path to use for encryption.
-	 * @param keyEncapsulationAlgorithm The key encapsulation algorithm to use for encryption.
-	 * @param cipherAlgorithm The cipher algorithm to use for encryption.
-	 * @return This builder.
-	 */
-	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder encryptWithSmime(@NotNull Path pemPath, @Nullable @Cli.Optional String keyEncapsulationAlgorithm,
-			@Nullable @Cli.Optional String cipherAlgorithm);
 
 	/**
 	 * Encrypts this email with a X509 certificate according to the <a href="https://tools.ietf.org/html/rfc5751">S/MIME spec</a>
@@ -1315,7 +988,7 @@ public interface EmailPopulatingBuilder {
 	 * To reuse this choice, put it on an Email supplied through {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailDefaults(Email)} or
 	 * {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailOverrides(Email)}. The complete signing configuration is replaced, not combined:
 	 * overrides win over this email, followed by defaults. Suppress incoming signing configuration with
-	 * {@link #dontApplyDefaultValueFor(EmailProperty...)} or {@link #dontApplyOverrideValueFor(EmailProperty...)} and
+	 * {@link EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)} or {@link EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)} and
 	 * {@link EmailProperty#OPENPGP_SIGNING_CONFIG}.
 	 */
 	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
@@ -1327,7 +1000,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * Email defaults and overrides can supply this choice too. They replace the complete encryption configuration, including its recipient keys;
 	 * keys from different configurations are never combined. Overrides win over this email, followed by defaults. Suppress incoming encryption
-	 * configuration with {@link #dontApplyDefaultValueFor(EmailProperty...)} or {@link #dontApplyOverrideValueFor(EmailProperty...)} and
+	 * configuration with {@link EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)} or {@link EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)} and
 	 * {@link EmailProperty#OPENPGP_ENCRYPTION_CONFIG}.
 	 */
 	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
@@ -1355,6 +1028,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 * Replaces the local notification address using the single-mailbox interpretation of {@link #from(String, String)} and its embedded name.
 	 *
 	 * @param address The address of the receiver of the notification
 	 */
@@ -1363,8 +1037,9 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
+	 * Replaces the local notification address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
 	 *
-	 * @param name Optional name of the receiver of the notification
+	 * @param name Optional notification receiver name; null/blank uses the embedded mailbox name, if any.
 	 * @param address The address of the receiver of the notification
 	 */
 	@SuppressWarnings("unused")
@@ -1372,12 +1047,17 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 * Replaces the local notification address using its personal name and the single-mailbox checks of {@link #from(String, String)}.
+	 * @param address One notification receiver; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull InternetAddress address);
 
 	/**
 	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
+	 * Replaces the local notification address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * @param fixedName Optional notification receiver name; null/blank uses the supplied personal name, if any.
+	 * @param address One notification receiver; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
@@ -1387,6 +1067,7 @@ public interface EmailPopulatingBuilder {
 	 * preconfigured {@link Recipient}. This header requests a receipt from the recipient's mail client to signal that the email has been read.
 	 * <p>
 	 * The receiving mail client or user controls whether a receipt is returned.
+	 * Replaces the previous local address; copies the supplied name/address without reparsing them and ignores its recipient type.
 	 *
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(String)
@@ -1405,6 +1086,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 * Replaces the local receipt address using the single-mailbox interpretation of {@link #from(String, String)} and its embedded name.
 	 *
 	 * @param address The address of the receiver of the receipt notification
 	 */
@@ -1413,20 +1095,26 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
+	 * Replaces the local receipt address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
 	 *
-	 * @param name Name of the receiver of the receipt notification
+	 * @param name Receipt receiver name; null/blank uses the embedded mailbox name, if any.
 	 * @param address The address of the receiver of the receipt notification
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String name, @NotNull String address);
 
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
+	 * Replaces the local receipt address using its personal name and the single-mailbox checks of {@link #from(String, String)}.
+	 * @param address One receipt receiver; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull InternetAddress address);
 
 	/**
 	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
+	 * Replaces the local receipt address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * @param fixedName Receipt receiver name; null/blank uses the supplied personal name, if any.
+	 * @param address One receipt receiver; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
@@ -1436,11 +1124,14 @@ public interface EmailPopulatingBuilder {
 	 * clients may use this header to return a delivery or read notification, depending on their implementation.
 	 * <p>
 	 * The receiving system controls whether a receipt is returned.
+	 * Replaces the previous local address; copies the supplied name/address without reparsing them and ignores its recipient type.
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
 
 	/**
-	 * Delegates to {@link #withOverrideReceivers(List)}
+	 * Appends delivery-recipient overrides, retaining existing entries, order and duplicates, including on a copied Email.
+	 * Delegates to {@link #withOverrideReceivers(List)}; the nonempty requirement and clear-before-replacement behavior apply here too.
+	 * @param recipients At least one prepared delivery recipient; names/addresses and metadata are not reparsed.
 	 */
 	EmailPopulatingBuilder withOverrideReceivers(@NotNull Recipient ...recipients);
 
@@ -1448,6 +1139,11 @@ public interface EmailPopulatingBuilder {
 	 * When provided, Simple Java Mail will ignore all recipients set on the email and instead send to the provided recipients only (when calling
 	 * {@link jakarta.mail.Transport#sendMessage(Message, Address[])}). The actual Message will still contain the original recipients, but won't receive a
 	 * copy. This is useful for testing purposes.
+	 * Appends to the existing delivery-recipient overrides, retaining order, duplicate occurrences and supplied recipient metadata without reparsing.
+	 * Repeated calls accumulate, including on a copied Email. Use {@link #clearOverrideReceivers()} before adding replacements;
+	 * an empty list is rejected rather than clearing existing entries. The provided list's structure is not retained.
+	 * @param recipients Nonempty list of prepared delivery recipients.
+	 * @throws IllegalArgumentException If the list is null or empty.
 	 */
 	EmailPopulatingBuilder withOverrideReceivers(@NotNull List<Recipient> recipients);
 
@@ -1485,6 +1181,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Resets <em>replyToRecipients</em> to empty.
+	 * @see #withReplyTo(List)
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearReplyTo();
@@ -1494,57 +1191,6 @@ public interface EmailPopulatingBuilder {
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder clearBounceTo();
-
-	/**
-	 * Resets <em>deliveryStatusNotification</em> to empty.
-	 */
-	@SuppressWarnings("unused")
-	EmailPopulatingBuilder clearDeliveryStatusNotification();
-
-	/**
-	 * Removes the shared notification-event preference while retaining the return option and fixed envelope identifier.
-	 * Recipient-specific preferences are unchanged. If no shared DSN component remains, the request becomes absent and ordinary templates can apply.
-	 * @return This builder.
-	 * @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
-	 */
-	@Cli.ExcludeApi(reason = "A fresh CLI builder has no shared notification preference to clear")
-	EmailPopulatingBuilder clearDeliveryStatusNotificationNotifyOptions();
-
-	/**
-	 * Removes only the return preference, retaining notification events and the fixed envelope identifier.
-	 * If no shared DSN component remains, the request becomes absent and ordinary templates can apply.
-	 * @return This builder.
-	 * @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
-	 */
-	@Cli.ExcludeApi(reason = "A fresh CLI builder has no notification return preference to clear")
-	EmailPopulatingBuilder clearDeliveryStatusNotificationReturnOption();
-
-	/**
-	 * Removes the fixed identifier, allowing automatic per-send generation where supported. Other notification options remain unchanged.
-	 * @return This builder.
-	 * @see #fixingEnvelopeId(String)
-	 */
-	@Cli.ExcludeApi(reason = "A fresh CLI builder has no fixed envelope identifier to clear")
-	EmailPopulatingBuilder clearEnvelopeId();
-
-	/**
-	 * Stops this builder from directly requiring TLS for this email's onward delivery. Configured Email defaults and overrides can still supply the
-	 * requirement; suppress the corresponding {@link EmailProperty#TLS_REQUIRED_FOR_ONWARD_DELIVERY} source to opt out of one of those templates.
-	 *
-	 * @return This builder.
-	 * @see #withTlsRequiredForOnwardDelivery()
-	 */
-	EmailPopulatingBuilder clearTlsRequiredForOnwardDelivery();
-
-	/**
-	 * Removes the value set by {@link #withSendingToAcceptedRecipients(boolean)}, allowing configured Email defaults/overrides and provider settings to apply.
-	 * This is not an explicit {@code false} and cannot remove a setting fixed by {@code simplejavamail.locked.*} properties.
-	 *
-	 * @return This builder.
-	 * @see #withSendingToAcceptedRecipients(boolean)
-	 */
-	@Cli.ExcludeApi(reason = "A fresh CLI Email builder has no recipient-rejection choice to clear")
-	EmailPopulatingBuilder clearSendingToAcceptedRecipients();
 
 	/**
 	 * Resets <em>text</em> to empty.
@@ -1562,26 +1208,6 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearCalendarText();
 
 	/**
-	 * Resets <em>contentTransferEncoding</em> to {@link ContentTransferEncoding#QUOTED_PRINTABLE}.
-	 */
-	EmailPopulatingBuilder clearContentTransferEncoding();
-
-	/**
-	 * Resets <em>plainTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
-	 */
-	EmailPopulatingBuilder clearPlainTextContentTransferEncoding();
-
-	/**
-	 * Resets <em>htmlTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
-	 */
-	EmailPopulatingBuilder clearHTMLTextContentTransferEncoding();
-
-	/**
-	 * Resets <em>calendarTextContentTransferEncoding</em> to empty, falling back to <em>contentTransferEncoding</em>.
-	 */
-	EmailPopulatingBuilder clearCalendarTextContentTransferEncoding();
-
-	/**
 	 * Resets <em>subject</em> to empty.
 	 */
 	@SuppressWarnings("unused")
@@ -1589,6 +1215,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Resets <em>recipients</em> to empty.
+	 * @see #withRecipients(Collection)
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearRecipients();
@@ -1599,21 +1226,6 @@ public interface EmailPopulatingBuilder {
 	 * @see #withOverrideReceivers(List)
 	 */
 	EmailPopulatingBuilder clearOverrideReceivers();
-
-	/**
-	 * Resets base dir for embedded images to {@code null}.
-	 */
-	EmailPopulatingBuilder clearEmbeddedImageBaseDir();
-
-	/**
-	 * Resets classpath base for embedded images to {@code null}.
-	 */
-	EmailPopulatingBuilder clearEmbeddedImageBaseClassPath();
-
-	/**
-	 * Resets base URL for embedded images to {@code null}.
-	 */
-	EmailPopulatingBuilder clearEmbeddedImageBaseUrl();
 
 	/**
 	 * Resets <em>embeddedImages</em> to empty.
@@ -1637,7 +1249,7 @@ public interface EmailPopulatingBuilder {
 	 * Resets all dkim properties to empty.
 	 * <p>
 	 * This clears only the current Email's choice, so governance can still supply signing defaults or overrides. To suppress those on a submitted email,
-	 * use {@link #dontApplyDefaultValueFor} and/or {@link #dontApplyOverrideValueFor} with {@link EmailProperty#DKIM_SIGNING_CONFIG}.
+	 * use {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyDefaultValueFor} and/or {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyOverrideValueFor} with {@link EmailProperty#DKIM_SIGNING_CONFIG}.
 	 * Clearing DKIM on a copied defaults template omits signing from that template without changing its other fields.
 	 */
 	@SuppressWarnings("unused")
@@ -1649,6 +1261,8 @@ public interface EmailPopulatingBuilder {
 	 * This does not clear S/MIME certificates already present on {@link Recipient} instances added to this email. To clear recipient-level certificate state
 	 * while reusing recipients, pass those recipients through {@link IRecipientsBuilder#clearingSmimeCertificates()} before adding
 	 * them to the email.
+	 * Ordinary Email governance can supply the cleared signing or encryption choice again, and retained recipient certificates can still request
+	 * encryption. This operation therefore does not disable S/MIME across those other scopes.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 *
@@ -1723,28 +1337,6 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior();
 
 	/**
-	 * @see #ignoringDefaults(boolean)
-	 */
-	boolean isIgnoreDefaults();
-
-	/**
-	 * @see #ignoringOverrides(boolean)
-	 */
-	boolean isIgnoreOverrides();
-
-	/**
-	 * @see #dontApplyDefaultValueFor(EmailProperty...)
-	 */
-	@Nullable
-	Set<EmailProperty> getPropertiesNotToApplyDefaultValueFor();
-
-	/**
-	 * @see #dontApplyOverrideValueFor(EmailProperty...)
-	 */
-	@Nullable
-	Set<EmailProperty> getPropertiesNotToApplyOverrideValueFor();
-
-	/**
 	 * @see #fixingMessageId(String)
 	 */
 	@Nullable
@@ -1767,25 +1359,6 @@ public interface EmailPopulatingBuilder {
 	 */
 	@Nullable
 	Recipient getBounceToRecipient();
-
-	/**
-	 * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
-	 */
-	@Nullable
-	DeliveryStatusNotification getDeliveryStatusNotification();
-
-	/**
-	 * @return Whether this builder requires RFC 8689 REQUIRETLS for onward delivery.
-	 * @see #withTlsRequiredForOnwardDelivery()
-	 */
-	boolean isTlsRequiredForOnwardDelivery();
-
-	/**
-	 * @return The recipient-rejection setting on this builder, or {@code null} when unset; defaults and overrides are resolved during preparation.
-	 * @see #withSendingToAcceptedRecipients(boolean)
-	 */
-	@Nullable
-	Boolean getSendingToAcceptedRecipients();
 
 	/**
 	 * @see #withPlainText(String)
@@ -1812,34 +1385,6 @@ public interface EmailPopulatingBuilder {
 	String getTextCalendar();
 
 	/**
-	 * @see #withContentTransferEncoding(ContentTransferEncoding)
-	 * @see #clearContentTransferEncoding()
-	 */
-	@Nullable
-	ContentTransferEncoding getContentTransferEncoding();
-
-	/**
-	 * @see #withPlainTextContentTransferEncoding(ContentTransferEncoding)
-	 * @see #clearPlainTextContentTransferEncoding()
-	 */
-	@Nullable
-	ContentTransferEncoding getPlainTextContentTransferEncoding();
-
-	/**
-	 * @see #withHTMLTextContentTransferEncoding(ContentTransferEncoding)
-	 * @see #clearHTMLTextContentTransferEncoding()
-	 */
-	@Nullable
-	ContentTransferEncoding getHTMLTextContentTransferEncoding();
-
-	/**
-	 * @see #withCalendarTextContentTransferEncoding(ContentTransferEncoding)
-	 * @see #clearCalendarTextContentTransferEncoding()
-	 */
-	@Nullable
-	ContentTransferEncoding getCalendarTextContentTransferEncoding();
-
-	/**
 	 * @see #withSubject(String)
 	 */
 	@Nullable
@@ -1864,7 +1409,6 @@ public interface EmailPopulatingBuilder {
 	@NotNull
 	List<AttachmentResource> getAttachments();
 
-
 	/**
 	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
 	 * attachments replaced with decrypted ones.
@@ -1883,7 +1427,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * @see #signWithDomainKey(DkimConfig)
-	 * @see #signWithDomainKey(byte[], String, String, Set)
+	 * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
 	 */
 	@Nullable
 	DkimConfig getDkimConfig();
@@ -1964,14 +1508,14 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
-	 * @see EmailPopulatingBuilder#signWithSmime(File, String, String, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
 	 */
 	@Nullable
 	SmimeSigningConfig getSmimeSigningConfig();
 
 	/**
 	 * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
-	 * @see EmailPopulatingBuilder#encryptWithSmime(File, String, String)
+	 * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
 	 */
 	@Nullable
 	SmimeEncryptionConfig getSmimeEncryptionConfig();

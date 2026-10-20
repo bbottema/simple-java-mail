@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,7 +120,7 @@ class MailerRehearsalTest {
 		final Email draft = validEmail();
 
 		try (Mailer mailer = mailerBuilder()
-				.withMaximumEmailSize(4)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(4).build())
 				.buildMailer()) {
 			final MailRehearsal rehearsal = mailer.rehearse(draft, false);
 
@@ -180,10 +181,10 @@ class MailerRehearsalTest {
 				.buildEmail();
 
 		try (Mailer exactLimit = mailerBuilder()
-				.withMaximumEmailSize(exactEml.length)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(exactEml.length).build())
 				.buildMailer();
 			 Mailer tooSmall = mailerBuilder()
-					.withMaximumEmailSize(exactEml.length - 1)
+					.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(exactEml.length - 1).build())
 					.buildMailer()) {
 			final MailRehearsal rehearsal = exactLimit.rehearse(email);
 

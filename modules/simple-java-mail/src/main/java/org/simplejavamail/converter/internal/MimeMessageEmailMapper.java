@@ -39,10 +39,10 @@ class MimeMessageEmailMapper {
 			builder.fixingSentDate(parsed.getSentDate());
 		}
 		if (parsed.getFromAddress() != null) {
-			builder.from(parsed.getFromAddress().getPersonal(), parsed.getFromAddress().getAddress());
+			builder.from(parsedRecipient(parsed.getFromAddress()));
 		}
 		if (parsed.getReplyToAddresses() != null) {
-			builder.withReplyTo(parsed.getReplyToAddresses().getPersonal(), parsed.getReplyToAddresses().getAddress());
+			builder.withReplyTo(parsedRecipient(parsed.getReplyToAddresses()));
 		}
 
 		for (val headerEntry : parsed.getHeaders().entrySet()) {
@@ -54,17 +54,17 @@ class MimeMessageEmailMapper {
 		}
 
 		if (parsed.getDispositionNotificationTo() != null) {
-			builder.withDispositionNotificationTo(parsed.getDispositionNotificationTo());
+			builder.withDispositionNotificationTo(parsedRecipient(parsed.getDispositionNotificationTo()));
 		}
 		if (parsed.getReturnReceiptTo() != null) {
-			builder.withReturnReceiptTo(parsed.getReturnReceiptTo());
+			builder.withReturnReceiptTo(parsedRecipient(parsed.getReturnReceiptTo()));
 		}
 		if (parsed.getBounceToAddress() != null) {
-			builder.withBounceTo(parsed.getBounceToAddress());
+			builder.withBounceTo(parsedRecipient(parsed.getBounceToAddress()));
 		}
 		final ContentTransferEncoding contentTransferEncoding = toContentTransferEncoding(parsed.getContentTransferEncoding());
 		if (contentTransferEncoding != null) {
-			builder.withContentTransferEncoding(contentTransferEncoding);
+			((InternalEmailPopulatingBuilder) builder).withContentTransferEncoding(contentTransferEncoding);
 		}
 		builder.fixingMessageId(parsed.getMessageId());
 		for (final InternetAddress to : parsed.getToAddresses()) {
@@ -81,19 +81,19 @@ class MimeMessageEmailMapper {
 		builder.withPlainText(parsed.getPlainContent());
 		final ContentTransferEncoding plainTextContentTransferEncoding = toContentTransferEncoding(parsed.getPlainTextContentTransferEncoding());
 		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, plainTextContentTransferEncoding)) {
-			builder.withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
+			((InternalEmailPopulatingBuilder) builder).withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
 		}
 		builder.withHTMLText(parsed.getHtmlContent());
 		final ContentTransferEncoding htmlTextContentTransferEncoding = toContentTransferEncoding(parsed.getHtmlTextContentTransferEncoding());
 		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, htmlTextContentTransferEncoding)) {
-			builder.withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);
+			((InternalEmailPopulatingBuilder) builder).withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);
 		}
 
 		if (parsed.getCalendarMethod() != null) {
 			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
 			final ContentTransferEncoding calendarTextContentTransferEncoding = toContentTransferEncoding(parsed.getCalendarTextContentTransferEncoding());
 			if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, calendarTextContentTransferEncoding)) {
-				builder.withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
+				((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
 			}
 		}
 
@@ -110,6 +110,11 @@ class MimeMessageEmailMapper {
 					userProvidedContentId(attachment));
 		}
 		return builder;
+	}
+
+	/** Parsed input is authoritative; outgoing convenience cardinality rules do not apply to imported headers. */
+	private static Recipient parsedRecipient(@NotNull final InternetAddress address) {
+		return new Recipient(address.getPersonal(), address.getAddress(), null, null);
 	}
 
 	private static boolean isBodyPartContentTransferEncodingOverride(@Nullable final ContentTransferEncoding fallbackContentTransferEncoding,

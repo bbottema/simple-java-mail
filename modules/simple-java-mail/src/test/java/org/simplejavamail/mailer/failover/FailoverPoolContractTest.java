@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,9 +44,9 @@ class FailoverPoolContractTest {
         final Email original = MAIL.emailBuilder().startingBlank().withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
                 .withPlainText("unchanged original").buildEmail();
         try (RecordingSmtpServer first = new RecordingSmtpServer(); RecordingSmtpServer second = new RecordingSmtpServer();
-             Mailer primary = builder(first.port()).withClusterKey(cluster).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN)
+             Mailer primary = updateMailer(builder(first.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()))
                      .withEmailOverrides(template("first")).buildMailer();
-             Mailer member = builder(second.port()).withClusterKey(cluster).withEmailOverrides(template("second")).buildMailer()) {
+             Mailer member = updateMailer(builder(second.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build())).withEmailOverrides(template("second")).buildMailer()) {
             final var one = primary.async().sendMail(original);
             final var two = primary.async().sendMail(original);
             one.getCompletion().get(10, SECONDS);
@@ -65,8 +67,8 @@ class FailoverPoolContractTest {
         // Keep the released connection eligible for reuse even when the first send is slow on the test host.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(150))
-                     .withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withFailoverMailer(selected, policy()).buildMailer()) {
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(1).withClaimTimeout(Duration.ofMillis(150)).withExpireAfter(Duration.ofMillis(60000)).build()))
+                     .withFailoverMailer(selected, policy()).buildMailer()) {
             try {
                 final var occupied = callback.submit(() -> {
                     initiating.withOpenConnection(sender -> {
@@ -102,7 +104,7 @@ class FailoverPoolContractTest {
         // Test lease release and reentry, not expiration while a slow host completes the first send.
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000))
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build()))
                      .withFailoverMailer(selected, policy())
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
                          if (completions.incrementAndGet() == 1) {
@@ -136,7 +138,7 @@ class FailoverPoolContractTest {
                 connection.acceptMessages(peer);
             }
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer()) {
-            final var configured = builder(primary.port()).withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1);
+            final var configured = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build()));
             if (cleared) {
                 configured.withFailoverMailer(selected, policy()).clearFailoverMailer();
             }
@@ -168,7 +170,7 @@ class FailoverPoolContractTest {
             peer.expectClosed();
             failedConnectionClosed.countDown();
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1)
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build()))
                      .withFailoverMailer(selected, FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofHours(1)).build()).buildMailer()) {
             try {
                 await(initialStarted);

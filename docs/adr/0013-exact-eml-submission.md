@@ -23,6 +23,11 @@ Tolerant reading does not relax this explicit submission mode's validation, cont
 
 Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 
+That copy also makes no promise that signatures already applied to the source remain valid; copying does not automatically strip or re-sign them.
+Use the original exact Email for unchanged resubmission. When constructing a different envelope, start the existing exact builder from the
+application's authoritative finalized input and supply its envelope explicitly. This clarifies the existing boundary without adding a copy mode
+or requiring a new public message type.
+
 [ADR 0028](0028-per-email-recipient-rejection-handling.md) records the explicit recipient-rejection choice on ExactEmailBuilder under #754.
 It is envelope metadata only: ordinary templates remain bypassed, compatible factory locks still apply, and authoritative bytes are unchanged.
 

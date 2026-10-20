@@ -5,12 +5,10 @@ import jakarta.mail.Session;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
-import org.simplejavamail.api.mailer.EmailTooBigException;
-import org.simplejavamail.api.mailer.MailSendCancelledException;
-import org.simplejavamail.api.mailer.MailSendTimeoutException;
-import org.simplejavamail.api.mailer.MailSubmissionException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
@@ -22,8 +20,6 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
-import static org.simplejavamail.mailer.internal.MailerException.MAILER_ERROR;
-import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -86,12 +82,8 @@ class SendMailClosure implements Runnable {
 			}
 		} catch (final MessagingException e) {
 			handleException(e, GENERIC_ERROR);
-		} catch (final MailSubmissionException | MailSendCancelledException | MailSendTimeoutException | ConnectionSetupFailure e) {
-			throw e;
-		} catch (final MailerException | EmailTooBigException e) {
-			handleException(e, MAILER_ERROR);
-		} catch (final Exception e) {
-			handleException(e, UNKNOWN_ERROR);
+		} catch (final MailException e) {
+			throw control.translateFailure(e);
 		}
 	}
 
@@ -108,6 +100,6 @@ class SendMailClosure implements Runnable {
 		val emailId = ofNullable(email.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", email.getSubject()));
-		throw control.translateFailure(new MailerException(format(errorMsg, emailId), e));
+		throw control.translateFailure(new MailerException(MailFailureKind.PREPARATION, format(errorMsg, emailId), e));
 	}
 }

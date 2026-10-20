@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
@@ -38,6 +42,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -75,7 +80,7 @@ class LegacySmtpContentSupportTest {
             acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
             acceptMessage(peer, MAIL_FROM + (advertised ? " SMTPUTF8" : ""), "", INTERNATIONAL_RECIPIENT);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withProperties(properties).withLegacySmtpContentSupport(true).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withProperties(properties).withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).buildMailer()) {
             mailer.sync().sendMail(message(ASCII_RECIPIENT));
             mailer.sync().sendMail(message(INTERNATIONAL_RECIPIENT));
             assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory")).isSameAs(socketFactory);
@@ -92,7 +97,7 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM + " SMTPUTF8 AUTH=caf+C3+A9", "", ASCII_RECIPIENT);
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withProperty("mail.smtp.submitter", "café").withLegacySmtpContentSupport(true).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withProperty("mail.smtp.submitter", "café").withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).buildMailer()) {
             if (advertised) {
                 mailer.sync().sendMail(message(ASCII_RECIPIENT));
             } else {
@@ -160,7 +165,7 @@ class LegacySmtpContentSupportTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(legacy).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(legacy).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             if (permitted) {
                 final MailSubmissionReceipt receipt = mailer.async().sendMail(email).getCompletion().get(10, SECONDS);
                 assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -194,7 +199,7 @@ class LegacySmtpContentSupportTest {
         }
         if (contentKind.equals("body") || contentKind.equals("combined")) {
             return factory().emailBuilder().copying(message(recipient))
-                    .withPlainText("Café").withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
+                    .withPlainText("Café").withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build()).buildEmail();
         }
         return contentKind.equals("display text")
                 ? composedEmail("sender@example.test", recipient, "Café", "Café") : message(recipient);
@@ -242,7 +247,7 @@ class LegacySmtpContentSupportTest {
             peer.greet("250 localhost");
             assertThat(acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT).getBytes(UTF_8)).containsExactly(original);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).buildMailer()) {
             assertThat(mailer.sync().sendMail(exactEmail(original)).getStatus()).isEqualTo(ACCEPTED);
         }
     }
@@ -250,7 +255,7 @@ class LegacySmtpContentSupportTest {
     @Test
     void asciiBodyLabelledEightBitNeedsNoAdvertisedCapability() throws Exception {
         final Email email = factory().emailBuilder().copying(message(ASCII_RECIPIENT))
-                .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             assertThat(acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT)).contains("Content-Transfer-Encoding: 8bit");
@@ -277,7 +282,7 @@ class LegacySmtpContentSupportTest {
                 acceptMessage(peer, MAIL_FROM, "", ASCII_RECIPIENT);
                 finishConnection(peer);
             }
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(
                     composedEmail("séndér@example.test", INTERNATIONAL_RECIPIENT, "Test", "Body")));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
@@ -305,8 +310,8 @@ class LegacySmtpContentSupportTest {
             peer.greet("250 localhost");
             acceptMessage(peer, MAIL_FROM, "", INTERNATIONAL_RECIPIENT);
             finishConnection(peer);
-        }); Mailer strict = builder(strictServer).withClusterKey(cluster).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN)
-                .buildMailer(); Mailer legacy = builder(legacyServer).withClusterKey(cluster).withLegacySmtpContentSupport(true).buildMailer()) {
+        }); Mailer strict = updateMailer(builder(strictServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()))
+                .buildMailer(); Mailer legacy = updateMailer(builder(legacyServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build()).withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).buildMailer()) {
             int accepted = 0;
             int rejected = 0;
             for (int attempt = 0; attempt < 2; attempt++) {
@@ -329,7 +334,7 @@ class LegacySmtpContentSupportTest {
         final SimpleJavaMailConfig configured = ConfigLoader.builder().withMap("legacy relay", Map.of(PROPERTY, "true")).load();
         final SimpleJavaMail configuredFactory = SimpleJavaMail.withConfig(configured);
         try (Mailer enabled = configuredFactory.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer();
-             Mailer disabled = configuredFactory.mailerBuilder().withLegacySmtpContentSupport(true).withLegacySmtpContentSupport(false)
+             Mailer disabled = configuredFactory.mailerBuilder().withConnectionConfig(ConnectionConfig.builder().withLegacySmtpContentSupport(true).withLegacySmtpContentSupport(false).build())
                      .withTransportModeLoggingOnly(true).buildMailer();
              Mailer separate = factory().mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
             assertThat(enabled.getOperationalConfig().isLegacySmtpContentSupportEnabled()).isTrue();
@@ -355,9 +360,9 @@ class LegacySmtpContentSupportTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).withProperty("mail.mime.allowutf8", false).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).withProperty("mail.mime.allowutf8", false).buildMailer()) {
             assertCompatibilityFailure(catchThrowable(() -> mailer.sync().sendMail(message(INTERNATIONAL_RECIPIENT))), "UTF-8 output");
-            final Email secured = factory().emailBuilder().copying(message(ASCII_RECIPIENT)).withTlsRequiredForOnwardDelivery().buildEmail();
+            final Email secured = factory().emailBuilder().copying(message(ASCII_RECIPIENT)).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()).buildEmail();
             assertCompatibilityFailure(catchThrowable(() -> mailer.sync().sendMail(secured)), "connection is not using TLS");
         }
     }
@@ -373,7 +378,7 @@ class LegacySmtpContentSupportTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true)
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build()))
                 .withProperty("mail.smtp.mailextension", kind.equals("body-conflict") ? "BODY=7BIT" : "").buildMailer()) {
             assertCompatibilityFailure(catchThrowable(() -> mailer.sync().sendMail(exactEmail(original))), "No message was submitted");
         }
@@ -382,13 +387,13 @@ class LegacySmtpContentSupportTest {
     @Test
     void legacyAddressesDoNotImplyInternationalizedOrcptSupport() throws Exception {
         final Email email = factory().emailBuilder().copying(message(INTERNATIONAL_RECIPIENT))
-                .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE).buildEmail();
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 DSN");
             SmtpDsnCharacterizationTest.readGeneratedEnvelopeId(peer, MAIL_FROM);
             SmtpDsnCharacterizationTest.acceptMessageAfterMailFrom(peer, " NOTIFY=FAILURE", INTERNATIONAL_RECIPIENT);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withLegacySmtpContentSupport(true).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder().withLegacySmtpContentSupport(true).build())).buildMailer()) {
             assertThat(mailer.sync().sendMail(email).getEnvelopeId()).isNotNull();
         }
     }
@@ -408,8 +413,8 @@ class LegacySmtpContentSupportTest {
             properties.setProperty("mail.mime.allowutf8", "true");
             final Session session = Session.getInstance(properties);
             final String provider = session.getProvider("smtp").getClassName();
-            try (Mailer mailer = factory().mailerBuilder(session).withSmtpClientHostname("probe.example.test")
-                    .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withSessionTimeout(Duration.ofMillis(5000)).buildMailer()) {
+            try (Mailer mailer = factory().mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
+                    .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
                 mailer.sync().sendMail(message(ASCII_RECIPIENT));
                 assertThat(session.getProvider("smtp").getClassName()).isEqualTo(provider);
                 assertThat(session.getProperty("mail.mime.allowutf8")).isEqualTo("true");

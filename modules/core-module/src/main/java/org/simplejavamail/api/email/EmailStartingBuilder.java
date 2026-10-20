@@ -223,6 +223,10 @@ public interface EmailStartingBuilder {
 	
 	/**
 	 * Delegates to {@link #copying(Email)}, by converting the provided message first.
+	 * The resulting builder already contains the converted collections. Later additive calls retain those entries unless cleared;
+	 * for example, {@code clearReplyTo().withReplyTo("support@example.org")} replaces the local reply destinations.
+	 * Editing the copy does not modify the supplied MimeMessage. This starts editable composition, not preservation of its original MIME bytes
+	 * or a guarantee that any already applied signature remains valid; see {@link #copying(Email)}.
 	 *
 	 * @param message The MimeMessage email to convert and copy to new {@link Email}.
 	 */
@@ -230,6 +234,8 @@ public interface EmailStartingBuilder {
 	
 	/**
 	 * Delegates to {@link #copying(Email)}, by building the email first.
+	 * Copied collections are already populated: later additive calls append unless cleared. Editing this copy does not change the source builder
+	 * or an Email already built from it. This starts editable composition with the byte/signature caveats of {@link #copying(Email)}.
 	 *
 	 * @see EmailPopulatingBuilder#buildEmail()
 	 */
@@ -239,7 +245,15 @@ public interface EmailStartingBuilder {
 	 * Preconfigures the builder with all the properties from the given email that are non-null.
 	 * This includes its choices to ignore defaults or overrides and its per-property suppression settings.
 	 * Visible recipients and delivery-recipient overrides remain separate; the copy retains their order, repeated recipients and recipient options.
-	 * Attachment content remains borrowed. Copying an exact Email creates a composed message rather than preserving its authoritative bytes.
+	 * Collections, including Reply-To, are already populated. Later additive calls such as {@code to}, {@code withRecipients}, {@code withReplyTo}
+	 * and resource additions retain existing entries unless explicitly cleared; an empty additive Reply-To/recipient collection does nothing.
+	 * For example, {@code mail.emailBuilder().copying(original).clearReplyTo().withReplyTo("support@example.org")} replaces the local reply
+	 * destinations. Editing the copy leaves the original Email unchanged; ordinary defaults, overrides and mandatory locks still apply later.
+	 * <p>
+	 * Attachment content remains borrowed. Copying an exact Email starts editable composition rather than preserving its authoritative MIME bytes.
+	 * Neither original byte identity nor the validity of already applied signatures is guaranteed. Copying does not automatically remove or
+	 * re-sign old signatures. Reuse the original exact Email for unchanged resubmission. To construct a new exact envelope, use
+	 * {@link #startingFromExactEml(byte[])} with the authoritative finalized input and supply explicit envelope recipients on the exact builder.
 	 * For a merged S/MIME message, the returned builder's resource getters expose the outer choices. Resources from its retained signed Email are
 	 * added during {@link EmailPopulatingBuilder#buildEmail()}; changing the merge choice controls whether those nested resources are included.
 	 *

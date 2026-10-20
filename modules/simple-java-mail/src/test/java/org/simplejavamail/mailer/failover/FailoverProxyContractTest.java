@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.apache.logging.log4j.Level;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
@@ -39,8 +42,8 @@ class FailoverProxyContractTest {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (IncidentCapture incidents = new IncidentCapture(); RecordingSmtpServer primary = new RecordingSmtpServer();
              RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withProxy("localhost", proxy.getPort(), "user", "password")
-                     .withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000))
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(proxy.getPort()).withUsername("user").withPassword("password").build())
+                     .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build()))
                      .withFailoverMailer(alternative, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             // Observe a quiet background interval, not a send-performance threshold. The gate itself has a deterministic companion test.
             assertThat(incidents.observed.await(300, MILLISECONDS)).as("no SMTP outage before a foreground proxy scope exists").isFalse();
@@ -70,8 +73,8 @@ class FailoverProxyContractTest {
             peer.reply("421 unavailable");
             peer.expectClosed();
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withProxy("localhost", proxy.getPort(), "user", "password")
-                     .withConnectionPoolCoreSize(1).withConnectionPoolMaxSize(1).withFailoverMailer(alternative, policy())
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(proxy.getPort()).withUsername("user").withPassword("password").build())
+                     .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build())).withFailoverMailer(alternative, policy())
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final var receipt = initiating.sync().sendMail(email());
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);

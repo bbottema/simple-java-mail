@@ -29,31 +29,31 @@ public interface ProxyConfig {
 	 * Returns the configured bridge port. A value of {@code 0} means the operating system selects the actual loopback port when the bridge starts.
 	 * The effective Jakarta Mail Session contains the selected port while an authenticated-proxy operation is running.
 	 *
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyBridgePort(Integer)
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
 	 */
 	@Nullable
 	Integer getProxyBridgePort();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyHost(String)
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withHost(String)
 	 */
 	@Nullable
 	String getRemoteProxyHost();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyPort(Integer)
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withPort(Integer)
 	 */
 	@Nullable
 	Integer getRemoteProxyPort();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyUsername(String)
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)
 	 */
 	@Nullable
 	String getUsername();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#withProxyPassword(String)
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withPassword(String)
 	 */
 	@Nullable
 	String getPassword();

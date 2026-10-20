@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -79,13 +80,13 @@ class ExactEmailBuilderTest {
 	void requireTlsIsExactEnvelopeMetadataAndCanBeCleared() {
 		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
 				.withEnvelopeRecipients("recipient@example.org")
-				.withTlsRequiredForOnwardDelivery();
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build());
 
 		final Email required = builder.buildEmail();
 		assertThat(required.isTlsRequiredForOnwardDelivery()).isTrue();
 		assertThat(EmailConverter.emailToEMLByteArray(required)).containsExactly(EXACT_EML);
 
-		final Email cleared = builder.clearTlsRequiredForOnwardDelivery().buildEmail();
+		final Email cleared = builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearTlsRequiredForOnwardDelivery().build()).buildEmail();
 		assertThat(cleared.isTlsRequiredForOnwardDelivery()).isFalse();
 		assertThat(EmailConverter.emailToEMLByteArray(cleared)).containsExactly(EXACT_EML);
 	}
@@ -109,8 +110,7 @@ class ExactEmailBuilderTest {
 				.withEnvelopeRecipients(Arrays.asList("second@example.org", "first@example.org", "Third <third@example.org>"))
 				.withEnvelopeSender("old-bounce@example.org")
 				.withEnvelopeSender("New Bounce <new-bounce@example.org>")
-                .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)
-                .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY)
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY).withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).build())
 				.buildEmail();
 
 		assertThat(email.getOverrideReceivers()).extracting(Recipient::getAddress)
@@ -127,11 +127,7 @@ class ExactEmailBuilderTest {
 		final NotifyOption[] options = {NotifyOption.FAILURE, NotifyOption.DELAY};
 		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
 				.withEnvelopeRecipients("recipient@example.org")
-				.fixingEnvelopeId("typed-exact")
-				.withDeliveryStatusNotificationNotifyOptions(NotifyOption.SUCCESS)
-				.withDeliveryStatusNotificationReturnOption(ReturnOption.FULL_MESSAGE)
-				.withDeliveryStatusNotificationNotifyOptions(options)
-				.withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY);
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("typed-exact").withDeliveryStatusNotificationNotifyOptions(NotifyOption.SUCCESS).withDeliveryStatusNotificationReturnOption(ReturnOption.FULL_MESSAGE).withDeliveryStatusNotificationNotifyOptions(options).withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).build());
 		options[0] = NotifyOption.NEVER;
 
 		final Email email = builder.buildEmail();
@@ -145,23 +141,22 @@ class ExactEmailBuilderTest {
 	void typedExactPreferencesKeepNeverDistinctFromNoSharedPreference() {
 		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
 				.withEnvelopeRecipients("recipient@example.org")
-				.withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY)
-				.withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER);
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER).build());
 		assertThat(builder.buildEmail().getDeliveryStatusNotification().getNotifyOptions()).containsExactly(NotifyOption.NEVER);
-		assertThat(builder.withDeliveryStatusNotificationNotifyOptions().buildEmail().getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
-		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER, NotifyOption.FAILURE).buildEmail())
+		assertThat(builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions().build()).buildEmail().getDeliveryStatusNotification().getNotifyOptions()).isEmpty();
+		assertThatThrownBy(() -> builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions(NotifyOption.NEVER, NotifyOption.FAILURE).build()).buildEmail())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("NEVER");
 	}
 
 	@Test
-	void typedExactChoicesRejectNullAndEmptyRequestsWithoutAnotherDsnOption() {
+	void exactBuilderRejectsNullGroupAndInvalidSharedNotificationRequests() {
 		final ExactEmailBuilder builder = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
 				.withEnvelopeRecipients("recipient@example.org");
-		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationReturnOption((ReturnOption) null))
-				.isInstanceOf(NullPointerException.class).hasMessageContaining("returnOption");
-		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions().buildEmail())
+		assertThatThrownBy(() -> builder.withSmtpDeliveryOptions(null))
+				.isInstanceOf(NullPointerException.class).hasMessageContaining("config");
+		assertThatThrownBy(() -> builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions().build()).buildEmail())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("At least one");
-		assertThatThrownBy(() -> builder.withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, null).buildEmail())
+		assertThatThrownBy(() -> builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, null).build()).buildEmail())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("null");
 	}
 
@@ -231,7 +226,7 @@ class ExactEmailBuilderTest {
 	void copyingAnExactEmailIntentionallyCreatesAComposedEmail() {
 		final Email exactEmail = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
 				.withEnvelopeRecipients("first@example.org", "second@example.org")
-				.withTlsRequiredForOnwardDelivery()
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build())
 				.buildEmail();
 		final Email copiedEmail = simpleJavaMail.emailBuilder().copying(exactEmail).buildEmail();
 

@@ -1,5 +1,7 @@
 package org.simplejavamail.coreconsumer;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
@@ -22,6 +24,46 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** Continuing application reads use invariant schema keys with core and its declared API dependencies only. */
+    public static java.time.Duration inspectTypedConfiguration(final SimpleJavaMailConfig config) {
+        final Integer port = config.get(org.simplejavamail.config.ConfigKeys.SMTP_PORT);
+        final java.time.Duration timeout = config.get(org.simplejavamail.config.ConfigKeys.SESSION_TIMEOUT);
+        final java.util.Map<String, String> extras = config.get(org.simplejavamail.config.ConfigKeys.EXTRA_PROPERTIES);
+        final java.util.Map<String, SimpleJavaMailConfig> named = config.get(org.simplejavamail.config.ConfigKeys.NAMED_MAILERS);
+        config.hasProperty(org.simplejavamail.config.ConfigKeys.SMTP_PORT);
+        config.getPropertySource(org.simplejavamail.config.ConfigKeys.SESSION_TIMEOUT);
+        return config.valueOrProperty(timeout, org.simplejavamail.config.ConfigKeys.SESSION_TIMEOUT, java.time.Duration.ofSeconds(30));
+    }
+
+    /** The public Mailer type supports ordinary scoped ownership without a broad throws Exception declaration. */
+    public static void finishOwnedMailer(final Mailer mailer) throws java.util.concurrent.ExecutionException, InterruptedException {
+        try (Mailer owned = mailer) {
+            owned.getTransportStrategy();
+        }
+    }
+
+    /** OAuth2 over implicit TLS uses existing core-owned configuration and provider contracts. */
+    public static MailerRegularBuilder<?> implicitTlsOAuth2(final MailerRegularBuilder<?> builder,
+            final org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider tokens) {
+        return builder.withTransportStrategy(org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS_OAUTH2)
+                .withOAuth2AccessTokenProvider(tokens);
+    }
+
+    /** Generic failure handling needs only core, including optional receipts and the typed classification. */
+    public static org.simplejavamail.api.mailer.MailFailureKind sendAndInspectFailure(final Mailer mailer, final Email email) {
+        try {
+            final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
+            receipt.isAcceptedForAtLeastOneRecipient();
+            receipt.isFullyAcceptedForSubmission();
+            return null;
+        } catch (org.simplejavamail.MailException failure) {
+            final java.util.Optional<MailSubmissionReceipt> receipt = failure.getSubmissionReceipt();
+            receipt.ifPresent(facts -> facts.isFullyAcceptedForSubmission());
+            failure.getCause();
+            return failure.getKind();
+        }
+    }
+
     public static Mailer inspectFailover(final MailerRegularBuilder<?> builder) {
         final org.simplejavamail.api.mailer.config.FailoverPolicy policy = builder.getFailoverPolicy();
         if (policy != null) {
@@ -134,7 +176,7 @@ public final class CoreOnlyConsumer {
         final Recipient recipient = recipientBuilder.to("Reader", "reader@example.org");
         groupBuilder.withRecipient("archive@example.org", RecipientType.BCC).buildRecipients();
         final Email email = emails.startingBlank().from("sender@example.org").withRecipients(recipient)
-                .dontApplyDefaultValueFor(EmailProperty.SUBJECT).withSubject("Core API consumer").buildEmail();
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(EmailProperty.SUBJECT).build()).withSubject("Core API consumer").buildEmail();
         final Mailer mailer = mailers.withSendHandlers(MailSendHandlers.builder()
                 .withResultObserver(CoreOnlyConsumer::inspect).clearResultObserver().withResultObserver(CoreOnlyConsumer::inspect)
                 .withProgressObserver(CoreOnlyConsumer::inspectProgress).clearProgressObserver().withProgressObserver(CoreOnlyConsumer::inspectProgress).build())
@@ -173,14 +215,23 @@ public final class CoreOnlyConsumer {
             default:
                 progress.getStage().toString();
         }
-        progress.getBytesWritten().ifPresent(Object::toString);
-        progress.getTotalBytes().ifPresent(Object::toString);
+        final Long written = progress.getBytesWritten();
+        final Long total = progress.getTotalBytes();
+        if (written != null && total != null) {
+            written.compareTo(total);
+        }
     }
 
     private static String inspect(final MailSendDiagnostics report) {
-        report.getConnectionHistory().forEach(step -> step.getElapsed().ifPresent(Object::toString));
+        report.getConnectionHistory().forEach(step -> {
+            final java.time.Duration elapsed = step.getElapsed();
+            if (elapsed != null) {
+                elapsed.toNanos();
+            }
+        });
         report.getSubmissionHistory().forEach(step -> step.getSubmissionStatus().name());
-        return report.getPreparation().getElapsed().map(Object::toString).orElseGet(() -> report.getPreparation().getUnavailableReason().orElse(""));
+        final java.time.Duration elapsed = report.getPreparation().getElapsed();
+        return elapsed != null ? elapsed.toString() : report.getPreparation().getUnavailableReason();
     }
 
     public static Email convert(final ConfiguredEmailConverter converter, final SimpleJavaMailConfig config) {

@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
@@ -69,9 +70,9 @@ class ForwardedTemplateGovernanceTest {
 	void suppressingDefaultsRemovesTheirForwardedSource(final boolean globally) throws Exception {
 		final EmailPopulatingBuilder provided = blank();
 		if (globally) {
-			provided.ignoringDefaults();
+			provided.withTemplateOptions(provided.getTemplateOptions().toBuilder().ignoringDefaults().build());
 		} else {
-			provided.dontApplyDefaultValueFor(MAIL_TO_FORWARD);
+			provided.withTemplateOptions(provided.getTemplateOptions().toBuilder().dontApplyDefaultValueFor(MAIL_TO_FORWARD).build());
 		}
 		try (Mailer mailer = mailer(forward(source("Default source")).buildEmail(), blank().buildEmail())) {
 			assertThat(govern(mailer, provided.buildEmail()).getEmailToForward()).isNull();
@@ -84,9 +85,9 @@ class ForwardedTemplateGovernanceTest {
 		final MimeMessage defaultSource = source("Default source");
 		final EmailPopulatingBuilder provided = blank();
 		if (globally) {
-			provided.ignoringOverrides();
+			provided.withTemplateOptions(provided.getTemplateOptions().toBuilder().ignoringOverrides().build());
 		} else {
-			provided.dontApplyOverrideValueFor(MAIL_TO_FORWARD);
+			provided.withTemplateOptions(provided.getTemplateOptions().toBuilder().dontApplyOverrideValueFor(MAIL_TO_FORWARD).build());
 		}
 		try (Mailer mailer = mailer(forward(defaultSource).buildEmail(), forward(source("Override source")).buildEmail())) {
 			assertThat(govern(mailer, provided.buildEmail()).getEmailToForward()).isSameAs(defaultSource);
@@ -96,8 +97,7 @@ class ForwardedTemplateGovernanceTest {
 	@Test
 	void suppressingTemplatesNeverRemovesTheSuppliedForward() throws Exception {
 		final MimeMessage supplied = source("Supplied source");
-		final Email provided = forward(supplied).ignoringDefaults().ignoringOverrides()
-				.dontApplyDefaultValueFor(MAIL_TO_FORWARD).dontApplyOverrideValueFor(MAIL_TO_FORWARD).buildEmail();
+		final Email provided = forward(supplied).withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().dontApplyDefaultValueFor(MAIL_TO_FORWARD).dontApplyOverrideValueFor(MAIL_TO_FORWARD).build()).buildEmail();
 		try (Mailer mailer = mailer(forward(source("Default source")).buildEmail(), forward(source("Override source")).buildEmail())) {
 			assertThat(govern(mailer, provided).getEmailToForward()).isSameAs(supplied);
 		}

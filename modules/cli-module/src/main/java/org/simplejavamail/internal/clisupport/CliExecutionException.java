@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 /**
  * This exception is used to communicate errors during the creation of an email.
@@ -20,6 +21,6 @@ class CliExecutionException extends MailException {
 	static final String ERROR_INVOKING_BUILDER_API = "Got error while invoking Builder API with argument(s) '%s' for '%s'";
 	
 	CliExecutionException(String message, Exception cause) {
-		super(message, cause);
+		super(MailFailureKind.CONFIGURATION, message, cause, null);
 	}
 }

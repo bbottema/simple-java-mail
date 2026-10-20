@@ -13,6 +13,9 @@ import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 
 import static org.simplejavamail.config.ConfigDiagnosticGroup.DELIVERY_STATUS_NOTIFICATIONS;
 import static org.simplejavamail.config.ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION;
@@ -54,11 +57,10 @@ final class PropertySchema {
 		REDACT_WHEN_NAME_LOOKS_SENSITIVE
 	}
 
-	private static final Map<Property, ValueType> TYPES = new EnumMap<>(Property.class);
+	private static final Map<Property, Binding<?, ?>> BINDINGS = new EnumMap<>(Property.class);
 	private static final Map<Property, DiagnosticMetadata> DIAGNOSTIC_METADATA = new EnumMap<>(Property.class);
 
 	static {
-		registerPropertyTypes();
 		registerDiagnosticMetadata();
 		verifyEveryPropertyHasDiagnosticMetadata();
 	}
@@ -66,76 +68,87 @@ final class PropertySchema {
 	private PropertySchema() {
 	}
 
-	private static void registerPropertyTypes() {
-		for (Property property : Property.values()) {
-			TYPES.put(property, ValueType.STRING);
-		}
+    // These typed factories are selected only by ConfigKeys: they bind parsing and Java projection in one declaration.
+    static ConfigKey<String> stringKey(final Property p) { return bind(p, ValueType.STRING, v -> requireType(v, String.class), Function.identity()); }
+    static ConfigKey<Boolean> booleanKey(final Property p) { return bind(p, ValueType.BOOLEAN, PropertySchema::parseBoolean, Function.identity()); }
+    static ConfigKey<Integer> integerKey(final Property p) { return bind(p, ValueType.INTEGER, PropertySchema::parseInteger, Function.identity()); }
+    static ConfigKey<Integer> positiveIntegerKey(final Property p) { return bind(p, ValueType.POSITIVE_INTEGER, PropertySchema::parsePositiveInteger, Function.identity()); }
+    static ConfigKey<Long> longKey(final Property p) { return bind(p, ValueType.LONG, PropertySchema::parseLong, Function.identity()); }
+    static ConfigKey<Double> doubleKey(final Property p) { return bind(p, ValueType.DOUBLE, PropertySchema::parseDouble, Function.identity()); }
+    static ConfigKey<Duration> durationKey(final Property p) {
+        return bind(p, ValueType.DURATION, v -> v instanceof Duration ? (Duration) v : Duration.parse(requireType(v, String.class)), Function.identity());
+    }
+    static ConfigKey<Duration> millisecondKey(final Property p) {
+        return bind(p, ValueType.INTEGER, PropertySchema::parseInteger, value -> Duration.ofMillis(value));
+    }
+    static ConfigKey<TransportStrategy> transportStrategyKey(final Property p) { return enumKey(p, ValueType.TRANSPORT_STRATEGY, TransportStrategy.class); }
+    static ConfigKey<SessionDebugOutput> sessionDebugOutputKey(final Property p) { return enumKey(p, ValueType.SESSION_DEBUG_OUTPUT, SessionDebugOutput.class); }
+    static ConfigKey<LoadBalancingStrategy> loadBalancingStrategyKey(final Property p) { return enumKey(p, ValueType.LOAD_BALANCING_STRATEGY, LoadBalancingStrategy.class); }
+    static ConfigKey<AsyncQueueOverflowPolicy> asyncQueueOverflowPolicyKey(final Property p) { return enumKey(p, ValueType.ASYNC_QUEUE_OVERFLOW_POLICY, AsyncQueueOverflowPolicy.class); }
+    static ConfigKey<DkimConfig.Canonicalization> dkimCanonicalizationKey(final Property p) { return enumKey(p, ValueType.DKIM_CANONICALIZATION, DkimConfig.Canonicalization.class); }
+    static ConfigKey<ContentTransferEncoding> contentTransferEncodingKey(final Property p) {
+        return bind(p, ValueType.CONTENT_TRANSFER_ENCODING, v -> v instanceof ContentTransferEncoding ? (ContentTransferEncoding) v
+                : ContentTransferEncoding.byEncoder(requireType(v, String.class)), Function.identity());
+    }
+    static ConfigKey<DeliveryStatusNotification.ReturnOption> dsnReturnOptionKey(final Property p) {
+        return bind(p, ValueType.DSN_RETURN_OPTION, v -> v instanceof DeliveryStatusNotification.ReturnOption ? (DeliveryStatusNotification.ReturnOption) v
+                : DeliveryStatusNotification.parseReturnOption(requireType(v, String.class)), Function.identity());
+    }
+    static ConfigKey<Map<String, String>> extraPropertiesKey(final Property p) {
+        return bind(p, ValueType.WILDCARD, PropertySchema::<String, String>mapValue, Function.identity());
+    }
+    static ConfigKey<Map<UUID, ConnectionPoolClusterConfig>> poolClustersKey(final Property p) {
+        return bind(p, ValueType.WILDCARD, PropertySchema::<UUID, ConnectionPoolClusterConfig>mapValue, Function.identity());
+    }
+    static ConfigKey<Map<String, SimpleJavaMailConfig>> namedMailersKey(final Property p) {
+        return bind(p, ValueType.WILDCARD, PropertySchema::<String, SimpleJavaMailConfig>mapValue, Function.identity());
+    }
+    @SuppressWarnings("unchecked")
+    private static <K, V> Map<K, V> mapValue(final Object value) { return (Map<K, V>) requireType(value, Map.class); }
 
-		set(ValueType.BOOLEAN,
-				Property.TELEMETRY_ENABLED,
-				Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
-				Property.FAILOVER_ON_AUTHENTICATION_FAILURE,
-				Property.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE,
-				Property.SMTP_RATE_LIMIT_ALLOW_BURSTS,
-				Property.SMTP_LEGACY_CONTENT_SUPPORT,
-				Property.JAVAXMAIL_DEBUG,
-				Property.DISABLE_ALL_CLIENTVALIDATION,
-				Property.DEFAULT_TRUST_ALL_HOSTS,
-				Property.DEFAULT_VERIFY_SERVER_IDENTITY,
-				Property.DEFAULT_REQUIRE_TLS,
-				Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS,
-				Property.TRANSPORT_MODE_LOGGING_ONLY,
-				Property.OPPORTUNISTIC_TLS,
-				Property.DKIM_SIGNING_USE_LENGTH_PARAM,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL,
-				Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL);
+    private static <T extends Enum<T>> ConfigKey<T> enumKey(final Property p, final ValueType kind, final Class<T> type) {
+        return bind(p, kind, value -> parseEnum(value, type), Function.identity());
+    }
+    private static <S, T> ConfigKey<T> bind(final Property property, final ValueType kind,
+            final Function<Object, S> parser, final Function<S, T> projection) {
+        final Binding<S, T> binding = new Binding<>(property, kind, parser, projection);
+        if (BINDINGS.put(property, binding) != null) {
+            throw new IllegalStateException("Schema already configured for " + property.key());
+        }
+        return new ConfigKey<>(binding);
+    }
+    static void verifyKeyCatalogue() {
+        if (BINDINGS.size() != Property.values().length) {
+            throw new IllegalStateException("Every Simple Java Mail property must have exactly one typed schema key");
+        }
+    }
+    private static Binding<?, ?> binding(final Property property) {
+        ConfigKeys.initialize();
+        final Binding<?, ?> binding = BINDINGS.get(property);
+        if (binding == null) throw new IllegalStateException("No typed schema key configured for " + property.key());
+        return binding;
+    }
 
-		set(ValueType.INTEGER,
-				Property.DEFAULT_ASYNC_QUEUE_CAPACITY,
-				Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS,
-				Property.SMTP_PORT,
-				Property.SMTP_LOCAL_PORT,
-				Property.PROXY_PORT,
-				Property.PROXY_SOCKS5BRIDGE_PORT,
-				Property.DEFAULT_POOL_SIZE,
-				Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE,
-				Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE,
-				Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS,
-				Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS,
-				Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS,
-				Property.DEFAULT_POOL_KEEP_ALIVE_TIME,
-				Property.DEFAULT_SESSION_TIMEOUT_MILLIS);
+    /** Loader-only binding: S is the existing parsed storage type; T is the key's invariant Java view. */
+    static final class Binding<S, T> {
+        final Property property;
+        private final ValueType kind;
+        private final Function<Object, S> parser;
+        private final Function<S, T> projection;
 
-		set(ValueType.TRANSPORT_STRATEGY, Property.TRANSPORT_STRATEGY);
-		set(ValueType.POSITIVE_INTEGER, Property.SMTP_RETRY_ATTEMPTS, Property.SMTP_RETRY_BACKOFF_MULTIPLIER,
-				Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY);
-		set(ValueType.LONG, Property.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, Property.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
-		set(ValueType.DOUBLE, Property.SMTP_RETRY_JITTER);
-		set(ValueType.DURATION, Property.SMTP_RETRY_DELAY, Property.SMTP_RETRY_MAXIMUM_DELAY);
-		set(ValueType.POSITIVE_INTEGER, Property.SMTP_MESSAGE_RATE_LIMIT, Property.SMTP_RECIPIENT_RATE_LIMIT,
-				Property.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, Property.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER);
-		set(ValueType.DURATION, Property.DEFAULT_MAIL_SEND_TIMEOUT, Property.SMTP_MESSAGE_RATE_PERIOD, Property.SMTP_RECIPIENT_RATE_PERIOD);
-		set(ValueType.DURATION, Property.FAILOVER_PRIMARY_RETRY_DELAY, Property.FAILOVER_PRIMARY_RECHECK_INTERVAL,
-				Property.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL);
-		set(ValueType.SESSION_DEBUG_OUTPUT, Property.JAVAXMAIL_DEBUG_OUTPUT);
-		set(ValueType.CONTENT_TRANSFER_ENCODING,
-				Property.DEFAULT_CONTENT_TRANSFER_ENCODING,
-				Property.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING,
-				Property.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING,
-				Property.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING);
-		set(ValueType.DSN_RETURN_OPTION, Property.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION);
-		set(ValueType.LOAD_BALANCING_STRATEGY, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY);
-		set(ValueType.ASYNC_QUEUE_OVERFLOW_POLICY, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
-		set(ValueType.DKIM_CANONICALIZATION,
-				Property.DKIM_SIGNING_HEADER_CANONICALIZATION,
-				Property.DKIM_SIGNING_BODY_CANONICALIZATION);
-		set(ValueType.WILDCARD, Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, Property.EXTRA_PROPERTIES, Property.NAMED_MAILERS);
-	}
+        private Binding(final Property property, final ValueType kind, final Function<Object, S> parser, final Function<S, T> projection) {
+            this.property = property;
+            this.kind = kind;
+            this.parser = parser;
+            this.projection = projection;
+        }
+
+        @SuppressWarnings("unchecked")
+        T read(final Object stored) {
+            // Only the loader's matching parser/typed wildcard assembly can populate this property's immutable snapshot slot.
+            return projection.apply((S) stored);
+        }
+    }
 
 	private static void registerDiagnosticMetadata() {
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.VISIBLE, Property.SMTP_RETRY_ATTEMPTS, Property.SMTP_RETRY_DELAY,
@@ -262,54 +275,19 @@ final class PropertySchema {
 
 	/** Types come from the canonical schema; errors identify the declaration selected from the ordinary or locked namespace. */
 	static Object parse(final Property property, final Object rawValue, final String propertyName, final String sourceName) {
-		final ValueType type = TYPES.get(property);
-		if (type == ValueType.WILDCARD) {
-			throw new IllegalArgumentException("Wildcard property " + escapeControlCharacters(propertyName)
-					+ " cannot be set as a single value. Configure its individual child properties instead.");
-		}
-		try {
-			switch (type) {
-				case STRING:
-					return requireType(rawValue, String.class);
-				case BOOLEAN:
-					return parseBoolean(rawValue);
-				case INTEGER:
-					return parseInteger(rawValue);
-				case POSITIVE_INTEGER:
-					return parsePositiveInteger(rawValue);
-				case LONG:
-					return parseLong(rawValue);
-				case DOUBLE:
-					return parseDouble(rawValue);
-				case DURATION:
-					return rawValue instanceof Duration ? rawValue : Duration.parse(requireType(rawValue, String.class));
-				case TRANSPORT_STRATEGY:
-					return parseEnum(rawValue, TransportStrategy.class);
-				case SESSION_DEBUG_OUTPUT:
-					return parseEnum(rawValue, SessionDebugOutput.class);
-				case CONTENT_TRANSFER_ENCODING:
-					return rawValue instanceof ContentTransferEncoding
-							? rawValue
-							: ContentTransferEncoding.byEncoder(requireType(rawValue, String.class));
-				case DSN_RETURN_OPTION:
-					return rawValue instanceof DeliveryStatusNotification.ReturnOption
-							? rawValue
-							: DeliveryStatusNotification.parseReturnOption(requireType(rawValue, String.class));
-				case LOAD_BALANCING_STRATEGY:
-					return parseEnum(rawValue, LoadBalancingStrategy.class);
-				case DKIM_CANONICALIZATION:
-					return parseEnum(rawValue, DkimConfig.Canonicalization.class);
-				case ASYNC_QUEUE_OVERFLOW_POLICY:
-					return parseEnum(rawValue, AsyncQueueOverflowPolicy.class);
-				default:
-					throw new IllegalStateException("Unhandled property type " + type);
-			}
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Invalid value for " + escapeControlCharacters(propertyName)
-					+ " from source " + escapeControlCharacters(sourceName) + "; expected " + expectedType(type)
-					+ ". Correct this value in its configuration source.", e);
-		}
-	}
+        final Binding<?, ?> binding = binding(property);
+        if (binding.kind == ValueType.WILDCARD) {
+            throw new IllegalArgumentException("Wildcard property " + escapeControlCharacters(propertyName)
+                    + " cannot be set as a single value. Configure its individual child properties instead.");
+        }
+        try {
+            return binding.parser.apply(rawValue);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Invalid value for " + escapeControlCharacters(propertyName)
+                    + " from source " + escapeControlCharacters(sourceName) + "; expected " + expectedType(binding.kind)
+                    + ". Correct this value in its configuration source.", e);
+        }
+    }
 
 	static boolean isSecret(final Property property) {
 		return diagnosticMetadata(property).sensitivityPolicy != SensitivityPolicy.VISIBLE;
@@ -333,11 +311,6 @@ final class PropertySchema {
 				redacted);
 	}
 
-	private static void set(final ValueType type, final Property... properties) {
-		for (Property property : properties) {
-			TYPES.put(property, type);
-		}
-	}
 
 	private static void setDiagnostics(final ConfigDiagnosticGroup group,
 			final SensitivityPolicy sensitivityPolicy,
@@ -370,9 +343,9 @@ final class PropertySchema {
 		}
 	}
 
-	private static Object parseBoolean(final Object value) {
+	private static Boolean parseBoolean(final Object value) {
 		if (value instanceof Boolean) {
-			return value;
+			return (Boolean) value;
 		}
 		final String normalized = requireType(value, String.class).toLowerCase(Locale.ROOT);
 		if ("1".equals(normalized) || "true".equals(normalized) || "yes".equals(normalized)) {

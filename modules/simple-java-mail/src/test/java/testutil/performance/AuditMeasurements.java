@@ -64,7 +64,7 @@ final class AuditMeasurements {
         if (recording) {
             final int index = position.getAndIncrement();
             latencies[index] = Duration.between(outcome.getRequestedAt(), outcome.getCompletedAt()).toNanos();
-            queueTimes[index] = Duration.between(outcome.getReadyAt().orElseThrow(), outcome.getStartedAt().orElseThrow()).toNanos();
+            queueTimes[index] = Duration.between(outcome.getReadyAt(), outcome.getStartedAt()).toNanos();
         }
     }
 

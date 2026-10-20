@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -144,7 +145,7 @@ class FailoverSmtpContractTest {
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final Email message = MAIL.emailBuilder().copying(email()).withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("rejected@example.test").withType(RecipientType.TO).build())
-                    .withSendingToAcceptedRecipients(partial).buildEmail();
+                    .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(partial).build()).buildEmail();
             final Throwable failure = catchThrowable(() -> send(initiating, message, asynchronous));
             assertThat(failure).isInstanceOf(MailSubmissionException.class);
             final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();
@@ -200,7 +201,7 @@ class FailoverSmtpContractTest {
         try (RecordingSmtpServer primary = new RecordingSmtpServer(); RecordingSmtpServer secondary = new RecordingSmtpServer();
              Mailer destination = builder(secondary.port()).buildMailer();
              Mailer initiating = builder(primary.port()).withFailoverMailer(destination, policy()).buildMailer()) {
-            final Email message = MAIL.emailBuilder().copying(email()).fixingEnvelopeId("explicit-id").buildEmail();
+            final Email message = MAIL.emailBuilder().copying(email()).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("explicit-id").build()).buildEmail();
             assertThat(catchThrowable(() -> initiating.sync().sendMail(message))).isInstanceOf(MailException.class);
             assertThat(primary.messages()).isEmpty();
             assertThat(secondary.connectionCount()).isZero();

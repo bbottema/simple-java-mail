@@ -1,5 +1,7 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -21,7 +23,7 @@ class MailSendTimeoutConfigTest {
                 .load();
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(config);
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 25).withMailSendTimeout(Duration.ofSeconds(2)).buildMailer()) {
-            assertThat(config.<Duration>getProperty(DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofMillis(12500));
+            assertThat(config.get(ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT)).isEqualTo(Duration.ofMillis(12500));
             assertThat(config.getDiagnostics().getProperties(ConfigDiagnosticGroup.EXECUTION_AND_POOLING))
                     .singleElement().satisfies(property -> {
                         assertThat(property.getDisplayValue()).isEqualTo("PT12.5S");

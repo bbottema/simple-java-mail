@@ -11,9 +11,9 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
-import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendCleanupException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
@@ -30,7 +30,6 @@ import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
-import static org.simplejavamail.mailer.internal.MailerException.MAILER_ERROR;
 import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
 
 /**
@@ -50,6 +49,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	@Nullable private MailSendTelemetryBridge.Scope currentTelemetryScope;
 	@NotNull private final MailSendControl control;
 	@NotNull private final SendingAllowance sendingAllowance;
+	@NotNull private MailFailureKind checkedFailureKind = MailFailureKind.CONNECTION;
 
 	SendMailsInSimpleBatchClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Iterable<Email> userProvidedEmails,
 			@NotNull Function<Email, Email> emailPreparer, @NotNull MailSendObserverNotifier mailSendObserverNotifier,
@@ -103,6 +103,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			control.checkStopped();
 			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
 		}
+		checkedFailureKind = MailFailureKind.CLEANUP;
 	}
 
 	private void sendEmailsUsingCustomMailer(@NotNull final Iterator<Email> emailIterator)
@@ -127,6 +128,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			}
 			completeCurrentSendSuccessfully(receipt);
 		}
+		checkedFailureKind = MailFailureKind.CLEANUP;
 	}
 
 	private void sendEmailsUsingSingleTransport(@NotNull final Iterator<Email> emailIterator)
@@ -136,7 +138,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			try (Transport ownedTransport = transport) {
 				try {
 					control.checkStopped();
-					TransportConnectionHelper.connectTransport(ownedTransport, session);
+					TransportConnectionHelper.connectForSending(ownedTransport, session);
 					while (emailIterator.hasNext()) {
 						final Email email = prepareNextEmail(emailIterator);
 						control.checkStopped();
@@ -154,6 +156,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 						}
 						completeCurrentSendSuccessfully(receipt);
 					}
+					checkedFailureKind = MailFailureKind.CLEANUP;
 				} catch (Exception failure) {
 					throw reportFailure(failure);
 				} catch (Error failure) {
@@ -167,6 +170,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	}
 
 	private Email prepareNextEmail(@NotNull final Iterator<Email> emailIterator) {
+		checkedFailureKind = MailFailureKind.PREPARATION;
 		currentEmail = null;
 		currentMailSendAttempt = null;
 		handlerInitializationFailure = null;
@@ -222,19 +226,19 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	/** Freeze the failure before connection cleanup, then notify while the shared transport is still in scope. */
 	private RuntimeException reportFailure(@NotNull final Exception cause) {
 		if (cause == handlerInitializationFailure) { return handlerInitializationFailure; }
-		final RuntimeException failure = control.translateFailure(cause instanceof MailException
-				? (MailException) cause : createMailerException(cause));
+		final RuntimeException failure = control.translateFailure(cause instanceof RuntimeException
+				? (RuntimeException) cause : createMailerException(cause));
 		completeCurrentSendWithFailure(failure);
 		return failure;
 	}
 
 	private MailerException createMailerException(@NotNull final Exception cause) {
 		final String errorMessage = cause instanceof MessagingException ? GENERIC_ERROR
-				: cause instanceof EmailTooBigException ? MAILER_ERROR : UNKNOWN_ERROR;
+				: UNKNOWN_ERROR;
 		final String emailId = currentEmail == null ? "simple batch" : ofNullable(currentEmail.getId())
 				.map(id -> format("ID: '%s'", id))
 				.orElse(format("Subject: '%s'", currentEmail.getSubject()));
 		LOGGER.trace("Failed to send email {}\n\t{}", emailId, errorMessage);
-		return new MailerException(format(errorMessage, emailId), cause);
+		return new MailerException(checkedFailureKind, format(errorMessage, emailId), cause);
 	}
 }

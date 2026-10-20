@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.retry;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -49,6 +54,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,8 +70,8 @@ class MailSendRetrySmtpContractTest {
     private MailerRegularBuilder<?> builder(final int port) {
         // Retry barriers measure sending, not a workstation DNS lookup while generating the MIME Message-ID.
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(TransportStrategy.SMTP)
-                .withOpportunisticTLS(false).withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withThreadPoolSize(1);
+                .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build()).withProperty("mail.host", "localhost")
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build()).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build());
     }
 
     private MailSendRetryPolicy policy(final Duration delay) {
@@ -303,9 +309,9 @@ class MailSendRetrySmtpContractTest {
             }); Mailer mailer = builder(server.port()).withMailSendRetryPolicy(policy(Duration.ofMillis(5))).buildMailer()) {
                 final var source = mail.emailBuilder().startingBlank().from("sender@example.test")
                         .withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("receiver@example.test").withType(RecipientType.TO).build())
-                        .withPlainText("body").withDeliveryStatusNotificationNotifyOptions(
-                                DeliveryStatusNotification.NotifyOption.FAILURE);
-                if (fixed) { source.fixingEnvelopeId("fixed-envelope"); }
+                        .withPlainText("body").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(
+                                DeliveryStatusNotification.NotifyOption.FAILURE).build());
+                if (fixed) { source.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("fixed-envelope").build()); }
                 final var receipt = mailer.sync().sendMail(source.buildEmail());
                 final List<String> identifiers = server.commands().stream().filter(command -> command.startsWith("MAIL FROM:"))
                         .map(command -> command.replaceAll(".* ENVID=([^ ]+).*", "$1")).collect(toList());
@@ -337,10 +343,9 @@ class MailSendRetrySmtpContractTest {
     void enablingRetryDoesNotMakeDedicatedScopesSelectAnotherClusterMember() throws Exception {
         final UUID cluster = UUID.randomUUID();
         try (RecordingSmtpServer first = new RecordingSmtpServer(); RecordingSmtpServer second = new RecordingSmtpServer();
-             Mailer initiating = builder(first.port()).withClusterKey(cluster)
-                     .withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN)
+             Mailer initiating = updateMailer(builder(first.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()))
                      .withMailSendRetryPolicy(policy(Duration.ofMillis(5))).buildMailer();
-             Mailer member = builder(second.port()).withClusterKey(cluster).buildMailer()) {
+             Mailer member = updateMailer(builder(second.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build())).buildMailer()) {
             initiating.sync().sendMailsInSimpleBatch(List.of(email(), email()));
             initiating.withOpenConnection(sender -> {
                 sender.sendMail(email());
@@ -389,7 +394,7 @@ class MailSendRetrySmtpContractTest {
                 }
                 return "451 temporarily refused";
             });
-        }); Mailer mailer = builder(server.port()).withThreadPoolSize(4).withConnectionPoolMaxSize(2)
+        }); Mailer mailer = updateMailer(builder(server.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(4).build()).withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build()))
                 .withMailSendRetryPolicy(policy(Duration.ofMillis(5))).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
             for (int index = 0; index < 8; index++) { sends.add(mailer.async().sendMail(original)); }
@@ -479,7 +484,7 @@ class MailSendRetrySmtpContractTest {
                 final var history = outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory();
                 assertThat(history).hasSize(3);
                 assertThat(history.get(2).getAttemptNumber()).isEqualTo(3);
-                assertThat(history.get(2).getRetryDelay()).isEmpty();
+                assertThat(history.get(2).getRetryDelay()).isNull();
             }
         }
     }

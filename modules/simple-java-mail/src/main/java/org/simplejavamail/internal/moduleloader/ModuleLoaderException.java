@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.moduleloader;
 
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 @SuppressWarnings("serial")
 class ModuleLoaderException extends MailException {
@@ -8,10 +9,10 @@ class ModuleLoaderException extends MailException {
 	static final String ERROR_LOADING_MODULE = "Error loading %s module...";
 	
 	ModuleLoaderException(String message) {
-		super(message);
+		super(MailFailureKind.CONFIGURATION, message, null, null);
 	}
 	
 	ModuleLoaderException(String message, Throwable cause) {
-		super(message, cause);
+		super(MailFailureKind.CONFIGURATION, message, cause, null);
 	}
 }

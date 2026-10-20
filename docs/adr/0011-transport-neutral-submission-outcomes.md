@@ -80,6 +80,23 @@ the receipt when submission returned normally but per-email cleanup failed. An e
 provider cause and receipt; secondary cleanup errors are suppressed. Shared connection-scope cleanup does not invent one receipt for an entire batch.
 Absence of a receipt must never be interpreted as proof that no message was accepted. [ADR 0012](0012-terminal-send-observation.md) describes whole-attempt reporting.
 
+### Common failure and explicit acceptance contracts (accepted 20 October 2026)
+
+Library-owned operational failures use the existing core `MailException` root, including asynchronous admission and local message-size
+rejection. The root exposes a typed `MailFailureKind`, the original cause, and optional submission facts without requiring a subtype cast.
+Keep useful specific exception types and normalize each owned failure at its producing boundary, before the same instance reaches caller,
+completion and observer. Do not replace arbitrary application callback exceptions, programmer errors or JVM Errors with library failures.
+Invalid API arguments remain argument errors; this is not a promise to catch every Throwable with `MailException`.
+
+Failure kind describes the reported problem, not retry safety, SMTP non-acceptance or final delivery. In particular, cleanup can fail after
+acceptance, and timeout/cancellation do not undo submission. Missing receipts mean unknown facts. An existing failure keeps its subtype and
+cause while secondary cleanup failures remain suppressed. Shared-scope cleanup cannot attach one email's receipt to a whole batch.
+
+Replace the ambiguous receipt predicate `isAcceptedByServer()` with `isAcceptedForAtLeastOneRecipient()` (the same any-recipient semantics),
+and add `isFullyAcceptedForSubmission()` (true only for `ACCEPTED`). For `PARTIALLY_ACCEPTED` only the first is true; for `REJECTED` and
+`UNKNOWN` both are false. The latter false values are not equivalent evidence of rejection. Partial submission still fails the operation.
+These predicates are submission facts, independent of successful operation completion and final mailbox delivery.
+
 Recipients and raw server replies can contain personal information and untrusted text; they are not redacted configuration diagnostics. SMTP acceptance is not mailbox delivery. DSNs, bounces and application reconciliation remain separate concerns. Pending ENVID work adds correlation metadata but does not change these meanings.
 
 [ADR 0008's interpreted-source-facts decision](0008-minimal-mime-structures-and-protection-order.md#interpreted-mail-facts-remain-part-of-email-accepted-2026-10-16)

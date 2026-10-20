@@ -6,7 +6,6 @@ import org.simplejavamail.internal.util.SmtpDiagnosticText;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -62,17 +61,17 @@ public final class SmtpTlsDetails implements Serializable {
         return serverIdentityCheckEnabled;
     }
 
-    /** Empty when no caller-supplied hostname verifier returned a result; this is not a certificate-trust verdict. */
-    @NotNull
-    public Optional<Boolean> getCustomHostnameVerifierAccepted() {
-        return Optional.ofNullable(customHostnameVerifierAccepted);
+    /** Returns {@code null} when no caller-supplied hostname verifier returned a result; this is not a certificate-trust verdict. */
+    @Nullable
+    public Boolean getCustomHostnameVerifierAccepted() {
+        return customHostnameVerifierAccepted;
     }
 
     @Override
     public String toString() {
         return protocol + ", cipher=" + cipherSuite + ", peer=" + peerIdentities
                 + ", configured identity check=" + serverIdentityCheckEnabled
-                + ", custom hostname verifier=" + getCustomHostnameVerifierAccepted().map(Object::toString).orElse("not observed");
+                + ", custom hostname verifier=" + (customHostnameVerifierAccepted == null ? "not observed" : customHostnameVerifierAccepted);
     }
 
     private Object readResolve() {

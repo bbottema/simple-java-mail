@@ -53,6 +53,11 @@ Resolution depends on the shape of the value. The following describes current be
 
 These rules are implemented by [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java), [EmailProperty](../../modules/core-module/src/main/java/org/simplejavamail/internal/config/EmailProperty.java), and the [resolution helpers](../../modules/core-module/src/main/java/org/simplejavamail/internal/util/MiscUtil.java). The rationale column explains the architectural tradeoff; it is not a claim that every original implementation decision had a separate historical design record.
 
+Local collection editing follows the same additive vocabulary: `withRecipients`, `to`, `cc`, `bcc` and `withReplyTo` append to existing entries,
+including entries populated by `copying(...)`. Repeated calls retain order and duplicate occurrences; empty recipient/Reply-To additions do nothing.
+To replace a copied Reply-To collection, use `copying(original).clearReplyTo().withReplyTo(...)`; the original Email remains unchanged.
+Scalar From and bounce addresses still replace their local choice. Clearing local entries does not suppress later ordinary templates or mandatory locks.
+
 The `ALL_RECIPIENTS` suppression selector covers To, Cc and Bcc together. Suppressing a single recipient type leaves the other types alone;
 neither form suppresses the separately named delivery-recipient override. These controls remove ordinary template contributions, not the
 submitted Email's recipients or mandatory recipients supplied by configuration locks.

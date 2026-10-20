@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -27,7 +28,7 @@ public final class FailoverTestProvider implements MailTransportAdapter {
         properties.put("test.provider.state", state);
         final Session session = Session.getInstance(properties);
         session.setProvider(new Provider(Provider.Type.TRANSPORT, "smtp", ContractTransport.class.getName(), "test", "1"));
-        return FailoverContractSupport.factory().mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+        return FailoverContractSupport.factory().mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
     }
 
     @Override

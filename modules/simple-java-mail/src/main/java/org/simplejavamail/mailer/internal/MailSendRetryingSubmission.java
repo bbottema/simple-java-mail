@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import org.jetbrains.annotations.Nullable;
@@ -79,7 +81,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 			diagnostics.connectionAcquired(connection.current().getTransport());
 			return invokeAndReleaseAttempt();
 		} catch (MessagingException failure) {
-			throw terminal(new MailerException("Couldn't prepare or finish this email's retry-enabled submission. "
+			throw terminal(new MailerException(MailFailureKind.PREPARATION, "Couldn't prepare or finish this email's retry-enabled submission. "
 					+ "No automatic retry was started for this failure.", failure));
 		} catch (RuntimeException failure) {
 			throw terminal(failure);
@@ -115,7 +117,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		try {
 			result = connection.current().sendPrepared(prepared, messageId, subject, control, diagnostics, reservation, () -> invocations++);
 		} catch (MessagingException failure) {
-			refusal = control.translateFailure(new MailerException("The provider could not finish this submission. "
+			refusal = control.translateFailure(new MailerException(MailFailureKind.SUBMISSION, "The provider could not finish this submission. "
 					+ "Check the cause; no automatic replay was started.", failure));
 			lastFailure = (RuntimeException) refusal;
 		} catch (RuntimeException | Error failure) {

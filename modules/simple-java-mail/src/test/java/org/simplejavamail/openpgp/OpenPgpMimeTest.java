@@ -1,5 +1,8 @@
 package org.simplejavamail.openpgp;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
@@ -139,15 +142,15 @@ class OpenPgpMimeTest {
 
     @Test
     void mailerTemplatesProtectTheActualMimeOutputWithTheResolvedKeys() throws Exception {
-        final Email defaults = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+        final Email defaults = roundTrip(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                 .signWithOpenPgp(signing(firstKey))
                 .encryptWithOpenPgp(encryption(firstKey))
-                .buildEmail();
-        final Email overrides = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .buildEmail());
+        final Email overrides = roundTrip(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
                 .signWithOpenPgp(signing(secondKey))
                 .encryptWithOpenPgp(encryption(secondKey))
-                .buildEmail();
-        final Email source = basicEmail("template-protected content").ignoringDefaults(false).buildEmail();
+                .buildEmail());
+        final Email source = basicEmail("template-protected content").withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).build()).buildEmail();
 
         try (Mailer defaultMailer = SimpleJavaMail.fromDefaults().mailerBuilder().withEmailDefaults(defaults).buildMailer();
              Mailer overrideMailer = SimpleJavaMail.fromDefaults().mailerBuilder()
@@ -233,11 +236,9 @@ class OpenPgpMimeTest {
 		final byte[] embeddedBytes = new byte[]{(byte) 0x89, 'P', 'N', 'G'};
 		final String calendar = "BEGIN:VCALENDAR\r\nMETHOD:REQUEST\r\nEND:VCALENDAR\r\n";
 		final Email source = basicEmail("Héllo with trailing space ")
-				.withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64).withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build())
 				.withHTMLText("<p>Héllo <img src=\"cid:logo\"></p>")
-				.withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64)
 				.withCalendarText(CalendarMethod.REQUEST, calendar)
-				.withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
 				.withEmbeddedImage("logo", embeddedBytes, "image/png")
 				.withAttachment("proof.bin", attachmentBytes, "application/octet-stream", null,
 						ContentTransferEncoding.BASE_64)
@@ -264,7 +265,7 @@ class OpenPgpMimeTest {
     void tamperingIsInvalidButClearContentRemainsReadable() throws Exception {
         final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
 				basicEmail("original body")
-						.withPlainTextContentTransferEncoding(org.simplejavamail.api.email.ContentTransferEncoding.BIT7)
+						.withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(org.simplejavamail.api.email.ContentTransferEncoding.BIT7).build())
 						.signWithOpenPgp(signing(firstKey))
 						.buildEmail());
         final byte[] original = EmailConverter.mimeMessageToEMLByteArray(protectedMessage);
@@ -344,10 +345,10 @@ class OpenPgpMimeTest {
 				.symmetricAlgorithm(OpenPgpEncryptionConfig.SymmetricAlgorithm.AES_128)
 				.build();
 
-		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(basicEmail("configured algorithms")
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(roundTrip(basicEmail("configured algorithms")
 				.signWithOpenPgp(signingConfig)
 				.encryptWithOpenPgp(encryptionConfig)
-				.buildEmail());
+				.buildEmail()));
 		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, receiving(firstKey));
 
 		assertThat(parsed.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA512");
@@ -452,7 +453,7 @@ class OpenPgpMimeTest {
 				.build();
 
 		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
-				basicEmail("selected signer").signWithOpenPgp(signingConfig).buildEmail());
+				roundTrip(basicEmail("selected signer").signWithOpenPgp(signingConfig).buildEmail()));
 		final Email parsed = EmailConverter.mimeMessageToEmail(
 				protectedMessage, null, receiving(keyWithSigningSubkey));
 
@@ -465,7 +466,7 @@ class OpenPgpMimeTest {
 	void expiredKeysAreRejectedWhenApplyingNewProtection() {
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
 				basicEmail("expired signer").signWithOpenPgp(signing(expiredKey)).buildEmail()))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(org.simplejavamail.MailException.class)
 				.hasMessage("Unable to sign OpenPGP/MIME message");
 
 		final OpenPgpSigningConfig explicitlySelectedExpiredKey = OpenPgpSigningConfig.builder()
@@ -477,12 +478,12 @@ class OpenPgpMimeTest {
 				basicEmail("explicit expired signer")
 						.signWithOpenPgp(explicitlySelectedExpiredKey)
 						.buildEmail()))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(org.simplejavamail.MailException.class)
 				.hasMessage("Unable to sign OpenPGP/MIME message");
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
 				basicEmail("expired recipient").encryptWithOpenPgp(encryption(expiredKey)).buildEmail()))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(org.simplejavamail.MailException.class)
 				.hasMessage("Unable to encrypt OpenPGP/MIME message");
 	}
 
@@ -496,7 +497,7 @@ class OpenPgpMimeTest {
 
 		assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(
 				basicEmail("not signable").signWithOpenPgp(signingConfig).buildEmail()))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(org.simplejavamail.MailException.class)
 				.hasMessage("Unable to sign OpenPGP/MIME message");
 	}
 
@@ -583,7 +584,7 @@ class OpenPgpMimeTest {
         final Email email = basicEmail("composed")
                 .from("sender@supersecret-testing-domain.com")
                 .withBounceTo("bounce@example.com")
-                .withDeliveryStatusNotification(HEADERS_ONLY, FAILURE)
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE).build())
                 .signWithOpenPgp(signing(firstKey))
                 .signWithDomainKey(DkimConfig.builder()
                         .dkimPrivateKeyData(dkimKey)
@@ -652,21 +653,66 @@ class OpenPgpMimeTest {
     }
 
     @Test
-    void secretConfigurationIsRedactedAndNotSerializedWithEmail() throws Exception {
+    void secretConfigurationStaysRedactedAndCanSignAfterEmailSerialization() throws Exception {
         final Email email = basicEmail("body").signWithOpenPgp(signing(firstKey)).buildEmail();
 
         assertThat(email.toString()).doesNotContain("test-passphrase");
         assertThat(email.getOpenPgpSigningConfig().toString()).doesNotContain("test-passphrase");
 
+        final Email restored = roundTrip(email);
+        assertThat(restored.getOpenPgpSigningConfig()).isEqualTo(email.getOpenPgpSigningConfig());
+        assertThat(restored.toString()).doesNotContain("test-passphrase");
+        final Email verified = EmailConverter.mimeMessageToEmail(EmailConverter.emailToMimeMessage(restored), null, receiving(firstKey));
+        assertThat(verified.getPlainText()).isEqualTo("body");
+        assertThat(verified.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+    }
+
+    @Test
+    void encryptionOnlySnapshotRetainsPublicKeysAndCipherWithoutSigningMaterial() throws Exception {
+        final Email restored = roundTrip(basicEmail("encrypted snapshot")
+                .encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(firstKey.publicRing)
+                        .addRecipientPublicKeyRing(secondKey.publicRing)
+                        .symmetricAlgorithm(OpenPgpEncryptionConfig.SymmetricAlgorithm.AES_192).build()).buildEmail());
+
+        assertThat(restored.getOpenPgpSigningConfig()).isNull();
+        final Email decrypted = EmailConverter.mimeMessageToEmail(EmailConverter.emailToMimeMessage(restored), null, receiving(secondKey));
+        assertThat(decrypted.getPlainText()).isEqualTo("encrypted snapshot");
+        assertThat(decrypted.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(decrypted.getOriginalOpenPgpDetails().getRecipientKeyIds()).hasSize(2);
+        assertThat(decrypted.getOriginalOpenPgpDetails().getEncryptionAlgorithm()).isEqualTo("AES192");
+    }
+
+    @Test
+    void protectedExactSnapshotKeepsAuthoritativeBytesAndDoesNotProtectAgain() throws Exception {
+        final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(EmailConverter.emailToMimeMessage(
+                basicEmail("already protected snapshot").signWithOpenPgp(signing(firstKey))
+                        .encryptWithOpenPgp(encryption(firstKey)).buildEmail()));
+        final Email exact = roundTrip(SimpleJavaMail.fromDefaults().emailBuilder().startingFromExactEml(protectedBytes)
+                .withEnvelopeRecipients("receiver@example.com").buildEmail());
+        final Email invalidProtection = roundTrip(SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .signWithOpenPgp(OpenPgpSigningConfig.builder().secretKeyRing(new byte[]{1}).build())
+                .encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(new byte[]{2}).build()).buildEmail());
+
+        try (Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withEmailDefaults(invalidProtection).buildMailer()) {
+            final MailRehearsal rehearsal = mailer.rehearse(exact);
+            assertThat(rehearsal.getEmlBytes()).containsExactly(protectedBytes);
+            assertThat(rehearsal.getEffectiveEmail().getOpenPgpSigningConfig()).isNull();
+            assertThat(rehearsal.getEffectiveEmail().getOpenPgpEncryptionConfig()).isNull();
+            final Email opened = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(rehearsal.getEmlBytes()), receiving(firstKey));
+            assertThat(opened.getPlainText()).isEqualTo("already protected snapshot");
+            assertThat(opened.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+            assertThat(opened.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        }
+    }
+
+    private static Email roundTrip(final Email email) throws Exception {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (ObjectOutputStream objectOutput = new ObjectOutputStream(output)) {
             objectOutput.writeObject(email);
         }
-        final Email restored;
         try (ObjectInputStream objectInput = new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()))) {
-            restored = (Email) objectInput.readObject();
+            return (Email) objectInput.readObject();
         }
-        assertThat(restored.getOpenPgpSigningConfig()).isNull();
     }
 
 	@Test
@@ -723,7 +769,7 @@ class OpenPgpMimeTest {
 
     private static org.simplejavamail.api.email.EmailPopulatingBuilder basicEmail(final String body) {
         return SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-				.ignoringDefaults(true)
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(true).build())
                 .from("sender@example.com")
                 .withRecipients(new Recipient(null, "receiver@example.com", RecipientType.TO, null))
                 .withSubject("OpenPGP test")

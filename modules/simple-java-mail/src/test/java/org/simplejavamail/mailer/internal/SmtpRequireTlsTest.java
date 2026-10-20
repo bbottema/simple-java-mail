@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message;
@@ -57,7 +61,7 @@ class SmtpRequireTlsTest {
                 .getBytes(StandardCharsets.US_ASCII);
         final Email email = exact
                 ? mail.emailBuilder().startingFromExactEml(eml).withEnvelopeSender("sender@example.test")
-                        .withEnvelopeRecipients(RECIPIENT).withTlsRequiredForOnwardDelivery().buildEmail()
+                        .withEnvelopeRecipients(RECIPIENT).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()).buildEmail()
                 : email(true);
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
@@ -187,9 +191,9 @@ class SmtpRequireTlsTest {
 
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withTransportStrategy(TransportStrategy.SMTP_TLS)
-                .withSmtpClientHostname("probe.example.test").trustingSSLHosts("localhost")
-                .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeout(Duration.ofMillis(10000)).withProperty("mail.smtp.ssl.protocols", "TLSv1.2");
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build()).withTlsConfig(TlsConfig.builder().trustingSSLHosts("localhost").build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(10000)).build())
+                .withProperty("mail.smtp.ssl.protocols", "TLSv1.2");
     }
 
     private Email email(final boolean requireTls) {
@@ -197,7 +201,7 @@ class SmtpRequireTlsTest {
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("Synthetic REQUIRETLS test").withPlainText("Synthetic loopback content.");
         if (requireTls) {
-            builder.withTlsRequiredForOnwardDelivery();
+            builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().withTlsRequiredForOnwardDelivery().build());
         }
         return builder.buildEmail();
     }

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import jakarta.mail.Message.RecipientType;
 
@@ -86,8 +88,8 @@ class SmtpConnectionFailoverWireTest {
 
     private MailerRegularBuilder<?> builder(final int port) {
         return mail.mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(SMTP)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(1000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1);
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(1000)).build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build());
     }
 
     private Email email() {

@@ -3,16 +3,23 @@ package org.simplejavamail.api.email.config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.util.Arrays;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_SIGNING_HASH_ALGORITHM;
 
 /**
- * In-memory OpenPGP signing material. This type intentionally is not serializable: the secret key ring and
- * passphrase must be supplied again after an {@code Email} serialization round trip.
+ * OpenPGP signing material and algorithm preference. Key-ring data and passphrases are defensively copied and hidden from
+ * {@link #toString()}. Java serialization retains the secret key ring, passphrase, signing-key selection and hash preference,
+ * including when this configuration is part of an {@link org.simplejavamail.api.email.Email} snapshot. Protect serialized
+ * signing configurations as sensitive data, just as you would S/MIME private keys and passwords.
  */
-public final class OpenPgpSigningConfig {
+public final class OpenPgpSigningConfig implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public enum HashAlgorithm {
         SHA256, SHA384, SHA512
@@ -35,6 +42,17 @@ public final class OpenPgpSigningConfig {
         this.hashAlgorithm = requireNonNull(hashAlgorithm, "hashAlgorithm");
         if (secretKeyRing.length == 0) {
             throw new IllegalArgumentException("secretKeyRing cannot be empty");
+        }
+    }
+
+    /** Reapply validation and detach arrays that may be aliased elsewhere in the serialized graph. */
+    private Object readResolve() throws ObjectStreamException {
+        try {
+            return new OpenPgpSigningConfig(secretKeyRing, passphrase, signingKeyId, hashAlgorithm);
+        } catch (RuntimeException cause) {
+            final InvalidObjectException failure = new InvalidObjectException("Invalid OpenPGP signing configuration");
+            failure.initCause(cause);
+            throw failure;
         }
     }
 

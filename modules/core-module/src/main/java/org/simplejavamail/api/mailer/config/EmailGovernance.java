@@ -20,14 +20,14 @@ public interface EmailGovernance {
     /**
      * @return The effective JMail address validator. Can be <code>null</code> when the mailer uses its remaining completeness, encoded-word and CRLF
      * checks without a configurable address policy.
-     * @see MailerGenericBuilder#withEmailValidator(EmailValidator)
+     * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withEmailValidator(EmailValidator)
      * @see EmailValidator
      */
     @Nullable EmailValidator getEmailValidator();
 
     /**
      * @return Determines at what size Simple Java Mail should reject a MimeMessage. Useful if you know your SMTP server has a limit.
-     * @see MailerGenericBuilder#withMaximumEmailSize(int)
+     * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withMaximumEmailSize(int)
      */
     @Nullable Integer getMaximumEmailSize();
 

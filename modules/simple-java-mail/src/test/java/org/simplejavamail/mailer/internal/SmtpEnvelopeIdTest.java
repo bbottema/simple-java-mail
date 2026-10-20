@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message;
@@ -38,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,10 +93,10 @@ class SmtpEnvelopeIdTest {
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             final MailerGenericBuilder<?> configured = callerOwnedSession ? mail.mailerBuilder(Session.getInstance(properties)) : builder(server);
-            try (Mailer mailer = configured.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                    .disablingAllClientValidation(true).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+            try (Mailer mailer = configured.withConnectionPoolConfig(configured.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())
+                    .withValidationConfig(configured.getValidationConfig().toBuilder().disablingAllClientValidation(true).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
                 final Email withoutRecipients = mail.emailBuilder().startingBlank().from("sender@example.test")
-                        .withPlainText("Synthetic local failure.").fixingEnvelopeId(identifier).buildEmail();
+                        .withPlainText("Synthetic local failure.").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId(identifier).build()).buildEmail();
                 mailer.withOpenConnection(sender -> {
                     final MailSubmissionReceipt first = sender.sendMail(email(identifier));
                     final Throwable failure = catchThrowable(() -> sender.sendMail(withoutRecipients));
@@ -126,9 +132,10 @@ class SmtpEnvelopeIdTest {
             acceptMessageAfterMailFrom(peer, "", RECIPIENT);
             finishConnection(peer);
         }); Mailer mailer = builder(server).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
-            final Email first = mail.emailBuilder().copying(email("order +42="))
+            final EmailPopulatingBuilder firstBuilder = mail.emailBuilder().copying(email("order +42="));
+            final Email first = firstBuilder.withSmtpDeliveryOptions(firstBuilder.getSmtpDeliveryOptions().toBuilder()
                     .withDeliveryStatusNotificationNotifyOptions(NotifyOption.FAILURE, NotifyOption.DELAY)
-                    .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).buildEmail();
+                    .withDeliveryStatusNotificationReturnOption(ReturnOption.HEADERS_ONLY).build()).buildEmail();
             final List<MailSubmissionReceipt> receipts = List.of(send(mailer, first, asynchronous), send(mailer, email("second"), asynchronous),
                     send(mailer, email(null), asynchronous));
             assertThat(outcomes).hasSize(3);
@@ -425,7 +432,7 @@ class SmtpEnvelopeIdTest {
                 }
             }
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withConnectionPoolClaimTimeout(Duration.ofMillis(2000)).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClaimTimeout(Duration.ofMillis(2000)).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
             if (observed.incrementAndGet() == 1) {
                 nestedReceipt.set(owner.get().sync().sendMail(email(fixed ? "nested-id" : null)));
             }
@@ -470,7 +477,7 @@ class SmtpEnvelopeIdTest {
             assertThat(line).isEqualTo(".");
             peer.reply("250 accepted");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build())).buildMailer()) {
             final Email shared = email(null);
             final CompletableFuture<MailSubmissionReceipt> first = mailer.async().sendMail(fixed ? email("parallel-1") : shared).getCompletion();
             final CompletableFuture<MailSubmissionReceipt> second = mailer.async().sendMail(fixed ? email("parallel-2") : shared).getCompletion();
@@ -523,7 +530,7 @@ class SmtpEnvelopeIdTest {
             finishConnection(peer);
         }); Mailer mailer = builder(server).buildMailer()) {
             final Email exact = mail.emailBuilder().startingFromExactEml(eml).withEnvelopeSender("sender@example.test")
-                    .withEnvelopeRecipients(RECIPIENT, RECIPIENT).fixingEnvelopeId("exact+42").buildEmail();
+                    .withEnvelopeRecipients(RECIPIENT, RECIPIENT).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("exact+42").build()).buildEmail();
             assertThat(mailer.sync().sendMail(exact).getAcceptedRecipients()).containsExactly(RECIPIENT, RECIPIENT);
         }
     }
@@ -600,7 +607,7 @@ class SmtpEnvelopeIdTest {
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             properties.setProperty("mail.smtp.mailextension", "XTEST=caller");
             final Session session = Session.getInstance(properties);
-            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+            try (Mailer mailer = mail.mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
                 assertThat(mailer.sync().sendMail(email("caller-id")).getStatus()).isEqualTo(ACCEPTED);
                 assertThat(session.getProperty("mail.smtp.mailextension")).isEqualTo("XTEST=caller");
             }
@@ -668,16 +675,16 @@ class SmtpEnvelopeIdTest {
 
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         // Keep MIME Message-ID generation independent of workstation DNS within the scripted SMTP deadlines.
-        return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withSmtpClientHostname("probe.example.test")
-                .withProperty("mail.host", "localhost").withSessionTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(10000));
+        return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
+                .withProperty("mail.host", "localhost")
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(10000)).build());
     }
 
     private Email email(final String identifier) {
         return mail.emailBuilder().startingBlank().from("sender@example.test")
                 .withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("Synthetic ENVID test").withPlainText("Synthetic loopback content.")
-                .fixingEnvelopeId(identifier).buildEmail();
+                .withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId(identifier).build()).buildEmail();
     }
 
     private static MailSubmissionReceipt send(final Mailer mailer, final Email email, final boolean asynchronous) throws Exception {

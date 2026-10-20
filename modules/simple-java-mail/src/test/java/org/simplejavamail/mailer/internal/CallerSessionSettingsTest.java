@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CallerSessionSettingsTest {
+
+    @Test
+    void reusedSessionsApplyOverridesToTheirActualProtocolForEveryStrategyMarker() throws Exception {
+        final SimpleJavaMail factory = factory(Map.of());
+        for (TransportStrategy originalStrategy : TransportStrategy.values()) {
+            final Session session;
+            try (Mailer original = factory.mailerBuilder()
+                    .withSMTPServer("localhost", originalStrategy.getDefaultServerPort(), "user", "test-credential")
+                    .withTransportStrategy(originalStrategy).buildMailer()) {
+                session = original.getSession();
+            }
+            try (Mailer reused = factory.mailerBuilder(session)
+                    .withProperty("mail.transport.protocol", "smtp")
+                    .withProperty("mail.smtp.host", "localhost")
+                    .withProperty("mail.smtp.user", "user")
+                    .withProperty("mail.smtp.auth.mechanisms", "XOAUTH2")
+                    .withProperty("mail.smtp.starttls.enable", "true")
+                    .withProperty("mail.smtp.starttls.required", "true")
+                    .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(5))
+                            .withSmtpClientHostname("requested.example").build())
+                    .withTlsConfig(TlsConfig.builder().verifyingServerIdentity(true).build()).buildMailer()) {
+                assertThat(session.getProperty("mail.smtp.timeout")).as("%s timeout", originalStrategy).isEqualTo("5000");
+                assertThat(session.getProperty("mail.smtp.connectiontimeout")).isEqualTo("5000");
+                assertThat(session.getProperty("mail.smtp.writetimeout")).isEqualTo("5000");
+                assertThat(session.getProperty("mail.smtp.localhost")).isEqualTo("requested.example");
+                assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
+                assertThat(reused.getOperationalConfig().getSessionTimeout()).isEqualTo(Duration.ofSeconds(5));
+            }
+        }
+    }
 
     @Test
     void inheritedConnectionDefaultsDoNotReplaceCallerSettingsWithOrWithoutAMarker() throws Exception {
@@ -53,7 +85,7 @@ class CallerSessionSettingsTest {
         for (final String protocol : List.of("smtp", "smtps")) {
             for (final boolean marked : List.of(false, true)) {
                 final Session session = configuredSession(protocol, marked);
-                try (Mailer mailer = factory(Map.of()).mailerBuilder(session).withSessionTimeout(Duration.ofMillis(1000)).buildMailer()) {
+                try (Mailer mailer = factory(Map.of()).mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1000)).build()).buildMailer()) {
                     assertThat(session.getProperty("mail." + protocol + ".connectiontimeout")).isEqualTo("1000");
                     assertThat(session.getProperty("mail." + protocol + ".timeout")).isEqualTo("1000");
                     assertThat(session.getProperty("mail." + protocol + ".writetimeout")).isEqualTo("1000");
@@ -67,10 +99,10 @@ class CallerSessionSettingsTest {
     @Test
     void nullIsNotARequestToDisableConfiguredSocketTimeouts() {
         final Session session = configuredSession("smtp", false);
-        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).withSessionTimeout(null).buildMailer())
+        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(null).build()).buildMailer())
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("sessionTimeout");
         assertThat(session.getProperty("mail.smtp.timeout")).isEqualTo("5000");
-        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder().withSMTPServer("smtp.example.test", 25).withSessionTimeout(null).buildMailer())
+        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder().withSMTPServer("smtp.example.test", 25).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(null).build()).buildMailer())
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("sessionTimeout");
     }
 
@@ -79,8 +111,8 @@ class CallerSessionSettingsTest {
         for (final boolean marked : List.of(false, true)) {
             final Session session = configuredSession("smtp", marked);
             try (Mailer mailer = factory(Map.of()).mailerBuilder(session)
-                    .withLocalBindAddress("192.0.2.2", 8100).withSmtpClientHostname("explicit.example.test")
-                    .trustingSSLHosts("one.example.test", "two.example.test").verifyingServerIdentity(true).buildMailer()) {
+                    .withConnectionConfig(ConnectionConfig.builder().withLocalBindAddress("192.0.2.2", 8100).withSmtpClientHostname("explicit.example.test").build())
+                    .withTlsConfig(TlsConfig.builder().trustingSSLHosts("one.example.test", "two.example.test").verifyingServerIdentity(true).build()).buildMailer()) {
                 assertThat(session.getProperty("mail.smtp.localaddress")).isEqualTo("192.0.2.2");
                 assertThat(session.getProperty("mail.smtp.localport")).isEqualTo("8100");
                 assertThat(session.getProperty("mail.smtp.localhost")).isEqualTo("explicit.example.test");
@@ -95,7 +127,7 @@ class CallerSessionSettingsTest {
     void explicitNullAndEmptyChoicesRemoveCallerSettingsRatherThanLeavingStaleValues() throws Exception {
         final Session session = configuredSession("smtp", true);
         try (Mailer mailer = factory(Map.of()).mailerBuilder(session)
-                .withLocalBindAddress(null, null).withSmtpClientHostname(null).trustingSSLHosts().buildMailer()) {
+                .withConnectionConfig(ConnectionConfig.builder().withLocalBindAddress(null, null).withSmtpClientHostname(null).build()).withTlsConfig(TlsConfig.builder().trustingSSLHosts().build()).buildMailer()) {
             assertThat(session.getProperty("mail.smtp.localaddress")).isNull();
             assertThat(session.getProperty("mail.smtp.localport")).isNull();
             assertThat(session.getProperty("mail.smtp.localhost")).isNull();
@@ -109,11 +141,11 @@ class CallerSessionSettingsTest {
         final SimpleJavaMail factory = factory(Map.of("defaults.trustallhosts", "true", "defaults.trustedhosts", "factory.example.test"));
         final Session session = configuredSession("smtp", false);
         session.getProperties().put("mail.smtp.ssl.trust", "*");
-        try (Mailer mailer = factory.mailerBuilder(session).trustingAllHosts(false).buildMailer()) {
+        try (Mailer mailer = factory.mailerBuilder(session).withTlsConfig(TlsConfig.builder().trustingAllHosts(false).build()).buildMailer()) {
             assertThat(session.getProperty("mail.smtp.ssl.trust")).isNull();
             assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
         }
-        try (Mailer mailer = factory.mailerBuilder(session).trustingAllHosts(true).buildMailer()) {
+        try (Mailer mailer = factory.mailerBuilder(session).withTlsConfig(TlsConfig.builder().trustingAllHosts(true).build()).buildMailer()) {
             assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("*");
             assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isTrue();
         }
@@ -167,7 +199,7 @@ class CallerSessionSettingsTest {
         final Properties properties = new Properties(defaults);
         properties.setProperty("mail.smtp.localaddress", "192.0.2.2");
         final Session session = Session.getInstance(properties);
-        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).clearLocalBindAddress().buildMailer())
+        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().clearLocalBindAddress().clearLocalBindPort().build()).buildMailer())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("mail.smtp.localaddress")
                 .hasMessageContaining("inherits a default").hasMessageContaining("new Session");
         assertThat(session.getProperty("mail.smtp.localaddress")).isEqualTo("192.0.2.2");
@@ -202,7 +234,7 @@ class CallerSessionSettingsTest {
     @Test
     void oneArgumentLocalAddressOverrideDoesNotReplaceTheCallersPort() throws Exception {
         final Session session = configuredSession("smtp", false);
-        try (Mailer mailer = factory(Map.of("smtp.localport", "9000")).mailerBuilder(session).withLocalBindAddress("192.0.2.2").buildMailer()) {
+        try (Mailer mailer = factory(Map.of("smtp.localport", "9000")).mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withLocalBindAddress("192.0.2.2").build()).buildMailer()) {
             assertThat(mailer.getOperationalConfig().getLocalBindAddress()).isEqualTo("192.0.2.2");
             assertThat(mailer.getOperationalConfig().getLocalBindPort()).isEqualTo(8000);
             assertThat(session.getProperty("mail.smtp.localport")).isEqualTo("8000");
@@ -213,7 +245,7 @@ class CallerSessionSettingsTest {
     void namedClearMethodsRemoveCallerOverridesAndDoNotChangeOtherSettings() throws Exception {
         final Session session = configuredSession("smtp", false);
         try (Mailer mailer = factory(Map.of()).mailerBuilder(session)
-                .clearLocalBindAddress().clearSmtpClientHostname().clearTrustedSSLHosts().buildMailer()) {
+                .withConnectionConfig(ConnectionConfig.builder().clearLocalBindAddress().clearLocalBindPort().clearSmtpClientHostname().build()).withTlsConfig(TlsConfig.builder().clearTrustedSSLHosts().build()).buildMailer()) {
             assertThat(mailer.getOperationalConfig().getLocalBindAddress()).isNull();
             assertThat(mailer.getOperationalConfig().getLocalBindPort()).isNull();
             assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isNull();
@@ -230,7 +262,7 @@ class CallerSessionSettingsTest {
     void explicitTrustedHostsReplaceAnExistingTrustAllChoice() throws Exception {
         final Session session = configuredSession("smtp", false);
         session.getProperties().setProperty("mail.smtp.ssl.trust", "*");
-        try (Mailer mailer = factory(Map.of()).mailerBuilder(session).trustingSSLHosts("selected.example.test").buildMailer()) {
+        try (Mailer mailer = factory(Map.of()).mailerBuilder(session).withTlsConfig(TlsConfig.builder().trustingSSLHosts("selected.example.test").build()).buildMailer()) {
             assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
             assertThat(session.getProperty("mail.smtp.ssl.trust")).isEqualTo("selected.example.test");
         }
@@ -270,7 +302,7 @@ class CallerSessionSettingsTest {
     void resetsExplicitlyApplyThePublishedDefaultToCallerSessions() throws Exception {
         final Session session = configuredSession("smtp", false);
         try (Mailer mailer = factory(Map.of("defaults.sessiontimeoutmillis", "12000"))
-                .mailerBuilder(session).withSessionTimeout(Duration.ofMillis(1000)).resetSessionTimeout().buildMailer()) {
+                .mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1000)).resetSessionTimeout().build()).buildMailer()) {
             assertThat(mailer.getOperationalConfig().getSessionTimeout()).isEqualTo(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT);
             assertThat(session.getProperty("mail.smtp.timeout")).isEqualTo(String.valueOf(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT.toMillis()));
         }
@@ -282,7 +314,7 @@ class CallerSessionSettingsTest {
         session.getProperties().setProperty("mail.transport.protocol", "custom-smtp");
         final Properties original = new Properties();
         original.putAll(session.getProperties());
-        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).withSessionTimeout(Duration.ofMillis(1000)).buildMailer())
+        assertThatThrownBy(() -> factory(Map.of()).mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1000)).build()).buildMailer())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("withSessionTimeout")
                 .hasMessageContaining("mail.transport.protocol").hasMessageContaining("withProperty");
         assertThat(session.getProperties()).isEqualTo(original);
@@ -330,11 +362,11 @@ class CallerSessionSettingsTest {
         final Properties original = new Properties();
         original.putAll(session.getProperties());
         assertThatThrownBy(() -> factory(Map.of("locked.defaults.sessiontimeoutmillis", "1500"))
-                .mailerBuilder(session).withSessionTimeout(Duration.ofMillis(2000)).buildMailer())
+                .mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(2000)).build()).buildMailer())
                 .hasMessageContaining("simplejavamail.locked.defaults.sessiontimeoutmillis");
         assertThat(session.getProperties()).isEqualTo(original);
         assertThatThrownBy(() -> factory(Map.of("locked.extraproperties.mail.smtp.timeout", "1500"))
-                .mailerBuilder(session).withSessionTimeout(Duration.ofMillis(2000)).buildMailer())
+                .mailerBuilder(session).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(2000)).build()).buildMailer())
                 .hasMessageContaining("simplejavamail.locked.extraproperties.mail.smtp.timeout");
         assertThat(session.getProperties()).isEqualTo(original);
     }
@@ -357,7 +389,7 @@ class CallerSessionSettingsTest {
     void aFormerlyManagedSessionKeepsItsSettingsAfterSuccessfulOwnerShutdown() throws Exception {
         final Session session;
         try (Mailer original = factory(Map.of()).mailerBuilder().withSMTPServer("smtp.example.test", 25)
-                .withSessionTimeout(Duration.ofMillis(1000)).trustingSSLHosts("private.example.test").buildMailer()) {
+                .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1000)).build()).withTlsConfig(TlsConfig.builder().trustingSSLHosts("private.example.test").build()).buildMailer()) {
             session = original.getSession();
         }
         try (Mailer replacement = factory(Map.of("defaults.sessiontimeoutmillis", "12000")).mailerBuilder(session).buildMailer()) {

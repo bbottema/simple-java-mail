@@ -38,6 +38,11 @@ Recipient interpretation must also handle a successful parser call that produces
 nonempty source under the existing lenient builder contract, just as for a parsing exception, without inventing an address or changing its chosen
 name. Missing-input checks still apply, and ordinary outgoing validation rejects an unusable retained address before submission.
 
+Email builder address conveniences apply this leniency within a single-mailbox contract. A successfully parsed list or RFC address group is an
+argument error directing the caller to `recipientsBuilder()`, even when the group has one member or is empty. Quoted punctuation in a display
+name is not a delimiter. Parsing separates name/address without performing deliverability or DNS checks; malformed nonempty text retains its
+original spelling for configured outgoing validation. The independent Recipient builders and inbound parsers keep their existing contracts.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

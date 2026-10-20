@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import java.time.Duration;
 import jakarta.mail.Authenticator;
 import jakarta.mail.PasswordAuthentication;
@@ -35,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -112,7 +116,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             peer.greet(STARTTLS);
             authenticate(peer, "LOGIN", PASSWORD);
             acceptMessageAndQuit(peer);
-        }); Mailer mailer = passwordBuilder(server.port(), SMTP).withOpportunisticTLS(false).buildMailer()) {
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).buildMailer()) {
             assertAccepted(mailer);
         }
     }
@@ -165,7 +169,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             }
             assertThatThrownBy(peer::upgradeToTls).isInstanceOf(IOException.class);
         }); Mailer mailer = passwordBuilder(server.port(), strategy)
-                .withCustomSSLFactoryInstance(SmtpCapabilityProbeCharacterizationTest.tlsContext(emptyTrustStore).getSocketFactory())
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(SmtpCapabilityProbeCharacterizationTest.tlsContext(emptyTrustStore).getSocketFactory()).build())
                 .buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                     .hasStackTraceContaining("trustAnchors parameter must be non-empty");
@@ -178,7 +182,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         try (Peer server = new Peer(peer -> {
             beginStartTls(peer);
             assertThatThrownBy(peer::upgradeToTls).isInstanceOf(IOException.class);
-        }); Mailer mailer = passwordBuilder(server.port(), strategy).withCustomSSLFactoryInstance(trustedFactory())
+        }); Mailer mailer = passwordBuilder(server.port(), strategy).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build())
                 .withProperty("mail.smtp.ssl.protocols", "TLSv1.3").buildMailer()) {
             // The loopback TLS fixture deliberately only offers TLSv1.2.
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
@@ -200,8 +204,8 @@ class SmtpAuthenticationTlsCharacterizationTest {
                 authenticate(peer, "LOGIN", PASSWORD);
                 acceptMessageAndQuit(peer);
             }
-        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withCustomSSLFactoryInstance(wrongHostnameFactory())
-                .verifyingServerIdentity(verifyIdentity).buildMailer()) {
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(wrongHostnameFactory()).verifyingServerIdentity(verifyIdentity).build())
+                .buildMailer()) {
             if (verifyIdentity) {
                 assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                         .hasStackTraceContaining("wrong-host.invalid");
@@ -219,8 +223,8 @@ class SmtpAuthenticationTlsCharacterizationTest {
             authenticate(peer, "LOGIN", PASSWORD);
             acceptMessageAndQuit(peer);
         }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS)
-                .trustingSSLHosts(allHosts ? new String[0] : new String[]{"localhost"})
-                .trustingAllHosts(allHosts).buildMailer()) {
+                .withTlsConfig(TlsConfig.builder().trustingSSLHosts(allHosts ? new String[0] : new String[]{"localhost"}).trustingAllHosts(allHosts).build())
+                .buildMailer()) {
             assertThat(mailer.getSession().getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
             assertThat(mailer.getSession().getProperty("mail.smtp.ssl.trust")).isEqualTo(allHosts ? "*" : "localhost");
             assertAccepted(mailer);
@@ -251,7 +255,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         properties.setProperty("simplejavamail.extraproperties.mail.smtp.starttls.required", "false");
         final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties("application.properties", properties).load());
         assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServer("localhost", 12345, USERNAME, PASSWORD)
-                .withConnectionPoolCoreSize(0).buildMailer())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer())
                 .isInstanceOf(MailerException.class).hasMessageContaining("SMTP_TLS requires STARTTLS");
     }
 
@@ -303,7 +307,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             beginStartTls(peer);
             assertThatThrownBy(peer::upgradeToTls).isInstanceOf(IOException.class);
         }); Mailer mailer = oauthBuilder(server.port(), refreshed, new AtomicInteger())
-                .withCustomSSLFactoryInstance(SmtpCapabilityProbeCharacterizationTest.tlsContext(emptyTrustStore).getSocketFactory())
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(SmtpCapabilityProbeCharacterizationTest.tlsContext(emptyTrustStore).getSocketFactory()).build())
                 .buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                     .hasStackTraceContaining("trustAnchors parameter must be non-empty");
@@ -319,7 +323,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             authenticate(peer, "XOAUTH2", TOKEN);
             acceptMessageAndQuit(peer);
         }); Mailer mailer = oauthBuilder(server.port(), refreshed, resolutions)
-                .withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
             assertThat(resolutions).hasValue(0);
             assertAccepted(mailer);
             assertThat(resolutions).hasValue(refreshed ? 1 : 0);
@@ -345,8 +349,8 @@ class SmtpAuthenticationTlsCharacterizationTest {
             authenticate(peer, "XOAUTH2", TOKEN);
             acceptMessage(peer);
             acceptMessageAndQuit(peer);
-        }); Mailer mailer = oauthBuilder(server.port(), true, resolutions).withCustomSSLFactoryInstance(trustedFactory())
-                .withConnectionPoolExpireAfter(Duration.ofMillis(0)).buildMailer()) {
+        }); Mailer mailer = oauthBuilder(server.port(), true, resolutions).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withExpireAfter(Duration.ofMillis(0)).build()).buildMailer()) {
             assertAccepted(mailer);
             assertThat(mailer.async().sendMail(email()).getCompletion().get(10, SECONDS).getStatus()).isEqualTo(ACCEPTED);
             assertThat(resolutions).hasValue(1);
@@ -357,14 +361,15 @@ class SmtpAuthenticationTlsCharacterizationTest {
     void reconnectingAPooledConnectionResolvesAFreshTokenAndAuthenticatesOnlyAfterTls() throws Exception {
         final AtomicInteger resolutions = new AtomicInteger();
         final AtomicInteger connections = new AtomicInteger();
+        final SSLSocketFactory sslFactory = trustedFactory();
         try (Peer server = new Peer(2, peer -> {
             establishTls(peer, SMTP_OAUTH2, "250-localhost\r\n250 AUTH XOAUTH2");
             authenticate(peer, "XOAUTH2", TOKEN + "-" + connections.incrementAndGet());
             acceptMessage(peer);
             // Closing without answering another NOOP forces the next claim to reconnect instead of reusing this transport.
-        }); Mailer mailer = builder(server.port()).withTransportStrategy(SMTP_OAUTH2).withSMTPServerUsername(USERNAME)
+        }); Mailer mailer = updateMailer(builder(server.port()), fixture -> fixture.withTransportStrategy(SMTP_OAUTH2).withSMTPServerUsername(USERNAME)
                 .withOAuth2AccessTokenProvider(() -> TOKEN + "-" + resolutions.incrementAndGet())
-                .withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+                .withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(sslFactory).build())).buildMailer()) {
             assertAccepted(mailer);
             assertAccepted(mailer);
             assertThat(resolutions).hasValue(2);
@@ -423,7 +428,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             establishTls(peer, SMTP_OAUTH2, "250-localhost\r\n250 AUTH OAUTHBEARER");
             peer.expectClosed();
         }); Mailer mailer = oauthBuilder(server.port(), false, new AtomicInteger())
-                .withCustomSSLFactoryInstance(trustedFactory())
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build())
                 .withProperty("mail.smtp.auth.mechanisms", "OAUTHBEARER").buildMailer()) {
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                     .hasStackTraceContaining("No authentication mechanisms supported");
@@ -436,7 +441,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             establishTls(peer, SMTP_TLS, "250-localhost\r\n250 AUTH PLAIN");
             authenticate(peer, "PLAIN", PASSWORD);
             acceptMessageAndQuit(peer);
-        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
             assertAccepted(mailer);
         }
     }
@@ -452,7 +457,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             }
             acceptMessageAndQuit(peer);
         }); Mailer mailer = passwordBuilder(server.port(), tls ? SMTP_TLS : SMTP)
-                .withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+                .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
             assertThat(mailer.getSession().getProperty("mail.smtp.auth")).isEqualTo("true");
             assertAccepted(mailer);
         }
@@ -464,7 +469,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             establishTls(peer, SMTP_TLS, "500 EHLO unavailable after TLS");
             authenticate(peer, "LOGIN", PASSWORD);
             acceptMessageAndQuit(peer);
-        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withCustomSSLFactoryInstance(trustedFactory()).buildMailer()) {
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
             assertAccepted(mailer);
         }
     }
@@ -489,7 +494,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
                     return new PasswordAuthentication(USERNAME, PASSWORD);
                 }
             });
-            try (Mailer mailer = factory().mailerBuilder(session).withConnectionPoolCoreSize(0).buildMailer()) {
+            try (Mailer mailer = factory().mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
                 assertThat(mailer.getTransportStrategy()).isNull();
                 assertThat(session.getProperties()).doesNotContainKeys("mail.smtp.starttls.required", "mail.smtp.ssl.checkserveridentity");
                 assertAccepted(mailer);
@@ -509,8 +514,8 @@ class SmtpAuthenticationTlsCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port) {
         return factory().mailerBuilder().withSMTPServer("localhost", port)
-                .withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.smtps.ssl.protocols", "TLSv1.2")
                 .withProperty("mail.smtps.socketFactory.fallback", "false")
                 .withProperty("mail.smtps.quitwait", "true");
@@ -524,7 +529,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         final MailerRegularBuilder<?> builder = passwordBuilder(port, strategy);
         // Local mail shields can re-sign implicit TLS, so this ordering case uses a localhost-only trust exception.
         // Identity checking stays enabled; the separate empty-trust-store case must fail closed for every strategy.
-        return strategy == SMTPS ? builder.trustingSSLHosts("localhost") : builder.withCustomSSLFactoryInstance(trustedFactory());
+        return strategy == SMTPS ? builder.withTlsConfig(builder.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build()) : builder.withTlsConfig(builder.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(trustedFactory()).build());
     }
 
     private static MailerRegularBuilder<?> oauthBuilder(final int port, final boolean refreshed, final AtomicInteger resolutions) {

@@ -23,7 +23,7 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
  * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
- * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+ * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
  * @see DkimConfigBuilder#useLengthParam(Boolean)
  * @see DkimConfigBuilder#headerCanonicalization(DkimConfig.Canonicalization)
  * @see DkimConfigBuilder#bodyCanonicalization(DkimConfig.Canonicalization)
@@ -41,7 +41,7 @@ public class DkimConfig implements Serializable {
 
     /**
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-     * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+     * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
      */
     private final byte[] dkimPrivateKeyData;
 
@@ -49,7 +49,7 @@ public class DkimConfig implements Serializable {
 
     /**
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-     * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+     * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
      */
     private final String dkimSelector;
 
@@ -58,7 +58,7 @@ public class DkimConfig implements Serializable {
 
     /**
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-     * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+     * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
      */
     @Nullable
     private final Set<String> excludedHeadersFromDkimDefaultSigningList;
@@ -93,7 +93,7 @@ public class DkimConfig implements Serializable {
      *
      * @see DkimConfigBuilder#dkimPrivateKeyData(byte[])
      * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-     * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+     * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
      */
     public byte[] getDkimPrivateKeyData() {
         return dkimPrivateKeyData.clone();
@@ -155,16 +155,24 @@ public class DkimConfig implements Serializable {
         @Nullable private String signingAlgorithm;
 
         /**
+         * Reads the private-key file immediately and closes the stream opened for it.
+         * @param dkimPrivateKeyFile Path text for the private-key file.
+         * @return This builder.
+         * @see #dkimPrivateKeyPath(Path)
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyPath(String dkimPrivateKeyFile) {
             return dkimPrivateKeyPath(new File(dkimPrivateKeyFile));
         }
 
         /**
+         * Reads the private-key file immediately and closes the stream opened for it.
+         * @param dkimPrivateKeyFile The private-key file.
+         * @return This builder.
+         * @see #dkimPrivateKeyPath(Path)
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyPath(File dkimPrivateKeyFile) {
             return dkimPrivateKeyPath(dkimPrivateKeyFile.toPath());
@@ -176,7 +184,7 @@ public class DkimConfig implements Serializable {
          * @param dkimPrivateKeyPath Path to the private-key data.
          * @return This builder.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyPath(@NotNull final Path dkimPrivateKeyPath) {
             try (InputStream dkimPrivateKeyInputStream = Files.newInputStream(dkimPrivateKeyPath)) {
@@ -187,8 +195,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Reads and copies the private-key content immediately. The supplied stream is borrowed and is not closed.
+         * @param dkimPrivateKeyInputStream Application-owned private-key stream.
+         * @return This builder.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyData(InputStream dkimPrivateKeyInputStream) {
             try {
@@ -200,8 +211,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Encodes private-key text as UTF-8 and captures its bytes immediately; this argument is key content, not a file path.
+         * @param dkimPrivateKeyData Private-key text.
+         * @return This builder.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyData(String dkimPrivateKeyData) {
             dkimPrivateKeyData(dkimPrivateKeyData.getBytes(UTF_8));
@@ -209,8 +223,11 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Supplies the key content used to sign for the sending party. The builder captures its own copy immediately;
+         * completed configurations and inspection results also own detached byte arrays.
+         * Actual DKIM signing is performed by the optional DKIM module when converting or sending the Email.
+         * @param dkimPrivateKeyData The private-key content used to sign for the sending party.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
         public DkimConfigBuilder dkimPrivateKeyData(byte[] dkimPrivateKeyData) {
             this.dkimPrivateKeyData = dkimPrivateKeyData.clone();
@@ -218,8 +235,9 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Selects the domain being authorized to send. Calling this again replaces the domain without changing key material or selector.
+         * @param dkimSigningDomain The domain being authorized to send.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
         public DkimConfigBuilder dkimSigningDomain(String dkimSigningDomain) {
             this.dkimSigningDomain = dkimSigningDomain;
@@ -227,8 +245,9 @@ public class DkimConfig implements Serializable {
         }
 
         /**
+         * Supplies the additional domain specifier used as the DKIM selector. Calling again replaces it independently of the signing domain and key.
+         * @param dkimSelector Additional domain specifier.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
          */
         public DkimConfigBuilder dkimSelector(String dkimSelector) {
             this.dkimSelector = dkimSelector;
@@ -253,7 +272,8 @@ public class DkimConfig implements Serializable {
          * Calling again replaces the exclusions rather than adding to them.
          * Null or {@link #clearExcludedHeadersFromDkimDefaultSigningList()} restores the module's default list without replacing key material.
          *
-         * @param excludedHeadersFromDkimDefaultSigningList Headers to exclude, or null for no supplied exclusion choice.
+         * @param excludedHeadersFromDkimDefaultSigningList Headers that a known downstream relay rewrites, such as {@code Message-ID} or {@code Date},
+         *                                                 or null for no supplied exclusion choice.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable Set<String> excludedHeadersFromDkimDefaultSigningList) {
@@ -265,7 +285,7 @@ public class DkimConfig implements Serializable {
          * Delegates to {@link #excludedHeadersFromDkimDefaultSigningList(Set)}.
          *
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
-         * @see EmailPopulatingBuilder#signWithDomainKey(byte[], String, String, Set)
+         * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder excludedHeadersFromDkimDefaultSigningList(@Nullable String... excludedHeadersFromDkimDefaultSigningList) {
             return excludedHeadersFromDkimDefaultSigningList(excludedHeadersFromDkimDefaultSigningList == null

@@ -11,6 +11,10 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+Accepted consolidation, 20 October 2026: extend the internal scalar adapters to cover all settings moved into the advanced Mailer and
+Email groups. Java grouping does not change existing CLI option names, units or invocation order. Generate adapter documentation from
+the same feature contracts and retain numeric-duration bridges; do not expose group-construction objects as command-line arguments.
+
 The accepted 19 October Java API grouping retains existing scalar debug/telemetry options and numeric millisecond timeout arguments through
 `CliMailerConfigurationBuilder`, an internal adapter implemented by the main builder. It delegates into `SessionDebugConfig`,
 `MailSendTelemetryConfig` and `Duration` choices; it does not restore removed flat methods to the application Java interfaces. Include this

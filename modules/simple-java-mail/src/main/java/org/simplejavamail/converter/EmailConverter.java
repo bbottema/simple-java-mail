@@ -306,7 +306,7 @@ public class EmailConverter {
 	/**
 	 * Note: the email builder wrapped by {@link OutlookEmailConversionResult} is set to ignore defaults to stay as close as possible to the original
 	 * MimeMessage.
-	 * If you wish to use the result to send an email, you might want to first call {@link EmailPopulatingBuilder#ignoringDefaults(boolean)} to set the builder
+	 * If you wish to use the result to send an email, you might want to first call {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringDefaults(boolean)} to set the builder
 	 * to use defaults again.
 	 *
 	 * @param msgInputStream The content of an Outlook (.msg) message from which to create the {@link Email}.

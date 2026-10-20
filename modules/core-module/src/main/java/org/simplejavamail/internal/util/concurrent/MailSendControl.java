@@ -2,6 +2,7 @@ package org.simplejavamail.internal.util.concurrent;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
@@ -126,7 +127,9 @@ public final class MailSendControl implements AutoCloseable {
                 stopAtFailure = stopReason;
                 failureRecorded = true;
             }
-            return stopAtFailure == null || failure instanceof MailSendCancelledException || failure instanceof MailSendTimeoutException
+            // A stop request does not turn application callback failures or programming errors into library-owned failures.
+            return !(failure instanceof MailException) || stopAtFailure == null
+                    || failure instanceof MailSendCancelledException || failure instanceof MailSendTimeoutException
                     ? failure : stoppedFailure(stopAtFailure, failure);
         }
     }
@@ -140,8 +143,8 @@ public final class MailSendControl implements AutoCloseable {
     }
 
     private RuntimeException stoppedFailure(final StopReason reason, @Nullable final Throwable cause) {
-        final MailSubmissionReceipt receipt = cause instanceof MailSendException
-                ? ((MailSendException) cause).getSubmissionReceipt().orElse(null) : null;
+        final MailSubmissionReceipt receipt = cause instanceof MailException
+                ? ((MailException) cause).getSubmissionReceipt().orElse(null) : null;
         return reason == StopReason.TIMED_OUT
                 ? new MailSendTimeoutException(cause, receipt) : new MailSendCancelledException(cause, receipt);
     }

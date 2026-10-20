@@ -1,10 +1,12 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.internal.util.NamedDataSource;
@@ -36,13 +38,14 @@ public class MailerInjectionScanTest {
 				// example from https://framework.zend.com/security/advisory/ZF2015-04
 				.withSubject("test1\r\nContent-Type: text/html; charset = \"iso-8859-1\"\r\n\r\n" +
 						"<iframe src=\"http://example.com/\"></iframe><!--")
-				.from("evil %0A boy", "badboy\nis\rsobad@hell.spawn")
+				// Prepared values bypass the Email convenience's singular-mailbox parsing; keep the invalid source for this validation control.
+				.from(new Recipient("evil %0A boy", "badboy\nis\rsobad@hell.spawn", null, null))
 				.withHeader("dark pie", "evil\nlaugh")
 				.buildEmail();
 
 		createFullyConfiguredMailerBuilder(false, "", null)
 				.withCustomMailer(customMailerMock)
-				.disablingAllClientValidation(true).buildMailer()
+				.withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).build()).buildMailer()
 				.sync().sendMail(email);
 
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
@@ -64,8 +67,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_subject_after_disableReenable() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null)
-				.disablingAllClientValidation(true)
-				.resetDisableAllClientValidations()
+				.withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).resetDisableAllClientValidations().build())
 				.buildMailer()
 				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// example from https://framework.zend.com/security/advisory/ZF2015-04

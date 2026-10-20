@@ -1,5 +1,7 @@
 package org.simplejavamail.batch;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.Session;
 import org.simplejavamail.internal.batchsupport.BatchTransportEngine;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
@@ -203,13 +205,13 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			shutdown().get();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new BatchTransportException("Interrupted while shutting down batch transport resources", interrupted);
+			throw new BatchTransportException(MailFailureKind.CLEANUP, "Interrupted while shutting down batch transport resources", interrupted);
 		} catch (ExecutionException failure) {
 			final Throwable cause = failure.getCause();
 			if (cause instanceof BatchTransportException) {
 				throw (BatchTransportException) cause;
 			}
-			throw new BatchTransportException("Unable to shut down batch transport resources", cause);
+			throw new BatchTransportException(MailFailureKind.CLEANUP, "Unable to shut down batch transport resources", cause);
 		}
 	}
 
@@ -238,7 +240,7 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 		try {
 			executorService.execute(submission);
 		} catch (RuntimeException schedulingFailure) {
-			submission.cancel(new BatchTransportException("Unable to schedule batch transport work", schedulingFailure));
+			submission.cancel(new BatchTransportException(MailFailureKind.CAPACITY, "Unable to schedule batch transport work", schedulingFailure));
 		}
 		return submission.future;
 	}
@@ -276,7 +278,7 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 
 		if (submissionsToCancel != null) {
 			engine.stopClaimsAndInvalidateActiveLeases();
-			final BatchTransportException cancellation = new BatchTransportException("Batch transport work was cancelled by forced shutdown");
+			final BatchTransportException cancellation = new BatchTransportException(MailFailureKind.CANCELLED, "Batch transport work was cancelled by forced shutdown", null);
 			for (AsyncSubmission<?> submission : submissionsToCancel) {
 				submission.cancel(cancellation);
 			}
@@ -313,13 +315,13 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			completeShutdownFuture(null);
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			completeShutdownFuture(new BatchTransportException("Batch transport shutdown was interrupted", interrupted));
+			completeShutdownFuture(new BatchTransportException(MailFailureKind.CLEANUP, "Batch transport shutdown was interrupted", interrupted));
 		} catch (ExecutionException failure) {
-			completeShutdownFuture(new BatchTransportException("Unable to close all SMTP connection pools", failure.getCause()));
+			completeShutdownFuture(new BatchTransportException(MailFailureKind.CLEANUP, "Unable to close all SMTP connection pools", failure.getCause()));
 		} catch (RuntimeException failure) {
 			completeShutdownFuture(failure instanceof BatchTransportException
 					? failure
-					: new BatchTransportException("Unable to close batch transport resources", failure));
+					: new BatchTransportException(MailFailureKind.CLEANUP, "Unable to close batch transport resources", failure));
 		}
 	}
 

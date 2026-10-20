@@ -13,6 +13,8 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder;
+import org.simplejavamail.api.internal.clisupport.CliExactEmailConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
@@ -103,7 +105,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	@Test
 	public void deliveryStatusNotificationBuilderApiUsesTypedCliConversions() throws Exception {
-		for (final Class<?> builderType : new Class<?>[]{EmailPopulatingBuilder.class, ExactEmailBuilder.class}) {
+		for (final Class<?> builderType : new Class<?>[]{CliEmailConfigurationBuilder.class, CliExactEmailConfigurationBuilder.class}) {
 			final Method notify = builderType.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
 			final Method returnOption = builderType.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class);
 			assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
@@ -123,7 +125,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"failure,delay", "FAILURE;DELAY", "notify_failure, notify_delay", "failure,delay,failure"})
 	void notificationArrayConverterPreservesTextAliasesAndRemovesDuplicates(final String value) throws Exception {
-		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		final Method notify = CliEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
 		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
 		final List<Object> converted = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), notify);
 		assertThat((NotifyOption[]) converted.get(0)).containsExactly(NotifyOption.FAILURE, NotifyOption.DELAY);
@@ -132,7 +134,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	@ParameterizedTest
 	@CsvSource({"HDRS, HEADERS_ONLY", "headers only, HEADERS_ONLY", "RETURN_HDRS, HEADERS_ONLY", "FULL, FULL_MESSAGE", "full_message, FULL_MESSAGE"})
 	void returnOptionConverterPreservesTextAliases(final String value, final ReturnOption expected) throws Exception {
-		final Method returnOption = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class);
+		final Method returnOption = CliEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationReturnOption", ReturnOption.class);
 		assertThat(methodIsCliCompatible(returnOption).isCompatible()).isTrue();
 		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), returnOption)).containsExactly(expected);
 	}
@@ -140,7 +142,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"", "unknown", "NEVER,FAILURE"})
 	void notificationArrayConverterRejectsInvalidPreferences(final String value) throws Exception {
-		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		final Method notify = CliEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
 		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
 		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList(value)), notify))
 				.isInstanceOf(CliExecutionException.class);
@@ -148,7 +150,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	@Test
 	void notificationArrayConverterRetainsExplicitNever() throws Exception {
-		final Method notify = EmailPopulatingBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
+		final Method notify = CliEmailConfigurationBuilder.class.getMethod("withDeliveryStatusNotificationNotifyOptions", NotifyOption[].class);
 		assertThat(methodIsCliCompatible(notify).isCompatible()).isTrue();
 		final List<Object> converted = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(singletonList("never")), notify);
 		assertThat((NotifyOption[]) converted.get(0)).containsExactly(NotifyOption.NEVER);
@@ -156,8 +158,8 @@ public class BuilderApiToPicocliCommandsMapperTest {
 
 	@Test
 	public void asyncQueueSettingsHaveCliOptionsAndTypedArguments() throws Exception {
-		final Method capacity = MailerGenericBuilder.class.getMethod("withAsyncQueueCapacity", int.class);
-		final Method policy = MailerGenericBuilder.class.getMethod("withAsyncQueueOverflowPolicy", AsyncQueueOverflowPolicy.class);
+		final Method capacity = CliMailerConfigurationBuilder.class.getMethod("withAsyncQueueCapacity", int.class);
+		final Method policy = CliMailerConfigurationBuilder.class.getMethod("withAsyncQueueOverflowPolicy", AsyncQueueOverflowPolicy.class);
 		final Method timeout = CliMailerConfigurationBuilder.class.getMethod("withAsyncQueueWaitTimeoutMillis", int.class);
 		for (Method setting : Arrays.asList(capacity, policy, timeout)) {
 			assertThat(methodIsCliCompatible(setting).isCompatible()).isTrue();
@@ -204,8 +206,7 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(methodIsCliCompatible(ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", String[].class)).isCompatible()).isTrue();
 		assertThat(methodIsCliCompatible(ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", Collection.class)).isCompatible()).isFalse();
 
-		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(
-				new Class<?>[] {EmailStartingBuilder.class});
+		final List<CliDeclaredOptionSpec> declaredOptions = BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi(CliBuilderApi.roots());
 		assertThat(declaredOptions).extracting(CliDeclaredOptionSpec::getName)
 				.contains("--email:startingFromExactEml", "--email:withEnvelopeRecipients", "--email:withEnvelopeSender",
 						"--email:withEnvelopeDsnNotifyOptions", "--email:withEnvelopeDsnReturnOption");
@@ -216,11 +217,11 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		Method from = EmailPopulatingBuilder.class.getMethod("from", String.class, String.class);
 		assertThat(getArgumentsForCliOption(from)).extracting("required").containsExactly(false, true);
 
-		Method withProxy = MailerGenericBuilder.class.getMethod("withProxy", String.class, Integer.class);
+		Method withProxy = CliMailerConfigurationBuilder.class.getMethod("withProxy", String.class, Integer.class);
 		assertThat(hasCliOptionalParameter(withProxy, 0)).isTrue();
 		assertThat(hasCliOptionalParameter(withProxy, 1)).isTrue();
 
-		Method withSmtpClientHostname = MailerGenericBuilder.class.getMethod("withSmtpClientHostname", String.class);
+		Method withSmtpClientHostname = CliMailerConfigurationBuilder.class.getMethod("withSmtpClientHostname", String.class);
 		assertThat(methodIsCliCompatible(withSmtpClientHostname).isCompatible()).isTrue();
 		assertThat(hasCliOptionalParameter(withSmtpClientHostname, 0)).isTrue();
 	}

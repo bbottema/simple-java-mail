@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
@@ -31,7 +33,7 @@ public final class FactoryMailerRuntime {
 	FactoryMailerRuntime(final SimpleJavaMailConfig config, final FactorySendingLimits sendingLimits, final LongSupplier clock) {
 		this.sendingLimits = requireNonNull(sendingLimits, "sendingLimits");
 		this.clock = requireNonNull(clock, "clock");
-		final Map<String, SimpleJavaMailConfig> configured = config.getProperty(Property.NAMED_MAILERS);
+		final Map<String, SimpleJavaMailConfig> configured = config.get(ConfigKeys.NAMED_MAILERS);
 		final Map<String, Definition> captured = new LinkedHashMap<>();
 		if (configured != null) {
 			configured.forEach((name, value) -> captured.put(name, new Definition(name, value, clock)));

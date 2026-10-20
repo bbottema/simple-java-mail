@@ -330,7 +330,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		if (effectiveMessageArtifact != null) {
 			emailBuilder.clearAttachments();
 			emailBuilder.clearEmbeddedImages();
-			emailBuilder.clearContentTransferEncoding();
+			((InternalEmailPopulatingBuilder) emailBuilder).clearContentTransferEncoding();
 		}
 		for (AttachmentResource protectedAttachment : result.getProtectedAttachments()) {
 			if (!hasAttachmentNamed(emailBuilder.getAttachments(), protectedAttachment.getName())) {

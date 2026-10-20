@@ -20,7 +20,8 @@ import java.util.Map;
  * This interface is only there to improve readability there where internal builder API is used.
  */
 @SuppressWarnings("UnusedReturnValue")
-public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, CliEmailRecipientBuilder {
+public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, CliEmailRecipientBuilder, org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder {
+
 	@Override
 	@NotNull InternalEmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName,
 			@Nullable jakarta.mail.Message.RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach);

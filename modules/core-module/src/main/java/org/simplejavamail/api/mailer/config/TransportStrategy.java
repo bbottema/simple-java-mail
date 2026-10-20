@@ -24,7 +24,7 @@ public enum TransportStrategy {
 	 * When TLS is used, normal Mailer configuration enables certificate-chain and server-identity checks unless the caller configures an
 	 * explicit exception. A refused STARTTLS command or a failed TLS handshake or certificate check fails the connection; it does not trigger
 	 * a retry without TLS. Disabling the optional upgrade explicitly through
-	 * {@link org.simplejavamail.api.mailer.MailerRegularBuilder#withOpportunisticTLS(boolean)} is a separate configuration choice.
+	 * {@link org.simplejavamail.api.mailer.config.TlsConfig.Builder#withOpportunisticTLS(boolean)} is a separate configuration choice.
 	 * <p>
 	 * An active network attacker can suppress the STARTTLS advertisement before those checks begin. Choose {@link #SMTP_TLS} or {@link #SMTPS}
 	 * when encryption is required. Caller-owned Sessions and custom transports retain their own security configuration.
@@ -194,8 +194,8 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return {@value DEFAULT_SMTP_PORT}
-		 * @see #DEFAULT_SMTP_PORT
+		 * @return {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_PORT}
+		 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_PORT
 		 */
 		@Override
 		public int getDefaultServerPort() {
@@ -373,8 +373,8 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return {@value DEFAULT_SMTPS_PORT}
-		 * @see #DEFAULT_SMTPS_PORT
+		 * @return {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTPS_PORT}
+		 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTPS_PORT
 		 */
 		@Override
 		public int getDefaultServerPort() {
@@ -552,8 +552,8 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return {@value DEFAULT_SMTP_TLS_PORT}
-		 * @see #DEFAULT_SMTP_TLS_PORT
+		 * @return {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_TLS_PORT}
+		 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_TLS_PORT
 		 */
 		@Override
 		public int getDefaultServerPort() {
@@ -569,6 +569,13 @@ public enum TransportStrategy {
 		}
 	},
 
+	/**
+	 * XOAUTH2 authentication after a mandatory STARTTLS upgrade, using port 587 when no port is configured.
+	 * Certificate-chain and server-identity checks follow the same defaults as {@link #SMTP_TLS}.
+	 * Supply a fixed access token as the SMTP password or register an {@link OAuth2AccessTokenProvider};
+	 * configuring both is rejected. The application owns token acquisition, caching and refresh.
+	 * Choose {@link #SMTPS_OAUTH2} for OAuth2 over implicit TLS instead.
+	 */
 	SMTP_OAUTH2 {
 
 		/**
@@ -721,8 +728,8 @@ public enum TransportStrategy {
 		}
 
 		/**
-		 * @return {@value DEFAULT_SMTP_OAUTH_PORT}
-		 * @see #DEFAULT_SMTP_OAUTH_PORT
+		 * @return {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_OAUTH_PORT}
+		 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_SMTP_OAUTH_PORT
 		 */
 		@Override
 		public int getDefaultServerPort() {
@@ -736,6 +743,50 @@ public enum TransportStrategy {
 		public String propertyNameCheckServerIdentity() {
 			return "mail.smtp.ssl.checkserveridentity";
 		}
+	},
+
+	/**
+	 * XOAUTH2 authentication over implicit TLS: the connection is encrypted from its first byte, with port 465 used when
+	 * no port is configured. Certificate-chain and server-identity checks follow the same defaults as {@link #SMTPS}.
+	 * <p>
+	 * Supply a fixed access token as the SMTP password or register an {@link OAuth2AccessTokenProvider}; configuring both
+	 * is rejected. Providers are resolved lazily for each physical connection or reconnection, not for every message on
+	 * an already-connected pooled transport. The application owns token acquisition, caching and refresh.
+	 * <p>
+	 * This preset selects the {@code smtps} protocol, its {@code mail.smtps.*} endpoint/TLS properties, and
+	 * {@code mail.smtps.auth.mechanisms=XOAUTH2}. It retains SMTPS's {@code quitwait=false} default and does not negotiate
+	 * STARTTLS. A contradictory regular-builder protocol override is rejected. Explicit trust or identity exceptions
+	 * remain available; caller-owned Sessions and custom transports retain their existing configuration ownership.
+	 * Choose {@link #SMTP_OAUTH2} for OAuth2 after mandatory STARTTLS instead.
+	 */
+	SMTPS_OAUTH2 {
+		@Override
+		public Properties generateProperties() {
+			final Properties properties = SMTPS.generateProperties();
+			properties.putAll(super.generateProperties());
+			properties.put("mail.smtps.auth.mechanisms", "XOAUTH2");
+			return properties;
+		}
+
+		// Reuse SMTPS's protocol-specific definitions rather than introducing a second independently maintained set.
+		@Override public String propertyNameHost() { return SMTPS.propertyNameHost(); }
+		@Override public String propertyNamePort() { return SMTPS.propertyNamePort(); }
+		@Override public String propertyNameUsername() { return SMTPS.propertyNameUsername(); }
+		@Override public String propertyNameAuthenticate() { return SMTPS.propertyNameAuthenticate(); }
+		@Override public String propertyNameSocksHost() { return SMTPS.propertyNameSocksHost(); }
+		@Override public String propertyNameSocksPort() { return SMTPS.propertyNameSocksPort(); }
+		@Override public String propertyNameLocalAddress() { return SMTPS.propertyNameLocalAddress(); }
+		@Override public String propertyNameLocalPort() { return SMTPS.propertyNameLocalPort(); }
+		@Override public String propertyNameLocalHost() { return SMTPS.propertyNameLocalHost(); }
+		@Override public String propertyNameConnectionTimeout() { return SMTPS.propertyNameConnectionTimeout(); }
+		@Override public String propertyNameTimeout() { return SMTPS.propertyNameTimeout(); }
+		@Override public String propertyNameWriteTimeout() { return SMTPS.propertyNameWriteTimeout(); }
+		@Override public String propertyNameEnvelopeFrom() { return SMTPS.propertyNameEnvelopeFrom(); }
+		@Override public String propertyNameSSLTrust() { return SMTPS.propertyNameSSLTrust(); }
+		@Override public String propertyNameSSLSocketFactory() { return SMTPS.propertyNameSSLSocketFactory(); }
+		@Override public String propertyNameSSLSocketFactoryClass() { return SMTPS.propertyNameSSLSocketFactoryClass(); }
+		@Override public String propertyNameCheckServerIdentity() { return SMTPS.propertyNameCheckServerIdentity(); }
+		@Override public int getDefaultServerPort() { return SMTPS.getDefaultServerPort(); }
 	};
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransportStrategy.class);

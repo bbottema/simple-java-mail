@@ -1,10 +1,10 @@
 package org.simplejavamail.api.mailer;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Optional;
 
 /**
  * Time spent in one part of sending an email, or an explanation of why that part was not measured.
@@ -12,13 +12,13 @@ import java.util.Optional;
  */
 public interface MailSendMeasurement extends Serializable {
 
-	/** @return Elapsed time, including time until failure, or empty when this part was not measured. This is not CPU time. */
-	@NotNull
-	Optional<Duration> getElapsed();
+	/** @return Elapsed time, including time until failure, or {@code null} when this part was not measured. This is not CPU time. */
+	@Nullable
+	Duration getElapsed();
 
-	/** @return A human-readable absence explanation, or empty for a measured duration. Do not parse this text as a status code. */
-	@NotNull
-	Optional<String> getUnavailableReason();
+	/** @return A human-readable absence explanation, or {@code null} for a measured duration. Do not parse this text as a status code. */
+	@Nullable
+	String getUnavailableReason();
 
 	/**
 	 * @return Whether the send failed during this step.

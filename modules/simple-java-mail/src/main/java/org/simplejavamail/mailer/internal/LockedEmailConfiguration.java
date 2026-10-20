@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import jakarta.mail.Message.RecipientType;
@@ -90,7 +93,7 @@ final class LockedEmailConfiguration {
 		for (Property property : MESSAGE_DEFAULTS) {
 			if (property != DEFAULT_TO_ADDRESS && property != DEFAULT_CC_ADDRESS && property != DEFAULT_BCC_ADDRESS
 					&& locksOf(first).contains(property) && locksOf(second).contains(property)
-					&& !Objects.deepEquals(first.getProperty(property), second.getProperty(property))) {
+					&& !Objects.deepEquals(first.asMap().get(property), second.asMap().get(property))) {
 				throw locksOf(second).conflict(property, "Another Mailer on this failover route fixes a different value for the same message setting. "
 						+ "Mandatory message settings remain in force through failover. Ask the configuration owner to make these route definitions compatible.");
 			}
@@ -210,25 +213,25 @@ final class LockedEmailConfiguration {
 
 	private void applySingleValueSettings(final EmailPopulatingBuilder target) {
 		if (locks.contains(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS)) {
-			target.withSendingToAcceptedRecipients(config.getBooleanProperty(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS));
+			((InternalEmailPopulatingBuilder) target).withSendingToAcceptedRecipients(config.get(ConfigKeys.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS));
 		}
 		if (locks.contains(DEFAULT_SUBJECT)) {
-			target.withSubject(config.getStringProperty(DEFAULT_SUBJECT));
+			target.withSubject(config.get(ConfigKeys.DEFAULT_SUBJECT));
 		}
 		if (locks.contains(DEFAULT_CONTENT_TRANSFER_ENCODING)) {
-			target.withContentTransferEncoding(config.getProperty(DEFAULT_CONTENT_TRANSFER_ENCODING));
+			((InternalEmailPopulatingBuilder) target).withContentTransferEncoding(config.get(ConfigKeys.DEFAULT_CONTENT_TRANSFER_ENCODING));
 		}
 		if (locks.contains(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)) {
-			target.withPlainTextContentTransferEncoding(config.getProperty(DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING));
+			((InternalEmailPopulatingBuilder) target).withPlainTextContentTransferEncoding(config.get(ConfigKeys.DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING));
 		}
 		if (locks.contains(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING)) {
-			target.withHTMLTextContentTransferEncoding(config.getProperty(DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING));
+			((InternalEmailPopulatingBuilder) target).withHTMLTextContentTransferEncoding(config.get(ConfigKeys.DEFAULT_HTML_TEXT_CONTENT_TRANSFER_ENCODING));
 		}
 		if (locks.contains(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)) {
-			target.withCalendarTextContentTransferEncoding(config.getProperty(DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING));
+			((InternalEmailPopulatingBuilder) target).withCalendarTextContentTransferEncoding(config.get(ConfigKeys.DEFAULT_CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING));
 		}
-		if (locks.contains(DEFAULT_REQUIRE_TLS) && Boolean.TRUE.equals(config.getBooleanProperty(DEFAULT_REQUIRE_TLS))) {
-			target.withTlsRequiredForOnwardDelivery();
+		if (locks.contains(DEFAULT_REQUIRE_TLS) && Boolean.TRUE.equals(config.get(ConfigKeys.DEFAULT_REQUIRE_TLS))) {
+			((InternalEmailPopulatingBuilder) target).withTlsRequiredForOnwardDelivery();
 		}
 		if (locks.contains(DEFAULT_FROM_ADDRESS) || locks.contains(DEFAULT_FROM_NAME)) {
 			target.from(lockedSender(target.getFromRecipient(), DEFAULT_FROM_ADDRESS, DEFAULT_FROM_NAME));
@@ -237,17 +240,17 @@ final class LockedEmailConfiguration {
 			target.withBounceTo(lockedSender(target.getBounceToRecipient(), DEFAULT_BOUNCETO_ADDRESS, DEFAULT_BOUNCETO_NAME));
 		}
 		if (locks.contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_NOTIFY)) {
-			target.withDeliveryStatusNotificationNotifyOptions(configuredDefaults.getDeliveryStatusNotification().getNotifyOptions()
+			((InternalEmailPopulatingBuilder) target).withDeliveryStatusNotificationNotifyOptions(configuredDefaults.getDeliveryStatusNotification().getNotifyOptions()
 					.toArray(new DeliveryStatusNotification.NotifyOption[0]));
 		}
 		if (locks.contains(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION)) {
-			target.withDeliveryStatusNotificationReturnOption(config.getProperty(DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION));
+			((InternalEmailPopulatingBuilder) target).withDeliveryStatusNotificationReturnOption(config.get(ConfigKeys.DEFAULT_DELIVERY_STATUS_NOTIFICATION_RETURN_OPTION));
 		}
 	}
 
 	private Recipient lockedSender(@Nullable final Recipient supplied, final Property address, final Property name) {
-		final String resolvedAddress = locks.contains(address) ? config.getStringProperty(address) : supplied == null ? null : supplied.getAddress();
-		final String resolvedName = locks.contains(name) ? config.getStringProperty(name) : supplied == null ? null : supplied.getName();
+		final String resolvedAddress = locks.contains(address) ? String.class.cast(config.asMap().get(address)) : supplied == null ? null : supplied.getAddress();
+		final String resolvedName = locks.contains(name) ? String.class.cast(config.asMap().get(name)) : supplied == null ? null : supplied.getName();
 		if (resolvedAddress == null) {
 			throw locks.conflict(name, "This lock supplies a display name, but no corresponding email address was provided for " + address.key() + ". "
 					+ "A name alone cannot identify a mailbox. Supply the address on the Email or in the configuration, or remove the display-name lock.");
@@ -303,7 +306,7 @@ final class LockedEmailConfiguration {
 			final Recipient recipient = recipients.get(index);
 			if (Objects.equals(type, recipient.getType())) {
 				verifyIfPresent(property, recipient.getName());
-				recipients.set(index, new Recipient(config.getStringProperty(property), recipient.getAddress(), type,
+				recipients.set(index, new Recipient(String.class.cast(config.asMap().get(property)), recipient.getAddress(), type,
 						recipient.getSmimeCertificate(), recipient.getDeliveryStatusNotificationNotifyOptions()));
 			}
 		}
@@ -351,13 +354,13 @@ final class LockedEmailConfiguration {
 
 	private boolean matchesExactHeader(final String key, final Email email) {
 		if (key.equals(DEFAULT_SUBJECT.key())) {
-			return Objects.equals(config.getStringProperty(DEFAULT_SUBJECT), email.getSubject());
+			return Objects.equals(config.get(ConfigKeys.DEFAULT_SUBJECT), email.getSubject());
 		}
 		if (key.equals(DEFAULT_FROM_ADDRESS.key())) {
-			return email.getFromRecipient() != null && Objects.equals(config.getStringProperty(DEFAULT_FROM_ADDRESS), email.getFromRecipient().getAddress());
+			return email.getFromRecipient() != null && Objects.equals(config.get(ConfigKeys.DEFAULT_FROM_ADDRESS), email.getFromRecipient().getAddress());
 		}
 		if (key.equals(DEFAULT_FROM_NAME.key())) {
-			return email.getFromRecipient() != null && Objects.equals(config.getStringProperty(DEFAULT_FROM_NAME), email.getFromRecipient().getName());
+			return email.getFromRecipient() != null && Objects.equals(config.get(ConfigKeys.DEFAULT_FROM_NAME), email.getFromRecipient().getName());
 		}
 		if (key.equals(DEFAULT_REPLYTO_ADDRESS.key())) {
 			return configuredDefaults.getReplyToRecipients().stream().allMatch(required -> email.getReplyToRecipients().stream()
@@ -365,7 +368,7 @@ final class LockedEmailConfiguration {
 		}
 		if (key.equals(DEFAULT_REPLYTO_NAME.key())) {
 			return !email.getReplyToRecipients().isEmpty() && email.getReplyToRecipients().stream()
-					.allMatch(actual -> Objects.equals(config.getStringProperty(DEFAULT_REPLYTO_NAME), actual.getName()));
+					.allMatch(actual -> Objects.equals(config.get(ConfigKeys.DEFAULT_REPLYTO_NAME), actual.getName()));
 		}
 		return false;
 	}

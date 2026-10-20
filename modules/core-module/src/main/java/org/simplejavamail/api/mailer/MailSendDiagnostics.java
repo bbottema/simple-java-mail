@@ -1,11 +1,11 @@
 package org.simplejavamail.api.mailer;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Explains where elapsed time went during one observed email attempt, using the actual send rather than a separate connection probe.
@@ -65,12 +65,14 @@ public interface MailSendDiagnostics extends Serializable {
 
 	/**
 	 * @return Bounded, escaped logical host reported by the selected transport, not necessarily the invoking Mailer's configured server or the physical peer.
-	 * Empty when unknown, including CustomMailer/logging-only paths. Consider infrastructure privacy before exporting this value.
+	 * Returns {@code null} when unknown, including CustomMailer/logging-only paths. Consider infrastructure privacy before exporting this value.
 	 */
-	@NotNull Optional<String> getSmtpHost();
+	@Nullable
+	String getSmtpHost();
 
-	/** @return Selected logical SMTP port, or empty when the transport did not provide one. No protocol-default port is guessed. */
-	@NotNull Optional<Integer> getSmtpPort();
+	/** @return Selected logical SMTP port, or {@code null} when the transport did not provide one. No protocol-default port is guessed. */
+	@Nullable
+	Integer getSmtpPort();
 
 	/**
 	 * @return Immutable connection acquisition/skip history for this attempt, never submission retries. Retains the first 63 steps and the latest;

@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import org.apache.commons.collections4.map.HashedMap;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -204,7 +205,7 @@ public class EmailPopulatingBuilderImpl2Test {
 		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withPlainText("plain")
 				.withHTMLText("<b>html</b>")
-				.withHTMLTextContentTransferEncoding(BINARY)
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withHTMLTextContentTransferEncoding(BINARY).build())
 				.buildEmailCompletedWithDefaultsAndOverrides();
 
 		assertThat(email.getContentTransferEncoding()).isEqualTo(BASE_64);

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 
 /**
@@ -20,9 +22,10 @@ final class MailSendReplayBudget {
 
     private synchronized void retain(final long byteCount) {
         if (byteCount > memoryLimit - retainedContentBytes) {
-            throw new MailerException("This Mailer's automatic-retry replay memory budget is full (" + memoryLimit + " bytes). "
+            throw new MailerException(MailFailureKind.CAPACITY,
+                    "This Mailer's automatic-retry replay memory budget is full (" + memoryLimit + " bytes). "
                     + "Reduce concurrent retry-enabled sends or increase withMemoryLimit(...) on the initiating Mailer's retry policy. "
-                    + "No message was submitted.");
+                    + "No message was submitted.", null);
         }
         retainedContentBytes += byteCount;
     }
@@ -52,10 +55,11 @@ final class MailSendReplayBudget {
 
         private void verifyMessageFits(final long byteCount) {
             if (byteCount > maximumMessageSize - retainedBytes) {
-                throw new MailerException("This email's serialized MIME content exceeds the automatic-retry replay limit of "
+                throw new MailerException(MailFailureKind.MESSAGE_SIZE,
+                        "This email's serialized MIME content exceeds the automatic-retry replay limit of "
                         + maximumMessageSize + " bytes. Increase withMaximumMessageSize(...) and withMemoryLimit(...) "
                         + "on the initiating Mailer's retry policy, "
-                        + "or select a Mailer without an enabled retry schedule. No message was submitted.");
+                        + "or select a Mailer without an enabled retry schedule. No message was submitted.", null);
             }
         }
 

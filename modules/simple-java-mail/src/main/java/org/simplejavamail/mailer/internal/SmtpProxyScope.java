@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
@@ -34,7 +36,8 @@ final class SmtpProxyScope implements AutoCloseable {
 			}
 			final int localPort = proxyServer.getLocalPort();
 			if (localPort < 1) {
-				throw new IllegalStateException("Authenticated SOCKS proxy bridge did not bind to a usable loopback port");
+				throw new MailerException(MailFailureKind.CONNECTION,
+						"Authenticated SOCKS proxy bridge did not bind to a usable loopback port", null);
 			}
 			final TransportStrategy strategy = TransportStrategy.findStrategyForSession(selectedSession);
 			selectedSession.getProperties().setProperty((strategy == null ? TransportStrategy.SMTP : strategy).propertyNameSocksPort(), String.valueOf(localPort));

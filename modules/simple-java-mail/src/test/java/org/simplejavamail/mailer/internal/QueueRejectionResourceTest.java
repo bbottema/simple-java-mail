@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.MockedConstruction;
@@ -32,7 +33,7 @@ class QueueRejectionResourceTest {
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 25)
-                .withThreadPoolSize(1).withAsyncQueueCapacity(0).buildMailer();
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).withQueueCapacity(0).build()).buildMailer();
              MockedConstruction<SendMailClosure> sends = mockConstruction(SendMailClosure.class);
              MockedConstruction<TestConnectionClosure> tests = mockConstruction(TestConnectionClosure.class)) {
             final CompletableFuture<Void> occupyingWorker = CompletableFuture.runAsync(() -> {

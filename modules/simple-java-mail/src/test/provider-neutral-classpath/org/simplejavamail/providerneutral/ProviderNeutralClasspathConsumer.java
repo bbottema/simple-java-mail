@@ -1,5 +1,10 @@
 package org.simplejavamail.providerneutral;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -150,7 +155,7 @@ public final class ProviderNeutralClasspathConsumer {
 		final Function<MailSendDiagnostics, Duration> elapsed = MailSendDiagnostics::getElapsed;
 		final Function<MailSendDiagnostics, MailSendMeasurement> retryWait = MailSendDiagnostics::getRetryWait;
 		final Function<MailSendDiagnostics, List<MailSendSubmissionStep>> submissions = MailSendDiagnostics::getSubmissionHistory;
-		final Function<MailSendSubmissionStep, Optional<Integer>> replyCode = MailSendSubmissionStep::getSmtpReplyCode;
+		final Function<MailSendSubmissionStep, Integer> replyCode = MailSendSubmissionStep::getSmtpReplyCode;
 	}
 
 	/** A failover policy and its connection history remain usable before a Jakarta Mail implementation is installed. */
@@ -169,20 +174,20 @@ public final class ProviderNeutralClasspathConsumer {
 	private static void assertLockedConfigurationApiIsAvailable() {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder()
 				.withMap(Map.of("simplejavamail.locked.defaults.subject", "Company mail")).load());
-		if (!"Company mail".equals(factory.emailBuilder().startingBlank().ignoringDefaults().buildEmailCompletedWithDefaultsAndOverrides().getSubject())) {
+		if (!"Company mail".equals(factory.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmailCompletedWithDefaultsAndOverrides().getSubject())) {
 			throw new AssertionError("Message locks need no transport provider");
 		}
 	}
 
 	/** Rate configuration and diagnostics need no provider implementation. */
 	private static void assertSendingLimitsApiIsAvailable(final SimpleJavaMail factory) {
-		final SendingRateLimit rule = factory.mailerBuilder().withMessageRateLimit(30, Duration.ofMinutes(1))
-				.withRecipientRateLimit(100, Duration.ofMinutes(1)).withRateLimitGroup("account").withRateLimitBurstsAllowed(false).getMessageRateLimit();
+		final SendingRateLimit rule = factory.mailerBuilder().withSendingLimitsConfig(SendingLimitsConfig.builder().withMessageRateLimit(30, Duration.ofMinutes(1)).withRecipientRateLimit(100, Duration.ofMinutes(1)).withRateLimitGroup("account").withRateLimitBurstsAllowed(false).build())
+				.getSendingLimitsConfig().getMessageRateLimit();
 		if (rule.getCount() != 30 || !rule.getPeriod().equals(Duration.ofMinutes(1))) {
 			throw new AssertionError("Sending-limit API is unavailable");
 		}
-		if (factory.mailerBuilder().resetMessageRateLimit().resetRecipientRateLimit().resetRateLimitGroup().resetRateLimitBurstsAllowed()
-				.getRecipientRateLimit() != null) {
+		if (factory.mailerBuilder().withSendingLimitsConfig(SendingLimitsConfig.builder().clearMessageRateLimit().clearRecipientRateLimit().clearRateLimitGroup().resetRateLimitBurstsAllowed().build())
+				.getSendingLimitsConfig().getRecipientRateLimit() != null) {
 			throw new AssertionError("Reset created an implicit sending limit");
 		}
 		@SuppressWarnings("unused") final Function<Mailer, SendingRateLimit> configured = mailer -> mailer.getOperationalConfig().getMessageRateLimit();
@@ -190,7 +195,7 @@ public final class ProviderNeutralClasspathConsumer {
 
 	/** Server compatibility permission must be usable without depending on the bundled provider. */
 	private static void assertLegacyContentSupportApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
-		if (!simpleJavaMail.mailerBuilder().withLegacySmtpContentSupport(true).isLegacySmtpContentSupportEnabled()) {
+		if (!simpleJavaMail.mailerBuilder().withConnectionConfig(ConnectionConfig.builder().withLegacySmtpContentSupport(true).build()).getConnectionConfig().getLegacySmtpContentSupport()) {
 			throw new AssertionError("Legacy SMTP content support was not retained by the builder");
 		}
 		@SuppressWarnings("unused") final Function<Mailer, Boolean> configured = mailer -> mailer.getOperationalConfig().isLegacySmtpContentSupportEnabled();
@@ -213,10 +218,12 @@ public final class ProviderNeutralClasspathConsumer {
 		}
 		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, Recipient[], ExactEmailBuilder> exactRecipients =
 				ExactEmailBuilder::withEnvelopeRecipients;
-		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, DeliveryStatusNotification.NotifyOption[], ExactEmailBuilder> exactNotificationOptions =
-				ExactEmailBuilder::withDeliveryStatusNotificationNotifyOptions;
-		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, DeliveryStatusNotification.ReturnOption, ExactEmailBuilder> exactReturnOption =
-				ExactEmailBuilder::withDeliveryStatusNotificationReturnOption;
+		@SuppressWarnings("unused") final BiFunction<SmtpDeliveryOptions.Builder, DeliveryStatusNotification.NotifyOption[], SmtpDeliveryOptions.Builder> notificationOptions =
+				SmtpDeliveryOptions.Builder::withDeliveryStatusNotificationNotifyOptions;
+		@SuppressWarnings("unused") final BiFunction<SmtpDeliveryOptions.Builder, DeliveryStatusNotification.ReturnOption, SmtpDeliveryOptions.Builder> returnOption =
+				SmtpDeliveryOptions.Builder::withDeliveryStatusNotificationReturnOption;
+		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, SmtpDeliveryOptions, ExactEmailBuilder> exactOptions =
+				ExactEmailBuilder::withSmtpDeliveryOptions;
 	}
 
 	/** Constructing and sharing signing policy must not load a signing module or SMTP provider. */
@@ -232,17 +239,15 @@ public final class ProviderNeutralClasspathConsumer {
 	/** SMTP envelope requirements remain ordinary immutable Email data even when no SMTP implementation is installed. */
 	private static void assertEnvelopeIdentifierApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
 		final DeliveryStatusNotification notification = DeliveryStatusNotification.builder().envelopeId("consumer+42").build();
-		final Email email = simpleJavaMail.emailBuilder().startingBlank().withDeliveryStatusNotification(notification)
-				.withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY)
-				.withTlsRequiredForOnwardDelivery().buildEmail();
+		final Email email = simpleJavaMail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(notification).withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption.HEADERS_ONLY).withTlsRequiredForOnwardDelivery().build()).buildEmail();
 		if (!"consumer+42".equals(email.getDeliveryStatusNotification().getEnvelopeId())
 				|| !notification.equals(notification.toBuilder().build()) || !email.isTlsRequiredForOnwardDelivery()) {
 			throw new AssertionError("Provider-neutral SMTP envelope model is unavailable");
 		}
-		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, String, ExactEmailBuilder> exactIdentifier =
-				ExactEmailBuilder::fixingEnvelopeId;
-		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> exactRequireTls =
-				ExactEmailBuilder::withTlsRequiredForOnwardDelivery;
+		@SuppressWarnings("unused") final BiFunction<SmtpDeliveryOptions.Builder, String, SmtpDeliveryOptions.Builder> identifier =
+				SmtpDeliveryOptions.Builder::fixingEnvelopeId;
+		@SuppressWarnings("unused") final Function<SmtpDeliveryOptions.Builder, SmtpDeliveryOptions.Builder> requireTls =
+				SmtpDeliveryOptions.Builder::withTlsRequiredForOnwardDelivery;
 		@SuppressWarnings("unused") final Function<MailSubmissionReceipt, String> effectiveEnvelopeId = MailSubmissionReceipt::getEnvelopeId;
 		@SuppressWarnings("unused") final Function<MailSubmissionReceipt, Boolean> requireTlsUsed = MailSubmissionReceipt::isRequireTlsUsed;
 		@SuppressWarnings("unused") final BiFunction<MailTransportResult, String, MailTransportResult> reportedEnvelopeId = MailTransportResult::withEnvelopeId;
@@ -252,16 +257,18 @@ public final class ProviderNeutralClasspathConsumer {
 
 	/** Recipient-rejection choices remain nullable Email data, not provider-specific types or Session properties. */
 	private static void assertRecipientRejectionApiIsAvailable(final SimpleJavaMail mail) {
-		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withSendingToAcceptedRecipients(false);
-		if (!Boolean.FALSE.equals(builder.getSendingToAcceptedRecipients())
+		final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withSendingToAcceptedRecipients(false).build());
+		if (!Boolean.FALSE.equals(builder.getSmtpDeliveryOptions().getSendingToAcceptedRecipients())
 				|| !Boolean.FALSE.equals(builder.buildEmail().getSendingToAcceptedRecipients())
-				|| builder.clearSendingToAcceptedRecipients().buildEmail().getSendingToAcceptedRecipients() != null) {
+				|| builder.withSmtpDeliveryOptions(builder.getSmtpDeliveryOptions().toBuilder().clearSendingToAcceptedRecipients().build()).buildEmail().getSendingToAcceptedRecipients() != null) {
 			throw new AssertionError("Provider-neutral recipient-rejection choice is unavailable");
 		}
-		@SuppressWarnings("unused") final BiFunction<ExactEmailBuilder, Boolean, ExactEmailBuilder> exactChoice =
-				ExactEmailBuilder::withSendingToAcceptedRecipients;
-		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> clearExact = ExactEmailBuilder::clearSendingToAcceptedRecipients;
-		@SuppressWarnings("unused") final Function<ExactEmailBuilder, Boolean> getExact = ExactEmailBuilder::getSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final BiFunction<SmtpDeliveryOptions.Builder, Boolean, SmtpDeliveryOptions.Builder> choice =
+				SmtpDeliveryOptions.Builder::withSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final Function<SmtpDeliveryOptions.Builder, SmtpDeliveryOptions.Builder> clearChoice = SmtpDeliveryOptions.Builder::clearSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final Function<SmtpDeliveryOptions, Boolean> getChoice = SmtpDeliveryOptions::getSendingToAcceptedRecipients;
+		@SuppressWarnings("unused") final Function<ExactEmailBuilder, SmtpDeliveryOptions> getExactOptions = ExactEmailBuilder::getSmtpDeliveryOptions;
+		@SuppressWarnings("unused") final Function<ExactEmailBuilder, ExactEmailBuilder> restoreExactOptions = ExactEmailBuilder::useConfiguredSmtpDeliveryOptions;
 		final DeliveryEnvelope envelope = DeliveryEnvelope.builder()
 			.withRecipientOptions(List.of())
 			.withSendingToAcceptedRecipients(false)
@@ -297,7 +304,7 @@ public final class ProviderNeutralClasspathConsumer {
 				.afterTls(new SmtpCapabilities(Map.of("DSN", List.of(""), "SIZE", List.of("100"))))
 				.tlsDetails(new SmtpTlsDetails("TLSv1.3", "example", List.of("CN=localhost"), true, null)).warnings(List.of()).build();
 		if (!report.isSuccessful() || !report.getEffectiveCapabilities().orElseThrow().supports("DSN")
-				|| report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize().orElseThrow() != 100) {
+				|| report.getEffectiveCapabilities().orElseThrow().getMaximumMessageSize() != 100) {
 			throw new AssertionError("SMTP connection probe API is unavailable");
 		}
 	}
@@ -316,9 +323,8 @@ public final class ProviderNeutralClasspathConsumer {
 
 	/** Queue configuration and diagnostics must not depend on an SMTP implementation. */
 	private static void assertAsyncQueueApiIsAvailable(final SimpleJavaMail simpleJavaMail) {
-		if (simpleJavaMail.mailerBuilder().withAsyncQueueCapacity(4)
-				.withAsyncQueueOverflowPolicy(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY)
-				.withAsyncQueueWaitTimeout(Duration.ofMillis(250)).getAsyncQueueConfig().getCapacity() != 4) {
+		if (simpleJavaMail.mailerBuilder().withAsyncExecutionConfig(AsyncExecutionConfig.builder().withQueueCapacity(4).waitForCapacity(Duration.ofMillis(250)).build())
+				.getAsyncExecutionConfig().getQueueCapacity() != 4) {
 			throw new AssertionError("Async queue configuration API is unavailable");
 		}
 		// Compile the optional return type without constructing a Mailer, which would need a Jakarta Mail implementation here.
@@ -457,7 +463,7 @@ public final class ProviderNeutralClasspathConsumer {
 			throw new AssertionError("Submission size facts are unavailable");
 		}
 		if (result.getRecipientResults().get(0).getRcptStatus() != SmtpRecipientStatus.TEMPORARILY_REJECTED
-				|| !recipient.getRcptAttempted().orElse(false)
+				|| !Boolean.TRUE.equals(recipient.getRcptAttempted())
 				|| !recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElseThrow().isTemporaryFailure()
 				|| !"4.2.0".equals(recipient.getRcptResponse().orElseThrow().getEnhancedStatusCode().orElseThrow().toString())) {
 			throw new AssertionError("Recipient reply API is unavailable");

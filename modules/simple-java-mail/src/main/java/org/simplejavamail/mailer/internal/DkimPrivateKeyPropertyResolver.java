@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -58,7 +60,7 @@ final class DkimPrivateKeyPropertyResolver {
 		try {
 			return Files.readAllBytes(privateKeyFile.toPath());
 		} catch (IOException e) {
-			throw new IllegalStateException("Error reading DKIM private key file configured in property " + PROPERTY_NAME
+			throw new MailerException(MailFailureKind.CONFIGURATION, "Error reading DKIM private key file configured in property " + PROPERTY_NAME
 					+ ": " + privateKeyFile, e);
 		}
 	}

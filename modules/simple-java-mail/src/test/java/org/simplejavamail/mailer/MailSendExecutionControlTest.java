@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -55,6 +60,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -149,7 +155,7 @@ class MailSendExecutionControlTest {
     @Test
     void simultaneousHealthyLeasesAreUnaffectedByOneAbortedLease() throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer(".");
-             Mailer mailer = builder(server).withThreadPoolSize(4).withConnectionPoolMaxSize(4).buildMailer()) {
+             Mailer mailer = updateMailer(builder(server), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(4).build()).withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(4).build())).buildMailer()) {
             final MailSend<MailSubmissionReceipt> blocked = mailer.async().sendMail(email("cancelled"));
             assertThat(server.blocked.await(5, SECONDS)).isTrue();
             final List<MailSend<MailSubmissionReceipt>> healthy = new CopyOnWriteArrayList<>();
@@ -161,7 +167,7 @@ class MailSendExecutionControlTest {
             for (int index = 0; index < healthy.size(); index++) {
                 final MailSubmissionReceipt receipt = healthy.get(index).getCompletion().get(5, SECONDS);
                 assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
-                assertThat(receipt.getRecipientResults().get(0).getEnvelopeAddress()).contains("healthy-" + index + "@example.org");
+                assertThat(receipt.getRecipientResults().get(0).getEnvelopeAddress()).isEqualTo("healthy-" + index + "@example.org");
             }
         }
     }
@@ -243,7 +249,7 @@ class MailSendExecutionControlTest {
             final MailSubmissionReceipt next = mailer.async().sendMail(email("fresh")).getCompletion().get(5, SECONDS);
             assertThat(next.getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
             assertThat(next.getRecipientResults()).allSatisfy(recipient ->
-                    assertThat(recipient.getEnvelopeAddress()).contains("fresh@example.org"));
+                    assertThat(recipient.getEnvelopeAddress()).isEqualTo("fresh@example.org"));
             assertThat(outcomes.get(1).getSubmissionReceipt()).containsSame(next);
             assertThat(outcomes.get(1).getDiagnostics().orElseThrow().getSubmission().isFailureObservedHere()).isFalse();
             send.requestCancellation();
@@ -291,7 +297,7 @@ class MailSendExecutionControlTest {
     @Test
     void poolAcquisitionCanBeCancelledWithoutAbortingItsCurrentBorrower() throws Exception {
         try (BlockedSmtpServer server = new BlockedSmtpServer("HELD_REPLY");
-             Mailer mailer = builder(server).withThreadPoolSize(2).buildMailer()) {
+             Mailer mailer = updateMailer(builder(server), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build())).buildMailer()) {
             final List<Thread> workers = recordSendWorkers(mailer);
             final MailSend<MailSubmissionReceipt> owner = mailer.async().sendMail(email("owner"));
             try {
@@ -320,7 +326,7 @@ class MailSendExecutionControlTest {
         final AtomicInteger iterations = new AtomicInteger();
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-                .withTransportModeLoggingOnly(true).withExecutorService(callerExecutor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+                .withTransportModeLoggingOnly(true).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(callerExecutor).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             callerExecutor.execute(() -> await(release));
             final Iterable<Email> emails = () -> { iterations.incrementAndGet(); return List.of(email("untouched")).iterator(); };
             final MailSend<Void> send = mailer.async().sendMailsInSimpleBatch(emails);
@@ -339,7 +345,7 @@ class MailSendExecutionControlTest {
     void totalDeadlineIncludesSendingLimitWaitWithoutTouchingTheIdlePooledConnection(final boolean asynchronous) throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
-             Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
+             Mailer mailer = updateMailer(builder(server), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).build())).withMailSendTimeout(Duration.ofSeconds(2))
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.rehearse(email("warm-up"));
             mailer.sync().sendMail(email("allowed"));
@@ -361,7 +367,7 @@ class MailSendExecutionControlTest {
     void openConnectionDeadlineCanExpireWhileItsNextEmailWaitsForAllowance() throws Exception {
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (BlockedSmtpServer server = new BlockedSmtpServer("NONE");
-             Mailer mailer = builder(server).withMessageRateLimit(1, Duration.ofHours(1)).withMailSendTimeout(Duration.ofSeconds(2))
+             Mailer mailer = updateMailer(builder(server), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, Duration.ofHours(1)).build())).withMailSendTimeout(Duration.ofSeconds(2))
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             mailer.rehearse(email("warm-up"));
             assertThatThrownBy(() -> mailer.withOpenConnection(sender -> {
@@ -386,7 +392,7 @@ class MailSendExecutionControlTest {
             final Session session = Session.getInstance(properties);
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
                     .withMailSendTimeout(Duration.ofSeconds(1)).buildMailer()) {
-                assertThat(failure(mailer.async().sendMail(email("unsupported")))).isInstanceOf(IllegalStateException.class)
+                assertThat(failure(mailer.async().sendMail(email("unsupported")))).isInstanceOf(org.simplejavamail.MailException.class)
                         .hasMessageContaining("Simple Java Mail can't stop its network calls")
                         .hasMessageContaining("Remove the total timeout from your builder or configuration")
                         .hasMessageContaining("If you can't change the configuration that sets it");
@@ -400,11 +406,10 @@ class MailSendExecutionControlTest {
     private static MailerRegularBuilder<?> builder(final BlockedSmtpServer server) {
         // Keep Message-ID and EHLO hostname lookup out of tests that budget time for specific SMTP phases.
         final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-                .withTransportStrategy(TransportStrategy.SMTP).withOpportunisticTLS(false)
+                .withTransportStrategy(TransportStrategy.SMTP).withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
                 .withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.listener.getLocalPort())
-                .withSmtpClientHostname("probe.example.test").withProperty("mail.from", "sender@example.org")
-                .withSessionTimeout(Duration.ofMillis(30000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeout(Duration.ofMillis(5000));
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(30000)).build()).withProperty("mail.from", "sender@example.org")
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build());
         if (server.phase.equals("AUTH")) {
             builder.withSMTPServerUsername("user").withSMTPServerPassword("password").withProperty("mail.smtp.auth.mechanisms", "PLAIN");
         }

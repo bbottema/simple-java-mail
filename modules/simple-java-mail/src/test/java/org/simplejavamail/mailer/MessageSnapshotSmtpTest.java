@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import jakarta.mail.Message.RecipientType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -124,7 +126,7 @@ class MessageSnapshotSmtpTest {
 	}
 
 	private Mailer smtpMailer() {
-		return mail.mailerBuilder().withSMTPServer("localhost", smtpServer.getPort()).withThreadPoolSize(4)
-				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(4).buildMailer();
+		return mail.mailerBuilder().withSMTPServer("localhost", smtpServer.getPort()).withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(4).build())
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(4).build()).buildMailer();
 	}
 }

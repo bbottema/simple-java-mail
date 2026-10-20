@@ -102,7 +102,7 @@ class AngusProbeTlsObserverTest {
         final AngusProbeTlsObserver observer = new AngusProbeTlsObserver(session, "smtp");
 
         assertThat(verifyHostname(session, tlsSession(32))).isFalse();
-        assertThat(observer.getDetails().getCustomHostnameVerifierAccepted()).contains(false);
+        assertThat(observer.getDetails().getCustomHostnameVerifierAccepted()).isEqualTo(false);
         assertThat(observer.getWarnings()).containsExactly(TRUNCATION_WARNING);
     }
 
@@ -115,7 +115,7 @@ class AngusProbeTlsObserverTest {
         final SSLSession tlsSession = tlsSession(32);
 
         assertThatThrownBy(() -> verifyHostname(session, tlsSession)).isSameAs(rejection);
-        assertThat(observer.getDetails().getCustomHostnameVerifierAccepted()).isEmpty();
+        assertThat(observer.getDetails().getCustomHostnameVerifierAccepted()).isNull();
         assertThat(observer.getWarnings()).containsExactly(TRUNCATION_WARNING);
     }
 

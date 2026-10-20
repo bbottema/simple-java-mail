@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -37,6 +38,6 @@ class MimeMessageParseException extends MailException {
 	static final String ERROR_PARSING_REPLY_TO_ADDRESSES = "Error parsing replyTo addresses";
 
 	MimeMessageParseException(@NotNull final String message, @Nullable final Exception cause) {
-		super(checkNonEmptyArgument(message, "message"), cause);
+		super(MailFailureKind.CONVERSION, checkNonEmptyArgument(message, "message"), cause, null);
 	}
 }

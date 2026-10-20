@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -35,6 +39,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,7 +105,7 @@ class SmtpMessageSizeTest {
             assertThat(failure.isRequireTlsUsed()).isFalse();
             assertThat(failure.getValidUnsentRecipients()).containsExactly(RECIPIENT);
             assertThat(failure.getRecipientResults()).allSatisfy(recipient -> {
-                assertThat(recipient.getRcptAttempted()).contains(false);
+                assertThat(recipient.getRcptAttempted()).isEqualTo(false);
                 assertThat(recipient.getRcptResponse()).isEmpty();
             });
             final MailSubmissionReceipt next = mailer.sync().sendMail(exactEmail(small));
@@ -167,7 +172,7 @@ class SmtpMessageSizeTest {
         }); Mailer mailer = builder(server).withProperty("mail.smtp.allow8bitmime", true).buildMailer()) {
             final Email email = mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(RECIPIENT).withType(RecipientType.BCC).build())
                     .withSubject("Café").withPlainText("Café\r\n.hello")
-                    .withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+                    .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build())
                     .withHeader("Content-Length", "123456").buildEmail();
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
             final String content = captured.get(10, SECONDS);
@@ -189,8 +194,8 @@ class SmtpMessageSizeTest {
             peer.reply("250-localhost\r\n250-X-LONG " + "x".repeat(70000) + "\r\n" + (sizeAfterTls ? "250 SIZE 99999" : "250 HELP"));
             acceptSizedMessage(peer, sizeAfterTls ? (long) content.length : null);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withTransportStrategy(TransportStrategy.SMTP_TLS)
-                .trustingSSLHosts("localhost").withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build())).withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(exactEmail(content));
             assertThat(receipt.getServerMaximumMessageSize()).isEqualTo(sizeAfterTls ? 99999L : null);
         }
@@ -287,7 +292,7 @@ class SmtpMessageSizeTest {
             }
             peer.reply("221 bye");
             peer.expectClosed();
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final List<byte[]> content = new ArrayList<>();
             final List<MailSend<MailSubmissionReceipt>> sends = new ArrayList<>();
             for (int index = 0; index < 16; index++) {
@@ -332,9 +337,9 @@ class SmtpMessageSizeTest {
             peer.greet("250-localhost\r\n250-X-LONG " + "x".repeat(70000) + "\r\n250 SIZE 99999");
             acceptSizedMessage(peer, (long) content.length);
             finishConnection(peer);
-        }); Mailer small = builder(smallServer).withClusterKey(cluster)
-                .withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer();
-             Mailer large = builder(largeServer).withClusterKey(cluster).buildMailer()) {
+        }); Mailer small = updateMailer(builder(smallServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()))
+                .buildMailer();
+             Mailer large = updateMailer(builder(largeServer), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).build())).buildMailer()) {
             final List<MailSubmissionReceipt> receipts = new ArrayList<>();
             for (int index = 0; index < 2; index++) {
                 try {
@@ -361,8 +366,8 @@ class SmtpMessageSizeTest {
             peer.reply("500 EHLO unavailable");
             acceptSizedMessage(peer, null);
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withTransportStrategy(TransportStrategy.SMTP_TLS)
-                .trustingSSLHosts("localhost").withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build())).withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(exactEmail(content));
             assertThat(receipt.getServerMaximumMessageSize()).isNull();
             assertThat(receipt.getMessageSize()).isEqualTo((long) content.length);
@@ -375,10 +380,10 @@ class SmtpMessageSizeTest {
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             peer.startTls("250-localhost\r\n250-SIZE 1\r\n250-DSN\r\n250 REQUIRETLS");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withTransportStrategy(TransportStrategy.SMTP_TLS)
-                .trustingSSLHosts("localhost").withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build())).withProperty("mail.smtp.ssl.protocols", "TLSv1.2").buildMailer()) {
             final Email email = mail.emailBuilder().startingFromExactEml(content).withEnvelopeSender("sender@example.test")
-                    .withEnvelopeRecipients(RECIPIENT).fixingEnvelopeId("not-issued").withTlsRequiredForOnwardDelivery().buildEmail();
+                    .withEnvelopeRecipients(RECIPIENT).withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId("not-issued").withTlsRequiredForOnwardDelivery().build()).buildEmail();
             final Throwable failure = catchThrowable(() -> mailer.sync().sendMail(email));
             assertThat(failure).hasCauseInstanceOf(MailTransportCompatibilityException.class);
             final MailSubmissionReceipt receipt = ((MailSubmissionException) failure).getSubmissionReceipt().orElseThrow();

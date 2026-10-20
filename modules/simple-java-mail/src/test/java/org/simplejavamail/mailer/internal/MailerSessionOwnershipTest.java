@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import jakarta.mail.Message.RecipientType;
@@ -34,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,8 +63,8 @@ class MailerSessionOwnershipTest {
 			send(owner, asynchronous);
 			final Properties before = (Properties) session.getProperties().clone();
 			for (int attempt = 0; attempt < 2; attempt++) {
-				assertThatThrownBy(() -> builder(session, "owner-b").withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build())
-						.withProxy("unwanted-proxy.example.test", 1080).withProperty("mail.smtp.host", "unwanted.example.test").buildMailer())
+				assertThatThrownBy(() -> updateMailer(builder(session, "owner-b"), fixture -> fixture.withDebugConfig(SessionDebugConfig.builder().withEnabled(true).build())
+						.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("unwanted-proxy.example.test").withPort(1080).build())).withProperty("mail.smtp.host", "unwanted.example.test").buildMailer())
 						.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already belongs to another Mailer")
 						.hasMessageContaining("Properties object").hasMessageContaining("defaults, overrides and connection settings")
 						.hasMessageContaining("Reuse the existing Mailer").hasMessageContaining("independent Properties");
@@ -252,9 +255,9 @@ class MailerSessionOwnershipTest {
 	private MailerFromSessionBuilderImpl builder(final Session session, final String owner) {
 		return (MailerFromSessionBuilderImpl) SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
 				.withEmailOverrides(mail.emailBuilder().startingBlank().from(owner + "@example.test").withHeader("X-Owner", owner).buildEmail())
-				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(1).withExpireAfter(Duration.ofMillis(0)).build())
 				// This fixture verifies ownership, not wall-clock expiry.
-				.withConnectionPoolExpireAfter(Duration.ofMillis(0));
+				;
 	}
 
 	private Email email() {

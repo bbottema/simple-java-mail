@@ -91,7 +91,7 @@ class MailSendRetryDiagnosticsTest {
             .cleanup(absent)
             .build();
         assertThat(report.getSubmissionHistory()).isEmpty();
-        assertThat(report.getRetryWait().getElapsed()).isEmpty();
+        assertThat(report.getRetryWait().getElapsed()).isNull();
         assertThat(report.getOmittedSubmissionSteps()).isZero();
         assertThatThrownBy(() -> MailSendSubmissionStepImpl.builder()
             .attemptNumber(0)

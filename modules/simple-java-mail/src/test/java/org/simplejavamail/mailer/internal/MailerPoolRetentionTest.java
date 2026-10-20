@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -38,7 +39,7 @@ class MailerPoolRetentionTest {
 
     private static Mailer newMailer(final SimpleJavaMail factory) {
         // Register actual Mailers in the cached batch module without opening any network connection.
-        return factory.mailerBuilder().withSMTPServer("localhost", 25).withConnectionPoolCoreSize(0).buildMailer();
+        return factory.mailerBuilder().withSMTPServer("localhost", 25).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer();
     }
 
     private static int mapSize(final Object owner, final String name) throws Exception {

@@ -21,7 +21,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
 /**
  * Delivery Status Notification (DSN) settings used when sending the email over SMTP.
  *
- * @see EmailPopulatingBuilder#withDeliveryStatusNotification(DeliveryStatusNotification)
+ * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
  */
 @ToString
 @EqualsAndHashCode
@@ -76,7 +76,7 @@ public final class DeliveryStatusNotification implements Serializable {
 	 * Generated identifiers are reported on the submission receipt, never stored back into this configuration value.
 	 * This is separate from the MIME Message-ID; it can be returned as Original-Envelope-ID in a later DSN.
 	 *
-	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 * @see SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	@Nullable
 	private final String envelopeId;
@@ -92,7 +92,7 @@ public final class DeliveryStatusNotification implements Serializable {
 
 	/**
 	 * @see DeliveryStatusNotificationBuilder#returnOption(ReturnOption)
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationReturnOption(ReturnOption)
+	 * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationReturnOption(ReturnOption)
 	 */
 	@Nullable
 	public ReturnOption getReturnOption() {
@@ -101,7 +101,7 @@ public final class DeliveryStatusNotification implements Serializable {
 
 	/**
 	 * @see DeliveryStatusNotificationBuilder#notifyOptions(NotifyOption...)
-	 * @see EmailPopulatingBuilder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
+	 * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotificationNotifyOptions(NotifyOption...)
 	 */
 	@NotNull
 	public Set<NotifyOption> getNotifyOptions() {
@@ -112,7 +112,7 @@ public final class DeliveryStatusNotification implements Serializable {
 	 * Returns only the configured identifier, not one generated during sending.
 	 *
 	 * @see DeliveryStatusNotificationBuilder#envelopeId(String)
-	 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+	 * @see SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	@Nullable
 	public String getEnvelopeId() {
@@ -284,7 +284,7 @@ public final class DeliveryStatusNotification implements Serializable {
 		 * Other DSN options are retained.
 		 * The value is validated when {@link #build()} creates the immutable request.
 		 *
-		 * @see EmailPopulatingBuilder#fixingEnvelopeId(String)
+		 * @see SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 		 */
 		public DeliveryStatusNotificationBuilder envelopeId(@Nullable final String envelopeId) {
 			this.envelopeId = envelopeId;

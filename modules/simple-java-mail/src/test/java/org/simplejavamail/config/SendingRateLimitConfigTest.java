@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -32,18 +33,25 @@ class SendingRateLimitConfigTest {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(config);
 		properties.clear();
 		final MailerRegularBuilder<?> builder = factory.mailerBuilder().withSMTPServer("localhost", 25);
-		assertThat(builder.getMessageRateLimit()).isEqualTo(new SendingRateLimit(40, Duration.ofMinutes(1)));
-		assertThat(builder.getRecipientRateLimit()).isEqualTo(new SendingRateLimit(100, Duration.ofMinutes(1)));
-		assertThat(builder.getRateLimitGroup()).isEqualTo("company-account");
-		assertThat(builder.isRateLimitBurstsAllowed()).isFalse();
-		try (Mailer mailer = builder.withMessageRateLimit(10, Duration.ofSeconds(1)).buildMailer()) {
+		assertThat(builder.getSendingLimitsConfig().getMessageRateLimit()).isNull();
+		try (Mailer inherited = SimpleJavaMail.withConfig(config).mailerBuilder().withSMTPServer("localhost", 25).buildMailer()) {
+			assertThat(inherited.getOperationalConfig().getMessageRateLimit()).isEqualTo(new SendingRateLimit(40, Duration.ofMinutes(1)));
+			assertThat(inherited.getOperationalConfig().getRecipientRateLimit()).isEqualTo(new SendingRateLimit(100, Duration.ofMinutes(1)));
+			assertThat(inherited.getOperationalConfig().getRateLimitGroup()).isEqualTo("company-account");
+			assertThat(inherited.getOperationalConfig().isRateLimitBurstsAllowed()).isFalse();
+		}
+		try (Mailer mailer = builder.withSendingLimitsConfig(builder.getSendingLimitsConfig().toBuilder().withMessageRateLimit(10, Duration.ofSeconds(1)).build()).buildMailer()) {
 			assertThat(mailer.getOperationalConfig().getMessageRateLimit()).isEqualTo(new SendingRateLimit(10, Duration.ofSeconds(1)));
 			assertThat(config.getDiagnostics().toString()).contains("40 (source: environment)", "PT1M (source: file)", "false (source: file)");
 			assertThat(config.getDiagnostics().getProperties(ConfigDiagnosticGroup.EXECUTION_AND_POOLING)).hasSize(6)
 					.allSatisfy(property -> assertThat(property.isRedacted()).isFalse());
 		}
-		assertThat(factory.mailerBuilder().getMessageRateLimit()).isEqualTo(new SendingRateLimit(40, Duration.ofMinutes(1)));
-		assertThat(SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder().getMessageRateLimit()).isNull();
+		assertThat(factory.mailerBuilder().getSendingLimitsConfig().getMessageRateLimit()).isNull();
+		try (Mailer unchanged = factory.mailerBuilder().withSMTPServer("localhost", 25)
+				.withSendingLimitsConfig(SendingLimitsConfig.builder().clearRateLimitGroup().build()).buildMailer()) {
+			assertThat(unchanged.getOperationalConfig().getMessageRateLimit()).isEqualTo(new SendingRateLimit(40, Duration.ofMinutes(1)));
+		}
+		assertThat(SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder().getSendingLimitsConfig().getMessageRateLimit()).isNull();
 	}
 
 	@Test
@@ -52,13 +60,13 @@ class SendingRateLimitConfigTest {
 				SMTP_MESSAGE_RATE_LIMIT.key(), 30, SMTP_MESSAGE_RATE_PERIOD.key(), "PT1M",
 				SMTP_RECIPIENT_RATE_LIMIT.key(), 100, SMTP_RECIPIENT_RATE_PERIOD.key(), "PT1M",
 				SMTP_RATE_LIMIT_GROUP.key(), "group", SMTP_RATE_LIMIT_ALLOW_BURSTS.key(), false)).load()).mailerBuilder();
-		builder.withMessageRateLimit(10, Duration.ofSeconds(2)).withMessageRateLimit(20, Duration.ofSeconds(3));
-		assertThat(builder.getMessageRateLimit()).isEqualTo(new SendingRateLimit(20, Duration.ofSeconds(3)));
-		builder.resetMessageRateLimit().resetRecipientRateLimit().resetRateLimitGroup().resetRateLimitBurstsAllowed();
-		assertThat(builder.getMessageRateLimit()).isNull();
-		assertThat(builder.getRecipientRateLimit()).isNull();
-		assertThat(builder.getRateLimitGroup()).isNull();
-		assertThat(builder.isRateLimitBurstsAllowed()).isTrue();
+		builder.withSendingLimitsConfig(builder.getSendingLimitsConfig().toBuilder().withMessageRateLimit(10, Duration.ofSeconds(2)).withMessageRateLimit(20, Duration.ofSeconds(3)).build());
+		assertThat(builder.getSendingLimitsConfig().getMessageRateLimit()).isEqualTo(new SendingRateLimit(20, Duration.ofSeconds(3)));
+		builder.withSendingLimitsConfig(builder.getSendingLimitsConfig().toBuilder().clearMessageRateLimit().clearRecipientRateLimit().clearRateLimitGroup().resetRateLimitBurstsAllowed().build());
+		assertThat(builder.getSendingLimitsConfig().getMessageRateLimit()).isNull();
+		assertThat(builder.getSendingLimitsConfig().getRecipientRateLimit()).isNull();
+		assertThat(builder.getSendingLimitsConfig().getRateLimitGroup()).isNull();
+		assertThat(builder.getSendingLimitsConfig().getRateLimitBurstsAllowed()).isTrue();
 	}
 
 	@Test
@@ -76,20 +84,20 @@ class SendingRateLimitConfigTest {
 		assertThatThrownBy(() -> ConfigLoader.builder().withMap(Map.of(SMTP_MESSAGE_RATE_LIMIT.key(), 0)).load())
 				.isInstanceOf(IllegalArgumentException.class);
 		final MailerRegularBuilder<?> builder = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder();
-		assertThatThrownBy(() -> builder.withRateLimitGroup(" ")).hasMessageContaining("resetRateLimitGroup");
-		assertThatThrownBy(() -> builder.withRateLimitGroup(null)).isInstanceOf(NullPointerException.class);
+		assertThatThrownBy(() -> builder.withSendingLimitsConfig(builder.getSendingLimitsConfig().toBuilder().withRateLimitGroup(" ").build())).hasMessageContaining("clearRateLimitGroup");
+		assertThatThrownBy(() -> builder.withSendingLimitsConfig(builder.getSendingLimitsConfig().toBuilder().withRateLimitGroup(null).build())).isInstanceOf(NullPointerException.class);
 	}
 
 	@Test
 	void groupDeclarationsMustAgreeButIndependentFactoriesDoNotConflict() throws Exception {
 		final SimpleJavaMailConfig config = ConfigLoader.builder().load();
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(config);
-		try (Mailer first = factory.mailerBuilder().withSMTPServer("localhost", 25).withRateLimitGroup("shared")
-				.withMessageRateLimit(30, Duration.ofMinutes(1)).buildMailer();
-			 Mailer independent = SimpleJavaMail.withConfig(config).mailerBuilder().withSMTPServer("localhost", 25).withRateLimitGroup("shared")
-					.withMessageRateLimit(50, Duration.ofMinutes(1)).buildMailer()) {
-			assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServer("localhost", 25).withRateLimitGroup("shared")
-					.withMessageRateLimit(50, Duration.ofMinutes(1)).buildMailer()).hasMessageContaining("must use the same");
+		try (Mailer first = factory.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(30, Duration.ofMinutes(1)).build())
+				.buildMailer();
+			 Mailer independent = SimpleJavaMail.withConfig(config).mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(50, Duration.ofMinutes(1)).build())
+					.buildMailer()) {
+			assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(50, Duration.ofMinutes(1)).build())
+					.buildMailer()).hasMessageContaining("must use the same");
 			assertThat(independent.getOperationalConfig().getMessageRateLimit().getCount()).isEqualTo(50);
 		}
 	}

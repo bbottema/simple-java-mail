@@ -43,6 +43,32 @@ Locks are checked again after owned provider initialization so a locked value ca
 
 ## Implementation evidence
 
+### Implicit-TLS OAuth2 preset (accepted 2026-10-20)
+
+Add `TransportStrategy.SMTPS_OAUTH2` for XOAUTH2 over a connection encrypted from its first byte. Its default port is 465;
+`SMTP_OAUTH2` continues to require STARTTLS on port 587. Keep the bounded transport-preset API, the default opportunistic
+`SMTP` strategy, and all existing setup signatures. This additive preset does not require existing applications to migrate.
+
+The implicit-TLS preset uses `smtps` and its `mail.smtps.*` authentication, endpoint, timeout and TLS properties. Reuse
+the ordinary SMTPS property definitions rather than maintaining another independent list. A regular-builder override
+must not change the selected implicit-TLS protocol into `smtp`; reject that contradiction before resource setup without
+rendering its value. An `ssl.enable=false` property does not turn Angus's `smtps` transport into a plaintext transport.
+Retain the existing STARTTLS consistency rule for the two STARTTLS strategies; the implicit-TLS preset does not require
+or negotiate STARTTLS.
+
+Both fixed tokens supplied as the SMTP password and application-owned `OAuth2AccessTokenProvider` instances work with
+either OAuth2 preset. Credentials remain mutually exclusive; providers remain lazy, thread-safe application integrations
+resolved at physical connection/reconnection, not Mailer construction or an unauthenticated probe. Select the OAuth2
+username and mechanism keys from the actual protocol. A caller-supplied Session remains caller-owned even when it has
+an SJM strategy marker: recognizing `smtps` authentication does not apply regular-builder trust defaults or install a
+managed provider on it. Certificate-chain and hostname checks, probe isolation, secret redaction and SDK ownership
+remain under their existing contracts.
+
+An OAuth2 password lock compares the fixed token, not the unrelated `mail.*.auth=true` flag used by the password
+Authenticator route. Preserve token equality and strategy-mechanism restrictions without requiring that unused flag.
+
+The implementation and local-fixture verification ledger is [the SMTPS OAuth2 plan](../plans/10.0.0-smtps-oauth2.md).
+
 - [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), especially `validateMandatoryStartTls(...)` and its constructor call before resource setup.
 - [SmtpTlsConfigurationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpTlsConfigurationTest.java), [Spring TLS configuration tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringTlsConfigurationTest.java) and [CLI TLS configuration tests](../../modules/cli-module/src/test/java/org/simplejavamail/internal/clisupport/CliTlsConfigurationTest.java).
 - [10.0.0 migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#mandatory-starttls). Existing test sources were inspected; no runtime behavior was changed or new test run claimed here.

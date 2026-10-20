@@ -6,7 +6,8 @@ import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
+import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -140,7 +141,7 @@ final class MailSendOperations {
     private RuntimeException closedRejection() {
         return !config.isExecutorServiceIsUserProvided() && config.getExecutorService() instanceof MailSendExecutor
                 ? ((MailSendExecutor) config.getExecutorService()).rejectAfterShutdown()
-                : new RejectedExecutionException("Mailer is closing");
+                : new MailSendRejectedException(AsyncQueueRejectionReason.EXECUTOR_SHUT_DOWN);
     }
 
     synchronized void finished() {

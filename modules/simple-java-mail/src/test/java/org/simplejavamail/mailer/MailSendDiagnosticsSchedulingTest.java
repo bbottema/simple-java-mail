@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -32,6 +33,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,7 +50,7 @@ class MailSendDiagnosticsSchedulingTest {
 		final BlockingQueue<MailSendProgress> progress = new LinkedBlockingQueue<>();
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
-		final MailerRegularBuilder<?> builder = builder().withExecutorService(executor)
+		final MailerRegularBuilder<?> builder = updateMailer(builder(), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(executor).build()))
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).withProgressObserver(progress::add).build());
 		if (timeout) {
 			builder.withMailSendTimeout(Duration.ofSeconds(1));
@@ -63,10 +65,10 @@ class MailSendDiagnosticsSchedulingTest {
 			assertThat(outcomes).hasSize(1);
 			final MailSendOutcome outcome = outcomes.get(0);
 			assertThat(outcome.getFailure()).containsSame(failure);
-			assertThat(outcome.getStartedAt()).isEmpty();
+			assertThat(outcome.getStartedAt()).isNull();
 			assertThat(outcome.getSubmissionReceipt()).isEmpty();
 			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().isFailureObservedHere()).isTrue();
-			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isEmpty();
+			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isNull();
 			MailSendProgress terminal;
 			do {
 				terminal = progress.poll(5, SECONDS);
@@ -75,7 +77,7 @@ class MailSendDiagnosticsSchedulingTest {
 			} while (terminal.getStage() != MailSendProgressStage.FINISHED);
 			assertThat(terminal.getObservationId()).isEqualTo(outcome.getObservationId());
 			assertThat(terminal.getSubmissionAttempt()).isZero();
-			assertThat(terminal.getBytesWritten()).isEmpty();
+			assertThat(terminal.getBytesWritten()).isNull();
 		} finally {
 			release.countDown();
 			executor.shutdownNow();
@@ -91,14 +93,14 @@ class MailSendDiagnosticsSchedulingTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		executor.execute(() -> occupy(occupied, release));
 		assertThat(occupied.await(5, SECONDS)).isTrue();
-		try (Mailer mailer = builder().withExecutorService(executor).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
+		try (Mailer mailer = updateMailer(builder(), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(executor).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			callbackThread.set(Thread.currentThread());
 			outcomes.add(outcome);
 		}).build()).buildMailer()) {
 			final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email());
 			assertThat(send.getCompletion()).isCompleted();
 			assertThat(callbackThread).hasValue(Thread.currentThread());
-			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getScheduling().getElapsed()).isPresent();
+			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getScheduling().getElapsed()).isNotNull();
 			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getPreparation().isFailureObservedHere()).isFalse();
 		} finally {
 			release.countDown();

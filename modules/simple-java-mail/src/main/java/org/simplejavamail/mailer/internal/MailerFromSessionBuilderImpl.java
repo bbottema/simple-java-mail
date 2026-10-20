@@ -68,6 +68,7 @@ public class MailerFromSessionBuilderImpl
 		effective.putAll(getProperties());
 		final TransportStrategy protocol = MailerSessionSettings.transportStrategy(effective);
 		final TransportStrategy marked = TransportStrategy.findStrategyForSession(session);
-		return protocol == TransportStrategy.SMTP && marked != null && marked != TransportStrategy.SMTPS ? marked : protocol;
+		return protocol == TransportStrategy.SMTP && marked != null
+				&& marked != TransportStrategy.SMTPS && marked != TransportStrategy.SMTPS_OAUTH2 ? marked : protocol;
 	}
 }

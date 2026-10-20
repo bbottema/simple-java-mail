@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.mail.Message.RecipientType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,7 +28,7 @@ class AllRecipientsSuppressionTest {
 
 	@Test
 	void suppressesAllDefaultRecipientTypesWithoutSuppressingOverridesOrTheDeliveryOverride() {
-		final Email provided = message("provided").dontApplyDefaultValueFor(ALL_RECIPIENTS).buildEmail();
+		final Email provided = message("provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(ALL_RECIPIENTS).build()).buildEmail();
 
 		final Email resolved = govern(provided);
 
@@ -41,7 +42,7 @@ class AllRecipientsSuppressionTest {
 
 	@Test
 	void suppressesAllOverrideRecipientTypesWithoutSuppressingDefaultsOrTheDeliveryOverride() {
-		final Email provided = message("provided").dontApplyOverrideValueFor(ALL_RECIPIENTS).buildEmail();
+		final Email provided = message("provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyOverrideValueFor(ALL_RECIPIENTS).build()).buildEmail();
 
 		final Email resolved = govern(provided);
 
@@ -56,7 +57,7 @@ class AllRecipientsSuppressionTest {
 	@ParameterizedTest
 	@EnumSource(value = EmailProperty.class, names = {"TO_RECIPIENTS", "CC_RECIPIENTS", "BCC_RECIPIENTS"})
 	void individualRecipientSuppressionLeavesOtherRecipientTypesAlone(final EmailProperty property) {
-		final Email provided = message("provided").dontApplyDefaultValueFor(property).dontApplyOverrideValueFor(property).buildEmail();
+		final Email provided = message("provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(property).dontApplyOverrideValueFor(property).build()).buildEmail();
 
 		final Email resolved = govern(provided);
 
@@ -75,7 +76,7 @@ class AllRecipientsSuppressionTest {
 
 	@Test
 	void globalSuppressionStillRemovesBothVisibleAndDeliveryOverrideTemplateRecipients() {
-		final Email provided = message("provided").ignoringDefaults().ignoringOverrides().buildEmail();
+		final Email provided = message("provided").withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().build()).buildEmail();
 
 		final Email resolved = govern(provided);
 
@@ -85,7 +86,7 @@ class AllRecipientsSuppressionTest {
 
 	@Test
 	void copyingAndSerializationRetainAllRecipientSuppression() throws Exception {
-		final Email original = message("provided").dontApplyDefaultValueFor(ALL_RECIPIENTS).dontApplyOverrideValueFor(ALL_RECIPIENTS).buildEmail();
+		final Email original = message("provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(ALL_RECIPIENTS).dontApplyOverrideValueFor(ALL_RECIPIENTS).build()).buildEmail();
 		final Email copied = mail.emailBuilder().copying(original).buildEmail();
 		final Email restored = serializeAndRestore(original);
 
@@ -100,8 +101,7 @@ class AllRecipientsSuppressionTest {
 	void mandatoryArchiveRecipientSurvivesAllRecipientAndGlobalSuppression() throws Exception {
 		final SimpleJavaMail locked = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
 				"simplejavamail.locked.defaults.bcc.address", "archive@example.org")).load());
-		final Email provided = message("provided").dontApplyDefaultValueFor(ALL_RECIPIENTS).dontApplyOverrideValueFor(ALL_RECIPIENTS)
-				.ignoringDefaults().ignoringOverrides().buildEmail();
+		final Email provided = message("provided").withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(ALL_RECIPIENTS).dontApplyOverrideValueFor(ALL_RECIPIENTS).ignoringDefaults().ignoringOverrides().build()).buildEmail();
 		try (Mailer mailer = locked.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
 			final Email resolved = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(provided);
 

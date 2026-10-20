@@ -46,7 +46,7 @@ public class DkimConfigTest {
     @Test
     public void convenienceBuildersCaptureChoicesWithoutApplyingDkimRules() {
         final Email email = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
-                .signWithDomainKey("key".getBytes(), "example.com", "selector", Collections.singleton(" FROM ")).buildEmail();
+                .signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("key".getBytes()).dkimSigningDomain("example.com").dkimSelector("selector").excludedHeadersFromDkimDefaultSigningList(Collections.singleton(" FROM ")).build()).buildEmail();
         assertThat(email.getDkimConfig().getExcludedHeadersFromDkimDefaultSigningList()).containsExactly(" FROM ");
     }
 

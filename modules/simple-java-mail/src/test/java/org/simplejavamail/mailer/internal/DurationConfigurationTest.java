@@ -1,5 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -19,12 +22,12 @@ class DurationConfigurationTest {
     @Test
     void everyMigratedSettingRejectsFractionalMillisecondsAndOverflow() {
         final List<BiConsumer<MailerRegularBuilder<?>, Duration>> setters = List.of(
-                (builder, value) -> builder.withSessionTimeout(value),
-                (builder, value) -> builder.withThreadPoolKeepAliveTime(value),
-                (builder, value) -> builder.withAsyncQueueWaitTimeout(value),
-                (builder, value) -> builder.withConnectionPoolClaimTimeout(value),
-                (builder, value) -> builder.withConnectionPoolExpireAfter(value),
-                (builder, value) -> builder.withConnectionPoolExpireAfterCreation(value));
+                (builder, value) -> builder.withConnectionConfig(builder.getConnectionConfig().toBuilder().withSessionTimeout(value).build()),
+                (builder, value) -> builder.withAsyncExecutionConfig(builder.getAsyncExecutionConfig().toBuilder().withKeepAliveTime(value).build()),
+                (builder, value) -> builder.withAsyncExecutionConfig(builder.getAsyncExecutionConfig().toBuilder().waitForCapacity(value).build()),
+                (builder, value) -> builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withClaimTimeout(value).build()),
+                (builder, value) -> builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withExpireAfter(value).build()),
+                (builder, value) -> builder.withConnectionPoolConfig(builder.getConnectionPoolConfig().toBuilder().withExpireAfterCreation(value).build()));
         for (BiConsumer<MailerRegularBuilder<?>, Duration> setter : setters) {
             assertThatThrownBy(() -> setter.accept(factory(Map.of()).mailerBuilder(), Duration.ofNanos(1)))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("whole number of milliseconds");
@@ -34,7 +37,7 @@ class DurationConfigurationTest {
     }
 
     @Test
-    void numericPropertiesKeepTheirMillisecondUnits() {
+    void numericPropertiesKeepTheirMillisecondUnits() throws Exception {
         final MailerRegularBuilder<?> builder = factory(Map.of(
                 "simplejavamail.defaults.sessiontimeoutmillis", 1250,
                 "simplejavamail.defaults.poolsize.keepalivetime", 2,
@@ -42,23 +45,28 @@ class DurationConfigurationTest {
                 "simplejavamail.defaults.connectionpool.claimtimeout.millis", 4,
                 "simplejavamail.defaults.connectionpool.expireafter.millis", 5,
                 "simplejavamail.defaults.connectionpool.expireaftercreation.millis", 6)).mailerBuilder();
-        assertThat(builder.getSessionTimeout()).isEqualTo(Duration.ofMillis(1250));
-        assertThat(builder.getThreadPoolKeepAliveTime()).isEqualTo(Duration.ofMillis(2));
-        assertThat(builder.getAsyncQueueConfig().getWaitTimeout()).isEqualTo(Duration.ofMillis(3));
-        assertThat(builder.getConnectionPoolClaimTimeout()).isEqualTo(Duration.ofMillis(4));
-        assertThat(builder.getConnectionPoolExpireAfter()).isEqualTo(Duration.ofMillis(5));
-        assertThat(builder.getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(6));
+        assertThat(builder.getConnectionConfig().getSessionTimeout()).isNull();
+        assertThat(builder.getAsyncExecutionConfig().getKeepAliveTime()).isNull();
+        assertThat(builder.getConnectionPoolConfig().getClaimTimeout()).isNull();
+        try (Mailer mailer = builder.withSMTPServerHost("localhost").buildMailer()) {
+            assertThat(mailer.getOperationalConfig().getSessionTimeout()).isEqualTo(Duration.ofMillis(1250));
+            assertThat(mailer.getOperationalConfig().getThreadPoolKeepAliveTime()).isEqualTo(Duration.ofMillis(2));
+            assertThat(mailer.getOperationalConfig().getAsyncQueueConfig().getWaitTimeout()).isEqualTo(Duration.ofMillis(3));
+            assertThat(mailer.getOperationalConfig().getConnectionPoolClaimTimeout()).isEqualTo(Duration.ofMillis(4));
+            assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfter()).isEqualTo(Duration.ofMillis(5));
+            assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(6));
+        }
     }
 
     @Test
     void durationsCompareToNumericLocksAndReachProviderPropertiesExactly() throws Exception {
         final SimpleJavaMail mail = factory(Map.of("simplejavamail.locked.defaults.sessiontimeoutmillis", 1250));
-        try (Mailer mailer = mail.mailerBuilder().withSMTPServerHost("localhost").withSessionTimeout(Duration.ofMillis(1250)).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withSMTPServerHost("localhost").withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(1250)).build()).buildMailer()) {
             assertThat(mailer.getSession().getProperty("mail.smtp.connectiontimeout")).isEqualTo("1250");
             assertThat(mailer.getSession().getProperty("mail.smtp.timeout")).isEqualTo("1250");
             assertThat(mailer.getOperationalConfig().getSessionTimeout()).isEqualTo(Duration.ofMillis(1250));
         }
-        assertThatThrownBy(() -> mail.mailerBuilder().withSMTPServerHost("localhost").withSessionTimeout(Duration.ofSeconds(2)).buildMailer())
+        assertThatThrownBy(() -> mail.mailerBuilder().withSMTPServerHost("localhost").withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(2)).build()).buildMailer())
                 .hasMessageContaining("locked.defaults.sessiontimeoutmillis");
     }
 

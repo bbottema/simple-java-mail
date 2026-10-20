@@ -1,5 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import jakarta.mail.Message.RecipientType;
 
@@ -28,6 +32,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -162,7 +167,7 @@ class SmtpContentNegotiationCharacterizationTest {
             properties.setProperty("mail.smtp.port", String.valueOf(server.port()));
             final Session session = Session.getInstance(properties);
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-                    .withSessionTimeout(Duration.ofMillis(5000)).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).buildMailer()) {
+                    .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(5000)).build()).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
                 final Email email = composedEmail("sender@example.test", internationalizedRecipient, "ASCII subject", "ASCII body");
                 if (enabled) {
                     mailer.sync().sendMail(email);
@@ -250,7 +255,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("8BITMIME declaration").withPlainText(EIGHT_BIT_TEXT)
-                .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
@@ -265,7 +270,7 @@ class SmtpContentNegotiationCharacterizationTest {
     void unsupportedEightBitComposedBodyPointsToTheEmailBuilderEncoding() throws Exception {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
-                .withPlainText(EIGHT_BIT_TEXT).withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
+                .withPlainText(EIGHT_BIT_TEXT).withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250 localhost");
             finishConnection(peer);
@@ -282,7 +287,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withSubject("Binary transport is unavailable").withPlainText("ASCII bytes with an unsafe transfer declaration")
-                .withPlainTextContentTransferEncoding(ContentTransferEncoding.BINARY).buildEmail();
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BINARY).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250-8BITMIME\r\n250 BINARYMIME");
             finishConnection(peer);
@@ -301,7 +306,7 @@ class SmtpContentNegotiationCharacterizationTest {
                 : "long-utf8".equals(invalidContent) ? "é".repeat(500) : "x".repeat(999);
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null)).withPlainText(body)
-                .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8)
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build())
                 .withHTMLText(multipart ? "<p>Safe alternative</p>" : null).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
@@ -321,7 +326,7 @@ class SmtpContentNegotiationCharacterizationTest {
         final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from("sender@example.test").withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null))
                 .withPlainText(boundaryLine + lineBreak + boundaryLine)
-                .withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).buildEmail();
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.BIT8).build()).buildEmail();
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, UTF_8, peer -> {
             peer.greet("250-localhost\r\n250 8BITMIME");
             final String content = acceptMessage(peer, MAIL_FROM + " BODY=8BITMIME", "", RECIPIENT);
@@ -381,7 +386,7 @@ class SmtpContentNegotiationCharacterizationTest {
             assertThat(SmtpDsnCharacterizationTest.readMessage(peer)).contains("To: " + recipient);
             peer.reply("250 accepted");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withConnectionPoolMaxSize(2).withThreadPoolSize(2).buildMailer()) {
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(2).build()).withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withThreadPoolSize(2).build())).buildMailer()) {
             final var internationalized = mailer.async().sendMail(composedEmail("sender@example.test", "müller@example.test", "Subject", "Body"));
             final var ascii = mailer.async().sendMail(composedEmail("sender@example.test", RECIPIENT, "Subject", "Body"));
             internationalized.getCompletion().get(10, SECONDS);
@@ -580,15 +585,14 @@ class SmtpContentNegotiationCharacterizationTest {
         // These scripts expect a fixed set of connections; idle expiry during caller-thread MIME preparation is a different concern.
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", server.port())
                 // MIME Message-ID generation must not spend the script's timeout resolving the workstation hostname.
-                .withSmtpClientHostname("probe.example.test").withProperty("mail.host", "localhost").withSessionTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
-                .withConnectionPoolExpireAfter(Duration.ofMillis(0));
+                .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build()).withProperty("mail.host", "localhost")
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).withExpireAfter(Duration.ofMillis(0)).build());
     }
 
     private static Email eightBitCandidate() {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank().from("sender@example.test")
                 .withRecipients(new Recipient(null, RECIPIENT, Message.RecipientType.TO, null)).withSubject("8BITMIME characterization")
-                .withPlainText(EIGHT_BIT_TEXT).withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).buildEmail();
+                .withPlainText(EIGHT_BIT_TEXT).withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build()).buildEmail();
     }
 
     static Email exactEmail(final byte[] exactEml) {

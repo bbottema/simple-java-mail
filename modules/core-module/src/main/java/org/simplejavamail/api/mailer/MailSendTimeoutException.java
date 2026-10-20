@@ -8,6 +8,6 @@ public final class MailSendTimeoutException extends MailSendException {
 
     /** Retains the original operation failure, if any, and the same immutable submission facts used by the observer. */
     public MailSendTimeoutException(@Nullable final Throwable cause, @Nullable final MailSubmissionReceipt submissionReceipt) {
-        super("Mail-send timeout expired; inspect the submission receipt before retrying", cause, submissionReceipt);
+        super(MailFailureKind.TIMEOUT, "Mail-send timeout expired; inspect the submission receipt before retrying", cause, submissionReceipt);
     }
 }

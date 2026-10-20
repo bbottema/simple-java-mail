@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Address;
@@ -80,7 +81,7 @@ class MailSendDiagnosticsTransportTest {
 						.withSendIdGenerator(() -> { throw new AssertionError("destination must not initialize send identity"); })
 						.withSendHandlersFactory(id -> { throw new AssertionError("destination must not initialize handlers"); }).buildMailer();
 				Mailer initiator = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(primary))
-						.withExecutorService(inlineExecutor()).withFailoverMailer(destination, FailoverPolicy.builder().build())
+						.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inlineExecutor()).build()).withFailoverMailer(destination, FailoverPolicy.builder().build())
 						.withSendIdGenerator(() -> { identities.incrementAndGet(); return UUID.randomUUID(); })
 						.withSendHandlersFactory(id -> {
 							factories.incrementAndGet(); generatedIds.add(id);
@@ -121,8 +122,8 @@ class MailSendDiagnosticsTransportTest {
 			MailSendProgress terminal;
 			do {
 				terminal = MailSendProgressDispatcherTest.take(progress);
-				assertThat(terminal.getBytesWritten()).isEmpty();
-				assertThat(terminal.getTotalBytes()).isEmpty();
+				assertThat(terminal.getBytesWritten()).isNull();
+				assertThat(terminal.getTotalBytes()).isNull();
 			} while (terminal.getStage() != MailSendProgressStage.FINISHED);
 			assertThat(terminal.getObservationId()).isEqualTo(outcomes.get(0).getObservationId());
 			assertThat(terminal.getSubmissionAttempt()).isEqualTo(failureStage.equals("acquisition") ? 0 : 1);
@@ -162,7 +163,7 @@ class MailSendDiagnosticsTransportTest {
 		state.closeFailure = new MessagingException("close failed after acceptance");
 		try (MockedStatic<ModuleLoader> modules = withoutPool();
 				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
-						.withExecutorService(inlineExecutor()).buildMailer()) {
+						.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inlineExecutor()).build()).buildMailer()) {
 			final Throwable failure = sendFailure(mailer, email("unobserved acceptance"), asynchronous);
 			assertThat(failure).isInstanceOf(MailSendException.class).hasCause(state.closeFailure);
 			assertThat(((MailSendException) failure).getSubmissionReceipt().orElseThrow().getStatus())
@@ -182,7 +183,7 @@ class MailSendDiagnosticsTransportTest {
 		try (MockedStatic<ModuleLoader> modules = withoutPool();
 				MockedStatic<EmailSendingAllowance> allowances = mockStatic(EmailSendingAllowance.class, CALLS_REAL_METHODS);
 				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session(state))
-						.withExecutorService(inlineExecutor()).buildMailer()) {
+						.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inlineExecutor()).build()).buildMailer()) {
 			allowances.when(() -> EmailSendingAllowance.reserve(any(), any(), any(), any(), any())).thenReturn(reservation);
 			final Throwable failure = sendFailure(mailer, email("two cleanup failures"), asynchronous);
 			assertThat(failure).isInstanceOf(MailSendCleanupException.class).hasCause(state.closeFailure);
@@ -200,7 +201,7 @@ class MailSendDiagnosticsTransportTest {
 		state.failCleanup = true;
 		try (MockedStatic<ModuleLoader> modules = withoutPool();
 				Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(RetryProviderTransport.session(state))
-						.withExecutorService(inlineExecutor())
+						.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inlineExecutor()).build())
 						.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofMillis(1)).build())
 						.buildMailer()) {
 			final Throwable failure = sendFailure(mailer, email("retry cleanup acceptance"), asynchronous);
@@ -313,8 +314,8 @@ class MailSendDiagnosticsTransportTest {
 				assertThat(callerFailure).hasCause(releaseFailure);
 				assertThat(outcome.getSubmissionReceipt().orElseThrow().getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
 				final MailSendDiagnostics report = outcome.getDiagnostics().orElseThrow();
-				assertThat(report.getSmtpHost()).contains("selected-relay.example");
-				assertThat(report.getSmtpPort()).contains(2525);
+				assertThat(report.getSmtpHost()).isEqualTo("selected-relay.example");
+				assertThat(report.getSmtpPort()).isEqualTo(2525);
 				assertThat(report.getCleanup().isFailureObservedHere()).isTrue();
 				assertThat(selectedState.sent).isEqualTo(1);
 			}
@@ -330,7 +331,7 @@ class MailSendDiagnosticsTransportTest {
 		try (MockedStatic<ModuleLoader> modules = withoutPool(); Mailer mailer = mailer(session(state), outcomes)) {
 			assertThat(sendFailure(mailer, email("connection failure"), asynchronous)).isNotNull();
 			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getConnectionAcquisition().isFailureObservedHere()).isTrue();
-			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmission().getElapsed()).isEmpty();
+			assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmission().getElapsed()).isNull();
 			state.connectFailure = null;
 			try (MockedStatic<SessionBasedEmailToMimeMessageConverter> conversion = mockStatic(SessionBasedEmailToMimeMessageConverter.class)) {
 				conversion.when(() -> SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(any(), any()))
@@ -339,7 +340,7 @@ class MailSendDiagnosticsTransportTest {
 			}
 			final MailSendDiagnostics report = outcomes.get(1).getDiagnostics().orElseThrow();
 			assertThat(report.getMimePreparation().isFailureObservedHere()).isTrue();
-			assertThat(report.getSubmission().getElapsed()).isEmpty();
+			assertThat(report.getSubmission().getElapsed()).isNull();
 			assertThat(state.sent).isZero();
 		}
 	}
@@ -357,11 +358,11 @@ class MailSendDiagnosticsTransportTest {
 			});
 			assertThat(outcomes).hasSize(4).allSatisfy(outcome -> {
 				final MailSendDiagnostics report = outcome.getDiagnostics().orElseThrow();
-				assertThat(report.getScheduling().getElapsed()).isEmpty();
-				assertThat(report.getConnectionAcquisition().getUnavailableReason()).get().asString().contains("outside");
-				assertThat(report.getCleanup().getElapsed()).isEmpty();
-				assertThat(report.getSubmission().getElapsed()).isPresent();
-				assertThat(report.getSmtpHost()).contains(state.host);
+				assertThat(report.getScheduling().getElapsed()).isNull();
+				assertThat(report.getConnectionAcquisition().getUnavailableReason()).asString().contains("outside");
+				assertThat(report.getCleanup().getElapsed()).isNull();
+				assertThat(report.getSubmission().getElapsed()).isNotNull();
+				assertThat(report.getSmtpHost()).isEqualTo(state.host);
 			});
 			assertThat(state.connected).isEqualTo(2);
 			assertThat(state.closed).isEqualTo(2);
@@ -416,7 +417,7 @@ class MailSendDiagnosticsTransportTest {
 
 	private static Mailer mailer(final Session session, final List<MailSendOutcome> outcomes) {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
-				.withExecutorService(inlineExecutor()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(inlineExecutor()).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
 	}
 
 	private static ExecutorService inlineExecutor() {

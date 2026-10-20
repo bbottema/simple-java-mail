@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,10 +39,10 @@ class PoolConfigurationContractTest {
         final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.clusters." + cluster + "." + tail, Integer.toString(value)));
         try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-            buildAndClose(mail.mailerBuilder().withClusterKey(cluster));
+            buildAndClose(mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).build()));
             modules.verify(ModuleLoader::loadBatchModule, Mockito.never());
         }
-        assertThatThrownBy(() -> buildAndClose(mail.mailerBuilder().withClusterKey(cluster)))
+        assertThatThrownBy(() -> buildAndClose(mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).build())))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(field);
     }
 
@@ -51,7 +52,7 @@ class PoolConfigurationContractTest {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.coresize", "-1",
                     "defaults.connectionpool.maxsize", "0", "defaults.connectionpool.expireaftercreation.millis", "0"));
-            buildAndClose(mail.mailerBuilder().withConnectionPoolClaimTimeout(Duration.ofMillis(-1)).withConnectionPoolExpireAfterCreation(Duration.ofMillis(-1)));
+            buildAndClose(mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(-1)).withExpireAfterCreation(Duration.ofMillis(-1)).build()));
             modules.verify(ModuleLoader::loadBatchModule, Mockito.never());
         }
     }
@@ -64,9 +65,9 @@ class PoolConfigurationContractTest {
         final SimpleJavaMail mail = factory(Map.of(prefix + "coresize", "0", prefix + "maxsize", "1",
                 prefix + "claimtimeout.millis", "0", prefix + "expireafter.millis", "0", prefix + "expireaftercreation.millis", "1",
                 "defaults.connectionpool.clusters." + unused + ".coresize", "3", "defaults.connectionpool.clusters." + unused + ".maxsize", "1"));
-        buildAndClose(mail.mailerBuilder().withClusterKey(selected)
-                .withConnectionPoolCoreSize(-1).withConnectionPoolMaxSize(0).withConnectionPoolClaimTimeout(Duration.ofMillis(-1))
-                .withConnectionPoolExpireAfter(Duration.ofMillis(-1)).withConnectionPoolExpireAfterCreation(Duration.ofMillis(0)));
+        buildAndClose(mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(selected).withCoreSize(-1).withMaxSize(0).withClaimTimeout(Duration.ofMillis(-1)).withExpireAfter(Duration.ofMillis(-1)).withExpireAfterCreation(Duration.ofMillis(0)).build())
+
+                );
     }
 
     @ParameterizedTest
@@ -78,11 +79,11 @@ class PoolConfigurationContractTest {
 
     @Test
     void rejectsInvalidJavaChoicesBeforePoolCreation() {
-        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolCoreSize(-1)))
+        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(-1).build())))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize");
-        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolClaimTimeout(Duration.ofMillis(-1))))
+        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(-1)).build())))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("claimTimeoutMillis");
-        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolMaxSize(1).withConnectionPoolCoreSize(2)))
+        assertThatThrownBy(() -> buildAndClose(factory(Map.of()).mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withMaxSize(1).withCoreSize(2).build())))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize").hasMessageContaining("maxSize");
     }
 
@@ -91,22 +92,20 @@ class PoolConfigurationContractTest {
         final UUID cluster = UUID.randomUUID();
         final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.clusters.orders.clusterkey.uuid", cluster.toString(),
                 "defaults.connectionpool.clusters.orders.maxsize", "4"));
-        try (Mailer ignored = mail.mailerBuilder().withClusterKey(cluster).withConnectionPoolCoreSize(0)
-                .withConnectionPoolMaxSize(1).buildMailer()) {
+        try (Mailer ignored = mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).withCoreSize(0).withMaxSize(1).build())
+                .buildMailer()) {
             assertThat(ignored.getOperationalConfig().getConnectionPoolClusterConfigs().get(cluster).getMaxSize()).isEqualTo(4);
         }
         final SimpleJavaMail invalid = factory(Map.of("defaults.connectionpool.clusters.orders.clusterkey.uuid", cluster.toString(),
                 "defaults.connectionpool.clusters.orders.maxsize", "1"));
-        assertThatThrownBy(() -> buildAndClose(invalid.mailerBuilder().withClusterKey(cluster)
-                .withConnectionPoolMaxSize(3).withConnectionPoolCoreSize(2)))
+        assertThatThrownBy(() -> buildAndClose(invalid.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).withMaxSize(3).withCoreSize(2).build())
+                ))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("coreSize").hasMessageContaining("maxSize");
     }
 
     @Test
     void zeroValuesAndSetterOrderingRemainSupported() throws Exception {
-        final MailerRegularBuilder<?> builder = factory(Map.of()).mailerBuilder().withConnectionPoolCoreSize(4)
-                .withConnectionPoolMaxSize(4).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-                .withConnectionPoolClaimTimeout(Duration.ofMillis(0)).withConnectionPoolExpireAfter(Duration.ofMillis(0));
+        final MailerRegularBuilder<?> builder = factory(Map.of()).mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(4).withMaxSize(4).withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(0)).withExpireAfter(Duration.ofMillis(0)).build());
         try (Mailer mailer = builder.buildMailer()) {
             assertThat(mailer.getOperationalConfig().getConnectionPoolClaimTimeout()).isEqualTo(Duration.ZERO);
             assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfter()).isEqualTo(Duration.ZERO);
@@ -118,7 +117,7 @@ class PoolConfigurationContractTest {
         final UUID cluster = UUID.randomUUID();
         final SimpleJavaMail mail = factory(Map.of("defaults.connectionpool.clusters.orders.clusterkey.uuid", cluster.toString(),
                 "defaults.connectionpool.clusters.orders.coresize", "0"));
-        try (Mailer ignored = mail.mailerBuilder().withClusterKey(cluster).withConnectionPoolCoreSize(2).withConnectionPoolMaxSize(1).buildMailer()) {
+        try (Mailer ignored = mail.mailerBuilder().withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(cluster).withCoreSize(2).withMaxSize(1).build()).buildMailer()) {
             assertThat(ignored.getOperationalConfig().getConnectionPoolClusterConfigs().get(cluster).getCoreSize()).isZero();
         }
     }

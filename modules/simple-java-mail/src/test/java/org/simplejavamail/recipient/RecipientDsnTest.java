@@ -1,5 +1,6 @@
 package org.simplejavamail.recipient;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
 
 import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
@@ -98,8 +99,8 @@ class RecipientDsnTest {
 
     @Test
     void emailCopiesGovernanceAndOverridesRetainRecipientValuesAndDuplicateOccurrences() {
-        final Email defaults = mail.emailBuilder().startingBlank().withDeliveryStatusNotificationNotifyOptions(FAILURE).buildEmail();
-        final Email overrides = mail.emailBuilder().startingBlank().withDeliveryStatusNotificationNotifyOptions(DELAY).buildEmail();
+        final Email defaults = mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(FAILURE).build()).buildEmail();
+        final Email overrides = mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotificationNotifyOptions(DELAY).build()).buildEmail();
         final Email original = mail.emailBuilder().startingBlank().withRecipients(recipient(NEVER), recipient(SUCCESS), recipient()).buildEmail();
         final Email resolved = mail.emailBuilder().copying(original)
                 .buildEmailCompletedWithDefaultsAndOverrides(new EmailGovernanceImpl(null, defaults, overrides, null));

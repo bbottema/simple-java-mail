@@ -46,7 +46,7 @@ class MailTransportLifecycleResolverTest {
                 MailTransportLifecycleResolver.configureOwnedSession(session);
             }
         });
-        assertThat(failure).isInstanceOf(IllegalStateException.class)
+        assertThat(failure).isInstanceOf(org.simplejavamail.MailException.class)
                 .hasMessageContaining(provider.getClassName())
                 .hasMessageContaining(first.getClass().getName())
                 .hasMessageContaining(second.getClass().getName())
@@ -70,7 +70,7 @@ class MailTransportLifecycleResolverTest {
                 MailTransportLifecycleResolver.findAbortAction(transport);
             }
         });
-        assertThat(failure).isInstanceOf(IllegalStateException.class)
+        assertThat(failure).isInstanceOf(org.simplejavamail.MailException.class)
                 .hasMessageContaining(transport.getClass().getName())
                 .hasMessageContaining(first.getClass().getName())
                 .hasMessageContaining(second.getClass().getName())
@@ -113,13 +113,13 @@ class MailTransportLifecycleResolverTest {
                 }
             });
 
-            assertThat(validationFailure).isInstanceOf(IllegalStateException.class)
+            assertThat(validationFailure).isInstanceOf(org.simplejavamail.MailException.class)
                     .hasMessageStartingWith("Don't configure a total send timeout with transport '")
                     .hasMessageContaining(transport.getClass().getName())
                     .hasMessageContaining("Simple Java Mail can't stop its network calls")
                     .hasMessageContaining("Remove the total timeout from your builder or configuration")
                     .hasMessageContaining("If you can't change the configuration that sets it, call resetMailSendTimeout()");
-            assertThat(registrationFailure).isInstanceOf(IllegalStateException.class).hasMessage(validationFailure.getMessage());
+            assertThat(registrationFailure).isInstanceOf(org.simplejavamail.MailException.class).hasMessage(validationFailure.getMessage());
         } finally {
             watcher.shutdownNow();
         }
@@ -132,7 +132,7 @@ class MailTransportLifecycleResolverTest {
         when(session.getTransport()).thenThrow(failure);
 
         assertThatThrownBy(() -> MailTransportLifecycleResolver.requireAbortSupport(session))
-                .isInstanceOf(IllegalStateException.class).hasCause(failure)
+                .isInstanceOf(org.simplejavamail.MailException.class).hasCause(failure)
                 .hasMessageContaining("Couldn't create or close the Session's transport")
                 .hasMessageContaining("Jakarta Mail provider dependency")
                 .hasMessageContaining("mail.transport.protocol");
@@ -153,7 +153,7 @@ class MailTransportLifecycleResolverTest {
                 MailTransportLifecycleResolver.requireAbortSupport(session);
             }
         });
-        assertThat(reported).isInstanceOf(IllegalStateException.class).hasCause(failure)
+        assertThat(reported).isInstanceOf(org.simplejavamail.MailException.class).hasCause(failure)
                 .hasMessageContaining("Couldn't create or close the Session's transport");
     }
 

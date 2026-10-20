@@ -1,5 +1,8 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.ImageResolutionConfig;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import jakarta.activation.DataSource;
@@ -54,8 +57,7 @@ public class EmailStartingBuilderImplTest {
 
 		val email2 = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
 				.copying(email1)
-				.ignoringDefaults()
-				.ignoringOverrides()
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().ignoringOverrides().build())
 				.buildEmail();
 
 		assertThat(email2).isEqualTo(email1);
@@ -64,7 +66,7 @@ public class EmailStartingBuilderImplTest {
 	@Test
 	public void testCopyingSmimeSignedOutlookMessage() {
 		final Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_TEST_MESSAGES + "/SMIME (signed and clear text).msg"));
-		final EmailPopulatingBuilder copyingEmailBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(emailParsedFromMsg).ignoringDefaults();
+		final EmailPopulatingBuilder copyingEmailBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(emailParsedFromMsg).withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build());
 		assertThat(copyingEmailBuilder.getHeaders()).isEmpty(); // when copying S/MIME generated message id should be ignored
 		copyingEmailBuilder.withHeaders(emailParsedFromMsg.getHeaders()); // but for the equals check, manually add them
 		EmailAssert.assertThat(copyingEmailBuilder.buildEmail()).isEqualTo(emailParsedFromMsg);
@@ -108,7 +110,7 @@ public class EmailStartingBuilderImplTest {
 				.withAttachment("mooxt", "attachment content".getBytes(), "text/plain")
 				.withEmbeddedImage("mooxt", "attachment content".getBytes(), "text/plain")
 				.withBounceTo("bounce@bouncy.com")
-				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY)
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE, DELAY).build())
 				.withDispositionNotificationTo("noti@notify.com")
 				.withHeader("header 1", "value 1")
 				.withHeader("header 2", new Random())
@@ -129,16 +131,7 @@ public class EmailStartingBuilderImplTest {
 				.notMergingSingleSMIMESignedAttachment()
 				.notMergingSingleSMIMESignedAttachment()
 				// auto resolution for embedded images
-				.withEmbeddedImageBaseDir("moo")
-				.withEmbeddedImageBaseUrl("http://moo.moomoo.shmoo")
-				.withEmbeddedImageBaseClassPath("moo")
-				.withEmbeddedImageAutoResolutionForClassPathResources(true)
-				.withEmbeddedImageAutoResolutionForURLs(true)
-				.withEmbeddedImageAutoResolutionForFiles(true)
-				.allowingEmbeddedImageOutsideBaseClassPath(true)
-				.allowingEmbeddedImageOutsideBaseDir(true)
-				.allowingEmbeddedImageOutsideBaseUrl(true)
-				.embeddedImageAutoResolutionMustBeSuccesful(true)
+				.withImageResolutionConfig(ImageResolutionConfig.builder().withEmbeddedImageBaseDir("moo").withEmbeddedImageBaseUrl("http://moo.moomoo.shmoo").withEmbeddedImageBaseClassPath("moo").withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageAutoResolutionForFiles(true).allowingEmbeddedImageOutsideBaseClassPath(true).allowingEmbeddedImageOutsideBaseDir(true).allowingEmbeddedImageOutsideBaseUrl(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.buildEmail();
 
 		Email copiedEmail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()

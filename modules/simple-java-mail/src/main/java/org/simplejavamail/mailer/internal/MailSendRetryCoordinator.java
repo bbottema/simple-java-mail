@@ -30,9 +30,10 @@ final class MailSendRetryCoordinator implements AutoCloseable {
 
 	synchronized Ticket reserve(final MailSendOperation<?> operation) {
 		if (closed || pending.size() >= capacity) {
-			throw new MailerException("The Mailer's automatic-retry waiting capacity is full, so this email was not submitted again. "
+			throw new MailerException(org.simplejavamail.api.mailer.MailFailureKind.CAPACITY,
+					"The Mailer's automatic-retry waiting capacity is full, so this email was not submitted again. "
 					+ "Reduce concurrent sends or increase withWaitingCapacity(...) on the initiating Mailer's retry policy; "
-					+ "the last SMTP refusal is retained.");
+					+ "the last SMTP refusal is retained.", null);
 		}
 		final Ticket ticket = new Ticket(operation);
 		pending.add(ticket);
@@ -76,8 +77,9 @@ final class MailSendRetryCoordinator implements AutoCloseable {
 			try {
 				executor.execute(ticket.operation);
 			} catch (RuntimeException | Error rejection) {
-				final MailerException explanation = new MailerException("The configured executor could not resume this email's retry. "
-						+ "Keep it open until the Mailer has drained, and check its admission capacity. No further submission was started.");
+				final MailerException explanation = new MailerException(org.simplejavamail.api.mailer.MailFailureKind.CAPACITY,
+						"The configured executor could not resume this email's retry. "
+						+ "Keep it open until the Mailer has drained, and check its admission capacity. No further submission was started.", null);
 				explanation.addSuppressed(rejection);
 				ticket.operation.retryResumeRejected(explanation);
 			}

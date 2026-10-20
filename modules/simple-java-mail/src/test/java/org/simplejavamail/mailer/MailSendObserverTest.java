@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -108,10 +109,10 @@ class MailSendObserverTest {
 		assertOpaqueRecipientFacts(submissionReceipt);
 		assertThat(outcome.getFailure()).isEmpty();
 		assertCompleteTiming(outcome);
-		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isEmpty();
-		assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getUnavailableReason()).get().asString().contains("CustomMailer");
-		assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isPresent();
-		assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getElapsed()).isPresent();
+		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed()).isNull();
+		assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getUnavailableReason()).asString().contains("CustomMailer");
+		assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isNotNull();
+		assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getElapsed()).isNotNull();
 	}
 
 	@Test
@@ -121,7 +122,7 @@ class MailSendObserverTest {
 		final List<String> completionOrder = new CopyOnWriteArrayList<>();
 		final AtomicReference<MailSendOutcome> observedOutcome = new AtomicReference<>();
 		try (Mailer mailer = mailerBuilder(customMailer)
-				.withExecutorService(executorService)
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executorService).build())
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					observedOutcome.set(outcome);
 					completionOrder.add("observer");
@@ -136,8 +137,8 @@ class MailSendObserverTest {
 			final MailSubmissionReceipt submissionReceipt = send.get(5, TimeUnit.SECONDS);
 			assertThat(completionOrder).containsExactly("observer", "future");
 			assertThat(observedOutcome.get().getSubmissionReceipt()).containsSame(submissionReceipt);
-			assertThat(observedOutcome.get().getStartedAt()).isPresent();
-			assertThat(observedOutcome.get().getDiagnostics().orElseThrow().getScheduling().getElapsed()).isPresent();
+			assertThat(observedOutcome.get().getStartedAt()).isNotNull();
+			assertThat(observedOutcome.get().getDiagnostics().orElseThrow().getScheduling().getElapsed()).isNotNull();
 			assertThat(customMailer.sendThread.get().getName()).isEqualTo("mail-send-observer-worker");
 		} finally {
 			customMailer.releaseSend();
@@ -169,7 +170,7 @@ class MailSendObserverTest {
 		final Thread callerThread = Thread.currentThread();
 		final AtomicReference<Thread> callbackThread = new AtomicReference<>();
 		try (Mailer mailer = mailerBuilder(new SuccessfulCustomMailer())
-				.withExecutorService(executorService)
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withExecutorService(executorService).build())
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 					callbackThread.set(Thread.currentThread());
 					outcomes.add(outcome);
@@ -181,11 +182,11 @@ class MailSendObserverTest {
 			assertThat(outcomes).hasSize(1);
 			final MailSendOutcome outcome = outcomes.get(0);
 			assertThat(outcome.getFailure()).containsSame(schedulingFailure);
-			assertThat(outcome.getReadyAt()).isPresent();
-			assertThat(outcome.getStartedAt()).isEmpty();
+			assertThat(outcome.getReadyAt()).isNotNull();
+			assertThat(outcome.getStartedAt()).isNull();
 			assertThat(outcome.getSubmissionReceipt()).isEmpty();
 			assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().isFailureObservedHere()).isTrue();
-			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isEmpty();
+			assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isNull();
 			assertThat(callbackThread).hasValue(callerThread);
 
 			outcomes.clear();
@@ -213,9 +214,9 @@ class MailSendObserverTest {
 		assertThat(outcomes).singleElement().satisfies(outcome -> {
 			assertThat(outcome.isSuccessful()).isTrue();
 			assertThat(outcome.isLoggingOnly()).isTrue();
-			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getUnavailableReason()).get().asString().contains("Logging-only");
-			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isPresent();
-			assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).isEmpty();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSubmission().getUnavailableReason()).asString().contains("Logging-only");
+			assertThat(outcome.getDiagnostics().orElseThrow().getMimePreparation().getElapsed()).isNotNull();
+			assertThat(outcome.getDiagnostics().orElseThrow().getSmtpHost()).isNull();
 			assertThat(outcome.getSubmissionReceipt()).get()
 					.extracting(MailSubmissionReceipt::getStatus)
 					.isEqualTo(MailSubmissionStatus.UNKNOWN);
@@ -227,9 +228,9 @@ class MailSendObserverTest {
 		assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.CALLER_POLICY_REQUIRED);
 		assertThat(receipt.getRetryableRecipients()).isEmpty();
 		assertThat(receipt.getRecipientResults()).singleElement().satisfies(recipient -> {
-			assertThat(recipient.getEnvelopeAddress()).contains("recipient@example.org");
+			assertThat(recipient.getEnvelopeAddress()).isEqualTo("recipient@example.org");
 			assertThat(recipient.getDisposition()).isEqualTo(MailRecipientDisposition.UNKNOWN);
-			assertThat(recipient.getRcptAttempted()).isEmpty();
+			assertThat(recipient.getRcptAttempted()).isNull();
 			assertThat(recipient.getRcptResponse()).isEmpty();
 		});
 	}
@@ -273,23 +274,23 @@ class MailSendObserverTest {
 			assertThat(outcomes.get(1).isSuccessful()).isFalse();
 			assertThat(outcomes.get(1).getInitialMessageId()).isEqualTo("batch-invalid@example.org");
 			assertThat(outcomes.get(1).getFailure()).containsSame(batchFailure);
-			assertThat(outcomes.get(1).getReadyAt()).isPresent();
-			assertThat(outcomes.get(1).getStartedAt()).isPresent();
+			assertThat(outcomes.get(1).getReadyAt()).isNotNull();
+			assertThat(outcomes.get(1).getStartedAt()).isNotNull();
 			assertThat(customMailer.sentSubjects).containsExactly("batch first");
 		}
 	}
 
 	private static void assertCompleteTiming(final MailSendOutcome outcome) {
-		assertThat(outcome.getReadyAt()).isPresent();
-		assertThat(outcome.getStartedAt()).isPresent();
-		assertThat(outcome.getRequestedAt()).isBeforeOrEqualTo(outcome.getReadyAt().get());
-		assertThat(outcome.getReadyAt().get()).isBeforeOrEqualTo(outcome.getStartedAt().get());
-		assertThat(outcome.getStartedAt().get()).isBeforeOrEqualTo(outcome.getCompletedAt());
+		assertThat(outcome.getReadyAt()).isNotNull();
+		assertThat(outcome.getStartedAt()).isNotNull();
+		assertThat(outcome.getRequestedAt()).isBeforeOrEqualTo(outcome.getReadyAt());
+		assertThat(outcome.getReadyAt()).isBeforeOrEqualTo(outcome.getStartedAt());
+		assertThat(outcome.getStartedAt()).isBeforeOrEqualTo(outcome.getCompletedAt());
 	}
 
 	private static void assertPreparationFailure(final MailSendOutcome outcome, final Throwable failure, final boolean asynchronous) {
 		assertThat(outcome.getDiagnostics().orElseThrow().getPreparation().isFailureObservedHere()).isTrue();
-		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed().isPresent()).isEqualTo(asynchronous);
+		assertThat(outcome.getDiagnostics().orElseThrow().getScheduling().getElapsed() != null).isEqualTo(asynchronous);
 		assertThat(outcome.isSuccessful()).isFalse();
 		assertThat(outcome.getFailure()).containsSame(failure);
 		assertThat(outcome.getSubmissionReceipt()).isEmpty();

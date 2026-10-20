@@ -1,5 +1,6 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -52,7 +53,7 @@ class NotificationCopyContractTest {
     @EnumSource(Choice.class)
     void copyingPreservesPropertySpecificSuppression(final Choice choice) throws Exception {
         final Email original = builder(choice)
-                .dontApplyDefaultValueFor(EmailProperty.USE_DISPOSITION_NOTIFICATION_TO, EmailProperty.USE_RETURN_RECEIPT_TO).buildEmail();
+                .withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(EmailProperty.USE_DISPOSITION_NOTIFICATION_TO, EmailProperty.USE_RETURN_RECEIPT_TO).build()).buildEmail();
         final Email copy = mail.emailBuilder().copying(original).buildEmail();
         assertThat(copy.getPropertiesNotToApplyDefaultValueFor()).isEqualTo(original.getPropertiesNotToApplyDefaultValueFor());
         assertChoices(copy, original);

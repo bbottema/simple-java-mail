@@ -44,37 +44,37 @@ public class ConnectionPoolClusterConfig implements Serializable {
 		this.loadBalancingStrategy = loadBalancingStrategy;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolCoreSize(Integer) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withCoreSize(Integer) */
 	@Nullable
 	public Integer getCoreSize() {
 		return coreSize;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolMaxSize(Integer) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withMaxSize(Integer) */
 	@Nullable
 	public Integer getMaxSize() {
 		return maxSize;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withClaimTimeout(Duration) */
 	@Nullable
 	public Duration getClaimTimeout() {
 		return claimTimeout;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolExpireAfter(Duration) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfter(Duration) */
 	@Nullable
 	public Duration getExpireAfter() {
 		return expireAfter;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfterCreation(Duration) */
 	@Nullable
 	public Duration getExpireAfterCreation() {
 		return expireAfterCreation;
 	}
 
-	/** @see MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy) */
+	/** @see org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withLoadBalancingStrategy(LoadBalancingStrategy) */
 	@Nullable
 	public LoadBalancingStrategy getLoadBalancingStrategy() {
 		return loadBalancingStrategy;
@@ -100,7 +100,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolCoreSize(Integer)} for its meaning and constraints. Replaces the previous value.
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withCoreSize(Integer)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
 		public ConnectionPoolClusterConfigBuilder coreSize(@Nullable final Integer value) {
@@ -123,7 +123,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolMaxSize(Integer)} for its meaning and constraints. Replaces the previous value.
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withMaxSize(Integer)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
 		public ConnectionPoolClusterConfigBuilder maxSize(@Nullable final Integer value) {
@@ -146,7 +146,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolClaimTimeout(Duration)} for its meaning and constraints. Replaces the previous value.
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withClaimTimeout(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
 		public ConnectionPoolClusterConfigBuilder claimTimeout(@Nullable final Duration value) {
@@ -169,7 +169,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolExpireAfter(Duration)} for its meaning and constraints. Replaces the previous value.
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfter(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
 		public ConnectionPoolClusterConfigBuilder expireAfter(@Nullable final Duration value) {
@@ -192,7 +192,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolExpireAfterCreation(Duration)} for its meaning and constraints. Replaces the previous value.
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withExpireAfterCreation(Duration)} for its meaning and constraints. Replaces the previous value.
 		 */
 		@NotNull
 		public ConnectionPoolClusterConfigBuilder expireAfterCreation(@Nullable final Duration value) {
@@ -215,7 +215,7 @@ public class ConnectionPoolClusterConfig implements Serializable {
 
 		/**
 		 * Overrides this cluster's setting; null leaves the regular Mailer setting effective. See {@link
-		 * MailerGenericBuilder#withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy)} for its meaning and constraints. Replaces the previous
+		 * org.simplejavamail.api.mailer.config.ConnectionPoolConfig.Builder#withLoadBalancingStrategy(LoadBalancingStrategy)} for its meaning and constraints. Replaces the previous
 		 * value.
 		 */
 		@NotNull

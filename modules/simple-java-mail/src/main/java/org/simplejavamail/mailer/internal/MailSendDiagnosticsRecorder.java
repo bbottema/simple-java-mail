@@ -375,7 +375,7 @@ public final class MailSendDiagnosticsRecorder {
 		submissionHistory.set(latestIndex, MailSendSubmissionStepImpl.builder()
 			.attemptNumber(latest.getAttemptNumber())
 			.submissionStatus(latest.getSubmissionStatus())
-			.smtpReplyCode(latest.getSmtpReplyCode().orElse(null))
+			.smtpReplyCode(latest.getSmtpReplyCode())
 			.elapsed(latest.getElapsed())
 			.retryDelay(delay)
 			.explanation("Temporary refusal; the entire email can be submitted again safely.")

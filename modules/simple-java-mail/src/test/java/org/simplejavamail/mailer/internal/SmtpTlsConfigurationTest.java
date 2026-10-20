@@ -1,5 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
@@ -27,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -123,7 +130,7 @@ class SmtpTlsConfigurationTest {
             assertThat(fromSource.getSession().getProperty(REQUIRED)).isEqualTo("TrUe");
             assertThat(fromBuilder.getSession().getProperty(REQUIRED)).isEqualTo("true");
             assertThat(corrected.getDiagnostics().toString()).contains(key + " = TrUe (source: override)");
-            assertThat(rejected.<Map<String, String>>getProperty(ConfigLoader.Property.EXTRA_PROPERTIES)).containsEntry(REQUIRED, "false");
+            assertThat(rejected.get(ConfigKeys.EXTRA_PROPERTIES)).containsEntry(REQUIRED, "false");
         }
         assertThatThrownBy(() -> factory.mailerBuilder().buildMailer()).isInstanceOf(MailerException.class);
     }
@@ -168,10 +175,10 @@ class SmtpTlsConfigurationTest {
         final AtomicInteger tokenCalls = new AtomicInteger();
         final AtomicInteger observerCalls = new AtomicInteger();
         final ExecutorService executor = mock(ExecutorService.class);
-        final MailerRegularBuilder<?> builder = builder(SMTP_OAUTH2).withSMTPServerPassword(null)
+        final MailerRegularBuilder<?> builder = updateMailer(builder(SMTP_OAUTH2), fixture -> fixture.withSMTPServerPassword(null)
                 .withOAuth2AccessTokenProvider(() -> { tokenCalls.incrementAndGet(); return "fake-token"; })
                 .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> observerCalls.incrementAndGet()).build())
-                .withExecutorService(executor).withProxy("localhost", 12346, "proxy-user", "fake-proxy-password")
+                .withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(executor).build()).withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(12346).withUsername("proxy-user").withPassword("fake-proxy-password").build()))
                 .withProperty(REQUIRED, false);
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
              MockedStatic<MailTransportLifecycleResolver> lifecycle = mockStatic(MailTransportLifecycleResolver.class);
@@ -205,7 +212,7 @@ class SmtpTlsConfigurationTest {
         try (Mailer mailer = builder(SMTP).withProperty(REQUIRED, true).buildMailer()) {
             assertThat(mailer.getSession().getProperty(REQUIRED)).isEqualTo("true");
         }
-        try (Mailer mailer = builder(SMTP_TLS).trustingAllHosts(true).verifyingServerIdentity(false).buildMailer()) {
+        try (Mailer mailer = updateMailer(builder(SMTP_TLS), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().trustingAllHosts(true).verifyingServerIdentity(false).build())).buildMailer()) {
             assertThat(mailer.getSession().getProperties()).containsEntry(REQUIRED, "true")
                     .containsEntry("mail.smtp.ssl.trust", "*").containsEntry("mail.smtp.ssl.checkserveridentity", "false");
         }
@@ -219,7 +226,7 @@ class SmtpTlsConfigurationTest {
         properties.setProperty("mail.smtp.host", "localhost");
         properties.setProperty(REQUIRED, "false");
         final Session session = Session.getInstance(properties);
-        try (Mailer mailer = factory().mailerBuilder(session).withConnectionPoolCoreSize(0)
+        try (Mailer mailer = factory().mailerBuilder(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build())
                 .withProperty(REQUIRED, false).buildMailer()) {
             assertThat(mailer.getSession()).isSameAs(session);
             assertThat(session.getProperty(REQUIRED)).isEqualTo("false");
@@ -242,7 +249,7 @@ class SmtpTlsConfigurationTest {
 
     private static MailerRegularBuilder<?> builder(final TransportStrategy strategy) {
         return factory().mailerBuilder().withSMTPServer("localhost", 12345, "test-user", "fake-password-or-token")
-                .withTransportStrategy(strategy).withConnectionPoolCoreSize(0);
+                .withTransportStrategy(strategy).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build());
     }
 
     private static SimpleJavaMail factory() {

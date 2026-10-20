@@ -1,5 +1,6 @@
 package org.simplejavamail.converter;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.Session;
@@ -273,16 +274,16 @@ class FluentEmailConversionTest {
 		settings.put(ConfigLoader.Property.DEFAULT_BCC_ADDRESS.key(), "archive-b@example.org");
 		final SimpleJavaMail factoryB = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap("factory B", settings).load());
 		settings.put(ConfigLoader.Property.DEFAULT_BCC_ADDRESS.key(), "later-mutation@example.org");
-		assertThat(factoryA.converter().fromOutlookMsg(source).toEmailBuilder().isIgnoreDefaults()).isTrue();
-		assertThat(EmailConverter.outlookMsgToEmailBuilderWithOutlookData(source, null).getEmailBuilder().isIgnoreDefaults()).isTrue();
+		assertThat(factoryA.converter().fromOutlookMsg(source).toEmailBuilder().getTemplateOptions().isIgnoreDefaults()).isTrue();
+		assertThat(EmailConverter.outlookMsgToEmailBuilderWithOutlookData(source, null).getEmailBuilder().getTemplateOptions().isIgnoreDefaults()).isTrue();
 
 		// Outlook imports deliberately suppress defaults. Re-enable them explicitly to exercise the retained factory snapshot.
-		final Email firstA = factoryA.converter().fromOutlookMsg(source).toEmailBuilder().ignoringDefaults(false)
+		final Email firstA = factoryA.converter().fromOutlookMsg(source).toEmailBuilder().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).build())
 				.buildEmailCompletedWithDefaultsAndOverrides();
 		final Email emailB = factoryB.converter().fromOutlookMsg(source).toEmailBuilderWithOutlookData().getEmailBuilder()
-				.ignoringDefaults(false).buildEmailCompletedWithDefaultsAndOverrides();
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).build()).buildEmailCompletedWithDefaultsAndOverrides();
 		final Email secondA = factoryA.converter().fromOutlookMsg(source).toEmailBuilderWithOutlookData().getEmailBuilder()
-				.ignoringDefaults(false).buildEmailCompletedWithDefaultsAndOverrides();
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).build()).buildEmailCompletedWithDefaultsAndOverrides();
 
 		assertThat(firstA.getRecipients()).filteredOn(recipient -> recipient.getType() == jakarta.mail.Message.RecipientType.BCC)
 				.extracting("address").containsExactly("archive-a@example.org");

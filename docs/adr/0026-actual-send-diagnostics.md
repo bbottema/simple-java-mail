@@ -34,6 +34,13 @@ Submission includes provider preparation, serialization and protocol work; it is
 per-email measurements. CustomMailer is opaque and logging-only has no submission. Untouched batch entries have no event.
 
 Capture only the selected transport's logical host and port when available, with bounded escaping and no configured fallback or guessed port.
+
+Accepted absence policy, 20 October 2026: scalar endpoint, duration and explanation getters return annotated nullable values, including connection and
+submission history. Required measurement objects, elapsed totals, statuses and histories remain plain non-null values; the optional whole diagnostic
+section remains `Optional` on the outcome. Zero is measured work, while null plus the measurement's required absence explanation means unmeasured work.
+See [ADR 0009](0009-nullability-and-cli-optionality.md#outgoing-operation-result-absence-policy-accepted-20-october-2026) for the scoped policy and
+serialization boundary. This does not alter the recorder, monotonic timing, privacy, failure markers or observation lifecycle.
+
 This is not the physical peer, proxy route or proof of TLS. Default rendering omits endpoints, identifiers, exception messages and content.
 Preserve the exact produced receipt across later cleanup failure and retain first-failure arbitration. The accepted 19 October API revision
 also exposes it through `MailSendException.getSubmissionReceipt()`, including cleanup-only failures through `MailSendCleanupException`.

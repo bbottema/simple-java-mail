@@ -3,14 +3,75 @@ package org.simplejavamail.internal.authenticatedsockssupport.socks5server;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnonymousSocks5ServerImplTest {
+
+    @Test
+    void socketCloseFailureIsClassifiedAsCleanupAndRetainsItsCause() throws Exception {
+        final AnonymousSocks5ServerImpl server = newEphemeralServer();
+        final ServerSocket socket = mock(ServerSocket.class);
+        final IOException original = new IOException("close failed");
+        doThrow(original).when(socket).close();
+        setField(server, "running", true);
+        setField(server, "serverSocket", socket);
+
+        final Throwable failure = catchThrowable(server::stop);
+        assertThat(failure).isInstanceOf(SocksException.class).hasCause(original);
+        assertThat(((SocksException) failure).getKind()).isEqualTo(MailFailureKind.CLEANUP);
+        assertThat(((SocksException) failure).getSubmissionReceipt()).isEmpty();
+        assertThat(new SocksException("connection failed", original).getKind()).isEqualTo(MailFailureKind.CONNECTION);
+    }
+
+    @Test
+    void interruptedListenerJoinIsClassifiedAsCleanupAndPreservesInterruption() throws Exception {
+        final AnonymousSocks5ServerImpl server = newEphemeralServer();
+        final CountDownLatch release = new CountDownLatch(1);
+        final Thread listener = new Thread(() -> {
+            try {
+                release.await();
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        listener.setDaemon(true);
+        listener.start();
+        setField(server, "running", true);
+        setField(server, "listenerThread", listener);
+        try {
+            Thread.currentThread().interrupt();
+            final Throwable failure = catchThrowable(server::stop);
+            assertThat(failure).isInstanceOf(SocksException.class).hasCauseInstanceOf(InterruptedException.class);
+            assertThat(((SocksException) failure).getKind()).isEqualTo(MailFailureKind.CLEANUP);
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+            release.countDown();
+            listener.join(TimeUnit.SECONDS.toMillis(5));
+            assertFalse(listener.isAlive());
+        }
+    }
+
+    private static void setField(final AnonymousSocks5ServerImpl server, final String name, final Object value) throws Exception {
+        final Field field = AnonymousSocks5ServerImpl.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(server, value);
+    }
 
 	@Test
 	void bindsTheBridgeToLoopbackOnly() throws InterruptedException {

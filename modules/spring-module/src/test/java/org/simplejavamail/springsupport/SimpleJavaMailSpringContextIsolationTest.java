@@ -1,5 +1,7 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.config.ConfigLoader;
@@ -29,8 +31,8 @@ class SimpleJavaMailSpringContextIsolationTest {
 			assertThat(factoryB.mailerBuilder().getHost()).isEqualTo("b.example.test");
 			assertThat(explicit.mailerBuilder().getHost()).isEqualTo("explicit.example.test");
 			assertThat(SimpleJavaMail.fromDefaults().mailerBuilder().getHost()).isEqualTo(conventionalHost);
-			assertThat(contextA.getBean(SimpleJavaMailConfig.class).getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("A");
-			assertThat(contextB.getBean(SimpleJavaMailConfig.class).getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("B");
+			assertThat(contextA.getBean(SimpleJavaMailConfig.class).get(ConfigKeys.DEFAULT_SUBJECT)).isEqualTo("A");
+			assertThat(contextB.getBean(SimpleJavaMailConfig.class).get(ConfigKeys.DEFAULT_SUBJECT)).isEqualTo("B");
 			assertThat(contextA.containsBean("defaultMailerBuilder")).isFalse();
 
 			contextA.close();

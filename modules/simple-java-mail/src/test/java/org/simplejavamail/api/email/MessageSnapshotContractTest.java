@@ -1,5 +1,6 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import jakarta.activation.DataSource;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -59,8 +60,7 @@ class MessageSnapshotContractTest {
 		final EmailPopulatingBuilder source = mail.emailBuilder().startingBlank()
 				.withRecipients(recipient)
 				.withOverrideReceivers(deliveryRecipients)
-				.ignoringDefaults()
-				.dontApplyOverrideValueFor(EmailProperty.HEADERS);
+				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().dontApplyOverrideValueFor(EmailProperty.HEADERS).build());
 		final Email original = source.buildEmail();
 		final EmailPopulatingBuilder copy = copyBuilder ? mail.emailBuilder().copying(source) : mail.emailBuilder().copying(original);
 		final Email copied = copy.withSubject("Unrelated edit").buildEmail();
@@ -129,7 +129,7 @@ class MessageSnapshotContractTest {
 		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank()
 				.withRecipients(recipient).withReplyTo(recipient).withOverrideReceivers(recipient)
 				.withHeader("X-Route", "first")
-				.dontApplyDefaultValueFor(EmailProperty.SUBJECT).dontApplyOverrideValueFor(EmailProperty.HEADERS);
+				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(EmailProperty.SUBJECT).dontApplyOverrideValueFor(EmailProperty.HEADERS).build());
 		builder.withDecryptedAttachments(singletonList(resource()));
 
 		builder.getRecipients().clear();
@@ -137,8 +137,8 @@ class MessageSnapshotContractTest {
 		builder.getOverrideReceivers().clear();
 		builder.getDecryptedAttachments().clear();
 		builder.getHeaders().get("X-Route").clear();
-		builder.getPropertiesNotToApplyDefaultValueFor().clear();
-		builder.getPropertiesNotToApplyOverrideValueFor().clear();
+		builder.getTemplateOptions().toBuilder().getPropertiesNotToApplyDefaultValueFor().clear();
+		builder.getTemplateOptions().toBuilder().getPropertiesNotToApplyOverrideValueFor().clear();
 
 		final Email email = builder.buildEmail();
 		assertThat(email.getRecipients()).containsExactly(recipient);

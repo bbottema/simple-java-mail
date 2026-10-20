@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer.internal.ratelimit;
 
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
@@ -52,6 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
@@ -75,7 +81,7 @@ class MailerSendingLimitsTest {
 		final Clock clock = new Clock();
 		final AtomicInteger invoked = new AtomicInteger();
 		final MailerFromSessionBuilderImpl firstBuilder = builder(new FactorySendingLimits(clock), new State());
-		try (Mailer limited = firstBuilder.withMessageRateLimit(1, PERIOD).withCustomMailer(countingCustomMailer(invoked)).buildMailer();
+		try (Mailer limited = firstBuilder.withSendingLimitsConfig(firstBuilder.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build()).withCustomMailer(countingCustomMailer(invoked)).buildMailer();
 			 Mailer unlimited = builder(new FactorySendingLimits(), new State())
 					.withCustomMailer(countingCustomMailer(invoked)).buildMailer()) {
 			assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(limited.getSession())
@@ -99,10 +105,10 @@ class MailerSendingLimitsTest {
 	void failedMailerConstructionDoesNotKeepItsProvisionalGroupRules() throws Exception {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 		assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServer("localhost", 25).withTransportStrategy(TransportStrategy.SMTP_TLS)
-				.withProperty("mail.smtp.starttls.required", "false").withRateLimitGroup("failed-build").withMessageRateLimit(30, PERIOD).buildMailer())
+				.withProperty("mail.smtp.starttls.required", "false").withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("failed-build").withMessageRateLimit(30, PERIOD).build()).buildMailer())
 				.hasMessageContaining("requires STARTTLS");
 		try (Mailer valid = factory.mailerBuilder().withSMTPServer("localhost", 25).withTransportModeLoggingOnly(true)
-				.withRateLimitGroup("failed-build").withMessageRateLimit(60, PERIOD).buildMailer()) {
+				.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("failed-build").withMessageRateLimit(60, PERIOD).build()).buildMailer()) {
 			assertThat(valid.getOperationalConfig().getMessageRateLimit().getCount()).isEqualTo(60);
 		}
 	}
@@ -111,19 +117,20 @@ class MailerSendingLimitsTest {
 	@ValueSource(booleans = {false, true})
 	void independentSessionKeepsLimitsAcrossIndividualAndRetainedSendPaths(final boolean custom) throws Exception {
 		final State state = new State();
-		final MailerFromSessionBuilderImpl configured = builder(new FactorySendingLimits(), state).withRecipientRateLimit(1, PERIOD);
+		final MailerFromSessionBuilderImpl configured = updateMailer(builder(new FactorySendingLimits(), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRecipientRateLimit(1, PERIOD).build()));
 		if (custom) {
 			configured.withCustomMailer(countingCustomMailer(state.submissions));
 		}
 		try (Mailer limited = configured.buildMailer();
-			 Mailer unlimited = builder(new FactorySendingLimits(), state)
-					.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).buildMailer()) {
+			 Mailer unlimited = updateMailer(builder(new FactorySendingLimits(), state), fixture -> fixture
+					.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(UUID.randomUUID()).withCoreSize(0).build())).buildMailer()) {
 			final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("two recipients"))
 					.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
 			assertThatThrownBy(() -> limited.sync().sendMail(oversized)).hasMessageContaining("2 envelope recipients");
 			assertThat(limited.async().sendMail(oversized).getCompletion().handle((receipt, failure) -> failure).get(5, SECONDS))
 					.hasMessageContaining("2 envelope recipients");
-			assertThatThrownBy(() -> limited.sync().sendMailsInSimpleBatch(List.of(oversized))).hasRootCauseMessage(
+			assertThatThrownBy(() -> limited.sync().sendMailsInSimpleBatch(List.of(oversized)))
+					.isInstanceOf(org.simplejavamail.MailException.class).hasMessage(
 					"This email has 2 envelope recipients, but the sending limit allows only 1 in a whole period. "
 							+ "Use fewer recipients or increase the configured recipient limit; the email has not been submitted.");
 			if (!custom) {
@@ -141,10 +148,10 @@ class MailerSendingLimitsTest {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 		final Session invalid = Session.getInstance(new Properties());
 		invalid.getProperties().setProperty("mail.transport.protocol", "smtppool");
-		assertThatThrownBy(() -> factory.mailerBuilder(invalid).withRateLimitGroup("failed-pool").withMessageRateLimit(1, PERIOD).buildMailer())
+		assertThatThrownBy(() -> factory.mailerBuilder(invalid).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("failed-pool").withMessageRateLimit(1, PERIOD).build()).buildMailer())
 				.hasMessageContaining("exactly one component");
 		try (Mailer valid = factory.mailerBuilder().withSMTPServer("localhost", 25).withTransportModeLoggingOnly(true)
-				.withRateLimitGroup("failed-pool").withMessageRateLimit(2, PERIOD).buildMailer()) {
+				.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("failed-pool").withMessageRateLimit(2, PERIOD).build()).buildMailer()) {
 			assertThat(valid.getOperationalConfig().getMessageRateLimit().getCount()).isEqualTo(2);
 		}
 	}
@@ -154,7 +161,7 @@ class MailerSendingLimitsTest {
 		final Clock clock = new Clock();
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())).buildMailer()) {
 			mailer.sync().sendMail(email("first"));
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("drain me"));
@@ -184,7 +191,7 @@ class MailerSendingLimitsTest {
 			@Override public boolean hasNext() { return supplied.get() < 2; }
 			@Override public Email next() { return email("retained " + supplied.incrementAndGet()); }
 		};
-		try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withMessageRateLimit(1, PERIOD)
+		try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(clock), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build()))
 				.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.sync().sendMail(email("exhaust allowance"));
 			clock.reads.drainPermits();
@@ -210,7 +217,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			mailer.sync().sendMail(email("first"));
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("waiting"));
@@ -241,9 +248,8 @@ class MailerSendingLimitsTest {
 		final RetryProviderTransport.State providerState = new RetryProviderTransport.State();
 		final Session session = RetryProviderTransport.session(providerState);
 		try (Mailer mailer = new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session)
-				.withClusterKey(UUID.randomUUID()).withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1)
-				.withConnectionPoolExpireAfter(Duration.ofMillis(60000)).withConnectionPoolClaimTimeout(Duration.ofMillis(5000))
-				.withMessageRateLimit(1, PERIOD).withRateLimitGroup("account")
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).withClaimTimeout(Duration.ofMillis(5000)).build())
+				.withSendingLimitsConfig(SendingLimitsConfig.builder().withMessageRateLimit(1, PERIOD).withRateLimitGroup("account").build())
 				.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2).withRetryDelay(Duration.ofNanos(1)).build())
 				.buildMailer()) {
 			final MailSend<MailSubmissionReceipt> waiting = mailer.async().sendMail(email("rate-gated retry"));
@@ -274,7 +280,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		state.failConnect.set(1);
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withMaximumEmailSize(1000).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build()).withValidationConfig(fixture.getValidationConfig().toBuilder().withMaximumEmailSize(1000).build())).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMail(email("connection failure"))).isInstanceOf(RuntimeException.class);
 			final Email tooLarge = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("MIME failure"))
 					.withPlainText("x".repeat(2000)).buildEmail();
@@ -300,7 +306,7 @@ class MailerSendingLimitsTest {
 	void recipientCostIncludesBccAdditionalHeadersDuplicatesAndEnvelopeOverridesBeforeAcquisition() throws Exception {
 		final State state = new State();
 		final FactorySendingLimits limits = new FactorySendingLimits();
-		try (Mailer mailer = builder(limits, state).withRecipientRateLimit(3, PERIOD).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRecipientRateLimit(3, PERIOD).build())).buildMailer()) {
 			final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 			final Email fourRecipients = factory.emailBuilder().copying(email("duplicates"))
 					.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build())
@@ -319,7 +325,7 @@ class MailerSendingLimitsTest {
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
 		final State state = new State();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(limits, state).withMessageRateLimit(1, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
+		try (Mailer mailer = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			outcomes.add(outcome);
 			clock.now.addAndGet(PERIOD.toNanos());
 		}).build()).buildMailer()) {
@@ -331,8 +337,8 @@ class MailerSendingLimitsTest {
 			assertThat(state.submissions.get()).isEqualTo(4);
 			assertThat(state.connections.get()).isEqualTo(2);
 			assertThat(outcomes).allSatisfy(outcome -> {
-				assertThat(outcome.getDiagnostics().orElseThrow().getRateLimitWait().getElapsed()).isPresent();
-				assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isEmpty();
+				assertThat(outcome.getDiagnostics().orElseThrow().getRateLimitWait().getElapsed()).isNotNull();
+				assertThat(outcome.getDiagnostics().orElseThrow().getConnectionAcquisition().getElapsed()).isNull();
 			});
 		}
 	}
@@ -341,14 +347,14 @@ class MailerSendingLimitsTest {
 	void namedHistorySurvivesParticipantClosureAndAnotherFactoryRemainsIndependent() throws Exception {
 		final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 		final AtomicInteger invoked = new AtomicInteger();
-		try (Mailer first = factory.mailerBuilder().withSMTPServer("localhost", 25).withRateLimitGroup("account").withMessageRateLimit(1, PERIOD)
+		try (Mailer first = factory.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("account").withMessageRateLimit(1, PERIOD).build())
 				.withCustomMailer(countingCustomMailer(invoked)).buildMailer()) {
 			first.sync().sendMail(email("first"));
 		}
-		try (Mailer replacement = factory.mailerBuilder().withSMTPServer("localhost", 25).withRateLimitGroup("account").withMessageRateLimit(1, PERIOD)
+		try (Mailer replacement = factory.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("account").withMessageRateLimit(1, PERIOD).build())
 				.withCustomMailer(countingCustomMailer(invoked)).buildMailer();
 			 Mailer independent = SimpleJavaMail.withConfig(factory.getConfig()).mailerBuilder().withSMTPServer("localhost", 25)
-					.withRateLimitGroup("account").withMessageRateLimit(1, PERIOD)
+					.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("account").withMessageRateLimit(1, PERIOD).build())
 					.withCustomMailer(countingCustomMailer(invoked)).buildMailer()) {
 			final MailSend<MailSubmissionReceipt> waiting = replacement.async().sendMail(email("replacement"));
 			try {
@@ -368,10 +374,10 @@ class MailerSendingLimitsTest {
 		final UUID cluster = UUID.randomUUID();
 		final State firstState = new State();
 		final State secondState = new State();
-		try (Mailer first = builder(limits, firstState).withClusterKey(cluster).withRateLimitGroup("first")
-				.withMessageRateLimit(1, PERIOD).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer();
-			 Mailer second = builder(limits, secondState).withClusterKey(cluster).withRateLimitGroup("second")
-					.withMessageRateLimit(2, PERIOD).withConnectionPoolLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).buildMailer()) {
+		try (Mailer first = updateMailer(builder(limits, firstState), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()).withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRateLimitGroup("first").withMessageRateLimit(1, PERIOD).build()))
+				.buildMailer();
+			 Mailer second = updateMailer(builder(limits, secondState), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withClusterKey(cluster).withLoadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN).build()).withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRateLimitGroup("second").withMessageRateLimit(2, PERIOD).build()))
+					.buildMailer()) {
 			first.sync().sendMail(email("one"));
 			first.sync().sendMail(email("two"));
 			assertThat(firstState.submissions.get()).isEqualTo(1);
@@ -400,13 +406,13 @@ class MailerSendingLimitsTest {
 	void waitingParticipantDoesNotStartItsAuthenticatedProxyOrResetTheClosedParticipantsHistory() throws Exception {
 		final Clock clock = new Clock();
 		final FactorySendingLimits limits = new FactorySendingLimits(clock);
-		try (Mailer original = builder(limits, new State()).withMessageRateLimit(1, PERIOD)
+		try (Mailer original = updateMailer(builder(limits, new State()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build()))
 				.withCustomMailer(countingCustomMailer(new AtomicInteger())).buildMailer()) {
 			original.sync().sendMail(email("original"));
 		}
 		final State state = new State();
-		try (Mailer replacement = builder(limits, state).withMessageRateLimit(1, PERIOD)
-				.withProxy("localhost", 1080, "proxy-user", "proxy-password").buildMailer()) {
+		try (Mailer replacement = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())
+				.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").build())).buildMailer()) {
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = replacement.async().sendMail(email("waiting"));
 			try {
@@ -426,9 +432,9 @@ class MailerSendingLimitsTest {
 	@Test
 	void localAdapterRejectionDoesNotConsumeAnAttempt() throws Exception {
 		final State state = new State();
-		try (Mailer mailer = builder(new FactorySendingLimits(), state).withMessageRateLimit(1, PERIOD).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())).buildMailer()) {
 			final Email unsupported = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("unsupported"))
-					.withTlsRequiredForOnwardDelivery().buildEmail();
+					.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().build()).buildEmail();
 			assertThatThrownBy(() -> mailer.sync().sendMail(unsupported)).isInstanceOf(RuntimeException.class);
 			mailer.sync().sendMail(email("ordinary"));
 			assertThat(state.submissions.get()).isEqualTo(1);
@@ -442,7 +448,7 @@ class MailerSendingLimitsTest {
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
-			try (Mailer mailer = builder(new FactorySendingLimits(clock), state).withRecipientRateLimit(1, PERIOD)
+			try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(clock), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRecipientRateLimit(1, PERIOD).build()))
 					.withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 				final Email oversized = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("too many"))
 						.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress("archive@example.org").withType(RecipientType.BCC).build()).buildEmail();
@@ -455,7 +461,7 @@ class MailerSendingLimitsTest {
 				assertThat(state.submissions.get()).isEqualTo(2);
 				assertThat(clock.reads.availablePermits()).isEqualTo(4);
 				assertThat(outcomes).filteredOn(MailSendOutcome::isSuccessful).hasSize(2)
-						.allSatisfy(outcome -> assertThat(outcome.getDiagnostics().orElseThrow().getRateLimitWait().getElapsed()).isPresent());
+						.allSatisfy(outcome -> assertThat(outcome.getDiagnostics().orElseThrow().getRateLimitWait().getElapsed()).isNotNull());
 			}
 		}
 	}
@@ -472,7 +478,7 @@ class MailerSendingLimitsTest {
 		final AtomicReference<Mailer> owner = new AtomicReference<>();
 		final AtomicInteger observations = new AtomicInteger();
 		final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
-		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), state).withMessageRateLimit(2, PERIOD).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
+		try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(() -> 0), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(2, PERIOD).build())).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcome -> {
 			outcomes.add(outcome);
 			if (observations.incrementAndGet() == 1) {
 				owner.get().sync().sendMail(email("reentrant"));
@@ -489,7 +495,7 @@ class MailerSendingLimitsTest {
 	@Test
 	void groupedHeaderMembersCountIndividuallyBeforeTransportAcquisition() throws Exception {
 		final State state = new State();
-		try (Mailer mailer = builder(new FactorySendingLimits(), state).withRecipientRateLimit(2, PERIOD).buildMailer()) {
+		try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(), state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withRecipientRateLimit(2, PERIOD).build())).buildMailer()) {
 			final Email grouped = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("grouped"))
 					.withHeader("Cc", "Team: a@example.org, b@example.org;").buildEmail();
 			assertThatThrownBy(() -> mailer.sync().sendMail(grouped)).hasMessageContaining("3 envelope recipients");
@@ -514,7 +520,7 @@ class MailerSendingLimitsTest {
 			@Override public boolean hasNext() { return supplied.get() < 3; }
 			@Override public Email next() { return email("batch " + supplied.incrementAndGet()); }
 		};
-		try (Mailer mailer = builder(new FactorySendingLimits(() -> 0), new State()).withMessageRateLimit(2, PERIOD)
+		try (Mailer mailer = updateMailer(builder(new FactorySendingLimits(() -> 0), new State()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(2, PERIOD).build()))
 				.withCustomMailer(custom).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
 			assertThatThrownBy(() -> mailer.sync().sendMailsInSimpleBatch(emails)).isInstanceOf(RuntimeException.class);
 			assertThat(supplied.get()).isEqualTo(2);
@@ -540,14 +546,14 @@ class MailerSendingLimitsTest {
 		final Email attached = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().copying(email("attachment"))
 				.withAttachment("file.bin", attachment).buildEmail();
 		try (Mailer unbounded = builder(new FactorySendingLimits(), new State()).buildMailer();
-			 Mailer limited = builder(limits, state).withMessageRateLimit(1, PERIOD).buildMailer()) {
+			 Mailer limited = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())).buildMailer()) {
 			unbounded.sync().sendMail(attached);
 			final int baselineReads = reads.getAndSet(0);
 			limited.sync().sendMail(attached);
 			assertThat(reads.get()).isEqualTo(baselineReads);
 		}
 		final Clock loggingClock = new Clock();
-		try (Mailer logging = builder(new FactorySendingLimits(loggingClock), new State()).withMessageRateLimit(1, PERIOD)
+		try (Mailer logging = updateMailer(builder(new FactorySendingLimits(loggingClock), new State()), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build()))
 				.withTransportModeLoggingOnly(true).buildMailer()) {
 			logging.sync().sendMail(email("log a"));
 			logging.sync().sendMail(email("log b"));
@@ -566,8 +572,8 @@ class MailerSendingLimitsTest {
 		final Provider provider = new Provider(Provider.Type.TRANSPORT, "smtp", RecordingTransport.class.getName(), "test", "1");
 		session.addProvider(provider);
 		session.setProvider(provider);
-		return new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session).withClusterKey(UUID.randomUUID())
-				.withConnectionPoolCoreSize(0).withConnectionPoolMaxSize(1).withConnectionPoolClaimTimeout(Duration.ofMillis(1000)).withRateLimitGroup("account");
+		return new MailerFromSessionBuilderImpl(ConfigLoader.builder().load(), limits).usingSession(session).withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(1000)).build())
+				.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("account").build());
 	}
 
 	private static Email email(final String subject) {

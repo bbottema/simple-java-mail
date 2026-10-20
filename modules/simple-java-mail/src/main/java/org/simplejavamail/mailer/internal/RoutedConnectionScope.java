@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.api.mailer.MailFailureKind;
+
 import jakarta.mail.MessagingException;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
@@ -76,7 +78,8 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 			}
 			// Preserve setup evidence and cancellation identities, but keep pool/provider setup errors in the public MailException family.
 			throw failure instanceof MailException ? (MailException) failure
-					: new MailerException("Couldn't acquire the selected SMTP connection; no email was submitted. Check the cause for details.", (Exception) failure);
+					: new MailerException(MailFailureKind.CONNECTION,
+							"Couldn't acquire the selected SMTP connection; no email was submitted. Check the cause for details.", failure);
 		}
 	}
 

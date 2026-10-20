@@ -11,7 +11,6 @@ import org.simplejavamail.api.mailer.MailSendProgressStage;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
@@ -57,13 +56,15 @@ public final class MailSendProgressImpl implements MailSendProgress {
 
     /** @see MailSendProgress#getBytesWritten() */
     @Override
-    public Optional<Long> getBytesWritten() {
-        return Optional.ofNullable(bytesWritten);
+    @Nullable
+	public Long getBytesWritten() {
+        return bytesWritten;
     }
 
     /** @see MailSendProgress#getTotalBytes() */
     @Override
-    public Optional<Long> getTotalBytes() {
-        return Optional.ofNullable(totalBytes);
+    @Nullable
+	public Long getTotalBytes() {
+        return totalBytes;
     }
 }

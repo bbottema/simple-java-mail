@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.failover;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -56,7 +59,7 @@ class FailoverRecoveryContractTest {
                 connection.acceptMessages(peer);
             }
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withExecutorService(concurrentSends)
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(concurrentSends).build()))
                      .withFailoverMailer(destination, immediatelyDuePolicy()).buildMailer()) {
             try {
                 initiating.sync().sendMail(email());
@@ -97,8 +100,8 @@ class FailoverRecoveryContractTest {
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); RecordingSmtpServer entry = unavailableServer()) {
             // Separate instances of one named definition share observations but have separate pools. One pool serializes its allocator.
             final SimpleJavaMail factory = namedRouteFactory(primary.port(), secondary.port());
-            try (Mailer initiating = builder(factory, entry.port()).withExecutorService(concurrentSends).buildMailer();
-                 Mailer independent = builder(factory, entry.port()).withExecutorService(concurrentSends).buildMailer()) {
+            try (Mailer initiating = updateMailer(builder(factory, entry.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(concurrentSends).build())).buildMailer();
+                 Mailer independent = updateMailer(builder(factory, entry.port()), fixture -> fixture.withAsyncExecutionConfig(fixture.getAsyncExecutionConfig().toBuilder().withExecutorService(concurrentSends).build())).buildMailer()) {
                 try {
                     final var failing = initiating.async().sendMail(email());
                     await(failedStarted);
@@ -135,7 +138,7 @@ class FailoverRecoveryContractTest {
                 connection.acceptMessages(peer);
             }
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer destination = builder(secondary.port()).buildMailer();
-             Mailer initiating = builder(primary.port()).withConnectionPoolMaxSize(1).withFailoverMailer(destination, policy()).buildMailer()) {
+             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withMaxSize(1).build())).withFailoverMailer(destination, policy()).buildMailer()) {
             final var cancelled = initiating.async().sendMail(email());
             await(acceptedSocket);
             cancelled.requestCancellation();

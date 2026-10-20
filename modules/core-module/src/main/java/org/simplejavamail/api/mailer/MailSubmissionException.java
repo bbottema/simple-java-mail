@@ -26,7 +26,7 @@ public final class MailSubmissionException extends MailSendException {
 	public MailSubmissionException(@NotNull final String message,
 			@NotNull final MessagingException cause,
 			@NotNull final MailSubmissionReceipt submissionReceipt) {
-		super(message, cause, requireNonNull(submissionReceipt, "submissionReceipt"));
+		super(MailFailureKind.SUBMISSION, message, cause, requireNonNull(submissionReceipt, "submissionReceipt"));
 	}
 
 	/**

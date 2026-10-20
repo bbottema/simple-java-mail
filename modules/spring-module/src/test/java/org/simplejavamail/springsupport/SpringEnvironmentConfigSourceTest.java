@@ -1,5 +1,7 @@
 package org.simplejavamail.springsupport;
 
+import org.simplejavamail.config.ConfigKeys;
+
 import java.time.Duration;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
@@ -39,7 +41,7 @@ class SpringEnvironmentConfigSourceTest {
 		environment.getPropertySources().addFirst(source("application override", SMTP_HOST.key(), "ignored.example.org"));
 		ConfigurationPropertySources.attach(environment);
 		final SimpleJavaMailConfig config = loadConfig(environment);
-		assertThat(config.getStringProperty(SMTP_HOST)).isEqualTo("relay.example.org");
+		assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("relay.example.org");
 		assertThat(locksOf(config).contains(SMTP_HOST)).isTrue();
 		assertThat(config.getDiagnostics().toString()).contains("simplejavamail.locked.smtp.host = relay.example.org (source: central deployment)",
 				"simplejavamail.locked.javaxmail.debug.out = STDERR", "simplejavamail.locked.extraproperties.mail.smtp.auth = true");
@@ -60,9 +62,9 @@ class SpringEnvironmentConfigSourceTest {
 		ConfigurationPropertySources.attach(environment);
 
 		final SimpleJavaMailConfig config = loadConfig(environment);
-		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
 
-		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(450000);
+		assertThat(config.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(450000));
 		assertThat(clusters.get(clusterKey).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(900000));
 		assertThat(diagnostic(config.getDiagnostics(), DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS.key()).getSourceName())
 				.isEqualTo("pool defaults");
@@ -87,8 +89,8 @@ class SpringEnvironmentConfigSourceTest {
 		ConfigurationPropertySources.attach(environment);
 
 		final SimpleJavaMailConfig config = loadConfig(environment);
-		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.getProperty(DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
-		assertThat(config.getIntegerProperty(DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS)).isEqualTo(value);
+		final Map<UUID, ConnectionPoolClusterConfig> clusters = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
+		assertThat(config.get(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)).isEqualTo(Duration.ofMillis(value));
 		assertThat(clusters.get(clusterKey).getExpireAfterCreation()).isEqualTo(Duration.ofMillis(value));
 		for (String property : new String[] {globalProperty, clusterProperty}) {
 			final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), property);
@@ -122,7 +124,7 @@ class SpringEnvironmentConfigSourceTest {
 		environment.getPropertySources().addFirst(source("defaults", property.key(), "true"));
 		environment.getPropertySources().addFirst(source("production", property.key(), "false"));
 		final SimpleJavaMailConfig config = loadConfig(environment);
-		assertThat(config.getBooleanProperty(property)).isFalse();
+		assertThat(config.get(ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT)).isFalse();
 		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), property.key());
 		assertThat(diagnostic.getDisplayValue()).isEqualTo("false");
 		assertThat(diagnostic.getSourceName()).isEqualTo("production");
@@ -139,7 +141,7 @@ class SpringEnvironmentConfigSourceTest {
 				"simplejavamail.defaults.async.queue.waittimeoutmillis", "250")));
 		environment.getPropertySources().addFirst(source("production queue", "simplejavamail.defaults.async.queue.capacity", "03"));
 		final SimpleJavaMailConfig config = loadConfig(environment);
-		final AsyncQueueOverflowPolicy policy = config.getProperty(ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
+		final AsyncQueueOverflowPolicy policy = config.get(ConfigKeys.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
 		assertThat(policy).isEqualTo(AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY);
 		assertThat(diagnostic(config.getDiagnostics(), ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_CAPACITY.key()).getDisplayValue()).isEqualTo("3");
 		assertThat(diagnostic(config.getDiagnostics(), ConfigLoader.Property.DEFAULT_ASYNC_QUEUE_CAPACITY.key()).getSourceName()).isEqualTo("production queue");
@@ -188,7 +190,7 @@ class SpringEnvironmentConfigSourceTest {
 		final SimpleJavaMailConfig config = loadConfig(environment);
 		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), SMIME_SIGNING_KEY_PASSWORD.key());
 
-		assertThat(config.getStringProperty(SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("old secret");
+		assertThat(config.get(ConfigKeys.SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("old secret");
 		assertThat(diagnostic.getSourceName()).isEqualTo("low priority canonical source");
 	}
 

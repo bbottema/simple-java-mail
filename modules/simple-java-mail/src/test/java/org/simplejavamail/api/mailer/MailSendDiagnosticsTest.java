@@ -55,7 +55,7 @@ class MailSendDiagnosticsTest {
 		assertThat(copy.getOmittedConnectionSteps()).isEqualTo(4);
 		assertThat(copy.getConnectionHistory().get(0).getConfiguredName()).isEqualTo(skipped.getConfiguredName());
 		assertThat(copy.getConnectionHistory().get(0).getExplanation()).isEqualTo(skipped.getExplanation());
-		assertThat(copy.getConnectionHistory().get(1).getElapsed()).contains(Duration.ZERO);
+		assertThat(copy.getConnectionHistory().get(1).getElapsed()).isEqualTo(Duration.ZERO);
 		assertThat(copy.toString()).isEqualTo(report.toString());
 		assertThat(copy.toString()).doesNotContain("private-relay", "primary", "internal", "secondary");
 		assertThat(copy.toString()).contains("Cached failure; recheck pending.\\r\\n").doesNotContain("\r");
@@ -108,10 +108,10 @@ class MailSendDiagnosticsTest {
 			.unavailableReason("Connection setup is outside this attempt.")
 			.failureObservedHere(false)
 			.build();
-		assertThat(zero.getElapsed()).contains(Duration.ZERO);
-		assertThat(zero.getUnavailableReason()).isEmpty();
-		assertThat(absent.getElapsed()).isEmpty();
-		assertThat(absent.getUnavailableReason()).contains("Connection setup is outside this attempt.");
+		assertThat(zero.getElapsed()).isEqualTo(Duration.ZERO);
+		assertThat(zero.getUnavailableReason()).isNull();
+		assertThat(absent.getElapsed()).isNull();
+		assertThat(absent.getUnavailableReason()).isEqualTo("Connection setup is outside this attempt.");
 	}
 
 	@Test
@@ -166,8 +166,8 @@ class MailSendDiagnosticsTest {
 			.failureObservedHere(true)
 			.build();
 		final MailSendDiagnostics report = report(absent, failed, "internal\nrelay.example", 587);
-		assertThat(report.getSmtpHost()).contains("internal\\nrelay.example");
-		assertThat(absent.getUnavailableReason().orElseThrow()).hasSizeLessThan(2060).doesNotContain("\n", "\r", "\u202e");
+		assertThat(report.getSmtpHost()).isEqualTo("internal\\nrelay.example");
+		assertThat(absent.getUnavailableReason()).hasSizeLessThan(2060).doesNotContain("\n", "\r", "\u202e");
 		assertThat(report.toString()).contains("Total:", "Preparation:", "Submission:", "Cleanup:", "failure observed here")
 				.doesNotContain("internal", "587", "\r", "\u202e");
 		final MailSendDiagnostics copy = roundTrip(report);
@@ -255,7 +255,7 @@ class MailSendDiagnosticsTest {
 			.failureObservedHere(true)
 			.build();
 		final MailSendDiagnostics report = reportBuilder().rateLimitWait(failedWait).build();
-		assertThat(roundTrip(report).getRateLimitWait().getElapsed()).contains(Duration.ofMillis(20));
+		assertThat(roundTrip(report).getRateLimitWait().getElapsed()).isEqualTo(Duration.ofMillis(20));
 		assertThat(roundTrip(report).getRateLimitWait().isFailureObservedHere()).isTrue();
 		assertThatThrownBy(() -> reportBuilder().preparation(failedWait).rateLimitWait(failedWait).build()).isInstanceOf(IllegalArgumentException.class);
 	}

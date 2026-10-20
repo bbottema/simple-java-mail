@@ -210,13 +210,13 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		final InternalEmail internalEmail = InternalEmail.requireInternalEmail(email);
 		final Email mergedSmimeEmail = internalEmail.wasMergedWithSmimeSignedMessage() ? email.getSmimeSignedEmail() : null;
 		EmailPopulatingBuilder builder = newPopulatingBuilder();
-		builder.ignoringDefaults(email.isIgnoreDefaults());
-		builder.ignoringOverrides(email.isIgnoreOverrides());
+		((InternalEmailPopulatingBuilder) builder).ignoringDefaults(email.isIgnoreDefaults());
+		((InternalEmailPopulatingBuilder) builder).ignoringOverrides(email.isIgnoreOverrides());
 		if (email.getPropertiesNotToApplyDefaultValueFor() != null) {
-			builder.dontApplyDefaultValueFor(email.getPropertiesNotToApplyDefaultValueFor().toArray(new EmailProperty[0]));
+			((InternalEmailPopulatingBuilder) builder).dontApplyDefaultValueFor(email.getPropertiesNotToApplyDefaultValueFor().toArray(new EmailProperty[0]));
 		}
 		if (email.getPropertiesNotToApplyOverrideValueFor() != null) {
-			builder.dontApplyOverrideValueFor(email.getPropertiesNotToApplyOverrideValueFor().toArray(new EmailProperty[0]));
+			((InternalEmailPopulatingBuilder) builder).dontApplyOverrideValueFor(email.getPropertiesNotToApplyOverrideValueFor().toArray(new EmailProperty[0]));
 		}
 
 		if (email.getId() != null) {
@@ -230,13 +230,13 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 			builder.withBounceTo(email.getBounceToRecipient());
 		}
 		if (email.getDeliveryStatusNotification() != null) {
-			builder.withDeliveryStatusNotification(email.getDeliveryStatusNotification());
+			((InternalEmailPopulatingBuilder) builder).withDeliveryStatusNotification(email.getDeliveryStatusNotification());
 		}
 		if (email.isTlsRequiredForOnwardDelivery()) {
-			builder.withTlsRequiredForOnwardDelivery();
+			((InternalEmailPopulatingBuilder) builder).withTlsRequiredForOnwardDelivery();
 		}
 		if (email.getSendingToAcceptedRecipients() != null) {
-			builder.withSendingToAcceptedRecipients(email.getSendingToAcceptedRecipients());
+			((InternalEmailPopulatingBuilder) builder).withSendingToAcceptedRecipients(email.getSendingToAcceptedRecipients());
 		}
 		if (email.getPlainText() != null) {
 			builder.withPlainText(email.getPlainText());
@@ -256,16 +256,16 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		builder.withAttachments(withoutMergedResources(email.getAttachments(),
 				mergedSmimeEmail == null ? 0 : mergedSmimeEmail.getAttachments().size()));
 		if (email.getContentTransferEncoding() != null) {
-			builder.withContentTransferEncoding(email.getContentTransferEncoding());
+			((InternalEmailPopulatingBuilder) builder).withContentTransferEncoding(email.getContentTransferEncoding());
 		}
 		if (email.getPlainTextContentTransferEncoding() != null) {
-			builder.withPlainTextContentTransferEncoding(email.getPlainTextContentTransferEncoding());
+			((InternalEmailPopulatingBuilder) builder).withPlainTextContentTransferEncoding(email.getPlainTextContentTransferEncoding());
 		}
 		if (email.getHTMLTextContentTransferEncoding() != null) {
-			builder.withHTMLTextContentTransferEncoding(email.getHTMLTextContentTransferEncoding());
+			((InternalEmailPopulatingBuilder) builder).withHTMLTextContentTransferEncoding(email.getHTMLTextContentTransferEncoding());
 		}
 		if (email.getCalendarTextContentTransferEncoding() != null) {
-			builder.withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
+			((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
 		}
 		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
 		if (email.getSentDate() != null) {

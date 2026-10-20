@@ -26,7 +26,9 @@ public interface MailSender {
 	 *
 	 * @param email The email to send.
 	 * @return A receipt for the completed submission.
-	 * @throws MailException Can be thrown if an email isn't validating correctly, or some other problem occurs during sending.
+	 * @throws MailException If library-owned validation, size, preparation, sending or individual-send cleanup fails. The common root retains its kind,
+	 * original cause and optional receipt; a missing receipt does not prove non-acceptance. Invalid arguments and application callback failures
+	 * retain their documented boundaries.
 	 * @throws MailSubmissionException If transport submission fails or only partially succeeds.
 	 * @throws IllegalStateException If called from another thread or after the enclosing callback has ended.
 	 */

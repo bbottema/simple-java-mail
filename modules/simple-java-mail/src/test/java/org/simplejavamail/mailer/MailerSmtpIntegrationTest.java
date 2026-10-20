@@ -1,5 +1,10 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
+import org.simplejavamail.api.email.config.ContentEncodingConfig;
+import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.api.mailer.config.ValidationConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -175,10 +180,10 @@ public class MailerSmtpIntegrationTest {
 				.from("fixture@supersecret-testing-domain.com")
 				.withRecipients(new Recipient(null, "receiver@example.com", TO, null))
 				.withBounceTo("bounce@example.com")
-				.withDeliveryStatusNotification(HEADERS_ONLY, FAILURE)
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(HEADERS_ONLY, FAILURE).build())
 				.withSubject("8BITMIME protected transport")
 				.withPlainText("Héllo over a server advertising 8BITMIME")
-				.withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
+				.withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build())
 				.signWithOpenPgp(OpenPgpSigningConfig.builder()
 						.secretKeyRing(privateKey)
 						.passphrase("openpgpjs-fixture-passphrase")
@@ -215,7 +220,7 @@ public class MailerSmtpIntegrationTest {
 	public void createMailSession_OutlookMessageSmimeSignTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null);
+				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build());
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, false);
 
@@ -236,7 +241,7 @@ public class MailerSmtpIntegrationTest {
 	public void createMailSession_OutlookMessageSmimeSignTest_AlternativeSignatureAlgorithm()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_dsa", "letmein",  "SHA384withDSA");
+				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_dsa", "letmein").signatureAlgorithm("SHA384withDSA").build());
 		Email email = assertSendingEmail(builder, false, true, false, true, false);
 		verifyReceivedOutlookEmail(email, true, false);
 
@@ -261,14 +266,14 @@ public class MailerSmtpIntegrationTest {
 		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
 				.withEmailDefaults(EMAIL_DEFAULTS()
-						.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null)
+						.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build())
 						.buildEmail())
 				.withEmailOverrides(EMAIL_OVERRIDES()
 						.buildEmail())
 				.buildMailer();
 
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
-		assertThat(builder.isIgnoreDefaults()).isTrue();
+		assertThat(builder.getTemplateOptions().isIgnoreDefaults()).isTrue();
 		assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(builder.buildEmail()).getSmimeSigningConfig()).isNull();
 		Email email = assertSendingEmail(builder, false, false, false, true, false);
 
@@ -369,7 +374,7 @@ public class MailerSmtpIntegrationTest {
 	public void createMailSession_OutlookMessageSmimeSignEncryptTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
-				.signWithSmime(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein", null)
+				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build())
 				.encryptWithSmime(SmimeEncryptionConfig.builder()
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.build());
@@ -732,7 +737,7 @@ public class MailerSmtpIntegrationTest {
 	public void testMaximumEmailSize() throws Exception {
 		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
-				.withMaximumEmailSize(4)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(4).build())
 				.buildMailer();
 
 		sendAndVerifyEmailTooBigException(mailer);
@@ -752,7 +757,7 @@ public class MailerSmtpIntegrationTest {
 						throw new RuntimeException("should reach here");
 					}
 				})
-				.withMaximumEmailSize(4)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(4).build())
 				.buildMailer();
 
 		sendAndVerifyEmailTooBigException(mailer);
@@ -762,7 +767,7 @@ public class MailerSmtpIntegrationTest {
 	public void testMaximumEmailSize_DontSendOnlyLog() throws Exception {
 		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withTransportModeLoggingOnly(true)
-				.withMaximumEmailSize(4)
+				.withValidationConfig(ValidationConfig.builder().withMaximumEmailSize(4).build())
 				.buildMailer();
 
 		sendAndVerifyEmailTooBigException(mailer);
@@ -778,9 +783,8 @@ public class MailerSmtpIntegrationTest {
 
 		try (Mailer ownedMailer = mailer) {
 			assertThatThrownBy(() -> ownedMailer.sync().sendMail(email))
-					.hasMessageStartingWith("Failed to send email [ID:")
-					.getCause()
 					.isInstanceOf(EmailTooBigException.class)
+					.isInstanceOf(org.simplejavamail.MailException.class)
 					.hasMessageContaining("bytes exceeds maximum allowed size of 4 bytes");
 		}
 	}

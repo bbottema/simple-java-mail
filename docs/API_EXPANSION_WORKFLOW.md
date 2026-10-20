@@ -202,6 +202,14 @@ Only skip defaults/overrides integration when the value cannot sensibly be repre
 
 ## 7. Mailer Configuration API Expansion
 
+Advanced Java settings belong to the immutable core-owned groups accepted in [ADR 0003](adr/0003-immutable-configuration-snapshots.md#advanced-configuration-groups-accepted-20-october-2026):
+connection pool, asynchronous execution, SOCKS proxy, sending limits, connection, TLS and validation. Email uses the image-resolution,
+content-encoding, template-options and SMTP-delivery groups at its existing scopes. Add detailed setters and companions to the owning
+group builder; keep ordinary SMTP and composition conveniences direct. Group replacement discards earlier supplied fields, preserves
+captured inheritance and explicit removal, and clears stale caller-Session provenance. Root group getters show supplied choices;
+effective Mailer/Email read models retain resolved facts. Do not restore removed scalar aliases to supported roots. Keep scalar CLI
+syntax through the internal adapters and test continuing core-only usage plus negative compilation of removed routes.
+
 Mailer configuration API changes are separate from Email model/defaults/overrides governance. Use this path for SMTP/session/runtime behavior such as connection settings, proxy behavior, debug output, transport mode, trust settings, and other Mailer-owned state.
 
 - **Public API**: Add methods to `MailerGenericBuilder`, `MailerRegularBuilder`, or `MailerFromSessionBuilder` based on ownership. Provide complete Javadoc and CLI annotations because the CLI help text is generated from these builder APIs.
@@ -228,7 +236,7 @@ Public API configuration should also have parity with property-backed configurat
 Only skip property configuration when the value cannot be expressed safely or clearly in properties, has no sensible global default, or would require complex object construction that belongs in Java code. Document the reason in the implementing issue or PR.
 
 - **Property Identifier**: Add a new entry to `ConfigLoader.Property` using the canonical public key.
-- **Typed Resolution and Diagnostics**: Register the property's type, functional diagnostic group, and sensitivity in `PropertySchema`, then read it from the injected `SimpleJavaMailConfig` snapshot in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied. Do not add a static read or a second parser. The exhaustive diagnostics test deliberately fails when any `ConfigLoader.Property` has no group.
+- **Typed Resolution and Diagnostics**: Declare the property's invariant `ConfigKey<T>` in `ConfigKeys` through its typed `PropertySchema` parser/projection factory, and register the functional diagnostic group and sensitivity in `PropertySchema`. This declaration is the authoritative type/parser binding; do not add a parallel type table or caller-created key API. Read it with `get(ConfigKey<T>)` from the injected `SimpleJavaMailConfig` snapshot in `EmailGovernanceImpl`, the Mailer builder/config object, or wherever defaults are applied. Use invariant keys in fallback helpers too. Keep parser/raw-source/lock representations and property-file units intact when projecting a Java Duration view. Raw maps and `Property` are explicit integration boundaries, not ordinary caller-inferred typed getters. Do not add a static read or a second parser. Exhaustive checks require one key binding and diagnostic group for every `ConfigLoader.Property`.
 - **Factory Propagation**: Prove that builders from `SimpleJavaMail.withConfig(config)` retain the snapshot through copy, reply, conversion, Session creation, governance, and any applicable optional-module route.
 - **Snapshot Isolation**: Include two factories with conflicting values. Mutate source collections after `load()`, build objects through both factories, and verify there is no cross-talk. For wildcard Session or connection-pool properties, also verify that returned maps are immutable.
 - **Locked Configuration**: Every property also has a `simplejavamail.locked.` counterpart using the same type, diagnostic group and redaction. Implement the restriction at its configuration owner, not just in the loader: allow equal parsed values, reject conflicting explicit customization, preserve additive envelope requirements, and cover resets, replacement templates and alternate send paths. Update `LockedSimpleJavaMailProperties` only for a new top-level metadata group; its nested types reuse the ordinary model. Run the exhaustive Spring metadata test and add behavior tests. See [ADR 0025](adr/0025-factory-scoped-locked-configuration.md) for exact-message and provider boundaries.

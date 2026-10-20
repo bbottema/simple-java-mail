@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -21,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.RejectedExecutionException;
+import org.simplejavamail.api.mailer.MailSendRejectedException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,17 +56,17 @@ class MailerExecutionViewsTest {
 		}
 		assertThat(mailer.sync()).isSameAs(sync);
 		assertThat(mailer.async()).isSameAs(async);
-		assertThatThrownBy(() -> sync.sendMail(email("closed"))).isInstanceOf(RejectedExecutionException.class);
+		assertThatThrownBy(() -> sync.sendMail(email("closed"))).isInstanceOf(MailSendRejectedException.class);
 		assertThatThrownBy(() -> async.sendMail(email("closed")).getCompletion().get(5, SECONDS))
-				.isInstanceOf(ExecutionException.class).hasCauseInstanceOf(RejectedExecutionException.class);
+				.isInstanceOf(ExecutionException.class).hasCauseInstanceOf(MailSendRejectedException.class);
 		final AtomicInteger iteratorCalls = new AtomicInteger();
 		final Iterable<Email> untouched = () -> {
 			iteratorCalls.incrementAndGet();
 			return List.of(email("untouched")).iterator();
 		};
-		assertThatThrownBy(() -> sync.sendMailsInSimpleBatch(untouched)).isInstanceOf(RejectedExecutionException.class);
+		assertThatThrownBy(() -> sync.sendMailsInSimpleBatch(untouched)).isInstanceOf(MailSendRejectedException.class);
 		assertThatThrownBy(() -> async.sendMailsInSimpleBatch(untouched).getCompletion().get(5, SECONDS))
-				.isInstanceOf(ExecutionException.class).hasCauseInstanceOf(RejectedExecutionException.class);
+				.isInstanceOf(ExecutionException.class).hasCauseInstanceOf(MailSendRejectedException.class);
 		assertThatThrownBy(sync::probeConnection).isInstanceOf(IllegalStateException.class);
 		assertThatThrownBy(() -> async.probeConnection().get(5, SECONDS)).isInstanceOf(ExecutionException.class);
 		assertThat(iteratorCalls).hasValue(0);
@@ -114,7 +116,7 @@ class MailerExecutionViewsTest {
 		// Keep Message-ID hostname lookup outside the latch budget for reaching the custom transport.
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", 25).withProperty("mail.from", "sender@example.org")
-				.withThreadPoolSize(1).withConnectionPoolCoreSize(0).withCustomMailer(transport);
+				.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(1).build()).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).withCustomMailer(transport);
 	}
 
 	private static Email email(final String subject) {

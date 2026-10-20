@@ -1,5 +1,8 @@
 package org.simplejavamail.springbootstarter;
 
+import org.simplejavamail.config.ConfigKeys;
+
+import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -45,7 +48,7 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 				"--simplejavamail.defaults.sendtoacceptedrecipients=" + !choice,
 				"--simplejavamail.locked.defaults.sendtoacceptedrecipients=" + choice)) {
 			final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
-			final org.simplejavamail.api.email.Email local = factory.emailBuilder().startingBlank().ignoringDefaults().buildEmail();
+			final org.simplejavamail.api.email.Email local = factory.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmail();
 			assertThat(local.getSendingToAcceptedRecipients()).isNull();
 			assertThat(context.getBean(Mailer.class).getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(local)
 					.getSendingToAcceptedRecipients()).isEqualTo(choice);
@@ -62,7 +65,7 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
 			assertThat(factory.getConfig()).isSameAs(context.getBean(SimpleJavaMailConfig.class));
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("relay.example.org");
-			assertThat(factory.emailBuilder().startingBlank().ignoringDefaults().buildEmailCompletedWithDefaultsAndOverrides().getSubject())
+			assertThat(factory.emailBuilder().startingBlank().withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build()).buildEmailCompletedWithDefaultsAndOverrides().getSubject())
 					.isEqualTo("Company mail");
 			assertThatThrownBy(() -> factory.mailerBuilder().withSMTPServerHost("another.example.org").buildMailer())
 					.hasMessageContaining("locked.smtp.host");
@@ -115,7 +118,7 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBeansOfType(SimpleJavaMailConfig.class)).containsOnlyKeys("simpleJavaMailConfig");
 			assertThat(context.getBeansOfType(SimpleJavaMail.class)).containsOnlyKeys("simpleJavaMail");
 			assertThat(context.getBeansOfType(Mailer.class)).containsOnlyKeys("defaultMailer");
-			assertThat(config.getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("localhost");
+			assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("localhost");
 			assertThat(simpleJavaMail.getConfig()).isSameAs(config);
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("localhost");
 			assertThat(context.getBean(Mailer.class).getOperationalConfig().getOAuth2AccessTokenProvider()).isNull();
@@ -209,8 +212,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(ordersMail).isNotSameAs(reportingMail);
 			assertThat(ordersMail.mailerBuilder().getHost()).isEqualTo("orders.example.test");
 			assertThat(reportingMail.mailerBuilder().getHost()).isEqualTo("reporting.example.test");
-			assertThat(ordersConfig.getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("Orders");
-			assertThat(reportingConfig.getStringProperty(ConfigLoader.Property.DEFAULT_SUBJECT)).isEqualTo("Reporting");
+			assertThat(ordersConfig.get(ConfigKeys.DEFAULT_SUBJECT)).isEqualTo("Orders");
+			assertThat(reportingConfig.get(ConfigKeys.DEFAULT_SUBJECT)).isEqualTo("Reporting");
 
 			ordersContext.close();
 
@@ -255,9 +258,9 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			final SimpleJavaMailConfig config = context.getBean(SimpleJavaMailConfig.class);
 
 			assertThat(context.getEnvironment().getActiveProfiles()).containsExactly("integration");
-			assertThat(config.getStringProperty(ConfigLoader.Property.SMTP_HOST)).isEqualTo("command-line.example.test");
-			assertThat(config.getIntegerProperty(ConfigLoader.Property.SMTP_PORT)).isEqualTo(2526);
-			assertThat(config.<Map<String, String>>getProperty(ConfigLoader.Property.EXTRA_PROPERTIES))
+			assertThat(config.get(ConfigKeys.SMTP_HOST)).isEqualTo("command-line.example.test");
+			assertThat(config.get(ConfigKeys.SMTP_PORT)).isEqualTo(2526);
+			assertThat(config.get(ConfigKeys.EXTRA_PROPERTIES))
 					.containsEntry("source", "command-line");
 			assertThat(diagnostic(config, ConfigLoader.Property.SMTP_HOST.key()).getSourceName())
 					.contains("profile-simplejavamail.properties");
