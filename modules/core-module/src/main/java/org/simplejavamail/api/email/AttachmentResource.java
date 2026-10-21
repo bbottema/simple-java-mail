@@ -5,6 +5,7 @@ import jakarta.mail.EncodingAware;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.AttachmentDataSources;
 
@@ -369,52 +370,68 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @return The content of the datasource as UTF-8 encoded String.
-	 * @throws IOException See {@link #readAllData(Charset)}
+	 * Reads all attachment content as UTF-8 text and closes the stream opened for this call, including when reading fails.
+	 * The DataSource itself remains application-owned.
+	 *
+	 * @return The attachment content decoded as UTF-8.
+	 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the stream fails with an
+	 *         {@link IOException}. The original I/O failure is retained as the cause, including any suppressed closing failure.
+	 * @see #readAllData(Charset)
 	 */
 	@NotNull
-	public String readAllData()
-			throws IOException {
+	public String readAllData() {
 		return readAllData(UTF_8);
 	}
 
 	/**
 	 * Reads all attachment bytes and closes the stream opened for this call, including when reading fails.
 	 * The DataSource itself remains application-owned.
+	 *
+	 * @return The complete attachment content.
+	 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the stream fails with an
+	 *         {@link IOException}. The original I/O failure is retained as the cause, including any suppressed closing failure.
 	 */
 	@NotNull
-	public byte[] readAllBytes()
-			throws IOException {
-		try (InputStream input = getDataSourceInputStream()) {
+	public byte[] readAllBytes() {
+		try (InputStream input = openStream()) {
 			return MiscUtil.readInputStreamToBytes(input);
+		} catch (IOException e) {
+			throw new AttachmentResourceException("Error reading attachment content", e);
 		}
 	}
 
 	/**
 	 * Reads the attachment using the supplied charset and closes the stream opened for this call, including when reading fails.
 	 * The DataSource itself remains application-owned.
+	 *
+	 * @param charset The charset used to decode the attachment content.
+	 * @return The complete attachment content decoded with the supplied charset.
+	 * @throws IllegalArgumentException If {@code charset} is {@code null}.
+	 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the stream fails with an
+	 *         {@link IOException}. The original I/O failure is retained as the cause, including any suppressed closing failure.
 	 */
 	@SuppressWarnings({"WeakerAccess" })
 	@NotNull
-	public String readAllData(@SuppressWarnings("SameParameterValue") @NotNull final Charset charset)
-			throws IOException {
+	public String readAllData(@SuppressWarnings("SameParameterValue") @NotNull final Charset charset) {
 		checkNonEmptyArgument(charset, "charset");
-		try (InputStream input = getDataSourceInputStream()) {
+		try (InputStream input = openStream()) {
 			return MiscUtil.readInputStreamToString(input, charset);
+		} catch (IOException e) {
+			throw new AttachmentResourceException("Error reading attachment content", e);
 		}
 	}
 
 	/**
-	 * Opens an attachment stream for the caller to consume and close.
+	 * Opens and returns the DataSource's ordinary input stream for the caller to consume and close.
+	 * Opening, reading and closing retain Java's checked {@link IOException} contract. The DataSource itself remains application-owned.
 	 * Use {@link #readAllBytes()} or {@link #readAllData()} when the entire content is needed without managing a stream.
+	 *
+	 * @return The stream supplied by the DataSource, owned by the caller.
+	 * @throws IOException If the DataSource cannot open its stream.
 	 */
 	@NotNull
-	public InputStream getDataSourceInputStream() {
-		try {
-			return getDataSource().getInputStream();
-		} catch (IOException e) {
-			throw new AttachmentResourceException("Error getting input stream from attachment's data source", e);
-		}
+	public InputStream openStream() throws IOException {
+		return getDataSource().getInputStream();
 	}
 
 	/**
@@ -502,7 +519,7 @@ public class AttachmentResource implements Serializable {
 
 	private static class AttachmentResourceException extends MailException {
 		protected AttachmentResourceException(final String message, final Throwable cause) {
-			super(message, cause);
+			super(MailFailureKind.PREPARATION, message, cause, null);
 		}
 	}
 

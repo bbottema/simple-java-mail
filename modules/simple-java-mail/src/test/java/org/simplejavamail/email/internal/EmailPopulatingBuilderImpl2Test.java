@@ -298,19 +298,15 @@ public class EmailPopulatingBuilderImpl2Test {
 	private static class DatasourceReadingExtractor implements Function<AttachmentResource, String> {
 		@Override
 		public String apply(final AttachmentResource input) {
-			try {
-				final String sourceContent = input.readAllData();
-				if (sourceContent.contains(CREATE_SELF_SIGNED_S_MIME_CERTIFICATES)) {
-					return CREATE_SELF_SIGNED_S_MIME_CERTIFICATES;
-				} else if (sourceContent.contains(CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT)) {
-					return CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT;
-				} else if (sourceContent.contains(ABOUT_ALL_THIS)) {
-					return ABOUT_ALL_THIS;
-				}
-				return "";
-			} catch (IOException e) {
-				throw new AssertionError();
+			final String sourceContent = input.readAllData();
+			if (sourceContent.contains(CREATE_SELF_SIGNED_S_MIME_CERTIFICATES)) {
+				return CREATE_SELF_SIGNED_S_MIME_CERTIFICATES;
+			} else if (sourceContent.contains(CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT)) {
+				return CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT;
+			} else if (sourceContent.contains(ABOUT_ALL_THIS)) {
+				return ABOUT_ALL_THIS;
 			}
+			return "";
 		}
 	}
 

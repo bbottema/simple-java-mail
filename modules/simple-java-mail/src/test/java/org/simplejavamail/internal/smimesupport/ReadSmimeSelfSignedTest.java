@@ -19,6 +19,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -193,7 +194,10 @@ public class ReadSmimeSelfSignedTest {
 		assertThat(decryptedAttachments.get(0).getSmimeMode()).isEqualTo(SmimeMode.SIGNED);
 		assertThat(decryptedAttachments.get(0).getAttachmentResource().getName()).isEqualTo("signed-email.eml");
 
-		final Email unwrappedEmail = EmailConverter.emlToEmail(decryptedAttachments.get(0).getAttachmentResource().getDataSourceInputStream());
+		final Email unwrappedEmail;
+		try (InputStream input = decryptedAttachments.get(0).getAttachmentResource().openStream()) {
+			unwrappedEmail = EmailConverter.emlToEmail(input);
+		}
 		assertThat(normalizeNewlines(unwrappedEmail.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
 				+ "BROKEN attachment.\n"
 				+ "\n"

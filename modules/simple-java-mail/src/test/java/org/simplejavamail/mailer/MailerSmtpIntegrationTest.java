@@ -290,15 +290,17 @@ public class MailerSmtpIntegrationTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachment() {
+	public void testOutlookMessageWithNestedOutlookMessageAttachment() throws IOException {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments().get(1).getName()).isEqualTo("This msg file is an attachment.eml");
 
-		final InputStream emlInputstream = email.getAttachments().get(1).getDataSourceInputStream();
-		Email nestedEmail = EmailConverter.emlToEmail(emlInputstream);
+		final Email nestedEmail;
+		try (InputStream emlInputstream = email.getAttachments().get(1).openStream()) {
+			nestedEmail = EmailConverter.emlToEmail(emlInputstream);
+		}
 
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))
@@ -307,15 +309,17 @@ public class MailerSmtpIntegrationTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithNestedOutlookMessageAttachmentThatHasItsOwnNestedAttachment() {
+	public void testOutlookMessageWithNestedOutlookMessageAttachmentThatHasItsOwnNestedAttachment() throws IOException {
 		InputStream resourceAsStream = EmailHelper.class.getClassLoader().getResourceAsStream("test-messages/#298 Email with nested msg with own attachment.msg");
 		Email email = EmailConverter.outlookMsgToEmail(checkNonEmptyArgument(resourceAsStream, "resourceAsStream"));
 
 		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments().get(1).getName()).isEqualTo("This msg file is an attachment.eml");
 
-		final InputStream emlInputstream = email.getAttachments().get(1).getDataSourceInputStream();
-		Email nestedEmail = EmailConverter.emlToEmail(emlInputstream);
+		final Email nestedEmail;
+		try (InputStream emlInputstream = email.getAttachments().get(1).openStream()) {
+			nestedEmail = EmailConverter.emlToEmail(emlInputstream);
+		}
 
 		EmailAssert.assertThat(nestedEmail).hasSubject("This msg file is an attachment");
 		assertThat(normalizeNewlines(nestedEmail.getPlainText()))

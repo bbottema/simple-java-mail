@@ -252,10 +252,10 @@ class OpenPgpMimeTest {
 		assertThat(parsed.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
 		assertThat(parsed.getCalendarText()).isEqualTo(calendar);
 		assertThat(parsed.getAttachments()).extracting(AttachmentResource::getName).containsExactly("proof.bin");
-		assertThat(readInputStreamToBytes(parsed.getAttachments().get(0).getDataSourceInputStream()))
+		assertThat(parsed.getAttachments().get(0).readAllBytes())
 				.containsExactly(attachmentBytes);
 		assertThat(parsed.getEmbeddedImages()).extracting(AttachmentResource::getName).containsExactly("logo");
-		assertThat(readInputStreamToBytes(parsed.getEmbeddedImages().get(0).getDataSourceInputStream()))
+		assertThat(parsed.getEmbeddedImages().get(0).readAllBytes())
 				.containsExactly(embeddedBytes);
 		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
 	}

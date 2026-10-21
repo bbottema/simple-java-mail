@@ -24,6 +24,20 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** SJM-owned attachment reads expose the common operational failure contract without checked I/O. */
+    public static String readAttachment(final org.simplejavamail.api.email.AttachmentResource attachment) {
+        final byte[] bytes = attachment.readAllBytes();
+        final String utf8 = attachment.readAllData();
+        return bytes.length + utf8 + attachment.readAllData(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** Caller-owned streams retain Java's checked I/O contract through acquisition, consumption and closure. */
+    public static byte[] streamAttachment(final org.simplejavamail.api.email.AttachmentResource attachment) throws java.io.IOException {
+        try (java.io.InputStream input = attachment.openStream()) {
+            return input.readAllBytes();
+        }
+    }
+
     /** Body construction and inspection continue through core contracts without a main-module dependency. */
     public static String inspectBodies(final org.simplejavamail.api.email.EmailPopulatingBuilder builder,
             final java.io.File file, final java.nio.file.Path path) {
