@@ -22,40 +22,63 @@ final class ConfiguredMailSendRetry {
     private ConfiguredMailSendRetry() { }
 
     @NotNull
-    static MailSendRetryPolicy policy(final SimpleJavaMailConfig config) {
-        return resolve(config, null);
-    }
-
-    /** CLI changes extend the builder's current value; clearing or replacing it must not resurrect the original property-loaded schedule. */
-    @NotNull
-    static MailSendRetryPolicy withOverrides(final MailSendRetryPolicy current, final SimpleJavaMailConfig overrides) {
-        return resolve(overrides, current);
-    }
-
-    private static MailSendRetryPolicy resolve(final SimpleJavaMailConfig config, @Nullable final MailSendRetryPolicy current) {
-        final Integer attempts = config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_ATTEMPTS, current == null ? null : current.getMaximumAttempts());
-        final Duration delay = config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_DELAY, current == null ? null : current.getRetryDelay());
-        requireCompleteConfiguredSchedule(config, attempts, delay);
+    static MailSendRetryPolicy policy(final SimpleJavaMailConfig config, final MailSendRetryPolicy choices) {
+        final Integer attempts = choices.isMaximumAttemptsCleared() ? null
+                : config.valueOrProperty(choices.getMaximumAttempts(), ConfigKeys.SMTP_RETRY_ATTEMPTS);
+        final Duration delay = choices.isRetryDelayCleared() ? null
+                : config.valueOrProperty(choices.getRetryDelay(), ConfigKeys.SMTP_RETRY_DELAY);
+        requireCompleteConfiguredSchedule(config, choices, attempts, delay);
 
         return new MailSendRetryPolicy(attempts, delay,
-                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_BACKOFF_MULTIPLIER,
-                        current == null ? DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER : current.getRetryBackoffMultiplier()),
-                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_MAXIMUM_DELAY, current == null ? null : current.getMaximumRetryDelay()),
-                config.valueOrProperty(null, ConfigKeys.SMTP_RETRY_JITTER, current == null ? DEFAULT_MAIL_SEND_RETRY_JITTER : current.getRetryJitter()),
-                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
-                        current == null ? DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY : current.getWaitingCapacity()),
-                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE,
-                        current == null ? DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE : current.getMaximumMessageSize()),
-                config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT,
-                        current == null ? DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT : current.getMemoryLimit()));
+                config.valueOrProperty(choices.getRetryBackoffMultiplier(), ConfigKeys.SMTP_RETRY_BACKOFF_MULTIPLIER,
+                        DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER),
+                choices.isMaximumRetryDelayCleared() ? null
+                        : config.valueOrProperty(choices.getMaximumRetryDelay(), ConfigKeys.SMTP_RETRY_MAXIMUM_DELAY),
+                config.valueOrProperty(choices.getRetryJitter(), ConfigKeys.SMTP_RETRY_JITTER, DEFAULT_MAIL_SEND_RETRY_JITTER),
+                config.valueOrProperty(choices.getWaitingCapacity(), ConfigKeys.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
+                        DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY),
+                config.valueOrProperty(choices.getMaximumMessageSize(), ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE,
+                        DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE),
+                config.valueOrProperty(choices.getMemoryLimit(), ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT,
+                        DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT));
+    }
+
+    /** CLI changes extend supplied Java choices before factory inheritance and complete-policy validation. */
+    @NotNull
+    static MailSendRetryPolicy withOverrides(final MailSendRetryPolicy current, final SimpleJavaMailConfig overrides) {
+        final MailSendRetryPolicy.Builder choices = current.toBuilder();
+        if (overrides.hasProperty(ConfigKeys.SMTP_RETRY_ATTEMPTS)) {
+            choices.withMaximumAttempts(overrides.get(ConfigKeys.SMTP_RETRY_ATTEMPTS));
+        }
+        if (overrides.hasProperty(ConfigKeys.SMTP_RETRY_DELAY)) {
+            choices.withRetryDelay(overrides.get(ConfigKeys.SMTP_RETRY_DELAY));
+        }
+        if (overrides.hasProperty(ConfigKeys.SMTP_RETRY_BACKOFF_MULTIPLIER)) {
+            choices.withRetryBackoff(overrides.get(ConfigKeys.SMTP_RETRY_BACKOFF_MULTIPLIER),
+                    overrides.get(ConfigKeys.SMTP_RETRY_MAXIMUM_DELAY));
+        }
+        if (overrides.hasProperty(ConfigKeys.SMTP_RETRY_JITTER)) {
+            choices.withRetryJitter(overrides.get(ConfigKeys.SMTP_RETRY_JITTER));
+        }
+        if (overrides.hasProperty(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY)) {
+            choices.withWaitingCapacity(overrides.get(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY));
+        }
+        if (overrides.hasProperty(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE)) {
+            choices.withMaximumMessageSize(overrides.get(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE));
+        }
+        if (overrides.hasProperty(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT)) {
+            choices.withMemoryLimit(overrides.get(ConfigKeys.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT));
+        }
+        return choices.build();
     }
 
     /** Resource properties alone may leave retries disabled; any explicit schedule property requires both schedule inputs. */
-    private static void requireCompleteConfiguredSchedule(final SimpleJavaMailConfig config,
+    private static void requireCompleteConfiguredSchedule(final SimpleJavaMailConfig config, final MailSendRetryPolicy choices,
             @Nullable final Integer attempts, @Nullable final Duration delay) {
-        if (hasConfiguredSchedule(config) && (attempts == null || delay == null)) {
+        final boolean explicitlyDisabled = choices.isMaximumAttemptsCleared() && choices.isRetryDelayCleared();
+        if (!explicitlyDisabled && hasConfiguredSchedule(config) && (attempts == null || delay == null)) {
             throw new IllegalArgumentException("Automatic mail-send retries need both simplejavamail.smtp.retry.attempts and simplejavamail.smtp.retry.delay. "
-                    + "Supply the total attempts and a positive ISO-8601 delay such as PT30S, or remove the retry policy properties to disable retries.");
+                    + "Supply the total attempts and a positive delay in properties or the retry policy, or use clearRetrySchedule() to disable retries.");
         }
     }
 

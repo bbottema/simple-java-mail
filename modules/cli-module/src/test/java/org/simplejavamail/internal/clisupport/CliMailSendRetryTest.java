@@ -93,6 +93,39 @@ class CliMailSendRetryTest {
         }
     }
 
+    @Test
+    void resourceOptionInheritsThePropertyScheduleAndOtherResourceLimits() {
+        final AtomicReference<OperationalConfig> selected = new AtomicReference<>();
+        final var config = ConfigLoader.builder().withMap(Map.of("simplejavamail.smtp.retry.attempts", 3,
+                "simplejavamail.smtp.retry.delay", "PT30S", "simplejavamail.defaults.mailsend.retry.waitingcapacity", 7,
+                "simplejavamail.defaults.mailsend.retry.maximummessagesize", 1024L)).load();
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(config, captureSelectedConfiguration(selected))) {
+            final CliExecutionResult result = execute(environment, "send", "--email:startingBlank", "--email:from", "sender@example.org",
+                    "--email:to", "recipient@example.org", "--mailer:withTransportModeLoggingOnly", "true",
+                    "--mailer:withMailSendRetryMemoryLimit", "4096");
+            assertThat(result.exitCode()).as(result.stderr()).isZero();
+            assertThat(selected.get().getMailSendRetryPolicy().getMaximumAttempts()).isEqualTo(3);
+            assertThat(selected.get().getMailSendRetryPolicy().getRetryDelay()).isEqualTo(Duration.ofSeconds(30));
+            assertThat(selected.get().getMailSendRetryPolicy().getWaitingCapacity()).isEqualTo(7);
+            assertThat(selected.get().getMailSendRetryPolicy().getMaximumMessageSize()).isEqualTo(1024);
+            assertThat(selected.get().getMailSendRetryPolicy().getMemoryLimit()).isEqualTo(4096);
+        }
+    }
+
+    @Test
+    void cliDelayCompletesAPropertyConfiguredAttemptCount() {
+        final AtomicReference<OperationalConfig> selected = new AtomicReference<>();
+        final var config = ConfigLoader.builder().withMap(Map.of("simplejavamail.smtp.retry.attempts", 3)).load();
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(config, captureSelectedConfiguration(selected))) {
+            final CliExecutionResult result = execute(environment, "send", "--email:startingBlank", "--email:from", "sender@example.org",
+                    "--email:to", "recipient@example.org", "--mailer:withTransportModeLoggingOnly", "true",
+                    "--mailer:withMailSendRetryDelay", "PT30S");
+            assertThat(result.exitCode()).as(result.stderr()).isZero();
+            assertThat(selected.get().getMailSendRetryPolicy().getMaximumAttempts()).isEqualTo(3);
+            assertThat(selected.get().getMailSendRetryPolicy().getRetryDelay()).isEqualTo(Duration.ofSeconds(30));
+        }
+    }
+
     private static MailerProvider captureSelectedConfiguration(final AtomicReference<OperationalConfig> selected) {
         final OneShotMailerProvider delegate = new OneShotMailerProvider();
         return (profile, factory) -> delegate.acquire(profile, () -> {

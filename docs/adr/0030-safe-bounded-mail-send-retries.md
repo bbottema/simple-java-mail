@@ -82,10 +82,6 @@ and its preparation costs.
 
 ### Keep one logical operation and a bounded waiting collection
 
-Clearing a retry schedule removes its attempt/delay choices and resets schedule modifiers, but preserves configured storage/waiting budgets.
-Clearing the whole policy remains a separate Mailer operation. Partial schedules are invalid rather than gaining an invented default. Both
-initialization and resets use the published key-builder defaults under [ADR 0003](0003-immutable-configuration-snapshots.md).
-
 One public send remains one logical operation, with one completion and one final `MailSendResultObserver` callback. Intermediate
 submission failures are not terminal outcomes. Record attempts, delays and exhaustion in bounded history and useful logging;
 do not introduce per-attempt callbacks or publish the Email, content or transport through observation.
@@ -117,8 +113,6 @@ The waiting bound, finite attempts, deadlines and selected sending limits make t
 
 ### Configure a Mailer policy without another send family
 
-#### Ownership clarification accepted on 2026-10-13
-
 The actual selected Mailer owns the retry schedule, because attempts/backoff can be tuned to that SMTP service. A selected Mailer
 without an enabled schedule does not inherit the initiating Mailer's schedule. The initiating Mailer keeps execution, completion,
 observer, overall deadline, pending-retry capacity and replay-memory limits. The accepted implementation uses bounded in-memory
@@ -127,27 +121,16 @@ replay only; no temporary files are introduced.
 Keep schedule and resource limits together in `MailSendRetryPolicy`, configured through one `withMailSendRetryPolicy(...)` call.
 This is one user-facing configuration concept, not separate Mailer setters for retry-only resources. Runtime ownership still differs:
 the selected Mailer supplies schedule fields from its policy; the initiating Mailer supplies resource fields from its own policy.
-A resources-only policy does not enable that Mailer's retries, but can bound work delegated to another retry-enabled destination.
+Retry configuration follows [ADR 0003](0003-immutable-configuration-snapshots.md): explicit choices take precedence over captured
+configuration properties, which take precedence over built-in fallbacks. Preserve the distinction between unset choices and explicit
+resetting or disabling; supplying a new policy does not turn omitted fields into explicit fallbacks. Values do not read configuration
+sources themselves. Applicable [configuration locks](0025-factory-scoped-locked-configuration.md) remain binding and conflicting choices
+are rejected. Retry configuration has no separate precedence exception.
 
-`OperationalConfig.getMailSendRetryPolicy()` always exposes a resolved immutable value. An absent attempt count and initial delay
-mean retries are disabled; `isRetryEnabled()` reports that state. Replacing the policy replaces all its settings. Clearing restores
-disabled retries and the built-in resource limits, subject to locks; it does not reload the factory's ordinary property values.
-
-Initial policy count and delay must be supplied explicitly. Resource defaults are 100 suspended async retries, 32 MiB per replay
-message and 128 MiB aggregate replay bytes per initiating Mailer, all configurable. These are local safeguards, not provider
-sending-rate recommendations or an exact heap bound. Constants remain centralized on `MailerGenericBuilder`, including policy
-defaults; policy builders and the shared property/CLI resolver use that catalogue. Constructors receive resolved data, never defaults.
-
-The intended Java entry point is:
-
-```java
-// Enable retries explicitly.
-mailerBuilder.withMailSendRetryPolicy(policy);
-
-// Existing send entry points remain unchanged.
-mailer.sync().sendMail(email);
-mailer.async().sendMail(email);
-```
+A retry schedule must be complete after configuration resolution; do not invent attempts or an initial delay when neither Java nor
+properties supply them. Resource configuration alone does not enable retries when no schedule is configured, but can bound work delegated
+to another retry-enabled destination. Built-in fallbacks remain centralized under ADR 0003. Numerical limits, usage examples and detailed
+reset/clear behavior belong in the public API and [retry guide](../concurrency/11-mail-send-retries.md).
 
 Use an immutable, supplied-data Mailer policy, resolved by builders. Expose resolved settings through `OperationalConfig`, not the
 live waiting collection or counters. Retrying is disabled unless configured. No new Email setting, send-method family, eligibility

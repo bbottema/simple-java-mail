@@ -40,20 +40,23 @@ class MailSendRetryPolicyCompanionTest {
     void clearingAnIndividualFieldDoesNotSilentlyRemoveTheRestOfTheSchedule() {
         final MailSendRetryPolicy.Builder attempts = configuredSchedule();
         assertThat(attempts.clearMaximumAttempts()).isSameAs(attempts);
-        assertThatIllegalArgumentException().isThrownBy(attempts::build).withMessageContaining("clearRetrySchedule()");
+        assertThat(attempts.build().getMaximumAttempts()).isNull();
+        assertThat(attempts.build().isMaximumAttemptsCleared()).isTrue();
         assertThat(attempts.withMaximumAttempts(4).build().getRetryJitter()).isEqualTo(0.2);
 
         final MailSendRetryPolicy.Builder delay = configuredSchedule();
         assertThat(delay.clearRetryDelay()).isSameAs(delay);
-        assertThatIllegalArgumentException().isThrownBy(delay::build).withMessageContaining("clearRetrySchedule()");
+        assertThat(delay.build().getRetryDelay()).isNull();
+        assertThat(delay.build().isRetryDelayCleared()).isTrue();
         assertThat(delay.withRetryDelay(Duration.ofSeconds(3)).build().getMaximumAttempts()).isEqualTo(3);
     }
 
     @Test
-    void clearingBothFieldsStillRequiresRemovingDependentModifiers() {
+    void clearingBothFieldsRetainsDependentModifiersForEffectiveValidation() {
         final MailSendRetryPolicy.Builder builder = configuredSchedule().clearMaximumAttempts().clearRetryDelay();
 
-        assertThatIllegalArgumentException().isThrownBy(builder::build).withMessageContaining("clearRetrySchedule()");
+        assertThat(builder.build().getRetryBackoffMultiplier()).isEqualTo(2);
+        assertThat(builder.build().getRetryJitter()).isEqualTo(0.2);
         assertThat(builder.resetRetryBackoff().resetRetryJitter().build().isRetryEnabled()).isFalse();
         assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder()
                 .withMaximumAttempts(1).withRetryDelay(Duration.ofSeconds(1)).build()).withMessageContaining("clearRetrySchedule()");

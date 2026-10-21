@@ -16,8 +16,15 @@ This parks a refused email without holding an ordinary send worker or connection
 | Selected Mailer | Retry schedule from its policy, SMTP configuration, templates, security and sending allowance. |
 
 `MailSendRetryPolicy` groups schedule and resource settings for configuration, not mutable coordination. The initiator uses its own
-policy's resource limits, even when a different selected Mailer supplies the retry schedule. A resource-only policy remains disabled
-for its own submissions. Defaults are centralized on `MailerGenericBuilder`; runtime trackers remain attempt/Mailer-owned as above.
+policy's resource limits, even when a different selected Mailer supplies the retry schedule. Supplied Java choices override captured factory
+properties; omitted choices inherit those properties before the built-in fallbacks on `MailerGenericBuilder`. Replacing the policy discards
+the previous Java choices. A resource-only policy does not enable retries unless a schedule is inherited from properties.
+
+The policy value retains omission without reading configuration sources. The Mailer validates its complete effective schedule and resource
+budgets before creating resources. Attempts and initial delay have no built-in fallback; properties and Java choices can supply either part.
+`clearRetrySchedule()` explicitly removes the schedule and its modifiers while retaining resource choices and inheritance.
+`clearMailSendRetryPolicy()` also resets resource limits to the published fallbacks. Individual resets explicitly select the corresponding
+fallback, and applicable locks reject conflicting choices. Runtime trackers remain attempt/Mailer-owned as above.
 
 No bookkeeping monitor covers executor admission, MIME reads, SMTP work, cleanup or application callbacks. Timer actions only mark a bounded ticket ready.
 The single dispatcher may block in executor admission or execute inline for caller-runs executors; it never occupies the deadline worker.
