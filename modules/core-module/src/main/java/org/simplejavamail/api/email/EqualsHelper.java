@@ -94,7 +94,7 @@ public final class EqualsHelper {
             log.debug("Email unqual for useReturnReceiptTo: {} vs {}", email1.getUseReturnReceiptTo(), email2.getUseReturnReceiptTo());
             return false;
         }
-        if (!fieldIsEqual(email1.getDispositionNotificationTo(), email2.getDispositionNotificationTo(), "dispositionNotificationTo")) {
+        if (!fieldIsEqual(email1.getDispositionNotificationToRecipients(), email2.getDispositionNotificationToRecipients(), "dispositionNotificationTo")) {
             return false;
         }
         if (!fieldIsEqual(email1.getDeliveryStatusNotification(), email2.getDeliveryStatusNotification(), "deliveryStatusNotification")) {
@@ -132,7 +132,7 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getOriginalOpenPgpDetails(), email2.getOriginalOpenPgpDetails(), "originalOpenPgpDetails")) {
             return false;
         }
-        return fieldIsEqual(email1.getReturnReceiptTo(), email2.getReturnReceiptTo(), "returnReceiptTo");
+        return fieldIsEqual(email1.getReturnReceiptToRecipients(), email2.getReturnReceiptToRecipients(), "returnReceiptTo");
     }
 
     private static <T> boolean isEqualUnorderedList(final String fieldName, final List<T> values, final List<T> otherValues) {

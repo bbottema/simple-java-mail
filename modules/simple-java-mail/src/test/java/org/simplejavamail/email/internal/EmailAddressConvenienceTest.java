@@ -52,7 +52,7 @@ class EmailAddressConvenienceTest {
             assertThat(mail.converter().fromEmail(exact).toEmlBytes()).isEqualTo(original);
         }
         assertThatThrownBy(() -> blank().from(group)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> blank().withReplyTo(group)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(blank().withReplyTo(group).buildEmail().getReplyToRecipients()).hasSize(group.equals("Undisclosed:;") ? 0 : 1);
     }
 
     @ParameterizedTest
@@ -91,7 +91,7 @@ class EmailAddressConvenienceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Field.class)
+    @EnumSource(value = Field.class, names = {"FROM", "BOUNCE"})
     void rejectsParsedListsAndGroupsBeforeMutatingTheBuilder(final Field field) {
         for (String source : new String[]{"alice@example.org, bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
             final EmailPopulatingBuilder builder = blank();
@@ -104,7 +104,7 @@ class EmailAddressConvenienceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = Field.class, names = {"FROM", "REPLY", "BOUNCE", "DISPOSITION", "RETURN_RECEIPT"})
+    @EnumSource(value = Field.class, names = {"FROM", "BOUNCE"})
     void typedInputsCannotBypassSingleMailboxChecks(final Field field) {
         for (String source : new String[]{"alice@example.org, bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
             final InternetAddress mailbox = new InternetAddress();
@@ -123,6 +123,9 @@ class EmailAddressConvenienceTest {
                 .withValidationConfig(ValidationConfig.builder().withEmailValidator(JMail.strictValidator()).build())
                 .buildMailer()) {
             for (String source : new String[]{"broken <address", "(comment only)", "   ", " \t ", "one@example.org;two@example.org"}) {
+                if (source.equals("one@example.org;two@example.org") && field != Field.FROM && field != Field.BOUNCE) {
+                    continue; // A semicolon list is now valid on the collection-valued conveniences.
+                }
                 final Email email = field.string(blank(), "Chosen", source, true).buildEmail();
                 assertMailbox(email, field, "Chosen", source);
                 assertThatThrownBy(() -> mailer.sync().sendMail(email)).isInstanceOf(MailInvalidAddressException.class);
@@ -248,8 +251,8 @@ class EmailAddressConvenienceTest {
                     return email.getRecipients().stream().filter(recipient -> type.equals(recipient.getType())).reduce((first, last) -> last).orElseThrow(AssertionError::new);
                 case REPLY: return email.getReplyToRecipients().get(email.getReplyToRecipients().size() - 1);
                 case BOUNCE: return email.getBounceToRecipient();
-                case DISPOSITION: return email.getDispositionNotificationTo();
-                case RETURN_RECEIPT: return email.getReturnReceiptTo();
+                case DISPOSITION: return email.getDispositionNotificationToRecipients().get(0);
+                case RETURN_RECEIPT: return email.getReturnReceiptToRecipients().get(0);
                 default: throw new AssertionError(this);
             }
         }

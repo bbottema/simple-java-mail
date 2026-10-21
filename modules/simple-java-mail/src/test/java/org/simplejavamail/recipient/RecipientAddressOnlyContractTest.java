@@ -174,10 +174,10 @@ class RecipientAddressOnlyContractTest {
 		});
 		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo(source);
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo("Bounce");
-		assertThat(email.getDispositionNotificationTo().getAddress()).isEqualTo(source);
-		assertThat(email.getDispositionNotificationTo().getName()).isEqualTo("Read notification");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo(source);
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("Return receipt");
+		assertThat(email.getDispositionNotificationToRecipients().get(0).getAddress()).isEqualTo(source);
+		assertThat(email.getDispositionNotificationToRecipients().get(0).getName()).isEqualTo("Read notification");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo(source);
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("Return receipt");
 	}
 
 	@ParameterizedTest

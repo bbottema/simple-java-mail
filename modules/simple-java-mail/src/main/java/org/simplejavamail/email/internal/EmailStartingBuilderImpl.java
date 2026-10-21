@@ -320,8 +320,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	private static void copyDispositionNotification(final Email email, final EmailPopulatingBuilder builder) {
 		if (Boolean.FALSE.equals(email.getUseDispositionNotificationTo())) {
 			((InternalEmailPopulatingBuilder) builder).withDispositionNotificationToState(false, null);
-		} else if (email.getDispositionNotificationTo() != null) {
-			builder.withDispositionNotificationTo(email.getDispositionNotificationTo());
+		} else if (!email.getDispositionNotificationToRecipients().isEmpty()) {
+			builder.withDispositionNotificationTo(email.getDispositionNotificationToRecipients());
 		} else if (Boolean.TRUE.equals(email.getUseDispositionNotificationTo())) {
 			builder.withDispositionNotificationTo();
 		}
@@ -330,8 +330,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	private static void copyReturnReceipt(final Email email, final EmailPopulatingBuilder builder) {
 		if (Boolean.FALSE.equals(email.getUseReturnReceiptTo())) {
 			((InternalEmailPopulatingBuilder) builder).withReturnReceiptToState(false, null);
-		} else if (email.getReturnReceiptTo() != null) {
-			builder.withReturnReceiptTo(email.getReturnReceiptTo());
+		} else if (!email.getReturnReceiptToRecipients().isEmpty()) {
+			builder.withReturnReceiptTo(email.getReturnReceiptToRecipients());
 		} else if (Boolean.TRUE.equals(email.getUseReturnReceiptTo())) {
 			builder.withReturnReceiptTo();
 		}

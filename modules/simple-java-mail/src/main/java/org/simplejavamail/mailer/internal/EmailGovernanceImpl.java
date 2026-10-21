@@ -315,11 +315,11 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 		val useReturnReceiptTo = resolveEmailProperty(provided, EmailProperty.USE_RETURN_RECEIPT_TO);
 		if (TRUE.equals(useReturnReceiptTo)) {
-			Recipient returnReceiptToRecipient = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
-			if (returnReceiptToRecipient != null) {
-				builder.withReturnReceiptTo(returnReceiptToRecipient);
+			List<Recipient> returnReceiptToRecipients = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
+			if (returnReceiptToRecipients != null) {
+				builder.withReturnReceiptTo(returnReceiptToRecipients);
 			} else if (!replyToRecipients.isEmpty()) {
-				builder.withReturnReceiptTo(replyToRecipients.get(0));
+				builder.withReturnReceiptTo(replyToRecipients);
 			} else if (fromRecipient != null) {
 				builder.withReturnReceiptTo(fromRecipient);
 			} else {
@@ -331,11 +331,11 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
 		if (TRUE.equals(useDispositionNotificationTo)) {
-			Recipient dispositionNotificationToRecipient = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
-			if (dispositionNotificationToRecipient != null) {
-				builder.withDispositionNotificationTo(dispositionNotificationToRecipient);
+			List<Recipient> dispositionNotificationToRecipients = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
+			if (dispositionNotificationToRecipients != null) {
+				builder.withDispositionNotificationTo(dispositionNotificationToRecipients);
 			} else if (!replyToRecipients.isEmpty()) {
-				builder.withDispositionNotificationTo(replyToRecipients.get(0));
+				builder.withDispositionNotificationTo(replyToRecipients);
 			} else if (fromRecipient != null) {
 				builder.withDispositionNotificationTo(fromRecipient);
 			} else {

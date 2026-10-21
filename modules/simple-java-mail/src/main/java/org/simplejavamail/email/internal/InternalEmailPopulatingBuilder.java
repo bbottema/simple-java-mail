@@ -39,7 +39,7 @@ public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, 
 	@NotNull InternalEmailPopulatingBuilder withDeliveryStatusReport(@Nullable DeliveryStatusReport deliveryStatusReport);
 
 	/** Retains the exact request state when copying or governing existing snapshots, including legacy explicit false choices. */
-	@NotNull InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable Boolean requested, @Nullable Recipient recipient);
+	@NotNull InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable Boolean requested, @Nullable Collection<Recipient> recipients);
 	/** Retains the exact request state when copying or governing existing snapshots, including legacy explicit false choices. */
-	@NotNull InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable Boolean requested, @Nullable Recipient recipient);
+	@NotNull InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable Boolean requested, @Nullable Collection<Recipient> recipients);
 }

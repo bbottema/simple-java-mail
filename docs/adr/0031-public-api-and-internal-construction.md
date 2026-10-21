@@ -291,3 +291,7 @@ Add a regression for removed builder factories/overload chains so a future refac
 - [ADR 0020](0020-dedicated-smtp-connection-diagnostics.md): provider-created probe facts require a distinct SPI review.
 - [API expansion workflow](../API_EXPANSION_WORKFLOW.md#public-api-versus-internal-cross-module-types) and
   [maintainer workflow](../MAINTAINER_WORKFLOW.md#5-implement): apply the boundary during each API change.
+
+## Accepted API consistency follow-up (20 October 2026)
+
+Notification destinations use plural collection getters on Email and its builder, without singular compatibility getters. MailSendRetryPolicy and FailoverPolicy expose explicit toBuilder() methods that copy every stored setting into an independent builder. SMTP empty credential strings normalize to absence through all ordinary setters; partial-update overloads still change only accepted fields. These choices belong to the unreleased 10.0.0 migration and do not introduce default-name overload families or new optional-module boundaries.

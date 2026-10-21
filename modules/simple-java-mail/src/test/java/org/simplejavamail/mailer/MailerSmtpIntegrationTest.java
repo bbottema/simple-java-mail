@@ -636,7 +636,7 @@ public class MailerSmtpIntegrationTest {
 			EmailAssert.assertThat(receivedEmail).hasCalendarMethod(originalMail.getCalendarMethod());
 			EmailAssert.assertThat(receivedEmail).hasCalendarText(originalMail.getCalendarText());
 			EmailAssert.assertThat(receivedEmail).hasBounceToRecipient(originalMail.getBounceToRecipient());
-			EmailAssert.assertThat(receivedEmail).hasDispositionNotificationTo(originalMail.getDispositionNotificationTo());
+			EmailAssert.assertThat(receivedEmail).hasDispositionNotificationTo(originalMail.getDispositionNotificationToRecipients());
 		}
 
 		return receivedEmail;

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.mailer.Mailer;
@@ -94,6 +95,33 @@ class CliGroupedConfigurationOptionsTest {
             assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isEqualTo("client.example.test");
             assertThat(mailer.getSession().getProperty("mail.smtp.starttls.enable")).isNull();
             assertThat(mailer.getEmailGovernance().getMaximumEmailSize()).isEqualTo(2048);
+        }
+    }
+
+    @Test
+    void existingStringOptionsCarryEveryDeliveryReplyAndNotificationMailbox() {
+        final Mailer mailer = mock(Mailer.class);
+        final Mailer.Sync sync = mock(Mailer.Sync.class);
+        when(mailer.sync()).thenReturn(sync);
+        final MailerProvider.Lease lease = mock(MailerProvider.Lease.class);
+        when(lease.mailer()).thenReturn(mailer);
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), (profile, factory) -> lease)) {
+            final CliExecutionResult result = execute(environment, "send", "--email:startingBlank",
+                    "--email:from", "sender@example.test", "--email:to", "alice@example.test, bob@example.test",
+                    "--email:withReplyTo", "Replies", "reply1@example.test; reply2@example.test",
+                    "--email:withDispositionNotificationTo", "Read", "read1@example.test, read2@example.test",
+                    "--email:withReturnReceiptTo", "Returns", "return1@example.test; return2@example.test");
+            assertThat(result.exitCode()).as(result.stderr()).isZero();
+            final ArgumentCaptor<Email> captured = ArgumentCaptor.forClass(Email.class);
+            verify(sync).sendMail(captured.capture());
+            final Email email = captured.getValue();
+            assertThat(email.getToRecipients()).extracting(Recipient::getAddress).containsExactly("alice@example.test", "bob@example.test");
+            assertThat(email.getReplyToRecipients()).extracting(Recipient::getName).containsExactly("Replies", "Replies");
+            assertThat(email.getDispositionNotificationToRecipients()).extracting(Recipient::getAddress)
+                    .containsExactly("read1@example.test", "read2@example.test");
+            assertThat(email.getReturnReceiptToRecipients()).extracting(Recipient::getAddress)
+                    .containsExactly("return1@example.test", "return2@example.test");
+            verify(lease).close();
         }
     }
 

@@ -107,9 +107,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo(new InternetAddress("lol.pop@somemail.com", "moo"))
 				.buildEmail();
 
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("moo");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptTo().getType()).isNull();
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("moo");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -118,9 +118,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
 				.buildEmail();
 
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptTo().getType()).isNull();
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -129,9 +129,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo("lollypop", "lol.pop@somemail.com")
 				.buildEmail();
 
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptTo().getType()).isNull();
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -140,9 +140,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo("lollypop", new InternetAddress("lol.pop@somemail.com", "moo"))
 				.buildEmail();
 
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptTo().getType()).isNull();
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -176,9 +176,9 @@ public class EmailPopulatingBuilderImpl1Test {
 				.withReturnReceiptTo(new Recipient("lollypop2", "lol.pop2@somemail.com", null, null))
 				.buildEmail();
 
-		assertThat(email.getReturnReceiptTo().getName()).isEqualTo("lollypop2");
-		assertThat(email.getReturnReceiptTo().getAddress()).isEqualTo("lol.pop2@somemail.com");
-		assertThat(email.getReturnReceiptTo().getType()).isNull();
+		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop2");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop2@somemail.com");
+		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
 	}
 
 	@Test
@@ -373,8 +373,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isNull();
 		assertThat(email.getUseReturnReceiptTo()).isNull();
-		assertThat(email.getDispositionNotificationTo()).isNull();
-		assertThat(email.getReturnReceiptTo()).isNull();
+		assertThat(email.getDispositionNotificationToRecipients()).isEmpty();
+		assertThat(email.getReturnReceiptToRecipients()).isEmpty();
 	}
 
 	@Test
@@ -390,8 +390,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getDispositionNotificationToRecipients()).containsExactly(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptToRecipients()).containsExactly(new Recipient("replyTo", "1@candyshop.org", null, null));
 	}
 
 	@Test
@@ -405,8 +405,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getDispositionNotificationToRecipients()).containsExactly(new Recipient("replyTo", "1@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptToRecipients()).containsExactly(new Recipient("replyTo", "1@candyshop.org", null, null));
 	}
 
 	@Test
@@ -420,8 +420,8 @@ public class EmailPopulatingBuilderImpl1Test {
 
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getDispositionNotificationTo()).isEqualTo(new Recipient(null, "customa@candyshop.org", null, null));
-		assertThat(email.getReturnReceiptTo()).isEqualTo(new Recipient(null, "customb@candyshop.org", null, null));
+		assertThat(email.getDispositionNotificationToRecipients()).containsExactly(new Recipient(null, "customa@candyshop.org", null, null));
+		assertThat(email.getReturnReceiptToRecipients()).containsExactly(new Recipient(null, "customb@candyshop.org", null, null));
 	}
 
 	@Test
@@ -1152,7 +1152,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getId()).isNotNull();
 		assertThat(emailNormal.getSubject()).isNotNull();
 		assertThat(emailNormal.getBounceToRecipient()).isNotNull();
-		assertThat(emailNormal.getDispositionNotificationTo()).isNotNull();
+		assertThat(emailNormal.getDispositionNotificationToRecipients()).isNotEmpty();
 		assertThat(emailNormal.getDkimConfig()).isNotNull();
 		assertThat(emailNormal.getDkimConfig().getDkimPrivateKeyData()).isNotNull();
 		assertThat(emailNormal.getDkimConfig().getDkimSelector()).isNotNull();
@@ -1165,7 +1165,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailNormal.getPlainText()).isNotNull();
 		assertThat(emailNormal.getRecipients()).isNotEmpty();
 		assertThat(emailNormal.getReplyToRecipients()).isNotEmpty();
-		assertThat(emailNormal.getReturnReceiptTo()).isNotNull();
+		assertThat(emailNormal.getReturnReceiptToRecipients()).isNotEmpty();
 		assertThat(emailNormal.getSentDate()).isNotNull();
 		assertThat(emailNormal.getSmimeSigningConfig()).isNotNull();
 		assertThat(emailNormal.getSmimeEncryptionConfig()).isNotNull();
@@ -1196,7 +1196,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getId()).isNull();
 		assertThat(emailCleared.getSubject()).isNull();
 		assertThat(emailCleared.getBounceToRecipient()).isNull();
-		assertThat(emailCleared.getDispositionNotificationTo()).isNull();
+		assertThat(emailCleared.getDispositionNotificationToRecipients()).isEmpty();
 		assertThat(emailCleared.getDkimConfig()).isNull();
 		assertThat(emailCleared.getAttachments()).isEmpty();
 		assertThat(emailCleared.getEmbeddedImages()).isEmpty();
@@ -1206,7 +1206,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		assertThat(emailCleared.getPlainText()).isNull();
 		assertThat(emailCleared.getRecipients()).isEmpty();
 		assertThat(emailCleared.getReplyToRecipients()).isEmpty();
-		assertThat(emailCleared.getReturnReceiptTo()).isNull();
+		assertThat(emailCleared.getReturnReceiptToRecipients()).isEmpty();
 		assertThat(emailCleared.getSentDate()).isNull();
 		assertThat(emailCleared.getSmimeSigningConfig()).isNull();
 		assertThat(emailCleared.getSmimeEncryptionConfig()).isNull();
