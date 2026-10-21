@@ -176,7 +176,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 		return this;
 	}
 
-	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getDeliveryStatusNotification() */
+	/** @see org.simplejavamail.api.email.config.SmtpDeliveryOptions#getDeliveryStatusNotification() */
 	@Override
 	@Nullable
 	public DeliveryStatusNotification getDeliveryStatusNotification() {

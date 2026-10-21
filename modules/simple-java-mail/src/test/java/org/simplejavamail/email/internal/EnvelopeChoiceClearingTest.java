@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.NEVER;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.HEADERS_ONLY;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption.FULL_MESSAGE;
 import static org.simplejavamail.api.email.EmailProperty.DELIVERY_STATUS_NOTIFICATION;
@@ -80,6 +81,32 @@ class EnvelopeChoiceClearingTest {
 		assertThat(second.getDeliveryStatusNotification()).isNull();
 		assertThat(second.getOverrideReceivers().get(0).getDeliveryStatusNotificationNotifyOptions()).containsExactly(FAILURE);
 		assertExactBytes(second);
+	}
+
+	@Test
+	void correctingUnfinishedSmtpChoicesPreservesExactContentAndRecipientPreferences() {
+		final Recipient recipient = mail.recipientBuilder().withDeliveryStatusNotificationNotifyOptions(NEVER)
+				.to("recipient@example.org");
+		final ExactEmailBuilder builder = exactBuilder().withEnvelopeRecipients(recipient)
+				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withDeliveryStatusNotification(completeDsn())
+						.withTlsRequiredForOnwardDelivery().withSendingToAcceptedRecipients(false).build());
+		final Email original = builder.buildEmail();
+		final SmtpDeliveryOptions.Builder edited = builder.getSmtpDeliveryOptions().toBuilder()
+				.withDeliveryStatusNotification(HEADERS_ONLY, NEVER, FAILURE);
+		assertThat(edited.getEnvelopeId()).isNull();
+		assertThat(edited.getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER, FAILURE);
+		assertThatThrownBy(edited::build).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("NEVER");
+		assertThat(builder.getSmtpDeliveryOptions().getDeliveryStatusNotification()).isEqualTo(completeDsn());
+
+		final Email corrected = builder.withSmtpDeliveryOptions(edited.withDeliveryStatusNotificationNotifyOptions(FAILURE)
+				.fixingEnvelopeId("corrected").build()).buildEmail();
+		assertThat(corrected.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("corrected");
+		assertThat(corrected.getOverrideReceivers().get(0).getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER);
+		assertThat(corrected.isTlsRequiredForOnwardDelivery()).isTrue();
+		assertThat(corrected.getSendingToAcceptedRecipients()).isFalse();
+		assertThat(original.getDeliveryStatusNotification()).isEqualTo(completeDsn());
+		assertExactBytes(original);
+		assertExactBytes(corrected);
 	}
 
 	@Test

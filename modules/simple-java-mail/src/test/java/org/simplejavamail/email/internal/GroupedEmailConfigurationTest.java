@@ -28,6 +28,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE;
+import static org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.NEVER;
 
 class GroupedEmailConfigurationTest {
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
@@ -48,6 +49,28 @@ class GroupedEmailConfigurationTest {
         assertThat(email.isTlsRequiredForOnwardDelivery()).isFalse();
         assertThat(email.getSendingToAcceptedRecipients()).isFalse();
         assertThat(builder.getContentEncodingConfig().getContentTransferEncoding()).isNull();
+    }
+
+    @Test
+    void incompleteSmtpEditsAreValidatedBeforeReplacingTheEmailsExistingChoices() {
+        final SmtpDeliveryOptions originalOptions = SmtpDeliveryOptions.builder().fixingEnvelopeId("original")
+                .withDeliveryStatusNotificationNotifyOptions(FAILURE).withTlsRequiredForOnwardDelivery()
+                .withSendingToAcceptedRecipients(false).build();
+        final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().withSmtpDeliveryOptions(originalOptions);
+        final Email original = builder.buildEmail();
+        final SmtpDeliveryOptions.Builder edited = originalOptions.toBuilder().fixingEnvelopeId("")
+                .withDeliveryStatusNotificationNotifyOptions(NEVER, FAILURE);
+        assertThat(edited.getEnvelopeId()).isEmpty();
+        assertThat(edited.getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER, FAILURE);
+        assertThatThrownBy(edited::build).isInstanceOf(IllegalArgumentException.class);
+        assertThat(builder.getSmtpDeliveryOptions()).isEqualTo(originalOptions);
+
+        final Email corrected = builder.withSmtpDeliveryOptions(edited.fixingEnvelopeId("corrected")
+                .withDeliveryStatusNotificationNotifyOptions(FAILURE).build()).buildEmail();
+        assertThat(corrected.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("corrected");
+        assertThat(corrected.isTlsRequiredForOnwardDelivery()).isTrue();
+        assertThat(corrected.getSendingToAcceptedRecipients()).isFalse();
+        assertThat(original.getDeliveryStatusNotification().getEnvelopeId()).isEqualTo("original");
     }
 
     @Test

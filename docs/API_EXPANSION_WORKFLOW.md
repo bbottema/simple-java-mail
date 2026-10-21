@@ -126,6 +126,14 @@ Builder inspection must also work before construction is complete: return stored
 fallback or validating an incomplete policy. Include reviewed application value builders in companion checks, not only the original motivating
 builder. Automatic rendering protects known secrets on unfinished builders as well as completed values; explicit programmatic accessors remain separate.
 
+Follow [ADR 0031's validation boundary](adr/0031-public-api-and-internal-construction.md#inspect-incomplete-configuration-without-building-it):
+setters collect supplied choices, getters inspect them, and the declared construction boundary validates the complete value. Preserve required
+argument checks and documented input parsing. Convenience overloads must not construct a nested immutable value merely to collect fields or
+inspect temporarily incomplete choices. Explicit standalone value factories/builders retain their own validation, and inherited effective rules
+retain the owning feature's boundary under ADR 0003. When only component choices can be inspected before construction, expose those passive
+getters; keep the aggregate completed-value getter on the constructed configuration instead of adding an invalid draft value or an extra public
+construction method solely to preserve a getter. Reconcile the setter/getter Javadocs and generated HTML for that distinction.
+
 ## 3. Core Implementation (`simple-java-mail`)
 
 Implement the new API methods and ensure data propagation.

@@ -10,10 +10,10 @@ import java.util.Set;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import static org.simplejavamail.internal.util.DsnNotifyOptions.copyOf;
 import java.io.Serializable;
 
 import static java.util.Objects.requireNonNull;
+import static org.simplejavamail.internal.util.Preconditions.assumeTrue;
 
 /**
  * Immutable SMTP-envelope choices shared by composed and exact Emails. These settings never rewrite authoritative exact EML bytes.
@@ -29,7 +29,7 @@ public class SmtpDeliveryOptions implements Serializable {
     boolean tlsRequiredForOnwardDelivery;
     @Nullable Boolean sendingToAcceptedRecipients;
     private SmtpDeliveryOptions(final Builder builder) {
-        deliveryStatusNotification = builder.getDeliveryStatusNotification();
+        deliveryStatusNotification = builder.buildDeliveryStatusNotification();
         tlsRequiredForOnwardDelivery = builder.tlsRequiredForOnwardDelivery;
         sendingToAcceptedRecipients = builder.sendingToAcceptedRecipients;
     }
@@ -38,6 +38,7 @@ public class SmtpDeliveryOptions implements Serializable {
     /** @return An independent builder retaining these supplied choices. */
     @NotNull public Builder toBuilder() { return new Builder(this); }
     /**
+     * Returns the validated shared request supplied when this group was built.
      * @return The supplied shared DSN request, or {@code null} when no shared preference or fixed identifier remains; no identifier is generated here.
      * @see Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
      */
@@ -50,7 +51,11 @@ public class SmtpDeliveryOptions implements Serializable {
      */
     @Nullable public Boolean getSendingToAcceptedRecipients() { return sendingToAcceptedRecipients; }
 
-    /** Collects transaction-wide preferences; recipient-specific NOTIFY preferences stay on recipients. */
+    /**
+     * Collects transaction-wide preferences; recipient-specific NOTIFY preferences stay on recipients.
+     * Setters collect supplied choices and component getters inspect them, including incomplete or temporarily invalid requests.
+     * {@link #build()} validates the complete shared request before creating the immutable value.
+     */
     public static final class Builder {
         private Set<DeliveryStatusNotification.NotifyOption> notificationEvents = Collections.emptySet();
         private DeliveryStatusNotification.ReturnOption notificationReturnOption;
@@ -84,23 +89,28 @@ public class SmtpDeliveryOptions implements Serializable {
 
         /**
          * Replaces the complete shared DSN request with the supplied return preference and events, removing any previous fixed envelope identifier.
-         * This overload builds and validates that request immediately; at least one return preference or event must be supplied.
+         * The choices are collected without constructing a nested DSN value; the complete request is validated by {@link #build()}.
          * {@link DeliveryStatusNotification.NotifyOption#NEVER} must stand alone. The transport and recipient-precedence contract is described by
          * {@link #withDeliveryStatusNotification(DeliveryStatusNotification)}.
          *
          * @param returnOption How much original content a failure notification may return, or {@code null} for no supplied return preference.
          * @param notifyOptions Requested events, or an empty array when a return preference is supplied.
-         * @throws IllegalArgumentException If no DSN option is supplied or NEVER is combined with other events.
+         * @throws IllegalArgumentException If an event is {@code null}; request completeness and event combinations are checked by {@link #build()}.
          *
          * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
          */
         @NotNull public Builder withDeliveryStatusNotification(@Nullable DeliveryStatusNotification.ReturnOption returnOption,
-			@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) { return withDeliveryStatusNotification(DeliveryStatusNotification.of(returnOption, notifyOptions)); }
+			@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+            withDeliveryStatusNotificationNotifyOptions(notifyOptions);
+            notificationReturnOption = returnOption;
+            envelopeId = null;
+            return this;
+        }
 
         /**
          * Replaces only the requested notification events, retaining any return preference and fixed envelope identifier.
          * {@link DeliveryStatusNotification.NotifyOption#NEVER} requests no notifications and must stand alone.
-         * An empty array removes the events but requires another DSN component before the complete request is inspected or built;
+         * An empty array removes the events but requires another DSN component when the complete request is built;
          * use {@link #clearDeliveryStatusNotificationNotifyOptions()} to remove the last shared preference entirely.
          *
          * @param notifyOptions See {@link DeliveryStatusNotification.NotifyOption}.
@@ -112,15 +122,22 @@ public class SmtpDeliveryOptions implements Serializable {
         /**
          * Chooses which delivery notifications to request, leaving any already configured return option and envelope identifier untouched.
          * These are later delivery notifications, not read receipts or the immediate send result. Server support does not guarantee a notification will arrive.
-         * An empty array removes the events; at least one other DSN component must then remain when the complete request is inspected or built.
+         * An empty array removes the events; at least one other DSN component must then remain when the complete request is built.
          * {@link #clearDeliveryStatusNotificationNotifyOptions()} instead allows the complete shared request to become absent.
+         * Event combinations, including the rule that {@code NEVER} stands alone, are validated by {@link #build()}.
          *
          * @param notifyOptions Requested events: {@code SUCCESS}, {@code FAILURE}, or {@code DELAY}, or {@code NEVER} alone.
          *                      The CLI accepts comma/semicolon-separated names, ignoring case.
          *
          * @see DeliveryStatusNotification.NotifyOption
          */
-        @NotNull public Builder withDeliveryStatusNotificationNotifyOptions(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) { notificationEvents = copyOf(Arrays.asList(requireNonNull(notifyOptions, "notifyOptions"))); notificationOptionsConfigured = true; return this; }
+        @NotNull public Builder withDeliveryStatusNotificationNotifyOptions(@NotNull DeliveryStatusNotification.NotifyOption @NotNull ...notifyOptions) {
+            final Set<DeliveryStatusNotification.NotifyOption> suppliedEvents = new LinkedHashSet<>(Arrays.asList(requireNonNull(notifyOptions, "notifyOptions")));
+            assumeTrue(!suppliedEvents.contains(null), "Delivery status notification options cannot contain null values");
+            notificationEvents = suppliedEvents;
+            notificationOptionsConfigured = true;
+            return this;
+        }
 
         /**
          * Chooses how much of the original email a delivery-failure notification may return, leaving notification events and the envelope identifier untouched.
@@ -149,12 +166,12 @@ public class SmtpDeliveryOptions implements Serializable {
          * mailbox delivery. Logging-only mode does not contact a server. A CustomMailer receives this value on the Email and owns its enforcement.
          * There is no global configuration-property default for a per-send identifier.
          *
-         * The identifier is checked when this group is built or the complete DSN value is inspected. Empty, non-printable, non-ASCII or oversized encoded
+         * The identifier is checked when this group is built. Empty, non-printable, non-ASCII or oversized encoded
          * identifiers cause {@link IllegalArgumentException} at that boundary, rather than when this individual choice is assigned.
          *
          * @param envelopeId The unencoded fixed identifier, or {@code null} to resume automatic generation while retaining other DSN options.
          * @return This builder.
-         * @see #getDeliveryStatusNotification()
+         * @see #getEnvelopeId()
          * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
          */
         @NotNull public Builder fixingEnvelopeId(@Nullable String envelopeId) { this.envelopeId = envelopeId; notificationOptionsConfigured = hasSharedNotificationPreference(); return this; }
@@ -250,22 +267,21 @@ public class SmtpDeliveryOptions implements Serializable {
         @NotNull public Builder clearSendingToAcceptedRecipients() { sendingToAcceptedRecipients = null; return this; }
 
         /**
-         * @return The complete shared request, or {@code null} when none remains; unlike component getters, this inspection validates the request and fixed identifier.
-         * @throws IllegalArgumentException If a configured request has no remaining DSN component, or its fixed identifier is invalid.
-         * @see #withDeliveryStatusNotification(DeliveryStatusNotification)
+         * @return A modifiable copy of the stored events, including combinations not yet checked by {@link #build()}.
+         * @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...)
          */
-        @Nullable public DeliveryStatusNotification getDeliveryStatusNotification() {
-            if (!notificationOptionsConfigured && envelopeId == null) return null;
-            return DeliveryStatusNotification.builder().notifyOptions(notificationEvents.toArray(new DeliveryStatusNotification.NotifyOption[0]))
-                    .returnOption(notificationReturnOption).envelopeId(envelopeId).build();
-        }
-        /** @see #withDeliveryStatusNotificationNotifyOptions(DeliveryStatusNotification.NotifyOption...) */
         @NotNull public Set<DeliveryStatusNotification.NotifyOption> getDeliveryStatusNotificationNotifyOptions() {
             return new LinkedHashSet<>(notificationEvents);
         }
-        /** @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption) */
+        /**
+         * @return The supplied return preference, or {@code null} when unset; inspection does not construct a complete request.
+         * @see #withDeliveryStatusNotificationReturnOption(DeliveryStatusNotification.ReturnOption)
+         */
         @Nullable public DeliveryStatusNotification.ReturnOption getDeliveryStatusNotificationReturnOption() { return notificationReturnOption; }
-        /** @see #fixingEnvelopeId(String) */
+        /**
+         * @return The supplied identifier, or {@code null} when unset; inspection does not validate or replace it.
+         * @see #fixingEnvelopeId(String)
+         */
         @Nullable public String getEnvelopeId() { return envelopeId; }
         /** @see #withTlsRequiredForOnwardDelivery() */
         public boolean isTlsRequiredForOnwardDelivery() { return tlsRequiredForOnwardDelivery; }
@@ -275,9 +291,15 @@ public class SmtpDeliveryOptions implements Serializable {
          */
         @Nullable public Boolean getSendingToAcceptedRecipients() { return sendingToAcceptedRecipients; }
         private boolean hasSharedNotificationPreference() { return notificationReturnOption != null || !notificationEvents.isEmpty(); }
+        @Nullable private DeliveryStatusNotification buildDeliveryStatusNotification() {
+            if (!notificationOptionsConfigured && envelopeId == null) return null;
+            return DeliveryStatusNotification.builder().notifyOptions(notificationEvents.toArray(new DeliveryStatusNotification.NotifyOption[0]))
+                    .returnOption(notificationReturnOption).envelopeId(envelopeId).build();
+        }
         /**
          * @return An immutable snapshot; a configured shared DSN request and any fixed ENVID are validated without contacting a server.
-         * @throws IllegalArgumentException If a configured request has no remaining DSN component, or its fixed identifier is invalid.
+         * @throws IllegalArgumentException If a configured request has no remaining DSN component, NEVER is combined with another event,
+         *                                  or its fixed identifier is invalid.
          */
         @NotNull public SmtpDeliveryOptions build() { return new SmtpDeliveryOptions(this); }
     }
