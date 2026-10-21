@@ -23,7 +23,11 @@ import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Entry point for creating email and Mailer builders that all use one immutable configuration snapshot.
+ * Start with {@code SimpleJavaMail.fromDefaults()}, compose with {@code mail.emailBuilder().startingBlank()}, and send
+ * through a reusable {@code Mailer} created by {@code mail.mailerBuilder()}. Choose {@code mailer.sync().sendMail(email)}
+ * or {@code mailer.async().sendMail(email)}; close the Mailer during application shutdown.
+ * <p>
+ * Every builder from this entry point uses one immutable configuration snapshot.
  * <p>
  * Keep one instance in application scope and request a fresh builder for each independent construction flow. The factory owns no Mailer resources and does
  * not reload configuration. It retains factory-local sending-limit history so participating Mailers can share allowance without sharing executors or pools.
