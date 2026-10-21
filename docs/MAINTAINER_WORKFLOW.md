@@ -10,6 +10,7 @@ It is intentionally one workflow with switches, so prompts like these can all fo
 - "Can you handle the dependabot PRs and release as patch?"
 - "Fix up that last issue and prepare for a minor release."
 
+For holistic public API gap analysis and repairs, follow the [public API review workflow](API_REVIEW_WORKFLOW.md), including its maintainer design and execution gates.
 For API additions, read [API_EXPANSION_WORKFLOW.md](API_EXPANSION_WORKFLOW.md) as part of the implementation phase.
 For architectural constraints and source anchors, read the [architecture decisions and topic index](adr/README.md).
 Use [DEVELOPMENT.md](DEVELOPMENT.md) for build/generated-metadata procedures and the
@@ -332,8 +333,11 @@ For non-user-facing maintenance:
 - Avoid release-note text that only makes sense to maintainers, such as internal heap, metadata, or "remaining work" phrasing.
 - Group routine dependency updates into a compact roll-up unless a dependency change is directly relevant to users.
 
-For GitHub comments:
+For GitHub issues and comments:
 
+Write in casual, plain English, as one maintainer talking to another developer. Favor connected prose and natural transitions over stacked declarations, disconnected assertions or repeated "Scope:", "Contract:" and "Boundary:" labels. Use headings and lists when they make distinct points or tasks easier to follow.
+
+- Start an issue body with a short problem statement and its effect on callers, followed by reproducing example usage. Explain the expected behavior after the example.
 - Closing a user issue should include a short summary and a usage example when useful.
 - Do not sign off comments with test evidence unless the user asks for it.
 - After a release, add a short availability comment to related GitHub issues that were fixed or materially affected by the release.
@@ -352,10 +356,22 @@ git diff
 git add <paths>
 git diff --cached --check
 git diff --cached --stat
-git commit -m "fix(scope): concise summary"
+git commit -m "fix(scope): concise summary (#123)"
 ```
 
-Use semantic commit subjects: `action(subject): summary, multiline allowed`
+Use semantic, single-line commit subjects: `action(scope): summary`.
+
+For work tracked by GitHub issues, the subject must end with all associated issue numbers in one parenthesized suffix:
+
+- Single issue: `fix(mailer): preserve configured retry defaults (#756)`
+- Multiple issues: `feat(mailer): report live send and SMTP progress (#760, #761)`
+
+Separate multiple issue numbers with a comma and a space, repeating `#` for each number. Keep the suffix at the very end of the subject.
+References in the commit body or a `Refs` footer do not satisfy this requirement.
+
+Apply this convention to implementation, test and documentation commits, including the separate website repository.
+When a website commit tracks issues in the main repository, use the same numeric subject suffix and also include qualified references
+in the body, for example: `Refs bbottema/simple-java-mail#760, bbottema/simple-java-mail#761.`
 
 For architecture-conformance changes, name the governing ADRs in the body and explain the alignment, for example:
 `Architecture: ADR 0002, ADR 0031.` Include implementation and documentation companions, also in the separate website repository.
