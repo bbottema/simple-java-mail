@@ -190,6 +190,21 @@ class ExactEmailBuilderTest {
 	}
 
 	@Test
+	void quotedEnvelopeNamesDoNotChangeAuthoritativeBytesAndGroupsStillFail() {
+		final Email email = simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML)
+				.withEnvelopeRecipients("\"Support @ Acme, Europe\" <support@example.org>", "audit@example.org", "support@example.org")
+				.buildEmail();
+		assertThat(email.getOverrideReceivers()).extracting(Recipient::getAddress)
+				.containsExactly("support@example.org", "audit@example.org", "support@example.org");
+		assertThat(EmailConverter.emailToEMLByteArray(email)).containsExactly(EXACT_EML);
+		for (String source : new String[]{"Team:alice@example.org,bob@example.org;", "Undisclosed:;",
+				"alice@example.org;bob@example.org", "evil@example.org\r\nBcc: victim@example.org"}) {
+			assertThatThrownBy(() -> simpleJavaMail.emailBuilder().startingFromExactEml(EXACT_EML).withEnvelopeRecipients(source))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+	@Test
 	void exactEmlRequiresCanonicalCrlfAndTerminalCrlf() {
 		assertThatThrownBy(() -> simpleJavaMail.emailBuilder().startingFromExactEml(
 				"Subject: bare LF\n\nbody\n".getBytes(StandardCharsets.US_ASCII)))

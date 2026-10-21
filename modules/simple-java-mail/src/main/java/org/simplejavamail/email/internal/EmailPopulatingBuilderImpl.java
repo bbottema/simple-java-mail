@@ -43,6 +43,7 @@ import org.simplejavamail.internal.util.FileUtil;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
+import org.simplejavamail.recipient.internal.MailboxInterpretation;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,7 +82,6 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FRO
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
-import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
@@ -1260,9 +1260,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	public InternalEmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
-			for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
-				addParsedRecipient(name, fixedName, emailAddress, recipientType);
-			}
+			recipients.addAll(MailboxInterpretation.interpretList(name, fixedName, oneOrMoreAddresses, recipientType, "oneOrMoreAddresses"));
 		}
 		return this;
 	}
@@ -1322,14 +1320,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return withRecipients(EmailAddressConvenience.interpretList(name, address, RecipientType.BCC, "address"));
 	}
 	
-	private void addParsedRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
-		try {
-			recipients.add(MiscUtil.interpretRecipient(name, fixedName, singleAddress, recipientType));
-		} catch (Exception e) {
-			// assume recipient was malformed and simply ignore it
-		}
-	}
-
 	/**
 	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#withEmbeddedImageBaseDir(String)
 	 */

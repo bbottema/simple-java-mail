@@ -44,7 +44,7 @@ public interface IRecipientBuilder {
      * embedded display name. Comma- or semicolon-separated address lists are not split. Use {@link IRecipientsBuilder} for multiple addresses.
      *
      * @param name Optional explicit display name.
-     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @param address One email address, interpreted leniently as with {@link #withAddress(String)}.
      * @return The completed TO recipient.
      * @see #cc(String, String)
      * @see #bcc(String, String)
@@ -58,7 +58,7 @@ public interface IRecipientBuilder {
      * completed recipient. A null name removes a previously configured explicit name and allows an embedded name; address lists are not split.
      *
      * @param name Optional explicit display name.
-     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @param address One email address, interpreted leniently as with {@link #withAddress(String)}.
      * @return The completed CC recipient.
      * @see #to(String, String)
      */
@@ -71,7 +71,7 @@ public interface IRecipientBuilder {
      * completed recipient. A null name removes a previously configured explicit name and allows an embedded name; address lists are not split.
      *
      * @param name Optional explicit display name.
-     * @param address One email address, validated as with {@link #withAddress(String)}.
+     * @param address One email address, interpreted leniently as with {@link #withAddress(String)}.
      * @return The completed BCC recipient.
      * @see #to(String, String)
      */
@@ -104,7 +104,7 @@ public interface IRecipientBuilder {
 
     /**
      * Sets only the address from the supplied value, leaving this builder's configured name and other options unchanged.
-     * An embedded display name is ignored.
+     * An embedded display name is ignored. Groups and multiple-mailbox sources remain one value; no first member is selected.
      * @see #withAddress(String)
      */
     IRecipientBuilder withAddressOnlyFrom(@NotNull InternetAddress address);
@@ -112,32 +112,32 @@ public interface IRecipientBuilder {
     /**
      * Extracts only the email address, leaving this builder's configured name and other options unchanged.
      * For example, {@code "Alice <alice@example.org>"} supplies {@code alice@example.org}, not the name Alice.
-     * If the source cannot be parsed, it is retained for the normal send-time validator rather than rejected while constructing a recipient.
+     * Unparseable, multiple-mailbox and group sources remain intact for the normal send-time validator rather than being split or truncated.
      * @see #withAddressOnlyFrom(InternetAddress)
      */
     IRecipientBuilder withAddressOnlyFrom(@NotNull String address);
 
     /**
-     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the {@link InternetAddress} to set both fields and if no name is provided,
-     * uses the provided default name.
+     * Sets the typed address and its embedded name, using the default when no embedded name exists. Retains other recipient options.
+     * Groups and multiple-mailbox sources remain intact as one value.
      */
     IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName);
 
     /**
-     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the provided address to set both fields and if no name is provided, uses
-     * the provided default name.
+     * Extracts one mailbox and its embedded name, using the default when no embedded name exists. Retains other recipient options.
+     * Unparseable, multiple-mailbox and group sources remain intact with the supplied default name for normal send-time validation.
      */
     IRecipientBuilder withAddressAndNameOrDefault(@NotNull String address, @Nullable String defaultName);
 
     /**
-     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the {@link InternetAddress} to set both fields. If a name is provided, it
-     * will override the name part of the address. If no name is provided, the name part of the address is used.
+     * Sets the typed address, using the non-null fixed name or otherwise the embedded name. Retains other recipient options.
+     * Groups and multiple-mailbox sources remain intact as one value.
      */
     IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName);
 
     /**
-     * Delegates to {@link #withName(String)} and {@link #withAddress(String)}, using the provided address to set both fields. If a name is provided, it will
-     * override the name part of the address. If no name is provided, the name part of the address is used.
+     * Extracts one mailbox, using the non-null fixed name or otherwise its embedded name. Retains other recipient options.
+     * Unparseable, multiple-mailbox and group sources remain intact with the supplied fixed name for normal send-time validation.
      */
     IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String address, @Nullable String fixedName);
 

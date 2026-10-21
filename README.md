@@ -84,8 +84,10 @@ Email email = mail.emailBuilder().startingBlank()
     .buildEmail();
 ```
 
-String recipient conveniences parse every mailbox. A supplied name, such as `.to("Accounts", addresses)`, overrides every embedded name.
-Use `recipientsBuilder()` when you need default-name policies or recipient-specific metadata. Keep attachment files available until sending finishes.
+Email To/Cc/Bcc conveniences parse every mailbox in the supplied string. A supplied name, such as `.to("Accounts", addresses)`, overrides every embedded name.
+The plural `recipientsBuilder()` shares complete-list interpretation, including quoted names, legacy separators and RFC group members.
+Its default name fills missing names; its fixed name replaces embedded names. Use it for those policies or recipient-specific metadata.
+Keep attachment files available until sending finishes.
 
 Read attachment content with `resource.readAllBytes()` or `resource.readAllData(charset)`. These convenience methods close their own streams
 and report I/O failures through `MailException`. For caller-managed streaming, use `resource.openStream()` in try-with-resources and handle

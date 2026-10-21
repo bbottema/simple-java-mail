@@ -9,7 +9,6 @@ import org.simplejavamail.api.email.IRecipientsBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.internal.util.DsnNotifyOptions;
-import org.simplejavamail.internal.util.MiscUtil;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -22,8 +21,6 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
-import static org.simplejavamail.internal.util.MiscUtil.extractEmailAddresses;
-import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 
 /**
  * @see IRecipientsBuilder
@@ -196,9 +193,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withRecipients(@Nullable String name, boolean fixedName, @NotNull Collection<String> oneOrMoreAddressesEach, @Nullable Message.RecipientType recipientType) {
         for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
-            for (String emailAddress : extractEmailAddresses(oneOrMoreAddresses)) {
-                withRecipient(name, fixedName, emailAddress, recipientType);
-            }
+            recipients.addAll(MailboxInterpretation.interpretList(name, fixedName, oneOrMoreAddresses, recipientType, "oneOrMoreAddresses"));
         }
         return this;
     }
@@ -228,8 +223,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withRecipientsFromAddresses(@Nullable String name, boolean fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType) {
         for (InternetAddress address : addresses) {
-            String effectiveName = (fixedName || valueNullOrEmpty(address.getPersonal())) ? name : address.getPersonal();
-            withRecipient(effectiveName, address.getAddress(), recipientType);
+            recipients.addAll(MailboxInterpretation.interpretList(name, fixedName, address, recipientType, "address"));
         }
         return this;
     }
@@ -284,11 +278,8 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
      */
     @Override
     public IRecipientsBuilder withRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final Message.RecipientType recipientType) {
-        try {
-            recipients.add(MiscUtil.interpretRecipient(name, fixedName, singleAddress, recipientType));
-        } catch (Exception e){
-            // assume recipient was malformed and simply ignore it
-        }
+        final Recipient interpreted = new RecipientBuilderImpl().withAddressAndNameOrDefault(singleAddress, name).build();
+        recipients.add(new Recipient(fixedName && name != null ? name : interpreted.getName(), interpreted.getAddress(), recipientType, null));
         return this;
     }
 

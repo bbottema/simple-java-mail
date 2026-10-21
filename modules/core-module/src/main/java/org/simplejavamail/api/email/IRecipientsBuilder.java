@@ -10,10 +10,14 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 
 /**
- * This builder is used to handle recipient data that may contain multiple recipients. This is possible in the case of a standard RFC 2822 {@code String} based
- * email address.
+ * Produces a flat, ordered list of recipients from mailbox strings, address groups or prepared recipients.
  * <p>
- * Produces a list of recipients.
+ * Every String collection/varargs entry may itself contain a complete mailbox list. Parsing follows the same lenient rules as
+ * {@link EmailPopulatingBuilder#to(String)}: commas and legacy semicolon separators are supported without splitting quoted names or comments.
+ * RFC address groups expand to their members; an empty group adds nothing. Order and duplicate occurrences are retained.
+ * Nonempty unparseable source remains intact for the configured send-time validator; parsing does not check delivery or query DNS.
+ * Default names fill missing names; fixed names replace embedded names when supplied. Group certificate/notification policies apply after parsing.
+ * Prepared {@link Recipient} values are not reparsed and retain their metadata unless a group policy explicitly replaces it.
  */
 public interface IRecipientsBuilder {
 
@@ -124,11 +128,12 @@ public interface IRecipientsBuilder {
     /**
      * Adds a new {@link Recipient} instance with the given name, address and {@link Message.RecipientType}.
      * <p>
-     * Note that the email address must be a single address according to RFC2822 format. Name can be provided explicitly or as part of the RFC2822 email address
-     * or omitted completely. If provided as method argument, the name overrides any nested name.
+     * This singular method does not split lists or groups and never selects only their first mailbox. Nonempty unparseable, plural or group source
+     * remains intact for normal send-time validation. Use {@link #withRecipients(String, boolean, Collection, Message.RecipientType)} to expand lists.
      *
      * @param name          Optional explicit name. Can be included in the email address instead, or omitted completely. A name will show as
      *                      {@code "Name Here <address@domain.com>"}
+     * @param fixedName     When true, a non-null name replaces the embedded name; otherwise it fills only missing names.
      * @param singleAddress A single address according to RFC2822 format with or without personal name.
      * @param recipientType Optional type of recipient. This is needed for TO, CC and BCC, but not for <em>bounceTo</em>, <em>returnReceiptTo</em>,
      *                      <em>replyTo</em>, <em>from</em> etc.
@@ -178,8 +183,8 @@ public interface IRecipientsBuilder {
     IRecipientsBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable Message.RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach);
 
     /**
-     * Delegates to {@link #withRecipient(Recipient)} for each address found in not just the collection, but also in every individual address string that is in
-     * the collection.
+     * Parses every complete mailbox list in the collection before applying the supplied name policy. Quoted punctuation, comments and escapes
+     * stay with their mailbox; RFC groups expand to members. Preserves iteration order, duplicate occurrences and nonempty unparseable source.
      *
      * @param fixedName              Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
      * @param oneOrMoreAddressesEach Collection of addresses. Each entry itself can be a delimited list of RFC2822 addresses. Examples:
@@ -207,7 +212,8 @@ public interface IRecipientsBuilder {
     IRecipientsBuilder withRecipientsFromAddressesWithFixedName(@Nullable String fixedName, @NotNull Collection<InternetAddress> addresses, @Nullable Message.RecipientType recipientType);
 
     /**
-     * Delegates to {@link #withRecipient(String, String, Message.RecipientType)} for each address in the provided collection.
+     * Interprets every supplied address, expanding RFC groups into members with the same rules as the String list inputs.
+     * Group labels do not become member names. Applies the supplied name policy to each mailbox without changing the input objects.
      *
      * @param fixedName Indicates whether the provided name should be applied to all addresses, or only to those where a name is missing.
      */
