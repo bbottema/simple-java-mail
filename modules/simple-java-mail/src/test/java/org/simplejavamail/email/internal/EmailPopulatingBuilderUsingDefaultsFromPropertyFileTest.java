@@ -57,7 +57,7 @@ public class EmailPopulatingBuilderUsingDefaultsFromPropertyFileTest {
 
 	@SuppressWarnings("SameParameterValue")
 	private SimpleJavaMail withFixedPropertyPath(@NotNull final Property property) {
-		final String originalProperty = ConfigLoaderTestHelper.defaultConfig().getStringProperty(property);
+		final String originalProperty = (String) ConfigLoaderTestHelper.defaultConfig().asMap().get(property);
 		final Properties properties = new Properties();
 		properties.put(property.key(), determineResourceFolder("simple-java-mail").replace("src", "") + originalProperty);
 		return SimpleJavaMail.withConfig(ConfigLoader.builder()
