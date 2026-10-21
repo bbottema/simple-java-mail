@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Decision recorded: 2026-09-16; this is not the original decision date
 - Applies to: Composed messages and inbound conversion, including unreleased 10.0.0 protection processing
-- Implementation status: Existing MIME/protection pipeline implemented; S/MIME and OpenPGP are alternative outbound protection families. Unavailable S/MIME inspection is implemented and reviewed locally for unreleased 10.0.0 under [#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending.
+- Implementation status: Existing MIME/protection pipeline implemented; S/MIME and OpenPGP are alternative outbound protection families. Unavailable S/MIME inspection is implemented and reviewed locally for unreleased 10.0.0 under [#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending. Recipient-triggered build validation is implemented under [#823](https://github.com/bbottema/simple-java-mail/issues/823) for unreleased 10.0.0.
 
 ## Context
 
@@ -14,6 +14,16 @@ A universally nested `mixed` / `related` / `alternative` message can be valid bu
 Keep the Email model separate from wire encoding. Choose the least complex MIME producer that exactly matches three content dimensions: attachments/forwarding require mixed content, embedded images require related content, and multiple plain/HTML/calendar bodies require alternatives. Eight producers cover their combinations. Security processing wraps the resulting MIME entity; it does not create a second set of body producers for each security combination.
 
 Finalize the ordinary MIME entity, then apply **either S/MIME or OpenPGP/MIME**, signing before encryption within that family, and apply DKIM last. The builder rejects simultaneous outbound S/MIME and OpenPGP configuration. The sequential checks inside the producer are not an API promise to support both families on one composed message.
+
+Clarification accepted 2026-10-21: recipient certificates remain active S/MIME encryption requests, including certificates supplied through
+recipient-group policies. A composed Email build rejects their combination with outbound OpenPGP signing or encryption, just as it rejects
+conflicting email-level protection choices. Check the stored choices without cryptographic work or content reads, and explain the conflicting
+sources in the argument error. This clarification is implemented under [#823](https://github.com/bbottema/simple-java-mail/issues/823) for unreleased 10.0.0.
+
+Completion checks the effective choices again after defaults and overrides, including the selected Mailer's governance at send time.
+Such a later conflict is rejected before MIME protection or submission; the initial build cannot inspect policy that has not been applied.
+Same-family signing/encryption and DKIM remain supported. Clearing email-level S/MIME still leaves recipient certificates intact; callers
+deliberately remove the unwanted choice or strip certificates from copied recipients. No protection request is silently ignored.
 
 On input, recognize protection and verify/decrypt the original representation before passing effective clear content to the general MIME parser. Preserve original protected bytes and expose result metadata independently of readable content. Cryptographic signature validity is not an application trust decision; key discovery and trust remain application-owned. Do not interpret an OpenPGP `multipart/signed` as S/MIME merely because its container is signed.
 

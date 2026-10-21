@@ -139,6 +139,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#822](https://github.com/bbottema/simple-java-mail/issues/822): ordinary protected-mail imports without the S/MIME module report unknown inspection
   facts instead of claiming plain, unsigned or unencrypted content. Recognizable headers retain the outer protection mode and original protected
   EML bytes; clearly plain input keeps its existing results. Explicit decryption still requires the module. See the migration guide.
+- [#823](https://github.com/bbottema/simple-java-mail/issues/823): reject recipient-certificate S/MIME encryption combined with OpenPGP signing or
+  encryption during composed build and effective completion, before MIME protection. Errors identify the conflicting requests and explain explicit
+  clearing without changing source recipients. See the [protection guidance](https://www.simplejavamail.org/security.html#section-sending-openpgp).
 - Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
 
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.

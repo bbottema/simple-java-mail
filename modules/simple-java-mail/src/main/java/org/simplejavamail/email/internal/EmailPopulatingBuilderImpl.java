@@ -498,14 +498,43 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	private void validateProtectionFamilies() {
-		final boolean smimeConfigured = smimeSigningConfig != null || smimeEncryptionConfig != null;
-		final boolean openPgpConfigured = openPgpSigningConfig != null || openPgpEncryptionConfig != null;
-		if (smimeConfigured && openPgpConfigured) {
-			throw new IllegalArgumentException("S/MIME and OpenPGP/MIME are both configured for this email. "
-					+ "Simple Java Mail supports either format, but not wrapping one inside the other. "
-					+ "Choose the format your recipients support and remove the other configuration with clearSmime() or clearOpenPgp() before buildEmail(). "
-					+ "If defaults or overrides supply it, adjust those templates or suppress that setting on the email being sent.");
+		if (openPgpSigningConfig == null && openPgpEncryptionConfig == null) {
+			return;
 		}
+		final List<String> smimeSources = new ArrayList<>();
+		if (smimeSigningConfig != null) {
+			smimeSources.add("email-level S/MIME signing");
+		}
+		if (smimeEncryptionConfig != null) {
+			smimeSources.add("email-level S/MIME encryption");
+		}
+		// Match the content recipients used by the MIME protection path; envelope overrides do not select encryption certificates.
+		for (final Recipient recipient : recipients) {
+			if ((recipient.getType() == RecipientType.TO || recipient.getType() == RecipientType.CC || recipient.getType() == RecipientType.BCC)
+					&& recipient.getSmimeCertificate() != null) {
+				smimeSources.add("S/MIME encryption requested by recipient " + recipient.getAddress() + " (" + recipient.getType() + ")");
+				break;
+			}
+		}
+		if (smimeSources.isEmpty()) {
+			return;
+		}
+		final List<String> openPgpSources = new ArrayList<>();
+		if (openPgpSigningConfig != null) {
+			openPgpSources.add("email-level OpenPGP signing");
+		}
+		if (openPgpEncryptionConfig != null) {
+			openPgpSources.add("email-level OpenPGP encryption");
+		}
+		throw new IllegalArgumentException("S/MIME and OpenPGP/MIME are both configured for this email: "
+				+ String.join(", ", smimeSources) + "; " + String.join(", ", openPgpSources) + ". "
+				+ "Simple Java Mail supports either format, but not wrapping one inside the other. "
+				+ "Choose the format your recipients support. "
+				+ "For email-level choices, use clearSmime() or clearOpenPgp() before buildEmail(). "
+				+ "clearSmime() leaves recipient certificates intact; deliberately strip them from copied recipients with "
+				+ "recipientsBuilder().withRecipients(...).clearingSmimeCertificates().buildRecipients() or remove the OpenPGP choice. "
+				+ "If defaults or overrides supply it, adjust those templates or suppress that setting on the email being sent. "
+				+ "Mandatory configuration locks still apply.");
 	}
 
     EmailPopulatingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
