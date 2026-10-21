@@ -918,7 +918,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				.resetWaitingCapacity().resetMaximumMessageSize().resetMemoryLimit().build());
 	}
 	/** @see MailerGenericBuilder#getMailSendRetryPolicy() */
-	@Override @NotNull public MailSendRetryPolicy getMailSendRetryPolicy() { return resolveMailSendRetryPolicy(); }
+	@Override @NotNull public MailSendRetryPolicy getMailSendRetryPolicy() { return mailSendRetryPolicy; }
 	/** @see CliMailSendRetryBuilder#withMailSendRetryWaitingCapacity(int) */
 	@Override public T withMailSendRetryWaitingCapacity(final int capacity) {
 		return withCliRetryOption(Property.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY, capacity);
