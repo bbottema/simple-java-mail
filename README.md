@@ -9,34 +9,6 @@
 
 Simple Java Mail builds well-formed MIME through a streamlined Java API. That same API covers reusable message rules, transport security, DKIM, S/MIME, OpenPGP/MIME, diagnostics, conversion, authenticated SOCKS, and advanced SMTP delivery.
 
-For application traces and metrics, add the optional `open-telemetry-module` and configure:
-
-```java
-mailerBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder()
-    .withEnabled(true)
-    .withIntegration(OtelAdapter.wrap(openTelemetry))
-    .build());
-```
-
-Alternatively, set `simplejavamail.telemetry.enabled=true` to use the application-global instance for Mailers from the configured factory.
-Supplying an integration and enabling telemetry are independent choices. Your application owns the SDK and exporters;
-the library records logical sends and actual submission attempts without depending on observer delivery. Endpoint attributes are opt-in.
-See [OpenTelemetry setup, privacy and illustrative output](https://www.simplejavamail.org/opentelemetry.html).
-
-For received delivery notifications, use the ordinary MIME/EML converter and inspect `notificationEmail.getDeliveryStatusReport()`.
-Its recipient reports expose checked status-code components, reported addresses with optional `Recipient` views, and diagnostics with optional
-`SmtpServerResponse` views. Unknown formats remain readable without asking application code to split protocol strings.
-It exposes correlation and recipient facts without turning the notification into an instruction to resend.
-See [Reading delivery reports](https://www.simplejavamail.org/delivery-reports.html).
-
-Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, or request `toEmailBuilder()` when you want to edit it.
-The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
-Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
-
-Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
-
-[Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)
-
 ## Send a first email
 
 **Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.6** dependency below.
@@ -62,34 +34,193 @@ Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, t
 implementation 'org.simplejavamail:simple-java-mail:9.3.6'
 ```
 
-### Build and send
+### Build, send, and close
 
 ```java
-SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
+import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
+import java.util.concurrent.ExecutionException;
 
-Email email = mail.emailBuilder().startingBlank()
-    .from("Sender", "sender@example.org")
-    .to("Recipient", "recipient@example.net")
-    .withSubject("It works")
-    .withPlainText("Your first Simple Java Mail message.")
-    .buildEmail();
+public class FirstSend {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
+        Email email = mail.emailBuilder().startingBlank()
+            .from("Sender", "sender@example.org")
+            .to("Recipient", "recipient@example.net")
+            .withSubject("It works")
+            .withPlainText("Your first Simple Java Mail message.")
+            .buildEmail();
 
-Mailer mailer = mail.mailerBuilder().withSMTPServer(
-        System.getenv("SMTP_HOST"),
-        587,
-        System.getenv("SMTP_USER"),
-        System.getenv("SMTP_PASSWORD"))
-    .withTransportStrategy(TransportStrategy.SMTP_TLS)
-    .buildMailer();
-
-mailer.sync().sendMail(email);
+        try (Mailer mailer = mail.mailerBuilder()
+                .withSMTPServer(System.getenv("SMTP_HOST"), 587,
+                    System.getenv("SMTP_USER"), System.getenv("SMTP_PASSWORD"))
+                .withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .buildMailer()) {
+            mailer.sync().sendMail(email);
+        }
+    }
+}
 ```
 
-Create an Email with `buildEmail()` rather than its internal constructor. To edit a built message, use
-`mail.emailBuilder().copying(email)` and build a replacement. Copies retain delivery-recipient overrides, so a message redirected to a test inbox
-keeps that routing when you change its subject or content.
+Match the port and transport strategy to your SMTP service. In an application, build the Mailer once, reuse it, and close it during shutdown;
+Spring manages that lifecycle for its Mailer bean. The standalone example above uses try-with-resources.
 
-The port and transport strategy must match your SMTP server. Build the `Mailer` once, reuse it, and close it during application shutdown. Choose `mailer.sync().sendMail(email)` to finish on the caller thread or `mailer.async().sendMail(email)` to schedule SMTP work. Both produce a submission receipt, which you can ignore when only completion matters; asynchronous sends expose it through `MailSend.getCompletion()`. Sync failures throw directly, while async operational failures complete exceptionally. Destination selection, Email templates and validation run during executor execution for async sends. The two cached views share the same Mailer, pool and lifecycle. There is no Mailer-wide async default in 10.0.0; see the [execution-view migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#explicit-send-mode).
+To change a built message, use `mail.emailBuilder().copying(email)` and build a replacement. Copies retain test-inbox routing and other metadata.
+
+## Add HTML and attachments
+
+The following snippets assume your reusable `mail` factory and `mailer` are still in application scope.
+
+```java
+Email email = mail.emailBuilder().startingBlank()
+    .from("sender@example.org")
+    .to("Alice <alice@example.net>, Bob <bob@example.net>")
+    .withSubject("Your report")
+    .withPlainText("Your report is attached.")
+    .withHTMLText("<p>Your report is <strong>attached</strong>.</p>")
+    .withAttachment(java.nio.file.Path.of("report.pdf"))
+    .buildEmail();
+```
+
+String recipient conveniences parse every mailbox. A supplied name, such as `.to("Accounts", addresses)`, overrides every embedded name.
+Use `recipientsBuilder()` when you need default-name policies or recipient-specific metadata. Keep attachment files available until sending finishes.
+
+## Send in the background
+
+```java
+MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email);
+send.getCompletion().whenComplete((receipt, failure) -> {
+    if (failure != null) {
+        System.err.println("Mail send failed: " + failure);
+    } else {
+        System.out.println("SMTP submission: " + receipt.getStatus());
+    }
+});
+```
+
+Synchronous operational failures throw `MailException`; asynchronous failures complete exceptionally under Java's normal future wrappers.
+Receipts describe SMTP submission, not final mailbox delivery. Graceful Mailer shutdown drains admitted sends.
+See [execution, failure handling, and lifecycle](https://www.simplejavamail.org/sending-and-execution.html).
+
+## Configure once, reuse everywhere
+
+A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/spring.html) create and inject it.
+
+`SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
+
+Java timeout, worker keep-alive and pool lifetime settings use `Duration`. Debug output is configured as one immutable group:
+
+```java
+mailerBuilder
+    .withConnectionConfig(ConnectionConfig.builder()
+        .withSessionTimeout(Duration.ofSeconds(10))
+        .build())
+    .withAsyncExecutionConfig(AsyncExecutionConfig.builder()
+        .withKeepAliveTime(Duration.ofSeconds(30))
+        .build())
+    .withDebugConfig(SessionDebugConfig.builder()
+        .withEnabled(true)
+        .withOutput(SessionDebugOutput.SLF4J)
+        .build());
+```
+
+These settings accept whole milliseconds within the supported integer range; property and CLI values retain their numeric millisecond units.
+Advanced settings use immutable groups: `ConnectionPoolConfig`, `AsyncExecutionConfig`, `SocksProxyConfig`, `SendingLimitsConfig`, `ConnectionConfig`, `TlsConfig` and `ValidationConfig`. Replacing a group replaces its supplied choices; omitted fields inherit the factory snapshot. Use `toBuilder()` to edit an existing group, or `useConfiguredDebugConfig()` / `useConfiguredTelemetryConfig()` on the Mailer builder to restore inherited choices. Builder group getters expose supplied choices; `mailer.getOperationalConfig()` exposes resolved settings. Explicit worker count and keep-alive choices also apply without the batch module.
+
+Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
+
+This leaves application code to describe each email while shared rules stay in one reusable place.
+
+Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:
+
+```java
+Email defaults = mail.emailBuilder().startingBlank()
+    .signWithDomainKey(dkimConfig)
+    .buildEmail(); // a policy template does not need a sender or recipients
+
+Mailer mailer = mail.mailerBuilder()
+    .withEmailDefaults(defaults)
+    .buildMailer();
+```
+
+This template replaces the factory's property-derived message defaults. To retain those defaults, first materialize them with `buildEmailCompletedWithDefaultsAndOverrides()` and edit a copy. See the [defaults and overrides guide](https://www.simplejavamail.org/configuration.html#section-config-mailer) for precedence, clearing, and per-email opt-outs. Actual sends still require a sender and recipients after defaults have been applied.
+
+`useConfiguredEmailDefaults()` restores factory defaults; `withoutEmailDefaults()` removes ordinary defaults while retaining configuration locks.
+On `EmailTemplateOptions.Builder`, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings. Supply the completed options through `emailBuilder.withTemplateOptions(...)`.
+
+### Spring Boot
+
+Spring Boot 2.7 and 3.x applications can add the dedicated starter. It brings in `spring-module`, discovers the integration automatically, and creates
+one `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` bean without an `@Import`. The application supplies its own Boot line and therefore keeps its
+Boot-managed Spring Framework and SLF4J versions. The starter coordinates below also target the unreleased current branch; build them locally until
+10.0.0 is published:
+
+```xml
+<dependency>
+    <groupId>org.simplejavamail</groupId>
+    <artifactId>simple-java-mail-spring-boot-starter</artifactId>
+    <version>10.0.0</version>
+</dependency>
+```
+
+```groovy
+implementation 'org.simplejavamail:simple-java-mail-spring-boot-starter:10.0.0'
+```
+
+Configure the Mailer through the usual keys and inject it directly:
+
+```properties
+simplejavamail.smtp.host=smtp.example.org
+simplejavamail.smtp.port=587
+simplejavamail.transportstrategy=SMTP_TLS
+simplejavamail.smtp.username=${SMTP_USER}
+simplejavamail.smtp.password=${SMTP_PASSWORD}
+```
+
+```java
+@Service
+class NotificationService {
+    private final Mailer mailer;
+    private final SimpleJavaMail mail;
+
+    NotificationService(Mailer mailer, SimpleJavaMail mail) {
+        this.mailer = mailer;
+        this.mail = mail;
+    }
+}
+```
+
+Each bean backs off independently when the application supplies the same type. The auto-configured Mailer is closed with the application context; a
+replacement follows the lifecycle declared or inferred by its own Spring bean definition. With no SMTP host at all, the context still starts with
+`localhost` as a development fallback, but sending requires an SMTP server there. Plain Spring applications can continue to use `spring-module` with
+`@Import(SimpleJavaMailSpringSupport.class)`.
+
+## Add only what you need
+
+Optional modules extend the same API and add their dependencies only when selected. Use the same Simple Java Mail version for every module. Some integration artifacts already depend on `simple-java-mail`; the modules guide notes when you do not need to declare it separately.
+
+| Requirement | Artifact |
+| --- | --- |
+| Default Angus SMTP provider and delivery adapter (included transitively; exclude it only when replacing the provider) | `angus-mail-provider-module` |
+| [DKIM domain signing](https://www.simplejavamail.org/modules.html#dkim-module) | `dkim-module` |
+| [S/MIME signing, encryption, and reading](https://www.simplejavamail.org/modules.html#smime-module) | `smime-module` |
+| OpenPGP/MIME signing, encryption, verification, and decryption | `openpgp-module` |
+| [Pooled and clustered delivery](https://www.simplejavamail.org/modules.html#batch-module) | `batch-module` |
+| [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
+| [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
+| [Spring Boot auto-configuration](https://www.simplejavamail.org/spring.html) | `simple-java-mail-spring-boot-starter` |
+| [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
+| [Application-owned OpenTelemetry traces and metrics](https://www.simplejavamail.org/opentelemetry.html) | `open-telemetry-module` |
+| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the other modules require Java 11+) |
+| [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
+
+The [modules guide](https://www.simplejavamail.org/modules.html) lists each coordinate, its main transitive dependencies, and the capabilities it enables.
+
+## Advanced sending controls
+
+Choose `mailer.sync().sendMail(email)` to finish on the caller thread or `mailer.async().sendMail(email)` to schedule SMTP work. Both produce a submission receipt, which you can ignore when only completion matters; asynchronous sends expose it through `MailSend.getCompletion()`. Sync failures throw directly, while async operational failures complete exceptionally. Destination selection, Email templates and validation run during executor execution for async sends. The two cached views share the same Mailer, pool and lifecycle. There is no Mailer-wide async default in 10.0.0; see the [execution-view migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#explicit-send-mode).
 
 For an approved alternative SMTP route, configure `.withFailoverMailer(alternative, FailoverPolicy.builder().build())`. [Connection failover](https://www.simplejavamail.org/smtp-connection-failover.html) works for sync/async sends with or without pooling and returns to the primary after recovery. Failover never replays a message after provider invocation. A separately configured [retry policy](https://www.simplejavamail.org/mail-send-retries.html) may retry a safely refused submission on the selected destination, without reopening failover. The selected Mailer owns ordinary Email templates and SMTP settings; mandatory message locks remain binding along the route. Busy pools still wait normally rather than triggering failover.
 
@@ -214,6 +345,26 @@ Managed Angus connections can also show a slow greeting, STARTTLS or authenticat
 Only setup caused by this email is reported; reused connections do not replay old work. Providers without those hooks keep coarse progress and send normally.
 DNS, TCP, proxy and implicit-TLS work remain under acquisition where separate boundaries are unavailable.
 
+## Safely retry a temporary SMTP refusal
+
+To retain configured waiting and replay budgets, edit `mailerBuilder.getMailSendRetryPolicy().toBuilder()` before supplying the policy. A fresh policy replaces all its settings; see the [preserving-edit example](https://www.simplejavamail.org/mail-send-retries.html).
+
+```java
+MailSendRetryPolicy retry = MailSendRetryPolicy.builder()
+    .withMaximumAttempts(3)
+    .withRetryDelay(Duration.ofSeconds(30))
+    .withRetryBackoff(2, Duration.ofMinutes(5))
+    .withRetryJitter(0.2)
+    .build();
+Mailer mailer = mail.mailerBuilder()
+    .withSMTPServer("smtp.example.org", 587)
+    .withMailSendRetryPolicy(retry)
+    .buildMailer();
+MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email);
+```
+
+This is opt-in and applies only to a safely refused temporary whole-envelope submission. Partial acceptance, a lost final reply, permanent rejection and cleanup failure never authorize automatic replay. `MailSendRetryPolicy` also groups `withWaitingCapacity(...)`, `withMaximumMessageSize(...)` and `withMemoryLimit(...)`; these resource settings alone do not enable retries. The selected Mailer supplies the schedule from its policy; the initiating Mailer supplies its own policy's resource limits and owns execution, deadline and final observer. All invocations use unchanged bytes, Message-ID and envelope. Ordinary async backoff releases the worker and connection; retained batch/callback scopes intentionally keep their connection. See [mail-send retries](https://www.simplejavamail.org/mail-send-retries.html) for limits, properties, Spring/CLI options, history and application-owned durable jobs.
+
 ## Submit already-finalized EML exactly
 
 Ordinary EML conversion is the right choice when you want an editable `Email`: Simple Java Mail parses its meaning and later builds a fresh MIME message. Use exact EML when the existing wire representation itself is authoritative—for example, an archived message or output already protected by DKIM, S/MIME, or OpenPGP/MIME.
@@ -232,6 +383,36 @@ The result remains an ordinary `Email`, so all getters and all existing send met
 
 Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end in CRLF. A missing Message-ID remains missing. The bundled Angus adapter supports full-byte preservation; another transport adapter must opt in explicitly. See the [exact EML guide](https://www.simplejavamail.org/features.html#section-exact-eml) and the manually runnable [file submission demo](modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java).
 
+## Diagnostics, conversion, and integrations
+
+For application traces and metrics, add the optional `open-telemetry-module` and configure:
+
+```java
+mailerBuilder.withTelemetryConfig(MailSendTelemetryConfig.builder()
+    .withEnabled(true)
+    .withIntegration(OtelAdapter.wrap(openTelemetry))
+    .build());
+```
+
+Alternatively, set `simplejavamail.telemetry.enabled=true` to use the application-global instance for Mailers from the configured factory.
+Supplying an integration and enabling telemetry are independent choices. Your application owns the SDK and exporters;
+the library records logical sends and actual submission attempts without depending on observer delivery. Endpoint attributes are opt-in.
+See [OpenTelemetry setup, privacy and illustrative output](https://www.simplejavamail.org/opentelemetry.html).
+
+For received delivery notifications, use the ordinary MIME/EML converter and inspect `notificationEmail.getDeliveryStatusReport()`.
+Its recipient reports expose checked status-code components, reported addresses with optional `Recipient` views, and diagnostics with optional
+`SmtpServerResponse` views. Unknown formats remain readable without asking application code to split protocol strings.
+It exposes correlation and recipient facts without turning the notification into an instruction to resend.
+See [Reading delivery reports](https://www.simplejavamail.org/delivery-reports.html).
+
+Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, or request `toEmailBuilder()` when you want to edit it.
+The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
+Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
+
+Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
+
+[Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [10.0 migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)
+
 ## What the API handles
 
 | Job | Support |
@@ -242,120 +423,6 @@ Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end
 | [Delivery](https://www.simplejavamail.org/configuration.html#section-batch-and-clustering) | Synchronous and asynchronous sends, terminal mail-send observation, provider-neutral submission outcomes and partial failures, a scoped open connection, simple batches, connection pools, and independently configured SMTP clusters. |
 | [Diagnostics](https://www.simplejavamail.org/debugging.html) | Connection tests, message validation and rehearsal, configuration inspection, Jakarta Mail debug routing, logging integrations, and SMTP submission receipts. |
 | [Conversion and interoperability](https://www.simplejavamail.org/features.html#section-converting) | Conversion between `Email`, `MimeMessage`, and EML; exact finalized-EML submission; send-ready serialization; Outlook `.msg` conversion; and custom sending logic. |
-
-## Configure once, reuse everywhere
-
-A `Mailer` keeps SMTP settings, transport policy, defaults, overrides, validation, signing, proxy configuration, and delivery behavior out of individual call sites. Configure it with the [Java builder API](https://www.simplejavamail.org/configuration.html#section-programmatic-api-common), [property files, system properties, or environment variables](https://www.simplejavamail.org/configuration.html#section-config-properties), or let the [Spring module](https://www.simplejavamail.org/spring.html) create and inject it.
-
-`SimpleJavaMail.fromDefaults()` resolves the conventional classpath file, environment variables, and system properties into one lazy immutable snapshot. For explicit source ordering or more than one mail setup in the same JVM, build a `SimpleJavaMailConfig` with `ConfigLoader.builder()`—including `withPropertiesFile(Path)` for filesystem configuration—and pass it to `SimpleJavaMail.withConfig(config)`.
-
-Java timeout, worker keep-alive and pool lifetime settings use `Duration`. Debug output is configured as one immutable group:
-
-```java
-mailerBuilder
-    .withConnectionConfig(ConnectionConfig.builder()
-        .withSessionTimeout(Duration.ofSeconds(10))
-        .build())
-    .withAsyncExecutionConfig(AsyncExecutionConfig.builder()
-        .withKeepAliveTime(Duration.ofSeconds(30))
-        .build())
-    .withDebugConfig(SessionDebugConfig.builder()
-        .withEnabled(true)
-        .withOutput(SessionDebugOutput.SLF4J)
-        .build());
-```
-
-These settings accept whole milliseconds within the supported integer range; property and CLI values retain their numeric millisecond units.
-Advanced settings use immutable groups: `ConnectionPoolConfig`, `AsyncExecutionConfig`, `SocksProxyConfig`, `SendingLimitsConfig`, `ConnectionConfig`, `TlsConfig` and `ValidationConfig`. Replacing a group replaces its supplied choices; omitted fields inherit the factory snapshot. Use `toBuilder()` to edit an existing group, or `useConfiguredDebugConfig()` / `useConfiguredTelemetryConfig()` on the Mailer builder to restore inherited choices. Builder group getters expose supplied choices; `mailer.getOperationalConfig()` exposes resolved settings. Explicit worker count and keep-alive choices also apply without the batch module.
-
-Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
-
-This leaves application code to describe each email while shared rules stay in one reusable place.
-
-Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:
-
-```java
-Email defaults = mail.emailBuilder().startingBlank()
-    .signWithDomainKey(dkimConfig)
-    .buildEmail(); // a policy template does not need a sender or recipients
-
-Mailer mailer = mail.mailerBuilder()
-    .withEmailDefaults(defaults)
-    .buildMailer();
-```
-
-This template replaces the factory's property-derived message defaults. To retain those defaults, first materialize them with `buildEmailCompletedWithDefaultsAndOverrides()` and edit a copy. See the [defaults and overrides guide](https://www.simplejavamail.org/configuration.html#section-config-mailer) for precedence, clearing, and per-email opt-outs. Actual sends still require a sender and recipients after defaults have been applied.
-
-`useConfiguredEmailDefaults()` restores factory defaults; `withoutEmailDefaults()` removes ordinary defaults while retaining configuration locks.
-On `EmailTemplateOptions.Builder`, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings. Supply the completed options through `emailBuilder.withTemplateOptions(...)`.
-
-### Spring Boot
-
-Spring Boot 2.7 and 3.x applications can add the dedicated starter. It brings in `spring-module`, discovers the integration automatically, and creates
-one `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` bean without an `@Import`. The application supplies its own Boot line and therefore keeps its
-Boot-managed Spring Framework and SLF4J versions. The starter coordinates below also target the unreleased current branch; build them locally until
-10.0.0 is published:
-
-```xml
-<dependency>
-    <groupId>org.simplejavamail</groupId>
-    <artifactId>simple-java-mail-spring-boot-starter</artifactId>
-    <version>10.0.0</version>
-</dependency>
-```
-
-```groovy
-implementation 'org.simplejavamail:simple-java-mail-spring-boot-starter:10.0.0'
-```
-
-Configure the Mailer through the usual keys and inject it directly:
-
-```properties
-simplejavamail.smtp.host=smtp.example.org
-simplejavamail.smtp.port=587
-simplejavamail.transportstrategy=SMTP_TLS
-simplejavamail.smtp.username=${SMTP_USER}
-simplejavamail.smtp.password=${SMTP_PASSWORD}
-```
-
-```java
-@Service
-class NotificationService {
-    private final Mailer mailer;
-    private final SimpleJavaMail mail;
-
-    NotificationService(Mailer mailer, SimpleJavaMail mail) {
-        this.mailer = mailer;
-        this.mail = mail;
-    }
-}
-```
-
-Each bean backs off independently when the application supplies the same type. The auto-configured Mailer is closed with the application context; a
-replacement follows the lifecycle declared or inferred by its own Spring bean definition. With no SMTP host at all, the context still starts with
-`localhost` as a development fallback, but sending requires an SMTP server there. Plain Spring applications can continue to use `spring-module` with
-`@Import(SimpleJavaMailSpringSupport.class)`.
-
-## Add only what you need
-
-Optional modules extend the same API and add their dependencies only when selected. Use the same Simple Java Mail version for every module. Some integration artifacts already depend on `simple-java-mail`; the modules guide notes when you do not need to declare it separately.
-
-| Requirement | Artifact |
-| --- | --- |
-| Default Angus SMTP provider and delivery adapter (included transitively; exclude it only when replacing the provider) | `angus-mail-provider-module` |
-| [DKIM domain signing](https://www.simplejavamail.org/modules.html#dkim-module) | `dkim-module` |
-| [S/MIME signing, encryption, and reading](https://www.simplejavamail.org/modules.html#smime-module) | `smime-module` |
-| OpenPGP/MIME signing, encryption, verification, and decryption | `openpgp-module` |
-| [Pooled and clustered delivery](https://www.simplejavamail.org/modules.html#batch-module) | `batch-module` |
-| [Authenticated SOCKS proxies](https://www.simplejavamail.org/modules.html#authenticated-socks-module) | `authenticated-socks-module` |
-| [Outlook `.msg` parsing and conversion](https://www.simplejavamail.org/modules.html#outlook-module) | `outlook-module` |
-| [Spring Boot auto-configuration](https://www.simplejavamail.org/spring.html) | `simple-java-mail-spring-boot-starter` |
-| [Spring-managed configuration](https://www.simplejavamail.org/modules.html#spring-module) | `spring-module` |
-| [Application-owned OpenTelemetry traces and metrics](https://www.simplejavamail.org/opentelemetry.html) | `open-telemetry-module` |
-| [Command-line sending and validation](https://www.simplejavamail.org/modules.html#cli-module) | `cli-module` (Java 17+; the other modules require Java 11+) |
-| [OSGi and Apache Karaf](https://www.simplejavamail.org/modules.html#karaf-module) | `karaf-module` |
-
-The [modules guide](https://www.simplejavamail.org/modules.html) lists each coordinate, its main transitive dependencies, and the capabilities it enables.
 
 ## Jakarta Mail remains available
 
@@ -379,7 +446,7 @@ Simple Java Mail handles the higher-level work involved in outbound email while 
 | Understand multipart structures | [MIME and interoperability](https://www.simplejavamail.org/rfc-compliant.html) |
 | Choose an optional artifact | [Modules](https://www.simplejavamail.org/modules.html) |
 | Compare Java mail libraries | [Comparison](https://www.simplejavamail.org/feature-matrix.html) |
-| Upgrade existing code | [9.2 migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) |
+| Upgrade existing code | [10.0 migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html) |
 | Understand the replaceable provider boundary in 10.0.0 | [Provider integration guide](https://www.simplejavamail.org/modules.html#mail-transport-adapter-spi) |
 | Ask a question or contribute | [Help and contribute](https://www.simplejavamail.org/contact.html) |
 
@@ -399,24 +466,6 @@ Simple Java Mail is open source under the Apache License 2.0. It was first publi
 
 - Use the [issue tracker](https://github.com/bbottema/simple-java-mail/issues) for reproducible bugs and concrete feature ideas.
 - Use [Help and contribute](https://www.simplejavamail.org/contact.html) to choose the right public channel or arrange private follow-up for a sensitive report.
-
-## Safely retry a temporary SMTP refusal
-
-```java
-MailSendRetryPolicy retry = MailSendRetryPolicy.builder()
-    .withMaximumAttempts(3)
-    .withRetryDelay(Duration.ofSeconds(30))
-    .withRetryBackoff(2, Duration.ofMinutes(5))
-    .withRetryJitter(0.2)
-    .build();
-Mailer mailer = mail.mailerBuilder()
-    .withSMTPServer("smtp.example.org", 587)
-    .withMailSendRetryPolicy(retry)
-    .buildMailer();
-MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email);
-```
-
-This is opt-in and applies only to a safely refused temporary whole-envelope submission. Partial acceptance, a lost final reply, permanent rejection and cleanup failure never authorize automatic replay. `MailSendRetryPolicy` also groups `withWaitingCapacity(...)`, `withMaximumMessageSize(...)` and `withMemoryLimit(...)`; these resource settings alone do not enable retries. The selected Mailer supplies the schedule from its policy; the initiating Mailer supplies its own policy's resource limits and owns execution, deadline and final observer. All invocations use unchanged bytes, Message-ID and envelope. Ordinary async backoff releases the worker and connection; retained batch/callback scopes intentionally keep their connection. See [mail-send retries](https://www.simplejavamail.org/mail-send-retries.html) for limits, properties, Spring/CLI options, history and application-owned durable jobs.
 
 ## License
 

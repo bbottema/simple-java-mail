@@ -6,6 +6,13 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- Email To/Cc/Bcc, Reply-To and notification conveniences parse all supplied mailboxes, retaining order, duplicates and embedded names.
+  Explicit names override every parsed name; From/bounce and individual Recipient extraction keep their own singular contracts.
+- Notification destinations use immutable plural getters and complete-list replacement. Automatic requests use all resolved Reply-To addresses,
+  falling back to From. Supported older serialized singleton destinations remain readable.
+- Empty SMTP credentials normalize consistently across setters without changing partial-update overloads. Retry/failover policies provide
+  `toBuilder()` to preserve configured budgets and other choices while editing a policy.
+
 - Configuration reads use schema-bound `ConfigKeys` and `get(ConfigKey<T>)`, including Duration views of time settings.
   Keys also constrain explicit/fallback values at compile time. Textual property names, numeric units, locks and raw-map integration remain unchanged.
 
