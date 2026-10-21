@@ -185,10 +185,17 @@ public interface EmailPopulatingBuilder {
 	 * Existing duplicate occurrences are preserved; resource identity is recognized without reading borrowed content. Suppression choices
 	 * survive completion and copying, and applicable locked configuration always remains binding.
 	 * <p>
+	 * Completion resolves outgoing content and configuration, including S/MIME, OpenPGP and DKIM settings. It does not copy historical
+	 * cryptographic results, original protected bytes, received delivery reports and their nested facts, decrypted-attachment inspection
+	 * lists or the retained S/MIME signed-message view. Outgoing delivery-notification requests remain eligible configuration.
+	 * Cryptographic processing happens later during MIME preparation. Inspect the original converted Email for source results;
+	 * ordinary copying and supported Java serialization preserve their separate history contracts.
+	 * <p>
 	 * Completion does not freeze the message. Use {@link #buildEmail()} for ordinary sending so the selected destination supplies its defaults
 	 * directly, including in a cluster. Sending a completed result keeps its materialized values as supplied values; another Mailer's default
 	 * sender cannot replace an existing sender, while its override can. See {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}
-	 * for collection ordering and duplicate matching. Exact EML retains its separate authoritative-byte contract.
+	 * for collection ordering and duplicate matching. Sending, rehearsing or exporting the original exact Email retains its authoritative-byte
+	 * contract; explicitly completing an exact Email creates a composed result.
 	 *
 	 * @param emailGovernance The email governance to use for this email. It determines which default values and overrides to apply, what the maximum
 	 *                           email size is, etc.
@@ -1364,6 +1371,9 @@ public interface EmailPopulatingBuilder {
 	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
 	 * attachments replaced with decrypted ones.
 	 * <p>
+	 * This is a historical inspection list retained by conversion, ordinary copying and supported Java serialization. Defaults/overrides
+	 * completion does not carry it into the result. Ordinary outgoing attachments remain governed independently.
+	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	@NotNull
@@ -1431,12 +1441,17 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * For example, you can use it to determine if the message was encrypted or signed and also who did the signing.
 	 * <p>
+	 * These results describe the converted input. Defaults/overrides completion does not copy them or their original protected bytes;
+	 * it resolves the outgoing settings separately. Ordinary copying and supported Java serialization retain the source history.
+	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
 	@NotNull
 	OriginalSmimeDetails getOriginalSmimeDetails();
 
 	/**
+	 * Returns historical facts from a received delivery notification. Defaults/overrides completion omits this report and its nested facts;
+	 * outgoing delivery-notification requests are separate configuration.
 	 * @see Email#getDeliveryStatusReport()
 	 */
 	@Nullable
@@ -1444,10 +1459,13 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * If the Email instance currently being built was the result of a conversion in which the source message was S/MIME
-	 * signed / encrypted, this field will contain the decrypted MimeMessage instance.
+	 * signed / encrypted, this field can contain the retained parsed Email for its signed content.
 	 * <p>
 	 * By default, this message is merged into the parent email, as it is actually the same message (this behavior can be
 	 * turned off with {@link #notMergingSingleSMIMESignedAttachment()}).
+	 * <p>
+	 * This retained view and its merge bookkeeping are conversion history. Ordinary copying and supported Java serialization preserve
+	 * them; defaults/overrides completion does not. Content already merged into ordinary body, header and resource fields remains outgoing content.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
@@ -1481,6 +1499,11 @@ public interface EmailPopulatingBuilder {
 	@Nullable
 	OpenPgpEncryptionConfig getOpenPgpEncryptionConfig();
 
+	/**
+	 * Returns historical OpenPGP inspection results for the converted input. Defaults/overrides completion does not copy these results
+	 * or their original protected bytes; outgoing OpenPGP configuration is resolved separately. Ordinary copying and supported Java
+	 * serialization retain the source history.
+	 */
 	@NotNull
 	OriginalOpenPgpDetails getOriginalOpenPgpDetails();
 

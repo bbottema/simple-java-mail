@@ -367,10 +367,6 @@ public class EmailGovernanceImpl implements EmailGovernance {
 				.ifPresent(builder::signWithOpenPgp);
 		ofNullable(this.<OpenPgpEncryptionConfig>resolveEmailProperty(provided, EmailProperty.OPENPGP_ENCRYPTION_CONFIG))
 				.ifPresent(builder::encryptWithOpenPgp);
-		if (provided != null) {
-			// Source facts follow the supplied Email, never a defaults/overrides template.
-			((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(provided.getDeliveryStatusReport());
-		}
 		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
 		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
 		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withDeliveryStatusNotification);

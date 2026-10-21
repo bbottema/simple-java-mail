@@ -2,6 +2,7 @@
 
 - Status: Accepted; retrospective record of implemented behavior
 - Decision recorded: 2026-09-16; not the original introduction date
+- Explicit-completion boundary clarified: 2026-10-21
 - Applies to: Unreleased 10.0.0 exact EML construction, conversion and submission
 - Implementation baseline: `codex/10.0.0` at `a4eda9e6`; pending ENVID additions are separate
 - Related decisions: [ADR 0002: Governance](0002-email-defaults-and-overrides.md), [ADR 0011: Submission outcomes](0011-transport-neutral-submission-outcomes.md), [ADR 0014: Rehearsal](0014-send-time-rehearsal.md)
@@ -27,6 +28,11 @@ That copy also makes no promise that signatures already applied to the source re
 Use the original exact Email for unchanged resubmission. When constructing a different envelope, start the existing exact builder from the
 application's authoritative finalized input and supply its envelope explicitly. This clarifies the existing boundary without adding a copy mode
 or requiring a new public message type.
+
+Explicitly calling `EmailGovernance.produceEmailApplyingDefaultsAndOverrides(exactEmail)` likewise creates a new composed Email from the
+parsed view, using ordinary defaults, overrides, suppression and applicable locks. The supplied exact Email remains unchanged; the composed
+result does not guarantee the original EML bytes or the validity of existing signatures. This boundary was clarified on 21 October 2026:
+requesting composition is distinct from sending, rehearsing or exporting the original exact Email through its authoritative-byte source path.
 
 [ADR 0028](0028-per-email-recipient-rejection-handling.md) records the explicit recipient-rejection choice on ExactEmailBuilder under #754.
 It is envelope metadata only: ordinary templates remain bypassed, compatible factory locks still apply, and authoritative bytes are unchanged.
@@ -66,7 +72,7 @@ These comparisons are retrospective analysis; the relay-MimeMessage proposal and
 - **Infer recipients from headers:** cannot represent hidden recipients or deliberate relay routing reliably. Explicit envelope data makes that choice reviewable.
 - **Normalize line endings or strip Bcc automatically:** would be convenient but contradict exact submission. Reject unusable input and leave preparation of a safe outbound representation to the caller.
 
-The caller gains byte-preserving submission but assumes responsibility for the already-final outbound content. Existing Bcc/Resent-Bcc, content metadata and signatures are preserved even when their presence is undesirable. Governance does not enforce a Mailer's content policy over exact messages. The API stores copied EML in memory; it is not a streaming spool or durable queue.
+The caller gains byte-preserving submission but assumes responsibility for the already-final outbound content. Existing Bcc/Resent-Bcc, content metadata and signatures are preserved even when their presence is undesirable. Automatic exact preparation does not apply a Mailer's ordinary content templates. The API stores copied EML in memory; it is not a streaming spool or durable queue.
 
 ## Implementation limits and verification landmarks
 
@@ -80,6 +86,6 @@ that cannot be established without rewriting are rejected, not silently ignored.
 
 [ExactEmailBuilderImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/ExactEmailBuilderImpl.java), [ExactEmlValidator](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/ExactEmlValidator.java) and [AngusMailTransportAdapter](../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusMailTransportAdapter.java) implement these boundaries. Rehearsal retains the original bytes in both modes; full rehearsal additionally checks their raw size. The CLI's byte-array argument uses its existing file converter, rather than introducing a second submission engine.
 
-Pending ENVID work in the working tree extends envelope metadata. It does not authorize MIME mutation or governance of exact input. This record does not claim broader DSN recipient support, automatic delivery correlation or support from adapters that have not opted into preservation.
+Pending ENVID work in the working tree extends envelope metadata. It does not authorize MIME mutation or ordinary template application during exact preparation. This record does not claim broader DSN recipient support, automatic delivery correlation or support from adapters that have not opted into preservation.
 
 Existing regression landmarks are [ExactEmailBuilderTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/email/internal/ExactEmailBuilderTest.java) and [ExactEmailSendingTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/ExactEmailSendingTest.java). The documentation pass verified the implementation paths and historical references without rerunning Java tests.

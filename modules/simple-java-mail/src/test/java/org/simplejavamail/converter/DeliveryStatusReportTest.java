@@ -370,14 +370,29 @@ class DeliveryStatusReportTest {
 	}
 
 	@Test
-	void governanceRetainsTheSuppliedSnapshotButNeverInheritsItFromTemplates() {
-		final Email notification = convert(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT));
+	void completionOmitsReceivedHistoryFromTheSuppliedEmailAndTemplates() {
+		final Email notification = convert(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+				+ "Diagnostic-Code: smtp; 550 no such mailbox\r\n"));
+		final DeliveryStatusReport received = notification.getDeliveryStatusReport();
 		final Email ordinary = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank().withPlainText("Ordinary content").buildEmail();
 		final org.simplejavamail.mailer.internal.EmailGovernanceImpl governance =
 				new org.simplejavamail.mailer.internal.EmailGovernanceImpl(null, notification, notification, null);
-		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(notification).getDeliveryStatusReport()).isSameAs(notification.getDeliveryStatusReport());
+		final Email completed = governance.produceEmailApplyingDefaultsAndOverrides(notification);
+		assertThat(completed.getDeliveryStatusReport()).isNull();
+		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(completed).getDeliveryStatusReport()).isNull();
+		assertThat(SimpleJavaMail.fromDefaults().emailBuilder().copying(notification)
+				.buildEmailCompletedWithDefaultsAndOverrides(governance).getDeliveryStatusReport()).isNull();
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(ordinary).getDeliveryStatusReport()).isNull();
 		assertThat(governance.produceEmailApplyingDefaultsAndOverrides(null).getDeliveryStatusReport()).isNull();
+		assertThat(completed.getPlainText()).isEqualTo(notification.getPlainText());
+		assertThat(completed.getAttachments()).containsExactlyElementsOf(notification.getAttachments());
+		assertThat(notification.getDeliveryStatusReport()).isSameAs(received);
+		assertThat(received.getEnvelopeId()).isEqualTo("order-123");
+		assertThat(received.getReportingServer().getName()).isEqualTo("relay.example.test");
+		assertThat(received.getRecipients()).hasSize(1);
+		assertThat(received.getRecipients().get(0).getFinalRecipient().getMailbox().getAddress()).isEqualTo("Reader@Example.test");
+		assertThat(received.getRecipients().get(0).getDiagnostic().getSmtpResponse().getReturnCode()).isEqualTo(550);
+		assertThat(received.getWarnings()).isEmpty();
 	}
 
 	@Test
