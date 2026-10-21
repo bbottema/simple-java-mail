@@ -24,6 +24,14 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** Unknown S/MIME facts are available directly through core result contracts, without a separate availability guard. */
+    public static boolean unknownSmime(final Email email) {
+        final org.simplejavamail.api.email.OriginalSmimeDetails details = email.getOriginalSmimeDetails();
+        return details.getSmimeMode() == org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.UNKNOWN
+                || details.getVerificationStatus() == org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN
+                || details.getDecryptionStatus() == org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.UNKNOWN;
+    }
+
     /** SJM-owned attachment reads expose the common operational failure contract without checked I/O. */
     public static String readAttachment(final org.simplejavamail.api.email.AttachmentResource attachment) {
         final byte[] bytes = attachment.readAllBytes();

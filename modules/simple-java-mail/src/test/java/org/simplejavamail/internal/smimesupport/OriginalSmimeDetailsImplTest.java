@@ -2,6 +2,7 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus;
+import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
@@ -77,6 +78,51 @@ class OriginalSmimeDetailsImplTest {
 	}
 
 	@Test
+	void anUnknownRepresentedLayerPreventsAggregateSuccessInEitherOrder() {
+		for (boolean unknownFirst : new boolean[] {false, true}) {
+			final OriginalSmimeDetailsImpl unknown = OriginalSmimeDetailsImpl.builder()
+					.smimeMode(SmimeMode.UNKNOWN)
+					.verificationStatus(VerificationStatus.UNKNOWN)
+					.decryptionStatus(DecryptionStatus.UNKNOWN)
+					.build();
+			final OriginalSmimeDetailsImpl success = OriginalSmimeDetailsImpl.builder()
+					.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
+					.verificationStatus(VerificationStatus.VALID)
+					.decryptionStatus(DecryptionStatus.DECRYPTED)
+					.build();
+			final OriginalSmimeDetailsImpl combined = unknownFirst ? unknown : success;
+			combined.completeWith(unknownFirst ? success : unknown);
+
+			assertThat(combined.getSmimeMode()).isEqualTo(SmimeMode.UNKNOWN);
+			assertThat(combined.getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
+			assertThat(combined.getSmimeSignatureValid()).isNull();
+			assertThat(combined.getDecryptionStatus()).isEqualTo(DecryptionStatus.UNKNOWN);
+		}
+	}
+
+	@Test
+	void knownFailuresRemainDistinctFromUnknownInspection() {
+		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder()
+				.verificationStatus(VerificationStatus.UNKNOWN)
+				.decryptionStatus(DecryptionStatus.UNKNOWN)
+				.build();
+		details.completeWith(OriginalSmimeDetailsImpl.builder()
+				.verificationStatus(VerificationStatus.INVALID)
+				.decryptionStatus(DecryptionStatus.KEY_MISSING)
+				.failureReason("key missing and signature invalid")
+				.build());
+		details.completeWith(OriginalSmimeDetailsImpl.builder()
+				.verificationStatus(VerificationStatus.UNKNOWN)
+				.decryptionStatus(DecryptionStatus.UNKNOWN)
+				.build());
+
+		assertThat(details.getVerificationStatus()).isEqualTo(VerificationStatus.INVALID);
+		assertThat(details.getSmimeSignatureValid()).isFalse();
+		assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
+		assertThat(details.getFailureReason()).isEqualTo("key missing and signature invalid");
+	}
+
+	@Test
 	void explicitStatusAndLegacyBooleanCannotContradictEachOther() {
 		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder()
 				.smimeSignatureValid(true)
@@ -138,6 +184,49 @@ class OriginalSmimeDetailsImplTest {
 
 		assertThat(restored.getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
 		assertThat(restored.getDecryptionStatus()).isEqualTo(DecryptionStatus.NOT_ENCRYPTED);
+	}
+
+	@Test
+	void deserializationRetainsUnknownResultsAndProtectedBytes() throws Exception {
+		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.ENCRYPTED)
+				.verificationStatus(VerificationStatus.UNKNOWN)
+				.decryptionStatus(DecryptionStatus.UNKNOWN)
+				.originalProtectedMessage(new byte[] {1, 2, 3})
+				.build();
+		final OriginalSmimeDetailsImpl restored = roundTrip(details);
+
+		assertThat(restored).isEqualTo(details);
+		assertThat(restored.getSmimeSignatureValid()).isNull();
+		assertThat(restored.getOriginalProtectedMessage()).containsExactly(1, 2, 3);
+	}
+
+	@Test
+	void legacyProtectedSnapshotsDoNotInventUnrecordedResults() throws Exception {
+		final OriginalSmimeDetailsImpl encrypted = OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.ENCRYPTED).build();
+		setField(encrypted, "decryptionStatus", null);
+		final OriginalSmimeDetailsImpl signed = OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.SIGNED).build();
+		setField(signed, "verificationStatus", null);
+
+		assertThat(roundTrip(encrypted).getDecryptionStatus()).isEqualTo(DecryptionStatus.UNKNOWN);
+		assertThat(roundTrip(signed).getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
+		assertThat(roundTrip(signed).getSmimeSignatureValid()).isNull();
+	}
+
+	@Test
+	void legacySignatureObservationsAndExplicitStoredStatusesRemainAuthoritative() throws Exception {
+		final OriginalSmimeDetailsImpl valid = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED).smimeSignatureValid(true).build();
+		setField(valid, "verificationStatus", null);
+		final OriginalSmimeDetailsImpl unsigned = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.SIGNED).verificationStatus(VerificationStatus.NOT_SIGNED).build();
+		final OriginalSmimeDetailsImpl unencrypted = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(SmimeMode.ENCRYPTED).decryptionStatus(DecryptionStatus.NOT_ENCRYPTED).build();
+
+		assertThat(roundTrip(valid).getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
+		assertThat(roundTrip(valid).getSmimeSignatureValid()).isTrue();
+		assertThat(roundTrip(unsigned).getVerificationStatus()).isEqualTo(VerificationStatus.NOT_SIGNED);
+		assertThat(roundTrip(unencrypted).getDecryptionStatus()).isEqualTo(DecryptionStatus.NOT_ENCRYPTED);
 	}
 
 	private static void setField(final OriginalSmimeDetailsImpl details, final String fieldName, final Object value) throws Exception {

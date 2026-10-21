@@ -1444,7 +1444,9 @@ public interface EmailPopulatingBuilder {
 	 * These results describe the converted input. Defaults/overrides completion does not copy them or their original protected bytes;
 	 * it resolves the outgoing settings separately. Ordinary copying and supported Java serialization retain the source history.
 	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 * Basic MIME recognition is available without the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 * Protected input then exposes unknown verification and decryption results rather than claiming plain content.
+	 * Cryptographic inspection requires the module; see {@link OriginalSmimeDetails} for the result states.
 	 */
 	@NotNull
 	OriginalSmimeDetails getOriginalSmimeDetails();

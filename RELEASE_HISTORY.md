@@ -136,6 +136,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   duplicate recipient occurrences symmetrically while retaining its order-insensitive comparison.
 - Fluent EML-to-Email imports preserve original protected input bytes, including tolerated noncanonical header endings. EML export failures retain
   their cause and identify the conversion operation instead of reporting an impossible internal state.
+- [#822](https://github.com/bbottema/simple-java-mail/issues/822): ordinary protected-mail imports without the S/MIME module report unknown inspection
+  facts instead of claiming plain, unsigned or unencrypted content. Recognizable headers retain the outer protection mode and original protected
+  EML bytes; clearly plain input keeps its existing results. Explicit decryption still requires the module. See the migration guide.
 - Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
 
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.
