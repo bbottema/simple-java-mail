@@ -11,21 +11,21 @@ import com.sanctionco.jmail.JMail;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Immutable supplied ValidationConfig choices. An unset validation-blocking choice inherits the owning Mailer factory snapshot.
+ * Immutable supplied ValidationConfig choices. An unset warning-only choice inherits the owning Mailer factory snapshot.
  * Validator instances and maximum-size limits are Java-only choices; their fallbacks are the strict JMail validator and no size limit.
  * Construction and inspection never start workers, connect, resolve configuration sources or own borrowed resources.
  * Replacing this group on a Mailer discards its previous supplied choices.
  */
 @Value
 public class ValidationConfig {
-    @Nullable Boolean disableAllClientValidation;
+    @Nullable Boolean clientValidationWarningsOnly;
     @Nullable EmailValidator emailValidator;
     boolean emailValidatorCleared;
     @Nullable Integer maximumEmailSize;
     boolean maximumEmailSizeCleared;
 
     private ValidationConfig(final Builder builder) {
-        disableAllClientValidation = builder.disableAllClientValidation;
+        clientValidationWarningsOnly = builder.clientValidationWarningsOnly;
         emailValidator = builder.emailValidator;
         emailValidatorCleared = builder.emailValidatorCleared;
         maximumEmailSize = builder.maximumEmailSize;
@@ -36,8 +36,8 @@ public class ValidationConfig {
     @NotNull public static Builder builder() { return new Builder(); }
     /** @return An independent builder retaining supplied choices and borrowed-resource identities. */
     @NotNull public Builder toBuilder() { return new Builder(this); }
-    /** @see Builder#disablingAllClientValidation(boolean) */
-    @Nullable public Boolean getDisableAllClientValidation() { return disableAllClientValidation; }
+    /** @see Builder#withClientValidationWarningsOnly(boolean) */
+    @Nullable public Boolean getClientValidationWarningsOnly() { return clientValidationWarningsOnly; }
     /** @see Builder#withEmailValidator(EmailValidator) */
     @Nullable public EmailValidator getEmailValidator() { return emailValidator; }
     /**
@@ -55,14 +55,14 @@ public class ValidationConfig {
 
     /** Explicit choices for this group; inspection does not build or validate an incomplete configuration. */
     public static final class Builder {
-        private Boolean disableAllClientValidation;
+        private Boolean clientValidationWarningsOnly;
         private EmailValidator emailValidator;
         private boolean emailValidatorCleared;
         private Integer maximumEmailSize;
         private boolean maximumEmailSizeCleared;
         private Builder() { }
         private Builder(final ValidationConfig config) {
-            disableAllClientValidation = config.disableAllClientValidation;
+            clientValidationWarningsOnly = config.clientValidationWarningsOnly;
             emailValidator = config.emailValidator;
             emailValidatorCleared = config.emailValidatorCleared;
             maximumEmailSize = config.maximumEmailSize;
@@ -73,23 +73,28 @@ public class ValidationConfig {
          * <p>
          * When set to {@code true}, sender and recipient completeness checks, the configured email address validator and CRLF injection scans still run,
          * but their findings are logged and sending continues. The default {@code false} keeps these validations blocking.
+         * Maximum-size enforcement, security processing and other message-preparation failures keep their independent behavior.
+         * <p>
+         * An unset choice inherits captured configuration properties before the library fallback. Explicit {@code false} selects blocking behavior,
+         * even when properties enable warning-only behavior. {@link #resetClientValidationWarningsOnly()} selects the library fallback;
+         * {@link #useConfiguredClientValidationWarningsOnly()} restores inheritance. Configuration locks remain binding.
          *
-         * @param disableAllClientValidation Whether client-side validation findings should be non-blocking. Defaults to
-         *                                   {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
+         * @param clientValidationWarningsOnly Whether client-side validation findings should be non-blocking. Defaults to
+         *                                           {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
          */
-        @NotNull public Builder disablingAllClientValidation(final boolean disableAllClientValidation) { this.disableAllClientValidation = disableAllClientValidation; return this; }
-        /** @see #disablingAllClientValidation(boolean) */
-        @Nullable public Boolean getDisableAllClientValidation() { return disableAllClientValidation; }
+        @NotNull public Builder withClientValidationWarningsOnly(final boolean clientValidationWarningsOnly) { this.clientValidationWarningsOnly = clientValidationWarningsOnly; return this; }
+        /** @see #withClientValidationWarningsOnly(boolean) */
+        @Nullable public Boolean getClientValidationWarningsOnly() { return clientValidationWarningsOnly; }
         /**
          * Selects the published library fallback.
-         * @see #disablingAllClientValidation(boolean)
+         * @see #withClientValidationWarningsOnly(boolean)
          */
-        @NotNull public Builder resetDisableAllClientValidations() { return disablingAllClientValidation(MailerGenericBuilder.DEFAULT_DISABLE_ALL_CLIENTVALIDATION); }
+        @NotNull public Builder resetClientValidationWarningsOnly() { return withClientValidationWarningsOnly(MailerGenericBuilder.DEFAULT_DISABLE_ALL_CLIENTVALIDATION); }
         /**
          * Restores captured configuration for this member.
-         * @see #disablingAllClientValidation(boolean)
+         * @see #withClientValidationWarningsOnly(boolean)
          */
-        @NotNull public Builder useConfiguredDisableAllClientValidation() { disableAllClientValidation = null; return this; }
+        @NotNull public Builder useConfiguredClientValidationWarningsOnly() { clientValidationWarningsOnly = null; return this; }
         /**
          * Sets the email address validator used when validating and sending emails using the current <code>Mailer</code> instance.
          * <p>

@@ -24,6 +24,15 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** Body construction and inspection continue through core contracts without a main-module dependency. */
+    public static String inspectBodies(final org.simplejavamail.api.email.EmailPopulatingBuilder builder,
+            final java.io.File file, final java.nio.file.Path path) {
+        builder.withPlainText("body").prependPlainText(file).appendPlainText(path).appendPlainText("suffix")
+                .withHTMLText("<p>body</p>").prependHTMLText(file).appendHTMLText(path).appendHTMLText("<hr>")
+                .withCalendarText(org.simplejavamail.api.email.CalendarMethod.REQUEST, "calendar");
+        return builder.getPlainText() + builder.getHTMLText() + builder.getCalendarText();
+    }
+
     /** Continuing application reads use invariant schema keys with core and its declared API dependencies only. */
     public static java.time.Duration inspectTypedConfiguration(final SimpleJavaMailConfig config) {
         final Integer port = config.get(org.simplejavamail.config.ConfigKeys.SMTP_PORT);

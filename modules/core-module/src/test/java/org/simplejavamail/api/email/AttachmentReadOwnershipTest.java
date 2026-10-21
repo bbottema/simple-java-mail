@@ -18,7 +18,7 @@ class AttachmentReadOwnershipTest {
     @ValueSource(booleans = {false, true})
     void convenienceReadersCloseTheirStream(final boolean text) throws IOException {
         final TrackingSource source = new TrackingSource(false, false);
-        final AttachmentResource attachment = new AttachmentResource("note.txt", source);
+        final AttachmentResource attachment = AttachmentResource.builder().withName("note.txt").withDataSource(source).build();
         assertThat(source.opened).isZero();
         if (text) {
             assertThat(attachment.readAllData()).isEqualTo("hello");
@@ -33,7 +33,7 @@ class AttachmentReadOwnershipTest {
     @ValueSource(booleans = {false, true})
     void readingFailureRemainsPrimaryWhenClosingAlsoFails(final boolean text) {
         final TrackingSource source = new TrackingSource(true, true);
-        final AttachmentResource attachment = new AttachmentResource("note.txt", source);
+        final AttachmentResource attachment = AttachmentResource.builder().withName("note.txt").withDataSource(source).build();
         assertThatThrownBy(() -> read(attachment, text)).isSameAs(source.readFailure)
                 .satisfies(failure -> assertThat(failure.getSuppressed()).containsExactly(source.closeFailure));
         assertThat(source.closed).isEqualTo(1);
@@ -43,14 +43,14 @@ class AttachmentReadOwnershipTest {
     @ValueSource(booleans = {false, true})
     void closingFailureIsReportedAfterSuccessfulReading(final boolean text) {
         final TrackingSource source = new TrackingSource(false, true);
-        assertThatThrownBy(() -> read(new AttachmentResource("note.txt", source), text)).isSameAs(source.closeFailure);
+        assertThatThrownBy(() -> read(AttachmentResource.builder().withName("note.txt").withDataSource(source).build(), text)).isSameAs(source.closeFailure);
         assertThat(source.closed).isEqualTo(1);
     }
 
     @Test
     void directlyRequestedStreamsRemainCallerOwned() throws IOException {
         final TrackingSource source = new TrackingSource(false, false);
-        final InputStream stream = new AttachmentResource("note.txt", source).getDataSourceInputStream();
+        final InputStream stream = AttachmentResource.builder().withName("note.txt").withDataSource(source).build().getDataSourceInputStream();
         assertThat(source.closed).isZero();
         stream.close();
         assertThat(source.closed).isEqualTo(1);

@@ -255,7 +255,7 @@ class MessageSnapshotContractTest {
 	}
 
 	private static AttachmentResource resource() {
-		return new AttachmentResource("decrypted", new ByteArrayDataSource(new byte[] {3}, "text/plain"));
+		return AttachmentResource.builder().withName("decrypted").withDataSource(new ByteArrayDataSource(new byte[] {3}, "text/plain")).build();
 	}
 
 	private static void setField(final Email email, final String name, final Object value) throws ReflectiveOperationException {

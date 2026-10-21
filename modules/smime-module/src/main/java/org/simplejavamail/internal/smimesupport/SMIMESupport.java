@@ -388,7 +388,7 @@ public class SMIMESupport implements SMIMEModule {
 			final ByteArrayDataSource dataSource = new ByteArrayDataSource(
 					readAll(message.getInputStream()), parsed.getBaseType());
 			dataSource.setName(name);
-			return new ArrayList<>(Collections.singletonList(new AttachmentResource(name, dataSource)));
+			return new ArrayList<>(Collections.singletonList(AttachmentResource.builder().withName(name).withDataSource(dataSource).build()));
 		} catch (Exception e) {
 			return new ArrayList<>();
 		}
@@ -406,8 +406,7 @@ public class SMIMESupport implements SMIMEModule {
 			}
 			final MimeBodyPart signature = (MimeBodyPart) multipart.getBodyPart(1);
 			final String name = ofNullable(signature.getFileName()).orElse("smime.p7s");
-			return new ArrayList<>(Collections.singletonList(new AttachmentResource(name,
-					new ByteArrayDataSource(readAll(signature.getInputStream()), signature.getContentType()))));
+			return new ArrayList<>(Collections.singletonList(AttachmentResource.builder().withName(name).withDataSource(new ByteArrayDataSource(readAll(signature.getInputStream()), signature.getContentType())).build()));
 		} catch (Exception e) {
 			return new ArrayList<>();
 		}
@@ -416,8 +415,7 @@ public class SMIMESupport implements SMIMEModule {
 	@NotNull
 	private static AttachmentResource asMessageAttachment(@NotNull final MimeMessage message)
 			throws MessagingException, IOException {
-		return new AttachmentResource("signed-email.eml",
-				new ByteArrayDataSource(serializeMessage(message), "message/rfc822"));
+		return AttachmentResource.builder().withName("signed-email.eml").withDataSource(new ByteArrayDataSource(serializeMessage(message), "message/rfc822")).build();
 	}
 
 	@NotNull
@@ -775,7 +773,7 @@ public class SMIMESupport implements SMIMEModule {
 			};
 			decryptedMessage.setContent((Multipart) content);
 			decryptedMessage.writeTo(os);
-			return new AttachmentResource("signed-email.eml", new ByteArrayDataSource(os.toByteArray(), "message/rfc822"));
+			return AttachmentResource.builder().withName("signed-email.eml").withDataSource(new ByteArrayDataSource(os.toByteArray(), "message/rfc822")).build();
 		}
 		LOGGER.warn("S/MIME content could not be converted to an email attachment, keeping the original S/MIME attachment. Content type: {}",
 				content != null ? content.getClass() : null);

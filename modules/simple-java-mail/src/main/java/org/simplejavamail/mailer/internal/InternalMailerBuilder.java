@@ -103,10 +103,10 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	 * When set to {@code true}, sender and recipient completeness checks, the configured email address validator and CRLF injection scans still run,
 	 * but their findings are logged and sending continues. The default {@code false} keeps these validations blocking.
 	 *
-	 * @param disableAllClientValidation Whether client-side validation findings should be non-blocking. Defaults to
+	 * @param clientValidationWarningsOnly Whether client-side validation findings should be non-blocking. Defaults to
 	 *                                   {@value DEFAULT_DISABLE_ALL_CLIENTVALIDATION}.
 	 */
-	T disablingAllClientValidation(@NotNull Boolean disableAllClientValidation);
+	T disablingAllClientValidation(@NotNull Boolean clientValidationWarningsOnly);
 	/**
 	 * Sets the same socket timeout for connecting, reading and writing. This is not a deadline for the whole send.
 	 * <p>
@@ -766,7 +766,7 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
-	boolean isDisableAllClientValidation();
+	boolean isClientValidationWarningsOnly();
 	/**
 	 * @see #withSessionTimeout(Duration)
 	 */

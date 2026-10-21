@@ -88,7 +88,7 @@ public class MimeMessageParserTest {
 		multipartRootMixed.addBodyPart(messagePart);
 
 		// attachments
-		final AttachmentResource r = new AttachmentResource("wrong-name.txt", new ByteArrayDataSource("Black Tie Optional", "text/plain"));
+		final AttachmentResource r = AttachmentResource.builder().withName("wrong-name.txt").withDataSource(new ByteArrayDataSource("Black Tie Optional", "text/plain")).build();
 		multipartRootMixed.addBodyPart(getBodyPartFromDatasource(r, Part.ATTACHMENT));
 
 		m.setContent(multipartRootMixed);

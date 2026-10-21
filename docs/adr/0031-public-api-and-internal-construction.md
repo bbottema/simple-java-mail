@@ -212,6 +212,32 @@ contain the secret key ring and passphrase, even though automatic rendering hide
 these values remain readable with absent OpenPGP configuration. This is separate from public construction changes and
 does not introduce a restoration API or change exact EML's authoritative-source boundary; see ADR 0036.
 
+### Consistent body vocabulary
+
+Use the same body names throughout Email composition and inspection: PlainText, HTMLText and CalendarText. Setter, append/prepend,
+clear and getter families keep that noun order on both the builder and the Email value. For 10.0.0, replace ambiguous plain-Text
+companions and reversed TextHTML/TextCalendar names without deprecated forwarding aliases. Preserve body content, append/prepend order,
+null handling, file/path ownership, serialized fields and existing CLI option names. This is a Java naming correction, not a MIME or
+validation change. Record exact released method mappings and target validation in the OpenRewrite plan.
+
+### Attachment resource construction
+
+Keep short Email-builder conveniences for file paths, bytes and DataSources, including the required encoding choice for already encoded input.
+Advanced attachment and embedded-image metadata belongs on an explicit core-owned `AttachmentResource` builder, with named choices for content,
+name, description, Content-ID and transfer encoding. Accept a constructed resource through singular attachment/image additions as well as the
+existing collection additions. Keep normal encoding and already encoded content distinct.
+
+For 10.0.0, replace public positional resource constructors/factories and long Email-builder overloads that append optional metadata with this
+builder. Do not retain deprecated forwarding aliases or mirror every input/optional-field combination. The short Email conveniences remain
+direct and delegate to the same resource construction boundary. Internal CLI adapters may preserve scalar command syntax without restoring
+removed application methods. Preserve useful contracts and generated CLI help when moving configuration.
+
+Resource construction preserves borrowed DataSource identity, copies supplied byte content and keeps paths lazy. It performs no content reads
+or filesystem probing. Preserve supported serialization, MIME metadata and encoding behavior; the construction cleanup does not redefine public
+resource equality or the conservative template matching in [ADR 0037](0037-repeatable-email-completion.md). Migration tooling must inventory
+removed signatures against released versions and validate rewritten consumers against a frozen target; see the
+[OpenRewrite plan](../research/10.0.0-openrewrite-migration-implementation-plan.md).
+
 ### Inspect incomplete configuration without building it
 
 Application builder getters expose stored choices without validating an incomplete configuration or resolving provider-dependent defaults.

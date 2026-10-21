@@ -52,6 +52,9 @@ API-only dependency, just to accept this object. The adapter call explicitly nee
 compile/runtime path. Subsequent SJM configuration and sending use core contracts; property-only activation needs no adapter call.
 
 The adapter exposes adaptation only. Activation, endpoint permission, defaults and locks remain core/main configuration responsibilities.
+Adapter and handle documentation must show the handle entering `MailSendTelemetryConfig.Builder.withIntegration`, then the built
+configuration entering `MailerGenericBuilder.withTelemetryConfig`. Do not imply the handle itself is accepted as the configuration
+group. Supplying the integration and enabling telemetry remain independent choices.
 `MailSendTelemetry` is an opaque handle with no application methods. The module interprets its own handle; it must not treat an unrecognized
 supplied handle as permission to select a different instance. The main builder neither unwraps it nor requires an internal lifecycle interface.
 Application setting methods retain explicit contracts and getter/reset/clear references to their setter. Do not move them into a module-owned

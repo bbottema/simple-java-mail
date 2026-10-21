@@ -136,9 +136,9 @@ class OperationalConfigImpl implements OperationalConfig {
 	@NotNull private final SessionDebugConfig debugConfig;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 * @see OperationalConfig#isClientValidationWarningsOnly()
 	 */
-	private final boolean disableAllClientValidation;
+	private final boolean clientValidationWarningsOnly;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#trustingSSLHosts(String...)

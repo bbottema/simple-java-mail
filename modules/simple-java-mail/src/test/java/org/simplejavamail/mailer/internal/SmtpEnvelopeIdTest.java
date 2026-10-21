@@ -94,7 +94,7 @@ class SmtpEnvelopeIdTest {
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             final MailerGenericBuilder<?> configured = callerOwnedSession ? mail.mailerBuilder(Session.getInstance(properties)) : builder(server);
             try (Mailer mailer = configured.withConnectionPoolConfig(configured.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())
-                    .withValidationConfig(configured.getValidationConfig().toBuilder().disablingAllClientValidation(true).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
+                    .withValidationConfig(configured.getValidationConfig().toBuilder().withClientValidationWarningsOnly(true).build()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
                 final Email withoutRecipients = mail.emailBuilder().startingBlank().from("sender@example.test")
                         .withPlainText("Synthetic local failure.").withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().fixingEnvelopeId(identifier).build()).buildEmail();
                 mailer.withOpenConnection(sender -> {

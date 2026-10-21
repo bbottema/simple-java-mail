@@ -434,7 +434,7 @@ class RecipientDsnSubmissionTest {
     @Test
     void recipientPolicyUsesTheMailboxSpellingAfterMimeHeaderParsing() throws Exception {
         final Email email = email(new Recipient(null, "  receiver@example.test  ", RecipientType.TO, null, List.of(NEVER)));
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).build()).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).withValidationConfig(ValidationConfig.builder().withClientValidationWarningsOnly(true).build()).buildMailer()) {
             final Email effectiveEmail = mailer.rehearse(email).getEffectiveEmail();
             final PreparedMail prepared = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), effectiveEmail);
             final String address = ((InternetAddress) prepared.getRecipients()[0]).getAddress();

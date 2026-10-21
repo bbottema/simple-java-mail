@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal;
 
+import org.simplejavamail.api.email.AttachmentResource;
+
 import jakarta.mail.internet.InternetAddress;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -101,13 +103,12 @@ class MimeMessageEmailMapper {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			final String resourceName = extractCID(cid.getValue().getName());
 			final String contentId = extractCID(cidName);
-			builder.withEmbeddedImage(resourceName, cid.getValue().getDataSource(), contentId != null && contentId.equals(resourceName) ? null : contentId);
+			builder.withEmbeddedImage(AttachmentResource.builder().withName(resourceName).withDataSource(cid.getValue().getDataSource()).withContentId(contentId != null && contentId.equals(resourceName) ? null : contentId).build());
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
 					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
-			builder.withAttachment(extractCID(attachment.getName()), attachment.getDataSource(), attachment.getContentDescription(), encoding,
-					userProvidedContentId(attachment));
+			builder.withAttachment(AttachmentResource.builder().withName(extractCID(attachment.getName())).withDataSource(attachment.getDataSource()).withDescription(attachment.getContentDescription()).withContentTransferEncoding(encoding).withContentId(userProvidedContentId(attachment)).build());
 		}
 		return builder;
 	}

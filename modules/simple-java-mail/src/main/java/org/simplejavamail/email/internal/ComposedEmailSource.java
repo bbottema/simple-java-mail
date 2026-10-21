@@ -25,16 +25,16 @@ enum ComposedEmailSource implements EmailSource {
 	@NotNull
 	public Email prepareForSending(@NotNull final Email email,
 			@NotNull final EmailGovernance emailGovernance,
-			final boolean disableAllClientValidation) {
+			final boolean clientValidationWarningsOnly) {
 		final Email governedEmail = prepareForConversion(email, emailGovernance);
-		validateForSending(governedEmail, emailGovernance, disableAllClientValidation);
+		validateForSending(governedEmail, emailGovernance, clientValidationWarningsOnly);
 		return governedEmail;
 	}
 
 	@Override
 	public void validateForSending(@NotNull final Email governedEmail, @NotNull final EmailGovernance emailGovernance,
-			final boolean disableAllClientValidation) {
-		if (disableAllClientValidation) {
+			final boolean clientValidationWarningsOnly) {
+		if (clientValidationWarningsOnly) {
 			MailerHelper.validateLenient(governedEmail, emailGovernance.getEmailValidator());
 		} else {
 			MailerHelper.validate(governedEmail, emailGovernance.getEmailValidator());

@@ -119,7 +119,7 @@ class EmailEqualityContractTest {
 	}
 
 	private static AttachmentResource resource(final String name, final AtomicInteger reads) {
-		return new AttachmentResource(name, new DataSource() {
+		return AttachmentResource.builder().withName(name).withDataSource(new DataSource() {
 			@Override public InputStream getInputStream() {
 				reads.incrementAndGet();
 				throw new AssertionError("Comparing an Email must not read borrowed content");
@@ -127,6 +127,6 @@ class EmailEqualityContractTest {
 			@Override public OutputStream getOutputStream() { throw new UnsupportedOperationException("read-only fixture"); }
 			@Override public String getContentType() { return "image/png"; }
 			@Override public String getName() { return name; }
-		});
+		}).build();
 	}
 }

@@ -7,6 +7,10 @@
 - Related decision: [ADR 0001: Email configuration scopes and inheritance](0001-email-configuration-scopes-and-inheritance.md)
 - Implementation tracking: [#737 — Unify DKIM and S/MIME configuration through Email defaults and overrides](https://github.com/bbottema/simple-java-mail/issues/737)
 
+The accepted 21 October 2026 [ADR 0037](0037-repeatable-email-completion.md) supersedes unconditional additive collection concatenation:
+repeated completion preserves supplied occurrences and adds only missing template values, while retaining scalar precedence, suppression
+and mandatory locks. Its implementation is tracked separately in [#768](https://github.com/bbottema/simple-java-mail/issues/768).
+
 ## Decision
 
 Use Email itself to describe reusable message defaults and overrides. Configure these templates through `withEmailDefaults(...)` and `withEmailOverrides(...)`, and apply them through the selected Mailer's Email governance during preparation.
@@ -42,12 +46,13 @@ locks. `withEmailDefaults(...)` continues to replace the entire template.
 
 ## Resolution contract
 
-Resolution depends on the shape of the value. The following describes current behavior, subject to the submitted Email's suppression settings.
+Resolution depends on the shape of the value, subject to the submitted Email's suppression settings. Additive collection identity,
+ordering and repeated-completion boundaries are detailed in [ADR 0037](0037-repeatable-email-completion.md).
 
 | Value shape | Resolution | Why keep the distinction explicit? |
 | --- | --- | --- |
 | Single value, such as subject or signing configuration | First non-null value from override, submitted Email, then default. | An explicit value replaces the fallback rather than being combined with it. |
-| Collections, such as attachments and TO/CC/BCC recipients | Collect override entries, submitted entries, then default entries. | Reusable additions must not silently discard a message's attachments or recipients. An "override" template does not replace the whole collection. |
+| Collections, such as attachments and TO/CC/BCC recipients | Add missing override entries, retain every submitted occurrence, then add missing default entries, under ADR 0037. | Reusable additions retain caller content without duplicating already present template contributions. An "override" template does not replace the whole collection. |
 | Headers | Combine keys; for the same key, replace the entire value collection in default, submitted, then override order. | Different header keys can coexist, but conflicting values for one key have a clear winner. |
 | Compound configuration values | Resolve at the declared value boundary, not recursively by every member field. | Combining parts of separate signing or notification policies can create a configuration neither caller requested. |
 
@@ -77,7 +82,7 @@ For example, Email's `DeliveryStatusNotification` resolves as one value. Its NOT
 OpenPGP signing and encryption follow the same whole-value resolution as S/MIME and DKIM: an override wins over the supplied Email, which wins over
 a default. Encryption key-ring lists are part of that policy value, not additive Email recipients. Clearing a supplied OpenPGP configuration permits
 fallback; `OPENPGP_SIGNING_CONFIG` and `OPENPGP_ENCRYPTION_CONFIG` select the ordinary per-field suppression controls. OpenPGP key configuration remains
-transient across Email serialization; template participation does not authorize persisting key material.
+subject to the supported snapshot contract in [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md), including retained key material; template participation does not change resource ownership.
 
 Copying an Email retains its global and per-property suppression choices. Rebuilding a draft must not silently re-enable templates it opted out of.
 

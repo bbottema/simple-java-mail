@@ -728,7 +728,7 @@ public interface CliMailerConfigurationBuilder {
 	/**
 	 * Restores blocking client-side validation by resetting this option to its default ({@value MailerGenericBuilder#DEFAULT_DISABLE_ALL_CLIENTVALIDATION}).
 	 *
-	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#disablingAllClientValidation(boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)
 	 */
 	MailerGenericBuilder<?> resetDisableAllClientValidations();
 
@@ -864,7 +864,7 @@ public interface CliMailerConfigurationBuilder {
 	 *
 	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withEmailValidator(EmailValidator)
 	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#resetEmailValidator()
-	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#disablingAllClientValidation(boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)
 	 */
 	MailerGenericBuilder<?> clearEmailValidator();
 
@@ -929,9 +929,9 @@ public interface CliMailerConfigurationBuilder {
 	Integer getProxyBridgePort();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#disablingAllClientValidation(boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)
 	 */
-	boolean isDisableAllClientValidation();
+	boolean isClientValidationWarningsOnly();
 
 	/**
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSessionTimeout(Duration)

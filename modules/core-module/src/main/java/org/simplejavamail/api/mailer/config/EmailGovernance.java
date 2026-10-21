@@ -33,6 +33,26 @@ public interface EmailGovernance {
 
     /**
      * This method will apply the defaults and overrides to the given email and return the result as a new instance. The original email is not modified.
+     * Each ordinary completion can further enrich an already-completed Email, including with another Mailer's templates. Scalars resolve
+     * in override, supplied, then default order, subject to the supplied Email's suppression choices. Applicable configuration locks remain
+     * binding regardless of suppression or earlier completion; conflicting fixed values are rejected and mandatory additions are enforced.
+     * <p>
+     * To, Cc, Bcc, Reply-To, delivery-recipient overrides, attachments and embedded images add only missing template values. New override
+     * entries precede every supplied entry; new default entries follow them. Supplied duplicates and their order remain intact. Incoming
+     * entries already represented by the supplied collection or an earlier template addition are skipped. Repeating the same completion
+     * therefore leaves recognized entries unchanged. Headers still replace the complete value collection of each case-insensitive name,
+     * and compound settings such as signing or delivery-notification policies remain whole-value choices.
+     * <p>
+     * Recipients match by their complete value, including name, role, certificate and notification preferences, accounting for missing names
+     * supplied by applicable locks. Explicit conflicting names still fail lock validation. Attachments and images match
+     * by metadata and recognized source identity: the same resource or DataSource, the same retained library-owned path, or equal
+     * library-owned byte content. Different names, descriptions, Content-IDs, MIME types or encoding choices remain distinct where applicable.
+     * Duplicate detection does not read source streams, probe files or inspect arbitrary DataSource metadata. Unknown sources are retained,
+     * even when their filenames look alike. This matching does not change public AttachmentResource equality.
+     * <p>
+     * Global and per-property suppression survives completion and copying. A reference template's own suppression does not create another
+     * inheritance layer. Completion does not freeze generated MIME, Message-IDs or signing output; exact EML and retry snapshots keep their
+     * separate preservation contracts.
      * <p>
      * Sending applies governance automatically. Ordinary conversion does not: use
      * {@link org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion#withEmailGovernance(EmailGovernance)}

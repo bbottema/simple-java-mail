@@ -6,8 +6,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.AttachmentDataSources;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InvalidObjectException;
@@ -17,6 +17,7 @@ import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Objects;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -45,126 +46,282 @@ public class AttachmentResource implements Serializable {
 	private final int serializationFormatVersion;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withName(String)
 	 */
 	private final String name;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withDataSource(DataSource)
 	 */
 	private transient DataSource dataSource;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withDescription(String)
 	 */
 	@Nullable
 	private final String description;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding contentTransferEncoding;
 
 	/**
-	 * @see #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)
+	 * @see Builder#withPreEncodedContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	private final ContentTransferEncoding preEncodedContentTransferEncoding;
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String, ContentTransferEncoding, String)
+	 * @see Builder#withContentId(String)
 	 */
 	@Nullable
 	private final String contentId;
 
-	/**
-	 * Delegates to {@link AttachmentResource#AttachmentResource(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding
-	 */
-	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource) {
-		this(name, dataSource, null, null);
+	/** Creates a builder for attachment or embedded-image content and named MIME metadata. */
+	@NotNull
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	/**
-	 * Delegates to {@link AttachmentResource#AttachmentResource(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding
-	 */
-	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description) {
-		this(name, dataSource, description, null);
+	/** Copies this resource's metadata while retaining its borrowed or owned content source without reading it. */
+	@NotNull
+	public Builder toBuilder() {
+		return new Builder().withDataSource(getDataSource()).withName(name).withDescription(description)
+				.withContentId(contentId).withContentTransferEncoding(contentTransferEncoding)
+				.withPreEncodedContentTransferEncoding(preEncodedContentTransferEncoding);
 	}
 
-	/**
-	 * Constructor; initializes the attachment resource with a name and data.
-	 *
-	 * @param name                    The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
-	 *                                <code>null</code> to fall back on {@link DataSource#getName()}.
-	 * @param dataSource              The attachment data. If no name was provided, the name of this datasource is used if provided.
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
-	 *
-	 * @see DataSource
-	 */
-	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
-		this(name, dataSource, description, contentTransferEncoding, null);
-	}
-
-	/**
-	 * Constructor; initializes the attachment resource with a name, data, and optional MIME {@code Content-ID}.
-	 *
-	 * @param name                    The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;). Leave
-	 *                                <code>null</code> to fall back on {@link DataSource#getName()}.
-	 * @param dataSource              The attachment data. If no name was provided, the name of this datasource is used if provided.
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
-	 * @param contentId               Optional MIME {@code Content-ID} without angle brackets. If omitted, one is derived from the embedded image name or generated for attachments.
-	 *
-	 * @see DataSource
-	 */
-	public AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
-							  @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId) {
-		this(name, dataSource, description, contentTransferEncoding, contentId, null);
-	}
-
-	/**
-	 * Delegates to {@link #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)} with no MIME {@code Content-ID}.
-	 *
-	 * @param name                              The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;).
-	 * @param dataSource                        The already encoded attachment data.
-	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 *
-	 * @see #ofPreEncodedData(String, DataSource, String, ContentTransferEncoding, String)
-	 */
-	public static AttachmentResource ofPreEncodedData(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
-													  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		return ofPreEncodedData(name, dataSource, description, preEncodedContentTransferEncoding, null);
-	}
-
-	/**
-	 * Creates an attachment resource for data that is already encoded using the provided MIME {@code Content-Transfer-Encoding}.
-	 *
-	 * @param name                              The name of the attachment which can be a simple name, a filename or a named embedded image (eg. &lt;cid:footer&gt;).
-	 * @param dataSource                        The already encoded attachment data.
-	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 * @param contentId                         Optional MIME {@code Content-ID} without angle brackets. If omitted, one is derived from the embedded image name or generated for attachments.
-	 *
-	 * @see DataSource
-	 */
-	public static AttachmentResource ofPreEncodedData(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
-													  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable final String contentId) {
-		return new AttachmentResource(name, dataSource, description, null, contentId, checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding"));
-	}
-
-	private AttachmentResource(@Nullable final String name, @NotNull final DataSource dataSource, @Nullable final String description,
-							   @Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId,
-							   @Nullable final ContentTransferEncoding preEncodedContentTransferEncoding) {
+	private AttachmentResource(final Builder builder) {
+		if (builder.contentTransferEncoding != null && builder.preEncodedContentTransferEncoding != null) {
+			throw new IllegalArgumentException("Choose either contentTransferEncoding or preEncodedContentTransferEncoding, not both");
+		}
 		this.serializationFormatVersion = SERIALIZATION_FORMAT_VERSION;
-		this.name = name;
-		this.dataSource = checkNonEmptyArgument(dataSource, "dataSource");
-		this.description = description;
-		this.contentTransferEncoding = contentTransferEncoding;
-		this.contentId = contentId;
-		this.preEncodedContentTransferEncoding = preEncodedContentTransferEncoding;
+		this.dataSource = builder.resolveDataSource();
+		this.name = builder.name == null && builder.path != null ? dataSource.getName() : builder.name;
+		this.description = builder.description;
+		this.contentTransferEncoding = builder.contentTransferEncoding;
+		this.contentId = builder.contentId;
+		this.preEncodedContentTransferEncoding = builder.preEncodedContentTransferEncoding;
+	}
+
+	/**
+	 * Collects content and optional MIME metadata. Setting one content representation replaces the previous representation;
+	 * metadata choices remain unchanged. Construction never opens streams or probes files.
+	 * <p>Normal transfer encoding and already encoded content are distinct choices and cannot both be supplied.</p>
+	 */
+	public static final class Builder {
+		private String name;
+		private DataSource dataSource;
+		private byte[] data;
+		private String mimetype;
+		private Path path;
+		private String description;
+		private ContentTransferEncoding contentTransferEncoding;
+		private ContentTransferEncoding preEncodedContentTransferEncoding;
+		private String contentId;
+
+		private Builder() { }
+
+		/**
+		 * Borrows the supplied source by identity without reading its metadata or content. The application must keep it available
+		 * and stable while rendering, sending or serializing. Replaces any previously selected bytes or path, retaining MIME metadata.
+		 * @param dataSource The repeatable content source; must not be null.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withDataSource(@NotNull final DataSource dataSource) {
+			checkNonEmptyArgument(dataSource, "dataSource");
+			clearContent();
+			this.dataSource = dataSource;
+			return this;
+		}
+
+		/** @see #withDataSource(DataSource) */
+		@Nullable
+		public DataSource getDataSource() { return dataSource; }
+
+		/** @see #withDataSource(DataSource) */
+		@NotNull
+		public Builder clearDataSource() { dataSource = null; return this; }
+
+		/**
+		 * Copies the supplied bytes immediately and retains their MIME type. Subsequent array changes do not affect this builder
+		 * or built resources. Replaces a borrowed source or path, retaining MIME metadata. Empty content is permitted.
+		 * @param data The content bytes; must not be null.
+		 * @param mimetype The MIME content type, such as {@code application/pdf}; must not be empty.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withData(final byte @NotNull [] data, @NotNull final String mimetype) {
+			Objects.requireNonNull(data, "data");
+			checkNonEmptyArgument(mimetype, "mimetype");
+			clearContent();
+			this.data = data.clone();
+			this.mimetype = mimetype;
+			return this;
+		}
+
+		/**
+		 * Returns a defensive copy of supplied bytes, or null when another content representation is selected.
+		 * @see #withData(byte[], String)
+		 */
+		public byte @Nullable [] getData() { return data == null ? null : data.clone(); }
+
+		/** @see #withData(byte[], String) */
+		@Nullable
+		public String getMimetype() { return mimetype; }
+
+		/** @see #withData(byte[], String) */
+		@NotNull
+		public Builder clearData() { data = null; mimetype = null; return this; }
+
+		/**
+		 * Borrows a file path lazily, replacing any other content representation while retaining MIME metadata. No filesystem
+		 * inspection or content read occurs here or during build. Each consumption opens a fresh read-only stream, including on
+		 * non-default filesystems. Missing files fail only when consumed; keep the filesystem open and content stable while in use.
+		 * The source filename supplies the built resource's fallback name and MIME type, independently of the display name.
+		 * @param path The content path; must not be null.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withPath(@NotNull final Path path) {
+			Objects.requireNonNull(path, "path");
+			clearContent();
+			this.path = path;
+			return this;
+		}
+
+		/** @see #withPath(Path) */
+		@Nullable
+		public Path getPath() { return path; }
+
+		/** @see #withPath(Path) */
+		@NotNull
+		public Builder clearPath() { path = null; return this; }
+
+		/**
+		 * Sets the displayed filename or embedded-image resource name. Null (also the clear/reset value) falls back to the source name.
+		 * An unnamed attachment receives a generated name during rendering. Embedded images require a name, source name or Content-ID.
+		 * @param name The optional display name.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withName(@Nullable final String name) { this.name = name; return this; }
+
+		/**
+		 * Sets the optional MIME {@code Content-Description}. Null (also the clear/reset value) omits the description.
+		 * @param description The description to render.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withDescription(@Nullable final String description) { this.description = description; return this; }
+
+		/**
+		 * Sets the MIME {@code Content-ID} without angle brackets, independently of the filename. HTML can reference it as {@code cid:value}.
+		 * Null (also the clear/reset value) derives an embedded image's ID from its name or generates an attachment ID during rendering.
+		 * @param contentId The optional Content-ID.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withContentId(@Nullable final String contentId) { this.contentId = contentId; return this; }
+
+		/**
+		 * Forces the MIME transfer encoding applied to ordinary, unencoded content. Null (also the clear/reset value) permits the
+		 * established MIME encoding selection. Does not clear an already encoded choice; build rejects both being present.
+		 * @param contentTransferEncoding The encoding to apply while rendering.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withContentTransferEncoding(@Nullable final ContentTransferEncoding contentTransferEncoding) {
+			this.contentTransferEncoding = contentTransferEncoding; return this;
+		}
+
+		/**
+		 * Declares that the supplied bytes or source already contain content encoded with this MIME transfer encoding. Rendering preserves
+		 * those encoded bytes instead of encoding them again. Null (also the clear/reset value) means ordinary, unencoded input.
+		 * Does not clear the normal encoding choice; build rejects both being present.
+		 * @param preEncodedContentTransferEncoding The encoding already applied to the content.
+		 * @return This builder.
+		 */
+		@NotNull
+		public Builder withPreEncodedContentTransferEncoding(@Nullable final ContentTransferEncoding preEncodedContentTransferEncoding) {
+			this.preEncodedContentTransferEncoding = preEncodedContentTransferEncoding; return this;
+		}
+
+		/** @see #withName(String) */
+		@Nullable
+		public String getName() { return name; }
+
+		/** @see #withName(String) */
+		@NotNull
+		public Builder clearName() { name = null; return this; }
+
+		/** @see #withName(String) */
+		@NotNull
+		public Builder resetName() { name = null; return this; }
+
+		/** @see #withDescription(String) */
+		@Nullable
+		public String getDescription() { return description; }
+
+		/** @see #withDescription(String) */
+		@NotNull
+		public Builder clearDescription() { description = null; return this; }
+
+		/** @see #withDescription(String) */
+		@NotNull
+		public Builder resetDescription() { description = null; return this; }
+
+		/** @see #withContentId(String) */
+		@Nullable
+		public String getContentId() { return contentId; }
+
+		/** @see #withContentId(String) */
+		@NotNull
+		public Builder clearContentId() { contentId = null; return this; }
+
+		/** @see #withContentId(String) */
+		@NotNull
+		public Builder resetContentId() { contentId = null; return this; }
+
+		/** @see #withContentTransferEncoding(ContentTransferEncoding) */
+		@Nullable
+		public ContentTransferEncoding getContentTransferEncoding() { return contentTransferEncoding; }
+
+		/** @see #withContentTransferEncoding(ContentTransferEncoding) */
+		@NotNull
+		public Builder clearContentTransferEncoding() { contentTransferEncoding = null; return this; }
+
+		/** @see #withContentTransferEncoding(ContentTransferEncoding) */
+		@NotNull
+		public Builder resetContentTransferEncoding() { contentTransferEncoding = null; return this; }
+
+		/** @see #withPreEncodedContentTransferEncoding(ContentTransferEncoding) */
+		@Nullable
+		public ContentTransferEncoding getPreEncodedContentTransferEncoding() { return preEncodedContentTransferEncoding; }
+
+		/** @see #withPreEncodedContentTransferEncoding(ContentTransferEncoding) */
+		@NotNull
+		public Builder clearPreEncodedContentTransferEncoding() { preEncodedContentTransferEncoding = null; return this; }
+
+		/** @see #withPreEncodedContentTransferEncoding(ContentTransferEncoding) */
+		@NotNull
+		public Builder resetPreEncodedContentTransferEncoding() { preEncodedContentTransferEncoding = null; return this; }
+
+		/** Builds an immutable resource; content must be supplied, and normal and preencoded transfer encodings are mutually exclusive. */
+		@NotNull
+		public AttachmentResource build() { return new AttachmentResource(this); }
+
+		private void clearContent() { dataSource = null; data = null; mimetype = null; path = null; }
+
+		private DataSource resolveDataSource() {
+			if (dataSource != null) { return dataSource; }
+			if (path != null) { return AttachmentDataSources.fromPath(path); }
+			if (data != null) { return AttachmentDataSources.byteSource().data(data).name(name).contentType(mimetype).build(); }
+			throw new IllegalStateException("Attachment content must be supplied using withDataSource, withData or withPath");
+		}
 	}
 
 	/**
@@ -261,7 +418,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withDataSource(DataSource)
 	 */
 	@NotNull
 	public DataSource getDataSource() {
@@ -269,7 +426,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withName(String)
 	 */
 	@Nullable
 	public String getName() {
@@ -277,7 +434,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withDescription(String)
 	 */
 	@Nullable
 	public String getDescription() {
@@ -285,7 +442,7 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
-	 * @see #AttachmentResource(String, DataSource, String)
+	 * @see Builder#withContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getContentTransferEncoding() {
@@ -294,6 +451,7 @@ public class AttachmentResource implements Serializable {
 
 	/**
 	 * @return The transfer encoding that has already been applied to this resource's data, or {@code null} when the data should be encoded normally.
+	 * @see Builder#withPreEncodedContentTransferEncoding(ContentTransferEncoding)
 	 */
 	@Nullable
 	public ContentTransferEncoding getPreEncodedContentTransferEncoding() {
@@ -302,6 +460,7 @@ public class AttachmentResource implements Serializable {
 
 	/**
 	 * @return Optional MIME {@code Content-ID} without angle brackets.
+	 * @see Builder#withContentId(String)
 	 */
 	@Nullable
 	public String getContentId() {
@@ -384,57 +543,7 @@ public class AttachmentResource implements Serializable {
 
 		@NotNull
 		private DataSource restore() {
-			return new SnapshotDataSource(data, name, contentType, encoding);
-		}
-	}
-
-	private static final class SnapshotDataSource implements DataSource, EncodingAware {
-
-		@NotNull
-		private final byte[] data;
-		@Nullable
-		private final String name;
-		@Nullable
-		private final String contentType;
-		@Nullable
-		private final String encoding;
-
-		private SnapshotDataSource(byte @NotNull [] data, @Nullable final String name, @Nullable final String contentType, @Nullable final String encoding) {
-			this.data = data.clone();
-			this.name = name;
-			this.contentType = contentType;
-			this.encoding = encoding;
-		}
-
-		@Override
-		@NotNull
-		public InputStream getInputStream() {
-			return new ByteArrayInputStream(data);
-		}
-
-		@Override
-		@NotNull
-		public OutputStream getOutputStream()
-				throws IOException {
-			throw new IOException("Serialized attachment snapshots are read-only");
-		}
-
-		@Override
-		@Nullable
-		public String getContentType() {
-			return contentType;
-		}
-
-		@Override
-		@Nullable
-		public String getName() {
-			return name;
-		}
-
-		@Override
-		@Nullable
-		public String getEncoding() {
-			return encoding;
+			return AttachmentDataSources.byteSource().data(data).name(name).contentType(contentType).encoding(encoding).build();
 		}
 	}
 

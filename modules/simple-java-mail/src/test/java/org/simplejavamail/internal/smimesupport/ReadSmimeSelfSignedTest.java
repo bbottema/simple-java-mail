@@ -179,8 +179,7 @@ public class ReadSmimeSelfSignedTest {
 	public void testSignedAttachmentWithInvalidSignatureStillUnwrapsContent()
 			throws Exception {
 		final String invalidSignedEml = createInvalidSignedEml();
-		final AttachmentResource signedAttachment = new AttachmentResource("smime.p7s",
-				new ByteArrayDataSource(extractMessageBody(invalidSignedEml).getBytes(UTF_8), "multipart/signed"));
+		final AttachmentResource signedAttachment = AttachmentResource.builder().withName("smime.p7s").withDataSource(new ByteArrayDataSource(extractMessageBody(invalidSignedEml).getBytes(UTF_8), "multipart/signed")).build();
 
 		final List<AttachmentDecryptionResult> decryptedAttachments = new SMIMESupport().decryptAttachments(singletonList(signedAttachment), null,
 				OriginalSmimeDetailsImpl.builder()

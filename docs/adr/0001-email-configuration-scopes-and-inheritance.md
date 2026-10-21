@@ -37,6 +37,9 @@ From and bounce remain singular and reject recognized lists/groups. Nonempty unp
 send-time validator under [ADR 0035](0035-tolerant-reading-and-strict-production.md). Individual Recipient builders retain their own
 extraction contracts, and already prepared Recipient values are not reparsed. Order, duplicates and recipient options remain intact.
 
+Public convenience documentation must describe the accepted complete mailbox list, rather than call it a single-mailbox argument.
+Recommend the plural recipient builder for collection/name-policy/metadata needs without implying that ordinary To/Cc/Bcc calls reject lists.
+
 ## Configuration ownership
 
 ### Mailer

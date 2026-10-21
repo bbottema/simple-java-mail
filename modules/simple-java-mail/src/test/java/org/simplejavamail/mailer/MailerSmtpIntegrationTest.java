@@ -645,7 +645,7 @@ public class MailerSmtpIntegrationTest {
 	@NotNull
 	private List<AttachmentResource> fixAttachmentResourcesWith7Bit(final List<AttachmentResource> originalEmailPopulatingBuilder) {
 		return originalEmailPopulatingBuilder.stream()
-				.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), ofNullable(att.getContentTransferEncoding()).orElse(BIT7)))
+				.map(att -> AttachmentResource.builder().withName(att.getName()).withDataSource(att.getDataSource()).withDescription(att.getDescription()).withContentTransferEncoding(ofNullable(att.getContentTransferEncoding()).orElse(BIT7)).build())
 				.collect(toList());
 	}
 

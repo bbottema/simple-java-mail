@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -700,7 +701,7 @@ public class MailerImpl implements Mailer {
 	/** Ordinary templates belong only to the selected member; the initiating Mailer's mandatory message locks still travel with the send. */
 	Email prepareSelectedEmail(final Email originalEmail, final MailerImpl destination, final List<MailerImpl> stages) {
 		verifySelectedCustomMailerLockCompatibility(destination, stages);
-		final Email governedEmail = applySelectedEmailGovernance(originalEmail, destination);
+		final Email governedEmail = applySelectedEmailGovernance(originalEmail, destination, stages);
 		final Email lockedEmail = applyTraversedMessageLocks(governedEmail, destination, stages);
 		validateSelectedEmail(lockedEmail, destination);
 		return lockedEmail;
@@ -714,8 +715,19 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private Email applySelectedEmailGovernance(final Email originalEmail, final MailerImpl destination) {
-		return InternalEmail.requireInternalEmail(originalEmail).prepareForConversion(destination.emailGovernance);
+	private Email applySelectedEmailGovernance(final Email originalEmail, final MailerImpl destination, final List<MailerImpl> stages) {
+		final InternalEmail internalEmail = InternalEmail.requireInternalEmail(originalEmail);
+		if (internalEmail.isExactEml() || !(destination.emailGovernance instanceof EmailGovernanceImpl)) {
+			return internalEmail.prepareForConversion(destination.emailGovernance);
+		}
+		final List<EmailGovernanceImpl> additionalLockOwners = new ArrayList<>();
+		for (final MailerImpl stage : stages) {
+			if (stage != destination && stage.emailGovernance instanceof EmailGovernanceImpl) {
+				additionalLockOwners.add((EmailGovernanceImpl) stage.emailGovernance);
+			}
+		}
+		return ((EmailGovernanceImpl) destination.emailGovernance)
+				.produceEmailApplyingDefaultsAndOverrides(originalEmail, additionalLockOwners);
 	}
 
 	private Email applyTraversedMessageLocks(final Email governedEmail, final MailerImpl destination, final List<MailerImpl> stages) {
@@ -731,7 +743,7 @@ public class MailerImpl implements Mailer {
 
 	private void validateSelectedEmail(final Email email, final MailerImpl destination) {
 		InternalEmail.requireInternalEmail(email).validateForSending(destination.emailGovernance,
-				destination.operationalConfig.isDisableAllClientValidation());
+				destination.operationalConfig.isClientValidationWarningsOnly());
 	}
 
 	<T> T withDelegatedOperation(final MailerImpl initiator, final Supplier<T> work) {
@@ -892,7 +904,7 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	private Email prepareEmailForSending(final Email userProvidedEmail) {
 		return InternalEmail.requireInternalEmail(verifyNonnull(userProvidedEmail)).prepareForSending(
-				emailGovernance, operationalConfig.isDisableAllClientValidation());
+				emailGovernance, operationalConfig.isClientValidationWarningsOnly());
 	}
 
 	/**

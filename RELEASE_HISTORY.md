@@ -58,6 +58,11 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- [ADR 0031](docs/adr/0031-public-api-and-internal-construction.md): align Email builder append/prepend and inspection methods with `PlainText`, `HTMLText` and `CalendarText` naming. Body behavior, serialized fields and existing CLI spellings are unchanged. See the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#email-body-method-names).
+- [ADR 0003](docs/adr/0003-immutable-configuration-snapshots.md): name the existing validation reporting choice `withClientValidationWarningsOnly(boolean)`, with matching inspection/reset companions. Checks still run; properties, CLI spellings, locks and separate size/security enforcement retain their behavior. See [grouped configuration migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#grouped-configuration).
+
+- [ADR 0031](docs/adr/0031-public-api-and-internal-construction.md): replace positional attachment resource constructors and advanced Email attachment/image overloads with `AttachmentResource.builder()` and singular resource additions. Short conveniences remain; named metadata keeps normal encoding and already encoded input distinct. See the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#attachment-resource-builder).
+
 - Failover builders expose the supplied Mailer and stored policy for inspection without constructing named destinations.
 
 - Added independent recipient-group certificate/NOTIFY policy resets. Resetting preserves each original recipient's metadata; clearing still
@@ -112,6 +117,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   bodies during governance. Builder-entry Javadocs show the configured factory bootstrap rather than nonexistent static builder calls.
 
 - Recipient-template suppression honors `ALL_RECIPIENTS` for To/Cc/Bcc without removing explicit recipients, delivery-recipient overrides or locks.
+- [#768](https://github.com/bbottema/simple-java-mail/issues/768): repeated Email completion adds only missing template recipients, attachments and images, while preserving all supplied occurrences. The selected Mailer's defaults and overrides still apply; suppression survives completion and copying, and locks remain binding. Resource matching avoids reading borrowed content and leaves uncertain sources separate. See the [migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#repeated-email-completion).
 - Email equality includes DKIM configuration and counts repeated attachment/image occurrences without reading their content.
 - Connection tests reject work after Mailer shutdown starts, including asynchronous checks still waiting on an application-owned executor.
 - Mailer and Session-property rendering redact recognized secrets. Operational settings and trusted-host inspection no longer share mutable
