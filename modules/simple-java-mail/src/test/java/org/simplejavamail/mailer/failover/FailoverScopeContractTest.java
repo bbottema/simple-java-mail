@@ -261,7 +261,7 @@ class FailoverScopeContractTest {
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
             assertThat(outcomes.get(0).getSubmissionReceipt()).isEmpty();
             final var measurement = outcomes.get(0).getDiagnostics().orElseThrow().getRateLimitWait();
-            assertThat(measurement.getElapsed()).hasValueSatisfying(elapsed -> assertThat(elapsed).isGreaterThan(Duration.ZERO));
+            assertThat(measurement.getElapsed()).isGreaterThan(Duration.ZERO);
             assertThat(primary.messages()).hasSize(1);
             assertThat(primary.connectionCount()).isEqualTo(1);
             assertThat(secondary.connectionCount()).isZero();
