@@ -45,7 +45,12 @@ class MailerBuilderCompanionTest {
         assertThat(explicitNulls.getPort()).isNull();
         assertThat(explicitNulls.getUsername()).isNull();
         assertThat(explicitNulls.getPassword()).isNull();
-        assertThat(factory.mailerBuilder().withSMTPServerUsername("").getUsername()).isEmpty();
+        assertThat(factory.mailerBuilder().withSMTPServerUsername("").getUsername()).isNull();
+        assertThat(factory.mailerBuilder().withSMTPServerPassword("").getPassword()).isNull();
+        final MailerRegularBuilder<?> emptyUsername = factory.mailerBuilder().withSMTPServer("another.example.org", 587, "");
+        assertThat(emptyUsername.getUsername()).isNull();
+        assertThat(emptyUsername.getPassword()).isEqualTo("configured-secret");
+        assertThat(factory.mailerBuilder().withSMTPServerUsername(" ").getUsername()).isEqualTo(" ");
     }
 
     @Test
