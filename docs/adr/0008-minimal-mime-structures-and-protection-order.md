@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Decision recorded: 2026-09-16; this is not the original decision date
 - Applies to: Composed messages and inbound conversion, including unreleased 10.0.0 protection processing
-- Implementation status: Existing MIME/protection pipeline implemented; S/MIME and OpenPGP are alternative outbound protection families. Unavailable S/MIME inspection is implemented and reviewed locally for unreleased 10.0.0 under [#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending. Recipient-triggered build validation is implemented under [#823](https://github.com/bbottema/simple-java-mail/issues/823) for unreleased 10.0.0.
+- Implementation status: Existing MIME/protection pipeline implemented; S/MIME and OpenPGP are alternative outbound protection families. Unavailable inspection under [#822](https://github.com/bbottema/simple-java-mail/issues/822) and recipient-triggered build validation under [#823](https://github.com/bbottema/simple-java-mail/issues/823) are implemented for unreleased 10.0.0.
 
 ## Context
 
@@ -52,8 +52,7 @@ headers may establish an outer encryption mode without establishing verification
 is absent for unknown inspection. Known failures remain distinguishable, and an unknown represented layer prevents an aggregate all-valid
 or all-decrypted claim. This clarification concerns S/MIME; equivalent OpenPGP changes require a separate scope decision.
 
-The maintainer accepted the behavior and authorized delegated implementation on 2026-10-21. Implementation is reviewed locally under
-[#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending; this acceptance does not claim a published release.
+This clarification is implemented under [#822](https://github.com/bbottema/simple-java-mail/issues/822) for unreleased 10.0.0.
 
 ## MIME producer selection
 
