@@ -12,6 +12,7 @@ For a first code change, start with the development and coding guides, then read
 | --- | --- |
 | Set up the supported JDKs, build, test, generate coverage or refresh CLI metadata | [Development guide](DEVELOPMENT.md) |
 | Write and review code | [Coding style guide](CODING_STYLE_GUIDE.md) |
+| Review public API gaps, agree designs and coordinate approved repairs | [Public API review and repair workflow](API_REVIEW_WORKFLOW.md) |
 | Add or change public APIs across builders, configuration, modules, Spring and CLI | [API expansion workflow](API_EXPANSION_WORKFLOW.md) |
 | Understand architectural decisions and find documentation by topic | [Architecture decisions and topic index](adr/README.md) |
 | Investigate sending, concurrency and resource ownership | [Concurrency and state-machine catalogue](concurrency/README.md) |

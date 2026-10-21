@@ -8,6 +8,8 @@ For architectural decisions and source anchors, see the [architecture topic inde
 
 ## Ownership and design gate
 
+For a holistic review round, follow the [public API review workflow](API_REVIEW_WORKFLOW.md). Present findings and obtain the maintainer's design and execution approval before starting the implementation and test steps below.
+
 Map each architectural correction to its governing ADR before implementation. Amend an existing record when clarification is sufficient;
 create a new ADR only for a distinct architectural choice. Keep implementation checklists and verification evidence in the plan, not the ADR.
 Use test-first development: reproduce the intended defect, confirm red, implement and refactor while green. A missing-method compilation
