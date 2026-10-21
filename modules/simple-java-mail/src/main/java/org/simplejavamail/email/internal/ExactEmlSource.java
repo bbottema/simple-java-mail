@@ -39,15 +39,15 @@ final class ExactEmlSource implements EmailSource {
 	@NotNull
 	public Email prepareForSending(@NotNull final Email email,
 			@NotNull final EmailGovernance emailGovernance,
-			final boolean disableAllClientValidation) {
+			final boolean clientValidationWarningsOnly) {
 		final Email prepared = prepareForConversion(email, emailGovernance);
-		validateForSending(prepared, emailGovernance, disableAllClientValidation);
+		validateForSending(prepared, emailGovernance, clientValidationWarningsOnly);
 		return prepared;
 	}
 
 	@Override
 	public void validateForSending(@NotNull final Email email, @NotNull final EmailGovernance emailGovernance,
-			final boolean disableAllClientValidation) {
+			final boolean clientValidationWarningsOnly) {
 		ExactEmlValidator.validateEnvelope(email);
 	}
 

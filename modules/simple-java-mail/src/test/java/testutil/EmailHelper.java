@@ -94,7 +94,7 @@ public class EmailHelper {
 		}
 		if (useDynamicImageEmbedding) {
 			builder = builder
-					.appendTextHTML("<img src=\"/test-dynamicembedded-image/br2049.jpg\"/>");
+					.appendHTMLText("<img src=\"/test-dynamicembedded-image/br2049.jpg\"/>");
 		}
 
 		if (includeCustomHeaders) {
@@ -200,7 +200,7 @@ public class EmailHelper {
 			/*14*/final boolean transportModeLoggingOnly,
 			/*15*/final boolean debugLogging,
 			/*16*/@Nullable final PrintStream debugPrinter,
-			/*17*/final boolean disableAllClientValidation,
+			/*17*/final boolean clientValidationWarningsOnly,
 			/*18*/@NotNull final List<String> sslHostsToTrust,
 			/*19*/final boolean trustAllSSLHost,
 			/*20*/final boolean verifyingServerIdentity,
@@ -235,7 +235,7 @@ public class EmailHelper {
 					/*16*/connectionPoolClusterConfigs,
 					/*17*/transportModeLoggingOnly,
 					/*18*/debugConfig,
-					/*19*/disableAllClientValidation,
+					/*19*/clientValidationWarningsOnly,
 					/*20*/sslHostsToTrust,
 					/*21*/trustAllSSLHost,
 					/*22*/verifyingServerIdentity,

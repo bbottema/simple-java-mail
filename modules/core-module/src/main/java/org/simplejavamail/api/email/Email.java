@@ -354,10 +354,10 @@ public class Email implements Serializable {
 		fromRecipient = builder.getFromRecipient();
 		replyToRecipients = builder.getReplyToRecipients();
 		bounceToRecipient = builder.getBounceToRecipient();
-		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getText();
-		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getTextHTML();
+		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getPlainText();
+		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getHTMLText();
 		calendarMethod = builder.getCalendarMethod();
-		textCalendar = builder.getTextCalendar();
+		textCalendar = builder.getCalendarText();
 		contentTransferEncoding = encodingConfig.getContentTransferEncoding();
 		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : encodingConfig.getPlainTextContentTransferEncoding();
 		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : encodingConfig.getHTMLTextContentTransferEncoding();

@@ -8,7 +8,6 @@ import jakarta.activation.DataSource;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.util.ByteArrayDataSource;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1025,63 +1024,63 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#prependText(File)
+	 * @see EmailPopulatingBuilder#prependPlainText(File)
 	 */
 	@Override
 	@Cli.OptionNameOverride("prependTextFromFile")
-	public EmailPopulatingBuilder prependText(@NotNull final File textFile) {
-		return prependText(textFile.toPath());
+	public EmailPopulatingBuilder prependPlainText(@NotNull final File textFile) {
+		return prependPlainText(textFile.toPath());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#prependText(Path)
+	 * @see EmailPopulatingBuilder#prependPlainText(Path)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	public EmailPopulatingBuilder prependText(@NotNull final Path textPath) {
+	public EmailPopulatingBuilder prependPlainText(@NotNull final Path textPath) {
 		try {
-			return prependText(FileUtil.readFileContent(textPath));
+			return prependPlainText(FileUtil.readFileContent(textPath));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textPath), e);
 		}
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#prependText(String)
+	 * @see EmailPopulatingBuilder#prependPlainText(String)
 	 */
 	@Override
-	public EmailPopulatingBuilder prependText(@NotNull final String text) {
+	public EmailPopulatingBuilder prependPlainText(@NotNull final String text) {
 		this.text = text + defaultTo(this.text, "");
 		return this;
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#appendText(File)
+	 * @see EmailPopulatingBuilder#appendPlainText(File)
 	 */
 	@Override
 	@Cli.OptionNameOverride("appendTextFromFile")
-	public EmailPopulatingBuilder appendText(@NotNull final File textFile) {
-		return appendText(textFile.toPath());
+	public EmailPopulatingBuilder appendPlainText(@NotNull final File textFile) {
+		return appendPlainText(textFile.toPath());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#appendText(Path)
+	 * @see EmailPopulatingBuilder#appendPlainText(Path)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	public EmailPopulatingBuilder appendText(@NotNull final Path textPath) {
+	public EmailPopulatingBuilder appendPlainText(@NotNull final Path textPath) {
 		try {
-			return appendText(FileUtil.readFileContent(textPath));
+			return appendPlainText(FileUtil.readFileContent(textPath));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textPath), e);
 		}
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#appendText(String)
+	 * @see EmailPopulatingBuilder#appendPlainText(String)
 	 */
 	@Override
-	public EmailPopulatingBuilder appendText(@NotNull final String text) {
+	public EmailPopulatingBuilder appendPlainText(@NotNull final String text) {
 		this.text = defaultTo(this.text, "") + text;
 		return this;
 	}
@@ -1118,63 +1117,63 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#prependTextHTML(File)
+	 * @see EmailPopulatingBuilder#prependHTMLText(File)
 	 */
 	@Override
 	@Cli.OptionNameOverride("prependTextHTMLFromFile")
-	public EmailPopulatingBuilder prependTextHTML(@NotNull final File textHTMLFile) {
-		return prependTextHTML(textHTMLFile.toPath());
+	public EmailPopulatingBuilder prependHTMLText(@NotNull final File textHTMLFile) {
+		return prependHTMLText(textHTMLFile.toPath());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#prependTextHTML(Path)
+	 * @see EmailPopulatingBuilder#prependHTMLText(Path)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	public EmailPopulatingBuilder prependTextHTML(@NotNull final Path textHTMLPath) {
+	public EmailPopulatingBuilder prependHTMLText(@NotNull final Path textHTMLPath) {
 		try {
-			return prependTextHTML(FileUtil.readFileContent(textHTMLPath));
+			return prependHTMLText(FileUtil.readFileContent(textHTMLPath));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLPath), e);
 		}
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#prependTextHTML(String)
+	 * @see EmailPopulatingBuilder#prependHTMLText(String)
 	 */
 	@Override
-	public EmailPopulatingBuilder prependTextHTML(@NotNull final String textHTML) {
+	public EmailPopulatingBuilder prependHTMLText(@NotNull final String textHTML) {
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
 		return this;
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#appendTextHTML(File)
+	 * @see EmailPopulatingBuilder#appendHTMLText(File)
 	 */
 	@Override
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
-	public EmailPopulatingBuilder appendTextHTML(@NotNull final File textHTMLFile) {
-		return appendTextHTML(textHTMLFile.toPath());
+	public EmailPopulatingBuilder appendHTMLText(@NotNull final File textHTMLFile) {
+		return appendHTMLText(textHTMLFile.toPath());
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#appendTextHTML(Path)
+	 * @see EmailPopulatingBuilder#appendHTMLText(Path)
 	 */
 	@Override
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	public EmailPopulatingBuilder appendTextHTML(@NotNull final Path textHTMLPath) {
+	public EmailPopulatingBuilder appendHTMLText(@NotNull final Path textHTMLPath) {
 		try {
-			return appendTextHTML(FileUtil.readFileContent(textHTMLPath));
+			return appendHTMLText(FileUtil.readFileContent(textHTMLPath));
 		} catch (IOException e) {
 			throw new EmailException(format(ERROR_READING_FROM_FILE, textHTMLPath), e);
 		}
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#appendTextHTML(String)
+	 * @see EmailPopulatingBuilder#appendHTMLText(String)
 	 */
 	@Override
-	public EmailPopulatingBuilder appendTextHTML(@NotNull final String textHTML) {
+	public EmailPopulatingBuilder appendHTMLText(@NotNull final String textHTML) {
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;
 	}
@@ -1414,89 +1413,59 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String)
-	 */
+	/** @see EmailPopulatingBuilder#withEmbeddedImage(String, byte[], String) */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImage(@NotNull final String name, final byte@NotNull[] data, @NotNull final String mimetype) {
 		checkNonEmptyArgument(name, "name");
 		checkNonEmptyArgument(data, "data");
-		checkNonEmptyArgument(mimetype, "mimetype");
-		
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
-		dataSource.setName(name);
-		return withEmbeddedImage(name, dataSource);
+		return withEmbeddedImage(AttachmentResource.builder().withName(name).withData(data, mimetype).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, byte[], String, ContentTransferEncoding)
-	 */
+	/** @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, byte[], String, ContentTransferEncoding) */
 	@Override
 	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@NotNull final String name, final byte@NotNull[] data, @NotNull final String mimetype,
-															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+			@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
 		checkNonEmptyArgument(name, "name");
 		checkNonEmptyArgument(data, "data");
-		checkNonEmptyArgument(mimetype, "mimetype");
-
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
-		dataSource.setName(name);
-		return withPreEncodedEmbeddedImage(name, dataSource, preEncodedContentTransferEncoding);
+		return withEmbeddedImage(AttachmentResource.builder().withName(name).withData(data, mimetype)
+				.withPreEncodedContentTransferEncoding(checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding")).build());
 	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource)
-	 */
+
+	/** @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource) */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata) {
-		return withEmbeddedImage(name, imagedata, null);
+		return withEmbeddedImage(AttachmentResource.builder().withName(name).withDataSource(imagedata).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding)
-	 */
+	/** @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding) */
 	@Override
 	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata,
-															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		return withPreEncodedEmbeddedImage(name, imagedata, preEncodedContentTransferEncoding, null);
+			@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withEmbeddedImage(AttachmentResource.builder().withName(name).withDataSource(imagedata)
+				.withPreEncodedContentTransferEncoding(checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding")).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImage(String, DataSource, String)
-	 */
+	/** @see EmailPopulatingBuilder#withEmbeddedImage(AttachmentResource) */
 	@Override
-	public EmailPopulatingBuilder withEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
-		validateEmbeddedImage(name, imagedata, contentId);
-		embeddedImages.add(new AttachmentResource(name, imagedata, null, null, contentId));
-		return this;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata,
-															 @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding,
-															 @Nullable final String contentId) {
-		validateEmbeddedImage(name, imagedata, contentId);
-		embeddedImages.add(AttachmentResource.ofPreEncodedData(name, imagedata, null, preEncodedContentTransferEncoding, contentId));
+	public EmailPopulatingBuilder withEmbeddedImage(@NotNull final AttachmentResource embeddedImage) {
+		checkNonEmptyArgument(embeddedImage, "embeddedImage");
+		validateEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource(), embeddedImage.getContentId());
+		embeddedImages.add(embeddedImage);
 		return this;
 	}
 
 	private void validateEmbeddedImage(@Nullable final String name, @NotNull final DataSource imagedata, @Nullable final String contentId) {
 		checkNonEmptyArgument(imagedata, "imagedata");
-		if (valueNullOrEmpty(name) && valueNullOrEmpty(imagedata.getName()) && valueNullOrEmpty(contentId)) {
+		if (valueNullOrEmpty(name) && valueNullOrEmpty(contentId) && valueNullOrEmpty(imagedata.getName())) {
 			throw new EmailException(NAME_MISSING_FOR_EMBEDDED_IMAGE);
 		}
 	}
-	
-	/**
-	 * @see EmailPopulatingBuilder#withEmbeddedImages(List)
-	 */
+
+	/** @see EmailPopulatingBuilder#withEmbeddedImages(List) */
 	@Override
 	public EmailPopulatingBuilder withEmbeddedImages(@NotNull final List<AttachmentResource> embeddedImages) {
 		for (final AttachmentResource embeddedImage : embeddedImages) {
-			validateEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource(), embeddedImage.getContentId());
-			this.embeddedImages.add(embeddedImage);
+			withEmbeddedImage(embeddedImage);
 		}
 		return this;
 	}
@@ -1555,63 +1524,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String)
-	 */
+	/** @see EmailPopulatingBuilder#withAttachment(String, byte[], String) */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype) {
-		return withAttachment(name, data, mimetype, null, null);
+		return withAttachment(AttachmentResource.builder().withName(name).withData(data, mimetype).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description) {
-		return withAttachment(name, data, mimetype, description, null);
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, byte[], String, String, ContentTransferEncoding)
-	 */
-	@Override
-	public EmailPopulatingBuilder withAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
-		requireNonNull(data, "data");
-		checkNonEmptyArgument(mimetype, "mimetype");
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
-		dataSource.setName(name);
-		withAttachment(name, dataSource, description, contentTransferEncoding);
-		return this;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, byte[], String, ContentTransferEncoding)
-	 */
+	/** @see EmailPopulatingBuilder#withPreEncodedAttachment(String, byte[], String, ContentTransferEncoding) */
 	@Override
 	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype,
-														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		return withPreEncodedAttachment(name, data, mimetype, null, preEncodedContentTransferEncoding);
+			@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withAttachment(AttachmentResource.builder().withName(name).withData(data, mimetype)
+				.withPreEncodedContentTransferEncoding(checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding")).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, byte[], String, String, ContentTransferEncoding)
-	 */
-	@Override
-	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, final byte@NotNull[] data, @NotNull final String mimetype,
-														  @Nullable final String description, @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		requireNonNull(data, "data");
-		checkNonEmptyArgument(mimetype, "mimetype");
-		final ByteArrayDataSource dataSource = new ByteArrayDataSource(data.clone(), mimetype);
-		dataSource.setName(name);
-		return withPreEncodedAttachment(name, dataSource, description, preEncodedContentTransferEncoding);
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource)
-	 */
+	/** @see EmailPopulatingBuilder#withAttachment(String, DataSource) */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata) {
-		return withAttachment(name, filedata, null, null);
+		return withAttachment(AttachmentResource.builder().withName(name).withDataSource(filedata).build());
 	}
 
 	/** @see EmailPopulatingBuilder#withAttachment(Path) */
@@ -1623,75 +1553,45 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#withAttachment(String, Path) */
 	@Override
 	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final Path path) {
-		final PathAttachmentDataSource source = new PathAttachmentDataSource(path);
-		return withAttachment(name == null ? source.getName() : name, source);
+		return withAttachment(AttachmentResource.builder().withName(name).withPath(path).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, ContentTransferEncoding)
-	 */
+	/** @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, ContentTransferEncoding) */
 	@Override
 	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata,
-														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		return withPreEncodedAttachment(name, filedata, null, preEncodedContentTransferEncoding);
+			@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
+		return withAttachment(AttachmentResource.builder().withName(name).withDataSource(filedata)
+				.withPreEncodedContentTransferEncoding(checkNonEmptyArgument(preEncodedContentTransferEncoding, "preEncodedContentTransferEncoding")).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String)
-	 */
+	/** @see org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#withDescribedAttachment(String, DataSource, String) */
 	@Override
-	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description) {
-		return withAttachment(name, filedata, description, null);
+	public EmailPopulatingBuilder withDescribedAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description) {
+		return withAttachment(AttachmentResource.builder().withName(name).withDataSource(filedata).withDescription(description).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding)
-	 */
+	/** @see org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#withEncodedDescribedAttachment(String, DataSource, String, ContentTransferEncoding) */
 	@Override
-	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
-		return withAttachment(name, filedata, description, contentTransferEncoding, null);
+	public EmailPopulatingBuilder withEncodedDescribedAttachment(@Nullable final String name, @NotNull final DataSource filedata,
+			@Nullable final String description, @Nullable final ContentTransferEncoding contentTransferEncoding) {
+		return withAttachment(AttachmentResource.builder().withName(name).withDataSource(filedata).withDescription(description)
+				.withContentTransferEncoding(contentTransferEncoding).build());
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding)
-	 */
+	/** @see EmailPopulatingBuilder#withAttachment(AttachmentResource) */
 	@Override
-	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
-														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding) {
-		return withPreEncodedAttachment(name, filedata, description, preEncodedContentTransferEncoding, null);
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withAttachment(String, DataSource, String, ContentTransferEncoding, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder withAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
-												@Nullable final ContentTransferEncoding contentTransferEncoding, @Nullable final String contentId) {
-		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(new AttachmentResource(name, filedata, description, contentTransferEncoding, contentId));
+	public EmailPopulatingBuilder withAttachment(@NotNull final AttachmentResource attachment) {
+		checkNonEmptyArgument(attachment, "attachment");
+		checkNonEmptyArgument(attachment.getDataSource(), "filedata");
+		attachments.add(attachment);
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding, String)
-	 */
-	@Override
-	public EmailPopulatingBuilder withPreEncodedAttachment(@Nullable final String name, @NotNull final DataSource filedata, @Nullable final String description,
-														  @NotNull final ContentTransferEncoding preEncodedContentTransferEncoding,
-														  @Nullable final String contentId) {
-		checkNonEmptyArgument(filedata, "filedata");
-		attachments.add(AttachmentResource.ofPreEncodedData(name, filedata, description, preEncodedContentTransferEncoding, contentId));
-		return this;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#withAttachments(List)
-	 */
+	/** @see EmailPopulatingBuilder#withAttachments(List) */
 	@Override
 	public EmailPopulatingBuilder withAttachments(@NotNull final List<AttachmentResource> attachments) {
 		for (final AttachmentResource attachment : attachments) {
-			checkNonEmptyArgument(attachment.getDataSource(), "filedata");
-			this.attachments.add(attachment);
+			withAttachment(attachment);
 		}
 		return this;
 	}
@@ -2463,20 +2363,20 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getText()
+	 * @see EmailPopulatingBuilder#getPlainText()
 	 */
 	@Override
 	@Nullable
-	public String getText() {
+	public String getPlainText() {
 		return text;
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#getTextHTML()
+	 * @see EmailPopulatingBuilder#getHTMLText()
 	 */
 	@Override
 	@Nullable
-	public String getTextHTML() {
+	public String getHTMLText() {
 		return textHTML;
 	}
 	
@@ -2490,11 +2390,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getTextCalendar()
+	 * @see EmailPopulatingBuilder#getCalendarText()
 	 */
 	@Override
 	@Nullable
-	public String getTextCalendar() {
+	public String getCalendarText() {
 		return textCalendar;
 	}
 

@@ -104,12 +104,7 @@ class EmailSerializationTest {
 				"text/custom",
 				"base64",
 				"content at serialization time".getBytes(UTF_8));
-		final AttachmentResource original = new AttachmentResource(
-				"mail-facing-name.txt",
-				originalDataSource,
-				"a description",
-				BIT7,
-				"stable-content-id");
+		final AttachmentResource original = AttachmentResource.builder().withName("mail-facing-name.txt").withDataSource(originalDataSource).withDescription("a description").withContentTransferEncoding(BIT7).withContentId("stable-content-id").build();
 
 		final byte[] serialized = serialize(original);
 		originalDataSource.replaceData("content after serialization".getBytes(UTF_8));
@@ -130,7 +125,7 @@ class EmailSerializationTest {
 		assertThat(restored.readAllData()).isEqualTo("content at serialization time");
 		assertThatThrownBy(() -> restored.getDataSource().getOutputStream())
 				.isInstanceOf(IOException.class)
-				.hasMessage("Serialized attachment snapshots are read-only");
+				.hasMessage("Attachment byte snapshots are read-only");
 	}
 
 	@Test
@@ -149,14 +144,11 @@ class EmailSerializationTest {
 				.withHTMLText("<p>Main message</p><img src=\"cid:logo-cid\">")
 				.withHeader("X-Round-Trip", "preserved")
 				.withSmtpDeliveryOptions(SmtpDeliveryOptions.builder().withTlsRequiredForOnwardDelivery().withSendingToAcceptedRecipients(false).build())
-				.withAttachment("report.txt", "attachment data".getBytes(UTF_8), "text/plain", "report", BIT7)
-				.withPreEncodedAttachment("encoded.txt", alreadyBase64Encoded, "text/plain", "already encoded", BASE_64)
+				.withAttachment(AttachmentResource.builder().withName("report.txt").withData("attachment data".getBytes(UTF_8), "text/plain").withDescription("report").withContentTransferEncoding(BIT7).build())
+				.withAttachment(AttachmentResource.builder().withName("encoded.txt").withData(alreadyBase64Encoded, "text/plain").withDescription("already encoded").withPreEncodedContentTransferEncoding(BASE_64).build())
 				.withEmbeddedImage("logo.png", "image data".getBytes(UTF_8), "image/png")
 				.signWithSmime(smimeSigningConfig);
-		builder.withDecryptedAttachments(singletonList(new AttachmentResource(
-				"decrypted.txt",
-				new ByteArrayDataSource("decrypted data", "text/plain"),
-				"recovered from S/MIME")));
+		builder.withDecryptedAttachments(singletonList(AttachmentResource.builder().withName("decrypted.txt").withDataSource(new ByteArrayDataSource("decrypted data", "text/plain")).withDescription("recovered from S/MIME").build()));
 		final Email original = builder.buildEmail();
 
 		final Email restored = roundTrip(original, Email.class);

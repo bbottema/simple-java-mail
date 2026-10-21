@@ -202,7 +202,7 @@ public class ReadSmimeAttachmentsTest {
 		val attachments = builder.getAttachments();
 		builder.clearAttachments();
 		return attachments.stream()
-				.map(att -> new AttachmentResource(att.getName(), att.getDataSource(), att.getDescription(), null))
+				.map(att -> AttachmentResource.builder().withName(att.getName()).withDataSource(att.getDataSource()).withDescription(att.getDescription()).build())
 				.collect(toList());
 	}
 }

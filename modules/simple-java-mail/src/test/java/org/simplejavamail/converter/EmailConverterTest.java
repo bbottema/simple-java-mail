@@ -479,7 +479,7 @@ public class EmailConverterTest {
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Test Content-ID")
 				.withPlainText("body")
-				.withAttachment("file.pdf", new ByteArrayDataSource("pdf content", "application/pdf"), null, BIT7, customContentId)
+				.withAttachment(AttachmentResource.builder().withName("file.pdf").withDataSource(new ByteArrayDataSource("pdf content", "application/pdf")).withContentTransferEncoding(BIT7).withContentId(customContentId).build())
 				.buildEmail();
 
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
@@ -503,7 +503,7 @@ public class EmailConverterTest {
 				.withRecipients(EmailHelper.parsedRecipients(null, false, TO, "recipient@example.com"))
 				.withSubject("Embedded image")
 				.withHTMLText("<img src=\"cid:" + customContentId + "\">")
-				.withEmbeddedImage("logo.png", new ByteArrayDataSource("image content", "image/png"), customContentId)
+				.withEmbeddedImage(AttachmentResource.builder().withName("logo.png").withDataSource(new ByteArrayDataSource("image content", "image/png")).withContentId(customContentId).build())
 				.buildEmail();
 
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));
@@ -682,10 +682,10 @@ public class EmailConverterTest {
 
 		final Email email = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false)
 				.clearAttachments()
-				.withAttachment("dummy text1.txt", dummyAttachment1.getBytes(defaultCharset()), "text/plain", "This is dummy text1", BIT7)
-				.withAttachment("dummy text2.txt", new ByteArrayDataSource(dummyAttachment2, "text/plain"), "This is dummy text2", BIT7)
-				.withAttachments(asList(new AttachmentResource("dummy text3.txt", new ByteArrayDataSource(dummyAttachment3, "text/plain"), "This is dummy text3", BIT7)))
-				.withAttachment("dummy text4.txt", new ByteArrayDataSource("this should not have a Content-Description header", "text/plain"), null, BIT7)
+				.withAttachment(AttachmentResource.builder().withName("dummy text1.txt").withData(dummyAttachment1.getBytes(defaultCharset()), "text/plain").withDescription("This is dummy text1").withContentTransferEncoding(BIT7).build())
+				.withAttachment(AttachmentResource.builder().withName("dummy text2.txt").withDataSource(new ByteArrayDataSource(dummyAttachment2, "text/plain")).withDescription("This is dummy text2").withContentTransferEncoding(BIT7).build())
+				.withAttachments(asList(AttachmentResource.builder().withName("dummy text3.txt").withDataSource(new ByteArrayDataSource(dummyAttachment3, "text/plain")).withDescription("This is dummy text3").withContentTransferEncoding(BIT7).build()))
+				.withAttachment(AttachmentResource.builder().withName("dummy text4.txt").withDataSource(new ByteArrayDataSource("this should not have a Content-Description header", "text/plain")).withContentTransferEncoding(BIT7).build())
 				.buildEmail();
 
 		final String eml = normalizeNewlines(EmailConverter.emailToEML(email));

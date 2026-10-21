@@ -158,9 +158,9 @@ public interface OperationalConfig {
 	@NotNull SessionDebugConfig getDebugConfig();
 
 	/**
-	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#disablingAllClientValidation(boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)
 	 */
-	boolean isDisableAllClientValidation();
+	boolean isClientValidationWarningsOnly();
 
 	/**
 	 * Returns the immutable list of host names captured when this Mailer was built.

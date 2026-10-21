@@ -82,11 +82,11 @@ class Java11ApiConvenienceTest {
 			final SimpleJavaMail simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 			final Email bodyEmail = simpleJavaMail.emailBuilder().startingBlank()
 					.withPlainText(plainText)
-					.prependText(plainPrefix)
-					.appendText(plainSuffix)
+					.prependPlainText(plainPrefix)
+					.appendPlainText(plainSuffix)
 					.withHTMLText(htmlText)
-					.prependTextHTML(htmlPrefix)
-					.appendTextHTML(htmlSuffix)
+					.prependHTMLText(htmlPrefix)
+					.appendHTMLText(htmlSuffix)
 					.buildEmail();
 			final Email exactEmail = simpleJavaMail.emailBuilder().startingFromExactEml(exactEml)
 					.withEnvelopeRecipients("receiver@example.org")
@@ -198,11 +198,11 @@ class Java11ApiConvenienceTest {
 	void java11BuilderOverloadsDoNotDuplicateExistingCliOptions() throws Exception {
 		assertExcluded(EmailStartingBuilder.class, "startingFromExactEml", Path.class);
 		assertExcluded(EmailPopulatingBuilder.class, "withPlainText", Path.class);
-		assertExcluded(EmailPopulatingBuilder.class, "prependText", Path.class);
-		assertExcluded(EmailPopulatingBuilder.class, "appendText", Path.class);
+		assertExcluded(EmailPopulatingBuilder.class, "prependPlainText", Path.class);
+		assertExcluded(EmailPopulatingBuilder.class, "appendPlainText", Path.class);
 		assertExcluded(EmailPopulatingBuilder.class, "withHTMLText", Path.class);
-		assertExcluded(EmailPopulatingBuilder.class, "prependTextHTML", Path.class);
-		assertExcluded(EmailPopulatingBuilder.class, "appendTextHTML", Path.class);
+		assertExcluded(EmailPopulatingBuilder.class, "prependHTMLText", Path.class);
+		assertExcluded(EmailPopulatingBuilder.class, "appendHTMLText", Path.class);
 		assertExcluded(org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder.class,
 				"signWithSmime", Path.class, String.class, String.class, String.class, String.class);
 		assertExcluded(org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder.class,

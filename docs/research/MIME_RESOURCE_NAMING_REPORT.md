@@ -23,10 +23,11 @@ The corrected API also supports an explicit Content-ID:
 ```java
 SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
     .withHTMLText("<img src=\"cid:logo-2026\">")
-    .withEmbeddedImage("logo.png", dataSource, "logo-2026");
+    .withEmbeddedImage(AttachmentResource.builder()
+        .withName("logo.png").withDataSource(dataSource).withContentId("logo-2026").build());
 ```
 
-For this overload, the resource name remains filename/resource metadata and the explicit `contentId` is the HTML reference identity. Surrounding angle brackets are tolerated at the API boundary and stripped before MIME output; CRLF and interior angle brackets are rejected as invalid header content.
+For a constructed resource, the resource name remains filename/resource metadata and the explicit `contentId` is the HTML reference identity. Surrounding angle brackets are tolerated at the API boundary and stripped before MIME output; CRLF and interior angle brackets are rejected as invalid header content.
 
 Current anchors:
 

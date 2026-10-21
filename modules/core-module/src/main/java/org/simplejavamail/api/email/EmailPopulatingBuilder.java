@@ -5,7 +5,6 @@ import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.config.ImageResolutionConfig;
@@ -159,7 +158,7 @@ public interface EmailPopulatingBuilder {
 	 * a sender. Mailer preparation checks the completed message before sending; building a template does not validate its completeness.
 	 * <strong>This is the regular use case and the common way to send emails using a {@link Mailer} instance.</strong>
 	 * <p>
-	 * To apply configured defaults before sending, use {@link #buildEmailCompletedWithDefaultsAndOverrides()}.
+	 * To inspect or convert values with configured defaults already applied, use {@link #buildEmailCompletedWithDefaultsAndOverrides()}.
 	 * To use a particular Mailer's templates instead, pass its {@link Mailer#getEmailGovernance()} to
 	 * {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)}. Ordinary sending applies the selected Mailer's governance automatically.
 	 *
@@ -180,13 +179,16 @@ public interface EmailPopulatingBuilder {
 	Email buildEmailCompletedWithDefaultsAndOverrides();
 
 	/**
-	 * Builds an Email with the supplied governance's defaults and overrides already applied. Use this when you need the completed message before
-	 * converting or inspecting it without sending. Ordinary sending applies the selected Mailer's governance automatically; use {@link #buildEmail()}
-	 * for that case.
+	 * Builds an Email with the supplied governance's defaults and overrides already applied, for example for conversion or inspection.
+	 * The result can also be sent: each subsequent ordinary completion applies the selected Mailer's governance again. Missing scalar values
+	 * can receive defaults, overrides can replace scalar values, and additive templates contribute only entries not already present.
+	 * Existing duplicate occurrences are preserved; resource identity is recognized without reading borrowed content. Suppression choices
+	 * survive completion and copying, and applicable locked configuration always remains binding.
 	 * <p>
-	 * Why not always apply defaults and overrides? Because it would be a waste of resources to do so, especially when you are sending multiple emails reusing a mailer instance.
-	 * Another use case is that when using a server cluster with the batch-module (multiple mailer instances), defaults set during sending ensure that the defaults set for a
-	 * specific mailer are used. This is sometimes important if an SMTP server needs a specific sender address, or if you want to use a specific DKIM signature bound to that server.
+	 * Completion does not freeze the message. Use {@link #buildEmail()} for ordinary sending so the selected destination supplies its defaults
+	 * directly, including in a cluster. Sending a completed result keeps its materialized values as supplied values; another Mailer's default
+	 * sender cannot replace an existing sender, while its override can. See {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}
+	 * for collection ordering and duplicate matching. Exact EML retains its separate authoritative-byte contract.
 	 *
 	 * @param emailGovernance The email governance to use for this email. It determines which default values and overrides to apply, what the maximum
 	 *                           email size is, etc.
@@ -406,68 +408,70 @@ public interface EmailPopulatingBuilder {
 	 *                would be used instead by the email client.
 	 *
 	 * @see #withPlainText(File)
-	 * @see #prependText(String)
-	 * @see #appendText(String)
+	 * @see #prependPlainText(String)
+	 * @see #appendPlainText(String)
 	 */
 	EmailPopulatingBuilder withPlainText(@Nullable @Cli.Optional String text);
 
 	/**
-	 * Delegates to {@link #prependText(String)}.
+	 * Delegates to {@link #prependPlainText(String)}.
 	 *
 	 * @param textFile The plain text to prepend to whatever plain text is already there.
 	 */
 	@Cli.OptionNameOverride("prependTextFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder prependText(@NotNull File textFile);
+	EmailPopulatingBuilder prependPlainText(@NotNull File textFile);
 
 	/**
-	 * Reads the complete UTF-8 file and delegates to {@link #prependText(String)}. Any stream opened for the path is closed before this method returns.
+	 * Reads the complete UTF-8 file and delegates to {@link #prependPlainText(String)}. Any stream opened for the path is closed before this method returns.
 	 *
 	 * @param textPath The plain text to prepend to whatever plain text is already there.
 	 * @return This builder.
 	 */
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder prependText(@NotNull Path textPath);
+	EmailPopulatingBuilder prependPlainText(@NotNull Path textPath);
 
 	/**
 	 * Prepends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to prepend to whatever plain text is already there.
 	 *
-	 * @see #prependText(File)
-	 * @see #appendText(String)
+	 * @see #prependPlainText(File)
+	 * @see #appendPlainText(String)
 	 * @see #withPlainText(String)
 	 */
-	EmailPopulatingBuilder prependText(@NotNull String text);
+	@Cli.OptionNameOverride("prependText")
+	EmailPopulatingBuilder prependPlainText(@NotNull String text);
 
 	/**
-	 * Delegates to {@link #appendText(String)}.
+	 * Delegates to {@link #appendPlainText(String)}.
 	 *
 	 * @param textFile The plain text to append to whatever plain text is already there.
 	 */
 	@Cli.OptionNameOverride("appendTextFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder appendText(@NotNull File textFile);
+	EmailPopulatingBuilder appendPlainText(@NotNull File textFile);
 
 	/**
-	 * Reads the complete UTF-8 file and delegates to {@link #appendText(String)}. Any stream opened for the path is closed before this method returns.
+	 * Reads the complete UTF-8 file and delegates to {@link #appendPlainText(String)}. Any stream opened for the path is closed before this method returns.
 	 *
 	 * @param textPath The plain text to append to whatever plain text is already there.
 	 * @return This builder.
 	 */
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder appendText(@NotNull Path textPath);
+	EmailPopulatingBuilder appendPlainText(@NotNull Path textPath);
 
 	/**
 	 * Appends text to the current plain text body (or starts it if plain text body is missing).
 	 *
 	 * @param text The plain text to append to whatever plain text is already there.
 	 *
-	 * @see #appendText(File)
-	 * @see #prependText(String)
+	 * @see #appendPlainText(File)
+	 * @see #prependPlainText(String)
 	 * @see #withPlainText(String)
 	 */
-	EmailPopulatingBuilder appendText(@NotNull String text);
+	@Cli.OptionNameOverride("appendText")
+	EmailPopulatingBuilder appendPlainText(@NotNull String text);
 
 	/**
 	 * Delegates to {@link #withHTMLText(String)}.
@@ -497,68 +501,70 @@ public interface EmailPopulatingBuilder {
 	 *                would be used instead by the email client if provided.
 	 *
 	 * @see #withHTMLText(File)
-	 * @see #prependTextHTML(String)
-	 * @see #appendTextHTML(String)
+	 * @see #prependHTMLText(String)
+	 * @see #appendHTMLText(String)
 	 */
 	EmailPopulatingBuilder withHTMLText(@Nullable @Cli.Optional String textHTML);
 
 	/**
-	 * Delegates to {@link #prependTextHTML(String)}.
+	 * Delegates to {@link #prependHTMLText(String)}.
 	 *
 	 * @param textHTMLFile The HTML text to prepend to whatever is already there in the body.
 	 */
 	@Cli.OptionNameOverride("prependTextHTMLFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder prependTextHTML(@NotNull File textHTMLFile);
+	EmailPopulatingBuilder prependHTMLText(@NotNull File textHTMLFile);
 
 	/**
-	 * Reads the complete UTF-8 file and delegates to {@link #prependTextHTML(String)}. Any stream opened for the path is closed before this method returns.
+	 * Reads the complete UTF-8 file and delegates to {@link #prependHTMLText(String)}. Any stream opened for the path is closed before this method returns.
 	 *
 	 * @param textHTMLPath The HTML text to prepend to whatever is already there in the body.
 	 * @return This builder.
 	 */
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder prependTextHTML(@NotNull Path textHTMLPath);
+	EmailPopulatingBuilder prependHTMLText(@NotNull Path textHTMLPath);
 
 	/**
 	 * Prepends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
 	 * @param textHTML The HTML text to prepend to whatever is already there in the body.
 	 *
-	 * @see #prependTextHTML(File)
-	 * @see #appendTextHTML(String)
+	 * @see #prependHTMLText(File)
+	 * @see #appendHTMLText(String)
 	 * @see #withHTMLText(String)
 	 */
-	EmailPopulatingBuilder prependTextHTML(@NotNull String textHTML);
+	@Cli.OptionNameOverride("prependTextHTML")
+	EmailPopulatingBuilder prependHTMLText(@NotNull String textHTML);
 
 	/**
-	 * Delegates to {@link #appendTextHTML(String)}.
+	 * Delegates to {@link #appendHTMLText(String)}.
 	 *
 	 * @param textHTMLFile The HTML text to append to whatever is already there in the body.
 	 */
 	@Cli.OptionNameOverride("appendTextHTMLFromFile")
 	@SuppressWarnings("unused")
-	EmailPopulatingBuilder appendTextHTML(@NotNull File textHTMLFile);
+	EmailPopulatingBuilder appendHTMLText(@NotNull File textHTMLFile);
 
 	/**
-	 * Reads the complete UTF-8 file and delegates to {@link #appendTextHTML(String)}. Any stream opened for the path is closed before this method returns.
+	 * Reads the complete UTF-8 file and delegates to {@link #appendHTMLText(String)}. Any stream opened for the path is closed before this method returns.
 	 *
 	 * @param textHTMLPath The HTML text to append to whatever is already there in the body.
 	 * @return This builder.
 	 */
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
-	EmailPopulatingBuilder appendTextHTML(@NotNull Path textHTMLPath);
+	EmailPopulatingBuilder appendHTMLText(@NotNull Path textHTMLPath);
 
 	/**
 	 * Appends HTML text to the current HTML text body (or starts it if HTML text body is missing).
 	 *
 	 * @param textHTML The HTML text to append to whatever is already there in the body.
 	 *
-	 * @see #appendTextHTML(File)
-	 * @see #prependTextHTML(String)
+	 * @see #appendHTMLText(File)
+	 * @see #prependHTMLText(String)
 	 * @see #withHTMLText(String)
 	 */
-	EmailPopulatingBuilder appendTextHTML(@NotNull String textHTML);
+	@Cli.OptionNameOverride("appendTextHTML")
+	EmailPopulatingBuilder appendHTMLText(@NotNull String textHTML);
 
 	/**
 	 * Sets the optional calendar details that clients such as Outlook might be able to handle. Will be set as alternative bodypart similar to
@@ -583,62 +589,64 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipients(@NotNull Recipient @NotNull ...recipients);
 
 	/**
-	 * Appends one TO mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
-	 * Uses the list parsing of {@link #to(String, String)}; embedded names are retained.
-	 * @param address One bare or named mailbox.
+	 * Appends TO recipients from a mailbox or complete mailbox list, retaining existing recipients, order and duplicates.
+	 * Uses the list parsing of {@link #to(String, String)}; each mailbox's embedded name is retained.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder to(@NotNull String address);
 
 	/**
-	 * Appends one TO mailbox, retaining existing recipients, their metadata, order and duplicates, including on a copied Email.
+	 * Appends TO recipients from a mailbox or complete mailbox list, retaining existing recipients, their metadata, order and duplicates,
+	 * including on a copied Email.
 	 * Parses every mailbox from a comma- or semicolon-delimited list and flattens address groups.
 	 * A nonblank explicit name overrides every embedded name; null/blank retains each embedded name. Quoted punctuation,
 	 * input order and duplicate occurrences are retained. Unparseable nonempty input remains for the configured send-time validator.
-	 * Use the plural recipient builder for default-name policies or recipient-specific metadata.
-	 * Use the factory's {@code recipientsBuilder()} for multiple addresses, then {@link #withRecipients(Collection)} for their prepared values
-	 * and per-recipient options. Clear the local recipient collection before adding replacements.
+	 * Use the factory's plural {@code recipientsBuilder()} for collection input, default-name policies or recipient-specific metadata,
+	 * then {@link #withRecipients(Collection)} for its prepared values. Clear the local recipient collection before adding replacements.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
-	 * @param address One bare or named mailbox.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #clearRecipients()
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder to(@Nullable String name, @NotNull String address);
 
 	/**
-	 * Appends one CC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
+	 * Appends CC recipients from a mailbox or complete mailbox list, retaining existing recipients, order and duplicates.
 	 * Uses the list parsing of {@link #to(String, String)}, retaining every mailbox and its embedded name.
-	 * @param address One bare or named mailbox.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #cc(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder cc(@NotNull String address);
 
 	/**
-	 * Appends one CC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
+	 * Appends CC recipients from a mailbox or complete mailbox list with an optional name, retaining existing recipients, order and duplicates,
+	 * including on a copied Email.
 	 * Uses the same list parsing and explicit-name precedence as {@link #to(String, String)}.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
-	 * @param address One bare or named mailbox.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder cc(@Nullable String name, @NotNull String address);
 
 	/**
-	 * Appends one BCC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
+	 * Appends BCC recipients from a mailbox or complete mailbox list, retaining existing recipients, order and duplicates.
 	 * Uses the list parsing of {@link #to(String, String)}, retaining every mailbox and its embedded name.
-	 * @param address One bare or named mailbox.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #bcc(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
 	EmailPopulatingBuilder bcc(@NotNull String address);
 
 	/**
-	 * Appends one BCC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
+	 * Appends BCC recipients from a mailbox or complete mailbox list with an optional name, retaining existing recipients, order and duplicates,
+	 * including on a copied Email.
 	 * Uses the same list parsing and explicit-name precedence as {@link #to(String, String)}.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
-	 * @param address One bare or named mailbox.
+	 * @param address Bare or named mailboxes, including comma- or semicolon-delimited lists and address groups.
 	 * @see #to(String, String)
 	 */
 	@Cli.ExcludeApi(reason = "The existing recipient CLI options provide recipient parsing")
@@ -655,7 +663,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients);
 
 	/**
-	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and
+	 * Delegates to {@link #withEmbeddedImage(String, DataSource)}, with an owned, read-only byte source created using the provided name, data and
 	 * mimetype.
 	 *
 	 * @param name     The name of the image as being referred to from the message content body (e.g. 'signature').
@@ -665,7 +673,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withEmbeddedImage(@NotNull String name, byte@NotNull[] data, @NotNull String mimetype);
 
 	/**
-	 * Delegates to {@link #withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding)} with a named {@link ByteArrayDataSource} created
+	 * Delegates to {@link #withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding)} with an owned, read-only byte source created
 	 * using the provided name, data and mimetype.
 	 *
 	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'signature').
@@ -704,31 +712,17 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable @Cli.Optional String name, @NotNull DataSource imagedata, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
 
 	/**
-	 * Adds image data to this email with separate filename/resource name and MIME {@code Content-ID}.
-	 * <p>
-	 * Use this when the HTML body must reference one stable {@code cid:...} value, but the related MIME part should keep a different filename.
-	 *
-	 * @param name      The resource name or filename for the MIME part. If not provided, the name of the given data source is used instead.
-	 * @param imagedata The image data.
-	 * @param contentId The {@code Content-ID} value without angle brackets, as referenced from HTML using {@code cid:contentId}.
+	 * Adds a constructed embedded image, retaining its content source and metadata. Its Content-ID may differ from its filename;
+	 * HTML references the Content-ID as {@code cid:value}. If absent, the resource name supplies the Content-ID.
+	 * The resource must have a name, source name or Content-ID. No content stream is opened.
+	 * @param embeddedImage The image resource, normally created with {@link AttachmentResource#builder()}.
+	 * @see #withEmbeddedImages(List)
 	 */
-	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
-	EmailPopulatingBuilder withEmbeddedImage(@Nullable @Cli.Optional String name, @NotNull DataSource imagedata, @Nullable @Cli.Optional String contentId);
+	@Cli.ExcludeApi(reason = "The CLI uses the DataSource convenience")
+	EmailPopulatingBuilder withEmbeddedImage(@NotNull AttachmentResource embeddedImage);
 
 	/**
-	 * Delegates to {@link #withPreEncodedEmbeddedImage(String, DataSource, ContentTransferEncoding, String)} with a MIME {@code Content-ID}.
-	 *
-	 * @param name                              The resource name or filename for the MIME part. If not provided, the name of the given data source is used instead.
-	 * @param imagedata                         The already encoded image data.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 * @param contentId                         The {@code Content-ID} value without angle brackets, as referenced from HTML using {@code cid:contentId}.
-	 */
-	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
-	EmailPopulatingBuilder withPreEncodedEmbeddedImage(@Nullable @Cli.Optional String name, @NotNull DataSource imagedata,
-													   @NotNull ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable @Cli.Optional String contentId);
-
-	/**
-	 * Delegates to {@link #withEmbeddedImage(String, DataSource)} for each embedded image.
+	 * Delegates to {@link #withEmbeddedImage(AttachmentResource)} for each embedded image, retaining resource identity and order.
 	 */
 	EmailPopulatingBuilder withEmbeddedImages(@NotNull List<AttachmentResource> embeddedImages);
 
@@ -760,33 +754,16 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable @Cli.Optional Object value, boolean replaceHeader);
 
 	/**
-	 * Delegates to {@link #withAttachment(String, byte[], String, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
+	 * Adds an attachment from bytes, copied immediately so subsequent array changes do not affect the Email.
+	 * @param name Optional filename; null falls back to the source name or a generated name.
+	 * @param data The content bytes; empty attachments are permitted.
+	 * @param mimetype The MIME content type, for example {@code application/pdf}.
+	 * @see #withAttachment(AttachmentResource)
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype);
 
 	/**
-	 * Delegates to {@link #withAttachment(String, byte[], String, String, ContentTransferEncoding)} with no forced content transfer encoding.
-	 */
-	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable @Cli.Optional String description);
-
-	/**
-	 * Delegates to {@link #withAttachment(String, DataSource)}, with a named {@link ByteArrayDataSource} created using the provided name, data and mimetype.
-	 * The supplied array is copied immediately; later changes to it do not change the attachment.
-	 *
-	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                using {@link java.util.UUID}.
-	 * @param data                    The binary data of the attachment.
-	 * @param mimetype                The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
-	 *
-	 * @see #withAttachment(String, DataSource, String, ContentTransferEncoding)
-	 * @see #withAttachments(List)
-	 */
-	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable @Cli.Optional String description, @Nullable @Cli.Optional ContentTransferEncoding contentTransferEncoding);
-
-	/**
-	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, ContentTransferEncoding)} with a named {@link ByteArrayDataSource} created
+	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, ContentTransferEncoding)} with an owned, read-only byte source created
 	 * using the provided name, data and mimetype.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
@@ -799,27 +776,13 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
 
 	/**
-	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding)} with a named {@link ByteArrayDataSource}
-	 * created using the provided name, data and mimetype.
-	 * The supplied array is copied immediately; later changes to it do not change the attachment.
-	 *
-	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                          using {@link java.util.UUID}.
-	 * @param data                              The already encoded attachment data.
-	 * @param mimetype                          The content type of the given data (e.g. "plain/text", "image/gif" or "application/pdf").
-	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 */
-	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
-	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, byte@NotNull[] data, @NotNull String mimetype, @Nullable @Cli.Optional String description,
-													@NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
-
-	/**
-	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with null-description and no forced content transfer encoding.
+	 * Adds an attachment using a borrowed, repeatable source. Content remains application-owned and must stay available and stable while in use.
 	 *
 	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                using {@link java.util.UUID}.
 	 * @param filedata                The attachment data.
+	 * @see AttachmentResource#builder()
+	 * @see #withAttachment(AttachmentResource)
 	 */
 	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata);
 
@@ -858,77 +821,17 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @NotNull ContentTransferEncoding preEncodedContentTransferEncoding);
 
 	/**
-	 * Delegates to {@link #withAttachment(String, DataSource, String, ContentTransferEncoding)} with no forced content transfer encoding.
-	 *
-	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                using {@link java.util.UUID}.
-	 * @param filedata                The attachment data.
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 */
-	@Cli.OptionNameOverride("withDescribedAttachment")
-	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description);
-
-	/**
-	 * Adds an attachment to the email message, which will be shown in the email client as seperate files available for download or inline display if the client supports it (for example, most browsers
-	 * these days display PDF's in a popup).
-	 * <p>
-	 * <strong>Note</strong>: for embedding images instead of attaching them for download, refer to {@link #withEmbeddedImage(String, DataSource)} instead.
-	 *
-	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                using {@link java.util.UUID}.
-	 * @param filedata                The attachment data.
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
-	 *
-	 * @see #withAttachment(String, DataSource, String, ContentTransferEncoding)
+	 * Adds a constructed attachment, retaining its content source and named MIME metadata without reading content.
+	 * Attachments appear as downloadable or inline files according to the receiving client; for HTML images use
+	 * {@link #withEmbeddedImage(AttachmentResource)}. Repeated explicit additions retain duplicates and order.
+	 * @param attachment The attachment resource, normally created with {@link AttachmentResource#builder()}.
 	 * @see #withAttachments(List)
 	 */
-	@Cli.OptionNameOverride("withEncodedDescribedAttachment")
-	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description, @Nullable @Cli.Optional final ContentTransferEncoding contentTransferEncoding);
+	@Cli.ExcludeApi(reason = "The CLI uses its internal scalar attachment adapters")
+	EmailPopulatingBuilder withAttachment(@NotNull AttachmentResource attachment);
 
 	/**
-	 * Delegates to {@link #withPreEncodedAttachment(String, DataSource, String, ContentTransferEncoding, String)} with no MIME {@code Content-ID}.
-	 *
-	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                          using {@link java.util.UUID}.
-	 * @param filedata                          The already encoded attachment data.
-	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 */
-	@Cli.ExcludeApi(reason = "pre-encoded MIME payloads are an advanced byte-stream concern")
-	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description,
-													@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding);
-
-	/**
-	 * Adds an attachment with separate filename/resource name and MIME {@code Content-ID}.
-	 *
-	 * @param name                    Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                using {@link java.util.UUID}.
-	 * @param filedata                The attachment data.
-	 * @param description             An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param contentTransferEncoding An optional encoder option to force the data encoding while in MimeMessage/EML format.
-	 * @param contentId               Optional {@code Content-ID} value without angle brackets. If omitted, a safe unique value is generated.
-	 */
-	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
-	EmailPopulatingBuilder withAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description,
-										  @Nullable @Cli.Optional final ContentTransferEncoding contentTransferEncoding, @Nullable @Cli.Optional final String contentId);
-
-	/**
-	 * Adds already encoded attachment data with separate filename/resource name and MIME {@code Content-ID}.
-	 *
-	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
-	 *                                          using {@link java.util.UUID}.
-	 * @param filedata                          The already encoded attachment data.
-	 * @param description                       An optional description that will find its way in the MimeMEssage with the Content-Description header. This is rarely needed.
-	 * @param preEncodedContentTransferEncoding The encoder that was already applied to the data.
-	 * @param contentId                         Optional {@code Content-ID} value without angle brackets. If omitted, a safe unique value is generated.
-	 */
-	@Cli.ExcludeApi(reason = "this is advanced MIME metadata, so let's not crowd the CLI with it")
-	EmailPopulatingBuilder withPreEncodedAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata, @Nullable @Cli.Optional final String description,
-													@NotNull final ContentTransferEncoding preEncodedContentTransferEncoding, @Nullable @Cli.Optional final String contentId);
-
-	/**
-	 * Delegates to {@link #withAttachment(String, DataSource)} for each attachment.
+	 * Delegates to {@link #withAttachment(AttachmentResource)} for each attachment, retaining resource identity and order.
 	 */
 	EmailPopulatingBuilder withAttachments(@NotNull List<AttachmentResource> attachments);
 
@@ -1412,13 +1315,13 @@ public interface EmailPopulatingBuilder {
 	 * @see #withPlainText(String)
 	 */
 	@Nullable
-	String getText();
+	String getPlainText();
 
 	/**
 	 * @see #withHTMLText(String)
 	 */
 	@Nullable
-	String getTextHTML();
+	String getHTMLText();
 
 	/**
 	 * @see #withCalendarText(CalendarMethod, String)
@@ -1430,7 +1333,7 @@ public interface EmailPopulatingBuilder {
 	 * @see #withCalendarText(CalendarMethod, String)
 	 */
 	@Nullable
-	String getTextCalendar();
+	String getCalendarText();
 
 	/**
 	 * @see #withSubject(String)

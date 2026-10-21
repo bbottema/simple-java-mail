@@ -77,7 +77,7 @@ public class EmailStartingBuilderImplTest {
 		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final DataSource source = mock(DataSource.class);
 		when(source.getInputStream()).thenThrow(new IOException("Borrowed content must not be consumed while copying"));
-		final AttachmentResource resource = new AttachmentResource("shared.txt", source, null, null);
+		final AttachmentResource resource = AttachmentResource.builder().withName("shared.txt").withDataSource(source).build();
 		final InternalEmailPopulatingBuilder signed = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
 		signed.withAttachments(List.of(resource)).withEmbeddedImages(List.of(resource)).withPlainText("signed body");
 		signed.withDecryptedAttachments(List.of(resource));

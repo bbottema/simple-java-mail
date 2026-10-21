@@ -237,16 +237,16 @@ public class EmailGovernanceImplTest {
     public void produceEmailApplyingDefaultsAndOverrides_PreEncodedAttachmentResources() throws Exception {
 
         val defaults = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withPreEncodedAttachment("default-preencoded.txt", new ByteArrayDataSource("ZGVmYXVsdA==", "text/plain"), "default description", BASE_64, "default-attachment-cid")
-                .withPreEncodedEmbeddedImage("default-logo", new ByteArrayDataSource("ZGVmYXVsdA==", "image/png"), BASE_64, "default-image-cid")
+                .withAttachment(AttachmentResource.builder().withName("default-preencoded.txt").withDataSource(new ByteArrayDataSource("ZGVmYXVsdA==", "text/plain")).withDescription("default description").withPreEncodedContentTransferEncoding(BASE_64).withContentId("default-attachment-cid").build())
+                .withEmbeddedImage(AttachmentResource.builder().withName("default-logo").withDataSource(new ByteArrayDataSource("ZGVmYXVsdA==", "image/png")).withPreEncodedContentTransferEncoding(BASE_64).withContentId("default-image-cid").build())
                 .buildEmail();
         val overrides = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withPreEncodedAttachment("override-preencoded.txt", new ByteArrayDataSource("b3ZlcnJpZGU=", "text/plain"), "override description", QUOTED_PRINTABLE, "override-attachment-cid")
-                .withPreEncodedEmbeddedImage("override-logo", new ByteArrayDataSource("b3ZlcnJpZGU=", "image/png"), QUOTED_PRINTABLE, "override-image-cid")
+                .withAttachment(AttachmentResource.builder().withName("override-preencoded.txt").withDataSource(new ByteArrayDataSource("b3ZlcnJpZGU=", "text/plain")).withDescription("override description").withPreEncodedContentTransferEncoding(QUOTED_PRINTABLE).withContentId("override-attachment-cid").build())
+                .withEmbeddedImage(AttachmentResource.builder().withName("override-logo").withDataSource(new ByteArrayDataSource("b3ZlcnJpZGU=", "image/png")).withPreEncodedContentTransferEncoding(QUOTED_PRINTABLE).withContentId("override-image-cid").build())
                 .buildEmail();
         val userEmail = EmailHelper.createDummyEmailBuilder(true, false, true, true, false, true)
-                .withPreEncodedAttachment("provided-preencoded.txt", new ByteArrayDataSource("cHJvdmlkZWQ=", "text/plain"), "provided description", BASE_64, "provided-attachment-cid")
-                .withPreEncodedEmbeddedImage("provided-logo", new ByteArrayDataSource("cHJvdmlkZWQ=", "image/png"), BASE_64, "provided-image-cid")
+                .withAttachment(AttachmentResource.builder().withName("provided-preencoded.txt").withDataSource(new ByteArrayDataSource("cHJvdmlkZWQ=", "text/plain")).withDescription("provided description").withPreEncodedContentTransferEncoding(BASE_64).withContentId("provided-attachment-cid").build())
+                .withEmbeddedImage(AttachmentResource.builder().withName("provided-logo").withDataSource(new ByteArrayDataSource("cHJvdmlkZWQ=", "image/png")).withPreEncodedContentTransferEncoding(BASE_64).withContentId("provided-image-cid").build())
                 .buildEmail();
 
         val resolved = new EmailGovernanceImpl(null, defaults, overrides, null).produceEmailApplyingDefaultsAndOverrides(userEmail);

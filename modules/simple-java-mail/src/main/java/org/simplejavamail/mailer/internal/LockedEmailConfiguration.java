@@ -11,6 +11,7 @@ import jakarta.mail.internet.InternetHeaders;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.config.ConfigLoader.Property;
@@ -306,10 +307,27 @@ final class LockedEmailConfiguration {
 			final Recipient recipient = recipients.get(index);
 			if (Objects.equals(type, recipient.getType())) {
 				verifyIfPresent(property, recipient.getName());
-				recipients.set(index, new Recipient(String.class.cast(config.asMap().get(property)), recipient.getAddress(), type,
-						recipient.getSmimeCertificate(), recipient.getDeliveryStatusNotificationNotifyOptions()));
+				recipients.set(index, recipientWithLockedName(recipient, property));
 			}
 		}
+	}
+
+	/** The comparison value after missing-name completion; originals remain available for unconditional conflict verification. */
+	Recipient recipientAfterNameCompletion(final Recipient recipient, final EmailProperty field) {
+		final Property name;
+		switch (field) {
+			case TO_RECIPIENTS: name = DEFAULT_TO_NAME; break;
+			case CC_RECIPIENTS: name = DEFAULT_CC_NAME; break;
+			case BCC_RECIPIENTS: name = DEFAULT_BCC_NAME; break;
+			case REPLYTO_RECIPIENT: name = DEFAULT_REPLYTO_NAME; break;
+			default: throw new IllegalArgumentException("No recipient display-name lock applies to " + field);
+		}
+		return recipient.getName() == null && locks.contains(name) ? recipientWithLockedName(recipient, name) : recipient;
+	}
+
+	private Recipient recipientWithLockedName(final Recipient recipient, final Property name) {
+		return new Recipient(String.class.cast(config.asMap().get(name)), recipient.getAddress(), recipient.getType(),
+				recipient.getSmimeCertificate(), recipient.getDeliveryStatusNotificationNotifyOptions());
 	}
 
 	/** Exact EML can gain envelope destinations, but its content and existing signatures are never rewritten to satisfy a lock. */

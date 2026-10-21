@@ -180,4 +180,30 @@ class CliGroupedConfigurationOptionsTest {
     private static CliExecutionResult execute(final CliExecutionEnvironment environment, final String... arguments) {
         return CliSupport.execute(arguments, Path.of(".").toAbsolutePath(), UUID.randomUUID(), environment, null);
     }
+
+    @Test
+    void attachmentMetadataOptionsRetainRequestRelativeFilesAndEncoding() throws Exception {
+        Files.writeString(workingDirectory.resolve("report.txt"), "plain attachment content");
+        final Mailer mailer = mock(Mailer.class);
+        final Mailer.Sync sync = mock(Mailer.Sync.class);
+        when(mailer.sync()).thenReturn(sync);
+        final MailerProvider.Lease lease = mock(MailerProvider.Lease.class);
+        when(lease.mailer()).thenReturn(mailer);
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), (profile, factory) -> lease)) {
+            final String[] arguments = {"send", "--email:startingBlank", "--email:from", "sender@example.test",
+                    "--email:to", "receiver@example.test", "--email:withDescribedAttachment", "described.txt", "report.txt", "description",
+                    "--email:withEncodedDescribedAttachment", "encoded.txt", "report.txt", "encoded description", "BASE_64"};
+            final CliExecutionResult result = CliSupport.execute(arguments, workingDirectory, UUID.randomUUID(), environment, null);
+            assertThat(result.exitCode()).as(result.stderr()).isZero();
+            final ArgumentCaptor<Email> email = ArgumentCaptor.forClass(Email.class);
+            verify(sync).sendMail(email.capture());
+            assertThat(email.getValue().getAttachments()).hasSize(2);
+            assertThat(email.getValue().getAttachments().get(0).getDescription()).isEqualTo("description");
+            assertThat(email.getValue().getAttachments().get(1).getDescription()).isEqualTo("encoded description");
+            assertThat(email.getValue().getAttachments().get(1).getContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64);
+            assertThat(email.getValue().getAttachments().get(1).getPreEncodedContentTransferEncoding()).isNull();
+            assertThat(email.getValue().getAttachments().get(1).readAllData()).isEqualTo("plain attachment content");
+            verify(lease).close();
+        }
+    }
 }

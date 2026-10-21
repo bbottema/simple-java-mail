@@ -14,6 +14,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.email.EmailProperty;
@@ -37,6 +38,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -596,17 +598,56 @@ public final class MiscUtil {
 
 	@NotNull
 	public static <Out> List<Out> overrideAndOrProvideAndOrDefaultCollection(@Nullable Email provided, @Nullable Email defaults, @Nullable Email overrides, @NotNull EmailProperty emailProperty) {
-		val listOut = new ArrayList<Out>();
+		return mergeTemplateCollection(provided, defaults, overrides, emailProperty, MiscUtil::sameTemplateValue);
+	}
+
+	/** The lock owner supplies recipient comparison after accounting for mandatory name completion; resource matching remains internal. */
+	@NotNull
+	public static List<Recipient> overrideAndOrProvideAndOrDefaultRecipients(@Nullable final Email provided, @Nullable final Email defaults,
+			@Nullable final Email overrides, @NotNull final EmailProperty emailProperty, final BiPredicate<Recipient, Recipient> sameRecipient) {
+		return mergeTemplateCollection(provided, defaults, overrides, emailProperty, sameRecipient);
+	}
+
+	private static <Out> List<Out> mergeTemplateCollection(@Nullable final Email provided, @Nullable final Email defaults,
+			@Nullable final Email overrides, final EmailProperty emailProperty, final BiPredicate<Out, Out> sameValue) {
+		final Collection<Out> supplied = provided == null ? Collections.emptyList()
+				: EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(provided);
+		final List<Out> newOverrides = new ArrayList<>();
 		if (overrides != null && overrideAllowedForProperty(provided, emailProperty)) {
-			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(overrides));
+			addMissingTemplateValues(newOverrides, supplied,
+					EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(overrides), sameValue);
 		}
-		if (provided != null) {
-			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(provided));
-		}
+		final List<Out> listOut = new ArrayList<>(newOverrides);
+		listOut.addAll(supplied); // Every supplied occurrence belongs to the caller, including intentional duplicates.
 		if (defaults != null && defaultAllowedForProperty(provided, emailProperty)) {
-			listOut.addAll(EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(defaults));
+			addMissingTemplateValues(listOut, Collections.emptyList(),
+					EmailPropertyAccess.forProperty(emailProperty).<Collection<Out>>getGetter().apply(defaults), sameValue);
 		}
 		return listOut;
+	}
+
+	private static <T> void addMissingTemplateValues(final List<T> destination, final Collection<T> supplied,
+			final Collection<T> candidates, final BiPredicate<T, T> sameValue) {
+		for (final T candidate : candidates) {
+			if (!containsTemplateValue(supplied, candidate, sameValue) && !containsTemplateValue(destination, candidate, sameValue)) {
+				destination.add(candidate);
+			}
+		}
+	}
+
+	private static <T> boolean containsTemplateValue(final Collection<T> values, final T candidate, final BiPredicate<T, T> sameValue) {
+		for (final T existing : values) {
+			if (sameValue.test(existing, candidate)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean sameTemplateValue(final Object existing, final Object candidate) {
+		return candidate instanceof AttachmentResource && existing instanceof AttachmentResource
+				? AttachmentResourceMatcher.sameResource((AttachmentResource) existing, (AttachmentResource) candidate)
+				: Objects.equals(existing, candidate);
 	}
 
 	@NotNull

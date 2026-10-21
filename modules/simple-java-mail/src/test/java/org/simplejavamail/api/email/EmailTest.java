@@ -108,7 +108,7 @@ public class EmailTest {
 				.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("dkim_key".getBytes(UTF_8)).dkimSigningDomain("dkim_domain").dkimSelector("dkim_selector").build())
 				.withEmbeddedImage("the_image", produceThumbsUpImage(), "image/png")
 				.withAttachment("the_attachment", produceThumbsUpImage(), "image/png")
-				.withAttachment("described_attachment", "blah".getBytes(defaultCharset()), "text/plain", "cool description", BASE_64)
+				.withAttachment(AttachmentResource.builder().withName("described_attachment").withData("blah".getBytes(defaultCharset()), "text/plain").withDescription("cool description").withContentTransferEncoding(BASE_64).build())
 				.buildEmail();
 
 		assertThat(e.toString()).isEqualTo("Email{\n"

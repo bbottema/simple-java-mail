@@ -62,13 +62,13 @@ public class InternalEmail extends Email {
     }
 
     @NotNull
-    public Email prepareForSending(@NotNull final EmailGovernance emailGovernance, final boolean disableAllClientValidation) {
-        return emailSource.prepareForSending(this, emailGovernance, disableAllClientValidation);
+    public Email prepareForSending(@NotNull final EmailGovernance emailGovernance, final boolean clientValidationWarningsOnly) {
+        return emailSource.prepareForSending(this, emailGovernance, clientValidationWarningsOnly);
     }
 
     /** Validates the final governed email without applying ordinary templates a second time. */
-    public void validateForSending(@NotNull final EmailGovernance emailGovernance, final boolean disableAllClientValidation) {
-        emailSource.validateForSending(this, emailGovernance, disableAllClientValidation);
+    public void validateForSending(@NotNull final EmailGovernance emailGovernance, final boolean clientValidationWarningsOnly) {
+        emailSource.validateForSending(this, emailGovernance, clientValidationWarningsOnly);
     }
 
     @NotNull

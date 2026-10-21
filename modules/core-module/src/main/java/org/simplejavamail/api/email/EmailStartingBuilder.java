@@ -179,7 +179,7 @@ public interface EmailStartingBuilder {
 	 * <strong>Note 1:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
 	 * <strong>Note 2:</strong> always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well.<br>
 	 * <strong>Note 3:</strong> sets body content: text is replaced with {@code "> text"} and HTML is replaced with the provided (or default) quoting markup
-	 * (add your own content with {@link EmailPopulatingBuilder#prependText(String)} and {@link EmailPopulatingBuilder#prependTextHTML(String)}).
+	 * (add your own content with {@link EmailPopulatingBuilder#prependPlainText(String)} and {@link EmailPopulatingBuilder#prependHTMLText(String)}).
 	 *
 	 * @param emailMessage The message from which we harvest recipients, original content to quote (including embedded images), message ID to
 	 *                     include.

@@ -238,9 +238,9 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"how-to.html\"/>") // comes from URL
-				.appendTextHTML("<img src=\"/log4j2.xml\"/>") // comes from classpath
-				.appendTextHTML("<img src=\"pkcs12/about all this.txt\"/>") // comes from folder
+				.appendHTMLText("<img src=\"how-to.html\"/>") // comes from URL
+				.appendHTMLText("<img src=\"/log4j2.xml\"/>") // comes from classpath
+				.appendHTMLText("<img src=\"pkcs12/about all this.txt\"/>") // comes from folder
 				.buildEmail();
 
 		assertThat(email.getEmbeddedImages())
@@ -266,7 +266,7 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		final EmailPopulatingBuilder emailPopulatingBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"missing.html\"/>");
+				.appendHTMLText("<img src=\"missing.html\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -287,9 +287,9 @@ public class EmailPopulatingBuilderImpl2Test {
 
 		final Email email = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.config(value)).emailBuilder().startingBlank()
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"missing.html\"/>")
-				.appendTextHTML("<img src=\"/missing.html\"/>")
-				.appendTextHTML("<img src=\"missing.xml\"/>")
+				.appendHTMLText("<img src=\"missing.html\"/>")
+				.appendHTMLText("<img src=\"/missing.html\"/>")
+				.appendHTMLText("<img src=\"missing.xml\"/>")
 				.buildEmail();
 
 		assertThat(email.getEmbeddedImages()).isEmpty();

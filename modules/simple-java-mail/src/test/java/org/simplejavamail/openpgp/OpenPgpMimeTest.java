@@ -240,8 +240,7 @@ class OpenPgpMimeTest {
 				.withHTMLText("<p>Héllo <img src=\"cid:logo\"></p>")
 				.withCalendarText(CalendarMethod.REQUEST, calendar)
 				.withEmbeddedImage("logo", embeddedBytes, "image/png")
-				.withAttachment("proof.bin", attachmentBytes, "application/octet-stream", null,
-						ContentTransferEncoding.BASE_64)
+				.withAttachment(AttachmentResource.builder().withName("proof.bin").withData(attachmentBytes, "application/octet-stream").withContentTransferEncoding(ContentTransferEncoding.BASE_64).build())
 				.signWithOpenPgp(signing(firstKey))
 				.buildEmail();
 

@@ -18,9 +18,9 @@ interface EmailSource extends Serializable {
 	Email prepareForConversion(@NotNull Email email, @NotNull EmailGovernance emailGovernance);
 
 	@NotNull
-	Email prepareForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean disableAllClientValidation);
+	Email prepareForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean clientValidationWarningsOnly);
 
-	void validateForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean disableAllClientValidation);
+	void validateForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean clientValidationWarningsOnly);
 
 	@NotNull
 	MimeMessage renderMimeMessage(@NotNull Email email, @NotNull Session session, boolean processSecurity)

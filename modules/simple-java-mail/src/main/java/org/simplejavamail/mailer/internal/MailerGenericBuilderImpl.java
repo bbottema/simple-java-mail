@@ -155,7 +155,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
 	 */
-	private boolean disableAllClientValidation;
+	private boolean clientValidationWarningsOnly;
 
 	/**
 	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
@@ -376,7 +376,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 		this.proxyPort =  							verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.disableAllClientValidation = 			verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
+		this.clientValidationWarningsOnly = 			verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.sessionTimeout = configuredDuration(ConfigKeys.SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT);
 		this.localBindAddress = 					config.get(ConfigKeys.SMTP_LOCAL_ADDRESS);
 		this.localBindPort = 						config.get(ConfigKeys.SMTP_LOCAL_PORT);
@@ -625,7 +625,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		locks.verify(Property.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getPrinter() == null
 				? config.valueOrProperty(debugConfig.getOutput(), ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT)
 				: debugConfig.getPrinter() == System.out ? SessionDebugOutput.STDOUT : debugConfig.getPrinter() == System.err ? SessionDebugOutput.STDERR : null);
-		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, disableAllClientValidation);
+		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, clientValidationWarningsOnly);
 		locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toNullableInt(sessionTimeout, "sessionTimeout"));
 		locks.verify(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
 		locks.verify(Property.SMTP_LOCAL_PORT, localBindPort);
@@ -894,7 +894,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				Collections.unmodifiableMap(new LinkedHashMap<>(connectionPoolClusterConfigs)),
 				isTransportModeLoggingOnly(),
 				resolveDebugConfig(sessionSettings.getDebugConfig()),
-				isDisableAllClientValidation(),
+				isClientValidationWarningsOnly(),
 				Collections.unmodifiableList(new ArrayList<>(sessionSettings.getSslHostsToTrust())),
 				sessionSettings.isTrustAllSSLHost(),
 				sessionSettings.isVerifyingServerIdentity(),
@@ -1195,11 +1195,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#disablingAllClientValidation(Boolean)
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)
 	 */
 	@Override
-	public T disablingAllClientValidation(@NotNull final Boolean disableAllClientValidation) {
-		this.disableAllClientValidation = disableAllClientValidation;
+	public T disablingAllClientValidation(@NotNull final Boolean clientValidationWarningsOnly) {
+		this.clientValidationWarningsOnly = clientValidationWarningsOnly;
 		return (T) this;
 	}
 
@@ -1583,7 +1583,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/**
-	 * @see MailerGenericBuilder#resetDisableAllClientValidations()
+	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#resetClientValidationWarningsOnly()
 	 */
 	@Override
 	public T resetDisableAllClientValidations() {
@@ -1901,11 +1901,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 
 	/**
-	 * @see MailerGenericBuilder#isDisableAllClientValidation()
+	 * @see OperationalConfig#isClientValidationWarningsOnly()
 	 */
 	@Override
-	public boolean isDisableAllClientValidation() {
-		return disableAllClientValidation;
+	public boolean isClientValidationWarningsOnly() {
+		return clientValidationWarningsOnly;
 	}
 
 	/**
@@ -2288,7 +2288,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withValidationConfig(ValidationConfig) */
     @Override public T withValidationConfig(@NotNull final ValidationConfig choices) {
         requireNonNull(choices, "validationConfig");
-        disableAllClientValidation = config.valueOrProperty(choices.getDisableAllClientValidation(), ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION);
+        clientValidationWarningsOnly = config.valueOrProperty(choices.getClientValidationWarningsOnly(), ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION);
         emailValidator = choices.isEmailValidatorCleared() ? null : choices.getEmailValidator() == null ? JMail.strictValidator() : choices.getEmailValidator();
         maximumEmailSize = choices.getMaximumEmailSize();
         validationConfig = choices;

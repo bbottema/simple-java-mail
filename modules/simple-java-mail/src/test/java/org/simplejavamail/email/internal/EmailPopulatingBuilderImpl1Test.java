@@ -459,7 +459,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testPrependText_ToEmptyText() {
 		Email test = builder
-				.prependText("test")
+				.prependPlainText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasPlainText("test");
@@ -470,7 +470,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		Email test = builder
 				.withPlainText("moo")
 				.withHTMLText("ignore")
-				.prependText("test\n")
+				.prependPlainText("test\n")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasPlainText("test\nmoo");
@@ -479,7 +479,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testPrependTextHTML_ToEmptyText() {
 		Email test = builder
-				.prependTextHTML("test")
+				.prependHTMLText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("test");
@@ -490,7 +490,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		Email test = builder
 				.withPlainText("ignore")
 				.withHTMLText("moo")
-				.prependTextHTML("test\n")
+				.prependHTMLText("test\n")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("test\nmoo");
@@ -499,7 +499,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testAppendText_ToEmptyText() {
 		Email test = builder
-				.appendText("test")
+				.appendPlainText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasPlainText("test");
@@ -510,7 +510,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		Email test = builder
 				.withPlainText("moo")
 				.withHTMLText("ignore")
-				.appendText("\ntest")
+				.appendPlainText("\ntest")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasPlainText("moo\ntest");
@@ -519,7 +519,7 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testAppendTextHTML_ToEmptyText() {
 		Email test = builder
-				.appendTextHTML("test")
+				.appendHTMLText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("test");
@@ -530,7 +530,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		Email test = builder
 				.withPlainText("ignore")
 				.withHTMLText("moo")
-				.appendTextHTML("\ntest")
+				.appendHTMLText("\ntest")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("moo\ntest");
@@ -740,9 +740,9 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testWithEmbeddedImages() throws IOException {
 		List<AttachmentResource> embeddedImages = new ArrayList<>();
-		embeddedImages.add(new AttachmentResource("attachment1", getDataSource("blahblah.txt")));
-		embeddedImages.add(new AttachmentResource(null, getDataSource("blahblah.txt")));
-		embeddedImages.add(new AttachmentResource("attachment1", new ByteArrayDataSource("", "text/text")));
+		embeddedImages.add(AttachmentResource.builder().withName("attachment1").withDataSource(getDataSource("blahblah.txt")).build());
+		embeddedImages.add(AttachmentResource.builder().withName(null).withDataSource(getDataSource("blahblah.txt")).build());
+		embeddedImages.add(AttachmentResource.builder().withName("attachment1").withDataSource(new ByteArrayDataSource("", "text/text")).build());
 
 		Email email = builder.withEmbeddedImages(embeddedImages).buildEmail();
 
@@ -778,24 +778,24 @@ public class EmailPopulatingBuilderImpl1Test {
 
 	private EmailPopulatingBuilder setPlainText(EmailPopulatingBuilder builder) {
 		return builder
-				.appendText("<appended1>")
+				.appendPlainText("<appended1>")
 				.withPlainText("<main1>")
-				.prependText("<prepended1>")
-				.appendText("<appended2>")
+				.prependPlainText("<prepended1>")
+				.appendPlainText("<appended2>")
 				.withPlainText("<main2>")
-				.prependText("<prepended2>")
-				.appendText("<appended3>");
+				.prependPlainText("<prepended2>")
+				.appendPlainText("<appended3>");
 	}
 
 	private EmailPopulatingBuilder setHTMLText(EmailPopulatingBuilder builder) {
 		return builder
-				.appendTextHTML("<appended1>")
+				.appendHTMLText("<appended1>")
 				.withHTMLText("<main1>")
-				.prependTextHTML("<prepended1>")
-				.appendTextHTML("<appended2>")
+				.prependHTMLText("<prepended1>")
+				.appendHTMLText("<appended2>")
 				.withHTMLText("<main2>")
-				.prependTextHTML("<prepended2>")
-				.appendTextHTML("<appended3>");
+				.prependHTMLText("<prepended2>")
+				.appendHTMLText("<appended3>");
 	}
 
 	@SuppressWarnings("SameParameterValue")
@@ -829,7 +829,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + file.getAbsolutePath() + "\"/>")
+				.appendHTMLText("<img src=\"" + file.getAbsolutePath() + "\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
@@ -840,7 +840,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"log4j2.xml\"/>");
+				.appendHTMLText("<img src=\"log4j2.xml\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -853,7 +853,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"pkcs12/about all this.txt\"/>")
+				.appendHTMLText("<img src=\"pkcs12/about all this.txt\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
@@ -865,7 +865,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).allowingEmbeddedImageOutsideBaseDir(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
+				.appendHTMLText("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
@@ -877,7 +877,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH).allowingEmbeddedImageOutsideBaseDir(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
+				.appendHTMLText("<img src=\"" + RESOURCES_PATH + "/pkcs12/about all this.txt\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "to generate CA cert, private key and and S/MIME format");
@@ -889,7 +889,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12").allowingEmbeddedImageOutsideBaseDir(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>")
+				.appendHTMLText("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
@@ -900,7 +900,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseDir(RESOURCES_PATH + "/pkcs12").allowingEmbeddedImageOutsideBaseDir(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>");
+				.appendHTMLText("<img src=\"" + RESOURCES_PATH + "/log4j2.xml\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -915,7 +915,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
+				.appendHTMLText("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -926,7 +926,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"download.html\"/>");
+				.appendHTMLText("<img src=\"download.html\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -939,7 +939,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"how-to.html\"/>")
+				.appendHTMLText("<img src=\"how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -951,7 +951,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"\\how-to.html\"/>")
+				.appendHTMLText("<img src=\"\\how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -963,7 +963,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/how-to.html\"/>")
+				.appendHTMLText("<img src=\"/how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -977,7 +977,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
+				.appendHTMLText("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -991,7 +991,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + howToUrl + "\"/>")
+				.appendHTMLText("<img src=\"" + howToUrl + "\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CREATE_SELF_SIGNED_S_MIME_CERTIFICATES);
@@ -1005,7 +1005,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + log4jUrl + "\"/>")
+				.appendHTMLText("<img src=\"" + log4jUrl + "\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, CONSOLE_NAME_CONSOLE_TARGET_SYSTEM_OUT);
@@ -1019,7 +1019,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseUrl(testResourceUrl("pkcs12")).allowingEmbeddedImageOutsideBaseUrl(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"" + log4jUrl + "\"/>");
+				.appendHTMLText("<img src=\"" + log4jUrl + "\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -1032,7 +1032,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.appendHTMLText("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
@@ -1043,7 +1043,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/how-to.html\"/>");
+				.appendHTMLText("<img src=\"/how-to.html\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)
@@ -1056,7 +1056,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/how-to.html\"/>")
+				.appendHTMLText("<img src=\"/how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
@@ -1068,7 +1068,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.appendHTMLText("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
@@ -1080,7 +1080,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(false).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/pkcs12/how-to.html\"/>")
+				.appendHTMLText("<img src=\"/pkcs12/how-to.html\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "Create Self-Signed S/MIME Certificates");
@@ -1092,7 +1092,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final Email email = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/log4j2.xml\"/>")
+				.appendHTMLText("<img src=\"/log4j2.xml\"/>")
 				.buildEmail();
 
 		verifyEmbeddedImage(email, "<Console name=\"console\" target=\"SYSTEM_OUT\">");
@@ -1103,7 +1103,7 @@ public class EmailPopulatingBuilderImpl1Test {
 		final EmailPopulatingBuilder emailPopulatingBuilder = builder
 				.withImageResolutionConfig(builder.getImageResolutionConfig().toBuilder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageBaseClassPath("/pkcs12").allowingEmbeddedImageOutsideBaseClassPath(false).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.withHTMLText("<img src=\"cid:cid_name\"/>")
-				.appendTextHTML("<img src=\"/log4j2.xml\"/>");
+				.appendHTMLText("<img src=\"/log4j2.xml\"/>");
 
 		assertThatThrownBy(emailPopulatingBuilder::buildEmail)
 				.isInstanceOf(EmailException.class)

@@ -1,5 +1,6 @@
 package org.simplejavamail.api.internal.clisupport;
 
+import jakarta.activation.DataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -667,4 +668,26 @@ public interface CliEmailConfigurationBuilder {
 	@Cli.ExcludeApi(reason = "The File overload already provides the same CLI file conversion")
 	EmailPopulatingBuilder encryptWithSmime(@NotNull Path pemPath, @Nullable @Cli.Optional String keyEncapsulationAlgorithm,
 			@Nullable @Cli.Optional String cipherAlgorithm);
+	/**
+	 * Adds an attachment with an optional MIME Content-Description.
+	 * @param name Optional attachment filename; when omitted, the source filename is used.
+	 * @param filedata The attachment content, read from the supplied file.
+	 * @param description Optional MIME Content-Description.
+	 * @return This builder.
+	 */
+	EmailPopulatingBuilder withDescribedAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata,
+			@Nullable @Cli.Optional String description);
+
+	/**
+	 * Adds an attachment with optional MIME description and forced transfer encoding. The encoding is applied to ordinary content;
+	 * the input is not treated as already encoded. Use the ordinary attachment option when neither metadata choice is needed.
+	 * @param name Optional attachment filename; when omitted, the source filename is used.
+	 * @param filedata The attachment content, read from the supplied file.
+	 * @param description Optional MIME Content-Description.
+	 * @param contentTransferEncoding Optional MIME transfer encoder applied when rendering the message.
+	 * @return This builder.
+	 */
+	EmailPopulatingBuilder withEncodedDescribedAttachment(@Nullable @Cli.Optional String name, @NotNull DataSource filedata,
+			@Nullable @Cli.Optional String description, @Nullable @Cli.Optional ContentTransferEncoding contentTransferEncoding);
+
 }

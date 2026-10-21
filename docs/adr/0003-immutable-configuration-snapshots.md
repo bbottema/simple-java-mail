@@ -86,11 +86,27 @@ An explicit empty Java string remains a supplied group choice with the original 
 It must not silently restore a captured value by applying the separate blank-property-source inheritance rule.
 Per-cluster pool overrides retain their distinct fallback scope. Core validates representation; optional feature modules retain semantic validation.
 
+State the caller-Session construction boundary on both the TLS value and its receiving builder method: custom SSL factory and
+opportunistic-upgrade choices belong to Session construction. A caller-supplied Session must already carry those choices; unsupported
+group assignments are rejected. Clear documentation of this boundary does not split the group or change Session ownership.
+
 Remove moved scalar methods and their inspection/reset/clear companions from the supported Java root builders in the 10.0.0 migration;
 do not retain deprecated aliases. Internal runtime and CLI adapters may retain scalar operations without exposing them on application contracts.
 The asynchronous queue builder offers `rejectWhenFull()` or `waitForCapacity(Duration)`, keeping the admission wait and its policy together.
 Waiting occurs on the submitting thread; it neither executes SMTP work there nor changes the total send deadline. Existing scalar properties
 and CLI options retain their names and representations.
+
+### Client-validation reporting
+
+Use `ValidationConfig.Builder.withClientValidationWarningsOnly(boolean)` for the existing choice between warning about client-validation
+findings and rejecting the message. A Boolean expresses these two outcomes without an additional enum. The name describes the actual
+behavior: completeness, address and CRLF checks still run; enabling this choice changes how their findings are handled. Do not describe
+this as disabling the checks or as changing which inputs the configured address validator accepts.
+
+An unset choice inherits captured properties before the built-in `false` fallback. Explicit resetting selects that fallback; restoring
+configured behavior restores absence. Applicable locks remain binding, and final-size enforcement and other preparation failures retain
+their independent contracts. Preserve existing property names, CLI syntax and Boolean polarity while aligning Java setting and inspection
+names with the warning-only meaning. This is a naming correction with unchanged validation behavior.
 
 ### Built-in defaults stay together on the key builders
 

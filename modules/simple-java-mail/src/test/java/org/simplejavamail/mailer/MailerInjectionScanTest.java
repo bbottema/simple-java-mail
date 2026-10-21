@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer;
 
+import org.simplejavamail.api.email.AttachmentResource;
+
 import org.simplejavamail.api.mailer.config.ValidationConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -45,7 +47,7 @@ public class MailerInjectionScanTest {
 
 		createFullyConfiguredMailerBuilder(false, "", null)
 				.withCustomMailer(customMailerMock)
-				.withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).build()).buildMailer()
+				.withValidationConfig(ValidationConfig.builder().withClientValidationWarningsOnly(true).build()).buildMailer()
 				.sync().sendMail(email);
 
 		verify(customMailerMock).sendMessage(any(OperationalConfig.class), any(Session.class), any(Email.class), any(MimeMessage.class));
@@ -67,7 +69,7 @@ public class MailerInjectionScanTest {
 	@Test
 	public void testCustomMailer_sendEmail_failOn_injectionAttack_subject_after_disableReenable() {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null)
-				.withValidationConfig(ValidationConfig.builder().disablingAllClientValidation(true).resetDisableAllClientValidations().build())
+				.withValidationConfig(ValidationConfig.builder().withClientValidationWarningsOnly(true).resetClientValidationWarningsOnly().build())
 				.buildMailer()
 				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						// example from https://framework.zend.com/security/advisory/ZF2015-04
@@ -205,7 +207,7 @@ public class MailerInjectionScanTest {
 		assertThatThrownBy(() -> createFullyConfiguredMailerBuilder(false, "", null).buildMailer()
 				.sync().sendMail(EmailHelper.createDummyEmailBuilder(true, false, false, true, false, false)
 						.clearAttachments()
-						.withAttachment("sweety tooth", new ByteArrayDataSource("moomoo".getBytes(), "text/plain"), "evil\ndescription")
+						.withAttachment(AttachmentResource.builder().withName("sweety tooth").withDataSource(new ByteArrayDataSource("moomoo".getBytes(), "text/plain")).withDescription("evil\ndescription").build())
 						.buildEmail()))
 				.isInstanceOf(MailSuspiciousCRLFValueException.class)
 				.hasMessage("Suspected of injection attack, field: email.attachment.description with suspicious value: evil\\ndescription");

@@ -22,6 +22,10 @@ sets and both the header map and its value collections. Preserve ordering, dupli
 unmodifiable owned collections; builder collection getters return detached copies that callers may modify without changing the builder.
 Existing convenience getters that already return detached lists need not become unmodifiable.
 
+[ADR 0037](0037-repeatable-email-completion.md) separately governs additive template merging: preserve supplied occurrences while avoiding
+new equivalent template additions during repeated completion. It does not change local builder additions, structural copying, public
+resource/Email equality or the borrowed-content boundary below.
+
 Recipient occurrences also matter when comparing Emails: equality must account for repeated entries and remain symmetric. Preserve the
 established order-insensitive recipient comparison while distinguishing different occurrence counts; structural copying does not redefine that order rule.
 

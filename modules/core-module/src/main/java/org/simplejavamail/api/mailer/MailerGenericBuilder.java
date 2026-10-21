@@ -293,7 +293,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Sets a reference {@link Email} to be used for default values on all emails coming through this <code>Mailer</code> instance.
 	 * <p>
 	 * The template may be incomplete, for example containing only a signing configuration. Single values fill missing fields; collections such as
-	 * recipients and attachments are added to the submitted email. The submitted email can suppress defaults through
+	 * recipients and attachments add only values not already present, preserving every submitted occurrence and its order.
+	 * See {@link org.simplejavamail.api.mailer.config.EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)} for matching and repeated completion.
+	 * The submitted email can suppress defaults through
 	 * {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringDefaults()} or {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyDefaultValueFor}.
 	 * <p>
 	 * This replaces the previous template, including the automatically derived property defaults; it does not merge templates. To retain configured
@@ -310,7 +312,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Sets a reference {@link Email} whose values override Email-level configuration on messages sent through this Mailer.
 	 * <p>
-	 * Non-null single values replace the submitted values; collections are added rather than replaced. For a matching header key, the override's
+	 * Non-null single values replace the submitted values; additive collections prepend only values not already present, preserving submitted
+	 * occurrences. See {@link org.simplejavamail.api.mailer.config.EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)} for matching and repeated completion.
+	 * For a matching header key, the override's
 	 * entire value collection wins. Explicit recipient fields, such as S/MIME certificates, still take precedence over the resolved Email fallback.
 	 * The submitted email can suppress overrides through {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringOverrides()} or
 	 * {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyOverrideValueFor}. This replaces the previous override template.
@@ -715,6 +719,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
     /**
      * Replaces all supplied TlsConfig choices. Unset members inherit the captured factory configuration, not the previous group.
      * Caller-owned Sessions retain their baseline for connection choices left unset; configuration locks remain binding.
+     * Custom SSL factory class/instance and opportunistic-TLS choices, including explicit clearing or resetting, apply only when
+     * Simple Java Mail constructs the Session. A builder using an application-supplied Session rejects a group containing these choices;
+     * configure them on that Session itself. Other TLS choices retain their existing caller-Session support.
      * Detailed setting, resource ownership and reset/clear contracts belong to the supplied value's builder.
      * @param choices Immutable supplied choices; construction starts no workers or connections.
      * @see TlsConfig#builder()

@@ -37,6 +37,7 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
 import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultCollection;
+import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultRecipients;
 import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultHeaders;
 import static org.simplejavamail.internal.util.MiscUtil.overrideOrProvideOrDefaultProperty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -288,19 +290,25 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@Override
 	@NotNull
 	public Email produceEmailApplyingDefaultsAndOverrides(@Nullable Email provided) {
+		return produceEmailApplyingDefaultsAndOverrides(provided, Collections.emptyList());
+	}
+
+	/** Earlier owners contribute mandatory comparison context only; this destination still owns all ordinary templates. */
+	Email produceEmailApplyingDefaultsAndOverrides(@Nullable final Email provided, final List<EmailGovernanceImpl> additionalLockOwners) {
 		final MimeMessage emailToForward = resolveEmailProperty(provided, EmailProperty.MAIL_TO_FORWARD);
 		val builder = emailToForward == null
 				? emailBuilder.startingBlank()
 				: emailBuilder.forwarding(emailToForward);
+		retainTemplateSuppression(provided, (InternalEmailPopulatingBuilder) builder);
 
 		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT);
-		final List<Recipient> replyToRecipients = resolveEmailCollectionProperty(provided, EmailProperty.REPLYTO_RECIPIENT);
+		final List<Recipient> replyToRecipients = resolveEmailRecipients(provided, EmailProperty.REPLYTO_RECIPIENT, additionalLockOwners);
 
 		ofNullable(fromRecipient).ifPresent(builder::from);
 		builder.withReplyTo(replyToRecipients);
-		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.TO_RECIPIENTS));
-		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.CC_RECIPIENTS));
-		builder.withRecipients(resolveEmailCollectionProperty(provided, EmailProperty.BCC_RECIPIENTS));
+		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.TO_RECIPIENTS, additionalLockOwners));
+		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.CC_RECIPIENTS, additionalLockOwners));
+		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.BCC_RECIPIENTS, additionalLockOwners));
 		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT));
 		builder.withPlainText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_TEXT));
 		builder.withHTMLText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_HTML));
@@ -437,6 +445,20 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 	}
 
+	private static void retainTemplateSuppression(@Nullable final Email provided, final InternalEmailPopulatingBuilder builder) {
+		if (provided == null) {
+			return;
+		}
+		builder.ignoringDefaults(provided.isIgnoreDefaults());
+		builder.ignoringOverrides(provided.isIgnoreOverrides());
+		if (provided.getPropertiesNotToApplyDefaultValueFor() != null) {
+			builder.dontApplyDefaultValueFor(provided.getPropertiesNotToApplyDefaultValueFor().toArray(new EmailProperty[0]));
+		}
+		if (provided.getPropertiesNotToApplyOverrideValueFor() != null) {
+			builder.dontApplyOverrideValueFor(provided.getPropertiesNotToApplyOverrideValueFor().toArray(new EmailProperty[0]));
+		}
+	}
+
 	@Nullable
 	private <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideOrProvideOrDefaultProperty(email, emailDefaults, emailOverrides, emailProperty);
@@ -445,6 +467,23 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	@NotNull
 	private <T> List<T> resolveEmailCollectionProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
 		return overrideAndOrProvideAndOrDefaultCollection(email, emailDefaults, emailOverrides, emailProperty);
+	}
+
+	@NotNull
+	private List<Recipient> resolveEmailRecipients(@Nullable final Email email, @NotNull final EmailProperty emailProperty,
+			final List<EmailGovernanceImpl> additionalLockOwners) {
+		return overrideAndOrProvideAndOrDefaultRecipients(email, emailDefaults, emailOverrides, emailProperty,
+				(first, second) -> recipientForComparison(first, emailProperty, additionalLockOwners)
+						.equals(recipientForComparison(second, emailProperty, additionalLockOwners)));
+	}
+
+	private Recipient recipientForComparison(final Recipient recipient, final EmailProperty field,
+			final List<EmailGovernanceImpl> additionalLockOwners) {
+		Recipient completed = lockedEmailConfiguration.recipientAfterNameCompletion(recipient, field);
+		for (final EmailGovernanceImpl owner : additionalLockOwners) {
+			completed = owner.lockedEmailConfiguration.recipientAfterNameCompletion(completed, field);
+		}
+		return completed;
 	}
 
 	@NotNull
