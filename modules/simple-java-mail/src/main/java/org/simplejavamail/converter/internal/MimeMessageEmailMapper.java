@@ -41,8 +41,8 @@ class MimeMessageEmailMapper {
 		if (parsed.getFromAddress() != null) {
 			builder.from(parsedRecipient(parsed.getFromAddress()));
 		}
-		if (parsed.getReplyToAddresses() != null) {
-			builder.withReplyTo(parsedRecipient(parsed.getReplyToAddresses()));
+		if (!parsed.getReplyToAddresses().isEmpty()) {
+			builder.withReplyTo(parsedRecipients(parsed.getReplyToAddresses()));
 		}
 
 		for (val headerEntry : parsed.getHeaders().entrySet()) {
@@ -53,11 +53,11 @@ class MimeMessageEmailMapper {
 			}
 		}
 
-		if (parsed.getDispositionNotificationTo() != null) {
-			builder.withDispositionNotificationTo(parsedRecipient(parsed.getDispositionNotificationTo()));
+		if (!parsed.getDispositionNotificationToRecipients().isEmpty()) {
+			builder.withDispositionNotificationTo(parsedRecipients(parsed.getDispositionNotificationToRecipients()));
 		}
-		if (parsed.getReturnReceiptTo() != null) {
-			builder.withReturnReceiptTo(parsedRecipient(parsed.getReturnReceiptTo()));
+		if (!parsed.getReturnReceiptToRecipients().isEmpty()) {
+			builder.withReturnReceiptTo(parsedRecipients(parsed.getReturnReceiptToRecipients()));
 		}
 		if (parsed.getBounceToAddress() != null) {
 			builder.withBounceTo(parsedRecipient(parsed.getBounceToAddress()));
@@ -110,6 +110,14 @@ class MimeMessageEmailMapper {
 					userProvidedContentId(attachment));
 		}
 		return builder;
+	}
+
+	private static java.util.List<Recipient> parsedRecipients(final java.util.List<InternetAddress> addresses) {
+		final java.util.List<Recipient> recipients = new java.util.ArrayList<>();
+		for (final InternetAddress address : addresses) {
+			recipients.add(parsedRecipient(address));
+		}
+		return recipients;
 	}
 
 	/** Parsed input is authoritative; outgoing convenience cardinality rules do not apply to imported headers. */

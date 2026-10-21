@@ -64,7 +64,7 @@ public final class MimeMessageParser {
 		parsedComponents.ccAddresses.addAll(parseCcAddresses(mimeMessage));
 		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
-		parsedComponents.replyToAddresses = parseReplyToAddresses(mimeMessage);
+		parsedComponents.replyToAddresses.addAll(parseReplyToAddresses(mimeMessage));
 		final boolean reportContainer = DeliveryStatusReportParser.isReportContainer(mimeMessage);
 		if (DeliveryStatusReportParser.isStatusPart(mimeMessage)) {
 			parsedComponents.deliveryStatusPart = mimeMessage;
@@ -188,9 +188,9 @@ public final class MimeMessageParser {
 		val decodedHeader = DecodedHeader.of(header);
 
 		if (isEmailHeader(decodedHeader, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
-			parsedComponents.dispositionNotificationTo = createAddressFromEncodedHeader(header, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName());
+			parsedComponents.dispositionNotificationToRecipients.addAll(createAddressesFromEncodedHeader(header));
 		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_RECEIPT_TO.getName())) {
-			parsedComponents.returnReceiptTo = createAddressFromEncodedHeader(header, MessageHeader.RETURN_RECEIPT_TO.getName());
+			parsedComponents.returnReceiptToRecipients.addAll(createAddressesFromEncodedHeader(header));
 		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_PATH.getName())) {
 			parsedComponents.bounceToAddress = createAddressFromEncodedHeader(header, MessageHeader.RETURN_PATH.getName());
 		} else {
@@ -336,6 +336,18 @@ public final class MimeMessageParser {
 			return Collections.list(part.getAllHeaders());
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_ALL_HEADERS, e);
+		}
+	}
+
+	@NotNull
+	private static List<InternetAddress> createAddressesFromEncodedHeader(final Header header) {
+		try {
+			return parseInternetAddresses(InternetAddress.parseHeader(header.getValue(), false));
+		} catch (final AddressException unreadable) {
+			// Preserve unusual received syntax for normal validation instead of discarding a destination.
+			final InternetAddress original = new InternetAddress();
+			original.setAddress(header.getValue());
+			return Collections.singletonList(original);
 		}
 	}
 
@@ -542,11 +554,11 @@ public final class MimeMessageParser {
 	}
 
 	@SuppressWarnings("WeakerAccess")
-	@Nullable
-	public static InternetAddress parseReplyToAddresses(@NotNull final MimeMessage mimeMessage) {
+	@NotNull
+	public static List<InternetAddress> parseReplyToAddresses(@NotNull final MimeMessage mimeMessage) {
 		try {
 			final Address[] addresses = mimeMessage.getReplyTo();
-			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
+			return parseInternetAddresses(addresses);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_REPLY_TO_ADDRESSES, e);
 		}
@@ -604,9 +616,9 @@ public final class MimeMessageParser {
 		@Nullable private String messageId;
 		@Nullable private String subject;
 		@Nullable private InternetAddress fromAddress;
-		@Nullable private InternetAddress replyToAddresses;
-		@Nullable private InternetAddress dispositionNotificationTo;
-		@Nullable private InternetAddress returnReceiptTo;
+		private final List<InternetAddress> replyToAddresses = new ArrayList<>();
+		private final List<InternetAddress> dispositionNotificationToRecipients = new ArrayList<>();
+		private final List<InternetAddress> returnReceiptToRecipients = new ArrayList<>();
 		@Nullable private InternetAddress bounceToAddress;
 		@Nullable private String contentTransferEncoding;
 		@Nullable private String plainTextContentTransferEncoding;

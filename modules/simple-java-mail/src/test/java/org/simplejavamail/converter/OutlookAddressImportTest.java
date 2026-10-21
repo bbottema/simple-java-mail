@@ -42,8 +42,13 @@ class OutlookAddressImportTest {
         final Email legacy = EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg));
 
         for (Email email : Arrays.asList(fluent, legacy)) {
-            final Recipient recipient = "Disposition-Notification-To".equals(header) ? email.getDispositionNotificationTo()
-                    : "Return-Receipt-To".equals(header) ? email.getReturnReceiptTo() : email.getBounceToRecipient();
+            final java.util.List<Recipient> destinations = "Disposition-Notification-To".equals(header)
+                    ? email.getDispositionNotificationToRecipients() : email.getReturnReceiptToRecipients();
+            final Recipient recipient = "Return-Path".equals(header) ? email.getBounceToRecipient()
+                    : destinations.isEmpty() ? null : destinations.get(0);
+            if (!"Return-Path".equals(header) && source.contains("Second <second@example.org>")) {
+                assertThat(destinations).extracting(Recipient::getAddress).containsExactly("first@example.org", "second@example.org");
+            }
             if (expectedAddress == null) {
                 assertThat(recipient).isNull();
             } else {
@@ -83,6 +88,9 @@ class OutlookAddressImportTest {
         for (Email email : Arrays.asList(fluent, legacy)) {
             final Recipient recipient = "From".equals(header) ? email.getFromRecipient() : email.getReplyToRecipients().get(0);
             assertThat(recipient.getAddress()).isEqualTo(expectedAddress);
+            if ("Reply-To".equals(header) && source.contains("second@example.org")) {
+                assertThat(email.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("first@example.org", "second@example.org");
+            }
             // The Outlook parser supplies the display name separately; preserve the legacy fixed-name precedence.
             assertThat(recipient.getName()).isEqualTo("From".equals(header) ? "Elias Laugher" : source);
             assertMessageContentSurvived(email);

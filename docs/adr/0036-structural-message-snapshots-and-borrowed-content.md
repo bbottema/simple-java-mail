@@ -91,3 +91,12 @@ read counts and stronger exact/retry boundaries. Test commands and implementatio
 - [0013](0013-exact-eml-submission.md), [0014](0014-send-time-rehearsal.md) and [0030](0030-safe-bounded-mail-send-retries.md): explicit content snapshots.
 - [0031](0031-public-api-and-internal-construction.md): public reading, internal assembly and serialization boundaries.
 - [0035](0035-tolerant-reading-and-strict-production.md): input recovery must not invent content or conceal required read failures.
+
+
+## Plural notification snapshots (20 October 2026)
+
+Notification destinations follow the same detached immutable metadata boundary as other mailbox lists. Preserve the old private scalar
+field names/types solely for compatible singleton streams, and store new destination lists under distinct fields. Reading a supported older
+Email upgrades its scalar destinations to singleton lists without changing request flags, serial identifiers or the forwarded-message format.
+Current lists remain authoritative, including empty/deferred lists; do not substitute a legacy scalar for a present list or retain only a first
+destination from a new plural value. This compatibility concerns reading older snapshots, not older readers understanding new multi-destination streams.

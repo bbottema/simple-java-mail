@@ -56,8 +56,8 @@ public class MimeMessageParserTest {
 
 		assertThat(mimeMessageParts.getFromAddress().getPersonal()).isEqualTo(originalEmail.getFromRecipient().getName());
 		assertThat(mimeMessageParts.getFromAddress().getAddress()).isEqualTo(originalEmail.getFromRecipient().getAddress());
-		assertThat(mimeMessageParts.getReplyToAddresses().getPersonal()).isEqualTo(originalEmail.getFromRecipient().getName());
-		assertThat(mimeMessageParts.getReplyToAddresses().getAddress()).isEqualTo(originalEmail.getFromRecipient().getAddress());
+		assertThat(mimeMessageParts.getReplyToAddresses().get(0).getPersonal()).isEqualTo(originalEmail.getFromRecipient().getName());
+		assertThat(mimeMessageParts.getReplyToAddresses().get(0).getAddress()).isEqualTo(originalEmail.getFromRecipient().getAddress());
 
 		assertThat(mimeMessageParts.getSentDate()).isNotNull().isEqualTo(mimeMessage.getSentDate());
 

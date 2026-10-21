@@ -31,13 +31,11 @@ The existing recipient builders provide a useful precedent. An S/MIME certificat
 
 The aim is practical: a caller should know where a setting belongs and how to reuse it without learning a separate defaulting mechanism for each feature.
 
-The composed Email builder's `from`, `to`, `cc`, `bcc`, Reply-To, bounce and receipt-address conveniences interpret one mailbox consistently.
-They separate an embedded display name from its address; an explicit nonblank name wins, while a null/blank name uses the embedded name.
-Successfully parsed lists and RFC address groups are rejected at this singular boundary rather than silently selecting the first mailbox.
-Nonempty unparseable input remains available to the configured send-time validator, as described in [ADR 0035](0035-tolerant-reading-and-strict-production.md).
-This Email-only interpretation does not change the separate Recipient builders or reparse already constructed Recipient values.
-Recipient/group builders remain the route for address-list expansion and reusable metadata; adding their prepared values preserves order,
-duplicates and recipient options.
+The composed Email builder separates each mailbox's embedded display name from its address. A nonblank explicit name wins;
+null/blank names retain embedded names. To/Cc/Bcc, Reply-To and notification conveniences accept complete lists and group members.
+From and bounce remain singular and reject recognized lists/groups. Nonempty unparseable input remains available to the configured
+send-time validator under [ADR 0035](0035-tolerant-reading-and-strict-production.md). Individual Recipient builders retain their own
+extraction contracts, and already prepared Recipient values are not reparsed. Order, duplicates and recipient options remain intact.
 
 ## Configuration ownership
 
@@ -176,3 +174,9 @@ Follow [API_EXPANSION_WORKFLOW.md](../API_EXPANSION_WORKFLOW.md) and [CODING_STY
 Tests must distinguish default inheritance from fixed overrides, and absence from explicit disabling. Documentation must distinguish accepted target design from implemented behavior. Any proposal to duplicate an Email feature on Mailer, or to add an invalid recipient-level setting, requires an explicit superseding ADR rather than a convenience exception.
 
 This record authorizes the architectural direction, not automatic execution of every follow-up. It does not change code, expand #736's acceptance criteria, commit or publish changes, or claim the broader DSN work is finished.
+
+## Accepted address-list follow-up (20 October 2026)
+
+Email To/Cc/Bcc, Reply-To and notification destinations accept complete mailbox lists, including group members. An explicit nonblank name overrides every parsed name; default-name policies remain on the plural recipient builder. Malformed nonempty input remains available to configured send-time validation. From and bounce remain singular. Individual Recipient builders and prepared Recipient values retain their existing contracts.
+
+Notification destinations are immutable lists exposed through plural getters. Each supplied list replaces the local choice and resolves as a whole under override, submitted, then default precedence. An enabled request without explicit destinations resolves to all Reply-To mailboxes, then the single From mailbox. Request flags, clearing and suppression keep their established meanings. Multiple From authors and a Sender API are outside this decision.

@@ -276,17 +276,17 @@ public class MimeMessageHelper {
 		}
 
 		if (TRUE.equals(email.getUseDispositionNotificationTo())) {
-			final Recipient dispositionTo = checkNonEmptyArgument(email.getDispositionNotificationTo(), "dispositionNotificationTo");
-			final Address address = MiscUtil.asInternetAddress(dispositionTo, CHARACTER_ENCODING);
-			message.setHeader(MessageHeader.DISPOSITION_NOTIFICATION_TO.getName(), address.toString());
+			final List<Recipient> destinations = checkNonEmptyArgument(email.getDispositionNotificationToRecipients(), "dispositionNotificationTo");
+			final Address[] addresses = destinations.stream()
+					.map(recipient -> MiscUtil.asInternetAddress(recipient, CHARACTER_ENCODING)).toArray(Address[]::new);
+			setAddressHeader(message, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName(), addresses);
 		}
-
 		if (TRUE.equals(email.getUseReturnReceiptTo())) {
-			final Recipient returnReceiptTo = checkNonEmptyArgument(email.getReturnReceiptTo(), "returnReceiptTo");
-			final Address address = MiscUtil.asInternetAddress(returnReceiptTo, CHARACTER_ENCODING);
-			message.setHeader(MessageHeader.RETURN_RECEIPT_TO.getName(), address.toString());
-		}
-	}
+			final List<Recipient> destinations = checkNonEmptyArgument(email.getReturnReceiptToRecipients(), "returnReceiptTo");
+			final Address[] addresses = destinations.stream()
+					.map(recipient -> MiscUtil.asInternetAddress(recipient, CHARACTER_ENCODING)).toArray(Address[]::new);
+			setAddressHeader(message, MessageHeader.RETURN_RECEIPT_TO.getName(), addresses);
+		}	}
 
 	private static void setHeader(Message message, Map.Entry<String, Collection<String>> header) throws UnsupportedEncodingException, MessagingException {
 		for (final String headerValue : header.getValue()) {

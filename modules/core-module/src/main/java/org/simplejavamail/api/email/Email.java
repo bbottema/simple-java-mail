@@ -219,7 +219,10 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
+	// Retained only for reading/writing supported legacy singleton snapshots.
 	private final Recipient dispositionNotificationTo;
+	@NotNull
+	private List<Recipient> dispositionNotificationToRecipients;
 	
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
@@ -232,7 +235,10 @@ public class Email implements Serializable {
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
+	// Retained only for reading/writing supported legacy singleton snapshots.
 	private final Recipient returnReceiptTo;
+	@NotNull
+	private List<Recipient> returnReceiptToRecipients;
 
 	/**
 	 * @see SmtpDeliveryOptions.Builder#withDeliveryStatusNotification(DeliveryStatusNotification)
@@ -358,9 +364,11 @@ public class Email implements Serializable {
 		calendarTextContentTransferEncoding = encodingConfig.getCalendarTextContentTransferEncoding();
 		subject = builder.getSubject();
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
-		dispositionNotificationTo = builder.getDispositionNotificationTo();
+		dispositionNotificationToRecipients = builder.getDispositionNotificationToRecipients();
+		dispositionNotificationTo = dispositionNotificationToRecipients.size() == 1 ? dispositionNotificationToRecipients.get(0) : null;
 		useReturnReceiptTo = builder.getUseReturnReceiptTo();
-		returnReceiptTo = builder.getReturnReceiptTo();
+		returnReceiptToRecipients = builder.getReturnReceiptToRecipients();
+		returnReceiptTo = returnReceiptToRecipients.size() == 1 ? returnReceiptToRecipients.get(0) : null;
 		deliveryStatusNotification = deliveryOptions.getDeliveryStatusNotification();
 		deliveryStatusReport = builder.getDeliveryStatusReport();
 		tlsRequiredForOnwardDelivery = deliveryOptions.isTlsRequiredForOnwardDelivery();
@@ -380,6 +388,8 @@ public class Email implements Serializable {
 
 	/** Copy metadata, not borrowed content sources. The same boundary repairs shared collections in older serialized Emails. */
 	private void detachMessageMetadata() {
+		returnReceiptToRecipients = notificationSnapshot(returnReceiptToRecipients, returnReceiptTo);
+		dispositionNotificationToRecipients = notificationSnapshot(dispositionNotificationToRecipients, dispositionNotificationTo);
 		recipients = immutableListSnapshot(recipients);
 		replyToRecipients = immutableListSnapshot(replyToRecipients);
 		overrideReceivers = immutableListSnapshot(overrideReceivers);
@@ -388,6 +398,12 @@ public class Email implements Serializable {
 		decryptedAttachments = immutableListSnapshot(decryptedAttachments);
 		headers = immutableHeaderSnapshot(headers);
 		sentDate = sentDate == null ? null : new Date(sentDate.getTime());
+	}
+
+	@NotNull
+	private static List<Recipient> notificationSnapshot(@Nullable final List<Recipient> values, @Nullable final Recipient legacy) {
+		return immutableListSnapshot(values != null ? values : legacy == null
+				? java.util.Collections.emptyList() : java.util.Collections.singletonList(legacy));
 	}
 
 	@NotNull
@@ -516,11 +532,11 @@ public class Email implements Serializable {
 		}
 		if (TRUE.equals(useDispositionNotificationTo)) {
 			s += ",\n\tuseDispositionNotificationTo=" + true +
-					",\n\t\tdispositionNotificationTo=" + dispositionNotificationTo;
+					",\n\t\tdispositionNotificationTo=" + dispositionNotificationToRecipients;
 		}
 		if (TRUE.equals(useReturnReceiptTo)) {
 			s += ",\n\tuseReturnReceiptTo=" + true +
-					",\n\t\treturnReceiptTo=" + returnReceiptTo;
+					",\n\t\treturnReceiptTo=" + returnReceiptToRecipients;
 		}
 		if (!MiscUtil.valueNullOrEmpty(deliveryStatusNotification)) {
 			s += ",\n\tdeliveryStatusNotification=" + deliveryStatusNotification;
@@ -674,10 +690,11 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
+	 * @return Immutable destinations; empty when absent or awaiting completion. Request flags remain independent.
 	 */
-	@Nullable
-	public Recipient getDispositionNotificationTo() {
-		return dispositionNotificationTo;
+	@NotNull
+	public List<Recipient> getDispositionNotificationToRecipients() {
+		return dispositionNotificationToRecipients;
 	}
 
 	/**
@@ -700,10 +717,11 @@ public class Email implements Serializable {
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo()
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
+	 * @return Immutable destinations; empty when absent or awaiting completion. Request flags remain independent.
 	 */
-	@Nullable
-	public Recipient getReturnReceiptTo() {
-		return returnReceiptTo;
+	@NotNull
+	public List<Recipient> getReturnReceiptToRecipients() {
+		return returnReceiptToRecipients;
 	}
 
 	/**

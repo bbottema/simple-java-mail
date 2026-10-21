@@ -815,10 +815,10 @@ public class EmailConverterTest {
 		assertThat(emailOutlook.getEmbeddedImages()).containsExactlyElementsOf(emailMime.getEmbeddedImages());
 		assertThat(emailOutlook.getUseDispositionNotificationTo()).isEqualTo(emailMime.getUseDispositionNotificationTo());
 		assertThat(emailOutlook.getUseReturnReceiptTo()).isEqualTo(emailMime.getUseReturnReceiptTo());
-		assertThat(emailOutlook.getDispositionNotificationTo()).isEqualTo(emailMime.getDispositionNotificationTo());
+		assertThat(emailOutlook.getDispositionNotificationToRecipients()).isEqualTo(emailMime.getDispositionNotificationToRecipients());
 		assertThat(emailOutlook.getSmimeSigningConfig()).isEqualTo(emailMime.getSmimeSigningConfig());
 		assertThat(emailOutlook.getSmimeEncryptionConfig()).isEqualTo(emailMime.getSmimeEncryptionConfig());
-		assertThat(emailOutlook.getReturnReceiptTo()).isEqualTo(emailMime.getReturnReceiptTo());
+		assertThat(emailOutlook.getReturnReceiptToRecipients()).isEqualTo(emailMime.getReturnReceiptToRecipients());
 	}
 
 	@Test

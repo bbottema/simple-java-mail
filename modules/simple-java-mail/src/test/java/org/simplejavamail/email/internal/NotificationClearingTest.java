@@ -28,7 +28,7 @@ class NotificationClearingTest {
         assertUnset(mail.emailBuilder().copying(cleared).buildEmail());
         assertThat(cleared.getSubject()).isEqualTo("unchanged");
         assertThat(before.getUseDispositionNotificationTo()).isTrue();
-        assertThat(before.getDispositionNotificationTo().getAddress()).isEqualTo("read@example.org");
+        assertThat(before.getDispositionNotificationToRecipients().get(0).getAddress()).isEqualTo("read@example.org");
         assertThat(before.getUseReturnReceiptTo()).isTrue();
     }
 
@@ -40,9 +40,9 @@ class NotificationClearingTest {
             final Email cleared = clearedMessage();
             final Email governed = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(cleared);
             assertThat(governed.getUseDispositionNotificationTo()).isTrue();
-            assertThat(governed.getDispositionNotificationTo().getAddress()).isEqualTo("default-read@example.org");
+            assertThat(governed.getDispositionNotificationToRecipients().get(0).getAddress()).isEqualTo("default-read@example.org");
             assertThat(governed.getUseReturnReceiptTo()).isTrue();
-            assertThat(governed.getReturnReceiptTo().getAddress()).isEqualTo("default-return@example.org");
+            assertThat(governed.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("default-return@example.org");
             final String eml = new String(mailer.rehearse(cleared).getEmlBytes(), StandardCharsets.UTF_8);
             assertThat(eml).contains("Disposition-Notification-To: default-read@example.org")
                     .contains("Return-Receipt-To: default-return@example.org");
@@ -58,8 +58,8 @@ class NotificationClearingTest {
         try (Mailer mailer = mail.mailerBuilder().withSMTPServerHost("localhost")
                 .withEmailDefaults(defaults).withEmailOverrides(overrides).buildMailer()) {
             final Email governed = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(clearedMessage());
-            assertThat(governed.getDispositionNotificationTo().getAddress()).isEqualTo("override@example.org");
-            assertThat(governed.getReturnReceiptTo().getAddress()).isEqualTo("override@example.org");
+            assertThat(governed.getDispositionNotificationToRecipients().get(0).getAddress()).isEqualTo("override@example.org");
+            assertThat(governed.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("override@example.org");
         }
         try (Mailer mailer = mail.mailerBuilder().withSMTPServerHost("localhost").withEmailDefaults(defaults).buildMailer()) {
             final Email suppressed = mail.emailBuilder().copying(clearedMessage())
@@ -79,8 +79,8 @@ class NotificationClearingTest {
             assertUnset(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(clearedMessage()));
             final Email automatic = configured.emailBuilder().startingBlank().withDispositionNotificationTo().withReturnReceiptTo().buildEmail();
             final Email governed = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(automatic);
-            assertThat(governed.getDispositionNotificationTo().getAddress()).isEqualTo("configured-reply@example.org");
-            assertThat(governed.getReturnReceiptTo().getAddress()).isEqualTo("configured-reply@example.org");
+            assertThat(governed.getDispositionNotificationToRecipients().get(0).getAddress()).isEqualTo("configured-reply@example.org");
+            assertThat(governed.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("configured-reply@example.org");
         }
     }
 
@@ -96,8 +96,8 @@ class NotificationClearingTest {
 
     private static void assertUnset(final Email email) {
         assertThat(email.getUseDispositionNotificationTo()).isNull();
-        assertThat(email.getDispositionNotificationTo()).isNull();
+        assertThat(email.getDispositionNotificationToRecipients()).isEmpty();
         assertThat(email.getUseReturnReceiptTo()).isNull();
-        assertThat(email.getReturnReceiptTo()).isNull();
+        assertThat(email.getReturnReceiptToRecipients()).isEmpty();
     }
 }

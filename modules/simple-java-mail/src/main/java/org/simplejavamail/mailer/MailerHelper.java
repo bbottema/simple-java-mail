@@ -143,11 +143,15 @@ public class MailerHelper {
 			rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_REPLYTO);
 		}
 		rejectEncodedWordAddress(email.getBounceToRecipient(), MailInvalidAddressException.INVALID_BOUNCETO);
-		if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() != null) {
-			rejectEncodedWordAddress(email.getDispositionNotificationTo(), MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
+		if (TRUE.equals(email.getUseDispositionNotificationTo())) {
+			for (final Recipient destination : email.getDispositionNotificationToRecipients()) {
+				rejectEncodedWordAddress(destination, MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
+			}
 		}
-		if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() != null) {
-			rejectEncodedWordAddress(email.getReturnReceiptTo(), MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
+		if (TRUE.equals(email.getUseReturnReceiptTo())) {
+			for (final Recipient destination : email.getReturnReceiptToRecipients()) {
+				rejectEncodedWordAddress(destination, MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
+			}
 		}
 		if (emailValidator != null) {
 			validateAddress(emailValidator, email.getFromRecipient(), MailInvalidAddressException.INVALID_SENDER);
@@ -163,11 +167,15 @@ public class MailerHelper {
 				validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_REPLYTO);
 			}
 			validateAddress(emailValidator, email.getBounceToRecipient(), MailInvalidAddressException.INVALID_BOUNCETO);
-			if (TRUE.equals(email.getUseDispositionNotificationTo()) && email.getDispositionNotificationTo() != null) {
-				validateAddress(emailValidator, email.getDispositionNotificationTo(), MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
+			if (TRUE.equals(email.getUseDispositionNotificationTo())) {
+				for (final Recipient destination : email.getDispositionNotificationToRecipients()) {
+				validateAddress(emailValidator, destination, MailInvalidAddressException.INVALID_DISPOSITIONNOTIFICATIONTO);
 			}
-			if (TRUE.equals(email.getUseReturnReceiptTo()) && email.getReturnReceiptTo() != null) {
-				validateAddress(emailValidator, email.getReturnReceiptTo(), MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
+			}
+			if (TRUE.equals(email.getUseReturnReceiptTo())) {
+				for (final Recipient destination : email.getReturnReceiptToRecipients()) {
+				validateAddress(emailValidator, destination, MailInvalidAddressException.INVALID_RETURNRECEIPTTO);
+			}
 			}
 		}
 	}
@@ -239,13 +247,13 @@ public class MailerHelper {
 			scanForInjectionAttack(email.getBounceToRecipient().getName(), "email.bounceToRecipient.name");
 			scanForInjectionAttack(email.getBounceToRecipient().getAddress(), "email.bounceToRecipient.address");
 		}
-		if (!valueNullOrEmpty(email.getDispositionNotificationTo())) {
-			scanForInjectionAttack(email.getDispositionNotificationTo().getName(), "email.dispositionNotificationTo.name");
-			scanForInjectionAttack(email.getDispositionNotificationTo().getAddress(), "email.dispositionNotificationTo.address");
+		for (final Recipient destination : email.getDispositionNotificationToRecipients()) {
+			scanForInjectionAttack(destination.getName(), "email.dispositionNotificationTo.name");
+			scanForInjectionAttack(destination.getAddress(), "email.dispositionNotificationTo.address");
 		}
-		if (!valueNullOrEmpty(email.getReturnReceiptTo())) {
-			scanForInjectionAttack(email.getReturnReceiptTo().getName(), "email.returnReceiptTo.name");
-			scanForInjectionAttack(email.getReturnReceiptTo().getAddress(), "email.returnReceiptTo.address");
+		for (final Recipient destination : email.getReturnReceiptToRecipients()) {
+			scanForInjectionAttack(destination.getName(), "email.returnReceiptTo.name");
+			scanForInjectionAttack(destination.getAddress(), "email.returnReceiptTo.address");
 		}
 		for (final Recipient recipient : email.getRecipients()) {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");

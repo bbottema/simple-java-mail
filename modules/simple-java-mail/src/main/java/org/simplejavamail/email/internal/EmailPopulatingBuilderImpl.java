@@ -332,7 +332,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
 	@Nullable
-	private Recipient dispositionNotificationTo;
+	private List<Recipient> dispositionNotificationToRecipients = new ArrayList<>();
 
 	/**
 	 * @see #withReturnReceiptTo()
@@ -346,7 +346,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see #withReturnReceiptTo(Recipient)
 	 */
 	@Nullable
-	private Recipient returnReceiptTo;
+	private List<Recipient> returnReceiptToRecipients = new ArrayList<>();
 
 	/**
 	 * @see #withOverrideReceivers(Recipient...)
@@ -790,7 +790,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReplyTo(@NotNull final String replyToAddress) {
-		return withReplyTo(EmailAddressConvenience.interpret(null, replyToAddress, null, "replyToAddress"));
+		return withReplyTo(EmailAddressConvenience.interpretList(null, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -799,7 +799,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final String replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(EmailAddressConvenience.interpret(fixedName, replyToAddress, null, "replyToAddress"));
+		return withReplyTo(EmailAddressConvenience.interpretList(fixedName, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -808,7 +808,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(EmailAddressConvenience.interpret(null, replyToAddress, null, "replyToAddress"));
+		return withReplyTo(EmailAddressConvenience.interpretList(null, replyToAddress, null, "replyToAddress"));
 	}
 	
 	/**
@@ -817,7 +817,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@Nullable final String fixedName, @NotNull final InternetAddress replyToAddress) {
 		checkNonEmptyArgument(replyToAddress, "replyToAddress");
-		return withReplyTo(EmailAddressConvenience.interpret(fixedName, replyToAddress, null, "replyToAddress"));
+		return withReplyTo(EmailAddressConvenience.interpretList(fixedName, replyToAddress, null, "replyToAddress"));
 	}
 
 	/**
@@ -1267,7 +1267,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#to(String, String) */
 	@Override
 	public EmailPopulatingBuilder to(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.TO, "address"));
+		return withRecipients(EmailAddressConvenience.interpretList(name, address, RecipientType.TO, "address"));
 	}
 
 	/** @see EmailPopulatingBuilder#cc(String) */
@@ -1279,7 +1279,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#cc(String, String) */
 	@Override
 	public EmailPopulatingBuilder cc(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.CC, "address"));
+		return withRecipients(EmailAddressConvenience.interpretList(name, address, RecipientType.CC, "address"));
 	}
 
 	/** @see EmailPopulatingBuilder#bcc(String) */
@@ -1291,7 +1291,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	/** @see EmailPopulatingBuilder#bcc(String, String) */
 	@Override
 	public EmailPopulatingBuilder bcc(@Nullable final String name, @NotNull final String address) {
-		return withRecipients(EmailAddressConvenience.interpret(name, address, RecipientType.BCC, "address"));
+		return withRecipients(EmailAddressConvenience.interpretList(name, address, RecipientType.BCC, "address"));
 	}
 	
 	private void addParsedRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final RecipientType recipientType) {
@@ -1823,6 +1823,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
+	private static List<Recipient> notificationRecipients(final Collection<Recipient> recipients) {
+		requireNonNull(recipients, "recipients");
+		final List<Recipient> destinations = new ArrayList<>();
+		for (final Recipient recipient : recipients) {
+			checkNonEmptyArgument(requireNonNull(recipient, "recipient").getAddress(), "recipient.address");
+			destinations.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
+		}
+		return destinations;
+	}
+
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo()
 	 */
@@ -1830,7 +1840,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("withDispositionNotificationToEnabled")
 	public EmailPopulatingBuilder withDispositionNotificationTo() {
 		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationTo = null;
+		this.dispositionNotificationToRecipients = new ArrayList<>();
 		return this;
 	}
 	
@@ -1841,7 +1851,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(EmailAddressConvenience.interpret(null, address, null, "address"));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpretList(null, address, null, "address"));
 	}
 	
 	/**
@@ -1850,7 +1860,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(EmailAddressConvenience.interpret(name, address, null, "address"));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpretList(name, address, null, "address"));
 	}
 	
 	/**
@@ -1859,7 +1869,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(EmailAddressConvenience.interpret(null, address, null, "address"));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpretList(null, address, null, "address"));
 	}
 	
 	/**
@@ -1868,18 +1878,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "dispositionNotificationToAddress");
-		return withDispositionNotificationTo(EmailAddressConvenience.interpret(fixedName, address, null, "address"));
+		return withDispositionNotificationTo(EmailAddressConvenience.interpretList(fixedName, address, null, "address"));
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#withDispositionNotificationTo(Recipient)
 	 */
+	/** @see EmailPopulatingBuilder#withDispositionNotificationTo(Collection) */
+	@Override
+	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final Collection<Recipient> recipients) {
+		final List<Recipient> destinations = notificationRecipients(recipients);
+		this.useDispositionNotificationTo = true;
+		this.dispositionNotificationToRecipients = destinations;
+		return this;
+	}
+
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final Recipient recipient) {
-		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
-		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
-		return this;
+		return withDispositionNotificationTo(java.util.Collections.singletonList(recipient));
 	}
 	
 	/**
@@ -1889,7 +1905,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.OptionNameOverride("withReturnReceiptToEnabled")
 	public EmailPopulatingBuilder withReturnReceiptTo() {
 		this.useReturnReceiptTo = true;
-		this.returnReceiptTo = null;
+		this.returnReceiptToRecipients = new ArrayList<>();
 		return this;
 	}
 	
@@ -1900,7 +1916,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(EmailAddressConvenience.interpret(null, address, null, "address"));
+		return withReturnReceiptTo(EmailAddressConvenience.interpretList(null, address, null, "address"));
 	}
 	
 	/**
@@ -1909,7 +1925,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String name, @NotNull final String address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(EmailAddressConvenience.interpret(name, address, null, "address"));
+		return withReturnReceiptTo(EmailAddressConvenience.interpretList(name, address, null, "address"));
 	}
 	
 	/**
@@ -1918,7 +1934,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(EmailAddressConvenience.interpret(null, address, null, "address"));
+		return withReturnReceiptTo(EmailAddressConvenience.interpretList(null, address, null, "address"));
 	}
 	
 	/**
@@ -1927,18 +1943,24 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@Nullable final String fixedName, @NotNull final InternetAddress address) {
 		checkNonEmptyArgument(address, "address");
-		return withReturnReceiptTo(EmailAddressConvenience.interpret(fixedName, address, null, "address"));
+		return withReturnReceiptTo(EmailAddressConvenience.interpretList(fixedName, address, null, "address"));
 	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#withReturnReceiptTo(Recipient)
 	 */
+	/** @see EmailPopulatingBuilder#withReturnReceiptTo(Collection) */
+	@Override
+	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final Collection<Recipient> recipients) {
+		final List<Recipient> destinations = notificationRecipients(recipients);
+		this.useReturnReceiptTo = true;
+		this.returnReceiptToRecipients = destinations;
+		return this;
+	}
+
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final Recipient recipient) {
-		checkNonEmptyArgument(recipient.getAddress(), "recipient.address");
-		this.useReturnReceiptTo = true;
-		this.returnReceiptTo = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
-		return this;
+		return withReturnReceiptTo(java.util.Collections.singletonList(recipient));
 	}
 
 	/**
@@ -2300,12 +2322,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return withDispositionNotificationToState(null, null);
 	}
 
-	/** @see InternalEmailPopulatingBuilder#withDispositionNotificationToState(Boolean, Recipient) */
+	/** @see InternalEmailPopulatingBuilder#withDispositionNotificationToState(Boolean, Collection) */
 	@Override
 	@NotNull
-	public InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable final Boolean requested, @Nullable final Recipient recipient) {
+	public InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable final Boolean requested, @Nullable final Collection<Recipient> recipients) {
 		this.useDispositionNotificationTo = requested;
-		this.dispositionNotificationTo = recipient;
+		this.dispositionNotificationToRecipients = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		return this;
 	}
 	
@@ -2317,12 +2339,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return withReturnReceiptToState(null, null);
 	}
 
-	/** @see InternalEmailPopulatingBuilder#withReturnReceiptToState(Boolean, Recipient) */
+	/** @see InternalEmailPopulatingBuilder#withReturnReceiptToState(Boolean, Collection) */
 	@Override
 	@NotNull
-	public InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable final Boolean requested, @Nullable final Recipient recipient) {
+	public InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable final Boolean requested, @Nullable final Collection<Recipient> recipients) {
 		this.useReturnReceiptTo = requested;
-		this.returnReceiptTo = recipient;
+		this.returnReceiptToRecipients = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		return this;
 	}
 
@@ -2587,12 +2609,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 	
 	/**
-	 * @see EmailPopulatingBuilder#getDispositionNotificationTo()
+	 * @see EmailPopulatingBuilder#getDispositionNotificationToRecipients()
 	 */
 	@Override
-	@Nullable
-	public Recipient getDispositionNotificationTo() {
-		return dispositionNotificationTo;
+	@NotNull
+	public List<Recipient> getDispositionNotificationToRecipients() {
+		return java.util.Collections.unmodifiableList(new ArrayList<>(dispositionNotificationToRecipients));
 	}
 	
 	/**
@@ -2605,12 +2627,12 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see EmailPopulatingBuilder#getReturnReceiptTo()
+	 * @see EmailPopulatingBuilder#getReturnReceiptToRecipients()
 	 */
 	@Override
-	@Nullable
-	public Recipient getReturnReceiptTo() {
-		return returnReceiptTo;
+	@NotNull
+	public List<Recipient> getReturnReceiptToRecipients() {
+		return java.util.Collections.unmodifiableList(new ArrayList<>(returnReceiptToRecipients));
 	}
 
 	/**

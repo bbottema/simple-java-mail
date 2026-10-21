@@ -87,7 +87,7 @@ being changed; a broader importer rewrite or new general warning API requires it
 
 Pair each recovered example with an ambiguous or unsafe counterpart. Cover neighboring usable fields, partial reads, immutable snapshots, warning
 aggregation, unknown formats and original-cause preservation where content remains required. Preserve exact/protected bytes and signature results, and
-prove that recovery adds no unrelated attachment reads or getter-side I/O. Existing outgoing rejection tests must continue passing.
+prove that recovery adds no unrelated attachment reads or getter-side I/O. Retain outgoing validation, injection and singular From/bounce rejection controls.
 
 ## Related decisions and evidence
 
@@ -104,4 +104,8 @@ The delivery-report application is tracked by [#763](https://github.com/bbottema
 dated execution evidence belongs in commit and CI history, not this architectural decision.
 
 [OutlookAddressImportTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/converter/OutlookAddressImportTest.java) covers the import/composition
-boundary for sender, Reply-To, receipt and bounce fields, including legacy first-mailbox interpretation, retained source headers and neighboring message content.
+boundary for sender, Reply-To, receipt and bounce fields, including legacy single-value From/bounce interpretation, complete Reply-To/notification lists, retained source headers and neighboring message content.
+
+## Accepted convenient list parsing (20 October 2026)
+
+The ordinary Email recipient, Reply-To and notification String conveniences parse every mailbox rather than reject lists or select their first member. Preserve quoted punctuation, supported separators, order and duplicate occurrences; flatten address groups into members. A nonblank supplied name overrides every embedded name. Unparseable nonempty input is retained for the configured validator. From/bounce retain their singular guard, and the individual Recipient builder retains its specialized extraction contracts.

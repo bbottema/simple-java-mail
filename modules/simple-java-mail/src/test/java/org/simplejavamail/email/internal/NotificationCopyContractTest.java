@@ -40,11 +40,11 @@ class NotificationCopyContractTest {
             assertThat(governed.getUseDispositionNotificationTo()).isEqualTo(choice != Choice.DISABLED);
             assertThat(governed.getUseReturnReceiptTo()).isEqualTo(choice != Choice.DISABLED);
             if (choice == Choice.EXPLICIT || choice == Choice.DISABLED) {
-                assertThat(governed.getDispositionNotificationTo()).isEqualTo(original.getDispositionNotificationTo());
-                assertThat(governed.getReturnReceiptTo()).isEqualTo(original.getReturnReceiptTo());
+                assertThat(governed.getDispositionNotificationToRecipients()).isEqualTo(original.getDispositionNotificationToRecipients());
+                assertThat(governed.getReturnReceiptToRecipients()).isEqualTo(original.getReturnReceiptToRecipients());
             } else {
-                assertThat(governed.getDispositionNotificationTo()).isEqualTo(original.getFromRecipient());
-                assertThat(governed.getReturnReceiptTo()).isEqualTo(original.getFromRecipient());
+                assertThat(governed.getDispositionNotificationToRecipients()).containsExactly(original.getFromRecipient());
+                assertThat(governed.getReturnReceiptToRecipients()).containsExactly(original.getFromRecipient());
             }
         }
     }
@@ -93,9 +93,9 @@ class NotificationCopyContractTest {
 
     private static void assertChoices(final Email actual, final Email expected) {
         assertThat(actual.getUseDispositionNotificationTo()).isEqualTo(expected.getUseDispositionNotificationTo());
-        assertThat(actual.getDispositionNotificationTo()).isEqualTo(expected.getDispositionNotificationTo());
+        assertThat(actual.getDispositionNotificationToRecipients()).isEqualTo(expected.getDispositionNotificationToRecipients());
         assertThat(actual.getUseReturnReceiptTo()).isEqualTo(expected.getUseReturnReceiptTo());
-        assertThat(actual.getReturnReceiptTo()).isEqualTo(expected.getReturnReceiptTo());
+        assertThat(actual.getReturnReceiptToRecipients()).isEqualTo(expected.getReturnReceiptToRecipients());
     }
 
     private static Email roundTrip(final Email email) throws Exception {

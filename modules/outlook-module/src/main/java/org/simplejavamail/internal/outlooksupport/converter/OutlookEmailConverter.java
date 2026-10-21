@@ -7,6 +7,8 @@ import org.simplejavamail.internal.outlooksupport.model.OutlookMessageDataImpl;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +36,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -108,7 +113,7 @@ public class OutlookEmailConverter implements OutlookModule {
 		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime())
 				.orElse(outlookMessage.getDate())); // TODO creation date?
 		if (!valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
-			builder.withReplyTo(importedRecipient(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail()));
+			builder.withReplyTo(importedRecipients(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail()));
 		}
 		copyReceiversFromOutlookMessage(builder, outlookMessage);
 		builder.withSubject(outlookMessage.getSubject());
@@ -186,9 +191,9 @@ public class OutlookEmailConverter implements OutlookModule {
 	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
 		if (isEmailHeader(headerName, headerValue, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
-			builder.withDispositionNotificationTo(importedRecipient(null, headerValue));
+			builder.withDispositionNotificationTo(importedRecipients(null, headerValue));
 		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
-			builder.withReturnReceiptTo(importedRecipient(null, headerValue));
+			builder.withReturnReceiptTo(importedRecipients(null, headerValue));
 		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_PATH.getName())) {
 			builder.withBounceTo(importedRecipient(null, headerValue));
 		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
@@ -196,6 +201,22 @@ public class OutlookEmailConverter implements OutlookModule {
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
+	}
+
+	@NotNull
+	private static List<Recipient> importedRecipients(@Nullable final String name, @NotNull final String source) {
+		try {
+			final List<Recipient> recipients = new ArrayList<>();
+			for (final InternetAddress address : InternetAddress.parse(source, false)) {
+				recipients.add(new Recipient(valueNullOrEmpty(name) ? address.getPersonal() : name, address.getAddress(), null, null));
+			}
+			if (!recipients.isEmpty()) {
+				return recipients;
+			}
+		} catch (final AddressException unparseable) {
+			// Preserve received text, including unusual groups, for the configured outgoing validator.
+		}
+		return Collections.singletonList(new Recipient(name, source, null, null));
 	}
 
 	/**

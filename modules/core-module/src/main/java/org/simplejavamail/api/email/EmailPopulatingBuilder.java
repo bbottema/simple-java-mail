@@ -44,15 +44,16 @@ import static java.util.regex.Pattern.compile;
  * Default/override suppression controls ordinary templates, not factory-scoped {@code simplejavamail.locked.} settings. Those restrictions are checked
  * when governance prepares the email, even after completing it early or disabling ordinary validation. Required recipients remain additive; conflicting
  * single-value settings are rejected. Locks on embedded-image resolution are checked before this builder reads files or URLs.
- * Collection getters return detached, modifiable copies: changing those copies does not configure this builder or change an Email already built.
+ * Collection getters return detached copies; notification destination snapshots are unmodifiable. Changing a modifiable copy does not
+ * configure this builder or change an Email already built.
  * Data sources and forwarded MIME messages remain borrowed resources; their contents are not copied by building an Email.
  * <p>
- * Address conveniences interpret exactly one mailbox, separating an embedded display name from its address. A nonblank explicit name wins;
+ * To/Cc/Bcc, Reply-To and notification conveniences parse complete mailbox lists; From and bounce remain singular. A nonblank explicit name wins;
  * a null or blank name uses the embedded name. This applies to String and equivalent InternetAddress overloads for From, To/Cc/Bcc, Reply-To,
- * bounce and receipt-request addresses; see {@link #from(String, String)} for parsing and validation boundaries. Prepared Recipient values
+ * bounce and receipt-request addresses; see {@link #from(String, String)} and {@link #to(String, String)} for their parsing boundaries. Prepared Recipient values
  * retain their supplied name/address and are not reparsed. To/Cc/Bcc, {@code withRecipients}, Reply-To and delivery-recipient overrides are
  * additive: calls retain existing entries, including those populated by {@link EmailStartingBuilder#copying(Email)}. Clear a collection before
- * replacing it. Scalar From, bounce and receipt-request addresses replace their local value instead.
+ * replacing it. From, bounce and complete notification destination choices replace their local value instead.
  * <p>
  * <strong>Note:</strong> For some reason, JavaDoc is not able to parse all {@code @link} directives used in this class' documentation. I have no idea why, if you can figure
  * it out, please let me know!
@@ -259,8 +260,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder from(@NotNull Recipient recipient);
 
 	/**
-	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
-	 * with the single-mailbox interpretation of {@link #from(String, String)} and no explicit name.
+	 * Appends every supplied Reply-To mailbox, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(List)}
+	 * with the list parsing of {@link #to(String, String)} and no explicit name.
 	 *
 	 * @param replyToAddress The address that receivers will get when they reply to the email.
 	 */
@@ -268,8 +269,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReplyTo(@NotNull String replyToAddress);
 
 	/**
-	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
-	 * with the single-mailbox interpretation and explicit-name precedence of {@link #from(String, String)}.
+	 * Appends every supplied Reply-To mailbox, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(List)}
+	 * with the list parsing and explicit-name precedence of {@link #to(String, String)}.
 	 *
 	 * @param fixedName Name receivers see when replying; if null or blank, use the embedded mailbox name, if any.
 	 * @param replyToAddress One mailbox that receivers will get when they reply to the email.
@@ -277,15 +278,15 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReplyTo(@Nullable @Cli.Optional String fixedName, @NotNull String replyToAddress);
 
 	/**
-	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
-	 * with the supplied personal name and the single-mailbox checks of {@link #from(String, String)}.
+	 * Appends every supplied Reply-To mailbox, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(List)}
+	 * with the supplied personal name and the list parsing of {@link #to(String, String)}.
 	 * @param replyToAddress One reply destination; the supplied InternetAddress is not changed.
 	 */
 	EmailPopulatingBuilder withReplyTo(@NotNull InternetAddress replyToAddress);
 
 	/**
-	 * Appends one Reply-To destination, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(Recipient)}
-	 * with the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * Appends every supplied Reply-To mailbox, retaining existing entries, order and duplicates. Delegates to {@link #withReplyTo(List)}
+	 * with the list parsing and name precedence of {@link #to(String, String)}.
 	 * @param fixedName Name receivers see when replying; if null or blank, use the supplied personal name, if any.
 	 * @param replyToAddress One reply destination; the supplied InternetAddress is not changed.
 	 */
@@ -583,7 +584,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one TO mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
-	 * Uses the single-mailbox parsing and validation boundary of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * Uses the list parsing of {@link #to(String, String)}; embedded names are retained.
 	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
 	 */
@@ -592,7 +593,10 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one TO mailbox, retaining existing recipients, their metadata, order and duplicates, including on a copied Email.
-	 * Uses the single-mailbox parsing and explicit-name precedence of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * Parses every mailbox from a comma- or semicolon-delimited list and flattens address groups.
+	 * A nonblank explicit name overrides every embedded name; null/blank retains each embedded name. Quoted punctuation,
+	 * input order and duplicate occurrences are retained. Unparseable nonempty input remains for the configured send-time validator.
+	 * Use the plural recipient builder for default-name policies or recipient-specific metadata.
 	 * Use the factory's {@code recipientsBuilder()} for multiple addresses, then {@link #withRecipients(Collection)} for their prepared values
 	 * and per-recipient options. Clear the local recipient collection before adding replacements.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
@@ -604,7 +608,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one CC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
-	 * Uses the single-mailbox parsing of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * Uses the list parsing of {@link #to(String, String)}, retaining every mailbox and its embedded name.
 	 * @param address One bare or named mailbox.
 	 * @see #cc(String, String)
 	 */
@@ -613,7 +617,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one CC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
-	 * Uses the same single-mailbox parsing and explicit-name precedence as {@link #to(String, String)}.
+	 * Uses the same list parsing and explicit-name precedence as {@link #to(String, String)}.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
 	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
@@ -623,7 +627,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one BCC mailbox using its embedded display name, if any, retaining existing recipients, order and duplicates.
-	 * Uses the single-mailbox parsing of {@link #from(String, String)}; parsed lists and RFC groups are rejected.
+	 * Uses the list parsing of {@link #to(String, String)}, retaining every mailbox and its embedded name.
 	 * @param address One bare or named mailbox.
 	 * @see #bcc(String, String)
 	 */
@@ -632,7 +636,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends one BCC mailbox with an optional name, retaining existing recipients, order and duplicates, including on a copied Email.
-	 * Uses the same single-mailbox parsing and explicit-name precedence as {@link #to(String, String)}.
+	 * Uses the same list parsing and explicit-name precedence as {@link #to(String, String)}.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.
 	 * @param address One bare or named mailbox.
 	 * @see #to(String, String)
@@ -1018,8 +1022,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
 
 	/**
-	 * Requests a read receipt by adding the {@code Disposition-Notification-To} header. The actual address defaults to the first
-	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending this email).
+	 * Requests a read receipt by adding the {@code Disposition-Notification-To} header. The destinations default to all
+	 * Reply-To mailboxes when present, or to From otherwise. Resolution is deferred until completion or sending.
 	 *
 	 * @see #withDispositionNotificationTo(Recipient)
 	 */
@@ -1027,37 +1031,41 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo();
 
 	/**
-	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
-	 * Replaces the local notification address using the single-mailbox interpretation of {@link #from(String, String)} and its embedded name.
+	 * Replaces the destinations with every mailbox parsed from the supplied address list, retaining embedded names.
+	 * @see #withDispositionNotificationTo(Collection)
+	 * Uses the list parsing and embedded-name behavior of {@link #to(String, String)}.
 	 *
-	 * @param address The address of the receiver of the notification
+	 * @param address One mailbox or a list of notification destinations
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull String address);
 
 	/**
-	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
-	 * Replaces the local notification address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * Replaces the destinations with every parsed mailbox; a nonblank supplied name overrides every embedded name.
+	 * @see #withDispositionNotificationTo(Collection)
+	 * Uses the list parsing and name precedence of {@link #to(String, String)}.
 	 *
 	 * @param name Optional notification receiver name; null/blank uses the embedded mailbox name, if any.
-	 * @param address The address of the receiver of the notification
+	 * @param address One mailbox or a list of notification destinations
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable @Cli.Optional String name, @NotNull String address);
 
 	/**
-	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
-	 * Replaces the local notification address using its personal name and the single-mailbox checks of {@link #from(String, String)}.
-	 * @param address One notification receiver; the supplied InternetAddress is not changed.
+	 * Replaces the destinations with every mailbox parsed from the supplied address list, retaining embedded names.
+	 * @see #withDispositionNotificationTo(Collection)
+	 * Uses the supplied personal name and the list parsing of {@link #to(String, String)}.
+	 * @param address A mailbox or group; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull InternetAddress address);
 
 	/**
-	 * Delegates to {@link #withDispositionNotificationTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
-	 * Replaces the local notification address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * Replaces the destinations with every parsed mailbox; a nonblank supplied name overrides every embedded name.
+	 * @see #withDispositionNotificationTo(Collection)
+	 * Uses the list parsing and name precedence of {@link #to(String, String)}.
 	 * @param fixedName Optional notification receiver name; null/blank uses the supplied personal name, if any.
-	 * @param address One notification receiver; the supplied InternetAddress is not changed.
+	 * @param address A mailbox or group; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withDispositionNotificationTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
@@ -1076,8 +1084,21 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull Recipient recipient);
 
 	/**
-	 * Requests a receipt notification by adding the {@code Return-Receipt-To} header. The actual address defaults to the first
-	 * {@code replyToRecipient} when present, or to the {@code fromRecipient} otherwise (the final address is determined when sending the email).
+	 * Replaces this request's destinations with the supplied mailboxes and enables the request. The collection is copied;
+	 * names and addresses are retained, while recipient type and delivery metadata do not apply to notification headers.
+	 * An empty collection defers destination resolution to all Reply-To mailboxes, or From when Reply-To is absent.
+	 * Defaults and overrides select a complete destination list rather than adding destinations from different templates.
+	 * This does not add SMTP delivery recipients or guarantee that a notification will arrive.
+	 *
+	 * @param recipients Notification destinations; entries and their addresses must be non-null and nonempty.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The String overloads provide CLI mailbox-list input")
+	EmailPopulatingBuilder withDispositionNotificationTo(@NotNull Collection<Recipient> recipients);
+
+	/**
+	 * Requests a receipt notification by adding the {@code Return-Receipt-To} header. The destinations default to all
+	 * Reply-To mailboxes when present, or to From otherwise. Resolution is deferred until completion or sending.
 	 * <p>
 	 * For more detailed information, refer to {@link #withReturnReceiptTo(Recipient)}.
 	 */
@@ -1085,36 +1106,40 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder withReturnReceiptTo();
 
 	/**
-	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
-	 * Replaces the local receipt address using the single-mailbox interpretation of {@link #from(String, String)} and its embedded name.
+	 * Replaces the destinations with every mailbox parsed from the supplied address list, retaining embedded names.
+	 * @see #withReturnReceiptTo(Collection)
+	 * Uses the list parsing and embedded-name behavior of {@link #to(String, String)}.
 	 *
-	 * @param address The address of the receiver of the receipt notification
+	 * @param address One mailbox or a list of receipt destinations
 	 */
 	@Cli.ExcludeApi(reason = "API is subset of another API")
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull String address);
 
 	/**
-	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided name and address.
-	 * Replaces the local receipt address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * Replaces the destinations with every parsed mailbox; a nonblank supplied name overrides every embedded name.
+	 * @see #withReturnReceiptTo(Collection)
+	 * Uses the list parsing and name precedence of {@link #to(String, String)}.
 	 *
 	 * @param name Receipt receiver name; null/blank uses the embedded mailbox name, if any.
-	 * @param address The address of the receiver of the receipt notification
+	 * @param address One mailbox or a list of receipt destinations
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String name, @NotNull String address);
 
 	/**
-	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided address.
-	 * Replaces the local receipt address using its personal name and the single-mailbox checks of {@link #from(String, String)}.
-	 * @param address One receipt receiver; the supplied InternetAddress is not changed.
+	 * Replaces the destinations with every mailbox parsed from the supplied address list, retaining embedded names.
+	 * @see #withReturnReceiptTo(Collection)
+	 * Uses the supplied personal name and the list parsing of {@link #to(String, String)}.
+	 * @param address A mailbox or group; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("UnusedReturnValue")
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull InternetAddress address);
 
 	/**
-	 * Delegates to {@link #withReturnReceiptTo(Recipient)} with a new {@link Recipient} wrapped around the provided fixed name and address.
-	 * Replaces the local receipt address using the single-mailbox checks and name precedence of {@link #from(String, String)}.
+	 * Replaces the destinations with every parsed mailbox; a nonblank supplied name overrides every embedded name.
+	 * @see #withReturnReceiptTo(Collection)
+	 * Uses the list parsing and name precedence of {@link #to(String, String)}.
 	 * @param fixedName Receipt receiver name; null/blank uses the supplied personal name, if any.
-	 * @param address One receipt receiver; the supplied InternetAddress is not changed.
+	 * @param address A mailbox or group; the supplied InternetAddress is not changed.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder withReturnReceiptTo(@Nullable @Cli.Optional String fixedName, @NotNull InternetAddress address);
@@ -1127,6 +1152,19 @@ public interface EmailPopulatingBuilder {
 	 * Replaces the previous local address; copies the supplied name/address without reparsing them and ignores its recipient type.
 	 */
 	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Recipient recipient);
+
+	/**
+	 * Replaces this request's destinations with the supplied mailboxes and enables the request. The collection is copied;
+	 * names and addresses are retained, while recipient type and delivery metadata do not apply to notification headers.
+	 * An empty collection defers destination resolution to all Reply-To mailboxes, or From when Reply-To is absent.
+	 * Defaults and overrides select a complete destination list rather than adding destinations from different templates.
+	 * This does not add SMTP delivery recipients or guarantee that a notification will arrive.
+	 *
+	 * @param recipients Notification destinations; entries and their addresses must be non-null and nonempty.
+	 * @return This builder.
+	 */
+	@Cli.ExcludeApi(reason = "The String overloads provide CLI mailbox-list input")
+	EmailPopulatingBuilder withReturnReceiptTo(@NotNull Collection<Recipient> recipients);
 
 	/**
 	 * Appends delivery-recipient overrides, retaining existing entries, order and duplicates, including on a copied Email.
@@ -1308,7 +1346,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearOpenPgpEncryption();
 
 	/**
-	 * Clears the local read-receipt request and destination to their unset defaults. Both getters return null afterwards.
+	 * Clears the local read-receipt request and destination to their unset defaults. The request getter returns null and the destination list is empty afterwards.
 	 * Normal Email defaults or overrides may request a receipt again during governance; this does not explicitly disable inherited requests.
 	 * Use template suppression to exclude such contributions. No configuration sources are reloaded.
 	 *
@@ -1319,7 +1357,7 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearDispositionNotificationTo();
 
 	/**
-	 * Clears the local return-receipt request and destination to their unset defaults. Both getters return null afterwards.
+	 * Clears the local return-receipt request and destination to their unset defaults. The request getter returns null and the destination list is empty afterwards.
 	 * Normal Email defaults or overrides may request a receipt again during governance; this does not explicitly disable inherited requests.
 	 * Use template suppression to exclude such contributions. No configuration sources are reloaded.
 	 *
@@ -1452,9 +1490,10 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * @see #withDispositionNotificationTo()
 	 * @see #withDispositionNotificationTo(Recipient)
+	 * @return Immutable destination snapshot; empty when absent or awaiting completion.
 	 */
-	@Nullable
-	Recipient getDispositionNotificationTo();
+	@NotNull
+	List<Recipient> getDispositionNotificationToRecipients();
 
 	/**
 	 * @see #withReturnReceiptTo()
@@ -1466,9 +1505,10 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * @see #withReturnReceiptTo()
 	 * @see #withReturnReceiptTo(Recipient)
+	 * @return Immutable destination snapshot; empty when absent or awaiting completion.
 	 */
-	@Nullable
-	Recipient getReturnReceiptTo();
+	@NotNull
+	List<Recipient> getReturnReceiptToRecipients();
 
 	/**
 	 * @see #withOverrideReceivers(Recipient...)

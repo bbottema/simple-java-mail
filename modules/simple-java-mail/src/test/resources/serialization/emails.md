@@ -21,3 +21,9 @@ EmailPopulatingBuilder builder = EmailBuilder.startingBlank()
 The plain fixture serializes `new Email(builder)`; the builder fixture serializes `builder.buildEmail()` with ObjectOutputStream and encodes
 its bytes with Base64. The distinction tests ADR 0031's construction boundary independently from the retained Email serialization format:
 both remain inspectable, while the library-created subtype retains its supported runtime behavior.
+
+
+`email-9.3.6-notifications.base64` was generated on JDK 11.0.16.1 against the same published artifact hashes above.
+It contains one delivery recipient and explicit named disposition/return destinations (`Legacy read <read@example.org>`
+and `Legacy return <return@example.org>`), both requested. It tests upgrading the released scalar serialized fields to
+immutable singleton destination lists without changing the stored field types or Email serial identity.

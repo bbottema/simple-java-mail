@@ -62,9 +62,15 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 		return this;
 	}
 
+	public EmailAssert hasDispositionNotificationTo(final java.util.Collection<Recipient> destinations) {
+		isNotNull();
+		Assertions.assertThat(actual.getDispositionNotificationToRecipients()).containsExactlyElementsOf(destinations);
+		return this;
+	}
+
 	public EmailAssert hasDispositionNotificationTo(final Recipient dispositionNotificationTo) {
 		isNotNull();
-		Assertions.assertThat(actual.getDispositionNotificationTo()).as("dispositionNotificationTo").isEqualTo(dispositionNotificationTo);
+		Assertions.assertThat(actual.getDispositionNotificationToRecipients()).as("dispositionNotificationTo").containsExactly(dispositionNotificationTo);
 		return this;
 	}
 
@@ -74,9 +80,15 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 		return this;
 	}
 
+	public EmailAssert hasReturnReceiptTo(final java.util.Collection<Recipient> destinations) {
+		isNotNull();
+		Assertions.assertThat(actual.getReturnReceiptToRecipients()).containsExactlyElementsOf(destinations);
+		return this;
+	}
+
 	public EmailAssert hasReturnReceiptTo(final Recipient returnReceiptTo) {
 		isNotNull();
-		Assertions.assertThat(actual.getReturnReceiptTo()).as("returnReceiptTo").isEqualTo(returnReceiptTo);
+		Assertions.assertThat(actual.getReturnReceiptToRecipients()).as("returnReceiptTo").containsExactly(returnReceiptTo);
 		return this;
 	}
 
