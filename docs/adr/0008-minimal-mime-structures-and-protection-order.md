@@ -17,6 +17,13 @@ Finalize the ordinary MIME entity, then apply **either S/MIME or OpenPGP/MIME**,
 
 On input, recognize protection and verify/decrypt the original representation before passing effective clear content to the general MIME parser. Preserve original protected bytes and expose result metadata independently of readable content. Cryptographic signature validity is not an application trust decision; key discovery and trust remain application-owned. Do not interpret an OpenPGP `multipart/signed` as S/MIME merely because its container is signed.
 
+The clarification accepted on 21 October 2026 distinguishes retained input inspection from defaults/overrides completion. Original
+cryptographic results and protected bytes, decrypted-attachment inspection lists and retained S/MIME signed-content views are input history.
+Ordinary copying and supported serialization preserve them; completion resolves outgoing content and settings without carrying those
+results into its composed output. Outgoing protection configurations are selected normally, and cryptography runs during MIME preparation.
+Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
+Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
+
 ## MIME producer selection
 
 Protection facts describe the owning Email's represented layers, not an aggregate of unrelated attachments. Successful envelope decryption
@@ -82,7 +89,9 @@ changing who owns the content. Turning those facts into workflow transitions, ho
 Enrich the common Email read model with immutable source facts during existing inbound conversion. Apply the established protection-before-interpretation
 order: inspect the effective outer notification, retain authoritative protected/exact bytes and do not promote an attached report into its parent's facts.
 Keep source metadata separate from outgoing configuration, SMTP submission results and application state. Ordinary templates, locks and outbound MIME
-producers must not manufacture source facts. Copies preserve provenance, while new replies/forwards describe their own source rather than their subject.
+producers must not manufacture source facts. Ordinary copies and supported serialization preserve provenance, while new replies/forwards
+describe their own source rather than their subject. Defaults/overrides completion follows ADR 0002's outgoing-data boundary and omits
+received reports and their nested facts. [#819](https://github.com/bbottema/simple-java-mail/issues/819) tracks the correction of their earlier carryover.
 
 Core owns the reading contracts; the main conversion implementation owns parsing and assembly. Reuse Jakarta Mail's MIME/header machinery without an
 optional experimental DSN dependency. Missing/unusable facts remain absent; a recognized malformed notification can retain usable facts and warnings.

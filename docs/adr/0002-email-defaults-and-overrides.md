@@ -38,6 +38,25 @@ Preparation is deliberately later than ordinary `buildEmail()`. The same applica
 
 This is a configuration-resolution contract, not a new promise about every runtime field: existing Message-ID propagation back to the submitted Email is separate from applying defaults and overrides.
 
+### Completion resolves outgoing data (clarified 21 October 2026)
+
+Completion carries outgoing content and configuration. S/MIME, OpenPGP and DKIM protection settings and outgoing
+`DeliveryStatusNotification` requests retain their ordinary value resolution, suppression and lock rules. Completing an Email does not
+perform signing, encryption, verification or decryption; protection is applied during later MIME preparation.
+
+Historical input facts are a separate concern: original S/MIME/OpenPGP results and protected bytes, received `DeliveryStatusReport` facts,
+decrypted-attachment inspection lists, retained S/MIME signed-content views and their merge bookkeeping do not belong in a completed
+outgoing Email. They are neither template defaults nor send instructions. Ordinary copying and supported serialization preserve input
+history; completion creates an outgoing view. Fresh plain/unsigned result metadata does not attest to the source's protection or validate
+the output. Inspect the original converted Email for that history.
+
+This distinction does not strip imported message content. Body, headers, ordinary attachments/images, explicit Message-ID/sent-date,
+envelope and recipient choices remain eligible outgoing values, including content already flattened from a signed-message view.
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md) owns input protection and interpretation;
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) owns copying and snapshot preservation.
+[#819](https://github.com/bbottema/simple-java-mail/issues/819) tracks this clarification and the narrow removal of the earlier received-report
+carryover from completion. Outgoing delivery-notification requests and ordinary copy/serialization preservation remain separate contracts.
+
 The current constructor uses either the supplied defaults Email or the snapshot-derived defaults Email. It does **not** automatically fill a supplied defaults template's missing fields from the property snapshot. Repeated `withEmailDefaults(...)` calls replace the reference rather than accumulating templates. Any change to that behavior needs its own reviewed migration.
 
 Name the choice explicitly: `useConfiguredEmailDefaults()` restores the captured property-derived template, replacing the former
@@ -119,7 +138,13 @@ Recipient-group defaults are construction-time conveniences. They resolve into t
 
 An explicit recipient S/MIME certificate wins over the governance-resolved Email certificate, even if the latter came from Mailer Email overrides. The [S/MIME preparation code](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/SpecializedMimeMessageProducer.java) documents that boundary. Preserve it and follow the same scope rule for new recipient settings. This is established behavior, not an open design question or an implicit global force operation.
 
-Exact EML takes a separate [preparation path](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/ExactEmlSource.java) that bypasses Email defaults/overrides. This preserves the caller's submitted bytes and existing envelope choices. Adding an envelope feature does not authorize automatic governance of exact messages or rewriting protected content.
+Sending, rehearsing and exporting an exact Email use its separate [preparation path](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/ExactEmlSource.java), which bypasses ordinary Email defaults/overrides. This preserves the caller's submitted bytes and existing envelope choices, subject to compatible mandatory locks. Adding an envelope feature does not authorize automatic governance of exact messages or rewriting protected content.
+
+The clarification accepted on 21 October 2026 distinguishes that automatic preparation from explicitly calling
+`EmailGovernance.produceEmailApplyingDefaultsAndOverrides(exactEmail)`. The explicit operation applies ordinary templates to the parsed view
+and returns a new composed Email under the same suppression and lock rules as other composition. The supplied exact Email remains unchanged;
+the result does not guarantee the original bytes or the validity of existing signatures. [ADR 0013](0013-exact-eml-submission.md) owns the
+authoritative-source boundary, and [ADR 0037](0037-repeatable-email-completion.md) retains this distinction for repeated completion.
 
 ## Alternatives
 

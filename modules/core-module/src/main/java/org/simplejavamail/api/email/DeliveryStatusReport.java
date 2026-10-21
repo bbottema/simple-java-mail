@@ -10,6 +10,12 @@ import java.util.List;
  * Delivery feedback extracted from a received notification Email. Convert MIME/EML through the usual converter and read
  * {@link Email#getDeliveryStatusReport()}; applications do not construct these snapshots.
  *
+ * <p>This historical reading contract is separate from {@link org.simplejavamail.api.email.config.DeliveryStatusNotification}, which
+ * configures an outgoing notification request. A received report does not become an outgoing request or produce notification MIME.</p>
+ *
+ * <p>Ordinary copying and supported Java serialization preserve this report and its nested facts. Defaults/overrides completion omits
+ * that history when resolving outgoing content and settings; inspect the original converted Email for received feedback.</p>
+ *
  * <p>These are the received server's claims, not authenticated proof, a read receipt or instructions to resend. Correlation and business decisions
  * remain application-owned. A missing notification does not establish delivery. Optional facts are absent when missing or unusable; warnings explain
  * malformed recognized reports without discarding their usable facts. Unambiguous formatting can be recovered with a warning; if optional

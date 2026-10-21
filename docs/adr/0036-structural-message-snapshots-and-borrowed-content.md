@@ -26,6 +26,12 @@ Existing convenience getters that already return detached lists need not become 
 new equivalent template additions during repeated completion. It does not change local builder additions, structural copying, public
 resource/Email equality or the borrowed-content boundary below.
 
+As clarified on 21 October 2026, ordinary copying and supported serialization retain historical input facts: original protection results
+and bytes, received delivery reports, decrypted-attachment inspection lists and retained S/MIME signed-content views/merge bookkeeping.
+Defaults/overrides completion instead resolves outgoing content and configuration under [ADR 0002](0002-email-defaults-and-overrides.md).
+It is not a history-preserving copy operation. Content already represented in ordinary body, header and resource fields remains outgoing
+content, and this boundary does not change equality, import interpretation, byte ownership or the supported serialized form.
+
 Recipient occurrences also matter when comparing Emails: equality must account for repeated entries and remain symmetric. Preserve the
 established order-insensitive recipient comparison while distinguishing different occurrence counts; structural copying does not redefine that order rule.
 

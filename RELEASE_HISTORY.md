@@ -105,6 +105,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#819](https://github.com/bbottema/simple-java-mail/issues/819): stopped carrying received delivery-status reports through defaults/overrides completion.
+  Completion resolves outgoing protection and notification settings; historical inspection results stay with the source Email. Ordinary copying and serialization retain their existing data.
+
 - Recipient String address setters now extract a single embedded display name and mailbox, honoring explicit names in either setter order.
   Malformed input, groups and address lists remain intact for send-time validation; explicit address-only helpers keep their name-preserving behavior.
 - Clearing read/return receipt requests now restores unset flags and addresses, allowing normal Email defaults and overrides again.

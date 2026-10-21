@@ -23,6 +23,13 @@ and would still duplicate additive override entries.
 Every ordinary completion pass can further complete the supplied Email, including when another Mailer supplies the templates. Completion
 does not freeze the Email, retain its original draft, remember a previous Mailer, or introduce an exemption from later governance.
 
+The clarification accepted on 21 October 2026 also keeps completion focused on outgoing data. Outgoing protection configurations and
+delivery-notification requests participate normally; historical input results do not become part of the completed outgoing view.
+[ADR 0002](0002-email-defaults-and-overrides.md#completion-resolves-outgoing-data-clarified-21-october-2026) defines the distinction from
+ordinary copying and supported serialization. [#819](https://github.com/bbottema/simple-java-mail/issues/819) tracks the clarification and
+the narrow correction that removes the earlier received-report carryover.
+Repeated completion neither preserves a source verification verdict nor performs cryptography; protected MIME is produced later.
+
 ### Locked configuration remains binding
 
 Applicable locks take precedence over all ordinary configuration and suppression choices. Retain [ADR 0025](0025-factory-scoped-locked-configuration.md):
@@ -92,9 +99,14 @@ or mandatory locked values. Reference templates do not create a nested suppressi
 Keep selected-destination governance, original-Email reuse and applicable lock propagation under ADRs 0002, 0025 and 0029. Independent sends
 of the original Email remain independent. A caller who deliberately submits a previously completed result supplies its materialized values.
 
-Exact EML remains on its existing authoritative-byte path; no ordinary template union is introduced there. Compatible locks still apply,
-and incompatible requirements are rejected. Protected content and the frozen retry snapshot retain their separate preservation contracts.
-Repeated completion does not authorize rerendering frozen retry content or altering exact bytes.
+Sending, rehearsing and exporting the original exact Email remain on its authoritative-byte path; no ordinary template union is introduced
+there. Compatible locks still apply, and incompatible requirements are rejected. As clarified on 21 October 2026, explicitly calling
+`EmailGovernance.produceEmailApplyingDefaultsAndOverrides(exactEmail)` instead applies ordinary templates to its parsed view and returns a new
+composed Email, following [ADR 0013](0013-exact-eml-submission.md). The supplied exact Email remains unchanged. The composed result does not
+guarantee the original EML bytes or the validity of existing signatures. It follows the same suppression and lock rules as other completion.
+
+Protected content and frozen retry snapshots retain their separate preservation contracts. Repeated completion does not rerender a frozen
+retry snapshot or change the authoritative bytes retained by the original exact Email.
 
 ## Alternatives not selected
 

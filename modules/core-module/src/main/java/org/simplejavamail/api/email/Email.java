@@ -754,7 +754,9 @@ public class Email implements Serializable {
 	 * For example, convert a received bounce with the usual MIME/EML converter, then inspect its recipients and envelope identifier here.
 	 *
 	 * <p>This immutable snapshot describes the source notification, not a changing delivery tracker on the Email originally sent. Copies retain it
-	 * even if their content is edited; new replies and forwards do not inherit it. The getter performs no parsing or I/O. Ordinary outgoing templates
+	 * even if their content is edited, and supported Java serialization preserves it. Defaults/overrides completion omits the report and all its
+	 * nested facts while resolving outgoing content and settings. Inspect the original converted Email for this history. New replies and forwards
+	 * do not inherit it. The getter performs no parsing or I/O. Ordinary outgoing templates
 	 * do not supply it, and conversion back to MIME does not synthesize a delivery report from it.</p>
 	 *
 	 * <p>Received claims are not authenticated delivery proof or permission to retry. If protected content could not be opened, inspect the existing
@@ -814,6 +816,8 @@ public class Email implements Serializable {
 	}
 
 	/**
+	 * Returns the historical decrypted-attachment inspection list retained during input conversion. Defaults/overrides completion
+	 * does not copy this list into the result; it resolves ordinary outgoing attachments separately.
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
 	@NotNull
@@ -912,12 +916,19 @@ public class Email implements Serializable {
 		return openPgpEncryptionConfig;
 	}
 
+	/**
+	 * Returns historical OpenPGP inspection results for the converted source. These results and their original protected bytes are
+	 * preserved by ordinary copying and supported Java serialization, but are omitted by defaults/overrides completion.
+	 * Outgoing OpenPGP configuration is available separately through {@link #getOpenPgpSigningConfig()} and {@link #getOpenPgpEncryptionConfig()}.
+	 */
 	@NotNull
 	public OriginalOpenPgpDetails getOriginalOpenPgpDetails() {
 		return originalOpenPgpDetails;
 	}
 
 	/**
+	 * Returns the retained S/MIME signed-content view from input conversion, when present. Defaults/overrides completion omits this
+	 * historical view and its merge bookkeeping; content already merged into ordinary fields remains outgoing content.
 	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
 	 */
 	@Nullable
@@ -926,6 +937,9 @@ public class Email implements Serializable {
 	}
 
 	/**
+	 * Returns historical S/MIME inspection results for the converted source. These results and their original protected bytes are
+	 * preserved by ordinary copying and supported Java serialization, but are omitted by defaults/overrides completion.
+	 * Outgoing S/MIME configuration is available separately through {@link #getSmimeSigningConfig()} and {@link #getSmimeEncryptionConfig()}.
 	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
 	 */
 	@NotNull

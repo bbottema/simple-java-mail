@@ -33,6 +33,20 @@ public interface EmailGovernance {
 
     /**
      * This method will apply the defaults and overrides to the given email and return the result as a new instance. The original email is not modified.
+     * The result is a composed Email, including when the supplied Email was built with
+     * {@link org.simplejavamail.api.email.EmailStartingBuilder#startingFromExactEml(byte[])}. Explicit completion applies ordinary templates
+     * to that Email's parsed view. The result does not guarantee the original EML bytes or the validity of signatures already on the source.
+     * The supplied exact Email remains unchanged. Send, rehearse or export that original Email when its authoritative bytes must be preserved;
+     * those operations bypass ordinary templates and retain the existing exact-preservation and applicable-lock contracts.
+     * <p>
+     * Completion resolves outgoing content and settings. S/MIME and OpenPGP signing/encryption settings and DKIM signing configuration
+     * participate in ordinary template resolution, as do outgoing delivery-notification requests; protection is applied later during MIME
+     * preparation. Historical S/MIME and OpenPGP inspection results, their original protected bytes, received delivery reports and their
+     * nested facts, decrypted-attachment inspection lists and retained signed-message views are not copied
+     * into the composed result. Fresh plain/unsigned result metadata does not establish that the input was unprotected or that the output
+     * has been cryptographically checked. Inspect the original converted Email for those results. Ordinary copying and supported Java
+     * serialization retain their separate history-preservation contracts.
+     * <p>
      * Each ordinary completion can further enrich an already-completed Email, including with another Mailer's templates. Scalars resolve
      * in override, supplied, then default order, subject to the supplied Email's suppression choices. Applicable configuration locks remain
      * binding regardless of suppression or earlier completion; conflicting fixed values are rejected and mandatory additions are enforced.
@@ -51,10 +65,10 @@ public interface EmailGovernance {
      * even when their filenames look alike. This matching does not change public AttachmentResource equality.
      * <p>
      * Global and per-property suppression survives completion and copying. A reference template's own suppression does not create another
-     * inheritance layer. Completion does not freeze generated MIME, Message-IDs or signing output; exact EML and retry snapshots keep their
-     * separate preservation contracts.
+     * inheritance layer. Completion does not freeze generated MIME, Message-IDs or signing output. Frozen retry snapshots retain their
+     * separate preservation contract.
      * <p>
-     * Sending applies governance automatically. Ordinary conversion does not: use
+     * Sending and rehearsing composed Emails apply governance automatically. Ordinary conversion does not: use
      * {@link org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion#withEmailGovernance(EmailGovernance)}
      * when an export should apply these templates. You can also call this method to inspect the governed Email without sending it.
      * <p>

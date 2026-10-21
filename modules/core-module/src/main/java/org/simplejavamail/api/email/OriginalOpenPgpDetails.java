@@ -9,6 +9,11 @@ import java.util.List;
 /**
  * Provider-neutral cryptographic result retained when converting an OpenPGP/MIME message.
  *
+ * <p>These are historical results for the converted input, including any retained original protected bytes. Ordinary copying and supported
+ * Java serialization preserve them. Defaults/overrides completion resolves outgoing content and settings without copying these results;
+ * use the original converted Email for inspection. Plain/unsigned details on a composed Email do not establish the input's protection or
+ * a verification result for outgoing MIME. Outgoing signing/encryption configuration is separate and takes effect during MIME preparation.</p>
+ *
  * <p>Signature validity reports content integrity against the supplied key. It does not establish that the key belongs
  * to the address in the message's {@code From} header. Key ownership and trust remain application concerns.</p>
  */

@@ -7,6 +7,11 @@ import java.io.Serializable;
 /**
  * Indicates S/MIME details about an email. Used to show how a converted message was signed / encrypted and by whom.
  * <p>
+ * These are historical results for the converted input, including any retained original protected bytes. Ordinary copying and supported
+ * Java serialization preserve them. Defaults/overrides completion resolves outgoing content and settings without copying these results;
+ * use the original converted Email for inspection. Plain/unsigned details on a composed Email do not establish the input's protection or
+ * a verification result for outgoing MIME. Outgoing signing/encryption configuration is separate and takes effect during MIME preparation.
+ * <p>
  * Note: the difference between this and {@link org.simplejavamail.api.internal.smimesupport.model.SmimeDetails} is that
  * this class is intended for exposing S/MIME metadata to the end user, while the other class is for internal use
  * by the S/MIME module alone.
