@@ -37,7 +37,7 @@ offer derived spacing when bursts are disabled. Count attempts at the provider-i
 
 ### Configure counts and periods, not a hard-coded delay
 
-The builder API is:
+The `SendingLimitsConfig` builder API is:
 
 ```java
 .withMessageRateLimit(30, Duration.ofMinutes(1))
@@ -68,14 +68,25 @@ Support one optional message rule and one optional recipient rule. Both the maxi
 representable. When both rules exist, a submission must satisfy both; it must not consume one allowance while waiting for the other.
 Calling a rule's setter again replaces that rule rather than adding another window.
 
-Provide paired `resetMessageRateLimit()` and `resetRecipientRateLimit()` operations that remove the corresponding rule, including a
-property-loaded rule, rather than restoring an arbitrary rate. `resetRateLimitGroup()` restores a private allowance, and
+Provide paired `clearMessageRateLimit()` and `clearRecipientRateLimit()` operations that remove the corresponding rule, including a
+property-loaded rule, rather than restoring an arbitrary rate. `clearRateLimitGroup()` restores a private allowance, and
 `resetRateLimitBurstsAllowed()` restores the default of allowing bursts. Neither creates a sending limit.
 
 Resolve defaults and overrides in the builders. Immutable configuration objects receive the resolved values; they do not resolve their
 own defaults or hold counters. Expose the settings through `OperationalConfig`, never the mutable tracker. Reuse the existing property
 loader, typed schema, safe provenance diagnostics, Spring metadata and generated CLI routes. Do not introduce a counting-mode enum,
 public coordinator object or collection of arbitrary rules.
+
+### Inherited rate rules fail fast
+
+Clarified 21 October 2026: after ordered property sources have been resolved, an inherited message or recipient rule must contain both
+its positive count and its positive, representable period. Reject an incoherent inherited rule while creating the Mailer builder. A later
+Java rule replacement or clear is not a repair mechanism for that broken configuration; correct or remove the inherited rule in its sources.
+This retains the intended fail-fast behavior under [ADR 0003](0003-immutable-configuration-snapshots.md#fail-fast-validation-and-passive-inspection).
+
+An absent rule remains valid and disables that limit. Once a coherent builder exists, Java customization can replace or clear its rules,
+subject to locks. Inspecting its supplied `SendingLimitsConfig` choices performs no additional validation. Construction and inspection
+therefore have distinct responsibilities without weakening either the inherited-rule contract or ordinary override precedence.
 
 ### Use rolling windows, with optional spreading
 

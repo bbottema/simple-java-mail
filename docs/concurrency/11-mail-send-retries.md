@@ -22,6 +22,9 @@ the previous Java choices. A resource-only policy does not enable retries unless
 
 The policy value retains omission without reading configuration sources. The Mailer validates its complete effective schedule and resource
 budgets before creating resources. Attempts and initial delay have no built-in fallback; properties and Java choices can supply either part.
+The Mailer builder's `getMailSendRetryPolicy()` returns its supplied choices, so an unfinished Java schedule remains inspectable and editable
+through `toBuilder()` without validation or materializing inherited values. Only `OperationalConfig.getMailSendRetryPolicy()` exposes the
+resolved operational policy. Inspection does not move validation or lock checking away from construction.
 `clearRetrySchedule()` explicitly removes the schedule and its modifiers while retaining resource choices and inheritance.
 `clearMailSendRetryPolicy()` also resets resource limits to the published fallbacks. Individual resets explicitly select the corresponding
 fallback, and applicable locks reject conflicting choices. Runtime trackers remain attempt/Mailer-owned as above.

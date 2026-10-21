@@ -4,6 +4,7 @@
 - Decision recorded: 2026-09-16; the source dates below are the historical evidence
 - Applies to: 10.0.0, including unreleased recipient results and retry guidance
 - Implementation baseline: `codex/10.0.0` at `a4eda9e6`; concurrent ENVID work is excluded from this decision
+- Attachment I/O addendum: Accepted 21 October 2026; implemented and reviewed for unreleased 10.0.0 under [#821](https://github.com/bbottema/simple-java-mail/issues/821).
 
 ## Context
 
@@ -104,3 +105,24 @@ adds reading of a supplied delivery notification through its converted Email. Th
 not mutate a receipt, authenticate delivery or authorize automatic replay. Mail retrieval, correlation and business reconciliation remain application-owned.
 
 Existing regression landmarks include [AngusSubmissionResultTest](../../modules/angus-mail-provider-module/src/test/java/org/simplejavamail/internal/mailprovider/angus/AngusSubmissionResultTest.java) and [MailSubmissionReceiptTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailSubmissionReceiptTest.java). This retrospective documentation pass did not rerun Java tests.
+
+### Exception idiom for owned operations and raw resources
+
+Accepted 21 October 2026: choose the public failure contract according to who owns the operation. A complete SJM-managed operation
+reports its known operational failures through `MailException`. A deliberate handoff of a raw JDK resource retains that resource's native
+exception contract for acquisition and subsequent caller-managed use. Failure timing within one operation must not select a different
+exception family.
+
+For attachment convenience reads, SJM opens, reads and closes the stream. Opening, reading and closing I/O failures all become
+`MailException` with `MailFailureKind.PREPARATION`, whose meaning includes content access. Retain the original `IOException` as the cause,
+including its suppressed closing failures when reading also failed. A closing failure after a successful read still fails the convenience
+operation. No new public exception subtype or submission receipt is needed for this content-access boundary.
+
+For caller-managed attachment streaming, `openStream() throws IOException` acquires and returns an ordinary `InputStream`. Opening,
+reading and closing retain Java's checked-I/O contract; the application owns consuming and closing the stream. The acquisition name makes
+the potential I/O and resource ownership explicit. Do not wrap the returned stream merely to replace its normal exception contract.
+
+The [attachment access decision in ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#attachment-access-and-stream-ownership)
+applies this idiom to the 10.0.0 API. It deliberately replaces the former mixed contract without preserving obsolete signatures or aliases.
+Preserve ordinary argument errors, arbitrary application runtime exceptions and JVM Errors rather than blanket-wrapping them. Borrowed
+DataSources retain their identity and ownership; this exception decision introduces no eager content reads or new lifetime ownership.
