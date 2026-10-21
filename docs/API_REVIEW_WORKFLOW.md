@@ -127,14 +127,14 @@ feat(api): align related configuration contracts (#123, #456)
 
 Name the governing ADRs and explain the alignment in the body, for example `Architecture: ADR 0002, ADR 0031.` Apply the same convention to supporting documentation and website commits. Website bodies also carry qualified main-repository issue references. Do not add sign-offs. Body references alone do not replace the subject suffix.
 
-Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Do not include test or verification evidence: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, or claims that the changes were tested or verified. Put that evidence in the issue, completion comment or CI artifacts instead. A commit that changes test code may describe those changes without reporting execution results. This rule applies to both repositories.
+Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Do not include test or verification evidence: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, or claims that the changes were tested or verified. Put that evidence in the issue body or CI artifacts instead. A commit that changes test code may describe those changes without reporting execution results. This rule applies to both repositories.
 
 Push only to the branches authorized for the round. When publishing both repositories, publish the website commit before the parent gitlink and verify the remote heads. History rewriting, force-pushing, deployment and releasing require their own explicit authorization; ordinary implementation approval does not imply them. If publication is still pending, retain the reviewed local commits and keep the issue open.
 
 Once the accepted implementation and its required companions are delivered:
 
 1. Add a completion comment starting with the **after usage example** using the final supported API.
-2. Briefly explain the resolved behavior and link the relevant delivered commits and ADRs. Preserve the original before example in the issue body. Distinguish completion on the 10.0.0 development branch from a published release.
+2. Briefly explain the resolved behavior and link the relevant delivered commits and ADRs. Keep test and verification evidence out of completion comments; store it in the issue body or CI artifacts. Preserve the original before example in the issue body. Distinguish completion on the 10.0.0 development branch from a published release.
 3. Close the issue as completed and set its project item to **Done**. Do not close unrelated or unfinished issues merely because a shared commit mentions them.
 4. Verify the issue's labels, milestone, board status and commit references, including any references affected by an explicitly approved history rewrite.
 
@@ -144,6 +144,6 @@ If review rejects or defers a proposed repair, record the maintainer's dispositi
 
 Report completed issues and commits, deferred findings, pending approvals and any remaining compatibility or verification gaps. Reconcile the final public API with the ADRs, website, Journal, case studies and OpenRewrite plan once more across issues that interacted during the round.
 
-Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in issue comments and CI artifacts. Retire completed plans and one-off audit/verification reports after preserving their useful material in the maintained guides.
+Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in issue bodies and CI artifacts. Retire completed plans and one-off audit/verification reports after preserving their useful material in the maintained guides.
 
 Use a bounded, task-owned scratch directory for temporary probes and track what was created. Stop owned helper processes and remove those temporary files when finished. Preserve other ongoing tracks, registered worktrees and unrelated artifacts; never clean a shared `.local` or temporary parent directory wholesale.
