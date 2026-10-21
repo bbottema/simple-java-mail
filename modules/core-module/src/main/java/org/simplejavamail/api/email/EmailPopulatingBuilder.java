@@ -161,10 +161,18 @@ public interface EmailPopulatingBuilder {
 	 * To inspect or convert values with configured defaults already applied, use {@link #buildEmailCompletedWithDefaultsAndOverrides()}.
 	 * To use a particular Mailer's templates instead, pass its {@link Mailer#getEmailGovernance()} to
 	 * {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)}. Ordinary sending applies the selected Mailer's governance automatically.
+	 * <p>
+	 * A To/Cc/Bcc recipient's S/MIME certificate requests encryption, including a certificate supplied by a recipient-group policy.
+	 * This build checks the stored email and recipient choices for conflicting S/MIME and OpenPGP requests before resolving dynamic images.
+	 * The check does not load optional protection modules, validate cryptographic material or read message/attachment content.
+	 * Defaults, overrides and mandatory locks are checked again when completion resolves their effective choices, before MIME protection.
 	 *
-	 * @throws IllegalArgumentException If email-level S/MIME and OpenPGP/MIME are both configured. Simple Java Mail does not support wrapping one
-	 *                                 protection format inside the other; choose one and remove the other configuration with {@link #clearSmime()}
-	 *                                 or {@link #clearOpenPgp()}. Defaults and overrides must respect the same restriction when applied.
+	 * @throws IllegalArgumentException If S/MIME signing or encryption is requested at email level or by a To/Cc/Bcc recipient certificate,
+	 *                                 and OpenPGP signing or encryption is also configured. The error identifies the conflicting choices.
+	 *                                 Use {@link #clearSmime()} or {@link #clearOpenPgp()} to remove email-level choices; clearing S/MIME leaves
+	 *                                 recipient certificates intact. To deliberately remove those requests, strip certificates from copied
+	 *                                 recipients with {@link IRecipientsBuilder#clearingSmimeCertificates()} and replace this builder's recipients.
+	 *                                 Previously built Emails and source recipients remain unchanged. Template suppression does not remove mandatory locks.
 	 * @see #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)
 	 */
 	@SuppressWarnings("JavadocDeclaration")
@@ -174,6 +182,8 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Delegates to {@link #buildEmailCompletedWithDefaultsAndOverrides(EmailGovernance)} using governance created from the immutable configuration snapshot
 	 * captured by this builder. This applies any email defaults configured on that snapshot without consulting later configuration loads.
+	 *
+	 * @throws IllegalArgumentException If the supplied or completed choices combine S/MIME and OpenPGP, as described by {@link #buildEmail()}.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Email buildEmailCompletedWithDefaultsAndOverrides();
@@ -188,6 +198,8 @@ public interface EmailPopulatingBuilder {
 	 * Completion resolves outgoing content and configuration, including S/MIME, OpenPGP and DKIM settings. It does not copy historical
 	 * cryptographic results, original protected bytes, received delivery reports and their nested facts, decrypted-attachment inspection
 	 * lists or the retained S/MIME signed-message view. Outgoing delivery-notification requests remain eligible configuration.
+	 * Completion rejects combinations of S/MIME and OpenPGP, including S/MIME encryption requested by recipient certificates.
+	 * Conflicts introduced by defaults, overrides or mandatory locks fail during completion using the same metadata-only check as {@link #buildEmail()}.
 	 * Cryptographic processing happens later during MIME preparation. Inspect the original converted Email for source results;
 	 * ordinary copying and supported Java serialization preserve their separate history contracts.
 	 * <p>
@@ -199,6 +211,7 @@ public interface EmailPopulatingBuilder {
 	 *
 	 * @param emailGovernance The email governance to use for this email. It determines which default values and overrides to apply, what the maximum
 	 *                           email size is, etc.
+	 * @throws IllegalArgumentException If the supplied or completed choices combine S/MIME and OpenPGP, as described by {@link #buildEmail()}.
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	Email buildEmailCompletedWithDefaultsAndOverrides(@NotNull EmailGovernance emailGovernance);

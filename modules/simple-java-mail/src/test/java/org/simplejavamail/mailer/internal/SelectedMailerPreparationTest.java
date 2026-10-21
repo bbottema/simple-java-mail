@@ -17,10 +17,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
+
+import java.security.cert.X509Certificate;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,12 +41,49 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 
 
 @Timeout(20)
 class SelectedMailerPreparationTest {
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
+
+    @Test
+    @Timeout(45)
+    void selectedMembersProtectionConflictFailsBeforeCryptographyOrSubmission() throws Exception {
+        final UUID clusterKey = UUID.randomUUID();
+        final List<Message> primaryMessages = new CopyOnWriteArrayList<>();
+        final List<Message> selectedMessages = new CopyOnWriteArrayList<>();
+        final X509Certificate certificate = mock(X509Certificate.class);
+        final Email selectedTemplate = mail.emailBuilder().copying(template("selected"))
+                .signWithOpenPgp(OpenPgpSigningConfig.builder().secretKeyRing(new byte[]{1}).build()).buildEmail();
+        try (Mailer primary = builder(clusterKey, primaryMessages).withEmailOverrides(template("primary")).buildMailer();
+                Mailer selected = builder(clusterKey, selectedMessages).withEmailOverrides(selectedTemplate).buildMailer()) {
+            final Email unprotected = mail.emailBuilder().startingBlank().to("customer@example.org").withPlainText("body").buildEmail();
+            primary.sync().sendMail(unprotected);
+            assertThat(primaryMessages).hasSize(1);
+            final Recipient certified = new Recipient(null, "customer@example.org", RecipientType.TO, certificate);
+            final Email supplied = mail.emailBuilder().startingBlank().withRecipients(certified).withPlainText("body").buildEmail();
+
+            try (var modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+                assertThatThrownBy(() -> primary.sync().sendMail(supplied)).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("recipient customer@example.org (To)").hasMessageContaining("OpenPGP signing");
+                modules.verify(ModuleLoader::loadSmimeModule, never());
+                modules.verify(ModuleLoader::loadOpenPgpModule, never());
+            }
+            assertThat(primaryMessages).hasSize(1);
+            assertThat(selectedMessages).isEmpty();
+            assertThat(supplied.getOpenPgpSigningConfig()).isNull();
+            assertThat(supplied.getRecipients()).containsExactly(certified);
+            verifyNoInteractions(certificate);
+        }
+    }
 
     @Test
 	void invokingThePrimaryUsesTheSelectedFailoverMailersTemplatesWithoutPrimaryTemplateContamination() throws Exception {
