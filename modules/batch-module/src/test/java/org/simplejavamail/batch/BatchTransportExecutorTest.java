@@ -8,6 +8,7 @@ import jakarta.mail.URLName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.simplejavamail.smtpconnectionpool.TransportHandlingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -122,7 +123,7 @@ class BatchTransportExecutorTest {
 			assertThat(claimFailure).isInstanceOf(BatchTransportException.class)
 					.hasMessageContaining("Unable to claim an SMTP transport");
 			Throwable preparationFailure = claimFailure.getCause();
-			assertThat(preparationFailure.getClass().getSimpleName()).isEqualTo("TransportHandlingException");
+			assertThat(preparationFailure).isInstanceOf(TransportHandlingException.class);
 			assertThat(preparationFailure).hasCause(connectFailure);
 			assertThat(preparationFailure.getSuppressed()).containsExactly(closeFailure);
 
