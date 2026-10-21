@@ -107,21 +107,21 @@ class RecipientAddressOnlyContractTest {
 	}
 
 	@Test
-	void addressHelpersKeepTheExistingFirstMailboxAndNameSelectionRules() {
+    void addressHelpersRetainPluralSourceWithoutSelectingTheFirstMailbox() {
 		final String source = "Embedded <alice@example.org>, Bob <bob@example.org>";
 		final Recipient addressOnly = mail.recipientBuilder().withName("Chosen").withAddressOnlyFrom(source).build();
 		final Recipient defaultName = mail.recipientBuilder().withAddressAndNameOrDefault(source, "Default").build();
 		final Recipient fixedName = mail.recipientBuilder().withAddressAndFixedNameOrProvided(source, "Fixed").build();
 		final Recipient noFixedName = mail.recipientBuilder().withAddressAndFixedNameOrProvided(source, null).build();
 
-		assertThat(addressOnly.getAddress()).isEqualTo("alice@example.org");
+		assertThat(addressOnly.getAddress()).isEqualTo(source);
 		assertThat(addressOnly.getName()).isEqualTo("Chosen");
-		assertThat(defaultName.getAddress()).isEqualTo("alice@example.org");
-		assertThat(defaultName.getName()).isEqualTo("Embedded");
-		assertThat(fixedName.getAddress()).isEqualTo("alice@example.org");
+		assertThat(defaultName.getAddress()).isEqualTo(source);
+		assertThat(defaultName.getName()).isEqualTo("Default");
+		assertThat(fixedName.getAddress()).isEqualTo(source);
 		assertThat(fixedName.getName()).isEqualTo("Fixed");
-		assertThat(noFixedName.getAddress()).isEqualTo("alice@example.org");
-		assertThat(noFixedName.getName()).isEqualTo("Embedded");
+		assertThat(noFixedName.getAddress()).isEqualTo(source);
+		assertThat(noFixedName.getName()).isNull();
 	}
 
 	@ParameterizedTest

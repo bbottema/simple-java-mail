@@ -2,7 +2,6 @@ package org.simplejavamail.recipient.internal;
 
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.Message;
-import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -138,15 +137,10 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     public IRecipientBuilder withAddress(@NotNull String address) {
         this.address = checkNonEmptyArgument(address, "address");
         this.addressName = null;
-        try {
-            final InternetAddress[] addresses = InternetAddress.parse(address, false);
-            // This setter represents one recipient. Keep plural/group sources intact for normal send-time validation.
-            if (addresses.length == 1 && !addresses[0].isGroup()) {
-                this.address = addresses[0].getAddress();
-                this.addressName = addresses[0].getPersonal();
-            }
-        } catch (final AddressException invalidAddress) {
-            // Lenient construction retains the original input for the configured validator.
+        final InternetAddress mailbox = MailboxInterpretation.singleMailbox(address);
+        if (mailbox != null) {
+            this.address = mailbox.getAddress();
+            this.addressName = mailbox.getPersonal();
         }
         return this;
     }
@@ -166,7 +160,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     public IRecipientBuilder withAddressOnlyFrom(@NotNull String address) {
         checkNonEmptyArgument(address, "address");
-        final InternetAddress parsedAddress = parseFirstMailbox(address);
+        final InternetAddress parsedAddress = MailboxInterpretation.singleMailbox(address);
         this.address = checkNonEmptyArgument(parsedAddress == null ? address : parsedAddress.getAddress(), "address");
         return this;
     }
@@ -224,7 +218,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @NotNull
     private IRecipientBuilder interpretAddressData(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress) {
-        final InternetAddress parsedAddress = parseFirstMailbox(emailAddress);
+        final InternetAddress parsedAddress = MailboxInterpretation.singleMailbox(emailAddress);
         if (parsedAddress == null) {
             return withName(name)
                     .withAddress(emailAddress);
@@ -233,17 +227,6 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
                 ? defaultTo(name, parsedAddress.getPersonal())
                 : defaultTo(parsedAddress.getPersonal(), name))
                 .withAddress(parsedAddress.getAddress());
-    }
-
-    @Nullable
-    private static InternetAddress parseFirstMailbox(@NotNull final String source) {
-        try {
-            final InternetAddress[] addresses = InternetAddress.parse(source, false);
-            // Comments and whitespace can parse successfully without a mailbox. Retain their source for send-time validation too.
-            return addresses.length == 0 ? null : addresses[0];
-        } catch (final AddressException invalidAddress) {
-            return null;
-        }
     }
 
     /**

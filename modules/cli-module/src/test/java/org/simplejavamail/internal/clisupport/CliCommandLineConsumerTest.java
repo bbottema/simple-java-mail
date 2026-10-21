@@ -8,6 +8,13 @@ import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.config.ConfigLoader;
 import picocli.CommandLine;
 
 import java.lang.reflect.Method;
@@ -20,6 +27,62 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType.EMAIL;
 
 public class CliCommandLineConsumerTest {
+	@Test
+	public void composedRecipientArrayArgumentsReachTheSharedListParserWithoutPreSplitting() throws Exception {
+		final String source = "\"Support @ Acme, Europe\" <support@example.org>;Team: audit@example.org,backup@example.org;";
+		final Method method = CliEmailRecipientBuilder.class.getMethod("withRecipients", String.class, boolean.class,
+				jakarta.mail.Message.RecipientType.class, String[].class);
+		final java.util.List<Object> arguments = CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("false", source)), method);
+		assertThat((String[]) arguments.get(3)).containsExactly(source);
+		final EmailPopulatingBuilder builder = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank();
+		method.invoke(builder, arguments.toArray());
+		assertThat(builder.buildEmail().getRecipients()).extracting(Recipient::getAddress)
+				.containsExactly("support@example.org", "audit@example.org", "backup@example.org");
+		assertThat(builder.buildEmail().getRecipients()).extracting(Recipient::getName)
+				.containsExactly("Support @ Acme, Europe", null, null);
+	}
+
+	@Test
+	public void unrelatedStringArrayOptionsKeepTheirExistingDelimiterConversion() throws Exception {
+		final Method method = TestClass.class.getMethod("arrayValues", String[].class);
+		assertThat((String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("first@example.org;second@example.org,third@example.org")), method).get(0))
+				.containsExactly("first@example.org", "second@example.org", "third@example.org");
+		assertThat((String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("first;second,third")), method).get(0)).containsExactly("first;second,third");
+	}
+
+	@Test
+	public void exactEnvelopeSplittingPreservesQuotedNamesGroupsAndUnsafeSourceForStrictValidation() throws Exception {
+		final Method method = ExactEmailBuilder.class.getMethod("withEnvelopeRecipients", String[].class);
+		final String quoted = "\"Support @ Acme, Europe\" <support@example.org>";
+		final String group = "Team: audit@example.org,backup@example.org;";
+		final String unsafe = "evil@example.org\r\nBcc: victim@example.org";
+		assertThat((String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList(quoted + ";" + group + "," + unsafe)), method).get(0))
+				.containsExactly(quoted, group, unsafe);
+		assertThat((String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("one@example.org,,two@example.org")), method).get(0))
+				.containsExactly("one@example.org", "", "two@example.org");
+		assertThat((String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList(quoted + ";audit@example.org;   ")), method).get(0))
+				.containsExactly(quoted, "audit@example.org");
+		final byte[] eml = "From: visible@example.org\r\nTo: visible-recipient@example.org\r\nSubject: Exact\r\n\r\nbody\r\n"
+				.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
+		final String[] recipients = (String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList(quoted + ";audit@example.org")), method).get(0);
+		final Email exact = mail.emailBuilder().startingFromExactEml(eml).withEnvelopeRecipients(recipients).buildEmail();
+		assertThat(exact.getOverrideReceivers()).extracting(Recipient::getAddress).containsExactly("support@example.org", "audit@example.org");
+		assertThat(mail.converter().fromEmail(exact).toEmlBytes()).containsExactly(eml);
+		for (String rejected : new String[]{group, unsafe}) {
+			final String[] entries = (String[]) CliCommandLineConsumer.convertProvidedOptionValues(
+					new ArrayList<>(asList(rejected)), method).get(0);
+			assertThatThrownBy(() -> mail.emailBuilder().startingFromExactEml(eml).withEnvelopeRecipients(entries))
+					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
 	@Test
 	public void numericArgumentsKeepTheirDeclaredWidthAndFraction() throws NoSuchMethodException {
 		final Method method = TestClass.class.getMethod("numericValues", long.class, Long.class, double.class, Double.class);
@@ -85,6 +148,8 @@ public class CliCommandLineConsumerTest {
 	
 	@SuppressWarnings("unused")
 	public static class TestClass {
+		public void arrayValues(final String[] values) {
+		}
 		public void numericValues(final long primitiveLong, final Long boxedLong, final double primitiveDouble, final Double boxedDouble) {
 		}
 

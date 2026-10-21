@@ -93,7 +93,7 @@ class EmailAddressConvenienceTest {
     @ParameterizedTest
     @EnumSource(value = Field.class, names = {"FROM", "BOUNCE"})
     void rejectsParsedListsAndGroupsBeforeMutatingTheBuilder(final Field field) {
-        for (String source : new String[]{"alice@example.org, bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
+        for (String source : new String[]{"alice@example.org, bob@example.org", "alice@example.org;bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
             final EmailPopulatingBuilder builder = blank();
             final Email before = builder.buildEmail();
             assertThatThrownBy(() -> field.string(builder, "Accounts", source, true))
@@ -106,7 +106,7 @@ class EmailAddressConvenienceTest {
     @ParameterizedTest
     @EnumSource(value = Field.class, names = {"FROM", "BOUNCE"})
     void typedInputsCannotBypassSingleMailboxChecks(final Field field) {
-        for (String source : new String[]{"alice@example.org, bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
+        for (String source : new String[]{"alice@example.org, bob@example.org", "alice@example.org;bob@example.org", "Team:alice@example.org;", "Undisclosed:;"}) {
             final InternetAddress mailbox = new InternetAddress();
             mailbox.setAddress(source);
             assertThatThrownBy(() -> field.typed(blank(), null, mailbox, false))
@@ -122,10 +122,7 @@ class EmailAddressConvenienceTest {
                 .withCustomMailer(transport)
                 .withValidationConfig(ValidationConfig.builder().withEmailValidator(JMail.strictValidator()).build())
                 .buildMailer()) {
-            for (String source : new String[]{"broken <address", "(comment only)", "   ", " \t ", "one@example.org;two@example.org"}) {
-                if (source.equals("one@example.org;two@example.org") && field != Field.FROM && field != Field.BOUNCE) {
-                    continue; // A semicolon list is now valid on the collection-valued conveniences.
-                }
+            for (String source : new String[]{"broken <address", "(comment only)", "   ", " \t "}) {
                 final Email email = field.string(blank(), "Chosen", source, true).buildEmail();
                 assertMailbox(email, field, "Chosen", source);
                 assertThatThrownBy(() -> mailer.sync().sendMail(email)).isInstanceOf(MailInvalidAddressException.class);

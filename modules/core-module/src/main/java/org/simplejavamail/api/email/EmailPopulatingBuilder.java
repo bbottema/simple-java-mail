@@ -622,7 +622,8 @@ public interface EmailPopulatingBuilder {
 	 * including on a copied Email.
 	 * Parses every mailbox from a comma- or semicolon-delimited list and flattens address groups.
 	 * A nonblank explicit name overrides every embedded name; null/blank retains each embedded name. Quoted punctuation,
-	 * input order and duplicate occurrences are retained. Unparseable nonempty input remains for the configured send-time validator.
+	 * comments, escapes, input order and duplicate occurrences are retained. Unparseable nonempty input remains for the configured send-time validator.
+	 * Parsing follows the same mailbox-list rules as {@link IRecipientsBuilder}; this two-String form always means name plus complete address list.
 	 * Use the factory's plural {@code recipientsBuilder()} for collection input, default-name policies or recipient-specific metadata,
 	 * then {@link #withRecipients(Collection)} for its prepared values. Clear the local recipient collection before adding replacements.
 	 * @param name Explicit name; null or blank uses the embedded mailbox name, if any.

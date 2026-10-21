@@ -8,6 +8,9 @@ import org.simplejavamail.api.internal.clisupport.model.CliCommandType;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
+import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.recipient.internal.MailboxInterpretation;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import picocli.CommandLine.Model.OptionSpec;
@@ -86,7 +89,16 @@ class CliCommandLineConsumer {
 			final boolean required = !containsAnnotation(asList(annotations[i]), Cli.Optional.class);
 			Object providedValueConverted = null;
 			if (required || providedStringValues.size() > mandatoryParameters) {
-				providedValueConverted = parseStringInput(providedStringValues.remove(0), declaredParameters[i]);
+				final String source = providedStringValues.remove(0);
+				// Composed recipients already interpret complete lists. Pre-splitting here corrupts quoted names and groups.
+				if (declaredParameters[i] == String[].class && CliEmailRecipientBuilder.class.isAssignableFrom(m.getDeclaringClass())) {
+					providedValueConverted = new String[]{source};
+				} else if (declaredParameters[i] == String[].class && ExactEmailBuilder.class.isAssignableFrom(m.getDeclaringClass())
+						&& m.getName().equals("withEnvelopeRecipients")) {
+					providedValueConverted = MailboxInterpretation.splitEnvelopeEntries(source);
+				} else {
+					providedValueConverted = parseStringInput(source, declaredParameters[i]);
+				}
 			}
 			providedValuesConverted.add(providedValueConverted);
 			mandatoryParameters = required ? mandatoryParameters - 1 : mandatoryParameters;

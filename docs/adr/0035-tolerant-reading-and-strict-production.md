@@ -38,10 +38,18 @@ Recipient interpretation must also handle a successful parser call that produces
 nonempty source under the existing lenient builder contract, just as for a parsing exception, without inventing an address or changing its chosen
 name. Missing-input checks still apply, and ordinary outgoing validation rejects an unusable retained address before submission.
 
-Email builder address conveniences apply this leniency within a single-mailbox contract. A successfully parsed list or RFC address group is an
-argument error directing the caller to `recipientsBuilder()`, even when the group has one member or is empty. Quoted punctuation in a display
-name is not a delimiter. Parsing separates name/address without performing deliverability or DNS checks; malformed nonempty text retains its
-original spelling for configured outgoing validation. The independent Recipient builders and inbound parsers keep their existing contracts.
+Clarification accepted 2026-10-21: list-capable Email conveniences and plural recipient inputs accept complete mailbox lists and expand RFC
+group members under [ADR 0001](0001-email-configuration-scopes-and-inheritance.md#accepted-address-list-follow-up-20-october-2026).
+Use the existing Jakarta Mail grammar with narrow legacy-delimiter compatibility, then apply name and recipient-group policies. Quoted
+punctuation, comments and escapes are not separators; retain order, duplicate occurrences and unparseable nonempty source without guessing,
+discarding entries or checking deliverability/DNS during interpretation. JMail remains the configured outgoing address validator.
+
+The single-mailbox argument guard belongs to From/bounce conveniences: a successfully parsed list or RFC group directs callers to a plural API,
+even when a group has one member or is empty. Individual Recipient builders keep their tolerant single-value contract, including retained
+malformed/plural/group source where documented; specialized extraction must not silently discard all but the first mailbox. Keep address-only
+name preservation and explicit/inferred-name precedence. Prepared Recipient values and authoritative inbound MIME/Outlook interpretation retain
+their separate contracts; do not apply the outgoing guard to imported parsed facts. This clarification is implemented under
+[#824](https://github.com/bbottema/simple-java-mail/issues/824) for unreleased 10.0.0.
 
 ## Failure and security boundaries
 

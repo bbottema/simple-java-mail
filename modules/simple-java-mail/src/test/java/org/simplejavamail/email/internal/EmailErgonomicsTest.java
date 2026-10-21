@@ -87,11 +87,11 @@ class EmailErgonomicsTest {
     }
 
     @Test
-    void emailRecipientShortcutsParseOneMailboxAndPreserveOccurrences() {
+    void emailRecipientShortcutsParseCompleteListsAndPreserveOccurrences() {
         final String rawAddress = "Alice <alice@example.org>";
-        final String unsplit = "one@example.org;two@example.org";
+        final String addresses = "one@example.org;two@example.org";
         final Email email = blank().to(rawAddress).cc("Audit", "audit@example.org")
-                .bcc("archive@example.org").to(rawAddress).to("Team", unsplit)
+                .bcc("archive@example.org").to(rawAddress).to("Team", addresses)
                 .cc("cc@example.org").bcc("Archive", "archive@example.org").buildEmail();
 
         assertThat(email.getRecipients()).containsExactly(
@@ -99,7 +99,8 @@ class EmailErgonomicsTest {
                 new Recipient("Audit", "audit@example.org", CC, null),
                 new Recipient(null, "archive@example.org", BCC, null),
                 new Recipient("Alice", "alice@example.org", TO, null),
-                new Recipient("Team", unsplit, TO, null),
+                new Recipient("Team", "one@example.org", TO, null),
+                new Recipient("Team", "two@example.org", TO, null),
                 new Recipient(null, "cc@example.org", CC, null),
                 new Recipient("Archive", "archive@example.org", BCC, null));
     }

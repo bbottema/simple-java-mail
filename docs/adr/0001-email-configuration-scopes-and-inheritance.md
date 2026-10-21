@@ -182,4 +182,14 @@ This record authorizes the architectural direction, not automatic execution of e
 
 Email To/Cc/Bcc, Reply-To and notification destinations accept complete mailbox lists, including group members. An explicit nonblank name overrides every parsed name; default-name policies remain on the plural recipient builder. Malformed nonempty input remains available to configured send-time validation. From and bounce remain singular. Individual Recipient builders and prepared Recipient values retain their existing contracts.
 
+Clarification accepted 2026-10-21: existing list-capable String entry points share lenient mailbox interpretation, including plural recipient
+builder collection/varargs entries and InternetAddress group inputs. Parse complete lists before applying per-call default/fixed names or group
+metadata policies. Preserve source order and duplicate occurrences; two-string Email conveniences mean name plus address list, and a default name
+fills only missing names while a fixed name replaces parsed names. Prepared Recipient values retain their metadata without reparsing.
+
+Quoted punctuation, comments and escapes are content, not separators. Retain the established semicolon convenience through narrow compatibility
+handling that distinguishes RFC group terminators. A parse failure retains nonempty source for configured send-time validation without dropping
+entries or inventing repaired addresses. Singular routes retain their documented single-value behavior and never silently pick only the first
+mailbox. This repairs established list support; it does not add an RFC-group-preservation model or new public parser/setup API. This clarification is implemented for unreleased 10.0.0 under [#824](https://github.com/bbottema/simple-java-mail/issues/824).
+
 Notification destinations are immutable lists exposed through plural getters. Each supplied list replaces the local choice and resolves as a whole under override, submitted, then default precedence. An enabled request without explicit destinations resolves to all Reply-To mailboxes, then the single From mailbox. Request flags, clearing and suppression keep their established meanings. Multiple From authors and a Sender API are outside this decision.

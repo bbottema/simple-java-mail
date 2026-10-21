@@ -142,6 +142,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#823](https://github.com/bbottema/simple-java-mail/issues/823): reject recipient-certificate S/MIME encryption combined with OpenPGP signing or
   encryption during composed build and effective completion, before MIME protection. Errors identify the conflicting requests and explain explicit
   clearing without changing source recipients. See the [protection guidance](https://www.simplejavamail.org/security.html#section-sending-openpgp).
+- [#824](https://github.com/bbottema/simple-java-mail/issues/824): share lenient mailbox-list interpretation across Email conveniences, plural
+  recipient builders and composed CLI recipient input. Quoted names, legacy separators and RFC group members preserve their intended mailboxes,
+  order and local duplicate occurrences. Singular extraction retains plural/group source for configured validation instead of selecting its first
+  mailbox, while exact-envelope input keeps its separate strict contract.
 - Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
 
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.
