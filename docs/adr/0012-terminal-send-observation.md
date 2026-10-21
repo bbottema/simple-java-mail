@@ -81,6 +81,15 @@ The observer registration is Java behavior attached directly to the builder and 
 
 ### Handler lifetime and application correlation (accepted 19 October 2026)
 
+Do not add optional handler, context or configuration parameters to transport-activating methods to accommodate cross-cutting features.
+Such parameters multiply overloads across synchronous, asynchronous, batch and retained-connection entry points, making each added feature
+expand the sending API. Keep configuration at its owning builder/factory boundary and preserve the existing operation signatures.
+
+Application business context belongs to the application. Capture it when the per-send factory creates handlers, then retain it in callback
+closures instead of reading a later callback thread's ambient context. This use case does not justify invocation-local handler overloads,
+another registration layer or a new send-request API. Consider richer factory input only when a concrete missing piece of library-owned
+information prevents the existing factory from serving the use case; application correlation alone is not such a gap.
+
 Group result/progress registrations and their optional executors in immutable core-owned `MailSendHandlers`. The Mailer builder accepts shared
 handlers with `withSendHandlers` and a `Function<UUID, MailSendHandlers>` with `withSendHandlersFactory`. A configurable `Supplier<UUID>`
 defaults to `UUID::randomUUID`. Generate once and create handlers once for every logical send, before individual-send admission/preparation.
