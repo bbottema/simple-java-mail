@@ -54,6 +54,29 @@ can be absent when the Session's connect/read/write values differ or are unspeci
 
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
+### Fail-fast validation and passive inspection
+
+Clarified 21 October 2026: inherited rules must be coherent at their declared validation boundary. Builder precedence allows customization
+of valid inherited configuration; it is not a mechanism for repairing an invalid inherited rule. Reject that rule when its owning feature
+consumes it, rather than assuming a later Java setter or clear will make it usable. This gives configuration failures an early, predictable
+location instead of making their visibility depend on the caller's subsequent customization path.
+
+Apply ordered source resolution first. Individual files, environment variables and other source layers may contribute different parts of
+a rule; they need not each contain a complete configuration. Keep the existing rule that only winning scalar values are parsed. Completeness
+and cross-field coherence follow the feature's declared value boundary. For example, an inherited sending-limit count and period form one
+rule: [ADR 0027](0027-factory-scoped-sending-limits.md#inherited-rate-rules-fail-fast) requires that pair to be coherent when creating the Mailer
+builder, before Java customization. A property-backed count without its period is rejected there even if a later call would replace the pair.
+
+Distinguish this baseline from unfinished Java choices. Builders may collect partial choices where their contract permits it; validation
+belongs at the relevant configuration or construction boundary. Inspecting an already-created builder returns stored choices, including
+absence, without resolving or validating them. [ADR 0031](0031-public-api-and-internal-construction.md#inspect-incomplete-configuration-without-building-it)
+owns that inspection rule. Fail-fast validation does not justify throwing from a getter.
+
+Validation remains with the feature owner and its established activation boundary. This clarification does not load optional modules merely
+to inspect configuration, reject unused pool overrides, or move optional-feature semantics into core. The effective-feature validation rules
+in [ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation) remain applicable; partial supplied configuration
+values do not become complete inherited rules merely because they share a configuration snapshot.
+
 ### Explicit inheritance and cohesive settings (accepted 19 October 2026)
 
 Use `useConfigured...` to restore a captured property choice, `reset...` to select the published library fallback, and `clear...` to remove a

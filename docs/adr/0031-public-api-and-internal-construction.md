@@ -245,6 +245,16 @@ For example, a retry attempt count can be inspected before its delay is supplied
 resolves its relationship with the initial interval. Mutable inspection results are defensive copies. Optional provider-resolved choices use
 named clears that restore absence, rather than resets that introduce a new provider default.
 
+Clarification accepted 21 October 2026: this also applies to the Mailer builder's grouped retry-policy getter. It returns the supplied
+`MailSendRetryPolicy` choices, including omissions and explicit clears, without resolving or validating the effective policy. Inspecting
+an already-created builder must not fail because its choices are incomplete. Effective retry settings belong on `OperationalConfig` after
+Mailer construction; configuration validation remains a separate construction responsibility. This aligns the retry group with the existing
+inspection rule rather than introducing an exception to it.
+
+[ADR 0003's fail-fast validation principle](0003-immutable-configuration-snapshots.md#fail-fast-validation-and-passive-inspection)
+governs incoherent inherited rules at their declared construction boundary. A constructor rejecting invalid inherited configuration is
+different from a getter inspecting an unfinished Java builder; inspection must not trigger or repeat that validation.
+
 Custom SSL-factory class and instance choices follow this same inspection convention. Expose the stored instance and named clears for both
 choices; retain the established rule that a supplied instance takes precedence over a class name. Clearing one choice leaves the other available.
 

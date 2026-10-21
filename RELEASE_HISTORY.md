@@ -105,6 +105,13 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#783](https://github.com/bbottema/simple-java-mail/issues/783): inspecting a Mailer builder's retry policy now returns supplied choices,
+  including omissions and explicit clears, without resolving or validating the effective policy. Built `OperationalConfig` retains resolved settings.
+- [#821](https://github.com/bbottema/simple-java-mail/issues/821): attachment convenience reads consistently report opening, reading and closing
+  I/O failures as `MailException` with kind `PREPARATION`, preserving the original cause and suppressed close failures. Replace
+  `getDataSourceInputStream()` with `openStream() throws IOException` for caller-owned streaming. Convenience readers no longer declare checked
+  `IOException`; update affected catches and raw-stream calls using the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#attachment-reader-ownership).
+
 - [#819](https://github.com/bbottema/simple-java-mail/issues/819): stopped carrying received delivery-status reports through defaults/overrides completion.
   Completion resolves outgoing protection and notification settings; historical inspection results stay with the source Email. Ordinary copying and serialization retain their existing data.
 

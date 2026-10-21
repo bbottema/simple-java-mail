@@ -3,6 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-10-18
 - Target: 10.0.0
+- Attachment access revision: Accepted 21 October 2026; implemented and reviewed for unreleased 10.0.0 under [#821](https://github.com/bbottema/simple-java-mail/issues/821).
 
 ## Context and decision drivers
 
@@ -77,6 +78,26 @@ content of that retry-enabled operation. Metadata copying does not silently perf
 A convenience reader owns the streams it opens, even when reading from an application-supplied DataSource. It closes each stream,
 including on failure. Direct stream-access methods instead return a caller-owned stream. Neither contract closes the DataSource itself
 or eagerly consumes its content during message construction.
+
+### Attachment access and stream ownership
+
+Accepted 21 October 2026: make the exception contract follow the stream-ownership boundary, applying
+[ADR 0011's exception idiom](0011-transport-neutral-submission-outcomes.md#exception-idiom-for-owned-operations-and-raw-resources).
+The existing mixed behavior exposes unchecked opening failures but checked reading and closing failures from the same convenience call.
+Callers should be able to handle the complete operation through one failure contract.
+
+| Public operation | Failure contract | Stream ownership |
+| --- | --- | --- |
+| `readAllBytes()`, `readAllData()` and `readAllData(Charset)` | Known opening, reading and closing I/O failures use `MailException` with kind `PREPARATION`; these methods declare no checked `IOException`. | SJM opens and closes the stream for the complete read. |
+| `openStream() throws IOException` | Opening uses checked `IOException`, and the returned ordinary `InputStream` retains its checked reading/closing contract. | The caller consumes and closes the returned stream. |
+
+Replace `getDataSourceInputStream()` with `openStream()` without a compatibility alias in 10.0.0. The verb communicates acquisition and
+potential I/O, while `getDataSource()` remains the borrowed DataSource accessor. Keep the original I/O cause and suppression chain when
+normalizing a convenience-read failure; do not turn an arbitrary application runtime exception into an I/O failure.
+
+Construction, metadata inspection and copying remain lazy. Neither read API closes the DataSource itself, and stronger serialization,
+exact-message and retry snapshots retain their existing boundaries. The consistent ownership and failure model is preferred over retaining
+the previous signatures. Implementation follows this accepted decision on the development branch; 10.0.0 remains unreleased.
 
 ## Alternatives considered
 

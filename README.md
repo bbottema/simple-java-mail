@@ -87,6 +87,10 @@ Email email = mail.emailBuilder().startingBlank()
 String recipient conveniences parse every mailbox. A supplied name, such as `.to("Accounts", addresses)`, overrides every embedded name.
 Use `recipientsBuilder()` when you need default-name policies or recipient-specific metadata. Keep attachment files available until sending finishes.
 
+Read attachment content with `resource.readAllBytes()` or `resource.readAllData(charset)`. These convenience methods close their own streams
+and report I/O failures through `MailException`. For caller-managed streaming, use `resource.openStream()` in try-with-resources and handle
+ordinary `IOException`. See [reading attachments](https://www.simplejavamail.org/features.html#section-reading-attachments).
+
 ## Send in the background
 
 ```java
@@ -347,7 +351,10 @@ DNS, TCP, proxy and implicit-TLS work remain under acquisition where separate bo
 
 ## Safely retry a temporary SMTP refusal
 
-To retain configured waiting and replay budgets, edit `mailerBuilder.getMailSendRetryPolicy().toBuilder()` before supplying the policy. A fresh policy replaces all its settings; see the [preserving-edit example](https://www.simplejavamail.org/mail-send-retries.html).
+To retain existing Java choices while editing, use `mailerBuilder.getMailSendRetryPolicy().toBuilder()`. The builder getter returns supplied
+choices, including omissions and explicit clears, without resolving or validating an unfinished policy. Omitted fields inherit the factory's
+captured properties when the Mailer is built. Read resolved settings from `mailer.getOperationalConfig().getMailSendRetryPolicy()`;
+see the [preserving-edit example](https://www.simplejavamail.org/mail-send-retries.html).
 
 ```java
 MailSendRetryPolicy retry = MailSendRetryPolicy.builder()
