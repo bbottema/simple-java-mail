@@ -3,7 +3,7 @@
 - Status: Accepted (retrospective record of implemented design)
 - Decision recorded: 2026-09-16; this is not the original decision date
 - Applies to: Composed messages and inbound conversion, including unreleased 10.0.0 protection processing
-- Implementation status: Implemented; S/MIME and OpenPGP are alternative outbound protection families
+- Implementation status: Existing MIME/protection pipeline implemented; S/MIME and OpenPGP are alternative outbound protection families. Unavailable S/MIME inspection is implemented and reviewed locally for unreleased 10.0.0 under [#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending.
 
 ## Context
 
@@ -23,6 +23,27 @@ Ordinary copying and supported serialization preserve them; completion resolves 
 results into its composed output. Outgoing protection configurations are selected normally, and cryptography runs during MIME preparation.
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
+
+## Unavailable S/MIME inspection (accepted 2026-10-21)
+
+Ordinary inbound conversion remains tolerant when the optional S/MIME module is absent. Expose an honest indicator of unavailable
+inspection, and keep the returned protection facts consistent with it: uninspected content must not be represented as confirmed plain,
+unsigned or unencrypted content. Module absence is not evidence of failed signature verification or failed decryption. This extends the
+ordinary-inspection boundary retained by [#784](https://github.com/bbottema/simple-java-mail/issues/784); explicitly requested decryption
+still requires the module under [ADR 0006](0006-optional-modules.md).
+
+Preserve header-recognizable protected input through the existing original-source boundary without claiming that MIME header declarations
+establish cryptographic facts. Verification and decryption remain with the optional implementation. Original facts retain their existing
+copying, serialization and completion ownership; this decision does not turn unrelated protected attachments into the owning Email's facts.
+
+Use `UNKNOWN` in the existing S/MIME mode, verification and decryption result enums when the available inspection has not established the
+corresponding fact. A separately checked availability flag must not leave the existing getters making contradictory assertions. Recognizable
+headers may establish an outer encryption mode without establishing verification or decryption outcomes. The legacy signature-valid Boolean
+is absent for unknown inspection. Known failures remain distinguishable, and an unknown represented layer prevents an aggregate all-valid
+or all-decrypted claim. This clarification concerns S/MIME; equivalent OpenPGP changes require a separate scope decision.
+
+The maintainer accepted the behavior and authorized delegated implementation on 2026-10-21. Implementation is reviewed locally under
+[#822](https://github.com/bbottema/simple-java-mail/issues/822), with delivery pending; this acceptance does not claim a published release.
 
 ## MIME producer selection
 

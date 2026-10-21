@@ -457,6 +457,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
+		} else {
+			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromOutlook(outlookMessage));
 		}
 		return emailBuilder;
 	}
@@ -469,6 +471,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
+		} else {
+			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromMessage(mimeMessage));
 		}
 		return emailBuilder;
 	}

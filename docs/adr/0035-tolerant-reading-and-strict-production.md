@@ -52,6 +52,8 @@ meaningful Email, cancellation, missing required inputs and programming failures
 
 Leniency is not proof of authenticity or permission to retry. Continue verifying signatures over the original bytes, reporting inaccessible ciphertext
 honestly, and preserving exact/protected representations. Do not normalize signed bytes to manufacture a successful verification result.
+The unavailable S/MIME inspection clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#unavailable-smime-inspection-accepted-2026-10-21)
+keeps uninspected protection distinct from confirmed absence and from cryptographic failure while retaining tolerant ordinary import.
 
 EML-to-Email conversion retains the original protected bytes before a MIME representation can normalize tolerated formatting, including LF or
 mixed header line endings. The configured fluent route and static compatibility route have the same source-preservation obligation. A direct

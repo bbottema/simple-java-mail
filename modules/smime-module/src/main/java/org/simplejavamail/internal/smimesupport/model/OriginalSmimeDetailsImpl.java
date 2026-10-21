@@ -59,11 +59,17 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		input.defaultReadObject();
 		verificationStatus = mergeVerificationStatus(
 				statusFromLegacyBoolean(smimeSignatureValid),
-				verificationStatus != null ? verificationStatus : VerificationStatus.NOT_SIGNED);
+				verificationStatus != null ? verificationStatus : unrecordedVerificationStatus());
 		smimeSignatureValid = legacyBooleanFromStatus(verificationStatus);
 		if (decryptionStatus == null) {
-			decryptionStatus = DecryptionStatus.NOT_ENCRYPTED;
+			decryptionStatus = smimeMode == SmimeMode.ENCRYPTED || smimeMode == SmimeMode.SIGNED_ENCRYPTED || smimeMode == SmimeMode.UNKNOWN
+					? DecryptionStatus.UNKNOWN : DecryptionStatus.NOT_ENCRYPTED;
 		}
+	}
+
+	private VerificationStatus unrecordedVerificationStatus() {
+		return smimeSignatureValid == null && (smimeMode == SmimeMode.SIGNED || smimeMode == SmimeMode.SIGNED_ENCRYPTED || smimeMode == SmimeMode.UNKNOWN)
+				? VerificationStatus.UNKNOWN : VerificationStatus.NOT_SIGNED;
 	}
 
 	public static OriginalSmimeDetailsBuilder builder() {
@@ -94,7 +100,8 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 		if (originalProtectedMessage == null && additionalOriginal != null) {
 			this.originalProtectedMessage = additionalOriginal;
 		}
-		this.smimeMode = determineSmode(ofNullable(this.smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
+		this.smimeMode = this.smimeMode == SmimeMode.UNKNOWN || attachmentSmimeDetails.getSmimeMode() == SmimeMode.UNKNOWN
+				? SmimeMode.UNKNOWN : determineSmode(ofNullable(this.smimeMode).orElse(attachmentSmimeDetails.getSmimeMode()));
 	}
 
 	@Nullable
@@ -122,7 +129,7 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 
 	@Nullable
 	private static Boolean legacyBooleanFromStatus(@NotNull final VerificationStatus status) {
-		return status == VerificationStatus.NOT_SIGNED ? null : status == VerificationStatus.VALID;
+		return status == VerificationStatus.NOT_SIGNED || status == VerificationStatus.UNKNOWN ? null : status == VerificationStatus.VALID;
 	}
 
 	@NotNull
@@ -137,10 +144,12 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 				return 0;
 			case VALID:
 				return 1;
-			case INVALID:
+			case UNKNOWN:
 				return 2;
-			case ERROR:
+			case INVALID:
 				return 3;
+			case ERROR:
+				return 4;
 			default:
 				throw new AssertionError("Unsupported verification status: " + status);
 		}
@@ -158,10 +167,12 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 				return 0;
 			case DECRYPTED:
 				return 1;
-			case KEY_MISSING:
+			case UNKNOWN:
 				return 2;
-			case FAILED:
+			case KEY_MISSING:
 				return 3;
+			case FAILED:
+				return 4;
 			default:
 				throw new AssertionError("Unsupported decryption status: " + status);
 		}
