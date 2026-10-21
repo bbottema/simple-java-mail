@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.7</version>
+    <version>9.3.8</version>
 </dependency>
 
-v9.3.0 - v9.3.7
+v9.3.0 - v9.3.8
 
+- **v9.3.8:** #820: restored persisted CLI Javadoc-cache reuse by correctly serializing Therapi's unmodifiable collections. CLI help now reuses the packaged documentation cache; old or damaged caches still fall back to embedded Javadocs, and CLI options are unchanged.
 - **v9.3.7:** #769: updated smtp-connection-pool to 4.4.0, clustered-object-pool to 4.3.0, and generic-object-pool to 2.6.0. The upstream pool adds destination-selection and connection-observation APIs; Simple Java Mail's existing pooling configuration is unchanged.
 - **v9.3.7:** Updated SLF4J API to 2.0.20 (#771), Kryo to 5.7.1 (#772), SpotBugs annotations to 4.10.5 (#773), and Central Publishing Maven Plugin to 0.12.0 (#770), retaining Java 8 compatibility.
 - **v9.3.6:** #765: updated utils-mail-dkim to 3.3.1, correcting Unicode MIME body hashing and byte counts, header canonicalization, Ed25519 signatures and DNS keys, concurrent signing, and DNS cache handling through the existing API.
