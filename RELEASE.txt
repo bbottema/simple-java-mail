@@ -3,11 +3,13 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.6</version>
+    <version>9.3.7</version>
 </dependency>
 
-v9.3.0 - v9.3.6
+v9.3.0 - v9.3.7
 
+- **v9.3.7:** #769: updated smtp-connection-pool to 4.4.0, clustered-object-pool to 4.3.0, and generic-object-pool to 2.6.0. The upstream pool adds destination-selection and connection-observation APIs; Simple Java Mail's existing pooling configuration is unchanged.
+- **v9.3.7:** Updated SLF4J API to 2.0.20 (#771), Kryo to 5.7.1 (#772), SpotBugs annotations to 4.10.5 (#773), and Central Publishing Maven Plugin to 0.12.0 (#770), retaining Java 8 compatibility.
 - **v9.3.6:** #765: updated utils-mail-dkim to 3.3.1, correcting Unicode MIME body hashing and byte counts, header canonicalization, Ed25519 signatures and DNS keys, concurrent signing, and DNS cache handling through the existing API.
 - **v9.3.6:** #765: updated utils-mail-smime to 2.3.13, preserving MIME content and SMTP options, rejecting signatures with no signers or invalid signers, repairing RSA-OAEP SHA-224 and key initialization, and correcting its automatic module name to org.simplejavamail.utils.mail.smime.
 - **v9.3.6:** Updated Maven Compiler Plugin to 3.16.0 (#728), Maven Surefire Plugin to 3.6.0 (#731), Exec Maven Plugin to 3.6.4 (#744), and Maven Install/Deploy Plugins to 3.2.0 (#745, #746), retaining Java 8 compatibility; adapted Java 9+ module compilation to the compiler's automatic module patching.
