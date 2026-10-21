@@ -205,8 +205,8 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerUsername(@Nullable final String username) {
-		this.username = username;
-		customizedSessionSetting(SMTP_USERNAME, username);
+		this.username = emptyAsNull(username);
+		customizedSessionSetting(SMTP_USERNAME, this.username);
 		return this;
 	}
 
@@ -221,7 +221,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerPassword(@Nullable final String password) {
-		this.password = password;
+		this.password = emptyAsNull(password);
 		return this;
 	}
 

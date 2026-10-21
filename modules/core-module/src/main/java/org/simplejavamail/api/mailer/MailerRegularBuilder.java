@@ -58,7 +58,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	/**
 	 * Replaces the host, port and username, leaving the existing password unchanged.
 	 * Null arguments clear the corresponding fields rather than restoring captured properties; a null port selects the transport strategy's default.
-	 * Unlike the four-argument overload, this overload passes an empty username through unchanged. To change or remove credentials together,
+	 * An empty username clears that field, consistently with the four-argument overload. To change or remove credentials together,
 	 * use {@link #withSMTPServer(String, Integer, String, String)}.
 	 *
 	 * @param host SMTP host to use, or null to remove it.
@@ -113,7 +113,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	/**
 	 * Changes only the SMTP username, leaving the password unchanged. Passing null or calling {@link #clearSMTPServerUsername()} removes the username,
 	 * not its password or runtime token provider. Remove both stored credentials when neither should be used; a password without a username is invalid.
-	 * This does not restore a captured property or normalize an empty string. Configuration locks still apply.
+	 * An empty string clears the field. This does not restore a captured property. Configuration locks still apply.
 	 *
 	 * @param username SMTP username to use, or null to remove it.
 	 */
@@ -128,7 +128,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 
 	/**
 	 * Changes only the SMTP password or fixed OAuth2 token. Passing null or calling {@link #clearSMTPServerPassword()} removes that stored value,
-	 * leaving the username and any runtime token provider unchanged. This does not restore a captured property or normalize an empty string.
+	 * leaving the username and any runtime token provider unchanged. An empty string clears the field. This does not restore a captured property.
 	 * Use {@link #clearOAuth2AccessTokenProvider()} separately if a runtime token provider should also be removed. Configuration locks still apply.
 	 *
 	 * @param password SMTP password or fixed OAuth2 token to use, or null to remove it.
