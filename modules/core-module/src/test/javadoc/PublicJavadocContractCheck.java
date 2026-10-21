@@ -99,7 +99,13 @@ public final class PublicJavadocContractCheck {
         requireLinkedCompanions("email/config/ImageResolutionConfig.Builder", "getEmbeddedImageBaseDir", "clearEmbeddedImageBaseDir");
         requireLinkedCompanions("email/config/ContentEncodingConfig.Builder", "getContentTransferEncoding");
         requireLinkedCompanions("email/config/EmailTemplateOptions.Builder", "getPropertiesNotToApplyDefaultValueFor");
-        requireLinkedCompanions("email/config/SmtpDeliveryOptions.Builder", "getDeliveryStatusNotification", "clearEnvelopeId");
+        requireGetters("email/config/SmtpDeliveryOptions", "getDeliveryStatusNotification");
+        requireText("email/config/SmtpDeliveryOptions", "SmtpDeliveryOptions.Builder.html#withDeliveryStatusNotification");
+        requireLinkedCompanions("email/config/SmtpDeliveryOptions.Builder", "getDeliveryStatusNotificationNotifyOptions",
+                "getDeliveryStatusNotificationReturnOption", "getEnvelopeId", "clearEnvelopeId");
+        if (read("email/config/SmtpDeliveryOptions.Builder").contains("id=\"getDeliveryStatusNotification()\"")) {
+            throw new IllegalStateException("Unfinished SMTP choices must expose passive DSN components, not a validating aggregate getter (ADR 0031)");
+        }
         requireLinkedCompanions("mailer/config/MailSendTelemetryConfig.Builder", "getEnabled", "resetEnabled", "useConfiguredEnabled",
                 "getIntegration", "clearIntegration", "getSmtpEndpointAttributes", "resetSmtpEndpointAttributes", "useConfiguredSmtpEndpointAttributes");
         requireLinkedCompanions("mailer/MailSendHandlers.Builder", "getResultObserver", "getResultObserverExecutor", "clearResultObserver",

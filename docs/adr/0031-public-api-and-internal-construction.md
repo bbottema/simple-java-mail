@@ -245,6 +245,23 @@ For example, a retry attempt count can be inspected before its delay is supplied
 resolves its relationship with the initial interval. Mutable inspection results are defensive copies. Optional provider-resolved choices use
 named clears that restore absence, rather than resets that introduce a new provider default.
 
+Validation-boundary clarification accepted 2026-10-21: setters collect supplied choices, passive getters inspect them, and the declared
+construction boundary validates the complete value. Required-argument checks and documented external-representation parsing remain at their
+input boundaries. Cross-field and semantic validation must not happen accidentally because a convenience setter or getter constructs a
+nested completed value. Inspection of incomplete choices returns detached stored state; it does not resolve defaults, consume borrowed
+resources or require temporarily inconsistent choices to form a valid immutable object. A completed value's getters read its validated state.
+
+An explicitly invoked standalone value factory or builder is its own construction boundary and retains its invariants. Effective rules that
+depend on inherited configuration are still checked at the owning feature's declared boundary under ADR 0003; passive inspection is not a
+way to postpone an already-required configuration failure or weaken production validation.
+
+For grouped SMTP choices, remove the aggregate DSN getter from `SmtpDeliveryOptions.Builder` and retain its passive component getters.
+`SmtpDeliveryOptions.build()` privately constructs and validates the complete DSN; the completed value retains `getDeliveryStatusNotification()`.
+Equivalent DSN convenience setters collect choices consistently, preserving replacement, clearing and explicit-request semantics. Standalone
+`DeliveryStatusNotification.build()` and `of(...)` remain explicit validated-value construction. No invalid immutable DSN, public draft type
+or additional construction method is introduced to support inspection. This clarification is implemented under
+[#825](https://github.com/bbottema/simple-java-mail/issues/825) for unreleased 10.0.0.
+
 Clarification accepted 21 October 2026: this also applies to the Mailer builder's grouped retry-policy getter. It returns the supplied
 `MailSendRetryPolicy` choices, including omissions and explicit clears, without resolving or validating the effective policy. Inspecting
 an already-created builder must not fail because its choices are incomplete. Effective retry settings belong on `OperationalConfig` after

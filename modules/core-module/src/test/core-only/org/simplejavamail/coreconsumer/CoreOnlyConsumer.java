@@ -104,6 +104,13 @@ public final class CoreOnlyConsumer {
     }
 
     public static void inspectIncompleteConfiguration() {
+        final SmtpDeliveryOptions.Builder delivery = SmtpDeliveryOptions.builder().fixingEnvelopeId("");
+        delivery.getEnvelopeId();
+        delivery.withDeliveryStatusNotificationNotifyOptions(
+                org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.NEVER,
+                org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption.FAILURE)
+                .getDeliveryStatusNotificationNotifyOptions();
+        delivery.getDeliveryStatusNotificationReturnOption();
         org.simplejavamail.api.mailer.config.MailSendRetryPolicy.builder().withMaximumAttempts(3).getRetryDelay();
         org.simplejavamail.api.mailer.config.FailoverPolicy.builder().getPrimaryMaximumRecheckInterval();
         org.simplejavamail.api.email.config.DkimConfig.builder().clearSigningAlgorithm().getSigningAlgorithm();

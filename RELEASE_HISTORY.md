@@ -146,6 +146,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   recipient builders and composed CLI recipient input. Quoted names, legacy separators and RFC group members preserve their intended mailboxes,
   order and local duplicate occurrences. Singular extraction retains plural/group source for configured validation instead of selecting its first
   mailbox, while exact-envelope input keeps its separate strict contract.
+- [#825](https://github.com/bbottema/simple-java-mail/issues/825): grouped DSN builders collect and expose supplied choices without semantic
+  validation during inspection. Complete-request, NOTIFY-combination and ENVID checks run at `SmtpDeliveryOptions.build()`; component getters
+  return detached supplied state, and the full DSN getter remains on the completed value. Standalone DSN factories retain their own validation.
 - Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
 
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.

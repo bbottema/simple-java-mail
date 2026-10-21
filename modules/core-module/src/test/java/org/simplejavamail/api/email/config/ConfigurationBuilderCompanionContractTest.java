@@ -17,6 +17,21 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Ret
 class ConfigurationBuilderCompanionContractTest {
 
     @Test
+    void smtpDsnComponentInspectionDoesNotValidateUnfinishedChoices() {
+        final SmtpDeliveryOptions.Builder builder = SmtpDeliveryOptions.builder().fixingEnvelopeId("")
+                .withDeliveryStatusNotification(HEADERS_ONLY, NEVER, FAILURE);
+        assertThat(builder.getDeliveryStatusNotificationReturnOption()).isEqualTo(HEADERS_ONLY);
+        final Set<DeliveryStatusNotification.NotifyOption> events = builder.getDeliveryStatusNotificationNotifyOptions();
+        assertThat(events).containsExactly(NEVER, FAILURE);
+        events.clear();
+        assertThat(builder.getDeliveryStatusNotificationNotifyOptions()).containsExactly(NEVER, FAILURE);
+        assertThat(builder.getEnvelopeId()).isNull();
+        builder.fixingEnvelopeId("");
+        assertThat(builder.getEnvelopeId()).isEmpty();
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void dsnInspectionDoesNotBuildOrValidateAnIncompleteRequest() {
         final DeliveryStatusNotification.DeliveryStatusNotificationBuilder builder = DeliveryStatusNotification.builder();
         assertThat(builder.getReturnOption()).isNull();

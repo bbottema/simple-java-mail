@@ -329,6 +329,12 @@ public final class DeliveryStatusNotification implements Serializable {
 			return this;
 		}
 
+		/**
+		 * Creates an immutable request after validating the complete supplied choices.
+		 *
+		 * @throws IllegalArgumentException If no DSN option remains, {@code NEVER} is combined with another event,
+		 *                                  an event is {@code null}, or the fixed envelope identifier is invalid.
+		 */
 		public DeliveryStatusNotification build() {
 			return new DeliveryStatusNotification(returnOption, notifyOptions, envelopeId);
 		}

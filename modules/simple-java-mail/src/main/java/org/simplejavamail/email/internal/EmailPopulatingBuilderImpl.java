@@ -2360,7 +2360,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	/**
-	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#getDeliveryStatusNotification()
+	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions#getDeliveryStatusNotification()
 	 */
 	@Override
 	@Nullable
