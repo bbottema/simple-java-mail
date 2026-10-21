@@ -12,12 +12,8 @@ import org.objenesis.strategy.StdInstantiatorStrategy;
 import java.lang.reflect.Method;
 
 /**
- * Used to serialize attachments of nested Outlook messages. This is needed because outlook-message-parser returns a Java structure from a .msg source, but this conversion is 1-way. An Email object
- * represents attachments as DataSources however, so for this we need to serialize back from the java structure to a binary format. This Util does this.
- * <br>
- * Then for users to obtain the Javastructure again, they must use this util to deserialize the relevant attachment.
- *
- * @see <a href="https://github.com/bbottema/simple-java-mail/issues/298">GitHub issue #314</a>
+ * Serializes generated CLI-option metadata, including references to builder methods.
+ * Therapi's immutable Javadoc models use the separate, versioned {@link JavadocCacheSerialization} codec.
  */
 public class SerializationUtil {
 
@@ -29,7 +25,7 @@ public class SerializationUtil {
 	private static final Kryo KRYO = initKryo();
 
 	@NotNull
-	private static Kryo initKryo() {
+	static Kryo initKryo() {
 		Kryo kryo = new Kryo();
 		kryo.setRegistrationRequired(false);
 		kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));

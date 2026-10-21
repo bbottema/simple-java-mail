@@ -65,6 +65,12 @@ Main flow:
 7. Picocli command metadata is serialized with Kryo to `modules/cli-module/src/main/resources/cli.data`.
 8. Therapi lookups are cached to `modules/cli-module/src/main/resources/therapi.data`.
 
+The two files deliberately use separate codecs. `cli.data` retains the existing `SerializationUtil` format. `therapi.data` uses
+`JavadocCacheSerialization`, a versioned codec that rebuilds Therapi's unmodifiable lists and maps through public collection APIs.
+Each cache read/write uses a fresh Kryo instance. Old, corrupt, or unreadable Javadoc caches fall back to embedded Javadocs with a
+warning; valid bundled caches must load without that fallback. Regression coverage checks full Javadoc content, file round trips,
+separate-JVM reads, and the generated cache itself. Regenerate and commit `therapi.data` when this codec changes, using JDK 8.
+
 The Javadoc part is unusual: the build uses Therapi's annotation processor to bake selected Javadoc into runtime-readable classes, then the CLI module reflects over builder methods, resolves those baked Javadocs, formats links and examples for terminal output, and stores the resulting CLI model in `cli.data` for faster startup. The result is clever and convenient, but brittle: Java version changes, bridge/synthetic methods, incomplete `@param` tags, method overload ambiguity, or stale binary metadata can all produce surprising CLI behavior.
 
 Regeneration:

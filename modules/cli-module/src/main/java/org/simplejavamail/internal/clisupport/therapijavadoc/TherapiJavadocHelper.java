@@ -12,8 +12,9 @@ import org.bbottema.javareflection.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
-import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
+import org.simplejavamail.internal.clisupport.serialization.JavadocCacheSerialization;
 import org.simplejavamail.internal.util.FileUtil;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,21 +33,22 @@ import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
+import static org.slf4j.LoggerFactory.getLogger;
 
 public final class TherapiJavadocHelper {
 
-	// using a pregenerated cache file shaves off 10% runtime
-	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
-	// this caches roughly halves runtime (doubles performance)
-	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache();
+	private static final Logger LOGGER = getLogger(TherapiJavadocHelper.class);
 
-	private static Map<String, MethodJavadoc> loadTherapiCache() {
-		if (THERAPI_DATAFILE.exists()) {
+	// Generated during CLI packaging; avoids repeating embedded-Javadoc lookups in each new process.
+	private static final File THERAPI_DATAFILE = new File(CliDataLocator.locateTherapiDataFile());
+	private static final Map<String, MethodJavadoc> THERAPI_CACHE = loadTherapiCache(THERAPI_DATAFILE);
+
+	static Map<String, MethodJavadoc> loadTherapiCache(File cacheFile) {
+		if (cacheFile.exists()) {
 			try {
-				return SerializationUtil.deserialize(FileUtil.readFileBytes(THERAPI_DATAFILE));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			} catch (RuntimeException e) {
+				return JavadocCacheSerialization.deserialize(FileUtil.readFileBytes(cacheFile));
+			} catch (IOException | RuntimeException e) {
+				LOGGER.warn("Could not read CLI Javadoc cache {}; using embedded Javadocs: {}", cacheFile, e.toString());
 				return new HashMap<>();
 			}
 		} else {
@@ -55,8 +57,12 @@ public final class TherapiJavadocHelper {
 	}
 
 	public static void persistCache() {
+		persistCache(THERAPI_DATAFILE, THERAPI_CACHE);
+	}
+
+	static void persistCache(File cacheFile, Map<String, MethodJavadoc> cache) {
 		try {
-			FileUtil.writeFileBytes(THERAPI_DATAFILE, SerializationUtil.serialize(THERAPI_CACHE));
+			FileUtil.writeFileBytes(cacheFile, JavadocCacheSerialization.serialize(cache));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
