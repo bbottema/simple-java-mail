@@ -23,14 +23,26 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmlConversion;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
+import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.modules.SMIMEModule;
+import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 
@@ -38,6 +50,13 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.simplejavamail.api.mailer.MailFailureKind.CONVERSION;
 
 class FluentEmailConversionTest {
 
@@ -230,10 +249,36 @@ class FluentEmailConversionTest {
 		// Protection inspection can read the original message. The fluent layer must not introduce another read or eager attachment copy.
 		assertThat(reads.get()).isEqualTo(existingReads);
 		assertThat(lazy.getAttachments()).hasSize(1);
-		try (InputStream input = lazy.getAttachments().get(0).getDataSourceInputStream()) {
+		try (InputStream input = lazy.getAttachments().get(0).openStream()) {
 			assertThat(input.readAllBytes()).isEqualTo("attachment".getBytes(UTF_8));
 		}
 		assertThat(reads.get()).isEqualTo(existingReads + 1);
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void nestedDecryptedAttachmentStreamsAreClosedAfterConversion(final boolean preprocessing) throws Exception {
+		final NestedAttachmentSource source = new NestedAttachmentSource(null);
+		final Email result = convertNestedAttachment(source, preprocessing);
+		assertThat(result.getSmimeSignedEmail().getSubject()).isEqualTo("Source");
+		assertThat(source.opened).isEqualTo(1);
+		assertThat(source.closed).isEqualTo(1);
+	}
+
+	@ParameterizedTest
+	@CsvSource({"false, OPEN", "true, OPEN", "false, READ", "true, READ", "false, CLOSE", "true, CLOSE",
+			"false, READ_AND_CLOSE", "true, READ_AND_CLOSE"})
+	void nestedAttachmentIoFailuresRetainTheConversionBoundary(final boolean preprocessing, final AttachmentFailure failurePoint) {
+		final NestedAttachmentSource source = new NestedAttachmentSource(failurePoint);
+		assertThatThrownBy(() -> convertNestedAttachment(source, preprocessing)).isInstanceOfSatisfying(MailException.class, failure -> {
+			assertThat(failure.getKind()).isEqualTo(CONVERSION);
+			assertThat(failure.getCause()).isSameAs(source.primaryFailure);
+			if (failurePoint == AttachmentFailure.READ_AND_CLOSE) {
+				assertThat(failure.getSuppressed()).containsExactly(source.closeFailure);
+			}
+		});
+		assertThat(source.opened).isEqualTo(1);
+		assertThat(source.closed).isEqualTo(failurePoint == AttachmentFailure.OPEN ? 0 : 1);
 	}
 
 	@Test
@@ -301,6 +346,88 @@ class FluentEmailConversionTest {
 		selected.toMimeMessage();
 		assertThatThrownBy(selected::toEmail).hasMessageContaining("already been used")
 				.hasMessageNotContaining("reset the Session");
+	}
+
+	private Email convertNestedAttachment(final NestedAttachmentSource source, final boolean preprocessing) throws Exception {
+		final MimeMessage original = new MimeMessage(JakartaMailImplementation.createSession(new Properties()), new ByteArrayInputStream(EML));
+		final AttachmentResource attachment = AttachmentResource.builder().withName("signed-email.eml").withDataSource(source).build();
+		final SMIMEModule smime = mock(SMIMEModule.class);
+		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder()
+				.smimeMode(org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN).build();
+		final SmimeParseResult plain = mock(SmimeParseResult.class);
+		when(plain.getOriginalSmimeDetails()).thenReturn(details);
+		when(plain.getDecryptedAttachments()).thenReturn(Collections.emptyList());
+		when(plain.getDecryptedAttachmentResults()).thenReturn(Collections.emptyList());
+		when(smime.decryptAttachments(anyList(), any(MimeMessage.class), isNull())).thenReturn(plain);
+		if (preprocessing) {
+			final SmimePreprocessingResult result = mock(SmimePreprocessingResult.class);
+			when(result.isRecognized()).thenReturn(true);
+			when(result.getEffectiveMimeMessage()).thenReturn(original);
+			when(result.getDetails()).thenReturn(details);
+			when(result.getProtectedAttachments()).thenReturn(Collections.emptyList());
+			when(result.getDecryptedArtifacts()).thenReturn(Collections.singletonList(attachment));
+			when(smime.processIncoming(any(Session.class), same(original), isNull())).thenReturn(result);
+		} else {
+			final SmimeParseResult result = mock(SmimeParseResult.class);
+			when(result.getOriginalSmimeDetails()).thenReturn(details);
+			when(result.getDecryptedAttachments()).thenReturn(Collections.singletonList(attachment));
+			when(result.getSmimeSignedOrEncryptedEmail()).thenReturn(attachment);
+			when(result.getDecryptedAttachmentResults()).thenReturn(Collections.emptyList());
+			when(smime.decryptAttachments(anyList(), same(original), isNull())).thenReturn(result);
+		}
+		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+			modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
+			modules.when(ModuleLoader::smimeModuleAvailable).thenReturn(true);
+			modules.when(ModuleLoader::loadSmimeModule).thenReturn(smime);
+			return converter.fromMimeMessage(original).toEmail();
+		}
+	}
+
+	private enum AttachmentFailure { OPEN, READ, CLOSE, READ_AND_CLOSE }
+
+	private static final class NestedAttachmentSource implements DataSource {
+		private final AttachmentFailure failurePoint;
+		private final IOException primaryFailure = new IOException("nested attachment I/O failed");
+		private final IOException closeFailure = new IOException("nested attachment closing failed");
+		private int opened;
+		private int closed;
+
+		private NestedAttachmentSource(final AttachmentFailure failurePoint) {
+			this.failurePoint = failurePoint;
+		}
+
+		@Override
+		public InputStream getInputStream() throws IOException {
+			opened++;
+			if (failurePoint == AttachmentFailure.OPEN) {
+				throw primaryFailure;
+			}
+			return new InputStream() {
+				private final InputStream content = new ByteArrayInputStream(EML);
+
+				@Override
+				public int read() throws IOException {
+					if (failurePoint == AttachmentFailure.READ || failurePoint == AttachmentFailure.READ_AND_CLOSE) {
+						throw primaryFailure;
+					}
+					return content.read();
+				}
+
+				@Override
+				public void close() throws IOException {
+					closed++;
+					if (failurePoint == AttachmentFailure.CLOSE) {
+						throw primaryFailure;
+					} else if (failurePoint == AttachmentFailure.READ_AND_CLOSE) {
+						throw closeFailure;
+					}
+				}
+			};
+		}
+
+		@Override public OutputStream getOutputStream() { throw new UnsupportedOperationException(); }
+		@Override public String getContentType() { return "message/rfc822"; }
+		@Override public String getName() { return "signed-email.eml"; }
 	}
 
 	private static final class TrackingInput extends ByteArrayInputStream {

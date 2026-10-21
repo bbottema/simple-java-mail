@@ -346,13 +346,22 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		internal.withOriginalSmimeDetails(result.getDetails());
 		if (effectiveMessageArtifact != null) {
 			// Nested protected messages must use this converter's snapshot too, not the static converter's default factory.
-			final EmailPopulatingBuilder nestedBuilder = emlToEmailBuilder(effectiveMessageArtifact.getDataSourceInputStream());
+			final EmailPopulatingBuilder nestedBuilder = emlAttachmentToEmailBuilder(effectiveMessageArtifact);
 			if (result.getNestedSignedDetails() != null) {
 				((InternalEmailPopulatingBuilder) nestedBuilder).withOriginalSmimeDetails(result.getNestedSignedDetails());
 			}
 			internal.withSmimeSignedEmail(nestedBuilder.buildEmail());
 		}
 		return emailBuilder;
+	}
+
+	@NotNull
+	private EmailPopulatingBuilder emlAttachmentToEmailBuilder(@NotNull final AttachmentResource attachment) {
+		try (InputStream input = attachment.openStream()) {
+			return emlToEmailBuilder(input);
+		} catch (IOException e) {
+			throw new EmailConverterException(EmailConverterException.ERROR_READING_EML_INPUTSTREAM, e);
+		}
 	}
 
 	private static boolean hasAttachmentNamed(
@@ -482,8 +491,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		emailBuilder.withDecryptedAttachments(smimeParseResult.getDecryptedAttachments());
 		emailBuilder.withOriginalSmimeDetails(smimeParseResult.getOriginalSmimeDetails());
 		if (smimeParseResult.getSmimeSignedOrEncryptedEmail() != null) {
-			emailBuilder.withSmimeSignedEmail(emlToEmailBuilder(
-					smimeParseResult.getSmimeSignedOrEncryptedEmail().getDataSourceInputStream()).buildEmail());
+			emailBuilder.withSmimeSignedEmail(emlAttachmentToEmailBuilder(
+					smimeParseResult.getSmimeSignedOrEncryptedEmail()).buildEmail());
 		}
 	}
 

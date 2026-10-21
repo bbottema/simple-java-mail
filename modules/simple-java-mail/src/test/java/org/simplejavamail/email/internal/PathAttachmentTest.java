@@ -3,6 +3,7 @@ package org.simplejavamail.email.internal;
 import jakarta.activation.FileTypeMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
@@ -23,6 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.simplejavamail.api.mailer.MailFailureKind.PREPARATION;
 
 class PathAttachmentTest {
 
@@ -86,6 +88,10 @@ class PathAttachmentTest {
         final AttachmentResource attachment = mail.emailBuilder().startingBlank()
                 .withAttachment(directory.resolve("missing.txt")).buildEmail().getAttachments().get(0);
 
-        assertThatThrownBy(attachment::readAllBytes).hasCauseInstanceOf(IOException.class);
+        assertThatThrownBy(attachment::readAllBytes).isInstanceOfSatisfying(MailException.class, failure -> {
+            assertThat(failure.getKind()).isEqualTo(PREPARATION);
+            assertThat(failure.getCause()).isInstanceOf(IOException.class);
+        });
+        assertThatThrownBy(attachment::openStream).isInstanceOf(IOException.class);
     }
 }

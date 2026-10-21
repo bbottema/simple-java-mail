@@ -669,7 +669,7 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final OriginalSmimeDetails messageSmimeDetails,
 			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
 		try {
-			final MimeBodyPart mimeBodyPart = new MimeBodyPart(new InternetHeaders(), attachment.readAllBytes());
+			final MimeBodyPart mimeBodyPart = new MimeBodyPart(new InternetHeaders(), readAll(attachment.openStream()));
 			mimeBodyPart.addHeader("Content-Type", restoreSmimeContentType(attachment, messageSmimeDetails));
 
 			AttachmentDecryptionResult liberatedContent = null;
@@ -809,7 +809,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			final InternetHeaders internetHeaders = new InternetHeaders();
 			internetHeaders.addHeader("Content-Type", smimeAttachment.getDataSource().getContentType());
-			return getSignedByAddress(new MimeBodyPart(internetHeaders, smimeAttachment.readAllBytes()));
+			return getSignedByAddress(new MimeBodyPart(internetHeaders, readAll(smimeAttachment.openStream())));
 		} catch (MessagingException | IOException e) {
 			throw new SmimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
 		}
