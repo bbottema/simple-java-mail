@@ -112,6 +112,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Omitted choices inherit the captured factory configuration, then built-in fallbacks. Attempts and initial delay have no built-in
 	 * fallback; the effective schedule must be complete when building the Mailer. Explicit clears and resets override captured choices,
 	 * subject to mandatory locks.
+	 * {@link #getMailSendRetryPolicy()} returns the supplied immutable choices, including omissions and explicit clears, without resolving
+	 * or validating the effective policy. Inspect {@link org.simplejavamail.api.mailer.config.OperationalConfig#getMailSendRetryPolicy()}
+	 * after Mailer construction for the resolved schedule and resource limits.
 	 * @param policy Non-null schedule and resource choices; a repeated call replaces previously supplied Java choices for the entire policy.
 	 */
 	@Cli.ExcludeApi(reason = "The retry policy is configured through typed CLI fields instead of a Java object.")
@@ -121,7 +124,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	@NotNull T clearMailSendRetryPolicy();
 
 	/**
-	 * Returns the resolved settings, including resource limits even when retries are disabled.
+	 * Returns the supplied retry-policy choices without resolving defaults or validating an incomplete effective policy.
 	 * @see #withMailSendRetryPolicy(MailSendRetryPolicy)
 	 */
 	@NotNull MailSendRetryPolicy getMailSendRetryPolicy();

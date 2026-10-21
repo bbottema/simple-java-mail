@@ -125,19 +125,23 @@ class MailSendRetryInheritanceTest {
     }
 
     @Test
-    void toBuilderPreservesOmissionsExplicitClearsAndExistingConfiguredChoices() throws Exception {
+    void toBuilderPreservesSuppliedOmissionsAndExplicitClears() throws Exception {
         final MailSendRetryPolicy resourceChoice = MailSendRetryPolicy.builder().withMemoryLimit(8192).build();
         final MailerRegularBuilder builder = factory(configuredProperties()).mailerBuilder();
         builder.withMailSendRetryPolicy(resourceChoice.toBuilder().withWaitingCapacity(9).build());
-        final MailSendRetryPolicy configured = builder.getMailSendRetryPolicy();
-        builder.withMailSendRetryPolicy(configured.toBuilder().withMemoryLimit(16384).build());
+        final MailSendRetryPolicy supplied = builder.getMailSendRetryPolicy();
+        assertThat(supplied.getMaximumAttempts()).isNull();
+        assertThat(supplied.getRetryDelay()).isNull();
+        assertThat(supplied.getMaximumMessageSize()).isNull();
+        builder.withMailSendRetryPolicy(supplied.toBuilder().withMemoryLimit(16384).build());
         try (Mailer mailer = builder.buildMailer()) {
             final MailSendRetryPolicy resolved = mailer.getOperationalConfig().getMailSendRetryPolicy();
             assertThat(resolved.getMaximumAttempts()).isEqualTo(3);
             assertThat(resolved.getWaitingCapacity()).isEqualTo(9);
             assertThat(resolved.getMaximumMessageSize()).isEqualTo(1024);
             assertThat(resolved.getMemoryLimit()).isEqualTo(16384);
-            assertThat(configured.getMemoryLimit()).isEqualTo(8192);
+            assertThat(supplied.getMemoryLimit()).isEqualTo(8192);
+            assertThat(builder.getMailSendRetryPolicy().getMaximumAttempts()).isNull();
         }
         final MailSendRetryPolicy disabled = resourceChoice.toBuilder().clearRetrySchedule().build();
         try (Mailer mailer = factory(configuredProperties()).mailerBuilder().withMailSendRetryPolicy(
