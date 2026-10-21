@@ -180,6 +180,12 @@ public class MailSendRetryPolicy implements Serializable {
                 waitingCapacity, maximumMessageSize, memoryLimit);
     }
 
+    /** Returns an independent builder retaining every stored choice, including resolved limits and caps. */
+    @NotNull
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     /** Uses defaults published on {@link MailerGenericBuilder}. Retries remain disabled unless an attempt count and delay are both supplied. */
     public static final class Builder {
         @Nullable private Integer maximumAttempts;
@@ -192,6 +198,17 @@ public class MailSendRetryPolicy implements Serializable {
         private long memoryLimit = DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT;
 
         private Builder() { }
+
+        private Builder(final MailSendRetryPolicy policy) {
+            maximumAttempts = policy.maximumAttempts;
+            retryDelay = policy.retryDelay;
+            retryBackoffMultiplier = policy.retryBackoffMultiplier;
+            maximumRetryDelay = policy.maximumRetryDelay;
+            retryJitter = policy.retryJitter;
+            waitingCapacity = policy.waitingCapacity;
+            maximumMessageSize = policy.maximumMessageSize;
+            memoryLimit = policy.memoryLimit;
+        }
 
         /**
          * Limits provider invocations for one email, including the first. For example, three allows at most two retries.

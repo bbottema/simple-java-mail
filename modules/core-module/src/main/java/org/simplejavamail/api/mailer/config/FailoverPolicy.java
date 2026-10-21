@@ -64,6 +64,12 @@ public class FailoverPolicy implements Serializable {
         return new Builder();
     }
 
+    /** Returns an independent builder retaining every stored choice, including resolved limits and caps. */
+    @NotNull
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     /** @see Builder#withPrimaryConnectionAttempts(int) */
     public int getPrimaryConnectionAttempts() {
         return primaryConnectionAttempts;
@@ -151,6 +157,16 @@ public class FailoverPolicy implements Serializable {
         private boolean failoverOnCertificateVerificationFailure = DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE;
 
         private Builder() { }
+
+        private Builder(final FailoverPolicy policy) {
+            primaryConnectionAttempts = policy.primaryConnectionAttempts;
+            primaryConnectionRetryDelay = policy.primaryConnectionRetryDelay;
+            primaryRecheckInterval = policy.primaryRecheckInterval;
+            primaryRecheckBackoffMultiplier = policy.primaryRecheckBackoffMultiplier;
+            primaryMaximumRecheckInterval = policy.primaryMaximumRecheckInterval;
+            failoverOnAuthenticationFailure = policy.failoverOnAuthenticationFailure;
+            failoverOnCertificateVerificationFailure = policy.failoverOnCertificateVerificationFailure;
+        }
 
         /**
          * Total setup attempts per candidate in one visit, including the first; not attempts to submit message content.
