@@ -109,7 +109,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Retry-enabled SMTP sends retain a bounded, unchanged MIME snapshot; adapters must support repeatable preparation.
 	 * Ordinary async backoff releases its send worker and connection. Synchronous sends and retained batch/open-connection scopes
 	 * wait on their existing thread; retained connections can encounter idle timeouts. CustomMailer and logging-only mode do not retry.
-	 * @param policy Non-null schedule and resource limits; a repeated call replaces the entire policy, including property-loaded values.
+	 * Omitted choices inherit the captured factory configuration, then built-in fallbacks. Attempts and initial delay have no built-in
+	 * fallback; the effective schedule must be complete when building the Mailer. Explicit clears and resets override captured choices,
+	 * subject to mandatory locks.
+	 * @param policy Non-null schedule and resource choices; a repeated call replaces previously supplied Java choices for the entire policy.
 	 */
 	@Cli.ExcludeApi(reason = "The retry policy is configured through typed CLI fields instead of a Java object.")
 	@NotNull T withMailSendRetryPolicy(@NotNull MailSendRetryPolicy policy);

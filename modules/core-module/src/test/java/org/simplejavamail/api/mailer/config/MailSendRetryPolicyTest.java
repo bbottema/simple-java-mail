@@ -16,9 +16,16 @@ import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SE
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT;
 
 class MailSendRetryPolicyTest {
-    @Test void optionalDefaultsUseThePublishedMailerConstants() {
+    @Test void omittedChoicesStayAbsentAndExplicitResetsUsePublishedMailerConstants() {
         final MailSendRetryPolicy.Builder builder = MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(2));
-        final MailSendRetryPolicy defaults = builder.build();
+        final MailSendRetryPolicy omitted = builder.build();
+        assertThat(omitted.getRetryBackoffMultiplier()).isNull();
+        assertThat(omitted.getRetryJitter()).isNull();
+        assertThat(omitted.getWaitingCapacity()).isNull();
+        assertThat(omitted.getMaximumMessageSize()).isNull();
+        assertThat(omitted.getMemoryLimit()).isNull();
+        final MailSendRetryPolicy defaults = builder.resetRetryBackoff().resetRetryJitter()
+                .resetWaitingCapacity().resetMaximumMessageSize().resetMemoryLimit().build();
         assertThat(defaults.getRetryBackoffMultiplier()).isEqualTo(MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER);
         assertThat(defaults.getRetryJitter()).isEqualTo(MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_JITTER);
         assertThat(defaults.getWaitingCapacity()).isEqualTo(DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY);
@@ -30,22 +37,23 @@ class MailSendRetryPolicyTest {
                 .resetWaitingCapacity().resetMaximumMessageSize().resetMemoryLimit().build()).isEqualTo(defaults);
     }
 
-    @Test void enablingRetriesRequiresAnExplicitCompleteSchedule() {
+    @Test void incompleteSuppliedChoicesAreRetainedForMailerResolution() {
         assertThat(MailSendRetryPolicy.builder().build().isRetryEnabled()).isFalse();
-        assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withMaximumAttempts(3).build());
-        assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withRetryDelay(Duration.ofSeconds(1)).build());
-        assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withRetryJitter(0.2).build());
-        assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withRetryBackoff(2, Duration.ofSeconds(1)).build());
+        assertThat(MailSendRetryPolicy.builder().withMaximumAttempts(3).build().getMaximumAttempts()).isEqualTo(3);
+        assertThat(MailSendRetryPolicy.builder().withMaximumAttempts(3).build().isRetryEnabled()).isFalse();
+        assertThat(MailSendRetryPolicy.builder().withRetryDelay(Duration.ofSeconds(1)).build().getRetryDelay()).isEqualTo(Duration.ofSeconds(1));
+        assertThat(MailSendRetryPolicy.builder().withRetryJitter(0.2).build().getRetryJitter()).isEqualTo(0.2);
+        assertThat(MailSendRetryPolicy.builder().withRetryBackoff(2, Duration.ofSeconds(1)).build().getRetryBackoffMultiplier()).isEqualTo(2);
     }
 
-    @Test void resolvesOnlyOptionalDefaultsAndSupportsReplacement() {
+    @Test void retainsOmittedChoicesAndSupportsReplacement() {
         final MailSendRetryPolicy policy = MailSendRetryPolicy.builder().withMaximumAttempts(2).withMaximumAttempts(4)
                 .withRetryDelay(Duration.ofSeconds(1)).withRetryDelay(Duration.ofSeconds(2)).build();
         assertThat(policy.getMaximumAttempts()).isEqualTo(4);
         assertThat(policy.getRetryDelay()).isEqualTo(Duration.ofSeconds(2));
-        assertThat(policy.getRetryBackoffMultiplier()).isEqualTo(1);
+        assertThat(policy.getRetryBackoffMultiplier()).isNull();
         assertThat(policy.getMaximumRetryDelay()).isNull();
-        assertThat(policy.getRetryJitter()).isZero();
+        assertThat(policy.getRetryJitter()).isNull();
     }
 
     @Test void resetsOptionalSettings() {
@@ -82,6 +90,20 @@ class MailSendRetryPolicyTest {
         assertThat(policy.getMaximumMessageSize()).isEqualTo(1024);
         assertThat(policy.getMemoryLimit()).isEqualTo(4096);
         assertThat(roundTrip(policy)).isEqualTo(policy);
+    }
+
+    @Test void copyingAndSerializationPreserveOmissionVersusExplicitClearing() throws Exception {
+        final MailSendRetryPolicy omitted = MailSendRetryPolicy.builder().withMemoryLimit(2048).build();
+        final MailSendRetryPolicy cleared = omitted.toBuilder().clearRetrySchedule().build();
+        assertThat(omitted.isMaximumAttemptsCleared()).isFalse();
+        assertThat(omitted.isRetryDelayCleared()).isFalse();
+        assertThat(omitted.isMaximumRetryDelayCleared()).isFalse();
+        assertThat(cleared.isMaximumAttemptsCleared()).isTrue();
+        assertThat(cleared.isRetryDelayCleared()).isTrue();
+        assertThat(cleared.isMaximumRetryDelayCleared()).isTrue();
+        assertThat(cleared.toBuilder().build()).isEqualTo(cleared);
+        assertThat(roundTrip(omitted)).isEqualTo(omitted);
+        assertThat(roundTrip(cleared)).isEqualTo(cleared);
     }
 
     @Test void validatesResourceLimitsWithoutResolvingDefaultsInTheConstructor() {

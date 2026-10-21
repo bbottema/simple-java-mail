@@ -19,7 +19,7 @@ class PolicyCopyTest {
         assertThat(changed.getMaximumMessageSize()).isEqualTo(1024);
         assertThat(changed.getMemoryLimit()).isEqualTo(4096);
         assertThat(changed.toBuilder().build()).isEqualTo(changed);
-        assertThat(changed.toBuilder().clearRetrySchedule().build()).isEqualTo(original);
+        assertThat(changed.toBuilder().clearRetrySchedule().build()).isEqualTo(original.toBuilder().clearRetrySchedule().build());
         assertThat(original.isRetryEnabled()).isFalse();
     }
 

@@ -18,7 +18,8 @@ import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SE
 /**
  * Settings for trying the same email again after a safely replayable temporary SMTP refusal, including the resources retained between attempts.
  * The selected Mailer supplies the retry schedule; the initiating Mailer supplies the waiting and replay limits from its own policy.
- * A policy without an attempt count and delay does not enable retries, but can still bound work delegated to a retry-enabled destination.
+ * Unset choices inherit the owning factory's captured configuration, then the library fallbacks. Resource choices alone do not enable
+ * retries when no schedule is configured, but can still bound work delegated to a retry-enabled destination.
  * It never authorizes replay after partial or uncertain acceptance, and contains no counters, message content or executor.
  * Configure it with {@link MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy)}.
  */
@@ -29,16 +30,19 @@ public class MailSendRetryPolicy implements Serializable {
     private static final long MAX_REPLAY_ARRAY_SIZE = Integer.MAX_VALUE - 8L;
 
     @Nullable Integer maximumAttempts;
+    boolean maximumAttemptsCleared;
     @Nullable Duration retryDelay;
-    int retryBackoffMultiplier;
+    boolean retryDelayCleared;
+    @Nullable Integer retryBackoffMultiplier;
     @Nullable Duration maximumRetryDelay;
-    double retryJitter;
-    int waitingCapacity;
-    long maximumMessageSize;
-    long memoryLimit;
+    boolean maximumRetryDelayCleared;
+    @Nullable Double retryJitter;
+    @Nullable Integer waitingCapacity;
+    @Nullable Long maximumMessageSize;
+    @Nullable Long memoryLimit;
 
     /**
-     * Validates supplied settings without resolving defaults. Prefer {@link #builder()} for optional settings.
+     * Validates a complete policy without resolving defaults. Prefer {@link #builder()} for choices that inherit captured configuration.
      *
      * A null attempt count and delay leave retries disabled. Supply both to enable a schedule.
      * @throws IllegalArgumentException If the schedule is incomplete or invalid, or the resource limits cannot retain one replay message.
@@ -49,13 +53,33 @@ public class MailSendRetryPolicy implements Serializable {
         validateSchedule(maximumAttempts, retryDelay, retryBackoffMultiplier, maximumRetryDelay, retryJitter);
         validateResourceLimits(waitingCapacity, maximumMessageSize, memoryLimit);
         this.maximumAttempts = maximumAttempts;
+        this.maximumAttemptsCleared = maximumAttempts == null;
         this.retryDelay = retryDelay;
+        this.retryDelayCleared = retryDelay == null;
         this.retryBackoffMultiplier = retryBackoffMultiplier;
         this.maximumRetryDelay = maximumRetryDelay;
+        this.maximumRetryDelayCleared = maximumRetryDelay == null;
         this.retryJitter = retryJitter;
         this.waitingCapacity = waitingCapacity;
         this.maximumMessageSize = maximumMessageSize;
         this.memoryLimit = memoryLimit;
+    }
+
+    private MailSendRetryPolicy(final Builder builder) {
+        validateSuppliedSchedule(builder.maximumAttempts, builder.retryDelay, builder.retryBackoffMultiplier,
+                builder.maximumRetryDelay, builder.retryJitter);
+        validateResourceLimits(builder.waitingCapacity, builder.maximumMessageSize, builder.memoryLimit);
+        maximumAttempts = builder.maximumAttempts;
+        maximumAttemptsCleared = builder.maximumAttemptsCleared;
+        retryDelay = builder.retryDelay;
+        retryDelayCleared = builder.retryDelayCleared;
+        retryBackoffMultiplier = builder.retryBackoffMultiplier;
+        maximumRetryDelay = builder.maximumRetryDelay;
+        maximumRetryDelayCleared = builder.maximumRetryDelayCleared;
+        retryJitter = builder.retryJitter;
+        waitingCapacity = builder.waitingCapacity;
+        maximumMessageSize = builder.maximumMessageSize;
+        memoryLimit = builder.memoryLimit;
     }
 
     private static void validateSchedule(@Nullable final Integer attempts, @Nullable final Duration delay, final int multiplier,
@@ -65,10 +89,20 @@ public class MailSendRetryPolicy implements Serializable {
         }
 
         requireCompleteSchedule(attempts, delay);
-        validateAttemptCount(attempts);
-        final long initialNanos = positiveNanos(delay, "Initial retry delay");
+        validateSuppliedSchedule(attempts, delay, multiplier, maximumDelay, jitter);
+        if (maximumDelay == null && delay.toNanos() * (1 + jitter) > Long.MAX_VALUE) {
+            throw new IllegalArgumentException("The retry delay with jitter is too large to measure. Choose a shorter delay or an explicit maximum.");
+        }
+    }
+
+    private static void validateSuppliedSchedule(@Nullable final Integer attempts, @Nullable final Duration delay,
+            @Nullable final Integer multiplier, @Nullable final Duration maximumDelay, @Nullable final Double jitter) {
+        if (attempts != null) {
+            validateAttemptCount(attempts);
+        }
+        final Long initialNanos = delay == null ? null : positiveNanos(delay, "Initial retry delay");
         validateBackoff(multiplier, maximumDelay, initialNanos);
-        validateJitter(jitter, maximumDelay, initialNanos);
+        validateJitter(jitter);
     }
 
     private static boolean isScheduleUnset(@Nullable final Integer attempts, @Nullable final Duration delay, final int multiplier,
@@ -78,7 +112,8 @@ public class MailSendRetryPolicy implements Serializable {
 
     private static void requireCompleteSchedule(@Nullable final Integer attempts, @Nullable final Duration delay) {
         if (attempts == null || delay == null) {
-            throw new IllegalArgumentException("Supply both withMaximumAttempts(...) and withRetryDelay(...) to enable retries. "
+            throw new IllegalArgumentException("Automatic mail-send retries need both total attempts and an initial delay. "
+                    + "Supply them through properties or withMaximumAttempts(...) and withRetryDelay(...). "
                     + "Use clearRetrySchedule() on the retry-policy builder to remove the schedule, backoff and jitter while retaining resource limits.");
         }
     }
@@ -90,34 +125,39 @@ public class MailSendRetryPolicy implements Serializable {
         }
     }
 
-    private static void validateBackoff(final int multiplier, @Nullable final Duration maximumDelay, final long initialNanos) {
-        if (multiplier < 1 || (multiplier > 1 && maximumDelay == null)) {
+    private static void validateBackoff(@Nullable final Integer multiplier, @Nullable final Duration maximumDelay,
+            @Nullable final Long initialNanos) {
+        if (multiplier != null && (multiplier < 1 || (multiplier > 1 && maximumDelay == null))) {
             throw new IllegalArgumentException("Use a multiplier of one for fixed retry delays, or supply a maximum delay for increasing backoff.");
         }
-        if (maximumDelay != null && positiveNanos(maximumDelay, "Maximum retry delay") < initialNanos) {
-            throw new IllegalArgumentException("The maximum retry delay must be at least as long as the initial delay.");
+        if (maximumDelay != null) {
+            final long maximumNanos = positiveNanos(maximumDelay, "Maximum retry delay");
+            if (initialNanos != null && maximumNanos < initialNanos) {
+                throw new IllegalArgumentException("The maximum retry delay must be at least as long as the initial delay.");
+            }
         }
     }
 
-    private static void validateJitter(final double jitter, @Nullable final Duration maximumDelay, final long initialNanos) {
+    private static void validateJitter(@Nullable final Double jitter) {
+        if (jitter == null) {
+            return;
+        }
         if (!Double.isFinite(jitter) || jitter < 0 || jitter >= 1) {
             throw new IllegalArgumentException("Retry jitter must be a finite fraction from zero to less than one; "
                     + "for example, 0.2 means up to 20% variation.");
         }
-        if (maximumDelay == null && initialNanos * (1 + jitter) > Long.MAX_VALUE) {
-            throw new IllegalArgumentException("The retry delay with jitter is too large to measure. Choose a shorter delay or an explicit maximum.");
-        }
     }
 
-    private static void validateResourceLimits(final int waitingCapacity, final long maximumMessageSize, final long memoryLimit) {
-        if (waitingCapacity <= 0) {
+    private static void validateResourceLimits(@Nullable final Integer waitingCapacity, @Nullable final Long maximumMessageSize,
+            @Nullable final Long memoryLimit) {
+        if (waitingCapacity != null && waitingCapacity <= 0) {
             throw new IllegalArgumentException("Retry waiting capacity must be positive. Use withWaitingCapacity(...) on the retry policy builder.");
         }
-        if (maximumMessageSize <= 0 || maximumMessageSize > MAX_REPLAY_ARRAY_SIZE) {
+        if (maximumMessageSize != null && (maximumMessageSize <= 0 || maximumMessageSize > MAX_REPLAY_ARRAY_SIZE)) {
             throw new IllegalArgumentException("The maximum retry message size must be positive and fit a Java byte array. "
                     + "Choose a smaller value with withMaximumMessageSize(...) on the retry policy builder.");
         }
-        if (memoryLimit < maximumMessageSize) {
+        if (memoryLimit != null && (memoryLimit <= 0 || (maximumMessageSize != null && memoryLimit < maximumMessageSize))) {
             throw new IllegalArgumentException("The retry memory limit must hold at least one maximum-size replay message. "
                     + "Increase withMemoryLimit(...), or lower withMaximumMessageSize(...) on the retry policy builder.");
         }
@@ -139,23 +179,32 @@ public class MailSendRetryPolicy implements Serializable {
     @NotNull
     public static Builder builder() { return new Builder(); }
 
-    /** True when an attempt count and initial delay have been supplied; resource limits alone do not enable retries. */
-    public boolean isRetryEnabled() { return maximumAttempts != null; }
+    /**
+     * True when this value contains both an attempt count and initial delay. Inspect the Mailer's operational configuration for the
+     * effective state: an omitted schedule can still be inherited from captured properties.
+     */
+    public boolean isRetryEnabled() { return maximumAttempts != null && retryDelay != null; }
 
     /**
-     * Returns the supplied attempt count, or null when retries are disabled.
+     * Returns the supplied attempt count, or null when omitted or explicitly cleared.
      * @see Builder#withMaximumAttempts(int)
      */
     @Nullable public Integer getMaximumAttempts() { return maximumAttempts; }
 
+    /** @see Builder#clearMaximumAttempts() */
+    public boolean isMaximumAttemptsCleared() { return maximumAttemptsCleared; }
+
     /**
-     * Returns the supplied initial delay, or null when retries are disabled.
+     * Returns the supplied initial delay, or null when omitted or explicitly cleared.
      * @see Builder#withRetryDelay(Duration)
      */
     @Nullable public Duration getRetryDelay() { return retryDelay; }
 
+    /** @see Builder#clearRetryDelay() */
+    public boolean isRetryDelayCleared() { return retryDelayCleared; }
+
     /** @see Builder#withRetryBackoff(int, Duration) */
-    public int getRetryBackoffMultiplier() { return retryBackoffMultiplier; }
+    @Nullable public Integer getRetryBackoffMultiplier() { return retryBackoffMultiplier; }
 
     /**
      * Returns the supplied cap, or null when backoff has no configured cap.
@@ -163,21 +212,23 @@ public class MailSendRetryPolicy implements Serializable {
      */
     @Nullable public Duration getMaximumRetryDelay() { return maximumRetryDelay; }
 
+    /** @see Builder#resetRetryBackoff() */
+    public boolean isMaximumRetryDelayCleared() { return maximumRetryDelayCleared; }
+
     /** @see Builder#withRetryJitter(double) */
-    public double getRetryJitter() { return retryJitter; }
+    @Nullable public Double getRetryJitter() { return retryJitter; }
 
     /** @see Builder#withWaitingCapacity(int) */
-    public int getWaitingCapacity() { return waitingCapacity; }
+    @Nullable public Integer getWaitingCapacity() { return waitingCapacity; }
 
     /** @see Builder#withMaximumMessageSize(long) */
-    public long getMaximumMessageSize() { return maximumMessageSize; }
+    @Nullable public Long getMaximumMessageSize() { return maximumMessageSize; }
 
     /** @see Builder#withMemoryLimit(long) */
-    public long getMemoryLimit() { return memoryLimit; }
+    @Nullable public Long getMemoryLimit() { return memoryLimit; }
 
     private Object readResolve() {
-        return new MailSendRetryPolicy(maximumAttempts, retryDelay, retryBackoffMultiplier, maximumRetryDelay, retryJitter,
-                waitingCapacity, maximumMessageSize, memoryLimit);
+        return new MailSendRetryPolicy(toBuilder());
     }
 
     /** Returns an independent builder retaining every stored choice, including resolved limits and caps. */
@@ -186,24 +237,30 @@ public class MailSendRetryPolicy implements Serializable {
         return new Builder(this);
     }
 
-    /** Uses defaults published on {@link MailerGenericBuilder}. Retries remain disabled unless an attempt count and delay are both supplied. */
+    /** Supplied choices only; the Mailer resolves omitted choices from captured properties and the defaults on {@link MailerGenericBuilder}. */
     public static final class Builder {
         @Nullable private Integer maximumAttempts;
+        private boolean maximumAttemptsCleared;
         @Nullable private Duration retryDelay;
-        private int retryBackoffMultiplier = DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER;
+        private boolean retryDelayCleared;
+        @Nullable private Integer retryBackoffMultiplier;
         @Nullable private Duration maximumRetryDelay;
-        private double retryJitter = DEFAULT_MAIL_SEND_RETRY_JITTER;
-        private int waitingCapacity = DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY;
-        private long maximumMessageSize = DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE;
-        private long memoryLimit = DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT;
+        private boolean maximumRetryDelayCleared;
+        @Nullable private Double retryJitter;
+        @Nullable private Integer waitingCapacity;
+        @Nullable private Long maximumMessageSize;
+        @Nullable private Long memoryLimit;
 
         private Builder() { }
 
         private Builder(final MailSendRetryPolicy policy) {
             maximumAttempts = policy.maximumAttempts;
+            maximumAttemptsCleared = policy.maximumAttemptsCleared;
             retryDelay = policy.retryDelay;
+            retryDelayCleared = policy.retryDelayCleared;
             retryBackoffMultiplier = policy.retryBackoffMultiplier;
             maximumRetryDelay = policy.maximumRetryDelay;
+            maximumRetryDelayCleared = policy.maximumRetryDelayCleared;
             retryJitter = policy.retryJitter;
             waitingCapacity = policy.waitingCapacity;
             maximumMessageSize = policy.maximumMessageSize;
@@ -212,44 +269,53 @@ public class MailSendRetryPolicy implements Serializable {
 
         /**
          * Limits provider invocations for one email, including the first. For example, three allows at most two retries.
-         * Supply a retry delay too to enable retries; at least two. Connection setup attempts are governed separately by failover configuration.
+         * A retry delay must also be supplied in Java or captured properties to enable retries; at least two.
+         * Connection setup attempts are governed separately by failover configuration.
          * {@link #clearMaximumAttempts()} removes only the count; use {@link #clearRetrySchedule()} to disable the complete schedule.
          * @param attempts Maximum total provider invocations for one logical email send.
          */
         @NotNull
-        public Builder withMaximumAttempts(final int attempts) { maximumAttempts = attempts; return this; }
+        public Builder withMaximumAttempts(final int attempts) { maximumAttempts = attempts; maximumAttemptsCleared = false; return this; }
 
         /**
-         * Removes only the attempt count. A remaining delay or schedule modifier still requires a complete schedule when building.
+         * Explicitly removes only the attempt count, including a captured value. A remaining delay or schedule modifier still requires
+         * a complete schedule when building the Mailer.
          * @see #withMaximumAttempts(int)
          */
         @NotNull
         public Builder clearMaximumAttempts() {
             maximumAttempts = null;
+            maximumAttemptsCleared = true;
             return this;
         }
 
         /**
-         * Waits this long after a refused attempt has finished cleanup before trying again. Supply an attempt count too; positive.
+         * Waits this long after a refused attempt has finished cleanup before trying again. An attempt count must also be supplied in
+         * Java or captured properties; positive.
          * Pick a delay appropriate for the SMTP service rather than assuming all services recover on the same schedule.
          * {@link #clearRetryDelay()} removes only the delay; use {@link #clearRetrySchedule()} to disable the complete schedule.
          * @param delay Initial retry delay; for example, thirty seconds.
          */
         @NotNull
-        public Builder withRetryDelay(@NotNull final Duration delay) { retryDelay = requireNonNull(delay, "retryDelay"); return this; }
+        public Builder withRetryDelay(@NotNull final Duration delay) {
+            retryDelay = requireNonNull(delay, "retryDelay"); retryDelayCleared = false; return this;
+        }
 
         /**
-         * Removes only the initial delay. A remaining attempt count or schedule modifier still requires a complete schedule when building.
+         * Explicitly removes only the initial delay, including a captured value. A remaining attempt count or schedule modifier still
+         * requires a complete schedule when building the Mailer.
          * @see #withRetryDelay(Duration)
          */
         @NotNull
         public Builder clearRetryDelay() {
             retryDelay = null;
+            retryDelayCleared = true;
             return this;
         }
 
         /**
-         * Disables retries by removing the attempt count, delay, backoff and jitter together. Waiting and replay-resource limits remain unchanged.
+         * Disables retries by removing the attempt count, delay, backoff and jitter together, including captured schedule values.
+         * Waiting and replay-resource choices remain unchanged, including inheritance for omitted limits.
          * Unlike clearing one required field, this leaves a complete, disabled policy ready to build. Previously built policies are not changed.
          *
          * @see #withMaximumAttempts(int)
@@ -277,6 +343,7 @@ public class MailSendRetryPolicy implements Serializable {
             }
             retryBackoffMultiplier = multiplier;
             maximumRetryDelay = requireNonNull(maximumDelay, "maximumDelay");
+            maximumRetryDelayCleared = false;
             return this;
         }
 
@@ -285,6 +352,7 @@ public class MailSendRetryPolicy implements Serializable {
         public Builder resetRetryBackoff() {
             retryBackoffMultiplier = DEFAULT_MAIL_SEND_RETRY_BACKOFF_MULTIPLIER;
             maximumRetryDelay = null;
+            maximumRetryDelayCleared = true;
             return this;
         }
 
@@ -358,7 +426,7 @@ public class MailSendRetryPolicy implements Serializable {
         }
 
         /** @see #withRetryBackoff(int, Duration) */
-        public int getRetryBackoffMultiplier() {
+        @Nullable public Integer getRetryBackoffMultiplier() {
             return retryBackoffMultiplier;
         }
 
@@ -369,30 +437,32 @@ public class MailSendRetryPolicy implements Serializable {
         }
 
         /** @see #withRetryJitter(double) */
-        public double getRetryJitter() {
+        @Nullable public Double getRetryJitter() {
             return retryJitter;
         }
 
         /** @see #withWaitingCapacity(int) */
-        public int getWaitingCapacity() {
+        @Nullable public Integer getWaitingCapacity() {
             return waitingCapacity;
         }
 
         /** @see #withMaximumMessageSize(long) */
-        public long getMaximumMessageSize() {
+        @Nullable public Long getMaximumMessageSize() {
             return maximumMessageSize;
         }
 
         /** @see #withMemoryLimit(long) */
-        public long getMemoryLimit() {
+        @Nullable public Long getMemoryLimit() {
             return memoryLimit;
         }
 
-        /** @throws IllegalArgumentException If the schedule is incomplete or invalid, or the resource limits cannot hold one replay message. */
+        /**
+         * Captures supplied choices. The Mailer validates the complete schedule and resource relationships after inheritance.
+         * @throws IllegalArgumentException If supplied values are invalid or conflict with each other.
+         */
         @NotNull
         public MailSendRetryPolicy build() {
-            return new MailSendRetryPolicy(maximumAttempts, retryDelay, retryBackoffMultiplier, maximumRetryDelay, retryJitter,
-                    waitingCapacity, maximumMessageSize, memoryLimit);
+            return new MailSendRetryPolicy(this);
         }
     }
 }

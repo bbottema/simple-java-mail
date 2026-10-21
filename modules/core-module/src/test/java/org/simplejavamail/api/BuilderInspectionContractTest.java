@@ -24,7 +24,7 @@ class BuilderInspectionContractTest {
         assertThat(builder.getMaximumAttempts()).isEqualTo(3);
         assertThat(builder.getRetryDelay()).isNull();
         assertThat(builder.getMaximumRetryDelay()).isNull();
-        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+        assertThat(builder.build().getRetryDelay()).isNull();
         final MailSendRetryPolicy original = builder.withRetryDelay(Duration.ofSeconds(2)).withRetryBackoff(2, Duration.ofMinutes(1))
                 .withWaitingCapacity(7).withMaximumMessageSize(512).withMemoryLimit(2048).withRetryJitter(0.2).build();
         assertThat(builder.getRetryDelay()).isEqualTo(original.getRetryDelay());

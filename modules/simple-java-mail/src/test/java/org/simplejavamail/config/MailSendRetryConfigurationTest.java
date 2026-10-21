@@ -15,10 +15,14 @@ import java.lang.reflect.Method;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY;
 
 class MailSendRetryConfigurationTest {
     @Test void optionalPropertyDefaultsAgreeWithTheJavaPolicyBuilder() throws Exception {
-        final MailSendRetryPolicy expected = MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(1)).build();
+        final MailSendRetryPolicy expected = new MailSendRetryPolicy(3, Duration.ofSeconds(1), 1, null, 0,
+                DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY, DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
         try (Mailer mailer = factory(policyProperties()).mailerBuilder().buildMailer()) {
             assertThat(mailer.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(expected);
         }
@@ -60,10 +64,11 @@ class MailSendRetryConfigurationTest {
         final MailSendRetryPolicy replacement = MailSendRetryPolicy.builder().withMaximumAttempts(4).withRetryDelay(Duration.ofSeconds(5))
                 .withWaitingCapacity(2).withMaximumMessageSize(1024).withMemoryLimit(4096).build();
         try (Mailer mailer = factory(policyProperties()).mailerBuilder().withMailSendRetryPolicy(replacement).buildMailer()) {
-            assertThat(mailer.getOperationalConfig().getMailSendRetryPolicy()).isSameAs(replacement);
+            assertThat(mailer.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(
+                    new MailSendRetryPolicy(4, Duration.ofSeconds(5), 1, null, 0, 2, 1024, 4096));
         }
         try (Mailer mailer = factory(policyProperties()).mailerBuilder().withMailSendRetryPolicy(replacement).clearMailSendRetryPolicy().buildMailer()) {
-            assertThat(mailer.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(MailSendRetryPolicy.builder().build());
+            assertThat(mailer.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(disabledPolicy());
         }
         assertThatNullPointerException().isThrownBy(() -> factory(new Properties()).mailerBuilder().withMailSendRetryPolicy(null));
     }
@@ -71,9 +76,10 @@ class MailSendRetryConfigurationTest {
     @Test void rejectsIncompleteConfigurationAndInvalidResourceBudgets() {
         final Properties incomplete = new Properties();
         incomplete.setProperty("simplejavamail.smtp.retry.attempts", "3");
-        assertThatIllegalArgumentException().isThrownBy(() -> factory(incomplete).mailerBuilder()).withMessageContaining("retry.delay");
+        assertThatIllegalArgumentException().isThrownBy(() -> factory(incomplete).mailerBuilder().buildMailer()).withMessageContaining("retry.delay");
         assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withWaitingCapacity(0).build());
-        assertThatIllegalArgumentException().isThrownBy(() -> MailSendRetryPolicy.builder().withMemoryLimit(1).build());
+        assertThatIllegalArgumentException().isThrownBy(() -> factory(new Properties()).mailerBuilder()
+                .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMemoryLimit(1).build()).buildMailer());
     }
 
     @Test void enforcesLockedPolicyAndResourceValuesWithoutReplacingOtherSettings() throws Exception {
@@ -89,7 +95,7 @@ class MailSendRetryConfigurationTest {
         assertThatIllegalArgumentException().isThrownBy(() -> mail.mailerBuilder().clearMailSendRetryPolicy().buildMailer())
                 .withMessageContaining("simplejavamail.locked.smtp.retry");
         assertThatIllegalArgumentException().isThrownBy(() -> mail.mailerBuilder().withMailSendRetryPolicy(
-                MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(1)).build()).buildMailer())
+                MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(1)).resetWaitingCapacity().build()).buildMailer())
                 .withMessageContaining("simplejavamail.locked.defaults.mailsend.retry.waitingcapacity");
     }
 
@@ -107,7 +113,7 @@ class MailSendRetryConfigurationTest {
             assertThat(policy.getWaitingCapacity()).isEqualTo(2);
             assertThat(policy.getMaximumMessageSize()).isEqualTo(1024);
             assertThat(policy.getMemoryLimit()).isEqualTo(4096);
-            assertThat(cleared.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(MailSendRetryPolicy.builder().build());
+            assertThat(cleared.getOperationalConfig().getMailSendRetryPolicy()).isEqualTo(disabledPolicy());
         }
     }
 
@@ -123,6 +129,11 @@ class MailSendRetryConfigurationTest {
         properties.setProperty("simplejavamail.smtp.retry.attempts", "3");
         properties.setProperty("simplejavamail.smtp.retry.delay", "PT1S");
         return properties;
+    }
+
+    private static MailSendRetryPolicy disabledPolicy() {
+        return new MailSendRetryPolicy(null, null, 1, null, 0, DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY,
+                DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE, DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT);
     }
 
     private static SimpleJavaMail factory(final Properties properties) {
