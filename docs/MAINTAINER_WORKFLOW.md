@@ -376,7 +376,9 @@ in the body, for example: `Refs bbottema/simple-java-mail#760, bbottema/simple-j
 For architecture-conformance changes, name the governing ADRs in the body and explain the alignment, for example:
 `Architecture: ADR 0002, ADR 0031.` Include implementation and documentation companions, also in the separate website repository.
 Reference the accepted decision accurately: do not imply that a retrospective clarification historically preceded its code.
-Keep test-first red/green evidence in the active plan during implementation, then commit/issue history and CI artifacts, not the ADR or a permanent per-feature audit file. Do not add sign-offs.
+Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Keep test and verification evidence out of commit messages: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, and claims that changes were tested or verified. A commit that changes test code may describe those changes without reporting execution results.
+
+Keep test-first red/green evidence in the active plan during implementation, then issue history and CI artifacts, not commit messages, the ADR or a permanent per-feature audit file. Do not add sign-offs.
 
 Keep unrelated changes out of the commit. Split docs, release notes, build fixes, and implementation work when they are independently meaningful.
 

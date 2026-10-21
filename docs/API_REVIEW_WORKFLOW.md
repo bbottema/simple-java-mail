@@ -45,7 +45,7 @@ If new evidence requires a different public contract, behavior or scope, bring t
 
 After design approval, reconcile the relevant Architecture Decision Records (ADRs). Clarify an existing ADR when it already owns the decision; create a new record for a distinct architectural choice. Link superseding decisions and update the [ADR index](adr/README.md) when needed.
 
-ADRs contain the architectural context, decision, rationale and consequences. Keep implementation tasks, functional specifications, acceptance checklists and dated test results in the issue, active plan, tests or commit/CI evidence. Record the real decision timing; an accepted ADR does not mean its implementation is finished.
+ADRs contain the architectural context, decision, rationale and consequences. Keep implementation tasks, functional specifications, acceptance checklists and dated test results in the issue, active plan, tests or CI artifacts. Keep test and verification evidence out of commit messages. Record the real decision timing; an accepted ADR does not mean its implementation is finished.
 
 Create one GitHub issue for each meaningful, coherent gap, or reuse an issue that already tracks that exact gap. Group related corrections when they share a contract; avoid generic audit tickets that hide unrelated changes. Minor typos, formatting and incidental wording tweaks do not need separate issues.
 
@@ -127,6 +127,8 @@ feat(api): align related configuration contracts (#123, #456)
 
 Name the governing ADRs and explain the alignment in the body, for example `Architecture: ADR 0002, ADR 0031.` Apply the same convention to supporting documentation and website commits. Website bodies also carry qualified main-repository issue references. Do not add sign-offs. Body references alone do not replace the subject suffix.
 
+Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Do not include test or verification evidence: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, or claims that the changes were tested or verified. Put that evidence in the issue, completion comment or CI artifacts instead. A commit that changes test code may describe those changes without reporting execution results. This rule applies to both repositories.
+
 Push only to the branches authorized for the round. When publishing both repositories, publish the website commit before the parent gitlink and verify the remote heads. History rewriting, force-pushing, deployment and releasing require their own explicit authorization; ordinary implementation approval does not imply them. If publication is still pending, retain the reviewed local commits and keep the issue open.
 
 Once the accepted implementation and its required companions are delivered:
@@ -142,6 +144,6 @@ If review rejects or defers a proposed repair, record the maintainer's dispositi
 
 Report completed issues and commits, deferred findings, pending approvals and any remaining compatibility or verification gaps. Reconcile the final public API with the ADRs, website, Journal, case studies and OpenRewrite plan once more across issues that interacted during the round.
 
-Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in commits/CI. Retire completed plans and one-off audit/verification reports after preserving their useful material in the maintained guides.
+Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in issue comments and CI artifacts. Retire completed plans and one-off audit/verification reports after preserving their useful material in the maintained guides.
 
 Use a bounded, task-owned scratch directory for temporary probes and track what was created. Stop owned helper processes and remove those temporary files when finished. Preserve other ongoing tracks, registered worktrees and unrelated artifacts; never clean a shared `.local` or temporary parent directory wholesale.
