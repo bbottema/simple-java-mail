@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#853](https://github.com/bbottema/simple-java-mail/issues/853): required S/MIME key-store and certificate setters reject null before
+  changing an earlier builder choice. Algorithm preferences and completed configurations retain their existing behavior.
+
 - [#852](https://github.com/bbottema/simple-java-mail/issues/852): calendar method and text resolve together from one Email template.
   Excluding either calendar selector skips that source's whole calendar while retaining the submitted calendar and independent encoding choice.
   See the [migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#calendar-template-values).

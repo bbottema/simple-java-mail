@@ -74,6 +74,11 @@ adds per-operation choices and corrects raw-property precedence. [ADR 0015](0015
 owns supplied-Session inspection and resource boundaries; [ADR 0025](0025-factory-scoped-locked-configuration.md#socket-timeout-lock-scope-accepted-22-october-2026)
 defines individual versus shared lock scope. These decisions target unreleased 10.0.0; the issue tracks implementation and delivery.
 
+The [required S/MIME builder-material clarification](0031-public-api-and-internal-construction.md#required-material-inside-smime-configuration-builders-accepted-22-october-2026)
+accepted on 22 October 2026 under [#853](https://github.com/bbottema/simple-java-mail/issues/853) extends rejection before mutation
+to nested key-store and certificate setters. It preserves algorithm preferences, completed-value construction and optional-module ownership.
+This correction targets unreleased 10.0.0; the issue tracks delivery.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
