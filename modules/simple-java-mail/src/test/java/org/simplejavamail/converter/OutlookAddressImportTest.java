@@ -3,18 +3,25 @@ package org.simplejavamail.converter;
 import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedConstruction;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.outlookmessageparser.OutlookMessageParser;
+import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -25,6 +32,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.when;
 
 /** Exercises real Outlook containers through both public import routes, independently of outgoing convenience parsing. */
 class OutlookAddressImportTest {
@@ -55,6 +65,9 @@ class OutlookAddressImportTest {
                 assertThat(recipient.getAddress()).isEqualTo(expectedAddress);
                 assertThat(recipient.getName()).isEqualTo(expectedName);
             }
+            if ("Return-Path".equals(header) && ("broken <address".equals(source) || "(comment only)".equals(source))) {
+                assertThat(email.getHeaders().get("Return-Path")).containsExactly(source);
+            }
             assertMessageContentSurvived(email);
             assertThat(email.getFromRecipient().getAddress()).isEqualTo("elias.laugher@gmail.com");
         }
@@ -71,11 +84,55 @@ class OutlookAddressImportTest {
                         Arguments.of(header, "First <first@example.org>, Second <second@example.org>", "First", "first@example.org"),
                         Arguments.of(header, "Team:first@example.org;", null, "Team:first@example.org;"),
                         Arguments.of(header, "Undisclosed:;", null, "Undisclosed:;"),
-                        Arguments.of(header, "broken <address", null, "broken <address"),
-                        Arguments.of(header, "(comment only)", null, "(comment only)"),
+                        Arguments.of(header, "broken <address", null, "Return-Path".equals(header) ? null : "broken <address"),
+                        Arguments.of(header, "(comment only)", null, "Return-Path".equals(header) ? null : "(comment only)"),
                         Arguments.of(header, "<>", null, null),
                         Arguments.of(header, "", null, null),
                         Arguments.of(header, "   ", null, null)));
+    }
+
+    @Test
+    void mixedCaseReturnPathKeepsItsEstablishedAddressAndUnicodeName() throws Exception {
+        final byte[] msg = withAddressHeader("rEtUrN-pAtH", "\"Jáné Döe\" <jane@example.org>");
+        for (Email email : Arrays.asList(mail.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail(),
+                EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg)))) {
+            assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("jane@example.org");
+            assertThat(email.getBounceToRecipient().getName()).isEqualTo("Jáné Döe");
+            assertMessageContentSurvived(email);
+        }
+    }
+
+    @Test
+    void uninterpretableReturnPathsRetainMixedCaseSourceOccurrenceOrder() throws Exception {
+        final byte[] msg = withAddressHeader("Return-Path", "(first)\r\nreturn-path: broken <address\r\nRETURN-PATH: (last)");
+        final OutlookEmailConversionResult imported = mail.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmailBuilderWithOutlookData();
+        for (Email email : Arrays.asList(imported.buildEmail(), EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg)))) {
+            assertThat(email.getBounceToRecipient()).isNull();
+            assertThat(email.getHeaders().get("Return-Path")).containsExactly("(first)", "broken <address", "(last)");
+            assertMessageContentSurvived(email);
+        }
+        assertThat(imported.getOutlookMessageData().getRawHeaders()).contains("return-path: broken <address", "RETURN-PATH: (last)");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"Subject: Other source headers\r\n"})
+    void availableParsedReturnPathsSurviveAbsentRawSource(final String rawHeaders) throws Exception {
+        final byte[] msg = withAddressHeader("Return-Path", "(first)\r\nReturn-Path: broken <address");
+        final OutlookMessage parsed = new OutlookMessageParser().parseMsg(new ByteArrayInputStream(msg));
+        final Field source = OutlookMessage.class.getDeclaredField("headers");
+        source.setAccessible(true);
+        source.set(parsed, rawHeaders);
+        // A specialist parser can retain interpreted headers even when the original header text is unavailable.
+        try (MockedConstruction<OutlookMessageParser> ignored = mockConstruction(OutlookMessageParser.class,
+                (parser, context) -> when(parser.parseMsg(any(InputStream.class))).thenReturn(parsed))) {
+            for (Email email : Arrays.asList(mail.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail(),
+                    EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg)))) {
+                assertThat(email.getBounceToRecipient()).isNull();
+                assertThat(email.getHeaders().get("Return-Path")).containsExactly("(first)", "broken <address");
+                assertMessageContentSurvived(email);
+            }
+        }
     }
 
     @ParameterizedTest

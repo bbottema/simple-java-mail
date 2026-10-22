@@ -191,14 +191,31 @@ public final class MimeMessageParser {
 			parsedComponents.dispositionNotificationToRecipients.addAll(createAddressesFromEncodedHeader(header));
 		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_RECEIPT_TO.getName())) {
 			parsedComponents.returnReceiptToRecipients.addAll(createAddressesFromEncodedHeader(header));
-		} else if (isEmailHeader(decodedHeader, MessageHeader.RETURN_PATH.getName())) {
-			parsedComponents.bounceToAddress = createAddressFromEncodedHeader(header, MessageHeader.RETURN_PATH.getName());
+		} else if (decodedHeader.getName().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName())) {
+			parseReturnPathHeader(header, parsedComponents);
 		} else {
 			if (!parsedComponents.headers.containsKey(decodedHeader.getName())) {
 				parsedComponents.headers.put(decodedHeader.getName(), new ArrayList<>());
 			}
 			parsedComponents.headers.get(decodedHeader.getName()).add(MimeUtility.unfold(decodedHeader.getValue()));
 		}
+	}
+
+	private static void parseReturnPathHeader(final Header header, final ParsedMimeMessageComponents parsedComponents) {
+		try {
+			final String source = header.getValue();
+			final InternetAddress[] addresses = source.trim().isEmpty() || source.trim().equals("<>")
+					? new InternetAddress[0] : InternetAddress.parseHeader(source, true);
+			if (addresses.length > 0) {
+				parsedComponents.bounceToAddress = addresses[0];
+				return;
+			}
+		} catch (final AddressException unparseable) {
+			// Keep the source header when no bounce address can be interpreted.
+		}
+		parsedComponents.bounceToAddress = null;
+		parsedComponents.headers.computeIfAbsent(MessageHeader.RETURN_PATH.getName(), ignored -> new ArrayList<>())
+				.add(MimeUtility.unfold(header.getValue()));
 	}
 
 	private static boolean isEmailHeader(DecodedHeader header, String emailHeaderName) {
@@ -348,19 +365,6 @@ public final class MimeMessageParser {
 			final InternetAddress original = new InternetAddress();
 			original.setAddress(header.getValue());
 			return Collections.singletonList(original);
-		}
-	}
-
-	@Nullable
-	static InternetAddress createAddressFromEncodedHeader(final Header headerWithAddress, final String typeOfAddress) {
-		val encodedAddress = headerWithAddress.getValue();
-		try {
-			return encodedAddress.trim().isEmpty() ? null : InternetAddress.parseHeader(encodedAddress, true)[0];
-		} catch (final AddressException e) {
-			if (e.getMessage().equals("Empty address")) {
-				return null;
-			}
-			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_PARSING_ADDRESS, typeOfAddress, encodedAddress), e);
 		}
 	}
 

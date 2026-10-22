@@ -6,6 +6,8 @@ import org.simplejavamail.internal.outlooksupport.model.EmailFromOutlookMessageI
 import org.simplejavamail.internal.outlooksupport.model.OutlookMessageDataImpl;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.Header;
+import jakarta.mail.internet.InternetHeaders;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.AddressException;
@@ -35,6 +37,9 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -104,9 +109,11 @@ public class OutlookEmailConverter implements OutlookModule {
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
 		outlookMessage.getHeadersMap().entrySet().stream()
 				.filter(e -> !valueNullOrEmpty(e.getKey()))
+				.filter(e -> !e.getKey().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName()))
 				.forEach((entry) -> entry.getValue()
 						.forEach(headerValue -> parseHeader(entry.getKey(), MimeUtility.unfold(headerValue), builder))
 				);
+		parseReturnPathHeaders(outlookMessage, builder);
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
 		builder.fixingMessageId(outlookMessage.getMessageId());
@@ -194,13 +201,50 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.withDispositionNotificationTo(importedRecipients(null, headerValue));
 		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
 			builder.withReturnReceiptTo(importedRecipients(null, headerValue));
-		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_PATH.getName())) {
-			builder.withBounceTo(importedRecipient(null, headerValue));
 		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
 		} else {
 			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
+	}
+
+	private static void parseReturnPathHeaders(final OutlookMessage message, final EmailPopulatingBuilder builder) {
+		if (message.getHeaders() != null) {
+			try {
+				final InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(message.getHeaders().getBytes(StandardCharsets.UTF_8)), true);
+				boolean foundReturnPath = false;
+				for (final Enumeration<Header> entries = headers.getAllHeaders(); entries.hasMoreElements();) {
+					final Header header = entries.nextElement();
+					if (header.getName().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName())) {
+						parseReturnPathHeader(MimeUtility.unfold(header.getValue()), builder);
+						foundReturnPath = true;
+					}
+				}
+				if (foundReturnPath) {
+					return;
+				}
+			} catch (final MessagingException unreadable) {
+				// Fall back to the specialist parser's available header values.
+			}
+		}
+		message.getHeadersMap().entrySet().stream()
+				.filter(entry -> entry.getKey() != null && entry.getKey().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName()))
+				.forEach(entry -> entry.getValue().forEach(value -> parseReturnPathHeader(MimeUtility.unfold(value), builder)));
+	}
+
+	private static void parseReturnPathHeader(final String source, final EmailPopulatingBuilder builder) {
+		try {
+			final InternetAddress[] addresses = source.trim().isEmpty() || source.trim().equals("<>")
+					? new InternetAddress[0] : InternetAddress.parse(source, false);
+			if (addresses.length > 0) {
+				builder.withBounceTo(new Recipient(addresses[0].getPersonal(), addresses[0].getAddress(), null, null));
+				return;
+			}
+		} catch (final AddressException unparseable) {
+			// Keep the source header when no bounce address can be interpreted.
+		}
+		builder.withBounceTo((Recipient) null);
+		builder.withHeader(MessageHeader.RETURN_PATH.getName(), source);
 	}
 
 	@NotNull

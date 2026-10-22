@@ -2,17 +2,14 @@ package org.simplejavamail.converter.internal.mimemessage;
 
 import jakarta.activation.DataHandler;
 import jakarta.mail.BodyPart;
-import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.ParameterList;
 import jakarta.mail.util.ByteArrayDataSource;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -26,13 +23,11 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.moveInvalidEmbeddedResourcesToAttachments;
 
 public class MimeMessageParserTest {
@@ -154,34 +149,6 @@ public class MimeMessageParserTest {
 				.name(name)
 				.dataSource(new ByteArrayDataSource("moomoo", "text/plain"))
 				.build();
-	}
-	
-	@Test
-	public void testCreateAddress() throws UnsupportedEncodingException {
-		assertThat(interpretRecipient("a@b.com")).isEqualTo(new InternetAddress("a@b.com", null));
-		assertThat(interpretRecipient(" a@b.com ")).isEqualTo(new InternetAddress("a@b.com", null));
-		assertThat(interpretRecipient(" <a@b.com> ")).isEqualTo(new InternetAddress("a@b.com", null));
-		assertThat(interpretRecipient(" < a@b.com > ")).isEqualTo(new InternetAddress("a@b.com", null));
-		assertThat(interpretRecipient("moo <a@b.com>")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient("moo<a@b.com>")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient(" moo< a@b.com   > ")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient("\"moo\" <a@b.com>")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient("\"moo\"<a@b.com>")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient(" \"moo\"< a@b.com   > ")).isEqualTo(new InternetAddress("a@b.com", "moo"));
-		assertThat(interpretRecipient(" \"  m oo  \"< a@b.com   > ")).isEqualTo(new InternetAddress("a@b.com", "  m oo  "));
-		assertThat(interpretRecipient("< >")).isNull();
-		assertThat(interpretRecipient("")).isNull();
-		assertThat(interpretRecipient(" ")).isNull();
-
-		// next one is unparsable by InternetAddress#parse(), so it should be taken as is
-		assertThatThrownBy(() -> interpretRecipient(" \"  m oo  \" a@b.com    "))
-				.isInstanceOf(MimeMessageParseException.class)
-				.hasMessage("Error parsing [TO] address [ \"  m oo  \" a@b.com    ]");
-	}
-
-	@Nullable
-	private InternetAddress interpretRecipient(String address) {
-        return MimeMessageParser.createAddressFromEncodedHeader(new Header("ignored", address), "TO");
 	}
 	
 	@Test

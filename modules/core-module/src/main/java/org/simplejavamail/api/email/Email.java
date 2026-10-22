@@ -679,6 +679,9 @@ public class Email implements Serializable {
 	}
 	
 	/**
+	 * Returns the configured or interpreted bounce recipient, or null when absent. When an imported Return-Path cannot establish an address,
+	 * its original value remains in {@link #getHeaders()} and this accessor returns null instead of representing the source text as an address.
+	 *
 	 * @see EmailPopulatingBuilder#withBounceTo(Recipient)
 	 */
 	@Nullable
