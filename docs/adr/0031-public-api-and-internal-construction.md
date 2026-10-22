@@ -12,6 +12,13 @@ A required, non-null configuration argument rejects null before changing a build
 
 Apply this established required-input idiom to signWithSmime(SmimeSigningConfig) and encryptWithSmime(SmimeEncryptionConfig): reject null before assignment and retain the existing clearSmimeSigning(), clearSmimeEncryption() and clearSmime() operations. Email-level clearing leaves recipient certificates and template fallback under their existing contracts. Optional algorithm nulls still select the module defaults; collecting a configuration performs no cryptographic work or module loading. [#833](https://github.com/bbottema/simple-java-mail/issues/833) tracks this alignment.
 
+The same required-input rule applies to individual and group recipient certificates: `withSmimeCertificate`, `withDefaultSmimeCertificate`
+and `withFixedSmimeCertificate` reject null before replacing either the certificate or the group policy mode. A missing certificate must not
+silently select a clearing policy or remove certificates already supplied by recipients. Explicit clear/reset operations retain their existing
+meaning; accepting a certificate still performs no cryptographic interpretation. This application was accepted on 22 October 2026 under
+[#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
+the issue tracks delivery.
+
 ## Context and decision drivers
 
 Applications should discover operations they are meant to call. Java sometimes requires a class or constructor to be public so another

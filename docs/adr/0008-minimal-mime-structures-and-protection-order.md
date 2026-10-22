@@ -50,9 +50,27 @@ Use `UNKNOWN` in the existing S/MIME mode, verification and decryption result en
 corresponding fact. A separately checked availability flag must not leave the existing getters making contradictory assertions. Recognizable
 headers may establish an outer encryption mode without establishing verification or decryption outcomes. The legacy signature-valid Boolean
 is absent for unknown inspection. Known failures remain distinguishable, and an unknown represented layer prevents an aggregate all-valid
-or all-decrypted claim. This clarification concerns S/MIME; equivalent OpenPGP changes require a separate scope decision.
+or all-decrypted claim. This clarification concerns S/MIME; the separate OpenPGP decision below was accepted on 22 October 2026.
 
 This clarification is implemented under [#822](https://github.com/bbottema/simple-java-mail/issues/822) for unreleased 10.0.0.
+
+## Unavailable OpenPGP inspection (accepted 22 October 2026)
+
+Use `UNKNOWN` when OpenPGP inspection could not happen, including ordinary import without the optional implementation. Keep missing-key
+results and actual verification/decryption failures distinct. Recognizable outer headers can establish encryption or a visible signed envelope;
+an unreadable encrypted layer does not establish the presence or absence of an inner signature. Its signature status remains unknown.
+
+For an observed outer signed envelope without the module, retain SIGNED with UNKNOWN verification and NOT_ENCRYPTED decryption for that outer
+layer. An observed encrypted envelope retains ENCRYPTED with UNKNOWN verification and decryption. A structural inspection failure that cannot
+classify the envelope uses UNKNOWN for all three facts rather than inventing plain content. Missing decryption keys and actual decryption
+failures retain their corresponding result, with UNKNOWN signature status while their ciphertext remains uninspected. Ordinary confirmed plain
+input and successfully decrypted unsigned content retain their established absence results.
+
+Preserve accessible content and original protected bytes, existing copying/snapshot ownership and explicit-operation module requirements.
+Do not add a separate availability Boolean that leaves the existing result getters asserting contradictory facts. Key discovery and trust policy
+remain outside this decision. [#839](https://github.com/bbottema/simple-java-mail/issues/839) tracks this accepted design for unreleased 10.0.0;
+implementation follows this distinction on the 10.0.0 development branch. This does not reopen the completed S/MIME repair or the original
+OpenPGP feature.
 
 ## MIME producer selection
 

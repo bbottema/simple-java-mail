@@ -105,6 +105,17 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#839](https://github.com/bbottema/simple-java-mail/issues/839): OpenPGP inspection reports `UNKNOWN` when facts cannot be established, preserving
+  missing-key and actual-failure results while leaving signatures inside unreadable ciphertext unknown.
+- [#838](https://github.com/bbottema/simple-java-mail/issues/838): MIME/EML and Outlook import retain an unusable Return-Path as a source header,
+  leave its interpreted bounce recipient absent, and continue reading the rest of the message.
+- [#835](https://github.com/bbottema/simple-java-mail/issues/835): required recipient and group S/MIME certificate setters reject null before
+  changing an existing certificate or policy. Use the explicit clear/reset operations for removal or restoration.
+- [#836](https://github.com/bbottema/simple-java-mail/issues/836): repeated CLI builder options retain their separate arguments and command-line
+  order, preserving recipient and attachment additions as well as replacement and clear/reset behavior.
+- [#837](https://github.com/bbottema/simple-java-mail/issues/837): unnamed attachments without a Content-Type header retain the existing
+  `UnknownAttachment` fallback instead of aborting an otherwise readable MIME/EML import.
+
 - [#828](https://github.com/bbottema/simple-java-mail/issues/828): eager MIME attachment and calendar extraction close the streams they open,
   retaining read causes and suppressed close failures while preserving borrowed input ownership.
 - [#829](https://github.com/bbottema/simple-java-mail/issues/829): role-less visible recipients default to To and survive copying, completion and

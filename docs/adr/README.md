@@ -50,6 +50,19 @@ The 22 October API review clarifies [role-less visible recipients](0001-email-co
 
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
+Further accepted 22 October corrections apply required certificate arguments under [ADR 0031](0031-public-api-and-internal-construction.md#required-choices-and-explicit-removal-accepted-22-october-2026)
+to recipient/group setters (#835), preserve each repeated CLI builder call under [ADR 0018](0018-cli-from-builder-contracts.md#preserve-each-supplied-builder-call-accepted-22-october-2026)
+(#836), and retain unnamed attachments with absent Content-Type under [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#837).
+These repairs are implemented for unreleased 10.0.0; their issues record development-branch delivery.
+
+The subsequent [Return-Path clarification](0035-tolerant-reading-and-strict-production.md#uninterpretable-imported-return-path-accepted-22-october-2026)
+under #838 preserves unusable imported source headers while leaving an unestablished bounce recipient absent. It is accepted for implementation
+across MIME/EML and Outlook and implemented/reviewed locally for unreleased 10.0.0; caller-built recipients retain their separate lenient contract.
+
+The [OpenPGP unavailable-inspection decision](0008-minimal-mime-structures-and-protection-order.md#unavailable-openpgp-inspection-accepted-22-october-2026)
+under #839 uses UNKNOWN for facts that could not be inspected, retaining missing-key and genuine
+cryptographic-failure results. It is implemented for unreleased 10.0.0, separately from the completed S/MIME correction under #822.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

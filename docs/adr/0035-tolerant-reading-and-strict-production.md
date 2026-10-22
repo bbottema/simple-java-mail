@@ -34,9 +34,25 @@ isolate malformed fields or optional interpretation failures instead of discardi
 Use Jakarta Mail and existing specialist importers for their parsing responsibilities. Add narrow recovery at the interpretation boundary, not a
 second general MIME parser, global permissive JVM/Session settings, indiscriminate exception handling or an automatic repair-and-retry pipeline.
 
-Recipient interpretation must also handle a successful parser call that produces no mailbox, such as a comment-only string. Retain the original
-nonempty source under the existing lenient builder contract, just as for a parsing exception, without inventing an address or changing its chosen
-name. Missing-input checks still apply, and ordinary outgoing validation rejects an unusable retained address before submission.
+Missing attachment naming metadata must not discard an otherwise readable message. When both the filename and Content-Type header are absent,
+retain the existing `UnknownAttachment` fallback without requiring content reads or changing eager/lazy ownership. Keep the established forwarded
+message naming rule separate from this missing-header correction. This application was accepted on 22 October 2026 under
+[#837](https://github.com/bbottema/simple-java-mail/issues/837). The correction is implemented and reviewed locally for unreleased 10.0.0;
+the issue tracks delivery.
+
+### Uninterpretable imported Return-Path (accepted 22 October 2026)
+
+Preserve source evidence without manufacturing a parsed bounce recipient. For MIME/EML and Outlook import, a Return-Path that produces no
+address or cannot be parsed remains available through the existing `Email.getHeaders()` map; `getBounceToRecipient()` remains null for that
+value. Continue importing neighboring readable content. Missing/blank and explicit null return paths do not establish a bounce address;
+successfully parsed input keeps the existing mailbox/name interpretation. This correction is tracked by
+[#838](https://github.com/bbottema/simple-java-mail/issues/838). It is implemented and reviewed locally for unreleased 10.0.0; the issue tracks
+delivery.
+
+This distinguishes imported source interpretation from the existing lenient caller-built Recipient contract. Caller builders can still retain
+nonempty unparseable input, including a successful zero-mailbox parse, for ordinary outgoing validation instead of inventing an address or
+changing its chosen name. Missing-input checks remain. This decision does not normalize every inbound address field, change recipient-group
+semantics, add a second source-header API or apply an outgoing validator while reading external mail.
 
 Clarification accepted 2026-10-21: list-capable Email conveniences and plural recipient inputs accept complete mailbox lists and expand RFC
 group members under [ADR 0001](0001-email-configuration-scopes-and-inheritance.md#accepted-address-list-follow-up-20-october-2026).
@@ -62,6 +78,9 @@ Leniency is not proof of authenticity or permission to retry. Continue verifying
 honestly, and preserving exact/protected representations. Do not normalize signed bytes to manufacture a successful verification result.
 The unavailable S/MIME inspection clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#unavailable-smime-inspection-accepted-2026-10-21)
 keeps uninspected protection distinct from confirmed absence and from cryptographic failure while retaining tolerant ordinary import.
+The corresponding OpenPGP distinction is implemented for unreleased 10.0.0 under [#839](https://github.com/bbottema/simple-java-mail/issues/839).
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#unavailable-openpgp-inspection-accepted-22-october-2026)
+records the unknown/missing-key/failure distinction.
 
 EML-to-Email conversion retains the original protected bytes before a MIME representation can normalize tolerated formatting, including LF or
 mixed header line endings. The configured fluent route and static compatibility route have the same source-preservation obligation. A direct

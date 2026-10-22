@@ -11,6 +11,14 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+### Preserve each supplied builder call (accepted 22 October 2026)
+
+Repeated CLI builder options represent separate invocations in command-line order. Keep each occurrence's arguments together, including omitted
+optional arguments, rather than combining occurrences into one call or deduplicating them by option name. Repeated additions retain all values;
+replacement and clear/reset operations follow the same ordered semantics as the corresponding Java builder calls. This does not rename options,
+change units or alter mailbox interpretation and exact-envelope validation. [#836](https://github.com/bbottema/simple-java-mail/issues/836) tracks
+this correction, implemented and reviewed locally for unreleased 10.0.0. The issue remains open for delivery.
+
 Accepted consolidation, 20 October 2026: extend the internal scalar adapters to cover all settings moved into the advanced Mailer and
 Email groups. Java grouping does not change existing CLI option names, units or invocation order. Generate adapter documentation from
 the same feature contracts and retain numeric-duration bridges; do not expose group-construction objects as command-line arguments.
