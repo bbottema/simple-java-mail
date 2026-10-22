@@ -34,6 +34,18 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Root message and child header ownership (accepted 22 October 2026)
+
+After existing protection preprocessing selects the effective root message, its headers alone supply the Email's message-level facts and
+generic headers. Headers on attachment parts, body parts and nested multipart containers describe those parts; they cannot replace the root
+bounce address, add root receipt destinations or appear as root custom headers. A separately imported attached message has its own root.
+
+Continue extracting established per-part resource metadata and content through their existing paths. Readable messages with misplaced child
+headers remain importable; ignore those fields at the parent level without adding an arbitrary attachment-header storage API or warning scheme.
+This keeps source ownership consistent with [ADR 0035](0035-tolerant-reading-and-strict-production.md#misplaced-child-headers-accepted-22-october-2026).
+It does not alter protection selection, verification, original/exact byte boundaries or lazy resource ownership. The maintainer approved this
+correction under [#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Unavailable S/MIME inspection (accepted 2026-10-21)
 
 Ordinary inbound conversion remains tolerant when the optional S/MIME module is absent. Expose an honest indicator of unavailable
