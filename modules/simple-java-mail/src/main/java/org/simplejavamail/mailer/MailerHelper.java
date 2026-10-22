@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer;
 
 import com.sanctionco.jmail.EmailValidator;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
@@ -14,7 +15,10 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.smime.SmimeMessageProtection;
+import org.simplejavamail.mailer.internal.MailerException;
 import org.slf4j.Logger;
 
 import java.util.Collection;
@@ -289,15 +293,31 @@ public class MailerHelper {
 
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
+	 * The supplied {@code messageToProtect} remains the input, including any application changes to its content or headers;
+	 * it is not rebuilt from the Email. The Email supplies already selected S/MIME configuration, without applying Mailer
+	 * defaults or overrides. This helper does not apply DKIM or OpenPGP choices.
+	 * <p>
+	 * Signing and encryption are independently optional. Recipient-level TO/CC/BCC certificates trigger encryption and take
+	 * precedence over the Email-level certificate, which remains the fallback for recipients without their own certificate.
+	 * Encryption algorithms come from the Email-level configuration when present, otherwise the S/MIME module's defaults apply.
+	 * Each transformed stage is finalized before further protection, retaining stable bytes for repeated writes.
+	 * <p>
+	 * With no S/MIME signing or encryption request, returns the same message instance without reading or finalizing its content
+	 * or loading the optional module. Requested protection requires the S/MIME module on the runtime classpath.
 	 *
+	 * @return The finalized protected message, or the supplied instance when no S/MIME operation was requested.
+	 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if MIME finalization fails; the original cause is retained.
+	 *         Missing-module and cryptographic failures retain their existing exception types.
 	 * @see org.simplejavamail.internal.modules.SMIMEModule#signMessageWithSmime(Session, Email, MimeMessage, SmimeSigningConfig)
 	 * @see org.simplejavamail.internal.modules.SMIMEModule#encryptMessageWithSmime(Session, Email, MimeMessage, SmimeEncryptionConfig)
+	 * @see org.simplejavamail.internal.modules.SMIMEModule#encryptMessageWithSmimeForRecipients(Session, Email, MimeMessage, Collection, String, String)
 	 */
 	@SuppressWarnings("unused")
 	public static MimeMessage signAndOrEncryptMessageWithSmime(@NotNull final Session session, @NotNull final MimeMessage messageToProtect, @NotNull final Email emailContainingSmimeDetails) {
-		MimeMessage message = messageToProtect;
-		message = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getSmimeSigningConfig(), "SmimeSigningConfig"));
-		message = ModuleLoader.loadSmimeModule().encryptMessageWithSmime(session, emailContainingSmimeDetails, message, requireNonNull(emailContainingSmimeDetails.getSmimeEncryptionConfig(), "SmimeEncryptionConfig"));
-		return message;
+		try {
+			return SmimeMessageProtection.apply(session, messageToProtect, emailContainingSmimeDetails);
+		} catch (MessagingException e) {
+			throw new MailerException(MailFailureKind.PREPARATION, "Unable to finalize S/MIME protected message", e);
+		}
 	}
 }
