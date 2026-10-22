@@ -22,6 +22,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 import static java.lang.String.format;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * @see SmimeEncryptionConfigBuilder#keyEncapsulationAlgorithm(String)
@@ -72,11 +73,18 @@ public class SmimeEncryptionConfig implements Serializable {
         private String cipherAlgorithm;
 
         /**
+         * Selects the required recipient certificate, retaining its identity without interpreting it or loading the S/MIME module.
+         * Calling again replaces the certificate while retaining both algorithm preferences. A null argument is rejected
+         * before changing an earlier choice. Optional algorithm nulls still select their documented module defaults.
+         *
+         * @param x509Certificate The required recipient certificate, borrowed without copying.
+         * @return This builder.
+         * @throws IllegalArgumentException If the certificate is null; the previous selection remains intact.
          * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
          * @see org.simplejavamail.api.email.config.SmimeEncryptionConfig.SmimeEncryptionConfigBuilder#x509Certificate(File)
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final X509Certificate x509Certificate) {
-            this.x509Certificate = x509Certificate;
+            this.x509Certificate = checkNonEmptyArgument(x509Certificate, "x509Certificate");
             return this;
         }
 

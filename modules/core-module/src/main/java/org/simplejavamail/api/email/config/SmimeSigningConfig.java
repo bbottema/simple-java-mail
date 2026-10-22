@@ -20,6 +20,7 @@ import java.nio.file.Path;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * S/MIME signing configuration. Since 9.2.0 this object is serializable so an {@code Email} keeps its signing behavior across a Java serialization
@@ -67,11 +68,18 @@ public class SmimeSigningConfig implements Serializable {
         private String signatureAlgorithm;
 
         /**
+         * Selects the required PKCS12 key material without interpreting it or loading the S/MIME module.
+         * Calling again replaces the material while retaining the signature-algorithm preference. A null argument is rejected
+         * before changing an earlier choice. Optional algorithm nulls still select their documented module defaults.
+         *
+         * @param pkcs12Config The required key-store configuration.
+         * @return This builder.
+         * @throws IllegalArgumentException If the key-store configuration is null; the previous selection remains intact.
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
          * @see org.simplejavamail.api.email.config.SmimeSigningConfig.SmimeSigningConfigBuilder#pkcs12Config(File, String, String, String)
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull Pkcs12Config pkcs12Config) {
-            this.pkcs12Config = pkcs12Config;
+            this.pkcs12Config = checkNonEmptyArgument(pkcs12Config, "pkcs12Config");
             return this;
         }
 

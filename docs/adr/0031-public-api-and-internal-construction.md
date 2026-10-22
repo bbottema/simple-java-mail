@@ -19,6 +19,20 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Required material inside S/MIME configuration builders (accepted 22 October 2026)
+
+The same required-input rule applies to `SmimeSigningConfigBuilder.pkcs12Config(Pkcs12Config)` and
+`SmimeEncryptionConfigBuilder.x509Certificate(X509Certificate)`. Reject a null argument before replacing the stored key-store
+configuration or borrowed certificate, retaining all algorithm preferences and previously completed configurations. Valid material
+replacement preserves those preferences too. Completed configuration construction already rejects missing required material;
+this clarification moves an explicit missing-argument failure to the setter without changing that construction invariant.
+
+Optional algorithm nulls still defer to the S/MIME module's documented defaults. Collecting these core-owned choices performs no
+cryptography and does not load the optional module, following [ADR 0006](0006-optional-modules.md); certificate identity and key-store
+snapshot/serialization retain [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md). This adds no material clear/reset
+operation or new public API. [#853](https://github.com/bbottema/simple-java-mail/issues/853) tracks this follow-up to #833 and #835
+for unreleased 10.0.0.
+
 ### OpenPGP recipient-key replacement (accepted 22 October 2026)
 
 Required collection replacements reject a null collection or a null element before changing stored choices. For
