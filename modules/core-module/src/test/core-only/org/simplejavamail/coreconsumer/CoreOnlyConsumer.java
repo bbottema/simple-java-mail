@@ -59,6 +59,9 @@ public final class CoreOnlyConsumer {
     public static java.time.Duration inspectTypedConfiguration(final SimpleJavaMailConfig config) {
         final Integer port = config.get(org.simplejavamail.config.ConfigKeys.SMTP_PORT);
         final java.time.Duration timeout = config.get(org.simplejavamail.config.ConfigKeys.SESSION_TIMEOUT);
+        final java.time.Duration connect = config.get(org.simplejavamail.config.ConfigKeys.CONNECT_TIMEOUT);
+        final java.time.Duration read = config.get(org.simplejavamail.config.ConfigKeys.READ_TIMEOUT);
+        final java.time.Duration write = config.get(org.simplejavamail.config.ConfigKeys.WRITE_TIMEOUT);
         final java.util.Map<String, String> extras = config.get(org.simplejavamail.config.ConfigKeys.EXTRA_PROPERTIES);
         final java.util.Map<String, SimpleJavaMailConfig> named = config.get(org.simplejavamail.config.ConfigKeys.NAMED_MAILERS);
         config.hasProperty(org.simplejavamail.config.ConfigKeys.SMTP_PORT);
@@ -136,6 +139,35 @@ public final class CoreOnlyConsumer {
 
     public static java.time.Duration inspectCommonTimeout(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
         return configuration.getSessionTimeout();
+    }
+
+    /** Socket timeout configuration and effective inspection need only core and its declared API dependencies. */
+    public static org.simplejavamail.api.mailer.config.ConnectionConfig configureSocketTimeouts(final MailerRegularBuilder<?> builder) {
+        final org.simplejavamail.api.mailer.config.ConnectionConfig.Builder choices =
+                org.simplejavamail.api.mailer.config.ConnectionConfig.builder().withSessionTimeout(java.time.Duration.ofSeconds(30))
+                        .withConnectTimeout(java.time.Duration.ofSeconds(10)).withReadTimeout(java.time.Duration.ofSeconds(45))
+                        .withWriteTimeout(java.time.Duration.ofSeconds(20));
+        choices.getConnectTimeout();
+        choices.getReadTimeout();
+        choices.getWriteTimeout();
+        choices.getSessionTimeout();
+        final org.simplejavamail.api.mailer.config.ConnectionConfig configuration = choices.build();
+        configuration.getConnectTimeout();
+        configuration.getReadTimeout();
+        configuration.getWriteTimeout();
+        configuration.getSessionTimeout();
+        builder.withConnectionConfig(configuration);
+        configuration.toBuilder().resetConnectTimeout().useConfiguredConnectTimeout()
+                .resetReadTimeout().useConfiguredReadTimeout().resetWriteTimeout().useConfiguredWriteTimeout()
+                .resetSessionTimeout().useConfiguredSessionTimeout().build();
+        return configuration;
+    }
+
+    public static void inspectSocketTimeouts(final org.simplejavamail.api.mailer.config.OperationalConfig configuration) {
+        final java.time.Duration connect = configuration.getConnectTimeout();
+        final java.time.Duration read = configuration.getReadTimeout();
+        final java.time.Duration write = configuration.getWriteTimeout();
+        final java.time.Duration common = configuration.getSessionTimeout();
     }
 
     public static java.util.Collection<Recipient> resetGroupPolicies(final IRecipientsBuilder group) {

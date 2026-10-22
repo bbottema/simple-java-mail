@@ -177,6 +177,9 @@ final class PropertySchema {
 				Property.SMTP_LOCAL_ADDRESS,
 				Property.SMTP_LOCAL_PORT,
 				Property.DEFAULT_SESSION_TIMEOUT_MILLIS,
+				Property.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+				Property.DEFAULT_READ_TIMEOUT_MILLIS,
+				Property.DEFAULT_WRITE_TIMEOUT_MILLIS,
 				Property.TRANSPORT_MODE_LOGGING_ONLY);
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.REDACT, Property.SMTP_PASSWORD);
 		setDiagnostics(TRANSPORT_SECURITY, SensitivityPolicy.VISIBLE,

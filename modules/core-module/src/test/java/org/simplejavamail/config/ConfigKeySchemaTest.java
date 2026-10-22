@@ -55,6 +55,9 @@ class ConfigKeySchemaTest {
         final SimpleJavaMailConfig config = ConfigLoader.builder().load();
         assertThat(config.get(ConfigKeys.SMTP_PORT)).isNull();
         assertThat(config.get(ConfigKeys.SESSION_TIMEOUT)).isNull();
+        assertThat(config.get(ConfigKeys.CONNECT_TIMEOUT)).isNull();
+        assertThat(config.get(ConfigKeys.READ_TIMEOUT)).isNull();
+        assertThat(config.get(ConfigKeys.WRITE_TIMEOUT)).isNull();
         assertThat(config.get(ConfigKeys.EXTRA_PROPERTIES)).isNull();
         assertThat(config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS)).isNull();
         assertThat(config.get(ConfigKeys.NAMED_MAILERS)).isNull();
@@ -84,8 +87,9 @@ class ConfigKeySchemaTest {
 
     @ParameterizedTest
     @ValueSource(ints = {Integer.MIN_VALUE, 0, Integer.MAX_VALUE})
-    void allLegacyMillisecondKeysProjectExactlyAndRetainRawUnits(final int millis) {
-        for (final ConfigKey<Duration> key : List.of(ConfigKeys.SESSION_TIMEOUT, ConfigKeys.ASYNC_QUEUE_WAIT_TIMEOUT,
+    void allMillisecondKeysProjectExactlyAndRetainRawUnits(final int millis) {
+        for (final ConfigKey<Duration> key : List.of(ConfigKeys.SESSION_TIMEOUT, ConfigKeys.CONNECT_TIMEOUT, ConfigKeys.READ_TIMEOUT,
+                ConfigKeys.WRITE_TIMEOUT, ConfigKeys.ASYNC_QUEUE_WAIT_TIMEOUT,
                 ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME, ConfigKeys.CONNECTION_POOL_CLAIM_TIMEOUT,
                 ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER, ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION)) {
             final SimpleJavaMailConfig config = ConfigLoader.builder().withMap("milliseconds", Map.of(key.key(), Integer.toString(millis))).load();

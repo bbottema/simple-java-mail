@@ -43,10 +43,25 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final Properties properties;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withSessionTimeout(Duration)
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withConnectTimeout(Duration)
 	 */
 	@Nullable
-	private final Duration sessionTimeout;
+	private final Duration connectTimeout;
+
+	/** @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withReadTimeout(Duration) */
+	@Nullable
+	private final Duration readTimeout;
+
+	/** @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withWriteTimeout(Duration) */
+	@Nullable
+	private final Duration writeTimeout;
+
+	/** @see OperationalConfig#getSessionTimeout() */
+	@Override
+	@Nullable
+	public Duration getSessionTimeout() {
+		return connectTimeout != null && connectTimeout.equals(readTimeout) && connectTimeout.equals(writeTimeout) ? connectTimeout : null;
+	}
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withLocalBindAddress(String)

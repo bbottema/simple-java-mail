@@ -122,6 +122,9 @@ final class LockedSmtpConfiguration {
 			case SMTP_CLIENT_HOSTNAME: return List.of(strategy.propertyNameLocalHost());
 			case DEFAULT_SESSION_TIMEOUT_MILLIS:
 				return List.of(strategy.propertyNameConnectionTimeout(), strategy.propertyNameTimeout(), strategy.propertyNameWriteTimeout());
+			case DEFAULT_CONNECT_TIMEOUT_MILLIS: return List.of(strategy.propertyNameConnectionTimeout());
+			case DEFAULT_READ_TIMEOUT_MILLIS: return List.of(strategy.propertyNameTimeout());
+			case DEFAULT_WRITE_TIMEOUT_MILLIS: return List.of(strategy.propertyNameWriteTimeout());
 			case DEFAULT_VERIFY_SERVER_IDENTITY: return List.of(strategy.propertyNameCheckServerIdentity());
 			case DEFAULT_TRUST_ALL_HOSTS:
 			case DEFAULT_TRUSTED_HOSTS: return List.of(strategy.propertyNameSSLTrust());
@@ -149,6 +152,9 @@ final class LockedSmtpConfiguration {
 		map(config, DEFAULT_SESSION_TIMEOUT_MILLIS, strategy.propertyNameConnectionTimeout());
 		map(config, DEFAULT_SESSION_TIMEOUT_MILLIS, strategy.propertyNameTimeout());
 		map(config, DEFAULT_SESSION_TIMEOUT_MILLIS, strategy.propertyNameWriteTimeout());
+		mapSocketTimeout(config, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, strategy.propertyNameConnectionTimeout());
+		mapSocketTimeout(config, Property.DEFAULT_READ_TIMEOUT_MILLIS, strategy.propertyNameTimeout());
+		mapSocketTimeout(config, Property.DEFAULT_WRITE_TIMEOUT_MILLIS, strategy.propertyNameWriteTimeout());
 		map(config, DEFAULT_VERIFY_SERVER_IDENTITY, strategy.propertyNameCheckServerIdentity());
 		map(config, CUSTOM_SSLFACTORY_CLASS, strategy.propertyNameSSLSocketFactoryClass());
 		if (locks.contains(SMTP_PASSWORD)) {
@@ -232,6 +238,18 @@ final class LockedSmtpConfiguration {
 		if (locks.contains(property)) {
 			put(property, sessionKey, config.asMap().get(property));
 		}
+	}
+
+	private void mapSocketTimeout(final SimpleJavaMailConfig config, final Property property, final String sessionKey) {
+		if (!locks.contains(property)) {
+			return;
+		}
+		final Object value = config.asMap().get(property);
+		if (requiredSessionValues.containsKey(sessionKey) && !sameSessionValue(requiredSessionValues.get(sessionKey), value)) {
+			throw locks.conflict(property, "This lock and " + ConfigurationLocks.lockedName(sessionProperties.get(sessionKey).key())
+					+ " configure the same SMTP setting with different values. Make the locked values agree or remove one of these locks from the configuration source.");
+		}
+		put(property, sessionKey, value);
 	}
 
 	private void put(final Property property, final String sessionKey, @Nullable final Object value) {
