@@ -79,6 +79,33 @@ public interface CliMailerConfigurationBuilder {
     MailerGenericBuilder<?> withSessionTimeout(@NotNull Integer timeout);
 
     /**
+     * Sets only the connection-establishment socket timeout. A later withSessionTimeout sets all three timeouts again.
+     * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     */
+    MailerGenericBuilder<?> withConnectTimeout(@NotNull Integer timeout);
+
+    /**
+     * Sets only the socket read timeout. A later withSessionTimeout sets all three timeouts again.
+     * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     */
+    MailerGenericBuilder<?> withReadTimeout(@NotNull Integer timeout);
+
+    /**
+     * Sets only the socket write timeout. A later withSessionTimeout sets all three timeouts again.
+     * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     */
+    MailerGenericBuilder<?> withWriteTimeout(@NotNull Integer timeout);
+
+    /** Restores the published library fallback for the connection-establishment socket timeout only. */
+    MailerGenericBuilder<?> resetConnectTimeout();
+
+    /** Restores the published library fallback for the read socket timeout only. */
+    MailerGenericBuilder<?> resetReadTimeout();
+
+    /** Restores the published library fallback for the write socket timeout only. */
+    MailerGenericBuilder<?> resetWriteTimeout();
+
+    /**
      * Sets owned worker keep-alive time, with or without the optional batch module.
      * @param keepAliveTime Keep-alive in milliseconds; zero keeps core workers alive.
      */

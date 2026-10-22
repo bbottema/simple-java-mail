@@ -161,7 +161,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 * @see MailerGenericBuilder#withSessionTimeout(Duration)
 	 */
 	@NotNull
-	private Duration sessionTimeout;
+	private Duration connectTimeout;
+	private Duration readTimeout;
+	private Duration writeTimeout;
 
 	/**
 	 * @see MailerGenericBuilder#withLocalBindAddress(String)
@@ -377,7 +379,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.proxyPort =  							verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_PORT, DEFAULT_PROXY_PORT));
 		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
 		this.clientValidationWarningsOnly = 			verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
-		this.sessionTimeout = configuredDuration(ConfigKeys.SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT);
+		this.connectTimeout = configuredSocketTimeout(ConfigKeys.CONNECT_TIMEOUT);
+		this.readTimeout = configuredSocketTimeout(ConfigKeys.READ_TIMEOUT);
+		this.writeTimeout = configuredSocketTimeout(ConfigKeys.WRITE_TIMEOUT);
 		this.localBindAddress = 					config.get(ConfigKeys.SMTP_LOCAL_ADDRESS);
 		this.localBindPort = 						config.get(ConfigKeys.SMTP_LOCAL_PORT);
 		this.smtpClientHostname = 					config.get(ConfigKeys.SMTP_CLIENT_HOSTNAME);
@@ -626,7 +630,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				? config.valueOrProperty(debugConfig.getOutput(), ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT)
 				: debugConfig.getPrinter() == System.out ? SessionDebugOutput.STDOUT : debugConfig.getPrinter() == System.err ? SessionDebugOutput.STDERR : null);
 		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, clientValidationWarningsOnly);
-		locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toNullableInt(sessionTimeout, "sessionTimeout"));
+		validateLockedSocketTimeout(locks, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS);
+		validateLockedSocketTimeout(locks, Property.DEFAULT_READ_TIMEOUT_MILLIS);
+		validateLockedSocketTimeout(locks, Property.DEFAULT_WRITE_TIMEOUT_MILLIS);
 		locks.verify(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
 		locks.verify(Property.SMTP_LOCAL_PORT, localBindPort);
 		locks.verify(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
@@ -677,7 +683,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 					|| key.equals(Property.TRANSPORT_STRATEGY.key()) || key.equals(Property.CUSTOM_SSLFACTORY_CLASS.key())
 					|| key.equals(Property.DEFAULT_TRUST_ALL_HOSTS.key()) || key.equals(Property.DEFAULT_TRUSTED_HOSTS.key())
 					|| key.equals(Property.DEFAULT_VERIFY_SERVER_IDENTITY.key()) || key.equals(Property.OPPORTUNISTIC_TLS.key())
-					|| key.equals(Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key())) {
+					|| key.equals(Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key()) || key.equals(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS.key())
+					|| key.equals(Property.DEFAULT_READ_TIMEOUT_MILLIS.key()) || key.equals(Property.DEFAULT_WRITE_TIMEOUT_MILLIS.key())) {
 				throw locks.conflict(key, "withCustomMailer(...) hands transport and delivery envelope handling to your callback, "
 						+ "but this factory locks a setting that must be applied there. Simple Java Mail cannot check what the callback does with it. "
 						+ "Remove withCustomMailer(...) to use this factory's SMTP transport, "
@@ -840,7 +847,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		if (strategy == null) {
 			return; // The caller-Session lock check explains why an opaque protocol cannot satisfy an SMTP restriction.
 		}
-		for (final Property property : List.of(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT,
+		if (locks.contains(Property.DEFAULT_SESSION_TIMEOUT_MILLIS)) {
+			for (final Property property : socketTimeoutProperties()) {
+				connectionChoices.put(property, config.asMap().get(Property.DEFAULT_SESSION_TIMEOUT_MILLIS));
+			}
+		}
+		for (final Property property : List.of(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, Property.DEFAULT_READ_TIMEOUT_MILLIS,
+				Property.DEFAULT_WRITE_TIMEOUT_MILLIS, Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT,
 				Property.SMTP_CLIENT_HOSTNAME, Property.DEFAULT_TRUSTED_HOSTS, Property.DEFAULT_TRUST_ALL_HOSTS, Property.DEFAULT_VERIFY_SERVER_IDENTITY)) {
 			if (locks.contains(property)) {
 				final Object value = config.asMap().get(property);
@@ -852,7 +865,10 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	private Map<Property, Object> ownedConnectionChoices() {
 		final Map<Property, Object> choices = new LinkedHashMap<>();
-		choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(sessionTimeout, "sessionTimeout"));
+		final TransportStrategy strategy = requireNonNull(transportStrategyForLocks(), "transportStrategy");
+		addOwnedSocketTimeout(choices, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, strategy.propertyNameConnectionTimeout(), connectTimeout);
+		addOwnedSocketTimeout(choices, Property.DEFAULT_READ_TIMEOUT_MILLIS, strategy.propertyNameTimeout(), readTimeout);
+		addOwnedSocketTimeout(choices, Property.DEFAULT_WRITE_TIMEOUT_MILLIS, strategy.propertyNameWriteTimeout(), writeTimeout);
 		choices.put(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust));
 		choices.put(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
 		choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
@@ -868,6 +884,34 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return choices;
 	}
 
+	/** A captured timeout supplies a fallback; an explicit typed choice deliberately replaces its raw Jakarta Mail setting. */
+	private void addOwnedSocketTimeout(final Map<Property, Object> choices, final Property property, final String sessionKey, final Duration value) {
+		if (explicitSessionSettings.containsKey(property) || MailerSessionSettings.propertyValue(properties, sessionKey) == null) {
+			choices.put(property, DurationMillis.toInt(value, property.key()));
+		}
+	}
+
+	private static List<Property> socketTimeoutProperties() {
+		return List.of(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, Property.DEFAULT_READ_TIMEOUT_MILLIS, Property.DEFAULT_WRITE_TIMEOUT_MILLIS);
+	}
+
+	private Duration configuredSocketTimeout(final ConfigKey<Duration> property) {
+		return configuredDuration(property, configuredDuration(ConfigKeys.SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT));
+	}
+
+	private Duration socketTimeoutChoice(@Nullable final Duration supplied, final ConfigKey<Duration> property) {
+		return supplied == null ? configuredSocketTimeout(property) : supplied;
+	}
+
+	private void validateLockedSocketTimeout(final ConfigurationLocks locks, final Property property) {
+		// Ordinary inherited values yield to locks; only a deliberate builder choice may contradict one.
+		if (explicitSessionSettings.containsKey(property)) {
+			final Object value = explicitSessionSettings.get(property);
+			locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, value);
+			locks.verify(property, value);
+		}
+	}
+
 	/** Assemble supplied configuration; default resolution and caller-Session ownership have already been settled by the builder. */
 	OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
 		resolveTelemetrySettings();
@@ -876,7 +920,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		return new OperationalConfigImpl(
 				getProperties(),
-				sessionSettings.getSessionTimeout(),
+				sessionSettings.getConnectTimeout(),
+				sessionSettings.getReadTimeout(),
+				sessionSettings.getWriteTimeout(),
 				sessionSettings.getLocalBindAddress(),
 				sessionSettings.getLocalBindPort(),
 				sessionSettings.getSmtpClientHostname(),
@@ -1160,6 +1206,24 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return withTelemetryConfig(telemetryConfig.toBuilder().resetSmtpEndpointAttributes().build());
 	}
 	@Override public T withSessionTimeout(final Integer timeout) { return withSessionTimeout(Duration.ofMillis(timeout)); }
+	@Override public T withConnectTimeout(final Integer timeout) {
+		connectTimeout = Duration.ofMillis(requireNonNull(timeout, "connectTimeout"));
+		customizedSessionSetting(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, timeout);
+		return (T) this;
+	}
+	@Override public T withReadTimeout(final Integer timeout) {
+		readTimeout = Duration.ofMillis(requireNonNull(timeout, "readTimeout"));
+		customizedSessionSetting(Property.DEFAULT_READ_TIMEOUT_MILLIS, timeout);
+		return (T) this;
+	}
+	@Override public T withWriteTimeout(final Integer timeout) {
+		writeTimeout = Duration.ofMillis(requireNonNull(timeout, "writeTimeout"));
+		customizedSessionSetting(Property.DEFAULT_WRITE_TIMEOUT_MILLIS, timeout);
+		return (T) this;
+	}
+	@Override public T resetConnectTimeout() { return withConnectTimeout(DurationMillis.toInt(DEFAULT_SESSION_TIMEOUT, "connectTimeout")); }
+	@Override public T resetReadTimeout() { return withReadTimeout(DurationMillis.toInt(DEFAULT_SESSION_TIMEOUT, "readTimeout")); }
+	@Override public T resetWriteTimeout() { return withWriteTimeout(DurationMillis.toInt(DEFAULT_SESSION_TIMEOUT, "writeTimeout")); }
 	@Override public T withThreadPoolKeepAliveTime(final Integer keepAliveTime) { return withThreadPoolKeepAliveTime(Duration.ofMillis(keepAliveTime)); }
 	@Override public T withAsyncQueueWaitTimeoutMillis(final int waitTimeoutMillis) { return withAsyncQueueWaitTimeout(Duration.ofMillis(waitTimeoutMillis)); }
 	@Override public T withConnectionPoolClaimTimeoutMillis(final Integer timeoutMillis) { return withConnectionPoolClaimTimeout(Duration.ofMillis(timeoutMillis)); }
@@ -1208,9 +1272,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withSessionTimeout(@NotNull final Duration sessionTimeout) {
-		DurationMillis.toInt(sessionTimeout, "sessionTimeout");
-		this.sessionTimeout = sessionTimeout;
-		customizedSessionSetting(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(sessionTimeout, "sessionTimeout"));
+		final int millis = DurationMillis.toInt(sessionTimeout, "sessionTimeout");
+		connectTimeout = sessionTimeout;
+		readTimeout = sessionTimeout;
+		writeTimeout = sessionTimeout;
+		for (final Property property : socketTimeoutProperties()) {
+			customizedSessionSetting(property, millis);
+		}
 		return (T) this;
 	}
 
@@ -1912,9 +1980,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 * @see MailerGenericBuilder#getSessionTimeout()
 	 */
 	@Override
-	@NotNull
+	@Nullable
 	public Duration getSessionTimeout() {
-		return sessionTimeout;
+		return connectTimeout.equals(readTimeout) && connectTimeout.equals(writeTimeout) ? connectTimeout : null;
 	}
 
 	/**
@@ -2234,15 +2302,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withConnectionConfig(ConnectionConfig) */
     @Override public T withConnectionConfig(@NotNull final ConnectionConfig choices) {
         requireNonNull(choices, "connectionConfig");
-        for (Property property : List.of(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT, Property.SMTP_CLIENT_HOSTNAME)) {
+        for (Property property : List.of(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                Property.DEFAULT_READ_TIMEOUT_MILLIS, Property.DEFAULT_WRITE_TIMEOUT_MILLIS,
+                Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT, Property.SMTP_CLIENT_HOSTNAME)) {
             explicitSessionSettings.remove(property);
         }
-        sessionTimeout = durationChoice(choices.getSessionTimeout(), ConfigKeys.SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT);
+        connectTimeout = socketTimeoutChoice(choices.getConnectTimeout(), ConfigKeys.CONNECT_TIMEOUT);
+        readTimeout = socketTimeoutChoice(choices.getReadTimeout(), ConfigKeys.READ_TIMEOUT);
+        writeTimeout = socketTimeoutChoice(choices.getWriteTimeout(), ConfigKeys.WRITE_TIMEOUT);
         localBindAddress = choices.isLocalBindAddressCleared() ? null : stringChoice(choices.getLocalBindAddress(), ConfigKeys.SMTP_LOCAL_ADDRESS);
         localBindPort = choices.isLocalBindPortCleared() ? null : config.valueOrProperty(choices.getLocalBindPort(), ConfigKeys.SMTP_LOCAL_PORT, null);
         smtpClientHostname = choices.isSmtpClientHostnameCleared() ? null : stringChoice(choices.getSmtpClientHostname(), ConfigKeys.SMTP_CLIENT_HOSTNAME);
         legacySmtpContentSupportEnabled = config.valueOrProperty(choices.getLegacySmtpContentSupport(), ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
-        if (choices.getSessionTimeout() != null) { customizedSessionSetting(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(sessionTimeout, "sessionTimeout")); }
+        if (choices.getConnectTimeout() != null) { customizedSessionSetting(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, DurationMillis.toInt(connectTimeout, "connectTimeout")); }
+        if (choices.getReadTimeout() != null) { customizedSessionSetting(Property.DEFAULT_READ_TIMEOUT_MILLIS, DurationMillis.toInt(readTimeout, "readTimeout")); }
+        if (choices.getWriteTimeout() != null) { customizedSessionSetting(Property.DEFAULT_WRITE_TIMEOUT_MILLIS, DurationMillis.toInt(writeTimeout, "writeTimeout")); }
         if (choices.getLocalBindAddress() != null || choices.isLocalBindAddressCleared()) { customizedSessionSetting(Property.SMTP_LOCAL_ADDRESS, localBindAddress); }
         if (choices.getLocalBindPort() != null || choices.isLocalBindPortCleared()) { customizedSessionSetting(Property.SMTP_LOCAL_PORT, localBindPort); }
         if (choices.getSmtpClientHostname() != null || choices.isSmtpClientHostnameCleared()) { customizedSessionSetting(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname); }

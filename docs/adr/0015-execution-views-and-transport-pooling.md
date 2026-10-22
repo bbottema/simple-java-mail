@@ -59,6 +59,24 @@ remain subject to [ADR 0025](0025-factory-scoped-locked-configuration.md).
 This distinction does not change proxy routing's documented override, managed-provider initialization, conversion-context ownership,
 exclusive Session reuse, pooling or shutdown. A Session may be reused by another Mailer only after its former owner's successful shutdown.
 
+### Independent socket timeout resolution (accepted 22 October 2026)
+
+Apply [ADR 0003's per-operation choices](0003-immutable-configuration-snapshots.md#independent-socket-timeout-choices-accepted-22-october-2026)
+independently at Session construction. An explicit read-timeout choice changes only the read setting of a supplied Session;
+its connect and write baselines remain untouched unless selected separately. This holds for ordinary and historically SJM-marked
+Sessions. Custom protocols keep their provider-specific raw-property route and reject unsupported SMTP convenience mappings.
+Resolve and inspect overlays without mutating the supplied Session or allocating resources; apply them only after ownership is claimed.
+
+`OperationalConfig.getConnectTimeout()`, `getReadTimeout()` and `getWriteTimeout()` describe the effective construction
+settings as nullable `Duration` values. `getSessionTimeout()` is their common value only when all three are known and equal.
+Missing or uninterpretable settings remain absent; inspection does not ask the provider for a guessed default or follow later
+direct Session mutation. The supplied `ConnectionConfig` and its builder instead expose stored choices, including omissions.
+
+This changes neither total-send deadlines nor timeout-resource ownership. Managed Angus write-timeout monitoring remains
+shared per owned Session/protocol and stops after its last physical connection is disposed; supplied schedulers and caller
+Sessions retain their existing ownership. [#845](https://github.com/bbottema/simple-java-mail/issues/845) tracks the unreleased
+10.0.0 implementation and delivery of this clarification.
+
 ### Validate settings before creating pools
 
 The batch module owns the pool constraints for both Mailer registration and the standalone pool API. Core size is non-negative, maximum size is positive, claim timeout and idle expiry

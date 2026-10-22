@@ -28,8 +28,8 @@ Use the same invariant key in both `valueOrProperty` overloads, presence and pro
 caller-inferred generic getter and the parallel scalar-name getter families. Applications cannot construct arbitrary keys.
 
 Retain `ConfigLoader.Property` as the textual/raw-integration identity. The raw heterogeneous map and source/lock storage
-keep the parser representation and existing property-file units. In particular the six legacy integer-millisecond
-properties project to Java `Duration` values without changing accepted text/types, signed integer bounds or whole-millisecond
+keep the parser representation and existing property-file units. Integer-millisecond properties, including the additional
+per-operation socket timeouts, project to Java `Duration` values without changing accepted text/types, signed integer bounds or whole-millisecond
 precision. Existing ISO-duration properties retain their own precision and feature validation. Raw maps remain explicitly
 dynamic; canonical Java reads use keys. Missing configured values, including aggregate maps, remain absent/null: snapshots
 contain explicit configuration, not fabricated empty/default entries. Present wildcard maps are detached and immutable.
@@ -122,6 +122,41 @@ do not retain deprecated aliases. Internal runtime and CLI adapters may retain s
 The asynchronous queue builder offers `rejectWhenFull()` or `waitForCapacity(Duration)`, keeping the admission wait and its policy together.
 Waiting occurs on the submitting thread; it neither executes SMTP work there nor changes the total send deadline. Existing scalar properties
 and CLI options retain their names and representations.
+
+### Independent socket timeout choices (accepted 22 October 2026)
+
+Keep `ConnectionConfig.Builder.withSessionTimeout(Duration)` as a convenience for setting the connect, read and write
+timeouts together. Add `withConnectTimeout`, `withReadTimeout` and `withWriteTimeout` on that same group for independent
+choices; do not add corresponding methods to the supported Mailer root Java API. The common setter writes the same three
+choices as the individual setters, so the last setter affecting an operation wins. This avoids a second common value whose
+precedence callers would have to reconcile with the individual values.
+
+The supplied immutable value and its builder expose each choice without resolving configuration. Their `getSessionTimeout()`
+returns the common value only when all three supplied values are present and equal, otherwise null. Individual `reset...Timeout()`
+companions select the published 60-second `DEFAULT_SESSION_TIMEOUT` for that operation; individual `useConfigured...Timeout()`
+companions remove the supplied choice and restore captured inheritance. The common companions apply the same operation to
+all three. Replacing the entire group continues to replace its supplied choices rather than merging the previous group.
+
+For a library-created Session, resolve each timeout independently: explicit typed group choice, additional Jakarta Mail
+timeout property, captured operation-specific SJM property, captured shared session-timeout property, then the built-in
+60-second fallback. Applicable mandatory locks remain above ordinary precedence. An inherited common value must not erase
+an explicitly supplied raw timeout; an explicit typed common setter intentionally selects all three and therefore takes
+precedence over each raw property. Preserve whole-millisecond representation and the established zero/range semantics.
+
+Add `simplejavamail.defaults.connecttimeoutmillis`, `simplejavamail.defaults.readtimeoutmillis` and
+`simplejavamail.defaults.writetimeoutmillis`, retaining `simplejavamail.defaults.sessiontimeoutmillis` as the shared fallback.
+The corresponding schema-bound `ConfigKeys.CONNECT_TIMEOUT`, `READ_TIMEOUT` and `WRITE_TIMEOUT` project to `Duration`;
+raw integration and textual values remain integer milliseconds. Existing CLI `--mailer:withSessionTimeout` remains a
+millisecond shorthand for explicitly selecting all three. Individual CLI `--mailer:withConnectTimeout`,
+`--mailer:withReadTimeout` and `--mailer:withWriteTimeout` use the same units and ordering, with corresponding reset options.
+Keep inheritance restoration in Java; the CLI retains its existing setter/reset convention.
+
+A supplied Session keeps each original timeout until an explicit typed choice, additional raw property or applicable lock
+selects that operation. Ordinary inherited values do not fill or replace its baseline, including a previously SJM-managed
+Session. Effective inspection and resource ownership follow [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline);
+lock scope follows [ADR 0025](0025-factory-scoped-locked-configuration.md#socket-timeout-lock-scope-accepted-22-october-2026).
+This decision corrects released raw-property precedence and adds fine-tuning APIs for unreleased 10.0.0 under
+[#845](https://github.com/bbottema/simple-java-mail/issues/845); acceptance does not imply delivery.
 
 ### Client-validation reporting
 

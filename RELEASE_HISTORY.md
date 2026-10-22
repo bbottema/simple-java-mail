@@ -58,6 +58,12 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- [#845](https://github.com/bbottema/simple-java-mail/issues/845): added independent connect/read/write choices and inspection to `ConnectionConfig`,
+  retaining `withSessionTimeout` as a convenience for all three. The last group setter affecting an operation wins; individual reset/inheritance
+  companions affect only that operation. Explicit raw Jakarta Mail timeout properties now override inherited SJM defaults, while typed choices
+  and mandatory locks retain precedence. Supplied Sessions keep unselected timeout settings. Added per-operation millisecond properties and
+  `Duration` configuration keys; the shared property and CLI option remain available.
+
 - [ADR 0031](docs/adr/0031-public-api-and-internal-construction.md): align Email builder append/prepend and inspection methods with `PlainText`, `HTMLText` and `CalendarText` naming. Body behavior, serialized fields and existing CLI spellings are unchanged. See the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#email-body-method-names).
 - [ADR 0003](docs/adr/0003-immutable-configuration-snapshots.md): name the existing validation reporting choice `withClientValidationWarningsOnly(boolean)`, with matching inspection/reset companions. Checks still run; properties, CLI spellings, locks and separate size/security enforcement retain their behavior. See [grouped configuration migration](https://www.simplejavamail.org/migration-notes-10.0.0.html#grouped-configuration).
 

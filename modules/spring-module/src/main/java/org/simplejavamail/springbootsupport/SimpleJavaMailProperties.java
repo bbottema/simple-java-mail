@@ -208,7 +208,14 @@ public class SimpleJavaMailProperties {
         private Mailsend mailsend;
         private PoolsizeMore poolsizeMore;
         private Connectionpool connectionpool;
+        /** Shared socket timeout fallback in integer milliseconds, used when an individual timeout is unspecified. */
         private String sessiontimeoutmillis;
+        /** Socket connection timeout in integer milliseconds; omitted inherits the shared session timeout. */
+        private String connecttimeoutmillis;
+        /** Socket read timeout in integer milliseconds; omitted inherits the shared session timeout. */
+        private String readtimeoutmillis;
+        /** Socket write timeout in integer milliseconds; omitted inherits the shared session timeout. */
+        private String writetimeoutmillis;
         private String trustallhosts;
         private String trustedhosts;
         private String verifyserveridentity;

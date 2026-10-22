@@ -266,6 +266,15 @@ public final class ConfigKeys {
     /** Configured input for {@code simplejavamail.defaults.sessiontimeoutmillis}. Java view of signed Integer milliseconds: whole-millisecond precision and integer bounds are unchanged. */
     public static final ConfigKey<Duration> SESSION_TIMEOUT = PropertySchema.millisecondKey(Property.DEFAULT_SESSION_TIMEOUT_MILLIS);
 
+    /** Configured input for {@code simplejavamail.defaults.connecttimeoutmillis}. Java view of signed Integer milliseconds; falls back to the shared session timeout when the Mailer resolves an unset connection timeout. */
+    public static final ConfigKey<Duration> CONNECT_TIMEOUT = PropertySchema.millisecondKey(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS);
+
+    /** Configured input for {@code simplejavamail.defaults.readtimeoutmillis}. Java view of signed Integer milliseconds; falls back to the shared session timeout when the Mailer resolves an unset read timeout. */
+    public static final ConfigKey<Duration> READ_TIMEOUT = PropertySchema.millisecondKey(Property.DEFAULT_READ_TIMEOUT_MILLIS);
+
+    /** Configured input for {@code simplejavamail.defaults.writetimeoutmillis}. Java view of signed Integer milliseconds; falls back to the shared session timeout when the Mailer resolves an unset write timeout. */
+    public static final ConfigKey<Duration> WRITE_TIMEOUT = PropertySchema.millisecondKey(Property.DEFAULT_WRITE_TIMEOUT_MILLIS);
+
     /** Configured input for {@code simplejavamail.defaults.trustallhosts}. */
     public static final ConfigKey<Boolean> DEFAULT_TRUST_ALL_HOSTS = PropertySchema.booleanKey(Property.DEFAULT_TRUST_ALL_HOSTS);
 

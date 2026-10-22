@@ -32,6 +32,28 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
 	@Test
+	void resolvesIndividualSocketTimeoutsThroughRelaxedNamesPlaceholdersAndLocks() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(new MapPropertySource("socket defaults", Map.of(
+				"simple-java-mail.defaults.connecttimeoutmillis", "10000",
+				"simplejavamail.defaults.readtimeoutmillis", "30000",
+				"simplejavamail.defaults.writetimeoutmillis", "${write.timeout}", "write.timeout", "45000",
+				"simplejavamail.locked.defaults.readtimeoutmillis", "20000")));
+		ConfigurationPropertySources.attach(environment);
+
+		final ConfigDiagnostics diagnostics = load(environment);
+		final Map<String, String> expected = Map.of("connect", "10000", "read", "20000", "write", "45000");
+		for (final Map.Entry<String, String> timeout : expected.entrySet()) {
+			final String prefix = timeout.getKey().equals("read") ? "simplejavamail.locked.defaults." : "simplejavamail.defaults.";
+			final ConfigPropertyDiagnostic diagnostic = diagnostic(diagnostics, prefix + timeout.getKey() + "timeoutmillis");
+			assertThat(diagnostic.getDisplayValue()).isEqualTo(timeout.getValue());
+			assertThat(diagnostic.getSourceName()).isEqualTo("socket defaults");
+			assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.SMTP_CONNECTION);
+			assertThat(diagnostic.isRedacted()).isFalse();
+		}
+	}
+
+	@Test
 	void lockedNamespaceSupportsAliasesPlaceholdersAndUnderlyingSourceNames() {
 		final StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addFirst(new MapPropertySource("central deployment", Map.of(

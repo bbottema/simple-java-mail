@@ -54,7 +54,8 @@ class CliMetadataConcurrencyTest {
                     assertThat(result.exitCode()).as(result.stderr()).isZero();
                     assertThat(result.stdout()).contains("--email:fixingEnvelopeId", "--email:fixingExactEnvelopeId",
                             "--email:withContentTransferEncoding", "--mailer:withConnectionPoolMaxSize",
-                            "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withOpportunisticTLS");
+                            "--mailer:withAsyncQueueOverflowPolicy", "--mailer:withOpportunisticTLS",
+                            "--mailer:withConnectTimeout", "--mailer:withReadTimeout", "--mailer:withWriteTimeout");
                 }
             } finally {
                 start.countDown();

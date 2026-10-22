@@ -404,7 +404,8 @@ class CliDaemonProcessTest {
 				"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtpPort),
 				"--mailer:withConnectionPoolCoreSize", "1",
 				"--mailer:withConnectionPoolMaxSize", "1",
-				"--mailer:withConnectionPoolExpireAfterMillis", "60000"
+				"--mailer:withConnectionPoolExpireAfterMillis", "60000",
+				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000"
 		};
 	}
 
@@ -414,7 +415,8 @@ class CliDaemonProcessTest {
 				"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtpPort),
 				"--mailer:withConnectionPoolCoreSize", "1",
 				"--mailer:withConnectionPoolMaxSize", "1",
-				"--mailer:withConnectionPoolExpireAfterMillis", "60000"
+				"--mailer:withConnectionPoolExpireAfterMillis", "60000",
+				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000"
 		};
 	}
 

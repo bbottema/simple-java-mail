@@ -65,6 +65,24 @@ public interface OperationalConfig {
 	Duration getSessionTimeout();
 
 	/**
+	 * Returns the configured socket connection timeout, or {@code null} when no usable value is known. Provider defaults are not guessed.
+	 * @see ConnectionConfig.Builder#withConnectTimeout(Duration)
+	 */
+	@Nullable Duration getConnectTimeout();
+
+	/**
+	 * Returns the configured socket read timeout, or {@code null} when no usable value is known. Provider defaults are not guessed.
+	 * @see ConnectionConfig.Builder#withReadTimeout(Duration)
+	 */
+	@Nullable Duration getReadTimeout();
+
+	/**
+	 * Returns the configured socket write timeout, or {@code null} when no usable value is known. Provider defaults are not guessed.
+	 * @see ConnectionConfig.Builder#withWriteTimeout(Duration)
+	 */
+	@Nullable Duration getWriteTimeout();
+
+	/**
 	 * @return Total send budget, or {@code null} when disabled.
 	 * @see MailerGenericBuilder#withMailSendTimeout(Duration)
 	 */

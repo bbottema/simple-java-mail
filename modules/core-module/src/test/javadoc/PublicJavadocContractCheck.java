@@ -19,6 +19,9 @@ public final class PublicJavadocContractCheck {
     private void verifyPublishedContracts() throws IOException {
         requireText("../config/ConfigKey", "applications cannot construct");
         requireText("../config/ConfigKeys", "SESSION_TIMEOUT");
+        requireText("../config/ConfigKeys", "CONNECT_TIMEOUT");
+        requireText("../config/ConfigKeys", "READ_TIMEOUT");
+        requireText("../config/ConfigKeys", "WRITE_TIMEOUT");
         requireText("../config/SimpleJavaMailConfig", "id=\"get(org.simplejavamail.config.ConfigKey)\"");
         requireText("../config/SimpleJavaMailConfig", "id=\"hasProperty(org.simplejavamail.config.ConfigKey)\"");
         requireText("../config/SimpleJavaMailConfig", "id=\"getPropertySource(org.simplejavamail.config.ConfigKey)\"");
@@ -49,7 +52,11 @@ public final class PublicJavadocContractCheck {
         requireNullableScalars("mailer/SmtpTlsDetails", "getCustomHostnameVerifierAccepted");
         requireGetters("mailer/SmtpTlsDetails", "getProtocol", "getCipherSuite", "getPeerIdentities", "isServerIdentityCheckEnabled");
         requireGetters("mailer/spi/DeliveryRecipient", "getAddress", "getNotifyOptions");
-        requireGetters("mailer/config/OperationalConfig", "getSessionTimeout");
+        requireGetters("mailer/config/OperationalConfig", "getSessionTimeout", "getConnectTimeout", "getReadTimeout", "getWriteTimeout");
+        requireGetters("mailer/config/ConnectionConfig", "getSessionTimeout", "getConnectTimeout", "getReadTimeout", "getWriteTimeout");
+        requireText("mailer/config/ConnectionConfig", "ConnectionConfig.Builder.html#withConnectTimeout(java.time.Duration)");
+        requireText("mailer/config/ConnectionConfig", "ConnectionConfig.Builder.html#withReadTimeout(java.time.Duration)");
+        requireText("mailer/config/ConnectionConfig", "ConnectionConfig.Builder.html#withWriteTimeout(java.time.Duration)");
         requireGetters("email/IRecipientsBuilder", "resetSmimeCertificatePolicy", "resetDeliveryStatusNotificationNotifyPolicy");
         requireText("mailer/config/ConnectionConfig.Builder", "a caller-supplied Session");
         requireText("email/Recipient", "IRecipientBuilder.html#withName(java.lang.String)");
@@ -95,7 +102,9 @@ public final class PublicJavadocContractCheck {
         requireLinkedCompanions("mailer/config/AsyncExecutionConfig.Builder", "getQueueCapacity", "resetQueue", "getCapacityWait");
         requireLinkedCompanions("mailer/config/SocksProxyConfig.Builder", "getHost", "clearProxy", "useConfiguredHost");
         requireLinkedCompanions("mailer/config/SendingLimitsConfig.Builder", "getMessageRateLimit", "clearMessageRateLimit");
-        requireLinkedCompanions("mailer/config/ConnectionConfig.Builder", "getSessionTimeout", "clearLocalBindAddress");
+        requireLinkedCompanions("mailer/config/ConnectionConfig.Builder", "getSessionTimeout", "resetSessionTimeout", "useConfiguredSessionTimeout",
+                "getConnectTimeout", "resetConnectTimeout", "useConfiguredConnectTimeout", "getReadTimeout", "resetReadTimeout", "useConfiguredReadTimeout",
+                "getWriteTimeout", "resetWriteTimeout", "useConfiguredWriteTimeout", "clearLocalBindAddress");
         requireLinkedCompanions("mailer/config/TlsConfig.Builder", "getTrustAllHosts", "clearCustomSSLFactoryClass");
         requireLinkedCompanions("mailer/config/ValidationConfig.Builder", "getEmailValidator", "clearEmailValidator", "resetEmailValidator");
         requireLinkedCompanions("email/config/ImageResolutionConfig.Builder", "getEmbeddedImageBaseDir", "clearEmbeddedImageBaseDir");

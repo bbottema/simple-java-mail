@@ -23,6 +23,9 @@ class ConfigKeyCompilationTest {
     void validKeyReadsAndFallbacksCompile() throws Exception {
         assertCompiles("Integer port = c.get(ConfigKeys.SMTP_PORT); "
                 + "java.time.Duration timeout = c.get(ConfigKeys.SESSION_TIMEOUT); "
+                + "java.time.Duration connect = c.get(ConfigKeys.CONNECT_TIMEOUT); "
+                + "java.time.Duration read = c.get(ConfigKeys.READ_TIMEOUT); "
+                + "java.time.Duration write = c.valueOrProperty(null, ConfigKeys.WRITE_TIMEOUT, java.time.Duration.ZERO); "
                 + "Integer selected = c.valueOrProperty(2525, ConfigKeys.SMTP_PORT, 25); "
                 + "Integer absent = c.valueOrProperty(null, ConfigKeys.SMTP_PORT); "
                 + "java.util.Map<String, String> extras = c.get(ConfigKeys.EXTRA_PROPERTIES); "
@@ -41,6 +44,9 @@ class ConfigKeyCompilationTest {
     void incorrectGetterTargetTypesDoNotCompile() throws Exception {
         assertDoesNotCompile("String port = c.get(ConfigKeys.SMTP_PORT);");
         assertDoesNotCompile("Integer timeout = c.get(ConfigKeys.SESSION_TIMEOUT);");
+        assertDoesNotCompile("Integer connect = c.get(ConfigKeys.CONNECT_TIMEOUT);");
+        assertDoesNotCompile("String read = c.get(ConfigKeys.READ_TIMEOUT);");
+        assertDoesNotCompile("Object write = c.valueOrProperty(1, ConfigKeys.WRITE_TIMEOUT);");
         assertDoesNotCompile("java.util.Map<String, Integer> extras = c.get(ConfigKeys.EXTRA_PROPERTIES);");
     }
 

@@ -74,6 +74,18 @@ Configuration-source resolution and subsequent customization are separate concer
 
 For a locked single-value setting, the locked value supplies the effective configuration. Reject explicit customization that conflicts with it; allow the same parsed value. Ordinary, unlocked settings remain customizable as before. Detect conflicts at the appropriate builder or preparation boundary, before an incompatible operation reaches submission, rather than silently accepting a customization that will not take effect.
 
+### Socket timeout lock scope (accepted 22 October 2026)
+
+The independent timeout choices in [ADR 0003](0003-immutable-configuration-snapshots.md#independent-socket-timeout-choices-accepted-22-october-2026)
+retain this rule for each socket operation. A locked connect, read or write timeout constrains only that operation, leaving the
+other two independently configurable. A locked shared session timeout requires all three to have that common value. Conflicting
+applicable lock values are invalid; neither a more specific name nor a later ordinary setting chooses which requirement wins.
+
+Apply the same scope to locked raw Jakarta Mail timeout properties. An explicit typed choice, reset or raw overlay that conflicts
+with an applicable lock rejects; compatible values are allowed. Locks also apply to supplied Sessions without authorizing ordinary
+inherited defaults to replace their remaining settings. [#845](https://github.com/bbottema/simple-java-mail/issues/845) tracks
+this accepted clarification for unreleased 10.0.0.
+
 ### Use the existing configuration owners
 
 Apply message-related locks through Email governance and operational locks through the existing Mailer configuration owners. Do not add a requirement enum, a third public Email template, or feature-specific Mailer setters for message settings.

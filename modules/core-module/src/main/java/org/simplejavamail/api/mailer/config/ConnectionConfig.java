@@ -8,7 +8,6 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerFromSessionBuilder;
 import org.simplejavamail.internal.util.DurationMillis;
 import java.time.Duration;
-import static java.util.Objects.requireNonNull;
 
 /**
  * Immutable supplied ConnectionConfig choices. Unset fields inherit the owning Mailer factory snapshot.
@@ -17,7 +16,9 @@ import static java.util.Objects.requireNonNull;
  */
 @Value
 public class ConnectionConfig {
-    @Nullable Duration sessionTimeout;
+    @Nullable Duration connectTimeout;
+    @Nullable Duration readTimeout;
+    @Nullable Duration writeTimeout;
     @Nullable String localBindAddress;
     boolean localBindAddressCleared;
     @Nullable Integer localBindPort;
@@ -27,8 +28,12 @@ public class ConnectionConfig {
     @Nullable Boolean legacySmtpContentSupport;
 
     private ConnectionConfig(final Builder builder) {
-        sessionTimeout = builder.sessionTimeout;
-        DurationMillis.toNullableInt(sessionTimeout, "sessionTimeout");
+        connectTimeout = builder.connectTimeout;
+        DurationMillis.toNullableInt(connectTimeout, "connectTimeout");
+        readTimeout = builder.readTimeout;
+        DurationMillis.toNullableInt(readTimeout, "readTimeout");
+        writeTimeout = builder.writeTimeout;
+        DurationMillis.toNullableInt(writeTimeout, "writeTimeout");
         localBindAddress = builder.localBindAddress;
         localBindAddressCleared = builder.localBindAddressCleared;
         localBindPort = builder.localBindPort;
@@ -42,8 +47,27 @@ public class ConnectionConfig {
     @NotNull public static Builder builder() { return new Builder(); }
     /** @return An independent builder retaining supplied choices and borrowed-resource identities. */
     @NotNull public Builder toBuilder() { return new Builder(this); }
-    /** @see Builder#withSessionTimeout(Duration) */
-    @Nullable public Duration getSessionTimeout() { return sessionTimeout; }
+    /**
+     * Returns the common supplied socket timeout, or {@code null} when any choice is unset or the choices differ.
+     * This does not resolve inherited configuration or provider defaults.
+     * @see Builder#withSessionTimeout(Duration)
+     */
+    @Nullable public Duration getSessionTimeout() { return commonTimeout(connectTimeout, readTimeout, writeTimeout); }
+    /**
+     * Returns the supplied connection timeout, or {@code null} when unset.
+     * @see Builder#withConnectTimeout(Duration)
+     */
+    @Nullable public Duration getConnectTimeout() { return connectTimeout; }
+    /**
+     * Returns the supplied read timeout, or {@code null} when unset.
+     * @see Builder#withReadTimeout(Duration)
+     */
+    @Nullable public Duration getReadTimeout() { return readTimeout; }
+    /**
+     * Returns the supplied write timeout, or {@code null} when unset.
+     * @see Builder#withWriteTimeout(Duration)
+     */
+    @Nullable public Duration getWriteTimeout() { return writeTimeout; }
     /** @see Builder#withLocalBindAddress(String) */
     @Nullable public String getLocalBindAddress() { return localBindAddress; }
     /**
@@ -68,9 +92,15 @@ public class ConnectionConfig {
     /** @see Builder#withLegacySmtpContentSupport(boolean) */
     @Nullable public Boolean getLegacySmtpContentSupport() { return legacySmtpContentSupport; }
 
+    @Nullable private static Duration commonTimeout(final Duration connectTimeout, final Duration readTimeout, final Duration writeTimeout) {
+        return connectTimeout != null && connectTimeout.equals(readTimeout) && connectTimeout.equals(writeTimeout) ? connectTimeout : null;
+    }
+
     /** Explicit choices for this group; inspection does not build or validate an incomplete configuration. */
     public static final class Builder {
-        private Duration sessionTimeout;
+        private Duration connectTimeout;
+        private Duration readTimeout;
+        private Duration writeTimeout;
         private String localBindAddress;
         private boolean localBindAddressCleared;
         private Integer localBindPort;
@@ -80,7 +110,9 @@ public class ConnectionConfig {
         private Boolean legacySmtpContentSupport;
         private Builder() { }
         private Builder(final ConnectionConfig config) {
-            sessionTimeout = config.sessionTimeout;
+            connectTimeout = config.connectTimeout;
+            readTimeout = config.readTimeout;
+            writeTimeout = config.writeTimeout;
             localBindAddress = config.localBindAddress;
             localBindAddressCleared = config.localBindAddressCleared;
             localBindPort = config.localBindPort;
@@ -92,7 +124,16 @@ public class ConnectionConfig {
         /**
          * Sets the same socket timeout for connecting, reading and writing. This is not a deadline for the whole send.
          * <p>
-         * When you supply your own Session, its existing timeouts remain unchanged until you call this method or a factory lock requires a value.
+         * This convenience method replaces all three supplied timeout choices. You can then fine-tune them with {@link #withConnectTimeout(Duration)},
+         * {@link #withReadTimeout(Duration)} or {@link #withWriteTimeout(Duration)}. The last setter affecting an operation wins; calling this method
+         * afterward replaces all three again. There is no separate shared timeout choice competing with the individual choices.
+         * For example, {@code withSessionTimeout(Duration.ofSeconds(30)).withConnectTimeout(Duration.ofSeconds(10))}
+         * selects ten seconds for connecting and thirty seconds each for reading and writing.
+         * <p>
+         * An explicitly supplied timeout overrides the corresponding additional Jakarta Mail property. For a library-owned Session, inherited
+         * connection defaults fill timeout properties that have not been explicitly supplied. Factory configuration locks still apply.
+         * When you supply your own Session, its existing timeouts remain unchanged until you call a timeout setter, overlay an additional property
+         * or a factory lock requires a value.
          * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(Duration.ofSeconds(1))} deliberately replaces
          * all three socket timeouts with one second. Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session
          * previously belonged to another Mailer. Additional Jakarta Mail properties retain their configured overlay behavior.
@@ -108,26 +149,114 @@ public class ConnectionConfig {
          * {@code mail.smtp.executor.writetimeout} (or {@code mail.smtps} equivalent) remains application-owned and is not shut down by the Mailer.
          * Caller-owned Sessions and other providers keep their existing timeout-resource ownership. This is not a total-send deadline.
          * <p>
-         * The builder getter reports its configured choice. After construction, {@link OperationalConfig#getSessionTimeout()} reports the common
-         * configured timeout, or {@code null} if a caller-supplied Session or locked raw properties leave different, missing or unusable values.
+         * The builder and immutable-value getters report only supplied choices. Their common getter returns {@code null} when the three choices
+         * differ or any is unset. After Mailer construction, {@link OperationalConfig#getConnectTimeout()}, {@link OperationalConfig#getReadTimeout()}
+         * and {@link OperationalConfig#getWriteTimeout()} report the effective configured values. {@link OperationalConfig#getSessionTimeout()}
+         * reports their common value, or {@code null} if a caller-supplied Session or locked raw properties leave different, missing or unusable values.
          * A custom protocol cannot use these SMTP convenience mappings; configure its provider-specific settings through {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)}.
          *
          * @param sessionTimeout Socket timeout, exactly representable as an integer number of milliseconds.
+         * @throws NullPointerException If the required timeout is null; stored choices remain unchanged.
          * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
          */
-        @NotNull public Builder withSessionTimeout(final Duration sessionTimeout) { DurationMillis.toNullableInt(sessionTimeout, "sessionTimeout"); this.sessionTimeout = requireNonNull(sessionTimeout, "sessionTimeout"); return this; }
-        /** @see #withSessionTimeout(Duration) */
-        @Nullable public Duration getSessionTimeout() { return sessionTimeout; }
+        @NotNull public Builder withSessionTimeout(@NotNull final Duration sessionTimeout) {
+            DurationMillis.toInt(sessionTimeout, "sessionTimeout");
+            connectTimeout = sessionTimeout;
+            readTimeout = sessionTimeout;
+            writeTimeout = sessionTimeout;
+            return this;
+        }
         /**
-         * Selects the published library fallback.
+         * Returns the common supplied socket timeout, or {@code null} when any choice is unset or the choices differ.
+         * @see #withSessionTimeout(Duration)
+         */
+        @Nullable public Duration getSessionTimeout() { return commonTimeout(connectTimeout, readTimeout, writeTimeout); }
+        /**
+         * Sets all three timeout choices to the published library fallback, {@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT}.
          * @see #withSessionTimeout(Duration)
          */
         @NotNull public Builder resetSessionTimeout() { return withSessionTimeout(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT); }
         /**
-         * Restores captured configuration for this member.
+         * Removes all three supplied timeout choices so captured configuration can apply again.
          * @see #withSessionTimeout(Duration)
          */
-        @NotNull public Builder useConfiguredSessionTimeout() { sessionTimeout = null; return this; }
+        @NotNull public Builder useConfiguredSessionTimeout() { connectTimeout = null; readTimeout = null; writeTimeout = null; return this; }
+        /**
+         * Sets the timeout for establishing the SMTP socket connection, leaving the read and write choices unchanged.
+         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
+         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
+         *
+         * @param connectTimeout Socket connection timeout, exactly representable as an integer number of milliseconds.
+         * @throws NullPointerException If the required timeout is null; stored choices remain unchanged.
+         * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
+         * @see #withSessionTimeout(Duration)
+         * @see TransportStrategy#propertyNameConnectionTimeout()
+         */
+        @NotNull public Builder withConnectTimeout(@NotNull final Duration connectTimeout) { DurationMillis.toInt(connectTimeout, "connectTimeout"); this.connectTimeout = connectTimeout; return this; }
+        /** @see #withConnectTimeout(Duration) */
+        @Nullable public Duration getConnectTimeout() { return connectTimeout; }
+        /**
+         * Selects {@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT} for connecting only.
+         * @see #withConnectTimeout(Duration)
+         */
+        @NotNull public Builder resetConnectTimeout() { return withConnectTimeout(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT); }
+        /**
+         * Removes the supplied connection timeout so captured configuration can apply again.
+         * @see #withConnectTimeout(Duration)
+         */
+        @NotNull public Builder useConfiguredConnectTimeout() { connectTimeout = null; return this; }
+        /**
+         * Sets the timeout for reading SMTP socket data, leaving the connection and write choices unchanged.
+         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
+         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
+         *
+         * @param readTimeout Socket read timeout, exactly representable as an integer number of milliseconds.
+         * @throws NullPointerException If the required timeout is null; stored choices remain unchanged.
+         * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
+         * @see #withSessionTimeout(Duration)
+         * @see TransportStrategy#propertyNameTimeout()
+         */
+        @NotNull public Builder withReadTimeout(@NotNull final Duration readTimeout) { DurationMillis.toInt(readTimeout, "readTimeout"); this.readTimeout = readTimeout; return this; }
+        /** @see #withReadTimeout(Duration) */
+        @Nullable public Duration getReadTimeout() { return readTimeout; }
+        /**
+         * Selects {@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT} for reading only.
+         * @see #withReadTimeout(Duration)
+         */
+        @NotNull public Builder resetReadTimeout() { return withReadTimeout(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT); }
+        /**
+         * Removes the supplied read timeout so captured configuration can apply again.
+         * @see #withReadTimeout(Duration)
+         */
+        @NotNull public Builder useConfiguredReadTimeout() { readTimeout = null; return this; }
+        /**
+         * Sets the timeout for writing SMTP socket data, leaving the connection and read choices unchanged.
+         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
+         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
+         * Timeout scheduler and borrowed-executor ownership follow {@link #withSessionTimeout(Duration)}.
+         *
+         * @param writeTimeout Socket write timeout, exactly representable as an integer number of milliseconds.
+         * @throws NullPointerException If the required timeout is null; stored choices remain unchanged.
+         * @throws IllegalArgumentException If the duration has fractional milliseconds or exceeds the integer-millisecond range.
+         * @see #withSessionTimeout(Duration)
+         * @see TransportStrategy#propertyNameWriteTimeout()
+         */
+        @NotNull public Builder withWriteTimeout(@NotNull final Duration writeTimeout) { DurationMillis.toInt(writeTimeout, "writeTimeout"); this.writeTimeout = writeTimeout; return this; }
+        /** @see #withWriteTimeout(Duration) */
+        @Nullable public Duration getWriteTimeout() { return writeTimeout; }
+        /**
+         * Selects {@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT} for writing only.
+         * @see #withWriteTimeout(Duration)
+         */
+        @NotNull public Builder resetWriteTimeout() { return withWriteTimeout(MailerGenericBuilder.DEFAULT_SESSION_TIMEOUT); }
+        /**
+         * Removes the supplied write timeout so captured configuration can apply again.
+         * @see #withWriteTimeout(Duration)
+         */
+        @NotNull public Builder useConfiguredWriteTimeout() { writeTimeout = null; return this; }
         /**
          * Sets the local/source address without changing the already configured local/source port.
          *

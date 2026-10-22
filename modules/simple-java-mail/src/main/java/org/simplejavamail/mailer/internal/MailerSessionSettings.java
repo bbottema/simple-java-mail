@@ -32,7 +32,9 @@ final class MailerSessionSettings {
 
     @Nullable private final TransportStrategy transportStrategy;
     private final Map<String, Object> connectionOverrides;
-    @Nullable private final Duration sessionTimeout;
+    @Nullable private final Duration connectTimeout;
+    @Nullable private final Duration readTimeout;
+    @Nullable private final Duration writeTimeout;
     @Nullable private final String localBindAddress;
     @Nullable private final Integer localBindPort;
     @Nullable private final String smtpClientHostname;
@@ -62,9 +64,9 @@ final class MailerSessionSettings {
     static MailerSessionSettings fromOperationalConfig(final OperationalConfig config, @Nullable final TransportStrategy strategy) {
         final Map<Property, Object> choices = new LinkedHashMap<>();
         if (strategy != null) {
-            if (config.getSessionTimeout() != null) {
-                choices.put(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, DurationMillis.toInt(config.getSessionTimeout(), "sessionTimeout"));
-            }
+            addTimeoutChoice(choices, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, config.getConnectTimeout(), config.getSessionTimeout());
+            addTimeoutChoice(choices, Property.DEFAULT_READ_TIMEOUT_MILLIS, config.getReadTimeout(), config.getSessionTimeout());
+            addTimeoutChoice(choices, Property.DEFAULT_WRITE_TIMEOUT_MILLIS, config.getWriteTimeout(), config.getSessionTimeout());
             if (config.getLocalBindAddress() != null) {
                 choices.put(Property.SMTP_LOCAL_ADDRESS, config.getLocalBindAddress());
             }
@@ -79,6 +81,14 @@ final class MailerSessionSettings {
             choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, config.isVerifyingServerIdentity());
         }
         return resolve(null, strategy, config.getProperties(), choices, Collections.emptyMap(), true, true);
+    }
+
+    private static void addTimeoutChoice(final Map<Property, Object> choices, final Property property,
+            @Nullable final Duration individual, @Nullable final Duration common) {
+        final Duration timeout = individual == null ? common : individual;
+        if (timeout != null) {
+            choices.put(property, DurationMillis.toInt(timeout, property.key()));
+        }
     }
 
     private static Properties copyProperties(@Nullable final Session suppliedSession) {
@@ -113,7 +123,7 @@ final class MailerSessionSettings {
         if (strategy == null) {
             if (!choices.isEmpty()) {
                 throw new IllegalArgumentException("The supplied Session selects a custom mail.transport.protocol, so Simple Java Mail cannot apply "
-                        + "connection options such as withSessionTimeout(...), withLocalBindAddress(...), trustingSSLHosts(...) or "
+                        + "connection options such as withSessionTimeout(...), withConnectTimeout(...), withReadTimeout(...), withWriteTimeout(...), withLocalBindAddress(...), trustingSSLHosts(...) or "
                         + "verifyingServerIdentity(...) reliably. Configure those settings on the Session with your provider's property names "
                         + "or through withProperty(...), or let the factory create an SMTP Session without supplying one.");
             }
@@ -133,6 +143,9 @@ final class MailerSessionSettings {
                 overrides.put(strategy.propertyNameTimeout(), timeout);
                 overrides.put(strategy.propertyNameWriteTimeout(), timeout);
                 break;
+            case DEFAULT_CONNECT_TIMEOUT_MILLIS: overrides.put(strategy.propertyNameConnectionTimeout(), requireNonNull(value, "connectTimeout").toString()); break;
+            case DEFAULT_READ_TIMEOUT_MILLIS: overrides.put(strategy.propertyNameTimeout(), requireNonNull(value, "readTimeout").toString()); break;
+            case DEFAULT_WRITE_TIMEOUT_MILLIS: overrides.put(strategy.propertyNameWriteTimeout(), requireNonNull(value, "writeTimeout").toString()); break;
             case SMTP_LOCAL_ADDRESS: overrides.put(strategy.propertyNameLocalAddress(), stringValue(value)); break;
             case SMTP_LOCAL_PORT: overrides.put(strategy.propertyNameLocalPort(), stringValue(value)); break;
             case SMTP_CLIENT_HOSTNAME: overrides.put(strategy.propertyNameLocalHost(), stringValue(value)); break;
@@ -174,7 +187,9 @@ final class MailerSessionSettings {
                 .applyDebugEnabled(applyDebugEnabled)
                 .applyDebugOutput(applyDebugOutput)
                 .connectionOverrides(Collections.unmodifiableMap(new LinkedHashMap<>(overrides)))
-                .sessionTimeout(commonTimeout(effective, strategy))
+                .connectTimeout(strategy == null ? null : timeoutValue(effective, strategy.propertyNameConnectionTimeout()))
+                .readTimeout(strategy == null ? null : timeoutValue(effective, strategy.propertyNameTimeout()))
+                .writeTimeout(strategy == null ? null : timeoutValue(effective, strategy.propertyNameWriteTimeout()))
                 .localBindAddress(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalAddress()))
                 .localBindPort(strategy == null ? null : integerValue(propertyValue(effective, strategy.propertyNameLocalPort())))
                 .smtpClientHostname(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalHost()))
@@ -200,14 +215,9 @@ final class MailerSessionSettings {
     }
 
     @Nullable
-    private static Duration commonTimeout(final Properties effective, @Nullable final TransportStrategy strategy) {
-        if (strategy == null) {
-            return null;
-        }
-        final Integer connection = integerValue(propertyValue(effective, strategy.propertyNameConnectionTimeout()));
-        final Integer read = integerValue(propertyValue(effective, strategy.propertyNameTimeout()));
-        final Integer write = integerValue(propertyValue(effective, strategy.propertyNameWriteTimeout()));
-        return connection != null && connection.equals(read) && connection.equals(write) ? Duration.ofMillis(connection) : null;
+    private static Duration timeoutValue(final Properties effective, final String key) {
+        final Integer timeout = integerValue(propertyValue(effective, key));
+        return timeout == null ? null : Duration.ofMillis(timeout);
     }
 
     @Nullable
