@@ -6,6 +6,16 @@
 - Implementation baseline: `codex/10.0.0` at `a4eda9e6`; concurrent ENVID work is excluded from this decision
 - Attachment I/O addendum: Accepted 21 October 2026; implemented and reviewed for unreleased 10.0.0 under [#821](https://github.com/bbottema/simple-java-mail/issues/821).
 
+## Provider failure facts (accepted 22 October 2026)
+
+The basic transport-result failure factory may infer negative SMTP evidence only from an actual 4xx/5xx reply. Intermediate, missing and unusable response codes do not establish rejection; preserve unknown acceptance and conservative retry advice unless independently known recipient facts establish a more specific result. Keep captured raw responses available for inspection. Adapters that know the final response was lost continue to use the explicit unknown-acceptance factory. [#831](https://github.com/bbottema/simple-java-mail/issues/831) tracks this correction.
+
+When deriving recipient groups from a Jakarta Mail failure, search the complete standard next-exception chain with identity-based cycle protection, preserving the original outer failure and snapshot ownership. Additional wrappers must not discard known recipient facts. Ordinary Java cause traversal remains a separate boundary. [#832](https://github.com/bbottema/simple-java-mail/issues/832) tracks this correction.
+
+## Managed key-material reads (accepted 22 October 2026)
+
+Apply the owned-operation exception idiom to complete DKIM, S/MIME and PKCS12 content reads used to construct configuration values. Known opening, reading and closing I/O failures use MailException with failure kind PREPARATION, preserving the original cause and suppression chain. Close streams opened from paths/files; leave supplied streams open for their owner. Preserve argument errors and arbitrary application runtime exceptions, and leave cryptographic validation at its existing feature boundary. [#834](https://github.com/bbottema/simple-java-mail/issues/834) tracks this application of the existing rule.
+
 ## Context
 
 Completing a send call answers whether the library's operation succeeded, but does not tell the application what the SMTP server accepted. A message may be accepted for some recipients, rejected for others, or accepted without the client ever receiving the final reply. Retrying every exception as a wholly unsent message can duplicate mail.

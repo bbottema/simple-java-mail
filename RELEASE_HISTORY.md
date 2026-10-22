@@ -105,6 +105,17 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#828](https://github.com/bbottema/simple-java-mail/issues/828): eager MIME attachment and calendar extraction close the streams they open,
+  retaining read causes and suppressed close failures while preserving borrowed input ownership.
+- [#829](https://github.com/bbottema/simple-java-mail/issues/829): role-less visible recipients default to To and survive copying, completion and
+  MIME rendering without changing supplied Recipient values or From/Reply-To roles.
+- [#830](https://github.com/bbottema/simple-java-mail/issues/830): reject distinct pool-property aliases resolving to one UUID instead of silently
+  discarding settings or locks. Keep each cluster's settings under one alias.
+- [#831](https://github.com/bbottema/simple-java-mail/issues/831), [#832](https://github.com/bbottema/simple-java-mail/issues/832): provider-result helpers
+  preserve unknown acceptance for non-negative replies and retain recipient facts through nested Jakarta Mail exception chains.
+- [#834](https://github.com/bbottema/simple-java-mail/issues/834): managed DKIM/S/MIME/PKCS12 content reads use `MailException/PREPARATION` for known
+  I/O failures, retaining causes, suppressed close failures and supplied-stream ownership.
+
 - [#826](https://github.com/bbottema/simple-java-mail/issues/826): standalone `BatchTransportExecutor.shutdown()` and `shutdownNow()` return
   independent completion views. Cancelling, timing out or completing one view no longer changes actual cleanup, another caller's result or what `close()` waits for.
 - [#827](https://github.com/bbottema/simple-java-mail/issues/827): standalone batch callbacks and inline completion handlers reject blocking
