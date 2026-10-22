@@ -6,6 +6,12 @@
 - Target: 10.0.0
 - Related issue: [#756](https://github.com/bbottema/simple-java-mail/issues/756)
 
+## Required choices and explicit removal (accepted 22 October 2026)
+
+A required, non-null configuration argument rejects null before changing a builder's stored choice. Missing configuration is an argument error, not an implicit request to clear or reset an earlier choice. Provide named clear/reset companions for removal or restoration, consistently with the API expansion workflow. This does not change explicitly nullable component choices that select documented defaults.
+
+Apply this established required-input idiom to signWithSmime(SmimeSigningConfig) and encryptWithSmime(SmimeEncryptionConfig): reject null before assignment and retain the existing clearSmimeSigning(), clearSmimeEncryption() and clearSmime() operations. Email-level clearing leaves recipient certificates and template fallback under their existing contracts. Optional algorithm nulls still select the module defaults; collecting a configuration performs no cryptographic work or module loading. [#833](https://github.com/bbottema/simple-java-mail/issues/833) tracks this alignment.
+
 ## Context and decision drivers
 
 Applications should discover operations they are meant to call. Java sometimes requires a class or constructor to be public so another

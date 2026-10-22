@@ -1697,7 +1697,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder signWithSmime(@NotNull final SmimeSigningConfig smimeSigningConfig) {
-		this.smimeSigningConfig = smimeSigningConfig;
+		this.smimeSigningConfig = checkNonEmptyArgument(smimeSigningConfig, "smimeSigningConfig");
 		return this;
 	}
 
@@ -1728,7 +1728,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder encryptWithSmime(@NotNull final SmimeEncryptionConfig smimeEncryptionConfig) {
-		this.smimeEncryptionConfig = smimeEncryptionConfig;
+		this.smimeEncryptionConfig = checkNonEmptyArgument(smimeEncryptionConfig, "smimeEncryptionConfig");
 		return this;
 	}
 
