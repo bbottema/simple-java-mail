@@ -11,6 +11,7 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 import java.util.Collections;
@@ -25,14 +26,23 @@ final class SimpleJavaMailSpringBeanFactory {
 			Collections.<String, Object>singletonMap(Property.SMTP_HOST.key(), "localhost");
 
 	private final ConfigurableEnvironment environment;
+	private boolean telemetryActivation;
 
 	SimpleJavaMailSpringBeanFactory(@NotNull final ConfigurableEnvironment environment) {
 		this.environment = environment;
 	}
 
+	void configureTelemetryActivation(@NotNull final ListableBeanFactory beanFactory) {
+		// The annotation belongs to this context, even when another context supplies a parent factory or integration bean.
+		telemetryActivation = beanFactory.getBeanNamesForType(SjmTelemetryActivation.class, false, false).length != 0;
+	}
+
 	SimpleJavaMailConfig loadConfiguration() {
-		return ConfigLoader.builder()
-				.withMap("Spring defaults", SPRING_DEFAULTS)
+		final ConfigLoader loader = ConfigLoader.builder().withMap("Spring defaults", SPRING_DEFAULTS);
+		if (telemetryActivation) {
+			loader.withMap("@EnableSjmTelemetry", Collections.singletonMap(Property.TELEMETRY_ENABLED.key(), true));
+		}
+		return loader
 				.withClasspathResource(ConfigLoader.DEFAULT_CONFIG_FILENAME)
 				.withSource(new SpringEnvironmentConfigSource(environment))
 				.load();
