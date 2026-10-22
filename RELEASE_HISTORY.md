@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   preserve unknown acceptance for non-negative replies and retain recipient facts through nested Jakarta Mail exception chains.
 - [#834](https://github.com/bbottema/simple-java-mail/issues/834): managed DKIM/S/MIME/PKCS12 content reads use `MailException/PREPARATION` for known
   I/O failures, retaining causes, suppressed close failures and supplied-stream ownership.
+- [#833](https://github.com/bbottema/simple-java-mail/issues/833): required S/MIME configuration setters reject null before changing an earlier
+  protection choice. Use the named signing/encryption clear methods for removal; optional algorithm defaults remain unchanged.
 
 - [#826](https://github.com/bbottema/simple-java-mail/issues/826): standalone `BatchTransportExecutor.shutdown()` and `shutdownNow()` return
   independent completion views. Cancelling, timing out or completing one view no longer changes actual cleanup, another caller's result or what `close()` waits for.

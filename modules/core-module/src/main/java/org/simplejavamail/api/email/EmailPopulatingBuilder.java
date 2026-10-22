@@ -883,7 +883,12 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.<br>
 	 * <strong>Note:</strong> You can also configure your <code>Mailer</code> instance do sign all emails by default (also has better performance).
+	 * <p>
+	 * Requires a non-null configuration. Use {@link #clearSmimeSigning()} to remove the local signing choice,
+	 * or {@link #clearSmime()} to remove both local S/MIME choices.
 	 *
+	 * @param smimeSigningConfig The signing configuration to retain.
+	 * @throws IllegalArgumentException If the configuration is null; the current choice remains unchanged.
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
 	 * @see SmimeSigningConfig
@@ -899,8 +904,12 @@ public interface EmailPopulatingBuilder {
 	 * can decrypt the email with his or her private key.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
+	 * <p>
+	 * Requires a non-null configuration. Use {@link #clearSmimeEncryption()} to remove the local encryption choice,
+	 * or {@link #clearSmime()} to remove both local S/MIME choices. These clear operations retain recipient certificates.
 	 *
 	 * @param smimeEncryptionConfig The recipient's public key to use for encryption.
+	 * @throws IllegalArgumentException If the configuration is null; the current choice remains unchanged.
 	 *
 	 * @see <a href="https://en.wikipedia.org/wiki/S/MIME">S/MIME on Wikipedia</a>
 	 * @see <a href="https://www.globalsign.com/en/blog/what-is-s-mime/">Primer on S/MIME</a>
