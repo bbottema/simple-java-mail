@@ -204,7 +204,9 @@ public interface EmailPopulatingBuilder {
 	 * ordinary copying and supported Java serialization preserve their separate history contracts.
 	 * <p>
 	 * Completion does not freeze the message. Use {@link #buildEmail()} for ordinary sending so the selected destination supplies its defaults
-	 * directly, including in a cluster. Sending a completed result keeps its materialized values as supplied values; another Mailer's default
+	 * directly, including in a cluster. Completing here before an ordinary send adds another template-resolution pass.
+	 * Deferring completion also matters when cluster members use different sender addresses or DKIM settings for their SMTP servers.
+	 * Sending a completed result keeps its materialized values as supplied values; another Mailer's default
 	 * sender cannot replace an existing sender, while its override can. See {@link EmailGovernance#produceEmailApplyingDefaultsAndOverrides(Email)}
 	 * for collection ordering and duplicate matching. Sending, rehearsing or exporting the original exact Email retains its authoritative-byte
 	 * contract; explicitly completing an exact Email creates a composed result.
