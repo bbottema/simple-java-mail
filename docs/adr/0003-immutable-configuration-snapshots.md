@@ -5,6 +5,10 @@
 - Applies to: `codex/10.0.0`, including its unreleased API migration
 - Implementation: Original decision committed in `fcf8c3b2`; the accepted 2026-10-07 named-failover extension is implemented and accepted under #755 for unreleased 10.0.0
 
+## Unique pool-cluster aliases (accepted 22 October 2026)
+
+Within one resolved configuration, distinct pool-cluster aliases must not resolve to the same UUID. Reject that ambiguity during snapshot loading with an error identifying both aliases and their UUID, instead of losing a partial configuration or lock through map replacement. Named aliases with an explicit UUID and direct UUID aliases remain supported independently; repeated leaves for the same alias retain normal ordered-source and lock resolution. Do not add cross-alias merging or optional pool semantics to the loader. [#830](https://github.com/bbottema/simple-java-mail/issues/830) tracks this identity-boundary clarification.
+
 ## Context and historical rationale
 
 The old static `ConfigLoader` made independently configured Mailers share mutable process state. Construction order mattered because builders and completed objects consulted that state at different times. [Issue #693](https://github.com/bbottema/simple-java-mail/issues/693) explicitly identifies isolation, dependency injection, deterministic construction and replacement-object semantics as reasons to replace it.

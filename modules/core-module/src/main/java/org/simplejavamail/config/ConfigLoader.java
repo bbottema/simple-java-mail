@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -376,6 +377,11 @@ public final class ConfigLoader {
 	 * Resolves the registered sources into a new detached immutable snapshot. Later non-blank values win within each namespace and only winning values
 	 * are parsed. A {@code simplejavamail.locked.<tail>} declaration supplies the effective value of {@code simplejavamail.<tail>} regardless of ordinary
 	 * source priority. Its restriction survives snapshot copying and later builder customization; blank entries do not remove it.
+	 * <p>
+	 * Distinct pool-cluster aliases must resolve to different UUIDs. Keep all settings for one cluster under a single named or direct UUID alias;
+	 * repeated leaves for that alias retain ordinary source ordering and lock handling.
+	 *
+	 * @throws IllegalArgumentException If distinct pool-cluster aliases resolve to the same UUID.
 	 */
 	public SimpleJavaMailConfig load() {
 		final Map<String, RawValue> winners = new LinkedHashMap<>();
@@ -701,7 +707,7 @@ public final class ConfigLoader {
 	}
 
 	private static Map<UUID, ConnectionPoolClusterConfig> parseConnectionPoolClusterProperties(@NotNull final Map<String, Object> connectionPoolClusterProperties) {
-		final Map<String, ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder> buildersByAlias = new HashMap<>();
+		final Map<String, ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder> buildersByAlias = new TreeMap<>();
 		final Map<String, UUID> clusterKeysByAlias = new HashMap<>();
 
 		for (Map.Entry<String, Object> propertyKey : connectionPoolClusterProperties.entrySet()) {
@@ -743,11 +749,18 @@ public final class ConfigLoader {
 		}
 
 		final Map<UUID, ConnectionPoolClusterConfig> connectionPoolClusterConfigs = new HashMap<>();
+		final Map<UUID, String> aliasesByClusterKey = new HashMap<>();
 		for (Map.Entry<String, ConnectionPoolClusterConfig.ConnectionPoolClusterConfigBuilder> configBuilder : buildersByAlias.entrySet()) {
 			final String clusterAlias = configBuilder.getKey();
 			final UUID clusterKey = clusterKeysByAlias.containsKey(clusterAlias)
 					? clusterKeysByAlias.get(clusterAlias)
 					: parseUuid("cluster alias " + clusterAlias, clusterAlias);
+			final String previousAlias = aliasesByClusterKey.putIfAbsent(clusterKey, clusterAlias);
+			if (previousAlias != null) {
+				throw new IllegalArgumentException("Connection pool cluster aliases '" + escapeControlCharacters(previousAlias)
+						+ "' and '" + escapeControlCharacters(clusterAlias) + "' resolve to the same cluster UUID " + clusterKey
+						+ ". Use one alias per cluster UUID; keep its clusterkey.uuid and settings under that alias.");
+			}
 			connectionPoolClusterConfigs.put(clusterKey, configBuilder.getValue().build());
 		}
 		return connectionPoolClusterConfigs;
