@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal;
 import org.simplejavamail.api.email.AttachmentResource;
 
 import jakarta.mail.internet.InternetAddress;
+import java.util.Locale;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -92,7 +93,7 @@ class MimeMessageEmailMapper {
 		}
 
 		if (parsed.getCalendarMethod() != null) {
-			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod()), verifyNonnullOrEmpty(parsed.getCalendarContent()));
+			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod().toUpperCase(Locale.ROOT)), verifyNonnullOrEmpty(parsed.getCalendarContent()));
 			final ContentTransferEncoding calendarTextContentTransferEncoding = toContentTransferEncoding(parsed.getCalendarTextContentTransferEncoding());
 			if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, calendarTextContentTransferEncoding)) {
 				((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);

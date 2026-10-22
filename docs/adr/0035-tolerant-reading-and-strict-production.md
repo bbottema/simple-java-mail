@@ -92,6 +92,21 @@ It does not add arbitrary MIME-tree preservation, alter cryptographic preprocess
 records the pipeline boundary; [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#multipart-attachment-content-ownership-accepted-22-october-2026)
 preserves attachment read timing and ownership.
 
+### Calendar method interpretation (accepted 22 October 2026)
+
+Recognize existing calendar method names and values without regard to capitalization during MIME/EML import. Use Jakarta Mail's Content-Type
+parameter grammar so quoted values, whitespace and case-insensitive parameter names retain their meaning. A genuine MIME `method` parameter
+takes priority over the calendar body's `METHOD`; an unrelated parameter name or quoted value must not supply that method. Map a recognized
+value to the existing `CalendarMethod` enum using locale-independent case conversion while preserving the original calendar text and source bytes.
+
+Keep existing missing/unsupported-method failures and narrow malformed-header/body fallback. This correction also retains the historical leading
+method-token interpretation for a genuine parameter such as `method="REQUEST extra"`, and the first recoverable token when a method parameter is repeated.
+Deciding whether to reject that suffix or repeated parameters is separate from case recognition. Recovery must still identify the genuine parameter
+rather than searching other parameter names or quoted values for method-like
+text. Do not add an extension enum, invent a method, rewrite calendar text or change protection preprocessing, attachments or stream ownership.
+The accepted correction is tracked by [#851](https://github.com/bbottema/simple-java-mail/issues/851) for unreleased 10.0.0; its issue tracks delivery.
+[ADR 0013](0013-exact-eml-submission.md) preserves the separate exact/protected-byte boundary.
+
 ### Receipt-header name recognition (accepted 22 October 2026)
 
 Recognize `Disposition-Notification-To` and `Return-Receipt-To` by case-insensitive field names during MIME/EML import. Canonical,

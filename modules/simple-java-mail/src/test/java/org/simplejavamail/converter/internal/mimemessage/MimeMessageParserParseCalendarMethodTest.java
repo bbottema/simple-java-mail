@@ -4,6 +4,8 @@ import jakarta.activation.DataHandler;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimePart;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -84,5 +86,68 @@ public class MimeMessageParserParseCalendarMethodTest {
         String calendarContent = "BEGIN:VCALENDAR\nMETHOD:CANCEL\nEND:VCALENDAR";
 
         assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, calendarContent)).isEqualTo("REQUEST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "text/calendar; method=REQUEST; incomplete",
+            "text/calendar; ; method=REQUEST; incomplete",
+            "text/calendar; method=REQUEST; broken=\"unterminated"
+    })
+    void retainsPreviouslyRecoverableMalformedHeaders(final String contentType) throws Exception {
+        MimePart mockMimePart = mock(MimePart.class);
+        DataHandler mockDataHandler = mock(DataHandler.class);
+        when(mockMimePart.getDataHandler()).thenReturn(mockDataHandler);
+        when(mockDataHandler.getContentType()).thenReturn(contentType);
+
+        assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, "BEGIN:VCALENDAR\nMETHOD:CANCEL\nEND:VCALENDAR"))
+                .isEqualTo("REQUEST");
+    }
+
+    @Test
+    void retainsTheBodyFallbackWhenAMalformedHeaderHasNoMethod() throws Exception {
+        MimePart mockMimePart = mock(MimePart.class);
+        DataHandler mockDataHandler = mock(DataHandler.class);
+        when(mockMimePart.getDataHandler()).thenReturn(mockDataHandler);
+        when(mockDataHandler.getContentType()).thenReturn("text/calendar; incomplete");
+
+        assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, "BEGIN:VCALENDAR\nMETHOD:REQUEST\nEND:VCALENDAR"))
+                .isEqualTo("REQUEST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"text/calendar; method=\"\"", "text/calendar; method=\" \""})
+    void blankHeaderMethodsKeepTheExistingBodyFallback(final String contentType) throws Exception {
+        MimePart mockMimePart = mock(MimePart.class);
+        DataHandler mockDataHandler = mock(DataHandler.class);
+        when(mockMimePart.getDataHandler()).thenReturn(mockDataHandler);
+        when(mockDataHandler.getContentType()).thenReturn(contentType);
+
+        assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, "BEGIN:VCALENDAR\nMETHOD:REQUEST\nEND:VCALENDAR"))
+                .isEqualTo("REQUEST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"text/calendar; method=\"REQUEST extra\"", "text/calendar; method=\"REQUEST-extra\""})
+    void retainsTheHistoricallyAcceptedMethodPrefix(final String contentType) throws Exception {
+        MimePart mockMimePart = mock(MimePart.class);
+        DataHandler mockDataHandler = mock(DataHandler.class);
+        when(mockMimePart.getDataHandler()).thenReturn(mockDataHandler);
+        when(mockDataHandler.getContentType()).thenReturn(contentType);
+
+        assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, "BEGIN:VCALENDAR\nMETHOD:CANCEL\nEND:VCALENDAR"))
+                .isEqualTo("REQUEST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"text/calendar; name=\"method=REQUEST\"; incomplete", "text/calendar; x-method=REQUEST; incomplete"})
+    void malformedHeaderRecoveryDoesNotPromoteOtherParameters(final String contentType) throws Exception {
+        MimePart mockMimePart = mock(MimePart.class);
+        DataHandler mockDataHandler = mock(DataHandler.class);
+        when(mockMimePart.getDataHandler()).thenReturn(mockDataHandler);
+        when(mockDataHandler.getContentType()).thenReturn(contentType);
+
+        assertThat(MimeMessageParser.parseCalendarMethod(mockMimePart, "BEGIN:VCALENDAR\nMETHOD:CANCEL\nEND:VCALENDAR"))
+                .isEqualTo("CANCEL");
     }
 }
