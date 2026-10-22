@@ -79,6 +79,19 @@ need to retain arbitrary child headers in a new API, storage or warning scheme. 
 root fields keep their own existing interpretation, independently of child values. This correction is accepted under
 [#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+### Explicit multipart attachment boundaries (accepted 22 October 2026)
+
+An explicit attachment disposition on a child multipart applies to the complete resource. Preserve that container as one readable attachment,
+including its valid Content-Type parameters and existing resource metadata; do not interpret its text or nested resources as the parent's content.
+Traversing ordinary multipart bodies remains useful for external mail, including repeated text/HTML content. Keep that established behavior for
+inline and filename-only containers and for the effective root selected after protection processing.
+
+This is a narrow source-meaning correction under [#849](https://github.com/bbottema/simple-java-mail/issues/849), accepted for unreleased 10.0.0.
+It does not add arbitrary MIME-tree preservation, alter cryptographic preprocessing or relax exact-message preservation.
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#explicit-child-multipart-attachments-accepted-22-october-2026)
+records the pipeline boundary; [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#multipart-attachment-content-ownership-accepted-22-october-2026)
+preserves attachment read timing and ownership.
+
 ### Receipt-header name recognition (accepted 22 October 2026)
 
 Recognize `Disposition-Notification-To` and `Return-Receipt-To` by case-insensitive field names during MIME/EML import. Canonical,
