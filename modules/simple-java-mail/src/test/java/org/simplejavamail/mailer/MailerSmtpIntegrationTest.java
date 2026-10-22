@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer;
 
+import jakarta.activation.DataSource;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.simplejavamail.api.email.config.ContentEncodingConfig;
@@ -7,7 +8,10 @@ import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.config.ValidationConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.ParameterList;
+import jakarta.mail.internet.ParseException;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
@@ -46,6 +50,7 @@ import testutil.testrules.SmtpServerExtension;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyPairGenerator;
@@ -58,6 +63,7 @@ import java.util.concurrent.ExecutionException;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
+import static java.util.Collections.list;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -601,6 +607,10 @@ public class MailerSmtpIntegrationTest {
 					.clearDecryptedAttachments()
 					.withDecryptedAttachments(decryptedAttachments);
 		}
+		// Ordinary MIME rendering adds the selected filename to each resource's retained Content-Type parameters.
+		val embeddedImages = originalEmailPopulatingBuilder.getEmbeddedImages().stream()
+				.map(image -> withExpectedWireContentType(image, false)).collect(toList());
+		originalEmailPopulatingBuilder.clearEmbeddedImages().withEmbeddedImages(embeddedImages);
 
 		if (originalEmailPopulatingBuilder.getOriginalSmimeDetails() instanceof PlainSmimeDetails) {
 			// because the S/MIME module is loaded, the default PLAIN version gets replaced with the one from the module
@@ -649,8 +659,46 @@ public class MailerSmtpIntegrationTest {
 	@NotNull
 	private List<AttachmentResource> fixAttachmentResourcesWith7Bit(final List<AttachmentResource> originalEmailPopulatingBuilder) {
 		return originalEmailPopulatingBuilder.stream()
-				.map(att -> AttachmentResource.builder().withName(att.getName()).withDataSource(att.getDataSource()).withDescription(att.getDescription()).withContentTransferEncoding(ofNullable(att.getContentTransferEncoding()).orElse(BIT7)).build())
+				.map(att -> withExpectedWireContentType(att, true).toBuilder()
+						.withContentTransferEncoding(ofNullable(att.getContentTransferEncoding()).orElse(BIT7)).build())
 				.collect(toList());
+	}
+
+	private static AttachmentResource withExpectedWireContentType(final AttachmentResource resource, final boolean attachment) {
+		final DataSource originalSource = resource.getDataSource();
+		final String sourceName = originalSource.getName();
+		String filename = ofNullable(resource.getName()).orElse(sourceName);
+		assertThat(filename).as("fixture resource filename").isNotEmpty();
+		if (attachment && !filename.contains(".") && sourceName != null && sourceName.contains(".")) {
+			filename += sourceName.substring(sourceName.lastIndexOf('.'));
+		}
+		final ContentType contentType = parseContentType(originalSource.getContentType());
+		ParameterList parameters = contentType.getParameterList();
+		if (parameters == null) {
+			parameters = new ParameterList();
+			contentType.setParameterList(parameters);
+		}
+		for (final String name : list(parameters.getNames())) {
+			if (name.equals("name") || name.startsWith("name*") || name.equals("filename") || name.startsWith("filename*")) {
+				parameters.remove(name);
+			}
+		}
+		parameters.set("name", filename);
+		final String expectedContentType = contentType.toString();
+		return resource.toBuilder().withDataSource(new DataSource() {
+			@Override public InputStream getInputStream() throws IOException { return originalSource.getInputStream(); }
+			@Override public OutputStream getOutputStream() throws IOException { return originalSource.getOutputStream(); }
+			@Override public String getContentType() { return expectedContentType; }
+			@Override public String getName() { return originalSource.getName(); }
+		}).build();
+	}
+
+	private static ContentType parseContentType(final String value) {
+		try {
+			return new ContentType(value);
+		} catch (final ParseException invalidContentType) {
+			throw new AssertionError("Invalid resource Content-Type: " + value, invalidContentType);
+		}
 	}
 
 	@Test
@@ -733,7 +781,10 @@ public class MailerSmtpIntegrationTest {
 	}
 
 	private void assertAttachmentMetadata(AttachmentResource attachment, String mimeType, String filename) {
-		assertThat(attachment.getDataSource().getContentType()).isEqualTo(mimeType);
+		final ContentType contentType = parseContentType(attachment.getDataSource().getContentType());
+		assertThat(contentType.getBaseType()).isEqualTo(mimeType);
+		assertThat(contentType.getParameter("name")).isEqualTo(filename);
+		assertThat(contentType.getParameterList().size()).isEqualTo(1);
 		assertThat(attachment.getName()).isEqualTo(filename);
 	}
 
