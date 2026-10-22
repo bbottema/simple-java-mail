@@ -80,6 +80,15 @@ safe production and malformed-input fallback. Existing copying and serialization
 and stronger retry snapshots keep their own boundaries. This clarification is accepted under
 [#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; its issue tracks implementation and delivery.
 
+### Nullable custom-header metadata (accepted 22 October 2026)
+
+The existing header map retains actual null values supplied through the public builder, independently from explicit empty Strings.
+Structural snapshots, getters, ordinary copying and supported serialization preserve those choices and their existing order/identity rules.
+Do not normalize or discard metadata while copying. [ADR 0035](0035-tolerant-reading-and-strict-production.md#present-empty-custom-headers-accepted-22-october-2026)
+defines their common present-empty meaning at ordinary validation/rendering boundaries, including imported empty headers. That production
+interpretation does not mutate the Email or change exact/protected-byte preservation. The clarification is accepted under
+[#848](https://github.com/bbottema/simple-java-mail/issues/848) for unreleased 10.0.0; its issue tracks implementation and delivery.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

@@ -294,7 +294,7 @@ public class MimeMessageHelper {
 	private static void setHeader(Message message, Map.Entry<String, Collection<String>> header) throws UnsupportedEncodingException, MessagingException {
 		for (final String headerValue : header.getValue()) {
 			final String headerName = header.getKey();
-			final String headerValueEncoded = MimeUtility.encodeText(headerValue, CHARACTER_ENCODING.name(), null);
+			final String headerValueEncoded = MimeUtility.encodeText(headerValue != null ? headerValue : "", CHARACTER_ENCODING.name(), null);
 			final String foldedHeaderValue = MimeUtility.fold(headerName.length() + 2, headerValueEncoded);
 			message.addHeader(header.getKey(), foldedHeaderValue);
 		}

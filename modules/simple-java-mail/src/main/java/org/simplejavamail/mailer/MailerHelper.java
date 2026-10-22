@@ -220,7 +220,7 @@ public class MailerHelper {
 			for (final String headerValue : headerEntry.getValue()) {
 				// TODO is this still needed?
 				scanForInjectionAttack(headerEntry.getKey(), "email.header.headerName");
-				scanForInjectionAttack(MimeUtility.unfold(headerValue), format("email.header.[%s]", headerEntry.getKey()));
+				scanForInjectionAttack(headerValue != null ? MimeUtility.unfold(headerValue) : "", format("email.header.[%s]", headerEntry.getKey()));
 			}
 		}
 		for (final AttachmentResource attachment : email.getAttachments()) {

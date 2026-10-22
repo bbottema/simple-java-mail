@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#848](https://github.com/bbottema/simple-java-mail/issues/848): null custom-header values produce present empty fields during conversion
+  and sending, preserving stored null metadata, empty imported headers and existing header-name injection protection.
+
 - [#846](https://github.com/bbottema/simple-java-mail/issues/846): MIME/EML import recognizes receipt-header names regardless of capitalization,
   exposing their existing ordered recipient lists and request flags while keeping attachment headers separate from parent facts.
 

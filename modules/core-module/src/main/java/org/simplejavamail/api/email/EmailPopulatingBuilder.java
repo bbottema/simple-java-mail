@@ -758,17 +758,20 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withHeader(String, Object, boolean)} with <em>replaceHeader</em> set to {@code false}.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
-	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
+	 * @param value The value of the header. Non-null values are stored using {@link String#valueOf(Object)}; null is retained in metadata
+	 *              and produces a present empty header when converting or sending, just as an explicit empty String does.
 	 */
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable @Cli.Optional Object value);
 
 	/**
 	 * Adds a custom header to the email. Names ignore capitalization, so {@code X-Route} and {@code x-route} refer to the same header.
 	 * Pass {@code true} for {@code replaceHeader} when the new value should replace all earlier values for that header; otherwise it is added
-	 * to the existing collection if it is not already present. The value is stored as a {@code String}.
+	 * to the existing collection if it is not already present. Non-null values are stored as Strings. Null remains a distinct stored choice
+	 * and produces a present empty header when converting or sending, just as an explicit empty String does; it does not omit the header.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
-	 * @param value The value of the header, which will be stored using {@link String#valueOf(Object)}.
+	 * @param value The value of the header. Non-null values are stored using {@link String#valueOf(Object)}; null is retained in metadata
+	 *              and produces a present empty header when converting or sending, just as an explicit empty String does.
 	 * @param replaceHeader Whether to add the value to an existing collection of values (if any) or create a new collection with only the given value.
 	 *
 	 * @see #withHeaders(Map)
