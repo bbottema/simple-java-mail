@@ -105,6 +105,12 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#826](https://github.com/bbottema/simple-java-mail/issues/826): standalone `BatchTransportExecutor.shutdown()` and `shutdownNow()` return
+  independent completion views. Cancelling, timing out or completing one view no longer changes actual cleanup, another caller's result or what `close()` waits for.
+- [#827](https://github.com/bbottema/simple-java-mail/issues/827): standalone batch callbacks and inline completion handlers reject blocking
+  self-close before shutdown starts, avoiding an indefinite wait. Initiate shutdown without waiting there and close from the application owner;
+  see the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#async-shutdown).
+
 - [#783](https://github.com/bbottema/simple-java-mail/issues/783): inspecting a Mailer builder's retry policy now returns supplied choices,
   including omissions and explicit clears, without resolving or validating the effective policy. Built `OperationalConfig` retains resolved settings.
 - [#821](https://github.com/bbottema/simple-java-mail/issues/821): attachment convenience reads consistently report opening, reading and closing

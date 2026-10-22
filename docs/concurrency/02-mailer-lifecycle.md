@@ -142,6 +142,30 @@ Open-connection scope accounting is separate from deadlines: application gaps an
 Supplied failover Mailers are borrowed and remain independently owned. A parent closes only privately constructed named Mailers, after its work drains.
 Construction failure rolls back those owned resources, not supplied Mailers or executors. See [connection failover](10-connection-failover.md).
 
+## Standalone batch executor lifecycle
+
+[`BatchTransportExecutor`](../../modules/batch-module/src/main/java/org/simplejavamail/batch/BatchTransportExecutor.java) owns a separate
+operation counter, executor and pool engine. It does not enter `MailSendOperations` or produce Email observations. Its shutdown contract follows
+the [standalone clarification in ADR 0016](../adr/0016-bounded-async-admission-and-shutdown.md#standalone-batch-shutdown-accepted-22-october-2026).
+
+| Boundary | Owner and ordering |
+| --- | --- |
+| Admission | `lifecycleMonitor` protects OPEN/CLOSING/CLOSED, the accepted-operation count and forced-shutdown escalation. Closing stops new work. |
+| Actual cleanup | Private `shutdownCompletion` represents the one drain, owned-executor termination and pool-engine shutdown. `close()` waits on this private completion. |
+| Caller observation | `shutdown()` and `shutdownNow()` return fresh detached futures. Mutation, cancellation or timeout of a view cannot affect private cleanup or another view. |
+| Local self-wait | `CURRENT_EXECUTION` retains a stack of participating facade owners through synchronous work, submitted work and inline completion/cancellation callbacks. `close()` rejects a matching owner before initiating shutdown; each scope restores its predecessor in `finally`. |
+
+Retirement follows the callback and its inline completion work. Forced cancellation can complete an operation future before its running callback
+has exited, but cleanup still waits for the accepted-operation count. Supplied executors remain open and must continue executing admitted work.
+Callbacks can initiate graceful or forced shutdown and return; awaiting that shutdown from within the counted work remains unsupported. Nested
+facades preserve outer owners, so entering another facade does not permit blocking close of an outer operation's owner. This does not detect
+arbitrary cross-thread waits.
+
+[`BatchTransportExecutorShutdownTest`](../../modules/batch-module/src/test/java/org/simplejavamail/batch/BatchTransportExecutorShutdownTest.java)
+contains the mutation/timeout, self-close, nested-owner, context-restoration and forced-escalation regressions. Its cleanup-failure case injects a
+failed engine shutdown future to exercise authoritative failure propagation; it does not assert that every upstream transport-disposal failure
+fails whole-pool shutdown. Existing transport release/invalidation and consumer tests retain their separate coverage.
+
 ## Tests and boundaries
 
 | Test source / method | Evidence |
