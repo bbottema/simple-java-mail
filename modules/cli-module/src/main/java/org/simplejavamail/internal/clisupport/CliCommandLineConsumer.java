@@ -13,17 +13,15 @@ import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.recipient.internal.MailboxInterpretation;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
-import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.ParseResult;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -33,7 +31,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Converts a successfully parsed, non-help Picocli command into ordered builder invocations.
- * Declared option order is restored before string values are converted to the exact builder parameter types.
+ * Each supplied occurrence retains its own arguments before conversion to the exact builder parameter types.
  */
 class CliCommandLineConsumer {
     
@@ -45,39 +43,31 @@ class CliCommandLineConsumer {
         
         final ParseResult mailCommand = providedCommand.subcommand();
         final CliCommandType matchedCommand = CliCommandType.valueOf(mailCommand.commandSpec().name());
-        final Map<CliDeclaredOptionSpec, OptionSpec> matchedOptionsInOrderProvision = matchProvidedOptions(declaredOptions, mailCommand.matchedOptions());
+        final Map<String, CliDeclaredOptionSpec> declaredOptionsByName = new HashMap<>();
+        for (CliDeclaredOptionSpec declaredOption : declaredOptions) {
+            declaredOptionsByName.put(declaredOption.getName(), declaredOption);
+        }
+        final CliOptionOccurrences occurrences = (CliOptionOccurrences) mailCommand.commandSpec().userObject();
     
 		LOGGER.debug("processing mail command: {}", matchedCommand);
 		
         List<CliReceivedOptionData> receivedOptions = new ArrayList<>();
-        for (Entry<CliDeclaredOptionSpec, OptionSpec> cliOption : matchedOptionsInOrderProvision.entrySet()) {
-			final Method sourceMethod = cliOption.getKey().getSourceMethod();
+        for (CliOptionOccurrences.Occurrence occurrence : occurrences.occurrences()) {
+            final CliDeclaredOptionSpec declaredOption = declaredOptionsByName.get(occurrence.optionName());
+			final Method sourceMethod = declaredOption.getSourceMethod();
 			final int mandatoryParameters = MiscUtil.countMandatoryParameters(sourceMethod);
-			final List<String> providedStringValues = cliOption.getValue().getValue();
+			final List<String> providedStringValues = new ArrayList<>(occurrence.arguments());
             assumeTrue(providedStringValues.size() >= mandatoryParameters,
-                    format("provided %s arguments for '%s', but need at least %s", providedStringValues.size(), cliOption.getKey(), mandatoryParameters));
+                    format("provided %s arguments for '%s', but need at least %s", providedStringValues.size(), declaredOption, mandatoryParameters));
             assumeTrue(providedStringValues.size() <= sourceMethod.getParameterTypes().length,
-                    format("provided %s arguments for '%s', but need at most %s", providedStringValues.size(), cliOption.getKey(), sourceMethod.getParameterTypes().length));
-			receivedOptions.add(new CliReceivedOptionData(cliOption.getKey(), convertProvidedOptionValues(providedStringValues, sourceMethod)));
+                    format("provided %s arguments for '%s', but need at most %s", providedStringValues.size(), declaredOption, sourceMethod.getParameterTypes().length));
+			receivedOptions.add(new CliReceivedOptionData(declaredOption, convertProvidedOptionValues(providedStringValues, sourceMethod)));
         }
         
         return new CliReceivedCommand(matchedCommand, receivedOptions,
                 mailCommand.matchedOptionValue(CliCommandLineProducer.AUTHENTICATE_OPTION, false));
     }
 	
-	private static Map<CliDeclaredOptionSpec, OptionSpec> matchProvidedOptions(Iterable<CliDeclaredOptionSpec> declaredOptions, List<OptionSpec> providedOptions) {
-		Map<CliDeclaredOptionSpec, OptionSpec> matchedProvidedOptions = new LinkedHashMap<>();
-		
-		for (OptionSpec providedOption : providedOptions) {
-			for (CliDeclaredOptionSpec declaredOption : declaredOptions) {
-				if (providedOption.longestName().equals(declaredOption.getName())) {
-					matchedProvidedOptions.put(declaredOption, providedOption);
-				}
-			}
-		}
-        return matchedProvidedOptions;
-    }
-
 	static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Method m) {
 		List<Object> providedValuesConverted = new ArrayList<>();
 		

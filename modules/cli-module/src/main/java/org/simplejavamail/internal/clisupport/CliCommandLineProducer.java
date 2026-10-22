@@ -96,6 +96,7 @@ class CliCommandLineProducer {
     }
     
     private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, Collection<CliBuilderApiType> compatibleBuilderApiTypes, int maxTextWidth) {
+		final CliOptionOccurrences occurrences = (CliOptionOccurrences) rootCommand.userObject();
 		for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
             if (cliDeclaredOptionSpec.applicableToRootCommand(compatibleBuilderApiTypes)) {
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
@@ -107,6 +108,10 @@ class CliCommandLineProducer {
                         .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
                         .hideParamSyntax(true)
                         .description(determineDescription(cliDeclaredOptionSpec, false, maxTextWidth))
+                        .getter(occurrences)
+                        .setter(occurrences.setterFor(cliDeclaredOptionSpec.getName()))
+                        .hasInitialValue(true)
+                        .initialValue(null)
                         .build());
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName() + OPTION_HELP_POSTFIX)
                         .type(List.class) // cannot use .usageHelp(true), because this cannot be boolean, because description
@@ -163,7 +168,7 @@ class CliCommandLineProducer {
     }
     
     private static CommandSpec createDefaultCommandSpec(@NotNull String name, @Nullable String... descriptions) {
-        final CommandSpec command = CommandSpec.create()
+        final CommandSpec command = CommandSpec.wrapWithoutInspection(new CliOptionOccurrences())
                 .name(name)
                 .mixinStandardHelpOptions(true);
         command.usageMessage()

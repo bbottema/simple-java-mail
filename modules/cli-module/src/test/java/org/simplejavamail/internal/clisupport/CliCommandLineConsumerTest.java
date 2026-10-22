@@ -145,9 +145,49 @@ public class CliCommandLineConsumerTest {
 		assertThat(receivedCommandWithOptionalValues.getReceivedOptions().get(0).getProvidedOptionValues())
 				.containsExactly("o1", 1, "o2", 2, 3, "o3", "o4", 4);
 	}
+
+	@Test
+	public void repeatedOptionalOnlyCallsKeepEmptyOccurrencesAndResetForTheNextParse() throws Exception {
+		final CliDeclaredOptionSpec option = optionalOnlyOption();
+		final CommandLine commandLine = CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(option)), 120);
+		final CommandLine.ParseResult parsed = commandLine.parseArgs("send", option.getName(), "first",
+				option.getName(), option.getName(), "last");
+		final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parsed, asList(option));
+		assertThat(received.getReceivedOptions()).hasSize(3);
+		assertThat(received.getReceivedOptions().get(0).getProvidedOptionValues()).containsExactly("first");
+		assertThat(received.getReceivedOptions().get(1).getProvidedOptionValues()).containsExactly((Object) null);
+		assertThat(received.getReceivedOptions().get(2).getProvidedOptionValues()).containsExactly("last");
+		assertThat(CliCommandLineConsumer.consumeCommandLineInput(parsed, asList(option)).getReceivedOptions())
+				.extracting(value -> value.getProvidedOptionValues().get(0)).containsExactly("first", null, "last");
+
+		final CliReceivedCommand next = CliCommandLineConsumer.consumeCommandLineInput(
+				commandLine.parseArgs("send", option.getName()), asList(option));
+		assertThat(next.getReceivedOptions()).hasSize(1);
+		assertThat(next.getReceivedOptions().get(0).getProvidedOptionValues()).containsExactly((Object) null);
+	}
+
+	@Test
+	public void picocliAttachedValuesKeepTheirOwnOccurrencesWithoutRetokenizing() throws Exception {
+		final CliDeclaredOptionSpec option = optionalOnlyOption();
+		final CommandLine commandLine = CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(option)), 120)
+				.setSeparator("=");
+		final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(
+				commandLine.parseArgs("send", option.getName() + "=first=value", option.getName() + "=last=value"), asList(option));
+		assertThat(received.getReceivedOptions()).hasSize(2);
+		assertThat(received.getReceivedOptions().get(0).getProvidedOptionValues()).containsExactly("first=value");
+		assertThat(received.getReceivedOptions().get(1).getProvidedOptionValues()).containsExactly("last=value");
+	}
+
+	private static CliDeclaredOptionSpec optionalOnlyOption() throws Exception {
+		return new CliDeclaredOptionSpec("--email:optional-only", new ArrayList<>(),
+				asList(new CliDeclaredOptionValue("value", "String", "", false, new String[0])), EMAIL,
+				TestClass.class.getMethod("optionalOnly", String.class));
+	}
 	
 	@SuppressWarnings("unused")
 	public static class TestClass {
+		public void optionalOnly(@Nullable @Cli.Optional String value) {
+		}
 		public void arrayValues(final String[] values) {
 		}
 		public void numericValues(final long primitiveLong, final Long boxedLong, final double primitiveDouble, final Double boxedDouble) {
