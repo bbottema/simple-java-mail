@@ -46,6 +46,19 @@ Do not move a validator into core to avoid a dependency cycle. Keep the implemen
 intermediary contract in core. Reuse an existing contract before adding another. Core-owned JDK conversions, such as reading an X.509
 certificate, must not imply a dependency on a particular optional cryptographic provider.
 
+### DKIM identity-domain comparison (accepted 22 October 2026)
+
+The optional DKIM implementation compares the sender identity domain with the configured signing domain without regard to capitalization.
+Retain the existing same-domain or subdomain boundary, while preserving the original sender address, local-part case and configured
+signing-domain spelling in the model, DNS request and signature. Building configuration does not apply this signing rule. The existing
+DNS key granularity, key compatibility and cryptographic processing remain authoritative at signing.
+
+This follows the mailbox-domain distinction in [RFC 5321 section 2.4](https://www.rfc-editor.org/rfc/rfc5321.html#section-2.4) and the
+DKIM identity/domain relationship in [RFC 6376 section 3.5](https://www.rfc-editor.org/rfc/rfc6376.html#section-3.5). It does not introduce
+a new identity policy or normalize caller data. [#844](https://github.com/bbottema/simple-java-mail/issues/844) tracks the correction
+for unreleased 10.0.0; message ownership and finalized-content protection retain [ADR 0001](0001-email-configuration-scopes-and-inheritance.md)
+and [ADR 0008](0008-minimal-mime-structures-and-protection-order.md).
+
 ### Choose the input boundary for the caller (accepted 2026-10-16)
 
 Prefer an API that makes the required input clear and catches mistakes at compile time. A single-looking builder surface is not worth hiding
