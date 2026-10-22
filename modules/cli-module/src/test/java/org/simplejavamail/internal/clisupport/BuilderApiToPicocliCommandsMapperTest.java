@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.ReturnOption;
@@ -25,6 +27,7 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.OpenConnectionCallback;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.config.ConfigLoader;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -243,14 +246,25 @@ public class BuilderApiToPicocliCommandsMapperTest {
 		assertThat(fullValues.get(0)).isEqualTo("Team");
 		assertThat(fullValues.get(1)).isEqualTo(false);
 		assertThat(fullValues.get(2)).isEqualTo(Message.RecipientType.TO);
-		assertThat((String[]) fullValues.get(3)).containsExactly("alice@example.com", "bob@example.com");
+		assertThat((String[]) fullValues.get(3)).containsExactly("alice@example.com;bob@example.com");
+		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
+		final EmailPopulatingBuilder fullBuilder = mail.emailBuilder().startingBlank();
+		withRecipients.invoke(fullBuilder, fullValues.toArray());
+		final Email fullEmail = fullBuilder.buildEmail();
+		assertThat(fullEmail.getRecipients()).extracting(Recipient::getAddress).containsExactly("alice@example.com", "bob@example.com");
+		assertThat(fullEmail.getRecipients()).extracting(Recipient::getType).containsExactly(Message.RecipientType.TO, Message.RecipientType.TO);
 
 		List<Object> minimalValues = CliCommandLineConsumer.convertProvidedOptionValues(new ArrayList<>(Arrays.asList(
 				"false", "alice@example.com,bob@example.com")), withRecipients);
 		assertThat(minimalValues.get(0)).isNull();
 		assertThat(minimalValues.get(1)).isEqualTo(false);
 		assertThat(minimalValues.get(2)).isNull();
-		assertThat((String[]) minimalValues.get(3)).containsExactly("alice@example.com", "bob@example.com");
+		assertThat((String[]) minimalValues.get(3)).containsExactly("alice@example.com,bob@example.com");
+		final EmailPopulatingBuilder minimalBuilder = mail.emailBuilder().startingBlank();
+		withRecipients.invoke(minimalBuilder, minimalValues.toArray());
+		final Email minimalEmail = minimalBuilder.buildEmail();
+		assertThat(minimalEmail.getRecipients()).extracting(Recipient::getAddress).containsExactly("alice@example.com", "bob@example.com");
+		assertThat(minimalEmail.getRecipients()).extracting(Recipient::getType).containsExactly(Message.RecipientType.TO, Message.RecipientType.TO);
 	}
 
 	@Test
