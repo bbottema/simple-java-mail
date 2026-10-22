@@ -6,6 +6,10 @@
 - Implementation: Implemented and reviewed locally for unreleased 10.0.0; [#768](https://github.com/bbottema/simple-java-mail/issues/768) tracks delivery and verification.
 - Supersedes: Unconditional additive collection concatenation in [ADR 0002](0002-email-defaults-and-overrides.md). Other value-shape, ownership and lock rules remain applicable.
 
+## Role-less visible occurrences (accepted 22 October 2026)
+
+Interpret a supplied visible recipient with no role as To under [ADR 0001](0001-email-configuration-scopes-and-inheritance.md#role-less-visible-recipients-accepted-22-october-2026), rather than discarding it from the typed projections used during completion. Preserve occurrence counts and recipient metadata without mutating the supplied value or changing From/Reply-To roles. [#829](https://github.com/bbottema/simple-java-mail/issues/829) tracks this correction; the existing additive identity and lock decisions otherwise remain unchanged.
+
 ## Context
 
 [#451](https://github.com/bbottema/simple-java-mail/issues/451) moved defaults and overrides from ordinary Email construction to Mailer
