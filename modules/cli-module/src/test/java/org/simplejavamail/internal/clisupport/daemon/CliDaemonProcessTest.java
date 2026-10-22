@@ -241,6 +241,36 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void omittedHeaderValuesProduceEmptyFieldsInOneShotAndRequiredDaemonSends() throws Exception {
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		smtp.start();
+		Invocation start = null;
+		try {
+			start = invoke(true, "daemon", "start", "--daemon-instance=empty-headers");
+			assertThat(start.exitCode).as(start.output).isZero();
+			final String[] arguments = {
+					"send", "--daemon=require", "--daemon-instance=empty-headers", "--email:startingBlank",
+					"--email:from", "sender@example.test", "--email:to", "receiver@example.test",
+					"--email:withHeader", "X-Example", "--email:withPlainText", "body",
+					"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+					"--mailer:withConnectionPoolCoreSize", "0"
+			};
+			final Invocation daemon = invoke(true, arguments);
+			assertThat(daemon.exitCode).as(daemon.output).isZero();
+			arguments[1] = "--daemon=off";
+			final Invocation oneShot = invoke(true, arguments);
+			assertThat(oneShot.exitCode).as(oneShot.output).isZero();
+			assertThat(smtp.getMessages()).hasSize(2).allSatisfy(received ->
+					assertThat(received.getMimeMessage().getHeader("X-Example")).containsExactly(""));
+		} finally {
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				invoke(true, "daemon", "stop", "--daemon-instance=empty-headers");
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
 	void helpLikeValuesKeepOneShotAndRequiredDaemonSendsComplete() throws Exception {
 		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
 		smtp.start();

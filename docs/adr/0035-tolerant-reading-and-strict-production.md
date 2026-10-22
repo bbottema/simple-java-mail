@@ -107,6 +107,20 @@ the ownership boundary in [ADR 0036](0036-structural-message-snapshots-and-borro
 No new public metadata API, configuration switch or caller escaping rule is needed. The accepted repair is tracked by
 [#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+### Present empty custom headers (accepted 22 October 2026)
+
+A custom header may be present with no value. The import requirement in [#109](https://github.com/bbottema/simple-java-mail/issues/109)
+and [#123](https://github.com/bbottema/simple-java-mail/issues/123) dates to 2017/2018: an empty `X-MS-TNEF-Correlator` must not prevent
+reading otherwise useful mail. The public builder also accepts null. During ordinary outgoing validation and rendering, interpret a stored
+null value as an empty String and emit a present empty field, just as for an explicit empty String. Do not omit the field or emit the text `null`.
+
+Keep stored metadata unchanged through inspection, copying and supported serialization under
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#nullable-custom-header-metadata-accepted-22-october-2026).
+Existing case-insensitive header identity, value ordering, distinct-value handling and replacement rules remain in force; null and empty
+remain distinct stored choices even when they render alike. Preserve stored whitespace and existing nonempty encoding/folding. A null value never
+bypasses header-name injection checks. Exact and protected source bytes retain their separate preservation boundaries. This clarification is
+accepted under [#848](https://github.com/bbottema/simple-java-mail/issues/848) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

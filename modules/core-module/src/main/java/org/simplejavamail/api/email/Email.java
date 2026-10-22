@@ -889,6 +889,9 @@ public class Email implements Serializable {
 	}
 	
 	/**
+	 * Returns the owned, unmodifiable custom-header snapshot. Stored null values remain null through copying and serialization;
+	 * ordinary conversion and sending produce a present empty field for them, as for an explicit empty String.
+	 *
 	 * @see EmailPopulatingBuilder#withHeader(String, Object)
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
