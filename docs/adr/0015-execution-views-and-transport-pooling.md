@@ -30,6 +30,11 @@ has finished, the shared batch bridge forgets the empty upstream cluster and its
 Closing one member must not discard another member's settings, and a captured selection must never become a selection of a replacement registration.
 The globally cached batch module must not accumulate metadata for every short-lived Mailer ever constructed.
 
+The standalone shutdown clarification accepted on 22 October 2026 extends [ADR 0016](0016-bounded-async-admission-and-shutdown.md#standalone-batch-shutdown-accepted-22-october-2026)
+to this facade: expose detached views of authoritative cleanup and reject blocking close from its own operations or workers before initiating
+shutdown. The released shared-handle identity changes deliberately; graceful draining, forced escalation and borrowed-executor ownership remain.
+Implementation and delivery are tracked by [#826](https://github.com/bbottema/simple-java-mail/issues/826) and [#827](https://github.com/bbottema/simple-java-mail/issues/827).
+
 ### Explicit executor tuning (accepted 19 October 2026)
 
 An explicit worker count or keep-alive configures the Mailer's owned executor even without the batch module. This includes Java choices,

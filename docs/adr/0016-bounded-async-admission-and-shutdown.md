@@ -4,6 +4,7 @@
 - Decision recorded: 2026-09-16; not the original decision date
 - Applies to: `codex/10.0.0`
 - Implementation status: Implemented, unreleased 10.0.0 behavior
+- Standalone batch shutdown clarification: Accepted, 2026-10-22; implemented and reviewed for unreleased 10.0.0 under [#826](https://github.com/bbottema/simple-java-mail/issues/826) and [#827](https://github.com/bbottema/simple-java-mail/issues/827).
 
 ## Context
 
@@ -31,6 +32,28 @@ that overrides the released broader `throws Exception` contract may need to narr
 shutdown exception type is added.
 
 Use a dedicated daemon cleanup thread to wait outside the Mailer monitor. Reject blocking `close()` from the Mailer's own operation or owned worker to prevent a direct self-wait. Graceful shutdown does not request cancellation. Inline observer work is part of draining; accepted offloaded observer callbacks are application-owned after handoff and are not joined.
+
+### Standalone batch shutdown (accepted 22 October 2026)
+
+Apply the same separation between owned cleanup and caller observation to `BatchTransportExecutor`. Its `shutdown()` and `shutdownNow()`
+return a fresh detached `CompletableFuture<Void>` on every call, observing one private cleanup operation. Completing, failing, cancelling or
+timing out a returned view cannot finish cleanup, alter another view or change what `close()` waits for. A forced call can still escalate an
+existing graceful shutdown. Actual cleanup failures retain their original cause, and caller-supplied executors remain application-owned.
+
+This intentionally replaces the shared future identity documented in the released 9.3.6 API. Shared operation identity does not require shared
+mutable observation. Applications observe completion instead of comparing returned futures or attempting to control cleanup by completing them.
+
+Reject blocking `close()` with `IllegalStateException` before starting shutdown when called from this facade's own operation or worker.
+The boundary includes synchronous callbacks, submitted callbacks and inline completion callbacks, including work on supplied/direct executors.
+Nested execution retains every participating facade owner; leaving an operation restores the prior context, including when a callback fails.
+An application can handle this rejection and later close normally from its owning thread.
+
+Callbacks may initiate `shutdown()` or `shutdownNow()` without waiting for them. Waiting for cleanup within work that cleanup must drain remains
+unsupported. This is a local self-wait guard, not a detector for arbitrary dependencies between threads or application executors. It changes a
+direct indefinite wait into an explanatory failure without changing lease handling, ordinary external close or executor ownership.
+
+[ADR 0015](0015-execution-views-and-transport-pooling.md) continues to own standalone resource management. The two tracking issues retain
+implementation, verification and delivery evidence; the correction targets the development branch and does not constitute a published release.
 
 ## Recorded reasoning
 

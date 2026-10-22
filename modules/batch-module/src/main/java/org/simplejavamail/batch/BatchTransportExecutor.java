@@ -42,6 +42,8 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 
 	private enum State { OPEN, CLOSING, CLOSED }
 
+	private static final ThreadLocal<ExecutionContext> CURRENT_EXECUTION = new ThreadLocal<>();
+
 	private final Object lifecycleMonitor = new Object();
 	private final BatchTransportEngine<K> engine;
 	private final BatchTransportPoolConfiguration defaultPoolConfiguration;
@@ -52,7 +54,7 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 	private State state = State.OPEN;
 	private int acceptedOperations;
 	private boolean forceRequested;
-	private CompletableFuture<Void> shutdownFuture;
+	private CompletableFuture<Void> shutdownCompletion;
 
 	BatchTransportExecutor(final BatchTransportPoolConfiguration defaultPoolConfiguration,
 			final Map<K, BatchTransportPoolConfiguration> clusterConfigurations,
@@ -166,22 +168,31 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 
 	/**
 	 * Stops accepting new registration and work, waits for already accepted work, closes all physical pools, and shuts
-	 * down the module-owned executor. Repeated calls return the same completion handle.
+	 * down the module-owned executor. Repeated calls observe the same cleanup operation through fresh, detached futures.
+	 * Completing normally or exceptionally, cancelling, or timing out a returned future affects only that caller's view, not resource cleanup,
+	 * other views, or {@link #close()}.
+	 * <p>
+	 * An operation or inline completion callback may initiate shutdown, but must not wait for it: cleanup waits for
+	 * that work to finish. Wait from the owning application thread instead.
 	 *
-	 * @return the shared shutdown completion handle
+	 * @return a new detached view that completes when resource cleanup finishes, retaining any cleanup failure
 	 */
 	public CompletableFuture<Void> shutdown() {
-		return beginShutdown(false);
+		return detachedView(beginShutdown(false));
 	}
 
 	/**
 	 * Escalates shutdown by rejecting further transport claims, invalidating active leases, interrupting module-owned
-	 * workers, and cancelling queued facade submissions. Repeated graceful or forced calls return the same handle.
+	 * workers, and cancelling queued facade submissions. A forced call can escalate an existing graceful shutdown.
+	 * Each call returns a fresh, detached view of the same cleanup operation, as described by {@link #shutdown()}.
+	 * Caller-owned executors remain running, and cleanup still waits for active callbacks to finish.
+	 * <p>
+	 * An operation or inline completion callback may initiate forced shutdown, but must not wait for it.
 	 *
-	 * @return the shared shutdown completion handle
+	 * @return a new detached view that completes when resource cleanup finishes, retaining any cleanup failure
 	 */
 	public CompletableFuture<Void> shutdownNow() {
-		return beginShutdown(true);
+		return detachedView(beginShutdown(true));
 	}
 
 	/**
@@ -197,12 +208,25 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 
 	/**
 	 * Performs and waits for graceful shutdown. If interrupted, this method restores the interrupt flag and throws a
-	 * credential-safe {@link BatchTransportException}.
+	 * credential-safe {@link BatchTransportException}. Mutating a future returned by {@link #shutdown()} or
+	 * {@link #shutdownNow()} cannot change this wait.
+	 * <p>
+	 * Calling this method from this facade's own operation or inline completion callback would wait for itself. Such
+	 * calls are rejected before initiating shutdown, including operations on supplied or direct executors. Close from
+	 * the owning application thread, or initiate {@link #shutdown()} without waiting inside the callback.
+	 *
+	 * @throws IllegalStateException when called from this facade's own operation or worker
+	 * @throws BatchTransportException when interrupted or resource cleanup fails
 	 */
 	@Override
 	public void close() {
+		for (ExecutionContext context = CURRENT_EXECUTION.get(); context != null; context = context.previous) {
+			if (context.owner == this) {
+				throw new IllegalStateException("A batch transport operation cannot wait for its own shutdown; close the facade from its owning application thread");
+			}
+		}
 		try {
-			shutdown().get();
+			beginShutdown(false).get();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			throw new BatchTransportException(MailFailureKind.CLEANUP, "Interrupted while shutting down batch transport resources", interrupted);
@@ -220,10 +244,36 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 		Objects.requireNonNull(clusterKey, "clusterKey");
 		Objects.requireNonNull(operation, "operation");
 		beginOperation();
+		final ExecutionContext previous = enterExecution();
 		try {
 			return engine.execute(clusterKey, stickySession, operation);
 		} finally {
 			finishOperation();
+			restoreExecution(previous);
+		}
+	}
+
+	private ExecutionContext enterExecution() {
+		final ExecutionContext previous = CURRENT_EXECUTION.get();
+		CURRENT_EXECUTION.set(new ExecutionContext(this, previous));
+		return previous;
+	}
+
+	private static void restoreExecution(final ExecutionContext previous) {
+		if (previous == null) {
+			CURRENT_EXECUTION.remove();
+		} else {
+			CURRENT_EXECUTION.set(previous);
+		}
+	}
+
+	private static final class ExecutionContext {
+		private final BatchTransportExecutor<?> owner;
+		private final ExecutionContext previous;
+
+		private ExecutionContext(final BatchTransportExecutor<?> owner, final ExecutionContext previous) {
+			this.owner = owner;
+			this.previous = previous;
 		}
 	}
 
@@ -266,7 +316,7 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			startWorker = state == State.OPEN;
 			if (startWorker) {
 				state = State.CLOSING;
-				shutdownFuture = new CompletableFuture<>();
+				shutdownCompletion = new CompletableFuture<>();
 			}
 			if (force && !forceRequested && state != State.CLOSED) {
 				forceRequested = true;
@@ -293,8 +343,20 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			shutdownThread.start();
 		}
 		synchronized (lifecycleMonitor) {
-			return shutdownFuture;
+			return shutdownCompletion;
 		}
+	}
+
+	private static CompletableFuture<Void> detachedView(final CompletableFuture<Void> completion) {
+		final CompletableFuture<Void> view = new CompletableFuture<>();
+		completion.whenComplete((result, failure) -> {
+			if (failure == null) {
+				view.complete(null);
+			} else {
+				view.completeExceptionally(failure);
+			}
+		});
+		return view;
 	}
 
 	private void completeShutdown() {
@@ -329,7 +391,7 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 		final CompletableFuture<Void> future;
 		synchronized (lifecycleMonitor) {
 			state = State.CLOSED;
-			future = shutdownFuture;
+			future = shutdownCompletion;
 			lifecycleMonitor.notifyAll();
 		}
 		if (failure == null) {
@@ -365,19 +427,27 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			if (!executionClaimed.compareAndSet(false, true)) {
 				return;
 			}
+			final ExecutionContext previous = enterExecution();
 			try {
 				future.complete(engine.execute(clusterKey, stickySession, operation));
 			} catch (Throwable failure) {
 				future.completeExceptionally(failure);
 			} finally {
 				finish();
+				restoreExecution(previous);
 			}
 		}
 
 		private void cancel(final Throwable failure) {
-			future.completeExceptionally(failure);
-			if (executionClaimed.compareAndSet(false, true)) {
-				finish();
+			// Cancellation may invoke user continuations inline, before this submission releases its accepted operation.
+			final ExecutionContext previous = enterExecution();
+			try {
+				future.completeExceptionally(failure);
+			} finally {
+				if (executionClaimed.compareAndSet(false, true)) {
+					finish();
+				}
+				restoreExecution(previous);
 			}
 		}
 

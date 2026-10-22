@@ -286,7 +286,7 @@ class BatchTransportExecutorTest {
 		assertThat(callbackStarted.await(5, TimeUnit.SECONDS)).isTrue();
 
 		CompletableFuture<Void> shutdown = executor.shutdown();
-		assertThat(executor.shutdown()).isSameAs(shutdown);
+		assertThat(executor.shutdown()).isNotSameAs(shutdown).isNotDone();
 		assertThat(shutdown).isNotDone();
 		assertThatThrownBy(() -> executor.submit("cluster", (session, transport) -> null))
 				.isInstanceOf(BatchTransportException.class);
@@ -316,7 +316,7 @@ class BatchTransportExecutorTest {
 
 		CompletableFuture<Void> shutdown = executor.shutdownNow();
 
-		assertThat(executor.shutdownNow()).isSameAs(shutdown);
+		assertThat(executor.shutdownNow()).isNotSameAs(shutdown);
 		assertThatThrownBy(() -> work.get(5, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class);
 		shutdown.get(5, TimeUnit.SECONDS);
 		verify(testSession.allocatedTransports.get(0), atLeastOnce()).close();

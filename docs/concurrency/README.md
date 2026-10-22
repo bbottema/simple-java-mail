@@ -24,6 +24,7 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 | --- | --- |
 | Can a queued send start after cancellation? Who completes its result? | [01 — Send operation](01-send-operation.md) |
 | What does shutdown wait for? Why is `withinOperation` needed? | [02 — Mailer lifecycle](02-mailer-lifecycle.md) |
+| How do standalone batch shutdown futures and callback self-close behave? | [02 — Standalone batch lifecycle](02-mailer-lifecycle.md#standalone-batch-executor-lifecycle) |
 | Who waits when the executor is full? What if the last worker expires? | [03 — Executor admission](03-executor-admission.md) |
 | What wins between cancellation, a deadline, and an earlier failure? What pauses the clock? | [04 — Stop and deadline control](04-stop-and-deadline-control.md) |
 | How do we know an old cancellation callback cannot touch a reused connection? | [05 — Stop registration](05-stop-registration.md) |
