@@ -13,9 +13,12 @@ import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.SmtpServerResponse;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -251,7 +254,10 @@ public final class MailTransportResult {
 	}
 
 	/**
-	 * Records a failed transport call, deriving recipient groups from a {@link SendFailedException} when available while retaining the original failure.
+	 * Records a failed transport call, deriving recipient groups from the first {@link SendFailedException} in the standard
+	 * {@link MessagingException#getNextException() next-exception chain}, including the supplied failure itself.
+	 * Retains the original outer failure and snapshots the discovered recipient facts. Cycles end the search;
+	 * separate Java cause chains are not followed.
 	 */
 	@NotNull
 	public static MailTransportResult failed(@NotNull final MessagingException failure,
@@ -265,8 +271,10 @@ public final class MailTransportResult {
 
 	/**
 	 * Records a failed transport call with explicitly classified recipient groups.
-	 * Accepted recipients produce {@link MailSubmissionStatus#PARTIALLY_ACCEPTED}; known unsent or invalid recipients, or a negative SMTP response,
-	 * produce {@link MailSubmissionStatus#REJECTED}. Without those facts the outcome remains {@link MailSubmissionStatus#UNKNOWN}.
+	 * Accepted recipients produce {@link MailSubmissionStatus#PARTIALLY_ACCEPTED}; known unsent or invalid recipients, or an actual 4xx/5xx SMTP reply,
+	 * produce {@link MailSubmissionStatus#REJECTED}. Intermediate, missing and unusable reply codes do not establish rejection.
+	 * Without recipient or negative-reply facts the outcome remains {@link MailSubmissionStatus#UNKNOWN}, with conservative duplicate-risk advice.
+	 * The supplied response is retained unchanged for inspection, regardless of its reply code.
 	 */
 	@NotNull
 	public static MailTransportResult failed(@NotNull final MessagingException failure,
@@ -303,7 +311,7 @@ public final class MailTransportResult {
 			return MailSubmissionStatus.PARTIALLY_ACCEPTED;
 		}
 		if (hasRecipients(validUnsentRecipients) || hasRecipients(invalidRecipients)
-				|| smtpResponse != null && !smtpResponse.isPositiveCompletionReply()) {
+				|| smtpResponse != null && smtpResponse.getReturnCode() >= 400 && smtpResponse.getReturnCode() < 600) {
 			return MailSubmissionStatus.REJECTED;
 		}
 		return MailSubmissionStatus.UNKNOWN;
@@ -315,13 +323,15 @@ public final class MailTransportResult {
 
 	@Nullable
 	private static SendFailedException findSendFailedException(@NotNull final MessagingException failure) {
-		if (failure instanceof SendFailedException) {
-			return (SendFailedException) failure;
+		final Set<MessagingException> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+		Exception current = failure;
+		while (current instanceof MessagingException && visited.add((MessagingException) current)) {
+			if (current instanceof SendFailedException) {
+				return (SendFailedException) current;
+			}
+			current = ((MessagingException) current).getNextException();
 		}
-		final Exception nextFailure = failure.getNextException();
-		return nextFailure instanceof SendFailedException
-				? (SendFailedException) nextFailure
-				: null;
+		return null;
 	}
 
 	@NotNull
