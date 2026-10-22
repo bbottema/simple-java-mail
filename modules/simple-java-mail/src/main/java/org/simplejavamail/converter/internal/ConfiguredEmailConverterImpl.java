@@ -380,15 +380,11 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig) {
 		try {
 			final Session session = mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession();
+			if (ModuleLoader.openPgpModuleAvailable() || openPgpReceiveConfig != null) {
+				return ModuleLoader.loadOpenPgpModule().processIncoming(
+						session, mimeMessage, openPgpReceiveConfig);
+			}
 			final boolean protectedWithOpenPgp = isOpenPgpMime(mimeMessage);
-			if (ModuleLoader.openPgpModuleAvailable()) {
-				return ModuleLoader.loadOpenPgpModule().processIncoming(
-						session, mimeMessage, openPgpReceiveConfig);
-			}
-			if (openPgpReceiveConfig != null) {
-				return ModuleLoader.loadOpenPgpModule().processIncoming(
-						session, mimeMessage, openPgpReceiveConfig);
-			}
 			if (protectedWithOpenPgp) {
 				final boolean signed = mimeMessage.isMimeType("multipart/signed");
 				return UnprocessedOpenPgpMail.builder()
@@ -396,8 +392,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 						.effectiveMimeMessage(mimeMessage)
 					.details(OpenPgpDetailsImpl.builder()
 								.openPgpMode(signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED)
-								.signatureStatus(signed ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT)
-								.decryptionStatus(signed ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.FAILED)
+								.signatureStatus(SignatureStatus.UNKNOWN)
+								.decryptionStatus(signed ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.UNKNOWN)
 								.failureReason("OpenPGP/MIME message was preserved because openpgp-module is not available")
 								.originalProtectedMessage(mimeMessageToEMLByteArray(mimeMessage))
 								.build())
@@ -412,7 +408,12 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			return UnprocessedOpenPgpMail.builder()
 					.recognized(false)
 					.effectiveMimeMessage(mimeMessage)
-				.details(OpenPgpDetailsImpl.plain())
+				.details(OpenPgpDetailsImpl.builder()
+						.openPgpMode(OpenPgpMode.UNKNOWN)
+						.signatureStatus(SignatureStatus.UNKNOWN)
+						.decryptionStatus(DecryptionStatus.UNKNOWN)
+						.failureReason("Unable to inspect OpenPGP/MIME structure")
+						.build())
 					.build();
 		}
 	}
