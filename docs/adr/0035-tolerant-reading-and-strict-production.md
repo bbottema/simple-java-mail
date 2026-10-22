@@ -67,6 +67,18 @@ name preservation and explicit/inferred-name precedence. Prepared Recipient valu
 their separate contracts; do not apply the outgoing guard to imported parsed facts. This clarification is implemented under
 [#824](https://github.com/bbottema/simple-java-mail/issues/824) for unreleased 10.0.0.
 
+### Misplaced child headers (accepted 22 October 2026)
+
+Tolerant reading preserves the meaning and owner of an interpretable field. A Return-Path or receipt header on an attachment does not establish
+a bounce address or receipt destination for its parent email, and arbitrary child headers do not belong in the parent's `Email.getHeaders()`.
+Use only the effective root message's headers for those facts, after the existing protection processing described by
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#root-message-and-child-header-ownership-accepted-22-october-2026).
+
+Keep the readable message and existing attachment metadata/content. Ignore misplaced child fields at the message level; there is no demonstrated
+need to retain arbitrary child headers in a new API, storage or warning scheme. Do not reject the message for those fields. Missing or unusable
+root fields keep their own existing interpretation, independently of child values. This correction is accepted under
+[#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

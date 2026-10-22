@@ -65,6 +65,10 @@ public final class MimeMessageParser {
 		parsedComponents.bccAddresses.addAll(parseBccAddresses(mimeMessage));
 		parsedComponents.fromAddress = parseFromAddress(mimeMessage);
 		parsedComponents.replyToAddresses.addAll(parseReplyToAddresses(mimeMessage));
+		// Only the effective root message owns message-level headers; child parts retain their own resource metadata.
+		for (final Header header : retrieveAllHeaders(mimeMessage)) {
+			parseHeader(header, parsedComponents);
+		}
 		final boolean reportContainer = DeliveryStatusReportParser.isReportContainer(mimeMessage);
 		if (DeliveryStatusReportParser.isStatusPart(mimeMessage)) {
 			parsedComponents.deliveryStatusPart = mimeMessage;
@@ -81,10 +85,6 @@ public final class MimeMessageParser {
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
 			final boolean fetchAttachmentData) {
-		for (final Header header : retrieveAllHeaders(currentPart)) {
-			parseHeader(header, parsedComponents);
-		}
-
 		final String disposition = parseDisposition(currentPart);
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {

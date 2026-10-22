@@ -26,6 +26,9 @@ import java.nio.file.Path;
  * In the fluent {@code from...} API, caller-supplied streams remain open. Streams opened for a File or Path are closed before the terminal method returns.
  * <p>
  * Direct MIME/EML conversions do not round-trip through Email. Receive-only options are rejected for those direct targets rather than silently ignored.
+ * When importing an Email, message-level headers, bounce addresses and receipt destinations come from the effective root message selected after
+ * protection preprocessing. Child MIME headers remain local to their parts: their existing resource metadata is read, but misplaced headers do not
+ * become Email headers or replace the root message's facts.
  * Exporting an Email does not apply factory templates unless an explicit
  * {@link EmailConversion#withEmailGovernance(EmailGovernance) governance} is supplied.
  * <p>

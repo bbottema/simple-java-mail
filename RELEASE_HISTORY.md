@@ -105,6 +105,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#840](https://github.com/bbottema/simple-java-mail/issues/840): imported MIME/EML message headers, bounce addresses and receipt destinations
+  come from the effective root message. Misplaced child headers no longer change parent metadata; readable attachments retain their content and resource metadata.
+
 - [#839](https://github.com/bbottema/simple-java-mail/issues/839): OpenPGP inspection reports `UNKNOWN` when facts cannot be established, preserving
   missing-key and actual-failure results while leaving signatures inside unreadable ciphertext unknown.
 - [#838](https://github.com/bbottema/simple-java-mail/issues/838): MIME/EML and Outlook import retain an unusable Return-Path as a source header,
