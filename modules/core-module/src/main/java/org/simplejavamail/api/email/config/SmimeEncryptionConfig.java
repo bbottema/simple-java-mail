@@ -5,10 +5,14 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.internal.util.CertificationUtil;
+import org.simplejavamail.internal.util.KeyMaterialReadException;
 
 import java.io.File;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -77,7 +81,8 @@ public class SmimeEncryptionConfig implements Serializable {
         }
 
         /**
-         * Delegates to {@link #x509Certificate(InputStream)}.
+         * Reads and closes the PEM file at this path, as with {@link #x509Certificate(Path)}.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final String pemFile) {
             return x509Certificate(new File(pemFile));
@@ -89,6 +94,7 @@ public class SmimeEncryptionConfig implements Serializable {
          * omitted algorithms retain the S/MIME module's defaults. The optional S/MIME module performs encryption when converting or sending.
          * @param pemFile The recipient's public certificate to use for encryption.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
          * @see #x509Certificate(Path)
          * @see EmailPopulatingBuilder#encryptWithSmime(SmimeEncryptionConfig)
          */
@@ -97,18 +103,22 @@ public class SmimeEncryptionConfig implements Serializable {
         }
 
         /**
-         * Reads the certificate immediately through {@link #x509Certificate(InputStream)} and closes the stream opened for the path.
+         * Parses the certificate immediately and closes the stream opened for the path.
          *
          * This accepts non-default Java filesystems. Choose key and content algorithms separately through
          * {@link #keyEncapsulationAlgorithm(String)} and {@link #cipherAlgorithm(String)}; null retains the owning module's defaults.
          * @param pemPath The recipient's public certificate path to use for encryption.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing fails with an {@link IOException}.
+         *         The original I/O cause retains any suppressed closing failure. Malformed certificate data retains its parsing failure.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final Path pemPath) {
             try (InputStream pemStream = Files.newInputStream(pemPath)) {
-                return x509Certificate(pemStream);
+                return x509Certificate(readCertificate(pemStream));
             } catch (IOException e) {
-                throw new IllegalStateException(format("Error reading from path: %s", pemPath), e);
+                throw new KeyMaterialReadException(format("Error reading from path: %s", pemPath), e);
+            } catch (CertificateException e) {
+                throw new IllegalStateException("Was unable to convert PEM data to X509 certificate", e);
             }
         }
 
@@ -117,12 +127,59 @@ public class SmimeEncryptionConfig implements Serializable {
          * The supplied stream remains caller-owned and is not closed.
          * @param pemStream Application-owned PEM certificate stream.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if reading fails with an {@link IOException}, retained as the cause.
+         *         Malformed certificate data retains its parsing failure.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final InputStream pemStream) {
             try {
-                return x509Certificate(CertificationUtil.readFromPem(pemStream));
+                return x509Certificate(readCertificate(pemStream));
+            } catch (IOException e) {
+                throw new KeyMaterialReadException("Was unable to read PEM data from input stream", e);
             } catch (CertificateException e) {
                 throw new IllegalStateException("Was unable to convert PEM data to X509 certificate", e);
+            }
+        }
+
+        private static X509Certificate readCertificate(final InputStream input) throws IOException, CertificateException {
+            final CertificateInputStream tracked = new CertificateInputStream(input);
+            try {
+                final X509Certificate certificate = CertificationUtil.readFromPem(tracked);
+                if (tracked.readFailure != null) {
+                    throw tracked.readFailure;
+                }
+                return certificate;
+            } catch (CertificateException e) {
+                // Certificate providers also use IOException for malformed data; only an actual source failure is I/O here.
+                if (tracked.readFailure != null) {
+                    throw tracked.readFailure;
+                }
+                throw e;
+            }
+        }
+
+        private static final class CertificateInputStream extends FilterInputStream {
+            private IOException readFailure;
+
+            private CertificateInputStream(final InputStream input) {
+                super(input);
+            }
+
+            @Override public int read() throws IOException {
+                try {
+                    return in.read();
+                } catch (IOException e) {
+                    readFailure = e;
+                    throw e;
+                }
+            }
+
+            @Override public int read(final byte[] bytes, final int offset, final int length) throws IOException {
+                try {
+                    return in.read(bytes, offset, length);
+                } catch (IOException e) {
+                    readFailure = e;
+                    throw e;
+                }
             }
         }
 

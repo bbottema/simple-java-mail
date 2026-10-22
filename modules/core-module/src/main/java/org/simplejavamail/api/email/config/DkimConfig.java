@@ -4,7 +4,10 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.internal.util.KeyMaterialReadException;
 
 import java.io.File;
 import java.io.IOException;
@@ -158,6 +161,7 @@ public class DkimConfig implements Serializable {
          * Reads the private-key file immediately and closes the stream opened for it.
          * @param dkimPrivateKeyFile Path text for the private-key file.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
          * @see #dkimPrivateKeyPath(Path)
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
@@ -170,6 +174,7 @@ public class DkimConfig implements Serializable {
          * Reads the private-key file immediately and closes the stream opened for it.
          * @param dkimPrivateKeyFile The private-key file.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
          * @see #dkimPrivateKeyPath(Path)
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
@@ -183,14 +188,16 @@ public class DkimConfig implements Serializable {
          *
          * @param dkimPrivateKeyPath Path to the private-key data.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing fails with an {@link IOException}.
+         *         The original I/O cause retains any suppressed closing failure.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyPath(@NotNull final Path dkimPrivateKeyPath) {
             try (InputStream dkimPrivateKeyInputStream = Files.newInputStream(dkimPrivateKeyPath)) {
-                return dkimPrivateKeyData(dkimPrivateKeyInputStream);
+                return dkimPrivateKeyData(readInputStreamToBytes(dkimPrivateKeyInputStream));
             } catch (IOException e) {
-                throw new IllegalStateException(format("error reading DKIM private key file [%s]", dkimPrivateKeyPath), e);
+                throw new KeyMaterialReadException(format("error reading DKIM private key file [%s]", dkimPrivateKeyPath), e);
             }
         }
 
@@ -198,6 +205,7 @@ public class DkimConfig implements Serializable {
          * Reads and copies the private-key content immediately. The supplied stream is borrowed and is not closed.
          * @param dkimPrivateKeyInputStream Application-owned private-key stream.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if reading fails with an {@link IOException}, retained as the cause.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
@@ -205,7 +213,7 @@ public class DkimConfig implements Serializable {
             try {
                 dkimPrivateKeyData(readInputStreamToBytes(dkimPrivateKeyInputStream));
             } catch (IOException e) {
-                throw new IllegalStateException("error reading DKIM private key inputstream", e);
+                throw new KeyMaterialReadException("error reading DKIM private key inputstream", e);
             }
             return this;
         }

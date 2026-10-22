@@ -3,6 +3,9 @@ package org.simplejavamail.api.mailer.config;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
+import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.internal.util.KeyMaterialReadException;
 import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.File;
@@ -138,6 +141,7 @@ public final class Pkcs12Config implements Serializable {
 		/**
 		 * Reads the PKCS12 store at the supplied filesystem path.
 		 *
+		 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
 		 * @see #pkcs12Store(Path)
 		 */
 		public Pkcs12ConfigBuilder pkcs12Store(String pkcs12StorePath) {
@@ -147,6 +151,7 @@ public final class Pkcs12Config implements Serializable {
 		/**
 		 * Reads the PKCS12 store from a file.
 		 *
+		 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
 		 * @see #pkcs12Store(Path)
 		 */
 		public Pkcs12ConfigBuilder pkcs12Store(File pkcs12StorePath) {
@@ -158,23 +163,29 @@ public final class Pkcs12Config implements Serializable {
 		 *
 		 * @param pkcs12StorePath Path to the PKCS12 store.
 		 * @return This builder.
+		 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing fails with an {@link IOException}.
+		 *         The original I/O cause retains any suppressed closing failure.
 		 */
 		public Pkcs12ConfigBuilder pkcs12Store(@NotNull final Path pkcs12StorePath) {
 			try (InputStream pkcs12StoreStream = Files.newInputStream(pkcs12StorePath)) {
-				return pkcs12Store(pkcs12StoreStream);
+				return pkcs12Store(MiscUtil.readInputStreamToBytes(pkcs12StoreStream));
 			} catch (IOException e) {
-				throw new IllegalStateException(format("error reading PKCS12 store from path [%s]", pkcs12StorePath), e);
+				throw new KeyMaterialReadException(format("error reading PKCS12 store from path [%s]", pkcs12StorePath), e);
 			}
 		}
 
 		/**
 		 * Reads the store bytes immediately, leaving the supplied stream open for its owner to close.
 		 *
+		 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if reading fails with an {@link IOException}, retained as the cause.
 		 * @see #pkcs12Store(byte[])
 		 */
-		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream)
-				throws IOException {
-			this.pkcs12StoreData = MiscUtil.readInputStreamToBytes(pkcs12StoreStream);
+		public Pkcs12ConfigBuilder pkcs12Store(InputStream pkcs12StoreStream) {
+			try {
+				this.pkcs12StoreData = MiscUtil.readInputStreamToBytes(pkcs12StoreStream);
+			} catch (IOException e) {
+				throw new KeyMaterialReadException("error reading PKCS12 store from input stream", e);
+			}
 			return this;
 		}
 
