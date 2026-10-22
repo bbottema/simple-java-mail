@@ -21,6 +21,10 @@ sjm send --no-daemon ...               # alias for off
 
 The selector works the same way for `connect`, `probe`, and `validate`. Bare `--daemon` is the same as `-d`. Help and version output are always produced locally. There is no automatic one-shot fallback after a daemon request may have been accepted.
 
+Only actual help options request help. A value such as `--email:withSubject "How to use --help"` stays literal,
+keeps following options and honors the selected mode, including `--daemon=require`. Generated option help such as
+`--email:withSubject--help` stays local and sends nothing; later arguments are ignored.
+
 The equivalent startup defaults are the JVM property `simplejavamail.cli.daemon` or environment variable `SIMPLEJAVAMAIL_CLI_DAEMON`, plus `simplejavamail.cli.daemon.instance` or `SIMPLEJAVAMAIL_CLI_DAEMON_INSTANCE`. An explicit command-line selector wins.
 
 The unnamed instance is `default`. A name selects a separate process, state, startup configuration, and lifecycle:

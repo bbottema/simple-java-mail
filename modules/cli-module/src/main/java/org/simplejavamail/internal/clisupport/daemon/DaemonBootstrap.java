@@ -8,9 +8,9 @@ import org.simplejavamail.internal.clisupport.CliVersion;
 import java.nio.file.Path;
 
 /**
- * Routes local, daemon-backed, and lifecycle commands before generated CLI metadata is touched.
- * This keeps help, version, discovery, and management fast while preserving the ordinary one-shot executor as the
- * default command path.
+ * Routes local, daemon-backed, and lifecycle commands before execution. Ordinary routed commands, discovery and
+ * management stay independent of generated metadata; option-shaped help candidates consult the model to keep values
+ * literal. The ordinary one-shot executor remains the default command path.
  */
 public final class DaemonBootstrap {
 	private DaemonBootstrap() {

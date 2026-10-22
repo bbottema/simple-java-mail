@@ -105,6 +105,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#841](https://github.com/bbottema/simple-java-mail/issues/841): CLI subjects, bodies, headers and file values ending in `--help`
+  retain following options and the selected daemon mode; genuine help still takes precedence over later arguments.
 - [#840](https://github.com/bbottema/simple-java-mail/issues/840): imported MIME/EML message headers, bounce addresses and receipt destinations
   come from the effective root message. Misplaced child headers no longer change parent metadata; readable attachments retain their content and resource metadata.
 

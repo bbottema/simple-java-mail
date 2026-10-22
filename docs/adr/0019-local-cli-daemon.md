@@ -15,6 +15,11 @@ A persistent process also changes the risk and resource model. Concurrent invoca
 
 Preserve one-shot execution as the default. Make daemon use explicit through acquire/require/off modes and named per-user instances. Route discovery and lifecycle commands through a thin bootstrap before generated CLI metadata is loaded. The daemon is an ordinary foreground process that can also be started on demand or managed by a supervisor; it does not require machine-wide service installation.
 
+The accepted 22 October 2026 [help-recognition clarification](0018-cli-from-builder-contracts.md#recognize-help-options-without-changing-ordinary-values-accepted-22-october-2026)
+keeps literal values ending in `--help` on the selected execution route. Only an option-shaped candidate consults the generated
+model before routing so an unknown option-shaped value cannot bypass `require` mode. Ordinary routed commands, standard
+help/version selection, discovery and lifecycle operations retain their thin bootstrap; actual help never submits a send.
+
 Use bounded, authenticated local IPC, preferring Unix-domain sockets and allowing an explicit `127.0.0.1` fallback only for approved capability/path failures. Both transports use the same HMAC-authenticated framing, session/request identities, freshness checks and limits. Discovery state contains protected process/endpoint metadata and a random secret, not queued messages or SMTP configuration. Insecure state or authentication failure must not trigger a weaker transport fallback.
 
 Run both one-shot and daemon commands through the same request-scoped `CliSupport.execute(...)`. Each request gets fresh Picocli state, explicit working-directory context, a UUID and bounded output. Do not mutate process-wide `user.dir`, `System.out` or `System.err` to emulate an individual command's environment. Commands use synchronous Mailer operations; daemon-owned workers supply request concurrency.
