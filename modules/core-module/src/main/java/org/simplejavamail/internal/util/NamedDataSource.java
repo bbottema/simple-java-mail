@@ -60,7 +60,7 @@ public class NamedDataSource implements DataSource, EncodingAware {
 	 */
 	@Override
 	public String getContentType() {
-		return MiscUtil.parseBaseMimeTypeOrDefault(dataSource.getContentType());
+		return MimeTypeUtil.parseOrDefault(dataSource.getContentType()).toString();
 	}
 
 	/**

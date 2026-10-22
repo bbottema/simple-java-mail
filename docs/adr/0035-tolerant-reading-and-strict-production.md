@@ -79,6 +79,20 @@ need to retain arbitrary child headers in a new API, storage or warning scheme. 
 root fields keep their own existing interpretation, independently of child values. This correction is accepted under
 [#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+### Attachment Content-Type parameters (accepted 22 October 2026)
+
+Valid Content-Type parameters belong to the attachment's interpretable metadata. Preserve parameters such as `charset` and valid extension
+parameters during ordinary MIME import and export, without an arbitrary parameter-name allowlist. An ISO-8859-1 text attachment must retain
+its encoding instruction along with its unchanged bytes. Parameter preservation does not make a supplied `name`, `filename` or their encoded
+forms authoritative: existing SJM resource naming still determines the outgoing filename.
+
+Use Jakarta Mail's MIME parsing and serialization. Safely unfold valid header continuations, keep the established usable-base recovery for
+malformed or injected parameter input and the binary fallback for an unusable base type, and never emit decoded line breaks from a parameter
+value as header lines. Eager and lazy attachment extraction expose equivalent safe type metadata without extra content reads. This applies
+the ownership boundary in [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#attachment-type-metadata-accepted-22-october-2026).
+No new public metadata API, configuration switch or caller escaping rule is needed. The accepted repair is tracked by
+[#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

@@ -17,6 +17,7 @@ import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
+import org.simplejavamail.internal.util.MimeTypeUtil;
 import org.simplejavamail.internal.util.Preconditions;
 import org.slf4j.Logger;
 
@@ -419,7 +420,7 @@ public final class MimeMessageParser {
 		final String dataSourceName = parseDataSourceName(part, dataSource);
 
 		if (fetchAttachmentData) {
-			final String contentType = MiscUtil.parseBaseMimeType(dataSource.getContentType());
+			final String contentType = MimeTypeUtil.parseOrDefault(dataSource.getContentType()).toString();
 			final ByteArrayDataSource result = new ByteArrayDataSource(readContent(retrieveInputStream(dataSource)), contentType);
 			result.setName(dataSourceName);
 			return result;

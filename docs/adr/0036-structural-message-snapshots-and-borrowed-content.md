@@ -63,6 +63,18 @@ Keep Email/InternalEmail serialized identities and the existing format: earlier 
 OpenPGP configuration cannot be recovered. Serializing exact protected EML retains authoritative bytes and does not
 apply new protection. This adds no persistent requirement marker, mandatory restoration step or general persistence policy.
 
+### Attachment type metadata (accepted 22 October 2026)
+
+An attachment's content-type parameters are metadata, including the character encoding needed to interpret its bytes. Preserve valid
+parameters when materializing attachment data or wrapping a borrowed source with a name; choosing eager or lazy extraction does not choose
+a different type description. Ordinary rendering retains safe non-naming parameters while applying SJM's selected filename. This changes
+neither the content bytes nor ownership of an arbitrary DataSource, and adds no content read during metadata inspection, construction or copying.
+
+[ADR 0035](0035-tolerant-reading-and-strict-production.md#attachment-content-type-parameters-accepted-22-october-2026) owns tolerant parsing,
+safe production and malformed-input fallback. Existing copying and serialization carry the retained metadata; exact/protected source bytes
+and stronger retry snapshots keep their own boundaries. This clarification is accepted under
+[#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; its issue tracks implementation and delivery.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

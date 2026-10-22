@@ -8,6 +8,7 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -25,6 +26,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
+import org.simplejavamail.internal.util.MimeTypeUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.UnsupportedEncodingException;
@@ -32,6 +34,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -316,10 +319,7 @@ public class MimeMessageHelper {
 		final ResourcePartMetadata resourcePartMetadata = determineResourcePartMetadata(attachmentResource, dispositionType);
 		attachmentPart.setDataHandler(new DataHandler(new NamedDataSource(resourcePartMetadata.fileName, attachmentResource.getDataSource())));
 		attachmentPart.setFileName(resourcePartMetadata.fileName);
-		final String contentType = determineResourceContentType(attachmentResource);
-		ParameterList pl = new ParameterList();
-		pl.set("name", resourcePartMetadata.fileName);
-		attachmentPart.setHeader("Content-Type", contentType + pl);
+		attachmentPart.setHeader("Content-Type", determineResourceContentType(attachmentResource, resourcePartMetadata.fileName));
 		attachmentPart.setHeader("Content-ID", format("<%s>", resourcePartMetadata.contentId));
 
 		attachmentPart.setHeader("Content-Description", determineAttachmentDescription(attachmentResource));
@@ -331,8 +331,16 @@ public class MimeMessageHelper {
 		return attachmentPart;
 	}
 
-	private static String determineResourceContentType(final AttachmentResource attachmentResource) {
-		return MiscUtil.parseBaseMimeTypeOrDefault(attachmentResource.getDataSource().getContentType());
+	private static String determineResourceContentType(final AttachmentResource attachmentResource, final String fileName) {
+		final ContentType contentType = MimeTypeUtil.parseOrDefault(attachmentResource.getDataSource().getContentType());
+		final ParameterList parameters = contentType.getParameterList();
+		for (final String name : Collections.list(parameters.getNames())) {
+			if (name.equals("name") || name.startsWith("name*") || name.equals("filename") || name.startsWith("filename*")) {
+				parameters.remove(name);
+			}
+		}
+		parameters.set("name", fileName);
+		return contentType.toString();
 	}
 
 	private static BodyPart createMimeBodyPart(final AttachmentResource attachmentResource) {
