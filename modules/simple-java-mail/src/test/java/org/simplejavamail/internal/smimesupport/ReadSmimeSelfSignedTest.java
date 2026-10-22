@@ -15,7 +15,9 @@ import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import testutil.SecureTestDataHelper;
 
 import jakarta.mail.Session;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.ParseException;
 import jakarta.mail.util.ByteArrayDataSource;
 import java.io.File;
 import java.io.FileInputStream;
@@ -403,6 +405,13 @@ public class ReadSmimeSelfSignedTest {
 		assertThat(embeddedImg.getName()).isEqualTo("module_architecture.png");
 		assertThat(embeddedImg.getContentId()).isEqualTo(contentId);
 		assertThat(embeddedImg.getDataSource().getName()).isEqualTo("module_architecture.png");
-		assertThat(embeddedImg.getDataSource().getContentType()).isEqualTo("image/png");
+		try {
+			final ContentType contentType = new ContentType(embeddedImg.getDataSource().getContentType());
+			assertThat(contentType.getBaseType()).isEqualTo("image/png");
+			assertThat(contentType.getParameter("name")).isEqualTo("module_architecture.png");
+			assertThat(contentType.getParameterList().size()).isEqualTo(1);
+		} catch (final ParseException invalidContentType) {
+			throw new AssertionError("Invalid embedded image Content-Type", invalidContentType);
+		}
 	}
 }
