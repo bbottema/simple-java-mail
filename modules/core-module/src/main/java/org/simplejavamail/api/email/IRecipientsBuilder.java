@@ -34,7 +34,10 @@ public interface IRecipientsBuilder {
      * policy configured on this builder wins.
      * Use {@link #resetSmimeCertificatePolicy()} to stop applying a group rule and keep each original recipient's certificate instead, even after
      * a clear policy. Resetting does not strip certificates or change the group's notification rule, source recipients or already built lists.
+     * Null is rejected without changing the previous certificate or policy. The supplied certificate is stored without cryptographic validation.
      *
+     * @param smimeCertificate required certificate to use where a recipient has none
+     * @throws IllegalArgumentException if the certificate is null
      * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
      */
     @NotNull
@@ -47,7 +50,11 @@ public interface IRecipientsBuilder {
      * <p>
      * This is mutually exclusive with {@link #withDefaultSmimeCertificate(X509Certificate)} and {@link #clearingSmimeCertificates()}; the last group S/MIME
      * policy configured on this builder wins.
+     * Null is rejected without changing the previous certificate or policy. Use {@link #clearingSmimeCertificates()} to strip certificates or
+     * {@link #resetSmimeCertificatePolicy()} to preserve the original recipients' certificates. The supplied certificate is stored without cryptographic validation.
      *
+     * @param smimeCertificate required certificate to use for every recipient
+     * @throws IllegalArgumentException if the certificate is null
      * @see IRecipientBuilder#withSmimeCertificate(X509Certificate)
      */
     @NotNull
