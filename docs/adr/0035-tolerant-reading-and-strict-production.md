@@ -79,6 +79,20 @@ need to retain arbitrary child headers in a new API, storage or warning scheme. 
 root fields keep their own existing interpretation, independently of child values. This correction is accepted under
 [#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+### Receipt-header name recognition (accepted 22 October 2026)
+
+Recognize `Disposition-Notification-To` and `Return-Receipt-To` by case-insensitive field names during MIME/EML import. Canonical,
+lowercase, uppercase and mixed-case names identify the same receipt field; interpret its value with the existing mailbox-list parser,
+retaining destination order, duplicate occurrences and mailbox/display-name spelling. A recognized usable field supplies the existing
+typed recipient list and request flag rather than an additional generic-header copy.
+
+Missing, blank, explicit null-path and unusual values retain their existing value interpretation and source-header behavior. This is a
+narrow application of [ADR 0002](0002-email-defaults-and-overrides.md) header identity and [ADR 0001](0001-email-configuration-scopes-and-inheritance.md)
+notification ownership. Only the effective root supplies these fields, as established above; separately importing an attached message
+interprets that message's own root. Do not normalize other generic-header names or values, rewrite exact/protected source bytes, add
+a header API or send a receipt during conversion. The accepted correction is tracked by
+[#846](https://github.com/bbottema/simple-java-mail/issues/846) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ### Attachment Content-Type parameters (accepted 22 October 2026)
 
 Valid Content-Type parameters belong to the attachment's interpretable metadata. Preserve parameters such as `charset` and valid extension
