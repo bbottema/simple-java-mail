@@ -88,8 +88,8 @@ public final class OpenPgpSupport implements OpenPgpModule {
             return inspectProtection(session, originalMessage, MimeEntitySupport.serialize(originalMessage),
                     receiveConfig, 0);
         } catch (MessagingException e) {
-            return failure(originalMessage, OpenPgpMode.PLAIN, SignatureStatus.ERROR,
-                    DecryptionStatus.NOT_ENCRYPTED, "Unable to inspect OpenPGP/MIME structure", null);
+            return failure(originalMessage, OpenPgpMode.UNKNOWN, SignatureStatus.UNKNOWN,
+                    DecryptionStatus.UNKNOWN, "Unable to inspect OpenPGP/MIME structure", null);
         }
     }
 
@@ -100,7 +100,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         final boolean encrypted = isOpenPgpEncrypted(message);
         if ((signed || encrypted) && depth >= MAX_PROTECTION_DEPTH) {
             return failure(message, signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED,
-                    signed ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT,
+                    signed ? SignatureStatus.ERROR : SignatureStatus.UNKNOWN,
                     encrypted ? DecryptionStatus.FAILED : DecryptionStatus.NOT_ENCRYPTED,
                     "OpenPGP/MIME nesting limit exceeded", protectedMessage);
         }
@@ -165,7 +165,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             final List<byte[]> mimeParts = MimeEntitySupport.multipartParts(
                     protectedMessage, MimeEntitySupport.boundary(originalMessage));
             if (mimeParts.size() != 2) {
-                return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.NOT_PRESENT,
+                return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.UNKNOWN,
                         DecryptionStatus.FAILED, "Malformed OpenPGP multipart/encrypted message", protectedMessage);
             }
 
@@ -176,7 +176,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             }
             return inspectDecryptedMessage(session, protectedMessage, receiveConfig, depth, decryptionResult);
         } catch (Exception e) {
-            return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.NOT_PRESENT,
+            return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.UNKNOWN,
                     DecryptionStatus.FAILED, "Unable to decrypt OpenPGP/MIME message", protectedMessage);
         }
     }
@@ -249,7 +249,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             .effectiveMimeMessage(originalMessage)
             .details(OpenPgpDetailsImpl.builder()
                 .openPgpMode(OpenPgpMode.ENCRYPTED)
-                .signatureStatus(SignatureStatus.NOT_PRESENT)
+                .signatureStatus(SignatureStatus.UNKNOWN)
                 .decryptionStatus(DecryptionStatus.KEY_MISSING)
                 .recipientKeyIds(recipientKeyIds)
                 .failureReason("No decryption key matched an OpenPGP recipient")
@@ -278,7 +278,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             final SignatureStatus signatureStatus, final DecryptionStatus decryptionStatus,
             final String reason, @Nullable final byte[] originalProtectedMessage) {
         return OpenPgpParseResultImpl.builder()
-            .recognized(mode != OpenPgpMode.PLAIN)
+            .recognized(mode != OpenPgpMode.PLAIN && mode != OpenPgpMode.UNKNOWN)
             .effectiveMimeMessage(effectiveMessage)
             .details(OpenPgpDetailsImpl.builder()
                 .openPgpMode(mode)

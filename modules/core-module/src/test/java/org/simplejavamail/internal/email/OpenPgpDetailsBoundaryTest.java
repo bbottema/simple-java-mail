@@ -53,4 +53,39 @@ class OpenPgpDetailsBoundaryTest {
 			assertThatThrownBy(() -> restored.getRecipientKeyIds().clear()).isInstanceOf(UnsupportedOperationException.class);
 		}
 	}
+
+	@Test
+	void unavailableAndFailedInspectionRemainDistinctAcrossSerialization() throws Exception {
+		final byte[] original = {4, 5, 6};
+		final OpenPgpDetailsImpl unavailable = OpenPgpDetailsImpl.builder()
+				.openPgpMode(OriginalOpenPgpDetails.OpenPgpMode.valueOf("UNKNOWN"))
+				.signatureStatus(OriginalOpenPgpDetails.SignatureStatus.valueOf("UNKNOWN"))
+				.decryptionStatus(OriginalOpenPgpDetails.DecryptionStatus.valueOf("UNKNOWN"))
+				.originalProtectedMessage(original)
+				.build();
+		final OpenPgpDetailsImpl failed = OpenPgpDetailsImpl.builder()
+				.openPgpMode(OriginalOpenPgpDetails.OpenPgpMode.SIGNED_ENCRYPTED)
+				.signatureStatus(OriginalOpenPgpDetails.SignatureStatus.ERROR)
+				.decryptionStatus(OriginalOpenPgpDetails.DecryptionStatus.FAILED)
+				.failureReason("Actual inspection failure")
+				.originalProtectedMessage(original)
+				.build();
+		original[0] = 9;
+		for (OriginalOpenPgpDetails details : List.of(unavailable, failed)) {
+			final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+			try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+				output.writeObject(details);
+			}
+			try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+				final OriginalOpenPgpDetails restored = (OriginalOpenPgpDetails) input.readObject();
+				assertThat(restored).isEqualTo(details).hasSameHashCodeAs(details);
+				assertThat(restored.getOpenPgpMode()).isEqualTo(details.getOpenPgpMode());
+				assertThat(restored.getSignatureStatus()).isEqualTo(details.getSignatureStatus());
+				assertThat(restored.getDecryptionStatus()).isEqualTo(details.getDecryptionStatus());
+				assertThat(restored.getFailureReason()).isEqualTo(details.getFailureReason());
+				restored.getOriginalProtectedMessage()[1] = 9;
+				assertThat(restored.getOriginalProtectedMessage()).containsExactly(4, 5, 6);
+			}
+		}
+	}
 }

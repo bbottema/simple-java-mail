@@ -16,19 +16,29 @@ import java.util.List;
  *
  * <p>Signature validity reports content integrity against the supplied key. It does not establish that the key belongs
  * to the address in the message's {@code From} header. Key ownership and trust remain application concerns.</p>
+ *
+ * <p>{@code UNKNOWN} means that inspection did not establish a fact, for example because the optional implementation is absent
+ * or an encrypted layer could not be opened. Recognizable outer headers can still establish a signed or encrypted mode.
+ * Missing keys and actual verification or decryption failures retain their separate results.</p>
  */
 public interface OriginalOpenPgpDetails extends Serializable {
 
     enum OpenPgpMode {
-        PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED
+        PLAIN, SIGNED, ENCRYPTED, SIGNED_ENCRYPTED,
+        /** The MIME structure could not be inspected sufficiently to establish its protection mode. */
+        UNKNOWN
     }
 
     enum SignatureStatus {
-        NOT_PRESENT, VALID, INVALID, KEY_MISSING, ERROR
+        NOT_PRESENT, VALID, INVALID, KEY_MISSING, ERROR,
+        /** Signature presence or verification could not be inspected, including inside unopened ciphertext. */
+        UNKNOWN
     }
 
     enum DecryptionStatus {
-        NOT_ENCRYPTED, DECRYPTED, KEY_MISSING, FAILED
+        NOT_ENCRYPTED, DECRYPTED, KEY_MISSING, FAILED,
+        /** Encryption or its decryption outcome could not be inspected. */
+        UNKNOWN
     }
 
     @NotNull OpenPgpMode getOpenPgpMode();
@@ -40,6 +50,7 @@ public interface OriginalOpenPgpDetails extends Serializable {
     @Nullable String getHashAlgorithm();
     @Nullable String getEncryptionAlgorithm();
     @NotNull List<String> getRecipientKeyIds();
+    /** Explains incomplete inspection or failed cryptographic processing, when available. */
     @Nullable String getFailureReason();
 
     /**
