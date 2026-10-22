@@ -19,6 +19,16 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### OpenPGP recipient-key replacement (accepted 22 October 2026)
+
+Required collection replacements reject a null collection or a null element before changing stored choices. For
+`OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder`'s recipient key rings, prepare detached copies of the complete replacement first, then replace
+the selection without changing the cipher. An empty list deliberately clears the keys. Both additive and replacement setters
+collect non-null byte arrays, including unfinished empty arrays; passive getters inspect detached choices. `build()` still
+requires at least one key ring and rejects every empty ring. This does not move cryptographic interpretation into core setters
+or inspection. Existing completed values and deserialization retain their construction invariants under [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+The correction is tracked by [#843](https://github.com/bbottema/simple-java-mail/issues/843) for unreleased 10.0.0.
+
 ## Context and decision drivers
 
 Applications should discover operations they are meant to call. Java sometimes requires a class or constructor to be public so another

@@ -63,6 +63,11 @@ The [OpenPGP unavailable-inspection decision](0008-minimal-mime-structures-and-p
 under #839 uses UNKNOWN for facts that could not be inspected, retaining missing-key and genuine
 cryptographic-failure results. It is implemented for unreleased 10.0.0, separately from the completed S/MIME correction under #822.
 
+The [OpenPGP recipient-key replacement clarification](0031-public-api-and-internal-construction.md#openpgp-recipient-key-replacement-accepted-22-october-2026)
+under [#843](https://github.com/bbottema/simple-java-mail/issues/843) applies required-input preservation and passive inspection
+consistently to additive and replacement setters, while retaining detached snapshots and complete-value validation. It is
+implemented for unreleased 10.0.0; the issue tracks review and delivery.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

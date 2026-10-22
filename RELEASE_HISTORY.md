@@ -105,6 +105,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#843](https://github.com/bbottema/simple-java-mail/issues/843): rejected OpenPGP recipient-key replacements retain the previous keys and cipher.
+  Additive and replacement setters consistently collect unfinished key bytes; complete configuration construction retains its validation.
 - [#842](https://github.com/bbottema/simple-java-mail/issues/842): attachment MIME conversion preserves valid Content-Type parameters,
   including character encodings and extension parameters, with equivalent eager/lazy metadata and SJM-selected filenames.
 - [#841](https://github.com/bbottema/simple-java-mail/issues/841): CLI subjects, bodies, headers and file values ending in `--help`
