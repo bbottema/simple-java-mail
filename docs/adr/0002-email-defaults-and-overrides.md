@@ -96,6 +96,22 @@ header names themselves. This concerns composed metadata; exact EML retains its 
 
 For example, Email's `DeliveryStatusNotification` resolves as one value. Its NOTIFY set is a policy, not an attachment-like collection: an explicit preference must not acquire additional notification events by merging defaults. Recipient NOTIFY is likewise a complete set and takes precedence over the resolved Email fallback. RET/ENVID remain on the transaction-wide value; recipient policy does not split or merge those fields.
 
+### Calendar method and text form one value (accepted 22 October 2026)
+
+The calendar supplied through `withCalendarText(method, text)` resolves as one value: select the eligible override calendar, otherwise the
+submitted Email's calendar, otherwise the eligible default calendar. Keep its method and text from the same source. Resolving them as
+independent fields can create a calendar that no source supplied, or retain inherited text after suppressing its required method.
+
+Either `CALENDAR_METHOD` or `CALENDAR_TEXT` excludes the complete calendar contribution from that template source. Default exclusions
+remain separate from override exclusions, and neither removes a calendar supplied on the submitted Email. Retain the exact selector
+choices for passive inspection, copying and serialization: allowing one selector does not remove a separately stored exclusion of the
+other. Calendar content-transfer encoding keeps its existing independent resolution and lock rules.
+
+This applies the existing compound-value boundary without introducing a public calendar configuration type or changing the setter/clearer
+pair. It does not infer a missing method or silently discard caller calendar text. Ordinary exact-message preparation still bypasses these
+templates; explicit completion remains composed output under ADR 0013. [#852](https://github.com/bbottema/simple-java-mail/issues/852)
+tracks implementation for unreleased 10.0.0; released 9.3.6 resolves these components independently.
+
 ### Clear, disable, and override are different operations
 
 OpenPGP signing and encryption follow the same whole-value resolution as S/MIME and DKIM: an override wins over the supplied Email, which wins over

@@ -113,6 +113,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#852](https://github.com/bbottema/simple-java-mail/issues/852): calendar method and text resolve together from one Email template.
+  Excluding either calendar selector skips that source's whole calendar while retaining the submitted calendar and independent encoding choice.
+  See the [migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#calendar-template-values).
+
 - [#851](https://github.com/bbottema/simple-java-mail/issues/851): MIME/EML import recognizes calendar method names and values regardless of
   capitalization, using MIME parameter grammar while retaining header priority, original calendar text and existing recovery boundaries.
 

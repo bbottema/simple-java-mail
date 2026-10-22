@@ -9,7 +9,15 @@ public enum EmailProperty {
     SUBJECT,
     BODY_TEXT,
     BODY_HTML,
+    /**
+     * Skips the template's whole calendar, including its text. The submitted Email's calendar remains.
+     * @see #CALENDAR_TEXT
+     */
     CALENDAR_METHOD,
+    /**
+     * Skips the template's whole calendar, including its method. Calendar transfer encoding is selected separately.
+     * @see #CALENDAR_METHOD
+     */
     CALENDAR_TEXT,
     ATTACHMENTS,
     EMBEDDED_IMAGES,
