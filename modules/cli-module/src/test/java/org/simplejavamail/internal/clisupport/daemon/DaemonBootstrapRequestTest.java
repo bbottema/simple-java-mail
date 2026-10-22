@@ -1,6 +1,8 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -56,6 +58,25 @@ class DaemonBootstrapRequestTest {
 		assertThat(request.instance()).isEqualTo("personal");
 		assertThat(DaemonBootstrapRequest.parse(new String[] { "daemon", "--version" }, Path.of("."))
 				.managementAction()).isEqualTo("version");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"How to use --help", "manual--help", "--not-an-option--help", "--email:notAnOption--help"})
+	void helpLikeValuesKeepTheSelectedDaemonRoute(final String value) {
+		final DaemonBootstrapRequest request = DaemonBootstrapRequest.parse(new String[] {
+				"send", "--daemon=require", "--email:withSubject", value, "--email:withPlainText", "Retained body"
+		}, Path.of("."));
+		assertThat(request.route()).isEqualTo(DaemonBootstrapRequest.Route.DAEMON_COMMAND);
+		assertThat(request.commandArguments()).containsExactly("send", "--email:withSubject", value,
+				"--email:withPlainText", "Retained body");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"--help", "-h", "--email:withSubject--help"})
+	void genuineHelpRemainsLocalWithLaterInvalidArguments(final String help) {
+		assertThat(DaemonBootstrapRequest.parse(new String[] {
+				"send", "--daemon=require", help, "--some-mistyped-option"
+		}, Path.of(".")).route()).isEqualTo(DaemonBootstrapRequest.Route.LOCAL);
 	}
 
 	@Test

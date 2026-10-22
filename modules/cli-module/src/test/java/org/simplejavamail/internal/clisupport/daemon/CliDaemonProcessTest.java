@@ -241,6 +241,53 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void helpLikeValuesKeepOneShotAndRequiredDaemonSendsComplete() throws Exception {
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		smtp.start();
+		Invocation start = null;
+		try {
+			final String[] arguments = {
+					"send", "--daemon=require", "--daemon-instance=help-values", "--email:startingBlank",
+					"--email:from", "sender@example.test", "--email:to", "receiver@example.test",
+					"--email:withSubject", "How to use --help", "--email:withPlainText", "Here are the instructions.",
+					"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+					"--mailer:withConnectionPoolCoreSize", "0"
+			};
+			final Invocation absent = invoke(true, arguments);
+			assertThat(absent.exitCode).as(absent.output).isEqualTo(CliExitCode.DAEMON_ABSENT.code());
+			assertThat(smtp.getMessages()).isEmpty();
+
+			start = invoke(true, "daemon", "start", "--daemon-instance=help-values");
+			assertThat(start.exitCode).as(start.output).isZero();
+			final Invocation routed = invoke(true, arguments);
+			assertThat(routed.exitCode).as(routed.output).isZero();
+			arguments[9] = "--email:notAnOption--help";
+			final Invocation lookalike = invoke(true, arguments);
+			assertThat(lookalike.exitCode).as(lookalike.output).isZero();
+			arguments[1] = "--daemon=off";
+			arguments[9] = "One-shot --help";
+			final Invocation oneShot = invoke(true, arguments);
+			assertThat(oneShot.exitCode).as(oneShot.output).isZero();
+			assertThat(smtp.getMessages()).hasSize(3);
+			final List<String> subjects = new ArrayList<>();
+			for (var message : smtp.getMessages()) {
+				subjects.add(message.getMimeMessage().getSubject());
+				assertThat(message.getMimeMessage().getContent().toString().stripTrailing()).isEqualTo("Here are the instructions.");
+			}
+			assertThat(subjects).containsExactly("How to use --help", "--email:notAnOption--help", "One-shot --help");
+			final Invocation status = invoke(true, "daemon", "status", "--daemon-instance=help-values");
+			assertThat(status.exitCode).as(status.output).isZero();
+			assertThat(status.output).contains("mailers=1");
+		} finally {
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=help-values");
+				assertThat(stop.exitCode).as(stop.output).isZero();
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
 	void daemonAndMailerReuseRemainAvailableWithoutTheOptionalBatchStack() throws Exception {
 		final String classPath = withoutBatchStack(System.getProperty("java.class.path"));
 		assertThat(classPath).doesNotContain("batch-module", "smtp-connection-pool", "clustered-object-pool");

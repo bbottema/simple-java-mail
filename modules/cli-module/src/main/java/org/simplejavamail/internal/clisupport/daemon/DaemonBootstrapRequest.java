@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.simplejavamail.internal.clisupport.CliSupport;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Immutable routing decision produced before generated CLI metadata is initialized.
+ * Immutable routing decision for one CLI invocation.
  * Parsing expands argument files, removes only daemon selectors, validates the selected instance and protocol limits,
  * and separates local help/one-shot execution, daemon-routed commands, and lifecycle management.
  */
@@ -87,7 +89,8 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 			final Path workingDirectory) {
 		final List<String> command = routingArguments.command();
 		final boolean helpOrVersion = command.isEmpty()
-				|| command.stream().anyMatch(DaemonBootstrapRequest::isHelpOrVersion);
+				|| command.stream().anyMatch(DaemonBootstrapRequest::isStandardHelpOrVersion)
+				|| requestsOptionHelp(command);
 		final Route route = helpOrVersion || routingArguments.mode() == DaemonExecutionMode.OFF
 				? Route.LOCAL : Route.DAEMON_COMMAND;
 		if (route == Route.DAEMON_COMMAND) {
@@ -98,7 +101,17 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 	}
 
 	private static boolean isHelpOrVersion(final String arg) {
-		return "--help".equals(arg) || "-h".equals(arg) || isVersion(arg) || arg.endsWith("--help");
+		return isStandardHelpOrVersion(arg) || arg.endsWith("--help");
+	}
+
+	private static boolean isStandardHelpOrVersion(final String arg) {
+		return "--help".equals(arg) || "-h".equals(arg) || isVersion(arg);
+	}
+
+	private static boolean requestsOptionHelp(final List<String> command) {
+		// Keep ordinary routed commands thin; only the generated model can resolve an option-shaped lookalike.
+		return command.stream().anyMatch(arg -> arg.startsWith("--") && arg.endsWith("--help"))
+				&& CliSupport.containsHelpOption(command.toArray(new String[0]));
 	}
 
 	private static boolean isVersion(final String arg) {

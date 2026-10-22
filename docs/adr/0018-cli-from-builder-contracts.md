@@ -11,6 +11,21 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+### Recognize help options without changing ordinary values (accepted 22 October 2026)
+
+Help belongs to the selected generated command model. An ordinary subject, body, header or file value that ends in
+`--help` remains literal, and later builder options keep their order and effect. Stop before later arguments only
+when an actual registered help option is supplied. Keep standard and option-specific help convenient, including
+ignoring malformed input after help, without invoking builder methods, reading content files or acquiring a Mailer.
+Existing parser diagnostics before help and the parser's interpretation of a standalone registered option remain
+authoritative. Do not introduce a second escaping syntax. [#841](https://github.com/bbottema/simple-java-mail/issues/841)
+tracks this correction.
+
+Daemon selection follows the same distinction: help stays local, while literal values retain the requested execution
+mode. Ordinary routed commands and lifecycle operations keep the thin bootstrap. Only an option-shaped help candidate
+needs generated-model recognition before routing; this trades a rare client-side metadata load for consistent option
+meaning, without invoking message builders or reading content.
+
 ### Preserve each supplied builder call (accepted 22 October 2026)
 
 Repeated CLI builder options represent separate invocations in command-line order. Keep each occurrence's arguments together, including omitted

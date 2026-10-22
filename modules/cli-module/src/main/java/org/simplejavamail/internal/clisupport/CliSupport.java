@@ -7,13 +7,14 @@ import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
+import picocli.CommandLine.Model.OptionSpec;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,7 +26,7 @@ import static org.simplejavamail.internal.clisupport.CliExecutionException.ERROR
  * Parses and executes the full generated CLI model for one request.
  * Every invocation owns fresh Picocli state, bounded output, and an explicit request context; the supplied execution
  * environment determines whether the resulting Mailer is closed immediately or leased from the daemon registry.
- * Daemon bootstrap code references this class only after routing selects actual command execution.
+ * Daemon routing consults the generated model only for option-shaped help candidates or actual command execution.
  */
 public final class CliSupport {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CliSupport.class);
@@ -63,7 +64,7 @@ public final class CliSupport {
 			rejectRemovedExecutionModeOption(args);
 			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.DECLARED_OPTIONS;
 			final CommandLine commandLine = configurePicoCli(declaredOptions, CONSOLE_TEXT_WIDTH);
-			final CommandLine.ParseResult parseResult = commandLine.parseArgs(argumentsThroughFirstHelpOption(args));
+			final CommandLine.ParseResult parseResult = commandLine.parseArgs(argumentsThroughFirstHelpOption(args, commandLine));
 			if (!CliCommandLineConsumerUsageHelper.writeHelpIfRequested(parseResult, CONSOLE_TEXT_WIDTH, out, err)) {
 				final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
 				commandExecutionStarted = true;
@@ -130,18 +131,36 @@ public final class CliSupport {
 		}
 	}
 
-	private static String[] argumentsThroughFirstHelpOption(final String[] args) {
-		final List<String> argsToKeep = new ArrayList<>();
-		for (final String arg : args) {
-			argsToKeep.add(arg);
-			if (arg.endsWith(CliCommandLineProducer.OPTION_HELP_POSTFIX)) {
-				break;
+	/** Resolves an option-shaped help candidate for daemon routing without executing builders or converting their values. */
+	public static boolean containsHelpOption(final String[] args) {
+		return firstHelpOptionIndex(args, configurePicoCli(MetadataHolder.DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH)) >= 0;
+	}
+
+	private static String[] argumentsThroughFirstHelpOption(final String[] args, final CommandLine commandLine) {
+		if (args.length == 0) {
+			return new String[]{"--help"};
+		}
+		final int helpIndex = firstHelpOptionIndex(args, commandLine);
+		return helpIndex < 0 ? args : Arrays.copyOf(args, helpIndex + 1);
+	}
+
+	private static int firstHelpOptionIndex(final String[] args, final CommandLine commandLine) {
+		CommandLine currentCommand = commandLine;
+		for (int index = 0; index < args.length; index++) {
+			final String arg = args[index];
+			if ("--".equals(arg)) {
+				return -1;
+			}
+			final OptionSpec option = currentCommand.getCommandSpec().optionsMap().get(arg);
+			if (option != null && (option.help() || option.usageHelp())) {
+				return index;
+			}
+			final CommandLine subcommand = currentCommand.getSubcommands().get(arg);
+			if (subcommand != null) {
+				currentCommand = subcommand;
 			}
 		}
-		if (argsToKeep.isEmpty()) {
-			argsToKeep.add("--help");
-		}
-		return argsToKeep.toArray(new String[0]);
+		return -1;
 	}
 
 	/** Defers expensive metadata validation and generation until command execution actually needs Picocli. */
