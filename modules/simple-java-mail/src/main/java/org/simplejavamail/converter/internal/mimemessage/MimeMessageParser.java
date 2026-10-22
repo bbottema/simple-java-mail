@@ -238,8 +238,7 @@ public final class MimeMessageParser {
 		}
         Object content = parseContent(currentPart);
         if (content instanceof InputStream) {
-            final InputStream calendarContent = (InputStream) content;
-            try {
+            try (InputStream calendarContent = (InputStream) content) {
                 return MiscUtil.readInputStreamToString(calendarContent, UTF_8);
             } catch (IOException e) {
                 throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
@@ -440,8 +439,8 @@ public final class MimeMessageParser {
 	}
 
 	private static byte @NotNull [] readContent(@NotNull final InputStream is) {
-		try {
-			return MiscUtil.readInputStreamToBytes(is);
+		try (InputStream content = is) {
+			return MiscUtil.readInputStreamToBytes(content);
 		} catch (final IOException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_READING_CONTENT, e);
 		}

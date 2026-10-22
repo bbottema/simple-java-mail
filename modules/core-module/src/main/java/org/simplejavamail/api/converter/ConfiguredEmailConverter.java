@@ -90,6 +90,9 @@ public interface ConfiguredEmailConverter {
 		 * When disabled, attachment data sources are retained for later access instead of reading their content eagerly. Reading those data sources later
 		 * can still perform I/O; this does not remove attachments or prohibit sending them. This option controls attachment extraction, not protection
 		 * inspection: a protection module may still need to read or serialize the source while examining it.
+		 * Eager extraction closes every attachment stream it opens, including on failure. Calendar interpretation likewise closes streams it acquires;
+		 * this does not close the DataSource itself or a caller-supplied top-level EML source stream. Known I/O failures retain their original cause,
+		 * including suppressed closing failures, through the conversion exception family.
 		 */
 		@NotNull T withFetchAttachmentData(boolean fetchAttachmentData);
 

@@ -5,6 +5,10 @@
 - Target: 10.0.0
 - Attachment access revision: Accepted 21 October 2026; implemented and reviewed for unreleased 10.0.0 under [#821](https://github.com/bbottema/simple-java-mail/issues/821).
 
+### Parser-opened content streams (accepted 22 October 2026)
+
+Eager MIME attachment extraction and calendar-stream interpretation own each stream they acquire while producing the converted value. Close those streams on success and failure, preserving the original read cause and suppressed close failures through the conversion exception family. A close failure after a successful read still fails the operation. Borrowing the DataSource does not transfer ownership of a separately acquired stream to the application. Lazy extraction and caller-supplied top-level EML streams retain their existing contracts. [#828](https://github.com/bbottema/simple-java-mail/issues/828) tracks this application of the ownership decision.
+
 ## Context and decision drivers
 
 Applications reuse builders, Email templates and even the same Email for concurrent sends. Changing a builder must not change an already built
