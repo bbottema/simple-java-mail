@@ -216,7 +216,8 @@ public final class MimeMessageParser {
 				return decodeText(currentPart.getFileName());
 			} else {
 				// replicate behavior from Thunderbird
-				if (Arrays.asList(currentPart.getHeader(MessageHeader.CONTENT_TYPE.getName())).contains("message/rfc822")) {
+				final String[] contentTypes = currentPart.getHeader(MessageHeader.CONTENT_TYPE.getName());
+				if (contentTypes != null && Arrays.asList(contentTypes).contains("message/rfc822")) {
 					return "ForwardedMessage.eml";
 				}
 			}
