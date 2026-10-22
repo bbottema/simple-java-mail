@@ -5,8 +5,11 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.util.KeyMaterialReadException;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,6 +84,7 @@ public class SmimeSigningConfig implements Serializable {
          * @param keyAlias The name of the certificate in the key store to use.
          * @param keyPassword The password of the certificate.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing the file fails with an {@link IOException}.
          * @see #pkcs12Config(Path, String, String, String)
          * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
          */
@@ -90,7 +94,7 @@ public class SmimeSigningConfig implements Serializable {
         }
 
         /**
-         * Reads the PKCS12 store immediately through {@link #pkcs12Config(InputStream, String, String, String)} and closes the stream opened for the path.
+         * Reads the PKCS12 store bytes immediately and closes the stream opened for the path.
          *
          * The selected alias and passwords are retained with the bytes. Select the signing algorithm separately through
          * {@link #signatureAlgorithm(String)}; null keeps the module's default. This works with non-default Java filesystems.
@@ -99,13 +103,15 @@ public class SmimeSigningConfig implements Serializable {
          * @param keyAlias Alias of the signing key.
          * @param keyPassword Password for the signing key.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if opening, reading or closing fails with an {@link IOException}.
+         *         The original I/O cause retains any suppressed closing failure.
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull final Path pkcs12StorePath, @NotNull final String storePassword,
                 @NotNull final String keyAlias, @NotNull final String keyPassword) {
             try (InputStream pkcs12StoreStream = Files.newInputStream(pkcs12StorePath)) {
-                return pkcs12Config(pkcs12StoreStream, storePassword, keyAlias, keyPassword);
+                return pkcs12Config(readInputStreamToBytes(pkcs12StoreStream), storePassword, keyAlias, keyPassword);
             } catch (IOException e) {
-                throw new IllegalStateException(format("Error reading from path: %s", pkcs12StorePath), e);
+                throw new KeyMaterialReadException(format("Error reading from path: %s", pkcs12StorePath), e);
             }
         }
 
@@ -117,6 +123,7 @@ public class SmimeSigningConfig implements Serializable {
          * @param keyAlias The signing-key alias.
          * @param keyPassword The signing-key password.
          * @return This builder.
+         * @throws MailException With kind {@link MailFailureKind#PREPARATION} if reading fails with an {@link IOException}, retained as the cause.
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull InputStream pkcs12StoreStream, @NotNull String storePassword,
                 @NotNull String keyAlias, @NotNull String keyPassword) {
@@ -124,7 +131,7 @@ public class SmimeSigningConfig implements Serializable {
             try {
                 pkcs12StoreData = readInputStreamToBytes(pkcs12StoreStream);
             } catch (IOException e) {
-                throw new IllegalStateException("Was unable to read S/MIME data from input stream", e);
+                throw new KeyMaterialReadException("Was unable to read S/MIME data from input stream", e);
             }
             return pkcs12Config(pkcs12StoreData, storePassword, keyAlias, keyPassword);
         }
