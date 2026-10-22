@@ -63,6 +63,11 @@ Keep Email/InternalEmail serialized identities and the existing format: earlier 
 OpenPGP configuration cannot be recovered. Serializing exact protected EML retains authoritative bytes and does not
 apply new protection. This adds no persistent requirement marker, mandatory restoration step or general persistence policy.
 
+The [OpenPGP replacement clarification](0031-public-api-and-internal-construction.md#openpgp-recipient-key-replacement-accepted-22-october-2026)
+also applies ownership at collection replacement: prepare the complete detached list and nested arrays before changing the
+builder. Rejecting missing input preserves the old selection; editing or clearing the builder cannot alter previously built
+or restored configurations. Allowing unfinished builder bytes does not weaken immutable construction or deserialization.
+
 ### Attachment type metadata (accepted 22 October 2026)
 
 An attachment's content-type parameters are metadata, including the character encoding needed to interpret its bytes. Preserve valid

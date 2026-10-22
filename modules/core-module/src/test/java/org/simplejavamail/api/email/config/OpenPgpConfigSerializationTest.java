@@ -97,6 +97,8 @@ class OpenPgpConfigSerializationTest {
                 new Object[]{signing(), "passphrase", null},
                 new Object[]{signing(), "hashAlgorithm", null},
                 new Object[]{encryption(), "recipientPublicKeyRings", new ArrayList<byte[]>()},
+                new Object[]{encryption(), "recipientPublicKeyRings", null},
+                new Object[]{encryption(), "recipientPublicKeyRings", Arrays.asList(new byte[]{9}, null)},
                 new Object[]{encryption(), "recipientPublicKeyRings", Arrays.asList(new byte[0])},
                 new Object[]{encryption(), "symmetricAlgorithm", null});
     }

@@ -8,7 +8,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM;
@@ -102,16 +101,18 @@ public final class OpenPgpEncryptionConfig implements Serializable {
     }
 
     private static List<byte[]> immutableDeepCopy(final List<byte[]> values) {
+        for (byte[] value : values) {
+            if (value == null || value.length == 0) {
+                throw new IllegalArgumentException("OpenPGP public key rings cannot be null or empty");
+            }
+        }
         return Collections.unmodifiableList(mutableDeepCopy(values));
     }
 
     private static List<byte[]> mutableDeepCopy(final List<byte[]> values) {
         final List<byte[]> copy = new ArrayList<>();
         for (byte[] value : values) {
-            if (value == null || value.length == 0) {
-                throw new IllegalArgumentException("OpenPGP public key rings cannot be null or empty");
-            }
-            copy.add(value.clone());
+            copy.add(requireNonNull(value, "publicKeyRing").clone());
         }
         return copy;
     }
@@ -127,7 +128,7 @@ public final class OpenPgpEncryptionConfig implements Serializable {
          */
         @NotNull
         public List<byte[]> getRecipientPublicKeyRings() {
-            return recipientPublicKeyRings.stream().map(byte[]::clone).collect(Collectors.toCollection(ArrayList::new));
+            return mutableDeepCopy(recipientPublicKeyRings);
         }
 
         /** @see #recipientPublicKeyRings(List) */
@@ -145,7 +146,9 @@ public final class OpenPgpEncryptionConfig implements Serializable {
 
         /**
          * Adds another recipient's public key ring, retaining a copy of the supplied bytes. Other recipients and the selected cipher are retained.
+         * Empty bytes may be stored while configuring the builder; {@link #build()} rejects empty key rings.
          *
+         * @throws NullPointerException if the key ring is null; previous choices are retained.
          * @see #recipientPublicKeyRings(List)
          */
         public OpenPgpEncryptionConfigBuilder addRecipientPublicKeyRing(final byte[] publicKeyRing) {
@@ -154,12 +157,17 @@ public final class OpenPgpEncryptionConfig implements Serializable {
         }
 
         /**
-         * Replaces the recipient key rings, retaining copies of the list and its arrays. Use {@link #clearRecipientPublicKeyRings()} to remove
-         * them without changing the cipher. At least one nonempty key ring is needed when {@link #build()} creates the configuration.
+         * Replaces all recipient key rings, retaining copies of the list and its arrays without changing the cipher. A null list or entry is
+         * rejected before changing any stored choice. An empty list removes all keys, like {@link #clearRecipientPublicKeyRings()}.
+         * Non-null empty arrays may be stored while configuring the builder; {@link #build()} requires at least one key ring and rejects every
+         * empty ring. Actual cryptographic interpretation happens when the configuration is used for protection.
+         *
+         * @throws NullPointerException if the list or any key ring is null; previous choices are retained.
          */
         public OpenPgpEncryptionConfigBuilder recipientPublicKeyRings(final List<byte[]> publicKeyRings) {
+            final List<byte[]> replacement = mutableDeepCopy(requireNonNull(publicKeyRings, "publicKeyRings"));
             recipientPublicKeyRings.clear();
-            recipientPublicKeyRings.addAll(mutableDeepCopy(requireNonNull(publicKeyRings, "publicKeyRings")));
+            recipientPublicKeyRings.addAll(replacement);
             return this;
         }
 
@@ -180,6 +188,12 @@ public final class OpenPgpEncryptionConfig implements Serializable {
             return symmetricAlgorithm(DEFAULT_OPENPGP_ENCRYPTION_SYMMETRIC_ALGORITHM);
         }
 
+        /**
+         * Creates an independent configuration, requiring at least one key ring and rejecting every empty ring.
+         * This checks the supplied data shape; actual key parsing remains part of applying OpenPGP protection.
+         *
+         * @throws IllegalArgumentException if no recipient keys are selected or any key ring is empty.
+         */
         public OpenPgpEncryptionConfig build() {
             return new OpenPgpEncryptionConfig(recipientPublicKeyRings, symmetricAlgorithm);
         }

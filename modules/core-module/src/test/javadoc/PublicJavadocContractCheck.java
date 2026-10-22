@@ -69,6 +69,8 @@ public final class PublicJavadocContractCheck {
                 "getSigningKeyId", "getHashAlgorithm");
         requireLinkedCompanions("email/config/OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder", "getRecipientPublicKeyRings",
                 "clearRecipientPublicKeyRings", "getSymmetricAlgorithm");
+        requireText("email/config/OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder", "rejected before changing any stored choice");
+        requireText("email/config/OpenPgpEncryptionConfig.OpenPgpEncryptionConfigBuilder", "requires at least one key ring and rejects every");
         requireLinkedCompanions("email/config/OpenPgpReceiveConfig.OpenPgpReceiveConfigBuilder", "getVerificationKeyRings", "clearVerificationKeyRings",
                 "getDecryptionKeyRings", "clearDecryptionKeyRings", "getPassphraseProvider", "clearPassphraseProvider");
         requireText("email/config/OpenPgpSigningConfig", "serialization retains the secret key ring");
