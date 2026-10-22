@@ -156,6 +156,8 @@ This template replaces the factory's property-derived message defaults. To retai
 `useConfiguredEmailDefaults()` restores factory defaults; `withoutEmailDefaults()` removes ordinary defaults while retaining configuration locks.
 On `EmailTemplateOptions.Builder`, repeated `dontApplyDefaultValueFor(...)` and `dontApplyOverrideValueFor(...)` calls accumulate exclusions. Use the corresponding `allow...ValueFor(...)` method to remove named exclusions, or `clearDefaultValueSuppressions()` / `clearOverrideValueSuppressions()` to remove all local exclusions. Empty suppression calls do nothing; global ignore flags and locks keep their meanings. Supply the completed options through `emailBuilder.withTemplateOptions(...)`.
 
+Calendar method and text form one template value. Excluding either `CALENDAR_METHOD` or `CALENDAR_TEXT` skips that source's whole calendar while retaining the Email's own calendar; calendar transfer encoding stays independent.
+
 ### Spring Boot
 
 Spring Boot 2.7 and 3.x applications can add the dedicated starter. It brings in `spring-module`, discovers the integration automatically, and creates

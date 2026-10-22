@@ -12,7 +12,6 @@ import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -41,6 +40,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import static jakarta.mail.Message.RecipientType.BCC;
@@ -312,10 +312,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT));
 		builder.withPlainText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_TEXT));
 		builder.withHTMLText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_HTML));
-		val calendarText = this.<String>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT);
-		if (calendarText != null) {
-			val calendarMethod = this.<CalendarMethod>resolveEmailProperty(provided, EmailProperty.CALENDAR_METHOD);
-			builder.withCalendarText(requireNonNull(calendarMethod, "calendarMethod"), calendarText);
+		final Email calendarSource = resolveCalendarSource(provided);
+		if (calendarSource != null) {
+			builder.withCalendarText(requireNonNull(calendarSource.getCalendarMethod(), "calendarMethod"),
+					requireNonNull(calendarSource.getCalendarText(), "calendarText"));
 		}
 		builder.withHeaders(resolveEmailHeadersProperty(provided));
 		builder.withAttachments(resolveEmailCollectionProperty(provided, EmailProperty.ATTACHMENTS));
@@ -453,6 +453,26 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		if (provided.getPropertiesNotToApplyOverrideValueFor() != null) {
 			builder.dontApplyOverrideValueFor(provided.getPropertiesNotToApplyOverrideValueFor().toArray(new EmailProperty[0]));
 		}
+	}
+
+	@Nullable
+	private Email resolveCalendarSource(@Nullable final Email provided) {
+		if (emailOverrides.getCalendarText() != null && (provided == null
+				|| !provided.isIgnoreOverrides() && !isCalendarSuppressed(provided.getPropertiesNotToApplyOverrideValueFor()))) {
+			return emailOverrides;
+		}
+		if (provided != null && provided.getCalendarText() != null) {
+			return provided;
+		}
+		if (emailDefaults.getCalendarText() != null && (provided == null
+				|| !provided.isIgnoreDefaults() && !isCalendarSuppressed(provided.getPropertiesNotToApplyDefaultValueFor()))) {
+			return emailDefaults;
+		}
+		return null;
+	}
+
+	private static boolean isCalendarSuppressed(@Nullable final Set<EmailProperty> exclusions) {
+		return exclusions != null && (exclusions.contains(EmailProperty.CALENDAR_METHOD) || exclusions.contains(EmailProperty.CALENDAR_TEXT));
 	}
 
 	@Nullable

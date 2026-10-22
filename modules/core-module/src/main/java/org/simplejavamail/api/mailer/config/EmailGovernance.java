@@ -51,6 +51,11 @@ public interface EmailGovernance {
      * in override, supplied, then default order, subject to the supplied Email's suppression choices. Applicable configuration locks remain
      * binding regardless of suppression or earlier completion; conflicting fixed values are rejected and mandatory additions are enforced.
      * <p>
+     * Calendar method and text resolve together from one source in override, supplied, then default order. Either
+     * {@link org.simplejavamail.api.email.EmailProperty#CALENDAR_METHOD} or
+     * {@link org.simplejavamail.api.email.EmailProperty#CALENDAR_TEXT} excludes that template's entire calendar contribution,
+     * without removing the supplied Email's calendar. Calendar transfer encoding retains its independent resolution and lock rules.
+     * <p>
      * To, Cc, Bcc, Reply-To, delivery-recipient overrides, attachments and embedded images add only missing template values. New override
      * entries precede every supplied entry; new default entries follow them. Supplied duplicates and their order remain intact. Incoming
      * entries already represented by the supplied collection or an earlier template addition are skipped. Repeating the same completion

@@ -75,6 +75,8 @@ public interface CliEmailConfigurationBuilder {
 	 * Repeated calls add to the existing local exclusions; an empty call changes nothing. Use {@link #allowDefaultValueFor(EmailProperty...)}
 	 * to remove individual exclusions or {@link #clearDefaultValueSuppressions()} to remove them all. These operations do not change
 	 * {@link #ignoringDefaults(boolean)} or configuration locks.
+	 * Excluding either {@link EmailProperty#CALENDAR_METHOD} or {@link EmailProperty#CALENDAR_TEXT} skips the default template's
+	 * whole calendar, without removing a calendar supplied on this Email. Calendar transfer encoding remains independent.
 	 * <br>
 	 * <strong>Note:</strong> This is irrelevant for Email instances used to set on {@link org.simplejavamail.api.mailer.config.EmailGovernance}
 	 * as defaults or overrides reference.
@@ -92,6 +94,8 @@ public interface CliEmailConfigurationBuilder {
 	 * Repeated calls add to the existing local exclusions; an empty call changes nothing. Use {@link #allowOverrideValueFor(EmailProperty...)}
 	 * to remove individual exclusions or {@link #clearOverrideValueSuppressions()} to remove them all. These operations do not change
 	 * {@link #ignoringOverrides(boolean)} or configuration locks.
+	 * Excluding either {@link EmailProperty#CALENDAR_METHOD} or {@link EmailProperty#CALENDAR_TEXT} skips the override template's
+	 * whole calendar. The submitted or default calendar remains eligible as a whole value; calendar transfer encoding is independent.
 	 *
 	 * @param configProperties The properties that should not be overridden when sending the email.
 	 */
