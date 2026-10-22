@@ -142,7 +142,10 @@ public interface IRecipientBuilder {
     IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull String address, @Nullable String fixedName);
 
     /**
-     * @param smimeCertificate Optional S/MIME certificate for this recipient, used for encrypting S/MIME messages on a per-user basis. After recipients are
+     * Supplies the S/MIME certificate for this recipient. Null is rejected without changing the previous choice; use
+     * {@link #clearingSmimeCertificate()} to remove it and restore the existing fallback. The certificate is stored without cryptographic validation.
+     *
+     * @param smimeCertificate Required S/MIME certificate for this recipient, used for encrypting S/MIME messages on a per-user basis. After recipients are
      *                         built, any certificate present on a {@link Recipient} is treated as the recipient-specific encryption certificate and takes
      *                         precedence over the governance-resolved {@link Email} / {@link org.simplejavamail.api.mailer.Mailer} S/MIME encryption
      *                         fallback.
@@ -150,6 +153,7 @@ public interface IRecipientBuilder {
      *                         For reusable recipient groups, use {@link IRecipientsBuilder#withDefaultSmimeCertificate(X509Certificate)},
      *                         {@link IRecipientsBuilder#withFixedSmimeCertificate(X509Certificate)} or
      *                         {@link IRecipientsBuilder#clearingSmimeCertificates()} before adding the resulting flat recipient list to an email.
+     * @throws IllegalArgumentException if the certificate is null
      * @see #clearingSmimeCertificate()
      */
     IRecipientBuilder withSmimeCertificate(@NotNull X509Certificate smimeCertificate);

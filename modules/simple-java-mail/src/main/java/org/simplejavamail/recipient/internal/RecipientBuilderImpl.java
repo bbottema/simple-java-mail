@@ -206,7 +206,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withSmimeCertificate(@NotNull X509Certificate smimeCertificate) {
-        this.smimeCertificate = smimeCertificate;
+        this.smimeCertificate = checkNonEmptyArgument(smimeCertificate, "smimeCertificate");
         return this;
     }
 

@@ -21,6 +21,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
+import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
  * @see IRecipientsBuilder
@@ -69,7 +70,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @Override
     @NotNull
     public IRecipientsBuilder withDefaultSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
-        this.groupSmimeCertificate = smimeCertificate;
+        this.groupSmimeCertificate = checkNonEmptyArgument(smimeCertificate, "smimeCertificate");
         this.groupSmimeCertificateMode = GroupPolicyMode.DEFAULT;
         return this;
     }
@@ -80,7 +81,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @Override
     @NotNull
     public IRecipientsBuilder withFixedSmimeCertificate(@NotNull final X509Certificate smimeCertificate) {
-        this.groupSmimeCertificate = smimeCertificate;
+        this.groupSmimeCertificate = checkNonEmptyArgument(smimeCertificate, "smimeCertificate");
         this.groupSmimeCertificateMode = GroupPolicyMode.FIXED;
         return this;
     }
