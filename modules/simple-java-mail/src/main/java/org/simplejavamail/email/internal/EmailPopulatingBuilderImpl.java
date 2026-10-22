@@ -1260,7 +1260,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	public InternalEmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName, @Nullable RecipientType recipientType, @NotNull String @NotNull ... oneOrMoreAddressesEach) {
 		for (String oneOrMoreAddresses : oneOrMoreAddressesEach) {
-			recipients.addAll(MailboxInterpretation.interpretList(name, fixedName, oneOrMoreAddresses, recipientType, "oneOrMoreAddresses"));
+			withRecipients(MailboxInterpretation.interpretList(name, fixedName, oneOrMoreAddresses, recipientType, "oneOrMoreAddresses"));
 		}
 		return this;
 	}
@@ -1271,7 +1271,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public InternalEmailPopulatingBuilder withRecipients(@NotNull final Collection<Recipient> recipients) {
 		for (final Recipient recipient : recipients) {
-			this.recipients.add(requireNonNull(recipient, "recipient"));
+			requireNonNull(recipient, "recipient");
+			this.recipients.add(recipient.getType() == null
+					? new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.TO, recipient.getSmimeCertificate(),
+							recipient.getDeliveryStatusNotificationNotifyOptions())
+					: recipient);
 		}
 		return this;
 	}

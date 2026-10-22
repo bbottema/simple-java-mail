@@ -8,6 +8,10 @@
 - Security API consolidation: [#737](https://github.com/bbottema/simple-java-mail/issues/737) tracks the shared DKIM/S/MIME configuration contract and DKIM migration, separately from ENVID and recipient NOTIFY/ORCPT.
 - Recipient DSN follow-up: [#738](https://github.com/bbottema/simple-java-mail/issues/738) tracks recipient/group NOTIFY preferences and automatic ORCPT, separately from #736 and #737.
 
+## Role-less visible recipients (accepted 22 October 2026)
+
+A Recipient whose role is absent means To when it is used as a visible Email recipient. Apply this interpretation consistently during composition, copying, completion, rendering and supported snapshot restoration, retaining names, addresses, certificates, notification choices, order and duplicate occurrences. Do not mutate a supplied Recipient or assign a visible role to From/Reply-To values merely because their role is absent. This convenient default closes the silent-omission gap tracked by [#829](https://github.com/bbottema/simple-java-mail/issues/829); explicit Cc/Bcc choices remain authoritative.
+
 ## Decision
 
 Email is the canonical home for message configuration. A Mailer supplies reusable Email defaults and overrides through the existing general-purpose APIs, not through a second set of feature-specific setters and backing fields. Recipient and recipient-group builders expose only the settings that have recipient-specific meaning.

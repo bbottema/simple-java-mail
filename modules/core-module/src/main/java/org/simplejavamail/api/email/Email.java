@@ -59,6 +59,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * Exclusively created through the email builder API obtained from a configured {@code SimpleJavaMail} factory.
  * Collection structure and dates are detached from their builder. Stored message collections are unmodifiable;
  * filtered To/Cc/Bcc lists are independent copies whose changes do not affect this Email.
+ * A visible recipient with no supplied role is interpreted as To, including when restoring supported older snapshots.
+ * This does not change the supplied Recipient or the roles of From, Reply-To and envelope-only recipients.
  * Attachment data sources and forwarded MIME messages remain borrowed: building an Email does not read or freeze their content.
  *
  * <h2>Java serialization</h2>
@@ -390,7 +392,7 @@ public class Email implements Serializable {
 	private void detachMessageMetadata() {
 		returnReceiptToRecipients = notificationSnapshot(returnReceiptToRecipients, returnReceiptTo);
 		dispositionNotificationToRecipients = notificationSnapshot(dispositionNotificationToRecipients, dispositionNotificationTo);
-		recipients = immutableListSnapshot(recipients);
+		recipients = visibleRecipientSnapshot(recipients);
 		replyToRecipients = immutableListSnapshot(replyToRecipients);
 		overrideReceivers = immutableListSnapshot(overrideReceivers);
 		attachments = immutableListSnapshot(attachments);
@@ -404,6 +406,20 @@ public class Email implements Serializable {
 	private static List<Recipient> notificationSnapshot(@Nullable final List<Recipient> values, @Nullable final Recipient legacy) {
 		return immutableListSnapshot(values != null ? values : legacy == null
 				? java.util.Collections.emptyList() : java.util.Collections.singletonList(legacy));
+	}
+
+	@NotNull
+	private static List<Recipient> visibleRecipientSnapshot(@NotNull final Collection<Recipient> values) {
+		final List<Recipient> snapshot = new ArrayList<>(values.size());
+		for (final Recipient recipient : values) {
+			// Older snapshots may share a role-less contact with other fields or objects in the serialized graph.
+			// Interpret only its visible use without changing that contact or any of its delivery metadata.
+			snapshot.add(recipient != null && recipient.getType() == null
+					? new Recipient(recipient.getName(), recipient.getAddress(), TO, recipient.getSmimeCertificate(),
+							recipient.getDeliveryStatusNotificationNotifyOptions())
+					: recipient);
+		}
+		return unmodifiableList(snapshot);
 	}
 
 	@NotNull

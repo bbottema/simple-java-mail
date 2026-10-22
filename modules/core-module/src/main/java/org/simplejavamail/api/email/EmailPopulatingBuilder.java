@@ -600,6 +600,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends the provided recipients, preserving their supplied name, address, type, S/MIME certificate and notification preferences without reparsing.
+	 * An absent type defaults to To for this visible recipient use; the supplied Recipient remains unchanged.
 	 * Existing recipients, including those from copying an Email, remain in order. Repeated calls retain duplicates; an empty array adds nothing.
 	 * Use {@link #clearRecipients()} before adding replacements. The provided array's structure is not retained.
 	 * <p>
@@ -675,6 +676,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Appends the provided recipients, preserving their supplied name, address, type, S/MIME certificate and notification preferences without reparsing.
+	 * An absent type defaults to To for this visible recipient use; the supplied Recipient remains unchanged.
 	 * Existing recipients, including those from copying an Email, remain in order. Repeated calls retain duplicates; an empty collection adds nothing.
 	 * Use {@link #clearRecipients()} before adding replacements. The provided collection's structure is not retained.
 	 * <p>
