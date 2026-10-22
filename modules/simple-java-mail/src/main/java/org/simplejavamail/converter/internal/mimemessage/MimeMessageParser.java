@@ -104,7 +104,9 @@ public final class MimeMessageParser {
 			if (parsedComponents.calendarTextContentTransferEncoding == null) {
 				parsedComponents.calendarTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
-		} else if (isMimeType(currentPart, "multipart/*")) {
+		} else if (isMimeType(currentPart, "multipart/*")
+				&& (currentPart instanceof MimeMessage || !Part.ATTACHMENT.equalsIgnoreCase(disposition))) {
+			// Interpret the effective root and ordinary body containers; an attached child multipart stays one resource.
 			final Multipart mp = parseContent(currentPart);
 			selectOuterDeliveryStatusPart(currentPart, mp, parsedComponents);
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {

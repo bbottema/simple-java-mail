@@ -46,6 +46,23 @@ This keeps source ownership consistent with [ADR 0035](0035-tolerant-reading-and
 It does not alter protection selection, verification, original/exact byte boundaries or lazy resource ownership. The maintainer approved this
 correction under [#840](https://github.com/bbottema/simple-java-mail/issues/840) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## Explicit child multipart attachments (accepted 22 October 2026)
+
+After protection preprocessing selects the effective message, preserve a child `multipart/*` entity explicitly marked
+`Content-Disposition: attachment` as one attachment. Its children do not supply parent bodies or separate parent resources.
+Keep the complete readable resource, filename and existing type/description/ID/encoding metadata through the normal attachment path.
+
+The effective root still supplies the message content even if its own disposition says attachment. Ordinary nested body containers,
+inline and filename-only multipart entities retain established recursive interpretation and repeated text/HTML concatenation. Email remains
+a convenient content model rather than a lossless MIME tree. This retains the interoperability rationale behind
+[#139](https://github.com/bbottema/simple-java-mail/issues/139) while respecting the complete-entity disposition defined by
+[RFC 2183 section 2.9](https://www.rfc-editor.org/rfc/rfc2183.html#section-2.9).
+
+This correction adds no switch or public API. Existing protection preprocessing, attached-message handling, report ownership and authoritative
+exact/protected bytes retain their separate contracts. [ADR 0035](0035-tolerant-reading-and-strict-production.md#explicit-multipart-attachment-boundaries-accepted-22-october-2026)
+owns interpretation; [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#multipart-attachment-content-ownership-accepted-22-october-2026)
+owns eager/lazy resources. [#849](https://github.com/bbottema/simple-java-mail/issues/849) tracks implementation and delivery for unreleased 10.0.0.
+
 ## Unavailable S/MIME inspection (accepted 2026-10-21)
 
 Ordinary inbound conversion remains tolerant when the optional S/MIME module is absent. Expose an honest indicator of unavailable

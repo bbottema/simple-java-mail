@@ -29,6 +29,9 @@ import java.nio.file.Path;
  * When importing an Email, message-level headers, bounce addresses and receipt destinations come from the effective root message selected after
  * protection preprocessing. Child MIME headers remain local to their parts: their existing resource metadata is read, but misplaced headers do not
  * become Email headers or replace the root message's facts.
+ * A child multipart explicitly marked as an attachment remains one attachment, including its content-type parameters; its children do not
+ * become parent bodies or separate parent resources. Ordinary body containers, inline/filename-only multipart entities and the effective root
+ * retain recursive content interpretation. This content model does not preserve arbitrary source MIME nesting.
  * Exporting an Email does not apply factory templates unless an explicit
  * {@link EmailConversion#withEmailGovernance(EmailGovernance) governance} is supplied.
  * <p>

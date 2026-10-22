@@ -80,6 +80,18 @@ safe production and malformed-input fallback. Existing copying and serialization
 and stronger retry snapshots keep their own boundaries. This clarification is accepted under
 [#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; its issue tracks implementation and delivery.
 
+### Multipart attachment content ownership (accepted 22 October 2026)
+
+Explicitly attached child multipart entities use the existing attachment resource boundary: eager extraction reads and closes its acquired
+stream, while lazy extraction retains the named DataSource for later access. Both expose one resource with equivalent type metadata, including
+the boundary parameter required to interpret its bytes. Classification and metadata inspection do not traverse or read its children.
+
+Ordinary copying keeps the existing structural/borrowed-content contract; stronger serialization, exact-message and retry snapshots retain their
+own byte boundaries. Existing protection inspection may still require source reads before general parsing. This clarification is accepted under
+[#849](https://github.com/bbottema/simple-java-mail/issues/849) for unreleased 10.0.0; its issue tracks implementation and delivery.
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#explicit-child-multipart-attachments-accepted-22-october-2026)
+owns root/body interpretation and protection order.
+
 ### Nullable custom-header metadata (accepted 22 October 2026)
 
 The existing header map retains actual null values supplied through the public builder, independently from explicit empty Strings.

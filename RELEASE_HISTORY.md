@@ -113,6 +113,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#849](https://github.com/bbottema/simple-java-mail/issues/849): MIME/EML import retains explicitly attached child multipart containers as one
+  attachment with their content and metadata. Their contents no longer merge into parent bodies or become separate parent resources;
+  effective-root and ordinary multipart body interpretation remain unchanged.
+
 - [#848](https://github.com/bbottema/simple-java-mail/issues/848): null custom-header values produce present empty fields during conversion
   and sending, preserving stored null metadata, empty imported headers and existing header-name injection protection.
 
