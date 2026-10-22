@@ -43,7 +43,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 public final class MimeMessageParser {
 
 	private static final Logger LOGGER = getLogger(MimeMessageParser.class);
-	private static final Pattern CONTENT_TYPE_METHOD_PATTERN = Pattern.compile("method=\"?(\\w+)");
+	// Preserve historical leading-token recovery after Jakarta Mail has identified the genuine method parameter.
+	private static final Pattern CALENDAR_METHOD_TOKEN_PATTERN = Pattern.compile("^(\\w+)");
 	private static final Pattern CALENDAR_BODY_METHOD_PATTERN = Pattern.compile("(?i)^METHOD:(\\w+)", Pattern.MULTILINE);
 
 	/**
@@ -270,6 +271,8 @@ public final class MimeMessageParser {
 
 	/**
 	 * @return Returns the "method" part from the Calendar content type (such as "{@code text/calendar; charset="UTF-8"; method="REQUEST"}").
+	 * The MIME parameter name is case-insensitive; the calendar body's METHOD is used when the header supplies no method.
+	 * The returned value retains its source spelling for interpretation by the Email mapper.
 	 */
 	@SuppressWarnings("WeakerAccess")
 	public static String parseCalendarMethod(@NotNull MimePart currentPart, @NotNull String calendarContent) {
@@ -280,10 +283,53 @@ public final class MimeMessageParser {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CALENDAR_CONTENTTYPE, e);
 		}
 
-		return findFirstMatch(CONTENT_TYPE_METHOD_PATTERN, contentType)
+		return parseCalendarHeaderMethod(contentType)
 				.orElseGet(() -> findFirstMatch(CALENDAR_BODY_METHOD_PATTERN, calendarContent)
 						.orElseThrow(() -> new IllegalArgumentException("Calendar METHOD not found in bodypart's content type or calendar content itself")));
     }
+
+	private static Optional<String> parseCalendarHeaderMethod(final String contentType) {
+		try {
+			final Optional<String> method = ofNullable(new ContentType(contentType).getParameter("method"))
+					.flatMap(value -> findFirstMatch(CALENDAR_METHOD_TOKEN_PATTERN, value));
+			// Keep the first genuine method occurrence: ContentType otherwise replaces repeated parameter values with the last one.
+			return findCalendarHeaderMethod(contentType).or(() -> method);
+		} catch (final ParseException malformedContentType) {
+			// Retain the existing narrow recovery for malformed headers instead of rejecting otherwise readable calendars.
+			return findCalendarHeaderMethod(contentType);
+		}
+	}
+
+	private static Optional<String> findCalendarHeaderMethod(final String contentType) {
+		final HeaderTokenizer tokens = new HeaderTokenizer(contentType, HeaderTokenizer.MIME);
+		try {
+			for (HeaderTokenizer.Token token = tokens.next(); token.getType() != HeaderTokenizer.Token.EOF; token = tokens.next()) {
+				if (token.getType() != ';') {
+					continue;
+				}
+				final HeaderTokenizer.Token name = tokens.peek();
+				if (name.getType() != HeaderTokenizer.Token.ATOM || !name.getValue().equalsIgnoreCase("method")) {
+					continue;
+				}
+				tokens.next();
+				if (tokens.peek().getType() != '=') {
+					continue;
+				}
+				tokens.next();
+				final HeaderTokenizer.Token value = tokens.peek();
+				if (value.getType() != HeaderTokenizer.Token.ATOM && value.getType() != HeaderTokenizer.Token.QUOTEDSTRING) {
+					continue;
+				}
+				final Optional<String> method = findFirstMatch(CALENDAR_METHOD_TOKEN_PATTERN, tokens.next().getValue());
+				if (method.isPresent()) {
+					return method;
+				}
+			}
+		} catch (final ParseException unreadableParameter) {
+			// An unterminated token cannot identify a genuine method parameter; keep the existing body fallback.
+		}
+		return Optional.empty();
+	}
 
 	@SuppressWarnings("WeakerAccess")
 	@Nullable

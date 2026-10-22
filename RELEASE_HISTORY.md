@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#851](https://github.com/bbottema/simple-java-mail/issues/851): MIME/EML import recognizes calendar method names and values regardless of
+  capitalization, using MIME parameter grammar while retaining header priority, original calendar text and existing recovery boundaries.
+
 - [#850](https://github.com/bbottema/simple-java-mail/issues/850): the public S/MIME helper independently signs and encrypts the supplied
   MimeMessage, including recipient certificate fallback. No requested protection returns that same message without loading the optional module.
 
