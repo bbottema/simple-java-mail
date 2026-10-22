@@ -10,6 +10,8 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -41,10 +43,15 @@ public class SimpleJavaMailSpringSupport {
 		this.springBeanFactory = new SimpleJavaMailSpringBeanFactory(environment);
 	}
 
+	@Autowired
+	private void configureTelemetryActivation(final ListableBeanFactory beanFactory) {
+		springBeanFactory.configureTelemetryActivation(beanFactory);
+	}
+
 	/**
 	 * Resolves the context's immutable configuration once. Localhost is the fallback SMTP host, a conventional {@code simplejavamail.properties}
-	 * resource can override it, and all values exposed by Spring override both. Raw environment variables and JVM system properties are not loaded again
-	 * outside Spring.
+	 * resource can override it, and all values exposed by Spring override both. {@link EnableSjmTelemetry} contributes an activation fallback below
+	 * those explicit properties. Raw environment variables and JVM system properties are not loaded again outside Spring.
 	 */
 	@Bean
 	public SimpleJavaMailConfig simpleJavaMailConfig() {

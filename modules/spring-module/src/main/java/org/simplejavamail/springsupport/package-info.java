@@ -1,5 +1,5 @@
 /**
- * Contains the only exposed API of this module which is the entry class to import into Spring.
+ * Contains the Spring integration and explicit {@link org.simplejavamail.springsupport.EnableSjmTelemetry} activation annotation.
  * <p>
  * For more information on this module, please refer to
  * <a href="https://www.simplejavamail.org/modules.html#spring-module">Spring support on simplejavamail.org</a>.

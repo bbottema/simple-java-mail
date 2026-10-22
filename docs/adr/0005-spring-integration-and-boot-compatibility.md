@@ -36,14 +36,35 @@ The metadata-only `SimpleJavaMailProperties` model supplies IDE hints; it is not
 ## Optional telemetry integration
 
 [ADR 0034](0034-optional-opentelemetry-integration.md) adds a use of the shared construction route: an explicitly supplied
-framework-neutral `MailSendTelemetry` bean configures the default Mailer. An OpenTelemetry SDK/API bean alone does not activate it,
-and Spring acquires no OpenTelemetry dependency. Alternatively, `simplejavamail.telemetry.enabled` enables every Mailer from the captured
-factory using the application-global instance. Activation, endpoint permission and their locked counterparts use the existing Environment
-loader and metadata-only model. The existing bean lifecycle and replacement rules remain intact.
+framework-neutral `MailSendTelemetry` bean selects the integration for the default Mailer, independently of activation. Neither that bean
+nor an OpenTelemetry SDK/API bean enables telemetry by itself. `simplejavamail.telemetry.enabled=true` enables every Mailer from the captured
+factory. Enabled Mailers without a supplied integration use the application-global instance. Spring acquires no OpenTelemetry dependency.
+Activation, endpoint permission and their locked counterparts use the existing Environment loader and metadata-only model. The existing
+bean lifecycle and replacement rules remain intact.
 
 When application configuration supplies an existing OpenTelemetry instance, it uses the optional module's typed adapter to create that core
 bean. This adaptation belongs in the application wiring, not in SJM's Spring integration. It adds no foreign API dependency or SDK discovery
 to the Spring module and does not create another owner for ordinary settings, defaults or locks.
+
+### Explicit Java activation (accepted 22 October 2026)
+
+`@EnableSjmTelemetry` supplies activation true as a context-local fallback through the same ordered configuration loader. Its imported
+marker is not component-scanned and does not mutate Spring's Environment or process-global configuration. Explicit classpath and Environment
+properties, including false, override the annotation; locked values remain authoritative. Snapshot provenance identifies the annotation when
+it supplies the value. Ordinary per-Mailer Java customization retains its existing property/lock precedence.
+
+The annotation activates an existing SJM Spring integration. Plain Spring still imports `SimpleJavaMailSpringSupport`; Boot still discovers
+the existing auto-configuration. Do not import the base integration again or create parallel beans from the annotation. Boot's independent
+backoff remains intact: an application-provided snapshot, factory or Mailer retains its supplied behavior and is not retroactively modified.
+The annotation fallback applies only when SJM loads the snapshot. Activation is inherited by default and fresh factory-created Mailers;
+integration-bean selection continues to apply to the default Mailer. Applications can explicitly select an integration on other builders.
+Marker lookup is local to each bean factory: a child loading its own snapshot does not inherit its parent's annotation. Intentionally
+inheriting the parent's configured SJM factory retains that factory's captured activation and normal Boot backoff.
+
+This follows Spring's `@Enable...`/`@Import` composition pattern while retaining property activation for deployment configuration.
+See [#847](https://github.com/bbottema/simple-java-mail/issues/847), the
+[Spring configuration composition guide](https://docs.spring.io/spring-framework/reference/core/beans/java/composing-configuration-classes.html)
+and [Spring Boot's auto-configuration guidance](https://docs.spring.io/spring-boot/3.4/reference/features/developing-auto-configuration.html).
 
 ## Implementation evidence
 

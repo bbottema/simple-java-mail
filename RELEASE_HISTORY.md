@@ -6,6 +6,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
+- [#847](https://github.com/bbottema/simple-java-mail/issues/847): added `@EnableSjmTelemetry` for explicit Java activation in an existing Spring integration.
+  Configured activation properties, including false, override the annotation. A telemetry integration bean selects the default Mailer's integration independently.
 - Email To/Cc/Bcc, Reply-To and notification conveniences parse all supplied mailboxes, retaining order, duplicates and embedded names.
   Explicit names override every parsed name; From/bounce and individual Recipient extraction keep their own singular contracts.
 - Notification destinations use immutable plural getters and complete-list replacement. Automatic requests use all resolved Reply-To addresses,

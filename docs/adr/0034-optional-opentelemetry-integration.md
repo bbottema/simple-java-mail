@@ -3,6 +3,7 @@
 - Status: Accepted
 - Decision date: 2026-10-15
 - Typed-adapter boundary revision: Accepted, 2026-10-16.
+- Spring Java activation revision: Accepted, 2026-10-22; [#847](https://github.com/bbottema/simple-java-mail/issues/847) tracks delivery.
 - Target: 10.0.0
 - Implementation: Implemented, verified locally and accepted after production-only and holistic review on 2026-10-16; not released.
 - Tracking: [#762](https://github.com/bbottema/simple-java-mail/issues/762)
@@ -130,7 +131,15 @@ local Mailer's enabled choice. Clearing a supplied integration does not bypass a
 
 Spring metadata mirrors both namespaces; runtime loading stays with the shared Environment-backed loader. The enabled property applies
 to every Mailer from the configured factory, not only Spring's default Mailer. An explicitly supplied `MailSendTelemetry` bean can select
-an SDK for the default Mailer. An arbitrary `OpenTelemetry` bean is not discovered by SJM; use the global instance or the integration bean.
+an SDK for the default Mailer; the bean alone does not enable telemetry. An arbitrary `OpenTelemetry` bean is not discovered by SJM;
+use the global instance or the integration bean.
+
+In an application already using the SJM Spring integration, `@EnableSjmTelemetry` is the explicit Java counterpart to property activation.
+It contributes true as an ordinary context-local fallback before classpath and Environment sources, through the shared loader described
+in [ADR 0005](0005-spring-integration-and-boot-compatibility.md#explicit-java-activation-accepted-22-october-2026).
+Explicit activation properties, including false, override the annotation; locked values remain authoritative. SDK selection stays independent:
+the default Mailer uses the chosen integration bean, while enabled Mailers without a supplied integration use the application-global instance.
+Application-provided snapshots/factories/Mailers retain the existing backoff and ownership behavior; the annotation does not rewrite them.
 
 Internal CLI adapters preserve `--mailer:withMailSendTelemetryEnabled` and `--mailer:withMailSendTelemetrySmtpEndpointAttributes`, delegating into the grouped Java configuration. Runtime-object
 registration remains Java-only. The standalone CLI includes the optional module but no SDK or exporter; an agent or application supplies those.

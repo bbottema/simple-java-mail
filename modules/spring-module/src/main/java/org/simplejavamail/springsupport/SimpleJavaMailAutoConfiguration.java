@@ -7,6 +7,8 @@ import org.simplejavamail.api.mailer.MailSendTelemetry;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,8 +34,14 @@ public class SimpleJavaMailAutoConfiguration {
 		this.springBeanFactory = new SimpleJavaMailSpringBeanFactory(environment);
 	}
 
+	@Autowired
+	private void configureTelemetryActivation(final ListableBeanFactory beanFactory) {
+		springBeanFactory.configureTelemetryActivation(beanFactory);
+	}
+
 	/**
 	 * Supplies the context's immutable configuration unless the application defines its own snapshot.
+	 * {@link EnableSjmTelemetry} contributes a fallback below explicit properties when this integration loads the snapshot.
 	 *
 	 * @return The configuration snapshot for this application context.
 	 */
