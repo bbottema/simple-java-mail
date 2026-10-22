@@ -196,4 +196,9 @@ handling that distinguishes RFC group terminators. A parse failure retains nonem
 entries or inventing repaired addresses. Singular routes retain their documented single-value behavior and never silently pick only the first
 mailbox. This repairs established list support; it does not add an RFC-group-preservation model or new public parser/setup API. This clarification is implemented for unreleased 10.0.0 under [#824](https://github.com/bbottema/simple-java-mail/issues/824).
 
+MIME/EML import recognizes the names `Disposition-Notification-To` and `Return-Receipt-To` without regard to capitalization.
+This changes header identity only: the existing root ownership, mailbox interpretation, request flags, order and duplicate occurrences
+remain authoritative. [ADR 0035](0035-tolerant-reading-and-strict-production.md#receipt-header-name-recognition-accepted-22-october-2026)
+records the accepted interpretation boundary under [#846](https://github.com/bbottema/simple-java-mail/issues/846).
+
 Notification destinations are immutable lists exposed through plural getters. Each supplied list replaces the local choice and resolves as a whole under override, submitted, then default precedence. An enabled request without explicit destinations resolves to all Reply-To mailboxes, then the single From mailbox. Request flags, clearing and suppression keep their established meanings. Multiple From authors and a Sender API are outside this decision.

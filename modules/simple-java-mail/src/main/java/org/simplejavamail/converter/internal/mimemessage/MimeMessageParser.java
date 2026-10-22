@@ -220,7 +220,7 @@ public final class MimeMessageParser {
 	}
 
 	private static boolean isEmailHeader(DecodedHeader header, String emailHeaderName) {
-		return header.getName().equals(emailHeaderName) &&
+		return header.getName().equalsIgnoreCase(emailHeaderName) &&
 				!valueNullOrEmpty(header.getValue()) &&
 				!valueNullOrEmpty(header.getValue().trim()) &&
 				!header.getValue().equals("<>");

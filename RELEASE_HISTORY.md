@@ -105,6 +105,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#846](https://github.com/bbottema/simple-java-mail/issues/846): MIME/EML import recognizes receipt-header names regardless of capitalization,
+  exposing their existing ordered recipient lists and request flags while keeping attachment headers separate from parent facts.
+
 - [#844](https://github.com/bbottema/simple-java-mail/issues/844): DKIM accepts equivalent capitalization in sender and signing domains,
   preserving supplied addresses and signing-domain spelling while retaining its same-domain/subdomain and DNS key requirements.
 - [#843](https://github.com/bbottema/simple-java-mail/issues/843): rejected OpenPGP recipient-key replacements retain the previous keys and cipher.
