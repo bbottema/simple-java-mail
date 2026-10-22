@@ -257,9 +257,13 @@ public final class DKIMSigner implements DKIMModule {
         if (domain == null || !SIGNING_DOMAIN_PATTERN.matcher(domain).matches()) {
             throw new IllegalArgumentException(domain + " is an invalid signing domain");
         }
-        if (identity == null || (!identity.endsWith("@" + domain) && !identity.endsWith("." + domain))) {
+        if (identity == null || (!endsWithIgnoreCase(identity, "@" + domain) && !endsWithIgnoreCase(identity, "." + domain))) {
             throw new IllegalArgumentException("The domain part of " + identity + " isn't " + domain + " or a subdomain thereof");
         }
+    }
+
+    private static boolean endsWithIgnoreCase(final String value, final String suffix) {
+        return value.regionMatches(true, value.length() - suffix.length(), suffix, 0, suffix.length());
     }
 
     private static PrivateKey readPrivateKey(final byte[] configuredBytes, final Algorithm algorithm) throws Exception {

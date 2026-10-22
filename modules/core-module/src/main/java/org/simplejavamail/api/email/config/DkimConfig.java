@@ -244,6 +244,8 @@ public class DkimConfig implements Serializable {
 
         /**
          * Selects the domain being authorized to send. Calling this again replaces the domain without changing key material or selector.
+         * When signing, the sender domain must equal this domain or be one of its subdomains; that comparison ignores capitalization.
+         * The sender address, its local part and this configured domain retain their supplied spelling.
          * @param dkimSigningDomain The domain being authorized to send.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          */
