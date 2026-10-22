@@ -28,6 +28,9 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
 /**
  * A named immutable email attachment information object. The name can be a simple name, a filename or a named embedded image (eg.
  * &lt;cid:footer&gt;). Contains a {@link DataSource} that is compatible with the jakarta.mail API.
+ * <p>MIME conversion preserves valid content-type parameters such as {@code text/plain; charset=ISO-8859-1}. The selected resource
+ * filename remains authoritative when rendering; source naming parameters cannot override it. Eager and lazy import preserve equivalent
+ * type metadata without changing the attachment bytes.</p>
  *
  * <p>Since 9.2.0, Java serialization reads and closes the data source's input stream and stores its bytes, name, content type and optional
  * {@link EncodingAware} value. Deserialization returns a repeatable, read-only, byte-backed data source. It deliberately does not restore the
@@ -151,7 +154,7 @@ public class AttachmentResource implements Serializable {
 		 * Copies the supplied bytes immediately and retains their MIME type. Subsequent array changes do not affect this builder
 		 * or built resources. Replaces a borrowed source or path, retaining MIME metadata. Empty content is permitted.
 		 * @param data The content bytes; must not be null.
-		 * @param mimetype The MIME content type, such as {@code application/pdf}; must not be empty.
+		 * @param mimetype The MIME content type, including valid parameters such as {@code text/plain; charset=ISO-8859-1}; must not be empty.
 		 * @return This builder.
 		 */
 		@NotNull
