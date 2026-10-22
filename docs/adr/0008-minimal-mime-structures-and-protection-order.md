@@ -34,6 +34,24 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Protecting an existing MIME message (accepted 22 October 2026)
+
+The supported `MailerHelper.signAndOrEncryptMessageWithSmime(Session, MimeMessage, Email)` utility protects the supplied MIME message,
+using only the Email's outgoing S/MIME choices. Signing and encryption are independently optional; when both are requested, sign first and
+finalize each transformed stage before the next. Apply the same recipient-certificate selection, Email-level fallback and configured algorithms
+as ordinary conversion. A request with no S/MIME operation returns the supplied message instance without reading or finalizing its content or
+loading the optional module. An active protection request retains the focused missing-module failure under [ADR 0006](0006-optional-modules.md).
+
+The supplied MIME content and headers remain the input, including application changes made after conversion. The Email supplies configuration;
+it does not replace the MIME input or cause Mailer templates to be completed. This utility does not apply unrelated DKIM or OpenPGP choices.
+Cryptographic implementation and configuration validation stay at their existing feature boundaries. Main-runtime orchestration is shared with
+ordinary conversion under [ADR 0031](0031-public-api-and-internal-construction.md), preserving that path's established ordering and finalization.
+
+The public helper retains its existing signature. A MIME finalization failure is an owned preparation failure with its original cause retained;
+the converter keeps its existing conversion-failure mapping. Module-loading and cryptographic runtime failures retain their existing types.
+This corrects behavior already present in released 9.3.6 without introducing a configuration switch or changing ordinary conversion's selection.
+[#850](https://github.com/bbottema/simple-java-mail/issues/850) tracks implementation and delivery for unreleased 10.0.0.
+
 ## Root message and child header ownership (accepted 22 October 2026)
 
 After existing protection preprocessing selects the effective root message, its headers alone supply the Email's message-level facts and

@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#850](https://github.com/bbottema/simple-java-mail/issues/850): the public S/MIME helper independently signs and encrypts the supplied
+  MimeMessage, including recipient certificate fallback. No requested protection returns that same message without loading the optional module.
+
 - [#849](https://github.com/bbottema/simple-java-mail/issues/849): MIME/EML import retains explicitly attached child multipart containers as one
   attachment with their content and metadata. Their contents no longer merge into parent bodies or become separate parent resources;
   effective-root and ordinary multipart body interpretation remain unchanged.
