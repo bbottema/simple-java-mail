@@ -96,6 +96,9 @@ public class EmailConverter {
 	}
 
 	/**
+	 * Eager attachment extraction closes the streams it opens, including on failure. Calendar interpretation has the same ownership rule.
+	 * DataSources themselves retain their existing ownership; disabling extraction keeps attachment content lazy.
+	 *
 	 * @param mimeMessage The MimeMessage from which to create the {@link Email}.
 	 * @param pkcs12Config Private key store for decrypting S/MIME encrypted attachments
 	 *                        (only needed when the message is encrypted rather than just signed).
