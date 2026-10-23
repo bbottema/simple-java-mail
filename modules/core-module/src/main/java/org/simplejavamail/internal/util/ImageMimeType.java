@@ -5,6 +5,7 @@ import jakarta.activation.MimetypesFileTypeMap;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -80,9 +81,9 @@ class ImageMimeType {
     }
 
     public static String getContentType(String fileName, String charset) {
-        String mimeType = IMAGE_MIMETYPES_FILE_TYPE_MAP.getContentType(fileName.toLowerCase());
+        String mimeType = IMAGE_MIMETYPES_FILE_TYPE_MAP.getContentType(fileName.toLowerCase(Locale.ROOT));
         if (charset != null && (mimeType.startsWith("text/") || mimeType.contains("javascript"))) {
-            mimeType += ";charset=" + charset.toLowerCase();
+            mimeType += ";charset=" + charset.toLowerCase(Locale.ROOT);
         }
         return mimeType;
     }
