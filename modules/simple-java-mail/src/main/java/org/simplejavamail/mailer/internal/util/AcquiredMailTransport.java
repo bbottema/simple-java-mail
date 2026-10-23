@@ -34,6 +34,7 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	private MailSendControl activeControl;
 	/** Used only for lease health; a retained callback may already have caught this send failure. */
 	@Nullable private Throwable sendFailure;
+	@Nullable private Object sendFailurePreparationOwner;
 	@Nullable private MailSubmissionReceipt receipt;
 	private boolean closed;
 
@@ -164,11 +165,13 @@ public final class AcquiredMailTransport implements AutoCloseable {
 			final MailSendControl control) throws MessagingException {
 		this.activeControl = control;
 		receipt = null;
+		final Object preparationOwner = new Object();
 		try {
-			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance);
+			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance, preparationOwner);
 			return receipt;
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;
+			sendFailurePreparationOwner = preparationOwner;
 			throw failure;
 		}
 	}
@@ -185,6 +188,7 @@ public final class AcquiredMailTransport implements AutoCloseable {
 			return receipt;
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;
+			sendFailurePreparationOwner = null;
 			throw failure;
 		}
 	}
@@ -220,8 +224,9 @@ public final class AcquiredMailTransport implements AutoCloseable {
 		return sendFailure == null || isLocalCompatibilityFailure(sendFailure);
 	}
 
-	private static boolean isLocalCompatibilityFailure(final Throwable failure) {
-		return failure instanceof MailSubmissionException && failure.getCause() instanceof MailTransportCompatibilityException;
+	private boolean isLocalCompatibilityFailure(final Throwable failure) {
+		return TransportRunner.isLocalPreparationCompatibilityFailure(failure, sendFailurePreparationOwner)
+				|| failure instanceof MailSubmissionException && failure.getCause() instanceof MailTransportCompatibilityException;
 	}
 
 	/** Acquisition-thread bookkeeping: finally abandons unfinished setup, but never sends a second terminal callback. */

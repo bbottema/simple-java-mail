@@ -67,11 +67,18 @@ public class TransportRunner {
 	public static MailSubmissionReceipt sendMessageOnTransport(final Transport transport, final Session actualSessionUsed, final Email email,
 			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance)
 			throws MessagingException {
+		return sendMessageOnTransport(transport, actualSessionUsed, email, control, diagnostics, allowance, null);
+	}
+
+	/** A lease owner supplies private invocation identity so an earlier local failure cannot attest to this call's connection health. */
+	static MailSubmissionReceipt sendMessageOnTransport(final Transport transport, final Session actualSessionUsed, final Email email,
+			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
+			@Nullable final Object preparationOwner) throws MessagingException {
 		try {
 			diagnostics.connectionAcquired(transport);
 			control.checkStopped();
 			diagnostics.startMimePreparation();
-			final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(actualSessionUsed, email);
+			final PreparedMail preparedMail = prepareMailForSubmission(actualSessionUsed, email, preparationOwner);
 			diagnostics.effectiveMessageId(email.getId());
 			control.checkStopped();
 			diagnostics.startSubmission();
@@ -105,6 +112,32 @@ public class TransportRunner {
 			diagnostics.submissionFailed(failure);
 			diagnostics.failed();
 			throw failure;
+		}
+	}
+
+	/** This local boundary has not entered provider submission, even when envelope validation uses a checked compatibility exception. */
+	private static PreparedMail prepareMailForSubmission(final Session session, final Email email, @Nullable final Object preparationOwner) {
+		try {
+			return SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(session, email);
+		} catch (MessagingException failure) {
+			throw new LocalPreparationException(failure, preparationOwner);
+		}
+	}
+
+	/** Recognize producer-owned evidence, rather than trusting an application/provider exception's kind and cause. */
+	static boolean isLocalPreparationCompatibilityFailure(final Throwable failure, @Nullable final Object preparationOwner) {
+		return preparationOwner != null && failure instanceof LocalPreparationException
+				&& ((LocalPreparationException) failure).preparationOwner == preparationOwner
+				&& failure.getCause() instanceof MailTransportCompatibilityException;
+	}
+
+	private static final class LocalPreparationException extends MailerException {
+		private static final long serialVersionUID = 1L;
+		@Nullable private final transient Object preparationOwner;
+
+		private LocalPreparationException(final MessagingException cause, @Nullable final Object preparationOwner) {
+			super(MailFailureKind.PREPARATION, "Unable to prepare the email's MIME content or SMTP envelope; no provider submission was started.", cause);
+			this.preparationOwner = preparationOwner;
 		}
 	}
 
