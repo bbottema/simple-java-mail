@@ -21,6 +21,7 @@ import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignerDigestMismatchException;
 import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationVerifier;
@@ -140,7 +141,7 @@ public class SMIMESupport implements SMIMEModule {
 			final OriginalSmimeDetailsImpl failed = OriginalSmimeDetailsImpl.builder()
 					.smimeMode(encrypted ? SmimeMode.ENCRYPTED : SmimeMode.SIGNED)
 					.verificationStatus(encrypted
-							? OriginalSmimeDetails.VerificationStatus.NOT_SIGNED
+							? OriginalSmimeDetails.VerificationStatus.UNKNOWN
 							: OriginalSmimeDetails.VerificationStatus.ERROR)
 					.decryptionStatus(encrypted
 							? OriginalSmimeDetails.DecryptionStatus.FAILED
@@ -168,6 +169,7 @@ public class SMIMESupport implements SMIMEModule {
 		final List<AttachmentResource> protectedAttachments = protectedTopLevelAttachment(originalMessage);
 		if (pkcs12Config == null) {
 			final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
+					.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
 					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING)
 					.failureReason("No PKCS12 decryption key was provided for the S/MIME message")
 					.build();
@@ -183,26 +185,53 @@ public class SMIMESupport implements SMIMEModule {
 		final MimeBodyPart encryptedPart = messageBodyPart(originalMessage, originalBytes);
 		final MimeBodyPart decryptedPart = SmimeCryptoSupport.decrypt(encryptedPart,
 				retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
-		final SmimeState nestedState = SmimeCryptoSupport.getStatus(decryptedPart);
-		if (nestedState == SmimeState.SIGNED || nestedState == SmimeState.PROBABLY_SIGNED
-				|| nestedState == SmimeState.SIGNED_ENVELOPED) {
-			protectedAttachments.addAll(detachedSignatureAttachments(decryptedPart));
-			return processIncomingSigned(session, originalMessage, decryptedPart, originalBytes, baseDetails,
-					protectedAttachments, true, true);
-		}
+		// Decryption is established now. Later signature/content processing must not turn it into a decryption failure.
+		MimeMessage effective = originalMessage;
+		boolean signed = false;
+		try {
+			final SmimeState nestedState = SmimeCryptoSupport.getStatus(decryptedPart);
+			signed = nestedState == SmimeState.SIGNED || nestedState == SmimeState.PROBABLY_SIGNED
+					|| nestedState == SmimeState.SIGNED_ENVELOPED;
+			if (signed) {
+				protectedAttachments.addAll(detachedSignatureAttachments(decryptedPart));
+				return processIncomingSigned(session, originalMessage, decryptedPart, originalBytes, baseDetails,
+						protectedAttachments, true, true);
+			}
 
-		final MimeMessage effective = effectiveMessage(session, originalMessage, decryptedPart);
-		final List<AttachmentResource> decryptedArtifacts = Collections.singletonList(asMessageAttachment(decryptedPart, effective));
-		final OriginalSmimeDetailsImpl details = copyDetails(baseDetails)
-				.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
+			effective = effectiveMessage(session, originalMessage, decryptedPart);
+			final List<AttachmentResource> decryptedArtifacts = Collections.singletonList(asMessageAttachment(decryptedPart, effective));
+			return SmimePreprocessingResultImpl.builder()
+				.recognized(true)
+				.effectiveMimeMessage(effective)
+				.details(copyDetails(baseDetails)
+						.verificationStatus(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED)
+						.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
+						.build())
+				.protectedAttachments(protectedAttachments)
+				.decryptedArtifacts(decryptedArtifacts)
 				.build();
-		return SmimePreprocessingResultImpl.builder()
-			.recognized(true)
-			.effectiveMimeMessage(effective)
-			.details(details)
-			.protectedAttachments(protectedAttachments)
-			.decryptedArtifacts(decryptedArtifacts)
-			.build();
+		} catch (Exception e) {
+			LOGGER.debug("Unable to process decrypted S/MIME content", e);
+			if (effective == originalMessage) {
+				try {
+					effective = effectiveMessage(session, originalMessage, decryptedPart);
+				} catch (MessagingException | IOException contentFailure) {
+					LOGGER.debug("Unable to expose decrypted S/MIME content", contentFailure);
+				}
+			}
+			return SmimePreprocessingResultImpl.builder()
+				.recognized(true)
+				.effectiveMimeMessage(effective)
+				.details(copyDetails(baseDetails)
+						.smimeMode(signed ? SmimeMode.SIGNED_ENCRYPTED : SmimeMode.ENCRYPTED)
+						.verificationStatus(signed ? OriginalSmimeDetails.VerificationStatus.ERROR : OriginalSmimeDetails.VerificationStatus.UNKNOWN)
+						.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
+						.failureReason("Unable to process decrypted S/MIME content: " + e.getClass().getSimpleName() + ": " + e.getMessage())
+						.build())
+				.protectedAttachments(protectedAttachments)
+				.decryptedArtifacts(Collections.emptyList())
+				.build();
+		}
 	}
 
 	@NotNull
@@ -214,7 +243,8 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final List<AttachmentResource> existingProtectedAttachments,
 			final boolean wasEncrypted,
 			final boolean exposeEffectiveMessageArtifact) throws Exception {
-		final boolean valid = verifyIncomingSignature(signedPart);
+		final OriginalSmimeDetails verification = verifyIncomingSignature(signedPart);
+		final Boolean valid = verification.getSmimeSignatureValid();
 		final String signedBy = getSignedByAddress(signedPart);
 		final ContentType signedContentType = new ContentType(signedPart.getContentType());
 		final MimeBodyPart clearPart = SmimeCryptoSupport.getSignedContent(signedPart);
@@ -234,13 +264,11 @@ public class SMIMESupport implements SMIMEModule {
 				.smimeMode(wasEncrypted ? SmimeMode.SIGNED_ENCRYPTED : SmimeMode.SIGNED)
 				.smimeSignedBy(wasEncrypted ? null : signedBy)
 				.smimeSignatureValid(wasEncrypted ? null : valid)
-				.verificationStatus(valid
-						? OriginalSmimeDetails.VerificationStatus.VALID
-						: OriginalSmimeDetails.VerificationStatus.INVALID)
+				.verificationStatus(verification.getVerificationStatus())
 				.decryptionStatus(wasEncrypted
 						? OriginalSmimeDetails.DecryptionStatus.DECRYPTED
 						: OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED)
-				.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity")
+				.failureReason(verification.getFailureReason())
 				.build();
 		final OriginalSmimeDetailsImpl nestedSignedDetails = OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)
@@ -251,10 +279,8 @@ public class SMIMESupport implements SMIMEModule {
 				.smimeMicalg(signedContentType.getParameter("micalg"))
 				.smimeSignedBy(signedBy)
 				.smimeSignatureValid(valid)
-				.verificationStatus(valid
-						? OriginalSmimeDetails.VerificationStatus.VALID
-						: OriginalSmimeDetails.VerificationStatus.INVALID)
-				.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity")
+				.verificationStatus(verification.getVerificationStatus())
+				.failureReason(verification.getFailureReason())
 				.build();
 		return SmimePreprocessingResultImpl.builder()
 			.recognized(true)
@@ -266,13 +292,22 @@ public class SMIMESupport implements SMIMEModule {
 			.build();
 	}
 
-	private static boolean verifyIncomingSignature(@NotNull final MimePart signedPart) {
+	@NotNull
+	private static OriginalSmimeDetails verifyIncomingSignature(@NotNull final MimePart signedPart) {
+		final OriginalSmimeDetailsImpl.OriginalSmimeDetailsBuilder result = OriginalSmimeDetailsImpl.builder();
 		try {
-			return hasSignerInformationStatic(signedPart) && SmimeCryptoSupport.checkSignature(signedPart);
+			final boolean valid = hasSignerInformationStatic(signedPart) && SmimeCryptoSupport.checkSignature(signedPart);
+			return result.verificationStatus(valid ? OriginalSmimeDetails.VerificationStatus.VALID : OriginalSmimeDetails.VerificationStatus.INVALID)
+					.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity").build();
 		} catch (SmimeException e) {
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME pre-parse signature verification failure: {}", e.getMessage());
-			return false;
+			if (e.getCause() instanceof CMSSignerDigestMismatchException) {
+				return result.verificationStatus(OriginalSmimeDetails.VerificationStatus.INVALID)
+						.failureReason("S/MIME signature does not match the signed MIME entity").build();
+			}
+			return result.verificationStatus(OriginalSmimeDetails.VerificationStatus.ERROR)
+					.failureReason("Unable to verify S/MIME signature: " + e.getClass().getSimpleName() + ": " + e.getMessage()).build();
 		}
 	}
 
@@ -590,6 +625,7 @@ public class SMIMESupport implements SMIMEModule {
 		}
 		if (pkcs12Config == null) {
 			details.completeWith(OriginalSmimeDetailsImpl.builder()
+					.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
 					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING)
 					.failureReason("No PKCS12 decryption key was provided for the S/MIME message")
 					.build());

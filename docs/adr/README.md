@@ -79,6 +79,11 @@ accepted on 22 October 2026 under [#853](https://github.com/bbottema/simple-java
 to nested key-store and certificate setters. It preserves algorithm preferences, completed-value construction and optional-module ownership.
 This correction targets unreleased 10.0.0; the issue tracks delivery.
 
+The [unopened S/MIME ciphertext clarification](0008-minimal-mime-structures-and-protection-order.md#unopened-smime-ciphertext-accepted-23-october-2026),
+accepted on 23 October 2026 under [#854](https://github.com/bbottema/simple-java-mail/issues/854), retains missing-key and decryption-failure
+results while leaving an uninspected inner signature unknown. Successful decryption retains its established fact through later verification
+errors. Implemented under #854 for unreleased 10.0.0.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

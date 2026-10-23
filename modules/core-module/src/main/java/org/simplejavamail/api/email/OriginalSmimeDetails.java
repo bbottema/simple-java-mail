@@ -19,6 +19,9 @@ import java.io.Serializable;
  * When inspection has not established a protection fact, its result is {@code UNKNOWN}. For example, ordinary import
  * remains available without the optional S/MIME module, but recognizing a protected MIME envelope does not verify or
  * decrypt it. Clearly plain MIME can still be identified without cryptographic inspection.
+ * An encrypted message without a decryption key, or whose decryption failed, has {@code UNKNOWN} verification while
+ * its content remains unopened. After successful decryption, a later signature-processing error retains {@code DECRYPTED}
+ * decryption and reports {@code ERROR} verification; inspected unsigned content reports {@code NOT_SIGNED}.
  * <p>
  * When results from more than one represented S/MIME layer are combined, the most severe result is retained. Verification uses
  * {@code ERROR > INVALID > UNKNOWN > VALID > NOT_SIGNED}; decryption uses

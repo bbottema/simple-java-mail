@@ -101,6 +101,18 @@ or all-decrypted claim. This clarification concerns S/MIME; the separate OpenPGP
 
 This clarification is implemented under [#822](https://github.com/bbottema/simple-java-mail/issues/822) for unreleased 10.0.0.
 
+### Unopened S/MIME ciphertext (accepted 23 October 2026)
+
+The same distinction applies when the S/MIME implementation is available but encrypted content cannot be inspected. Retain `KEY_MISSING`
+when no decryption key was supplied and `FAILED` for an actual decryption failure, with `UNKNOWN` verification while the ciphertext remains
+unopened. An encrypted envelope does not establish the presence or absence of an inner signature.
+
+After successful decryption, report the established content facts: `NOT_SIGNED` for inspected unsigned content, `VALID` or `INVALID` for an
+inspected signature, and `ERROR` for an actual verification error. A later verification problem must retain the established decryption fact.
+Preserve the original protected representation, failure information, copying and supported snapshot ownership. Existing result enums and
+public methods suffice; no separate availability flag is introduced. This clarification is implemented under
+[#854](https://github.com/bbottema/simple-java-mail/issues/854) for unreleased 10.0.0.
+
 ## Unavailable OpenPGP inspection (accepted 22 October 2026)
 
 Use `UNKNOWN` when OpenPGP inspection could not happen, including ordinary import without the optional implementation. Keep missing-key

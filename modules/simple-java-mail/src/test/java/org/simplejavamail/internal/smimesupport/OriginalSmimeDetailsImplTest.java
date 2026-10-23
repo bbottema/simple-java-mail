@@ -205,10 +205,13 @@ class OriginalSmimeDetailsImplTest {
 	void legacyProtectedSnapshotsDoNotInventUnrecordedResults() throws Exception {
 		final OriginalSmimeDetailsImpl encrypted = OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.ENCRYPTED).build();
 		setField(encrypted, "decryptionStatus", null);
+		setField(encrypted, "verificationStatus", null);
 		final OriginalSmimeDetailsImpl signed = OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.SIGNED).build();
 		setField(signed, "verificationStatus", null);
 
 		assertThat(roundTrip(encrypted).getDecryptionStatus()).isEqualTo(DecryptionStatus.UNKNOWN);
+		assertThat(roundTrip(encrypted).getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
+		assertThat(roundTrip(encrypted).getSmimeSignatureValid()).isNull();
 		assertThat(roundTrip(signed).getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
 		assertThat(roundTrip(signed).getSmimeSignatureValid()).isNull();
 	}

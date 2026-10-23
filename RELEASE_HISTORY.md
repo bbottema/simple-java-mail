@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#854](https://github.com/bbottema/simple-java-mail/issues/854): S/MIME signature status stays `UNKNOWN` while ciphertext is unopened,
+  alongside `KEY_MISSING` or `FAILED` decryption. Later signature-processing errors retain successful `DECRYPTED` results and readable content.
+
 - [#853](https://github.com/bbottema/simple-java-mail/issues/853): required S/MIME key-store and certificate setters reject null before
   changing an earlier builder choice. Algorithm preferences and completed configurations retain their existing behavior.
 
