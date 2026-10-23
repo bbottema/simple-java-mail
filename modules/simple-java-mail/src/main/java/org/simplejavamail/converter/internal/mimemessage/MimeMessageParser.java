@@ -14,6 +14,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.general.MessageHeader;
+import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
@@ -203,6 +204,15 @@ public final class MimeMessageParser {
 			}
 			parsedComponents.headers.get(decodedHeader.getName()).add(MimeUtility.unfold(decodedHeader.getValue()));
 		}
+	}
+
+	static boolean isGenericRootHeader(final String name) {
+		return !HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(name)
+				&& !name.equalsIgnoreCase(MessageHeader.MESSAGE_ID.getName())
+				&& !name.equalsIgnoreCase(MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())
+				&& !name.equalsIgnoreCase(MessageHeader.RETURN_RECEIPT_TO.getName())
+				&& !name.equalsIgnoreCase(MessageHeader.RETURN_PATH.getName())
+				&& !name.equalsIgnoreCase("Content-Description");
 	}
 
 	private static void parseReturnPathHeader(final Header header, final ParsedMimeMessageComponents parsedComponents) {
