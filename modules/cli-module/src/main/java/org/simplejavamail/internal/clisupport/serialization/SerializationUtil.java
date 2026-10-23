@@ -20,12 +20,10 @@ import java.util.Map;
 import java.util.RandomAccess;
 
 /**
- * Central Kryo boundary for nested Outlook-message attachments and generated CLI metadata.
+ * Serializes generated CLI-option metadata, including references to builder methods.
  * The shared, synchronized Kryo instance registers deterministic representations for reflection methods and immutable
- * collection wrappers so caches survive supported JDK changes without unsafe reflective allocation. Outlook conversion
- * uses the same boundary because its parsed Java structure must be stored inside an attachment and reconstructed later.
- *
- * @see <a href="https://github.com/bbottema/simple-java-mail/issues/298">GitHub issue #314</a>
+ * collection wrappers so caches survive supported JDK changes without unsafe reflective allocation.
+ * Therapi's immutable Javadoc models use the separate, versioned {@link JavadocCacheSerialization} codec.
  */
 public class SerializationUtil {
 
@@ -37,7 +35,7 @@ public class SerializationUtil {
 	private static final Kryo KRYO = initKryo();
 
 	@NotNull
-	private static Kryo initKryo() {
+	static Kryo initKryo() {
 		final Kryo kryo = new Kryo();
 		kryo.setRegistrationRequired(false);
 		kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));

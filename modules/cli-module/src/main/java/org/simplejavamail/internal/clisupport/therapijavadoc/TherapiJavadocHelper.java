@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
 import org.simplejavamail.internal.clisupport.CliSourceApiFingerprint;
 import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
-import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
+import org.simplejavamail.internal.clisupport.serialization.JavadocCacheSerialization;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -49,36 +49,43 @@ public final class TherapiJavadocHelper {
 	// An API change can invalidate therapi.data; concurrent daemon requests may then populate missing descriptions.
 	private static final Map<String, MethodJavadoc> THERAPI_CACHE = new ConcurrentHashMap<>(loadTherapiCache());
 
-	private static Map<String, MethodJavadoc> loadTherapiCache() {
+	static Map<String, MethodJavadoc> loadTherapiCache() {
 		try {
 			final byte[] encodedCache = Boolean.getBoolean(REGENERATE_METADATA_PROPERTY)
 					? null : CliDataLocator.readTherapiDataFile();
-			if (encodedCache != null) {
-				try {
-					final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
-							CliSourceApiFingerprint.calculate(), encodedCache);
-					return SerializationUtil.deserialize(payload);
-				} catch (RuntimeException e) {
-					LOGGER.warn("Could not use therapi.data; regenerating the internal cache: {}", e.getMessage());
-					return new HashMap<>();
-				}
-			}
+			return loadTherapiCache(encodedCache);
+		} catch (IOException e) {
+			LOGGER.warn("Could not read therapi.data; using embedded Javadocs: {}", e.toString());
 			return new HashMap<>();
+		}
+	}
+
+	static Map<String, MethodJavadoc> loadTherapiCache(@Nullable final byte[] encodedCache) {
+		if (encodedCache != null) {
+			try {
+				final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
+						CliSourceApiFingerprint.calculate(), encodedCache);
+				return JavadocCacheSerialization.deserialize(payload);
+			} catch (RuntimeException e) {
+				LOGGER.warn("Could not use therapi.data; using embedded Javadocs: {}", e.getMessage());
+			}
+		}
+		return new HashMap<>();
+	}
+
+	public static void persistCache() {
+		try {
+			CliDataLocator.persistTherapiDataFile(serializeCache(THERAPI_CACHE));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static void persistCache() {
-		try {
-			// Reflection order is not specified and differs between supported JDKs. Persist a
-			// canonical key order so Java 17 and newer JDKs produce byte-identical caches.
-			final byte[] payload = SerializationUtil.serialize(new TreeMap<>(THERAPI_CACHE));
-			CliDataLocator.persistTherapiDataFile(CliMetadataCache.wrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
-					CliSourceApiFingerprint.calculate(), payload));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	static byte[] serializeCache(final Map<String, MethodJavadoc> cache) {
+		// Reflection order differs across JDKs; retain canonical ordering inside the integrity envelope.
+		final byte[] payload = JavadocCacheSerialization.serialize(new TreeMap<>(cache));
+		return CliMetadataCache.wrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
+				CliSourceApiFingerprint.calculate(), payload);
 	}
 
 	private TherapiJavadocHelper() {
