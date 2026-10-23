@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Isolated SJM correspondence foundation. No identity, DNS or account-wide SES settings are managed.
+# Create the isolated resources first. cloud.py then publishes the image and fills the SMTP secret before starting the worker stack.
+Parameters:
+  RunName:
+    Type: String
+    Description: Unique run prefix used to name and tag only this demo's resources.
+    AllowedPattern: 'sjm-pattern-[a-z0-9-]{6,28}'
+  Sender:
+    Type: String
+    Description: From address covered by the existing SES identity; the SMTP permission permits only this sender.
+  IdentityArn:
+    Type: String
+    Description: ARN of an already verified SES identity in this region. Its identity and DNS settings remain unchanged.
+  ExistingVpc:
+    Type: String
+    Default: ''
+    Description: Optional VPC owned by this account. Supply its usable outbound subnets too; empty creates a demo network.
+  ExistingSubnets:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: Optional subnets in the supplied VPC. cloud.py validates both inputs; routes and gateways are never modified.
+Conditions:
+  CreateNetwork: !Equals [!Ref ExistingVpc, '']
+Resources:
+  # Give the worker outbound connectivity without creating a public application service.
+  # If existing networking is supplied, cloud.py checks ownership and this stack only references it.
+  Network:
+    Type: AWS::EC2::VPC
+    Condition: CreateNetwork
+    Properties:
+      CidrBlock: 10.237.0.0/24
+      Tags: [{ Key: Run, Value: !Ref RunName }]
+  Internet:
+    Type: AWS::EC2::InternetGateway
+    Condition: CreateNetwork
+  InternetAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: CreateNetwork
+    Properties: { VpcId: !Ref Network, InternetGatewayId: !Ref Internet }
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Condition: CreateNetwork
+    Properties: { VpcId: !Ref Network, CidrBlock: 10.237.0.0/26, AvailabilityZone: !Select [0, !GetAZs ''] }
+  Routes:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateNetwork
+    Properties: { VpcId: !Ref Network }
+  InternetRoute:
+    Type: AWS::EC2::Route
+    Condition: CreateNetwork
+    DependsOn: InternetAttachment
+    Properties: { RouteTableId: !Ref Routes, DestinationCidrBlock: 0.0.0.0/0, GatewayId: !Ref Internet }
+  RouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateNetwork
+    Properties: { SubnetId: !Ref Subnet, RouteTableId: !Ref Routes }
+  WorkerSecurity:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Outbound HTTPS and authenticated SMTP only; no inbound service
+      VpcId: !If [CreateNetwork, !Ref Network, !Ref ExistingVpc]
+      SecurityGroupEgress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 587, ToPort: 587, CidrIp: 0.0.0.0/0 }
+  # Keep one immutable worker image and short-lived container logs for this run.
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RunName
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration: { ScanOnPush: true }
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: !Sub '/sjm-patterns/${RunName}', RetentionInDays: 1 }
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties: { ClusterName: !Ref RunName }
+  # The application ledger guards SMTP invocation independently of SQS delivery. S3 holds source documents and protected MIME.
+  # Private, encrypted storage complements S/MIME; it does not replace the message's signature or encryption.
+  Attempts:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref RunName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: jobId, AttributeType: S }, { AttributeName: kind, AttributeType: S }]
+      KeySchema: [{ AttributeName: jobId, KeyType: HASH }, { AttributeName: kind, KeyType: RANGE }]
+  Documents:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${RunName}-${AWS::AccountId}'
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: [{ ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 } }]
+  # Work requests and later SES feedback use separate queues. Redelivery makes an input visible again, not permission to resend mail.
+  # After three unsuccessful receives, its dead-letter queue holds it for review within this demo's short retention period.
+  WorkDead:
+    Type: AWS::SQS::Queue
+    Properties: { QueueName: !Sub '${RunName}-work-dead', MessageRetentionPeriod: 86400 }
+  FeedbackDead:
+    Type: AWS::SQS::Queue
+    Properties: { QueueName: !Sub '${RunName}-feedback-dead', MessageRetentionPeriod: 86400 }
+  Work:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${RunName}-work'
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 86400
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt WorkDead.Arn, maxReceiveCount: 3 }
+  Feedback:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${RunName}-feedback'
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 86400
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt FeedbackDead.Arn, maxReceiveCount: 3 }
+  # SES sends structured JSON service events through SNS. These are different from MIME delivery-status reports read through Email.
+  # Each service-to-service permission is scoped to this account and this run's topic/configuration set.
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties: { TopicName: !Sub '${RunName}-feedback' }
+  QueuePermission:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref Feedback]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: sns.amazonaws.com }
+            Action: sqs:SendMessage
+            Resource: !GetAtt Feedback.Arn
+            Condition: { ArnEquals: { 'aws:SourceArn': !Ref Topic }, StringEquals: { 'aws:SourceAccount': !Ref 'AWS::AccountId' } }
+  Subscription:
+    Type: AWS::SNS::Subscription
+    Properties: { TopicArn: !Ref Topic, Protocol: sqs, Endpoint: !GetAtt Feedback.Arn, RawMessageDelivery: true }
+  ConfigurationSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties: { Name: !Ref RunName, DeliveryOptions: { TlsPolicy: REQUIRE } }
+  TopicPermission:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref Topic]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ses.amazonaws.com }
+            Action: sns:Publish
+            Resource: !Ref Topic
+            Condition:
+              StringEquals: { 'aws:SourceAccount': !Ref 'AWS::AccountId' }
+              ArnEquals: { 'aws:SourceArn': !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/${RunName}' }
+  EventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    DependsOn: [TopicPermission, QueuePermission, Subscription]
+    Properties:
+      ConfigurationSetName: !Ref ConfigurationSet
+      EventDestination:
+        Name: application-feedback
+        Enabled: true
+        MatchingEventTypes: [send, delivery, bounce, complaint, deliveryDelay]
+        SnsDestination: { TopicARN: !Ref Topic }
+  # SES SMTP needs a username/password rather than the task's AWS session credentials. cloud.py creates a run-owned IAM access key,
+  # derives its SMTP password and writes directly to Secrets Manager; secret values are not stack parameters or outputs.
+  SmtpSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: { Name: !Sub '${RunName}/smtp', Description: 'Demo SMTP credential, bootstrapped outside templates and state' }
+  SmtpUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub '${RunName}-smtp'
+      Path: /sjm-patterns/
+      Policies:
+        - PolicyName: simulator-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ses:SendRawEmail
+                Resource: [!Ref IdentityArn, !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/${RunName}']
+                Condition:
+                  StringEquals: { 'ses:FromAddress': !Ref Sender }
+                  ForAllValues:StringLike: { 'ses:Recipients': ['*@simulator.amazonses.com'] }
+  # ECS uses the execution role to download the image and publish container logs before the Java application starts.
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${RunName}-execution'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { 'aws:SourceAccount': !Ref 'AWS::AccountId' }
+              ArnLike: { 'aws:SourceArn': !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:*' }
+      Policies:
+        - PolicyName: image-and-logs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - { Effect: Allow, Action: ['ecr:GetAuthorizationToken'], Resource: '*' }
+              - Effect: Allow
+                Action: ['ecr:BatchCheckLayerAvailability', 'ecr:GetDownloadUrlForLayer', 'ecr:BatchGetImage']
+                Resource: !GetAtt Repository.Arn
+              - Effect: Allow
+                Action: ['logs:CreateLogStream', 'logs:PutLogEvents']
+                Resource: !GetAtt LogGroup.Arn
+  # The Java application uses this separate task role for queues, ledger, document/archive prefixes and the SMTP secret.
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${RunName}-task'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { 'aws:SourceAccount': !Ref 'AWS::AccountId' }
+              ArnLike: { 'aws:SourceArn': !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:*' }
+      Policies:
+        - PolicyName: application-resources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['sqs:ReceiveMessage', 'sqs:DeleteMessage', 'sqs:ChangeMessageVisibility', 'sqs:GetQueueAttributes']
+                Resource: [!GetAtt Work.Arn, !GetAtt Feedback.Arn]
+              - Effect: Allow
+                Action: ['dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:UpdateItem', 'dynamodb:Query', 'dynamodb:Scan', 'dynamodb:ConditionCheckItem']
+                Resource: !GetAtt Attempts.Arn
+              - Effect: Allow
+                Action: ['s3:GetObject', 's3:PutObject']
+                Resource: [!Sub '${Documents.Arn}/documents/*', !Sub '${Documents.Arn}/archive/*']
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SmtpSecret
+Outputs:
+  # cloud.py passes these generated identifiers to the worker stack; users do not assemble them manually.
+  RunName: { Value: !Ref RunName }
+  Region: { Value: !Ref 'AWS::Region' }
+  Sender: { Value: !Ref Sender }
+  Repository: { Value: !GetAtt Repository.RepositoryUri }
+  Cluster: { Value: !GetAtt Cluster.Arn }
+  Subnet: { Value: !If [CreateNetwork, !Ref Subnet, !Select [0, !Ref ExistingSubnets]] }
+  Subnets: { Value: !If [CreateNetwork, !Ref Subnet, !Join [',', !Ref ExistingSubnets]] }
+  SecurityGroup: { Value: !Ref WorkerSecurity }
+  TaskRole: { Value: !GetAtt TaskRole.Arn }
+  ExecutionRole: { Value: !GetAtt ExecutionRole.Arn }
+  LogGroup: { Value: !Ref LogGroup }
+  Bucket: { Value: !Ref Documents }
+  Table: { Value: !Ref Attempts }
+  WorkQueue: { Value: !Ref Work }
+  FeedbackQueue: { Value: !Ref Feedback }
+  Secret: { Value: !Ref SmtpSecret }
+  SmtpUser: { Value: !Ref SmtpUser }
+  ConfigurationSet: { Value: !Ref ConfigurationSet }

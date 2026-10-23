@@ -1,0 +1,44 @@
+name: sjm-pattern-polar-meridian
+services:
+  database:
+    extends: { file: ../application-services.yaml, service: database }
+  certificates:
+    extends: { file: ../application-services.yaml, service: certificates }
+    image: sjm-pattern-polar-meridian:local
+  urgent-a:
+    extends: { file: ../application-services.yaml, service: relay }
+  urgent-b:
+    extends: { file: ../application-services.yaml, service: relay }
+  bulk:
+    extends: { file: ../application-services.yaml, service: relay }
+  app:
+    image: sjm-pattern-polar-meridian:local
+    build: { context: ../../.., dockerfile: tools/integration-patterns/applications.Dockerfile, args: { APP: polar-meridian } }
+    depends_on:
+      database: { condition: service_healthy }
+      urgent-a: { condition: service_healthy }
+      urgent-b: { condition: service_healthy }
+      bulk: { condition: service_healthy }
+    ports: ["127.0.0.1:${PATTERN_PORT:-8787}:8080"]
+    stop_grace_period: 70s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  app-second:
+    image: sjm-pattern-polar-meridian:local
+    depends_on:
+      app: { condition: service_started }
+    stop_grace_period: 70s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  scenario:
+    extends: { file: ../application-services.yaml, service: scenario }
+    environment: { PATTERN: polar-meridian }
+volumes:
+  database:
+  certificates:

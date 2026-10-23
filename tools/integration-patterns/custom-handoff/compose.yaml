@@ -1,0 +1,29 @@
+name: sjm-pattern-custom-handoff
+services:
+  gateway:
+    image: sjm-pattern-custom-handoff:local
+    build: { context: ../../.., dockerfile: tools/integration-patterns/applications.Dockerfile, args: { APP: custom-handoff } }
+    environment: { HANDOFF_ROLE: gateway }
+    volumes: ["packages:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  app:
+    image: sjm-pattern-custom-handoff:local
+    depends_on:
+      gateway: { condition: service_healthy }
+    volumes: ["outgoing:/data"]
+    ports: ["127.0.0.1:${PATTERN_PORT:-8787}:8080"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  scenario:
+    extends: { file: ../application-services.yaml, service: scenario }
+    environment: { PATTERN: custom-handoff }
+volumes:
+  packages:
+  outgoing:

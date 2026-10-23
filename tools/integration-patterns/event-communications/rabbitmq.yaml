@@ -1,0 +1,20 @@
+services:
+  broker:
+    image: rabbitmq:4.1.4-management-alpine@sha256:5cbd7145b0306399ad68422c3350b6cbd1bb95704b39f5896480e5b6d4238a04
+    environment: !override
+      RABBITMQ_DEFAULT_USER: patterns
+      RABBITMQ_DEFAULT_PASS: local-demo-only
+    volumes: !override ["rabbit:/var/lib/rabbitmq"]
+    healthcheck: !override
+      # A live Erlang node can answer ping before RabbitMQ accepts AMQP connections.
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_port_listener 5672 && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+  app:
+    environment:
+      EVENTS_ENGINE: rabbitmq
+      MANAGEMENT_HEALTH_RABBIT_ENABLED: "true"
+      spring.kafka.listener.auto-startup: "false"
+volumes:
+  rabbit:

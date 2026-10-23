@@ -9,3 +9,5 @@
 .atlasarc/
 /.maintainer-env.ps1
 /tmp/
+# Integration-pattern deployments retain local Terraform state, manifests and temporary registry authentication here.
+/.local/strategic-extension/
