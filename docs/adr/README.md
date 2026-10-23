@@ -89,6 +89,11 @@ accepted on 23 October 2026 under [#856](https://github.com/bbottema/simple-java
 before typed encoding interpretation while retaining existing failure and authoritative-byte boundaries. It targets unreleased 10.0.0;
 the issue records delivery of the implementation.
 
+The [referenced inline-resource metadata clarification](0036-structural-message-snapshots-and-borrowed-content.md#referenced-inline-resource-metadata-accepted-23-october-2026),
+accepted on 23 October 2026 under [#857](https://github.com/bbottema/simple-java-mail/issues/857), retains description and ordinary encoding
+metadata through import and reuse without changing decoded bytes, identity or resource ownership. The correction is implemented for
+unreleased 10.0.0.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

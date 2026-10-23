@@ -113,6 +113,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#857](https://github.com/bbottema/simple-java-mail/issues/857): imported referenced inline images retain their description and recognized
+  transfer encoding through eager/lazy extraction, copying, serialization and subsequent export. Content remains decoded; resource classification,
+  filenames, Content-IDs and exact/protected source bytes retain their existing behavior.
+
 
 - [#856](https://github.com/bbottema/simple-java-mail/issues/856): MIME/EML import accepts valid comments in body and resource transfer-encoding
   headers, such as `base64 (encoded for transport)`, without treating the comment as part of the encoding name. Conflicting declarations,
