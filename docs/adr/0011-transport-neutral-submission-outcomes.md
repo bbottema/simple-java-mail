@@ -136,3 +136,10 @@ The [attachment access decision in ADR 0036](0036-structural-message-snapshots-a
 applies this idiom to the 10.0.0 API. It deliberately replaces the former mixed contract without preserving obsolete signatures or aliases.
 Preserve ordinary argument errors, arbitrary application runtime exceptions and JVM Errors rather than blanket-wrapping them. Borrowed
 DataSources retain their identity and ownership; this exception decision introduces no eager content reads or new lifetime ownership.
+
+
+## Local preparation before provider entry (accepted 23 October 2026)
+
+SJM's local MIME/envelope preparation occurs before entering provider submission, even when a connection is already acquired. A checked failure at that local boundary, including a mismatch between final envelope recipient occurrences and typed recipient policies, is PREPARATION and carries no submission receipt. Apply this consistently across ordinary and retry-enabled sending. Connection acquisition alone supplies no submission facts and must not turn a local preparation error into a transport result.
+
+Preserve genuine provider compatibility-result normalization after entering the provider boundary, including known unsent facts before MAIL FROM, and retain partial/uncertain/accepted submission and cleanup receipts. This does not broaden automatic retry, change arbitrary application exception identity or transfer resource ownership. Terminal observation follows the same receipt-free local preparation classification under ADR 0012. [#865](https://github.com/bbottema/simple-java-mail/issues/865) tracks implementation and delivery for unreleased 10.0.0.

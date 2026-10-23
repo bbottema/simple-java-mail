@@ -122,3 +122,8 @@ The #750 extension adds deterministic [recorder tests](../../modules/simple-java
 and [transport/cleanup regressions](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailSendDiagnosticsTransportTest.java).
 The [development guide](../DEVELOPMENT.md) documents verification commands; [#750](https://github.com/bbottema/simple-java-mail/issues/750)
 records the accepted scope and completion. ADR 0026 retains the architectural decision after the implementation plan is retired.
+
+
+## Local preparation failure agreement (accepted 23 October 2026)
+
+The initiating caller's common failure and terminal observer agree on local pre-provider preparation failures: PREPARATION with no submission receipt, whether mail-send retries are enabled or disabled. An acquired connection does not establish entry into provider submission. Retain the genuine provider and post-submission cleanup facts defined by ADR 0011, rather than inventing or discarding a receipt based solely on SMTP command timing. [#865](https://github.com/bbottema/simple-java-mail/issues/865) tracks this alignment.

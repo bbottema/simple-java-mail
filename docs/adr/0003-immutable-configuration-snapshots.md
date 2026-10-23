@@ -254,3 +254,10 @@ The shared property schema and builder contracts are also the architectural basi
 - [ConfigLoader](../../modules/core-module/src/main/java/org/simplejavamail/config/ConfigLoader.java), [SimpleJavaMailConfig](../../modules/core-module/src/main/java/org/simplejavamail/config/SimpleJavaMailConfig.java) and [PropertySchema](../../modules/core-module/src/main/java/org/simplejavamail/config/PropertySchema.java) implement resolution, copying and typed values.
 - [SimpleJavaMail](../../modules/simple-java-mail/src/main/java/org/simplejavamail/api/SimpleJavaMail.java) records factory ownership and lazy defaults.
 - [ConfigLoaderTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/config/ConfigLoaderTest.java) and [Spring context isolation tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringContextIsolationTest.java) provide existing regression evidence. They were inspected as evidence, not rerun for this documentation change.
+
+
+## Explicit connection clears over raw overlays (accepted 23 October 2026)
+
+An explicit clear of SMTP client hostname or local bind address/port removes the corresponding unlocked direct Jakarta Mail property during owned Session assembly, including a captured extra-property overlay. Retain the explicit removal marker rather than treating null as ordinary omission. Clearing the local address also clears its port under the existing paired operation; clearing or restoring only a member keeps its documented scope.
+
+Unset group members still inherit; useConfigured restores captured configuration; resets choose the published library fallback. Keep active transport-property mapping, unrelated raw properties, existing empty/blank interpretation, caller-Session baseline and inherited-Properties limitations. Mandatory locks still reject conflicting removal. This applies the existing distinctions above, rather than introducing a new general Java-over-properties rule. [#866](https://github.com/bbottema/simple-java-mail/issues/866) tracks implementation and delivery.

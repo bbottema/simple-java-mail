@@ -29,6 +29,11 @@ import java.nio.file.Path;
  * When importing an Email, message-level headers, bounce addresses and receipt destinations come from the effective root message selected after
  * protection preprocessing. Child MIME headers remain local to their parts: their existing resource metadata is read, but misplaced headers do not
  * become Email headers or replace the root message's facts.
+ * <p>
+ * MIME/EML imports retain an optional generic root header's undecoded source text when its encoded-word charset is unavailable,
+ * safely unfolding legal continuations. Required content and typed-field interpretation keep their existing failure boundaries.
+ * Importing an Email does not promise sendability; outgoing validation and MIME preparation still apply. Outlook receipt-field names
+ * use the same case-insensitive recognition as MIME/EML, without normalizing unrelated generic headers.
  * A child multipart explicitly marked as an attachment remains one attachment, including its content-type parameters; its children do not
  * become parent bodies or separate parent resources. Ordinary body containers, inline/filename-only multipart entities and the effective root
  * retain recursive content interpretation. This content model does not preserve arbitrary source MIME nesting.

@@ -234,3 +234,14 @@ boundary for sender, Reply-To, receipt and bounce fields, including legacy singl
 ## Accepted convenient list parsing (20 October 2026)
 
 The ordinary Email recipient, Reply-To and notification String conveniences parse every mailbox rather than reject lists or select their first member. Preserve quoted punctuation, supported separators, order and duplicate occurrences; flatten address groups into members. A nonblank supplied name overrides every embedded name. Unparseable nonempty input is retained for the configured validator. From/bounce retain their singular guard, and the individual Recipient builder retains its specialized extraction contracts.
+
+
+## Undecodable optional root-header text (accepted 23 October 2026)
+
+When an optional generic root-header value cannot be decoded because its encoded-word charset is unavailable, retain the original undecoded value and safely unfold legal header continuations. Continue interpreting neighboring fields and readable message content without inventing decoded characters. This is a narrow value-recovery boundary, not permission to suppress arbitrary parser or application failures.
+
+Typed receipt/Return-Path interpretation, required body and resource decoding, filename/description decoding and outgoing injection validation retain their existing contracts. Ordinary rendering still encodes and folds supported header values safely; recovered source text must not create a new delayed validation failure for otherwise safe input. Successful import remains distinct from successful sending. Exact and protected representations keep their authoritative bytes. No new warning API or recovery setting is introduced. [#861](https://github.com/bbottema/simple-java-mail/issues/861) tracks implementation and delivery.
+
+## Outlook receipt route parity (accepted 23 October 2026)
+
+Apply the receipt-header name-recognition decision to Outlook MSG import as well as MIME/EML. Disposition-Notification-To and Return-Receipt-To names are case-insensitive across the shared static/fluent, file/path/stream, builder/data-returning and nested Outlook routes. Preserve existing value interpretation, destination order and duplicates, names, unusual/empty/null-path handling, generic-header spelling and message ownership; do not broadly normalize other headers. This completes the same interpretation boundary described in [#407](https://github.com/bbottema/simple-java-mail/issues/407#issuecomment-1189155751) and the MIME/EML correction under #846. [#863](https://github.com/bbottema/simple-java-mail/issues/863) tracks this separate route correction.

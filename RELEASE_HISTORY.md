@@ -113,6 +113,18 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#861](https://github.com/bbottema/simple-java-mail/issues/861): retain undecodable optional generic root-header text when its encoded-word charset is
+  unavailable, preserving readable input and the existing typed, required-content and outgoing validation boundaries.
+- [#862](https://github.com/bbottema/simple-java-mail/issues/862): apply and compare named From/bounce address locks using their interpreted singular
+  mailbox addresses, preserving separate display-name locks, address case rules and exact-message compatibility.
+- [#863](https://github.com/bbottema/simple-java-mail/issues/863): recognize Outlook receipt-header names case-insensitively across its shared import
+  routes, retaining destination order, duplicates, names and existing unusual-value handling.
+- [#864](https://github.com/bbottema/simple-java-mail/issues/864): collect and inspect unfinished non-null OpenPGP decryption keys consistently with
+  verification keys; completed receive-config construction rejects empty keys while earlier snapshots remain independent.
+- [#865](https://github.com/bbottema/simple-java-mail/issues/865): report local pre-provider MIME/envelope preparation failures as PREPARATION without
+  receipts across retry modes and terminal observation, preserving genuine provider facts and narrow healthy-lease reuse.
+- [#866](https://github.com/bbottema/simple-java-mail/issues/866): retain explicit connection clear markers over corresponding unlocked raw Session
+  overlays, while preserving omitted/configured/reset choices, protocol mapping, caller-Session limitations and locks.
 - [#859](https://github.com/bbottema/simple-java-mail/issues/859): rejected retry and failover backoff replacements retain the previous multiplier,
   maximum duration and supplied choices when the required cap is null.
 - [#860](https://github.com/bbottema/simple-java-mail/issues/860): automatic classpath image MIME guessing and URL type fallback use locale-independent

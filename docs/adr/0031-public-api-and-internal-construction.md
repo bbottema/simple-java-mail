@@ -394,3 +394,10 @@ Add a regression for removed builder factories/overload chains so a future refac
 ## Accepted API consistency follow-up (20 October 2026)
 
 Notification destinations use plural collection getters on Email and its builder, without singular compatibility getters. MailSendRetryPolicy and FailoverPolicy expose explicit toBuilder() methods that copy every stored setting into an independent builder. SMTP empty credential strings normalize to absence through all ordinary setters; partial-update overloads still change only accepted fields. These choices belong to the unreleased 10.0.0 migration and do not introduce default-name overload families or new optional-module boundaries.
+
+
+## OpenPGP receive decryption drafts (accepted 23 October 2026)
+
+The passive-inspection rule applies equally to verification and decryption inputs in OpenPgpReceiveConfig. Reject required null arrays/passphrases before changing choices and copy the supplied arrays, but permit unfinished empty key material while collecting and inspecting the builder. Completed OpenPgpReceiveConfig construction validates that every retained key is nonempty. Builder-returned key entries are detached immutable snapshots of supplied choices, not another completed receive-configuration boundary.
+
+Keep the existing public read types without introducing a draft factory. Getter calls do not validate, invoke passphrase callbacks or load cryptographic modules. Clearing a builder does not alter earlier entries or completed configurations; key/passphrase arrays remain copied and secret output remains redacted. Cryptographic interpretation stays with the optional module. [#864](https://github.com/bbottema/simple-java-mail/issues/864) tracks this correction for unreleased 10.0.0.
