@@ -20,6 +20,10 @@ public final class OpenPgpReceiveConfig {
         @Nullable char[] passphraseFor(long keyId);
     }
 
+    /**
+     * An immutable view of supplied decryption material. A builder's inspection view may contain unfinished empty key bytes;
+     * a completed {@link OpenPgpReceiveConfig} requires every supplied key ring to be nonempty.
+     */
     public static final class SecretKeyRing {
         private final byte[] keyRing;
         private final char[] passphrase;
@@ -27,15 +31,20 @@ public final class OpenPgpReceiveConfig {
         private SecretKeyRing(final byte[] keyRing, final char[] passphrase) {
             this.keyRing = requireNonNull(keyRing, "keyRing").clone();
             this.passphrase = requireNonNull(passphrase, "passphrase").clone();
-            if (keyRing.length == 0) {
-                throw new IllegalArgumentException("OpenPGP secret key ring cannot be empty");
-            }
         }
 
+        /**
+         * Returns a copy of the supplied key bytes, including an unfinished empty array when inspecting a builder.
+         * @see OpenPgpReceiveConfigBuilder#addDecryptionKeyRing(byte[], char[])
+         */
         public byte[] getKeyRing() {
             return keyRing.clone();
         }
 
+        /**
+         * Returns a copy of the supplied passphrase.
+         * @see OpenPgpReceiveConfigBuilder#addDecryptionKeyRing(byte[], char[])
+         */
         public char[] getPassphrase() {
             return passphrase.clone();
         }
@@ -55,6 +64,11 @@ public final class OpenPgpReceiveConfig {
                                  final List<SecretKeyRing> decryptionKeyRings,
                                  @Nullable final PassphraseProvider passphraseProvider) {
         this.verificationKeyRings = immutableKeyRingCopy(verificationKeyRings);
+        for (SecretKeyRing keyRing : decryptionKeyRings) {
+            if (keyRing.keyRing.length == 0) {
+                throw new IllegalArgumentException("OpenPGP secret key ring cannot be empty");
+            }
+        }
         this.decryptionKeyRings = Collections.unmodifiableList(new ArrayList<>(decryptionKeyRings));
         this.passphraseProvider = passphraseProvider;
     }
@@ -133,6 +147,7 @@ public final class OpenPgpReceiveConfig {
 
         /**
          * Returns a modifiable copy of the stored decryption-key list. Its entries return copies of their key and passphrase arrays.
+         * Inspection retains unfinished empty key bytes without validation and does not invoke the passphrase provider.
          *
          * @see #addDecryptionKeyRing(byte[], char[])
          */
@@ -167,7 +182,9 @@ public final class OpenPgpReceiveConfig {
 
         /**
          * Adds a public key ring for checking signatures, retaining a copy of its bytes.
+         * Empty bytes may be stored and inspected while configuring the builder; {@link #build()} rejects empty key rings.
          * Use {@link #clearVerificationKeyRings()} to remove only verification keys, retaining decryption keys and the passphrase provider.
+         * @throws NullPointerException if the key ring is null; previous choices are retained.
          */
         public OpenPgpReceiveConfigBuilder addVerificationKeyRing(final byte[] publicKeyRing) {
             verificationKeyRings.add(requireNonNull(publicKeyRing, "publicKeyRing").clone());
@@ -176,8 +193,11 @@ public final class OpenPgpReceiveConfig {
 
         /**
          * Adds a secret key ring and its passphrase for decrypting received messages, retaining copies of both arrays.
+         * Empty key bytes may be stored and inspected while configuring the builder; {@link #build()} rejects empty key rings.
+         * Collection and inspection do not parse keys, load the OpenPGP module or invoke the passphrase provider.
          * Use an empty passphrase for an unprotected key. A configured {@link #passphraseProvider(PassphraseProvider)} may supply another passphrase.
          * {@link #clearDecryptionKeyRings()} removes only these keys, retaining verification keys and the provider.
+         * @throws NullPointerException if the key ring or passphrase is null; previous choices are retained.
          */
         public OpenPgpReceiveConfigBuilder addDecryptionKeyRing(final byte[] secretKeyRing,
                                                                  final char[] passphrase) {
@@ -187,7 +207,9 @@ public final class OpenPgpReceiveConfig {
 
         /**
          * Adds a decryption key ring with a passphrase supplied as text.
+         * Retains a copy of the key bytes and passphrase, including unfinished empty key bytes until {@link #build()}.
          *
+         * @throws NullPointerException if the key ring or passphrase is null; previous choices are retained.
          * @see #addDecryptionKeyRing(byte[], char[])
          */
         public OpenPgpReceiveConfigBuilder addDecryptionKeyRing(final byte[] secretKeyRing,
@@ -206,6 +228,11 @@ public final class OpenPgpReceiveConfig {
             return this;
         }
 
+        /**
+         * Creates an independent configuration, rejecting every supplied empty verification or decryption key ring.
+         * Either list may be empty. This checks data shape without parsing keys, loading the OpenPGP module or invoking the passphrase provider.
+         * @throws IllegalArgumentException if any supplied key ring is empty.
+         */
         public OpenPgpReceiveConfig build() {
             return new OpenPgpReceiveConfig(verificationKeyRings, decryptionKeyRings, passphraseProvider);
         }
