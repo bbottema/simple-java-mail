@@ -52,7 +52,7 @@ class OutlookAddressImportTest {
         final Email legacy = EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg));
 
         for (Email email : Arrays.asList(fluent, legacy)) {
-            final java.util.List<Recipient> destinations = "Disposition-Notification-To".equals(header)
+            final java.util.List<Recipient> destinations = "Disposition-Notification-To".equalsIgnoreCase(header)
                     ? email.getDispositionNotificationToRecipients() : email.getReturnReceiptToRecipients();
             final Recipient recipient = "Return-Path".equals(header) ? email.getBounceToRecipient()
                     : destinations.isEmpty() ? null : destinations.get(0);
@@ -61,7 +61,11 @@ class OutlookAddressImportTest {
             }
             if (expectedAddress == null) {
                 assertThat(recipient).isNull();
+                if (!"Return-Path".equals(header) && "<>".equals(source)) {
+                    assertThat(email.getHeaders().get(header)).containsExactly(source);
+                }
             } else {
+                assertThat(recipient).isNotNull();
                 assertThat(recipient.getAddress()).isEqualTo(expectedAddress);
                 assertThat(recipient.getName()).isEqualTo(expectedName);
             }
@@ -78,7 +82,8 @@ class OutlookAddressImportTest {
     }
 
     static Stream<Arguments> receiptHeaders() {
-        return Stream.of("Disposition-Notification-To", "Return-Receipt-To", "Return-Path")
+        return Stream.of("Disposition-Notification-To", "disposition-notification-to", "DISPOSITION-NOTIFICATION-TO", "dIsPoSiTiOn-NoTiFiCaTiOn-To",
+                        "Return-Receipt-To", "return-receipt-to", "RETURN-RECEIPT-TO", "rEtUrN-rEcEiPt-To", "Return-Path")
                 .flatMap(header -> Stream.of(
                         Arguments.of(header, "\"Doe, Jane\" <jane@example.org>", "Doe, Jane", "jane@example.org"),
                         Arguments.of(header, "First <first@example.org>, Second <second@example.org>", "First", "first@example.org"),
@@ -169,7 +174,7 @@ class OutlookAddressImportTest {
     }
 
     /** Replace only the selected address data in a copy of an existing, readable .msg fixture. */
-    private static byte[] withAddressHeader(final String header, final String value) throws IOException {
+    static byte[] withAddressHeader(final String header, final String value) throws IOException {
         try (InputStream input = OutlookAddressImportTest.class.getResourceAsStream(FIXTURE);
                 POIFSFileSystem file = new POIFSFileSystem(input)) {
             final DirectoryNode root = file.getRoot();

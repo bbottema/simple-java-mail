@@ -273,7 +273,7 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 
 	private static boolean isEmailHeader(String name, String value, String emailHeaderName) {
-		return name.equals(emailHeaderName) &&
+		return name.equalsIgnoreCase(emailHeaderName) &&
 				!valueNullOrEmpty(value) &&
 				!valueNullOrEmpty(value.trim()) &&
 				!value.equals("<>");
