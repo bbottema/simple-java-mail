@@ -1,0 +1,23 @@
+services:
+  broker:
+    image: rabbitmq:4.1.4-management-alpine@sha256:5cbd7145b0306399ad68422c3350b6cbd1bb95704b39f5896480e5b6d4238a04
+    environment: { RABBITMQ_DEFAULT_USER: patterns, RABBITMQ_DEFAULT_PASS: local-demo-only }
+    volumes: ["broker:/var/lib/rabbitmq"]
+    healthcheck:
+      # A live Erlang node can answer ping before RabbitMQ accepts AMQP connections.
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_port_listener 5672 && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 3s
+      timeout: 10s
+      retries: 30
+  gateway:
+    environment: { HANDOFF_ROLE: gateway, HANDOFF_MODE: rabbitmq }
+    depends_on:
+      broker: { condition: service_healthy }
+  app:
+    environment: { HANDOFF_MODE: rabbitmq }
+    depends_on:
+      broker: { condition: service_healthy }
+  scenario:
+    environment: { PATTERN: custom-handoff, HANDOFF_MODE: rabbitmq }
+volumes:
+  broker:

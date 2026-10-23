@@ -1,0 +1,9 @@
+# Standalone Maven/Python builds and direct infrastructure experiments are not source examples.
+**/target/
+__pycache__/
+*.py[cod]
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.auto.tfvars.json

@@ -1,0 +1,80 @@
+name: sjm-pattern-event-communications
+services:
+  database:
+    image: postgres:16.11-alpine@sha256:4327b9fd295502f326f44153a1045a7170ddbfffed1c3829798328556cfd09e2
+    environment: { POSTGRES_DB: patterns, POSTGRES_USER: patterns, POSTGRES_PASSWORD: local-demo-only }
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patterns -d patterns"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  smtp:
+    image: python:3.12.9-alpine3.21@sha256:28b8a72c4e0704dd2048b79830e692e94ac2d43d30c914d54def6abf74448a4e
+    command: ["python", "/fixture/server.py"]
+    volumes: ["../fixture:/fixture:ro", "messages:/data"]
+    ports: ["127.0.0.1:${PATTERN_SMTP_PORT:-8788}:8025"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8025/health', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  app:
+    image: sjm-pattern-event-communications:local
+    environment:
+      MANAGEMENT_HEALTH_RABBIT_ENABLED: "false"
+    build:
+      context: ../../..
+      dockerfile: tools/integration-patterns/Dockerfile
+      args: { APP: event-communications }
+    depends_on:
+      database: { condition: service_healthy }
+      smtp: { condition: service_healthy }
+      broker: { condition: service_healthy }
+    ports: ["127.0.0.1:${PATTERN_PORT:-8787}:8080"]
+    volumes: ["archive:/data"]
+    healthcheck:
+      test: ["CMD", "bash", "-ec", "exec 3<>/dev/tcp/127.0.0.1/8080; printf 'GET /actuator/health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200' <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+      start_period: 15s
+  scenario:
+    image: python:3.12.9-alpine3.21@sha256:28b8a72c4e0704dd2048b79830e692e94ac2d43d30c914d54def6abf74448a4e
+    profiles: ["tools"]
+    depends_on:
+      app: { condition: service_healthy }
+    volumes: ["../fixture:/fixture:ro"]
+    environment: { EXPECT_EVENT: "" }
+    entrypoint: ["python", "/fixture/scenario.py"]
+    command: ["all"]
+  broker:
+    image: apache/kafka:3.9.1@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes: ["broker:/var/lib/kafka/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+volumes:
+  database:
+  messages:
+  archive:
+  broker:
+networks:
+  default:
+    driver: bridge

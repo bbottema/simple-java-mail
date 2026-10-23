@@ -1,0 +1,24 @@
+services:
+  workflow:
+    image: camunda/zeebe:8.7.13@sha256:b9e75a4c1d8f40f5ed25e7670378c19181259e5f033d6535ac3ae7283b813399
+    user: !reset null
+    command: !reset []
+    volumes: !override ["zeebe:/usr/local/zeebe/data"]
+    environment:
+      ZEEBE_BROKER_CLUSTER_CLUSTERSIZE: 1
+      ZEEBE_BROKER_CLUSTER_PARTITIONSCOUNT: 1
+      ZEEBE_BROKER_CLUSTER_REPLICATIONFACTOR: 1
+      ZEEBE_BROKER_GATEWAY_NETWORK_HOST: 0.0.0.0
+      ZEEBE_BROKER_NETWORK_HOST: 0.0.0.0
+      ZEEBE_BROKER_GATEWAY_ENABLE: "true"
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m"
+    healthcheck: !override
+      test: ["CMD", "bash", "-ec", "exec 3<>/dev/tcp/127.0.0.1/26500"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+  app:
+    environment:
+      WORKFLOW_ENGINE: camunda
+volumes:
+  zeebe:

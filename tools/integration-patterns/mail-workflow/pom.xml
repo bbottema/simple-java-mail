@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.simplejavamail.examples</groupId>
+    <artifactId>integration-patterns</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>mail-workflow</artifactId>
+  <dependencyManagement>
+    <dependencies>
+      <!-- Both workflow variations share this executable. Align gRPC rather than mixing Temporal's older transport with Zeebe's core. -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.68.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.simplejavamail.examples</groupId>
+      <artifactId>common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-sdk</artifactId>
+      <version>1.31.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-client-java</artifactId>
+      <version>8.7.13</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

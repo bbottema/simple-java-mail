@@ -420,6 +420,11 @@ Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, o
 The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
 Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
 
+Choose [Tactical Patterns](https://www.simplejavamail.org/email-workload-field-guide.html) for a focused sending problem, or
+[Strategic Patterns](https://www.simplejavamail.org/strategic-patterns.html) for runnable applications integrating jobs, brokers, workflows,
+customer-specific mail routes, enterprise dispatch, non-SMTP handoff and optional AWS deployments.
+The [portable example sources](tools/integration-patterns/README.md) build SJM inside containers and send only to a local synthetic SMTP fixture.
+
 Jakarta Mail provides the standard mail API, and Angus Mail provides its transport implementation. You can still supply a `Session`, access the generated `MimeMessage`, set raw Jakarta Mail properties, or provide the final send operation.
 
 [Get started](https://www.simplejavamail.org/download.html) · [Capabilities](https://www.simplejavamail.org/features.html) · [Modules](https://www.simplejavamail.org/modules.html) · [Javadocs](https://javadoc.io/doc/org.simplejavamail/maven-master-project) · [10.0 migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html) · [Compare libraries](https://www.simplejavamail.org/feature-matrix.html)

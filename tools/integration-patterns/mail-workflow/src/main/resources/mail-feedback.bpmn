@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  targetNamespace="https://simplejavamail.org/examples">
+  <bpmn:message id="feedback" name="delivery-report">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=jobId"/>
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:process id="mail-feedback" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:sequenceFlow id="toSend" sourceRef="start" targetRef="send"/>
+    <bpmn:serviceTask id="send" name="Submit through SJM">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="submit-mail"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toChoice" sourceRef="send" targetRef="submissionChoice"/>
+    <bpmn:exclusiveGateway id="submissionChoice" default="toReview"/>
+    <bpmn:sequenceFlow id="toWait" sourceRef="submissionChoice" targetRef="wait">
+      <bpmn:conditionExpression>= submissionState = "SUBMITTED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="toReview" sourceRef="submissionChoice" targetRef="review"/>
+    <bpmn:endEvent id="review" name="Needs reconciliation"/>
+
+    <!-- One report is enough to make this example's decision. DELAYED is feedback, not proof of final delivery. -->
+    <bpmn:intermediateCatchEvent id="wait" name="Wait for first delivery feedback">
+      <bpmn:messageEventDefinition messageRef="feedback"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="toDecision" sourceRef="wait" targetRef="decision"/>
+    <bpmn:serviceTask id="decision" name="Record first-report business decision">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="record-decision"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toEnd" sourceRef="decision" targetRef="end"/>
+    <bpmn:endEvent id="end"/>
+  </bpmn:process>
+</bpmn:definitions>

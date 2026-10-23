@@ -1,0 +1,14 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.136.0@sha256:45392d534c1edcc809c2d112394029246bc679d2ae5ea7081414a1fc74f2c621
+    command: ["--config=/etc/demo/collector.yaml"]
+    volumes: ["./collector.yaml:/etc/demo/collector.yaml:ro"]
+    ports: ["127.0.0.1:${PATTERN_METRICS_PORT:-8789}:8889"]
+  app:
+    environment: { OTEL_ENDPOINT: "http://collector:4318" }
+    depends_on:
+      collector: { condition: service_started }
+  app-second:
+    environment: { OTEL_ENDPOINT: "http://collector:4318" }
+    depends_on:
+      collector: { condition: service_started }

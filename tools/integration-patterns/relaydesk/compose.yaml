@@ -1,0 +1,32 @@
+name: sjm-pattern-relaydesk
+services:
+  database:
+    extends: { file: ../application-services.yaml, service: database }
+  certificates:
+    extends: { file: ../application-services.yaml, service: certificates }
+  smtp-a:
+    extends: { file: ../application-services.yaml, service: relay }
+    environment: { FIXTURE_USER: tenant-a, FIXTURE_DOMAIN: a.example.test }
+  smtp-b:
+    extends: { file: ../application-services.yaml, service: relay }
+    environment: { FIXTURE_USER: tenant-b, FIXTURE_DOMAIN: b.example.test }
+  app:
+    image: sjm-pattern-relaydesk:local
+    build: { context: ../../.., dockerfile: tools/integration-patterns/applications.Dockerfile, args: { APP: relaydesk } }
+    depends_on:
+      database: { condition: service_healthy }
+      smtp-a: { condition: service_healthy }
+      smtp-b: { condition: service_healthy }
+    ports: ["127.0.0.1:${PATTERN_PORT:-8787}:8080"]
+    stop_grace_period: 70s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  scenario:
+    extends: { file: ../application-services.yaml, service: scenario }
+    environment: { PATTERN: relaydesk }
+volumes:
+  database:
+  certificates:

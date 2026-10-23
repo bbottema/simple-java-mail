@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.simplejavamail.examples</groupId>
+    <artifactId>integration-patterns</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>custom-handoff</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>org.simplejavamail.examples</groupId>
+      <artifactId>application-support</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>org.simplejavamail.examples.handoff.HandoffApplication</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

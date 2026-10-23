@@ -1,0 +1,44 @@
+name: sjm-pattern-aws-correspondence
+services:
+  certificates:
+    extends: { file: ../application-services.yaml, service: certificates }
+    image: sjm-pattern-aws-correspondence:local
+  smtp-a:
+    extends: { file: ../application-services.yaml, service: relay }
+  queues:
+    image: softwaremill/elasticmq-native@sha256:e4580ab9ad1bd5cd37b4ba04911bc5ccc8cd2d9ab4de56ece65acee71c24e05c
+  database:
+    image: amazon/dynamodb-local@sha256:6ada631ec7aa5fc83446855eb17233e3dad184fec47477e8140c6c569cfe0c86
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+  objects:
+    image: adobe/s3mock@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92
+    environment: { COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: sjm-correspondence-local }
+  app:
+    image: sjm-pattern-aws-correspondence:local
+    build: { context: ../../.., dockerfile: tools/integration-patterns/applications.Dockerfile, args: { APP: aws-correspondence } }
+    environment:
+      LOCAL_DEMO: "true"
+      AWS_ACCESS_KEY_ID: localdemo
+      AWS_SECRET_ACCESS_KEY: localdemo
+      AWS_REGION: eu-central-1
+      SQS_ENDPOINT: http://queues:9324
+      DYNAMODB_ENDPOINT: http://database:8000
+      S3_ENDPOINT: http://objects:9090
+    depends_on:
+      smtp-a: { condition: service_healthy }
+      queues: { condition: service_started }
+      database: { condition: service_started }
+      objects: { condition: service_started }
+    restart: on-failure:3
+    ports: ["127.0.0.1:${PATTERN_PORT:-8787}:8080"]
+    stop_grace_period: 70s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  scenario:
+    extends: { file: ../application-services.yaml, service: scenario }
+    environment: { PATTERN: aws-correspondence }
+volumes:
+  certificates:
