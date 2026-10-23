@@ -1,7 +1,5 @@
 package org.simplejavamail.internal.dkimsupport;
 
-import jakarta.mail.Header;
-import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -11,52 +9,26 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.internal.modules.DKIMModule;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-import org.simplejavamail.utils.mail.dkim.DomainKeyUtil;
+import org.simplejavamail.utils.mail.dkim.Canonicalization;
+import org.simplejavamail.utils.mail.dkim.DkimByteSigner;
+import org.simplejavamail.utils.mail.dkim.SigningAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
-import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Provider;
-import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Pattern;
 
-/** Provider-neutral DKIM implementation over finalized MIME bytes. */
+/** Adapts SJM's finalized MIME and configuration to the shared upstream DKIM engine. */
 @SuppressWarnings("unused") // loaded through reflection
 public final class DKIMSigner implements DKIMModule {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
-    private static final int MAX_HEADER_LINE_LENGTH = 78;
-    private static final String DKIM_SIGNATURE = "DKIM-Signature";
-    private static final Pattern SIGNING_DOMAIN_PATTERN = Pattern.compile("(.+)\\.(.+)");
     private static final Provider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
-
-    private static final Set<String> DEFAULT_HEADERS_TO_SIGN = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
-            "From", "To", "Subject", "Content-Description", "Content-ID", "Content-Type",
-            "Content-Transfer-Encoding", "Cc", "Date", "In-Reply-To", "List-Subscribe", "List-Post",
-            "List-Owner", "List-Id", "List-Archive", "List-Help", "List-Unsubscribe", "MIME-Version",
-            "Message-ID", "Resent-Sender", "Resent-Cc", "Resent-Date", "Resent-To", "Reply-To",
-            "References", "Resent-Message-ID", "Resent-From", "Sender"
-    )));
 
     @Override
     public MimeMessage signMessageWithDKIM(@NotNull final Email email,
@@ -69,8 +41,25 @@ public final class DKIMSigner implements DKIMModule {
             final FinalizedMimeMessage finalized = messageToSign instanceof FinalizedMimeMessage
                     ? (FinalizedMimeMessage) messageToSign
                     : FinalizedMimeMessage.finalizeMessage(messageToSign, FinalizedMimeMessage.ProtectionState.NONE);
-            final byte[] signedBytes = new WireSigner(dkimConfig, fromRecipient.getAddress())
-                    .sign(finalized, finalized.getSerializedBytes());
+            final SigningAlgorithm algorithm = dkimConfig.getSigningAlgorithm() == null
+                    ? SigningAlgorithm.SHA256_WITH_RSA : SigningAlgorithm.valueOf(dkimConfig.getSigningAlgorithm());
+            final String identity = fromRecipient.getAddress();
+            final DkimByteSigner.Builder signer = DkimByteSigner.builder()
+                    .signingDomain(dkimConfig.getDkimSigningDomain())
+                    .selector(dkimConfig.getDkimSelector())
+                    .privateKey(readPrivateKey(dkimConfig.getDkimPrivateKeyData(), algorithm))
+                    .signingAlgorithm(algorithm)
+                    .identity(identity)
+                    .headerCanonicalization(canonicalization(dkimConfig.getHeaderCanonicalization()))
+                    .bodyCanonicalization(canonicalization(dkimConfig.getBodyCanonicalization()))
+                    .lengthParam(Boolean.TRUE.equals(dkimConfig.getUseLengthParam()))
+                    .checkDomainKey(!identity.endsWith("@supersecret-testing-domain.com"));
+            if (dkimConfig.getExcludedHeadersFromDkimDefaultSigningList() != null) {
+                for (String excluded : dkimConfig.getExcludedHeadersFromDkimDefaultSigningList()) {
+                    signer.removeHeaderToSign(excluded);
+                }
+            }
+            final byte[] signedBytes = signer.build().sign(finalized.getSerializedBytes());
             final Session session = finalized.getSession() != null
                     ? finalized.getSession()
                     : Session.getInstance(new Properties());
@@ -88,185 +77,7 @@ public final class DKIMSigner implements DKIMModule {
         }
     }
 
-    private static final class WireSigner {
-
-        private final DkimConfig config;
-        private final String identity;
-        private final Algorithm algorithm;
-        private final Canonicalization headerCanonicalization;
-        private final Canonicalization bodyCanonicalization;
-        private final PrivateKey privateKey;
-        private final Set<String> headersToSign = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-
-        private WireSigner(@NotNull final DkimConfig config, @NotNull final String identity) throws Exception {
-            this.config = config;
-            this.identity = identity;
-            validateDomainAndIdentity(config.getDkimSigningDomain(), identity);
-            this.algorithm = Algorithm.from(config.getSigningAlgorithm());
-            this.headerCanonicalization = Canonicalization.from(config.getHeaderCanonicalization());
-            this.bodyCanonicalization = Canonicalization.from(config.getBodyCanonicalization());
-            this.privateKey = readPrivateKey(config.getDkimPrivateKeyData(), algorithm);
-            this.headersToSign.addAll(DEFAULT_HEADERS_TO_SIGN);
-            if (config.getExcludedHeadersFromDkimDefaultSigningList() != null) {
-                this.headersToSign.removeAll(config.getExcludedHeadersFromDkimDefaultSigningList());
-            }
-        }
-
-        private byte[] sign(@NotNull final MimeMessage message, final byte @NotNull [] serialized)
-                throws Exception {
-            if (!identity.endsWith("@supersecret-testing-domain.com")) {
-                DomainKeyUtil.getDomainKey(config.getDkimSigningDomain(), config.getDkimSelector())
-                        .check(identity, privateKey);
-            }
-
-            final List<Header> selectedHeaders = selectHeaders(message);
-            final StringBuilder headerNames = new StringBuilder();
-            final StringBuilder canonicalHeaders = new StringBuilder();
-            boolean hasFrom = false;
-            for (Header header : selectedHeaders) {
-                if ("From".equalsIgnoreCase(header.getName())) {
-                    hasFrom = true;
-                }
-                if (headerNames.length() > 0) {
-                    headerNames.append(':');
-                }
-                headerNames.append(header.getName());
-                canonicalHeaders.append(headerCanonicalization.canonicalizeHeader(header.getName(), header.getValue()))
-                        .append("\r\n");
-            }
-            if (!hasFrom) {
-                throw new MessagingException("Could not find mandatory DKIM header: From");
-            }
-
-            final byte[] canonicalBody = bodyCanonicalization.canonicalizeBody(normalizeCrLf(extractBody(serialized)));
-            final MessageDigest digest = MessageDigest.getInstance(algorithm.digestName);
-
-            final Map<String, String> tags = new LinkedHashMap<>();
-            tags.put("v", "1");
-            tags.put("a", algorithm.dkimName);
-            tags.put("q", "dns/txt");
-            tags.put("c", headerCanonicalization.value + "/" + bodyCanonicalization.value);
-            final Date sentDate = message.getSentDate() != null ? message.getSentDate() : new Date();
-            tags.put("t", Long.toString(sentDate.getTime() / 1000L));
-            tags.put("s", config.getDkimSelector());
-            tags.put("d", config.getDkimSigningDomain());
-            tags.put("i", quotedPrintable(identity));
-            tags.put("h", headerNames.toString());
-            if (Boolean.TRUE.equals(config.getUseLengthParam())) {
-                tags.put("l", Integer.toString(canonicalBody.length));
-            }
-            tags.put("bh", Base64.getEncoder().encodeToString(digest.digest(canonicalBody)));
-
-            final String unsignedValue = serializeTags(tags);
-            canonicalHeaders.append(headerCanonicalization.canonicalizeHeader(DKIM_SIGNATURE, unsignedValue));
-
-            final Signature signature = algorithm.ed25519
-                    ? Signature.getInstance(algorithm.signatureName, BOUNCY_CASTLE_PROVIDER)
-                    : Signature.getInstance(algorithm.signatureName);
-            signature.initSign(privateKey);
-            signature.update(canonicalHeaders.toString().getBytes(StandardCharsets.UTF_8));
-            final String signatureHeader = DKIM_SIGNATURE + ": " + unsignedValue
-                    + fold(Base64.getEncoder().encodeToString(signature.sign()), 3);
-
-            final ByteArrayOutputStream output = new ByteArrayOutputStream(serialized.length + signatureHeader.length() + 2);
-            output.write(signatureHeader.getBytes(StandardCharsets.US_ASCII));
-            output.write('\r');
-            output.write('\n');
-            output.write(serialized);
-            return output.toByteArray();
-        }
-
-        private List<Header> selectHeaders(@NotNull final MimeMessage message) throws MessagingException {
-            final List<Header> selected = new ArrayList<>();
-            final Enumeration<Header> headers = message.getAllHeaders();
-            while (headers.hasMoreElements()) {
-                final Header header = headers.nextElement();
-                if (headersToSign.contains(header.getName())) {
-                    selected.add(0, header);
-                }
-            }
-            return selected;
-        }
-    }
-
-    private enum Algorithm {
-        SHA256_WITH_RSA("rsa-sha256", "SHA256withRSA", "SHA-256", "RSA", false),
-        SHA1_WITH_RSA("rsa-sha1", "SHA1withRSA", "SHA-1", "RSA", false),
-        SHA256_WITH_ED25519("ed25519-sha256", "Ed25519", "SHA-256", "Ed25519", true);
-
-        private final String dkimName;
-        private final String signatureName;
-        private final String digestName;
-        private final String keyFactoryName;
-        private final boolean ed25519;
-
-        Algorithm(final String dkimName, final String signatureName, final String digestName,
-                  final String keyFactoryName, final boolean ed25519) {
-            this.dkimName = dkimName;
-            this.signatureName = signatureName;
-            this.digestName = digestName;
-            this.keyFactoryName = keyFactoryName;
-            this.ed25519 = ed25519;
-        }
-
-        private static Algorithm from(final String configured) {
-            return configured == null ? SHA256_WITH_RSA : valueOf(configured);
-        }
-    }
-
-    private enum Canonicalization {
-        SIMPLE("simple"), RELAXED("relaxed");
-
-        private final String value;
-
-        Canonicalization(final String value) {
-            this.value = value;
-        }
-
-        private static Canonicalization from(final DkimConfig.Canonicalization configured) {
-            return configured == DkimConfig.Canonicalization.SIMPLE ? SIMPLE : RELAXED;
-        }
-
-        private String canonicalizeHeader(final String name, final String value) {
-            if (this == SIMPLE) {
-                return name + ": " + value;
-            }
-            return name.trim().toLowerCase(Locale.ROOT) + ":" + value.replaceAll("\\s+", " ").trim();
-        }
-
-        private byte[] canonicalizeBody(final byte[] body) {
-            String value = new String(body, StandardCharsets.UTF_8);
-            if (this == RELAXED) {
-                value = value.replaceAll("[ \\t]+\\r\\n", "\r\n")
-                        .replaceAll("[ \\t]+", " ");
-            }
-            if (!value.endsWith("\r\n")) {
-                value += "\r\n";
-            }
-            while (value.endsWith("\r\n\r\n")) {
-                value = value.substring(0, value.length() - 2);
-            }
-            if (this == RELAXED && "\r\n".equals(value)) {
-                value = "";
-            }
-            return value.getBytes(StandardCharsets.UTF_8);
-        }
-    }
-
-    private static void validateDomainAndIdentity(final String domain, final String identity) {
-        if (domain == null || !SIGNING_DOMAIN_PATTERN.matcher(domain).matches()) {
-            throw new IllegalArgumentException(domain + " is an invalid signing domain");
-        }
-        if (identity == null || (!endsWithIgnoreCase(identity, "@" + domain) && !endsWithIgnoreCase(identity, "." + domain))) {
-            throw new IllegalArgumentException("The domain part of " + identity + " isn't " + domain + " or a subdomain thereof");
-        }
-    }
-
-    private static boolean endsWithIgnoreCase(final String value, final String suffix) {
-        return value.regionMatches(true, value.length() - suffix.length(), suffix, 0, suffix.length());
-    }
-
-    private static PrivateKey readPrivateKey(final byte[] configuredBytes, final Algorithm algorithm) throws Exception {
+    private static PrivateKey readPrivateKey(final byte[] configuredBytes, final SigningAlgorithm algorithm) throws Exception {
         byte[] keyBytes = configuredBytes;
         final String possiblePem = new String(configuredBytes, StandardCharsets.US_ASCII);
         if (possiblePem.contains("-----BEGIN")) {
@@ -275,126 +86,13 @@ public final class DKIMSigner implements DKIMModule {
                     .replaceAll("-----END [^-]+-----", "")
                     .replaceAll("\\s", ""));
         }
-        final KeyFactory keyFactory = algorithm.ed25519
-                ? KeyFactory.getInstance(algorithm.keyFactoryName, BOUNCY_CASTLE_PROVIDER)
-                : KeyFactory.getInstance(algorithm.keyFactoryName);
+        final KeyFactory keyFactory = algorithm == SigningAlgorithm.SHA256_WITH_ED25519
+                ? KeyFactory.getInstance("Ed25519", BOUNCY_CASTLE_PROVIDER)
+                : KeyFactory.getInstance("RSA");
         return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
 
-    private static byte[] extractBody(final byte[] serialized) throws MessagingException {
-        for (int i = 0; i <= serialized.length - 4; i++) {
-            if (serialized[i] == '\r' && serialized[i + 1] == '\n'
-                    && serialized[i + 2] == '\r' && serialized[i + 3] == '\n') {
-                return Arrays.copyOfRange(serialized, i + 4, serialized.length);
-            }
-        }
-        throw new MessagingException("Finalized MIME message has no header/body separator");
-    }
-
-    private static byte[] normalizeCrLf(final byte[] bytes) throws IOException {
-        final ByteArrayOutputStream normalized = new ByteArrayOutputStream(bytes.length + 32);
-        int previous = -1;
-        for (byte currentByte : bytes) {
-            final int current = currentByte & 0xff;
-            if (current == '\r') {
-                normalized.write('\r');
-                normalized.write('\n');
-            } else if (current == '\n') {
-                if (previous != '\r') {
-                    normalized.write('\r');
-                    normalized.write('\n');
-                }
-            } else {
-                normalized.write(current);
-            }
-            previous = current;
-        }
-        return normalized.toByteArray();
-    }
-
-    private static String serializeTags(final Map<String, String> tags) {
-        int position = DKIM_SIGNATURE.length() + 2;
-        final StringBuilder builder = new StringBuilder();
-        for (Map.Entry<String, String> tag : tags.entrySet()) {
-            final String entry = tag.getKey() + "=" + tag.getValue() + ";";
-            final int separatorLength = builder.length() == 0 ? 0 : 1;
-            if ("h".equals(tag.getKey())) {
-                if (position + separatorLength + 2 + firstHeaderNameLength(tag.getValue()) + 1 > MAX_HEADER_LINE_LENGTH) {
-                    builder.append("\r\n\t");
-                    position = 1;
-                } else if (separatorLength > 0) {
-                    builder.append(' ');
-                    position++;
-                }
-                position = appendHeaderListTag(builder, tag.getValue(), position);
-            } else {
-                if (position + separatorLength + entry.length() > MAX_HEADER_LINE_LENGTH) {
-                    builder.append("\r\n\t");
-                    position = 1;
-                } else if (separatorLength > 0) {
-                    builder.append(' ');
-                    position++;
-                }
-                builder.append(entry);
-                position += entry.length();
-            }
-        }
-        return builder.append("\r\n\tb=").toString();
-    }
-
-    private static int appendHeaderListTag(final StringBuilder builder, final String value, int position) {
-        builder.append("h=");
-        position += 2;
-        final String[] headerNames = value.split(":");
-        for (int i = 0; i < headerNames.length; i++) {
-            final int separatorLength = i == 0 ? 0 : 1;
-            if (i > 0 && position + separatorLength + headerNames[i].length() + 1 > MAX_HEADER_LINE_LENGTH) {
-                builder.append(":\r\n\t");
-                position = 1;
-            } else if (i > 0) {
-                builder.append(':');
-                position++;
-            }
-            builder.append(headerNames[i]);
-            position += headerNames[i].length();
-        }
-        builder.append(';');
-        return position + 1;
-    }
-
-    private static int firstHeaderNameLength(final String value) {
-        final int separator = value.indexOf(':');
-        return separator >= 0 ? separator : value.length();
-    }
-
-    private static String fold(final String value, int offset) {
-        int position = 0;
-        final StringBuilder folded = new StringBuilder();
-        while (position < value.length()) {
-            final int available = offset > 0
-                    ? MAX_HEADER_LINE_LENGTH - 1 - offset
-                    : MAX_HEADER_LINE_LENGTH - 1;
-            final int end = Math.min(value.length(), position + available);
-            if (position > 0 || offset == 0) {
-                folded.append("\r\n\t");
-            }
-            folded.append(value, position, end);
-            position = end;
-            offset = 0;
-        }
-        return folded.toString();
-    }
-
-    private static String quotedPrintable(final String value) {
-        final StringBuilder encoded = new StringBuilder();
-        for (byte current : value.getBytes(StandardCharsets.UTF_8)) {
-            final int unsigned = current & 0xff;
-            if (unsigned >= 33 && unsigned <= 126 && unsigned != '=' && unsigned != ';') {
-                encoded.append((char) unsigned);
-            } else {
-                encoded.append('=').append(String.format("%02X", unsigned));
-            }
-        }
-        return encoded.toString();
+    private static Canonicalization canonicalization(final DkimConfig.Canonicalization configured) {
+        return configured == DkimConfig.Canonicalization.SIMPLE ? Canonicalization.SIMPLE : Canonicalization.RELAXED;
     }
 }

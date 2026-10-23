@@ -1,13 +1,11 @@
 package org.simplejavamail.internal.dkimsupport;
 
-import jakarta.mail.Header;
 import jakarta.mail.internet.MimeMessage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -15,21 +13,15 @@ import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.utils.mail.dkim.DomainKey;
 import org.simplejavamail.utils.mail.dkim.DomainKeyUtil;
 import testutil.ConfigLoaderTestHelper;
+import testutil.DkimDnsServer;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.Signature;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mockStatic;
 
 class DkimDomainCaseTest {
 
@@ -49,12 +41,11 @@ class DkimDomainCaseTest {
         final DkimConfig config = config(keyPair, domain);
         final Email email = email(sender, config);
 
-        try (MockedStatic<DomainKeyUtil> dns = mockStatic(DomainKeyUtil.class)) {
-            dns.when(() -> DomainKeyUtil.getDomainKey(domain, "mail")).thenReturn(domainKey);
+        try (DnsFixture dns = new DnsFixture(domainKey)) {
 
             final MimeMessage signed = EmailConverter.emailToMimeMessage(email);
 
-            dns.verify(() -> DomainKeyUtil.getDomainKey(domain, "mail"));
+            assertThat(dns.server.received("mail._domainkey." + domain)).isTrue();
             assertThat(email.getFromRecipient().getAddress()).isEqualTo(sender);
             assertThat(email.getDkimConfig().getDkimSigningDomain()).isEqualTo(domain);
             assertThat(signed.getHeader("From", null)).isEqualTo(sender);
@@ -69,10 +60,10 @@ class DkimDomainCaseTest {
     void rejectsUnrelatedAndLookalikeDomainsBeforeDns(final String sender) throws Exception {
         final Email email = email(sender, config(rsaKey(), "example.com"));
 
-        try (MockedStatic<DomainKeyUtil> dns = mockStatic(DomainKeyUtil.class)) {
+        try (DnsFixture dns = new DnsFixture(null)) {
             assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
                     .hasStackTraceContaining("isn't example.com or a subdomain thereof");
-            dns.verifyNoInteractions();
+            assertThat(dns.server.requestCount()).isZero();
         }
     }
 
@@ -82,12 +73,11 @@ class DkimDomainCaseTest {
         final DomainKey domainKey = domainKey(keyPair, "Sender");
         final Email email = email("sender@EXAMPLE.COM", config(keyPair, "example.com"));
 
-        try (MockedStatic<DomainKeyUtil> dns = mockStatic(DomainKeyUtil.class)) {
-            dns.when(() -> DomainKeyUtil.getDomainKey("example.com", "mail")).thenReturn(domainKey);
+        try (DnsFixture dns = new DnsFixture(domainKey)) {
 
             assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
                     .hasStackTraceContaining("Incompatible identity for granularity Sender");
-            dns.verify(() -> DomainKeyUtil.getDomainKey("example.com", "mail"));
+            assertThat(dns.server.received("mail._domainkey.example.com")).isTrue();
         }
     }
 
@@ -96,12 +86,11 @@ class DkimDomainCaseTest {
         final DomainKey domainKey = domainKey(rsaKey(), "Sender");
         final Email email = email("Sender@EXAMPLE.COM", config(rsaKey(), "example.com"));
 
-        try (MockedStatic<DomainKeyUtil> dns = mockStatic(DomainKeyUtil.class)) {
-            dns.when(() -> DomainKeyUtil.getDomainKey("example.com", "mail")).thenReturn(domainKey);
+        try (DnsFixture dns = new DnsFixture(domainKey)) {
 
             assertThatThrownBy(() -> EmailConverter.emailToMimeMessage(email))
                     .hasStackTraceContaining("Incompatible private and public key");
-            dns.verify(() -> DomainKeyUtil.getDomainKey("example.com", "mail"));
+            assertThat(dns.server.received("mail._domainkey.example.com")).isTrue();
         }
     }
 
@@ -115,10 +104,10 @@ class DkimDomainCaseTest {
                 .dkimSigningDomain(domain).dkimSelector("mail").signingAlgorithm("SHA256_WITH_ED25519").build();
         final Email email = email(sender, config);
 
-        try (MockedStatic<DomainKeyUtil> dns = mockStatic(DomainKeyUtil.class)) {
+        try (DnsFixture dns = new DnsFixture(null)) {
             final MimeMessage signed = EmailConverter.emailToMimeMessage(email);
 
-            dns.verifyNoInteractions();
+            assertThat(dns.server.requestCount()).isZero();
             assertThat(dkimTag(signed, "d")).isEqualTo(domain);
             assertThat(dkimTag(signed, "i")).isEqualTo(sender);
             assertThat(signed.getHeader("From", null)).isEqualTo(sender);
@@ -161,30 +150,28 @@ class DkimDomainCaseTest {
     }
 
     private static void assertValidSignature(final MimeMessage signed, final KeyPair keyPair, final boolean ed25519) throws Exception {
-        final List<Header> headers = new ArrayList<>();
-        final Enumeration<Header> allHeaders = signed.getAllHeaders();
-        while (allHeaders.hasMoreElements()) {
-            headers.add(allHeaders.nextElement());
-        }
-        Collections.reverse(headers);
-        final StringBuilder canonical = new StringBuilder();
-        for (String name : dkimTag(signed, "h").split(":")) {
-            final Header selected = headers.stream().filter(header -> name.equalsIgnoreCase(header.getName()))
-                    .findFirst().orElseThrow(() -> new AssertionError("Missing signed header " + name));
-            headers.remove(selected);
-            canonical.append(relaxedHeader(selected.getName(), selected.getValue())).append("\r\n");
-        }
-        canonical.append(relaxedHeader("DKIM-Signature", signed.getHeader("DKIM-Signature", null)
-                .replaceFirst("b=[^;]*$", "b=")));
-
-        final Signature verifier = ed25519
-                ? Signature.getInstance("Ed25519", new BouncyCastleProvider()) : Signature.getInstance("SHA256withRSA");
-        verifier.initVerify(keyPair.getPublic());
-        verifier.update(canonical.toString().getBytes(StandardCharsets.UTF_8));
-        assertThat(verifier.verify(Base64.getMimeDecoder().decode(dkimTag(signed, "b")))).isTrue();
+        SignatureAssertions.assertValidSignature(((FinalizedMimeMessage) signed).getSerializedBytes(), keyPair.getPublic());
     }
 
-    private static String relaxedHeader(final String name, final String value) {
-        return name.toLowerCase(Locale.ROOT) + ":" + value.replaceAll("[\\r\\n \\t]+", " ").trim();
+    private static final class DnsFixture implements AutoCloseable {
+        private final String previous = DomainKeyUtil.getDnsProviderUrl();
+        private final DkimDnsServer server;
+
+        private DnsFixture(final DomainKey key) throws Exception {
+            final StringBuilder record = new StringBuilder();
+            if (key == null) {
+                record.append("v=DKIM1; p=invalid");
+            } else {
+                key.getTags().forEach((name, value) -> record.append(name).append('=').append(value).append(';'));
+            }
+            server = new DkimDnsServer(record.toString());
+            DomainKeyUtil.setDnsProviderUrl(server.url());
+        }
+
+        @Override
+        public void close() throws Exception {
+            try { DomainKeyUtil.setDnsProviderUrl(previous); }
+            finally { server.close(); }
+        }
     }
 }

@@ -194,6 +194,16 @@
 								</configuration>
 							</execution>
 							<execution>
+								<id>dkim-provider-neutral-runtime-path</id>
+								<phase>prepare-package</phase>
+								<goals><goal>build-classpath</goal></goals>
+								<configuration>
+									<includeArtifactIds>core-module,dkim-module,utils-mail-dkim,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,bcpkix-jdk18on,bcprov-jdk18on,bcutil-jdk18on,utils-data-fetcher,annotations</includeArtifactIds>
+									<includeScope>compile</includeScope>
+									<outputFile>${project.build.directory}/dkim-provider-neutral-runtime-path.txt</outputFile>
+								</configuration>
+							</execution>
+							<execution>
 								<id>core-only-compile-path</id>
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
@@ -267,6 +277,33 @@
 										<java classname="org.simplejavamail.providerneutral.ProviderNeutralClasspathConsumer"
 											  fork="true" failonerror="true"
 											  classpath="${project.build.directory}/provider-neutral-classpath-classes${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${providerNeutralPath}" />
+										<!-- Exercise actual DKIM module loading and signing, with a test StreamProvider and no Angus. -->
+                                        <loadfile property="dkimNeutralPath" srcFile="${project.build.directory}/dkim-provider-neutral-runtime-path.txt" />
+                                        <mkdir dir="${project.build.directory}/dkim-neutral-classpath" />
+                                        <javac srcdir="${project.basedir}/src/test/provider-neutral-dkim"
+                                               destdir="${project.build.directory}/dkim-neutral-classpath"
+                                               classpath="${project.build.directory}/${project.build.finalName}.jar${path.separator}${dkimNeutralPath}"
+                                               excludes="module-info.java" sourcepath="" release="${library.java.release}" includeantruntime="false" encoding="UTF-8" />
+                                        <copy todir="${project.build.directory}/dkim-neutral-classpath/META-INF/services">
+                                            <fileset dir="${project.basedir}/src/test/provider-neutral-dkim/META-INF/services" />
+                                        </copy>
+                                        <java classname="org.simplejavamail.dkimprobe.DkimConsumer" fork="true" failonerror="true"
+                                              classpath="${project.build.directory}/dkim-neutral-classpath${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${dkimNeutralPath}" />
+                                        <mkdir dir="${project.build.directory}/dkim-neutral-jpms" />
+                                        <javac srcdir="${project.basedir}/src/test/provider-neutral-dkim"
+                                               destdir="${project.build.directory}/dkim-neutral-jpms"
+                                               modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${dkimNeutralPath}"
+                                               release="${library.java.release}" includeantruntime="false" encoding="UTF-8">
+                                            <compilerarg value="--patch-module" />
+                                            <compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
+                                        </javac>
+                                        <exec executable="${java.home}/bin/java" failonerror="true">
+                                            <arg value="--module-path" />
+                                            <arg path="${project.build.directory}/dkim-neutral-jpms${path.separator}${project.build.directory}/${project.build.finalName}.jar${path.separator}${dkimNeutralPath}" />
+                                            <arg value="--module" />
+                                            <arg value="org.simplejavamail.dkimprobe/org.simplejavamail.dkimprobe.DkimConsumer" />
+                                        </exec>
+
 										<!-- The same external adapter JAR must work through META-INF/services and JPMS provides, without Angus. -->
 										<mkdir dir="${project.build.directory}/third-party-probe-classes" />
 										<javac srcdir="${project.basedir}/src/test/third-party-probe"
