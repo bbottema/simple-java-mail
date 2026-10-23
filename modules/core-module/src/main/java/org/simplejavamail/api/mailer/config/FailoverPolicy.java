@@ -223,6 +223,7 @@ public class FailoverPolicy implements Serializable {
          * Additional connection attempts within that visit do not increase it again. The initial failed visit still
          * uses {@link #withPrimaryRecheckInterval(Duration)} before its first recheck.
          * The multiplier must exceed one and the maximum must cover the initial interval. Disabled by default.
+         * @throws NullPointerException If the cap is null; the previous choices remain unchanged.
          */
         @NotNull
         public Builder withPrimaryRecheckBackoff(final int primaryRecheckBackoffMultiplier,
@@ -231,8 +232,9 @@ public class FailoverPolicy implements Serializable {
                 throw new IllegalArgumentException("Increasing recheck backoff needs a multiplier greater than one; "
                         + "use resetPrimaryRecheckBackoff() for fixed intervals.");
             }
+            requireNonNull(primaryMaximumRecheckInterval, "primaryMaximumRecheckInterval");
             this.primaryRecheckBackoffMultiplier = primaryRecheckBackoffMultiplier;
-            this.primaryMaximumRecheckInterval = requireNonNull(primaryMaximumRecheckInterval, "primaryMaximumRecheckInterval");
+            this.primaryMaximumRecheckInterval = primaryMaximumRecheckInterval;
             return this;
         }
 

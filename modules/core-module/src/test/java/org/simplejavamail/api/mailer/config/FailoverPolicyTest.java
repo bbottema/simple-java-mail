@@ -10,9 +10,47 @@ import java.io.ObjectOutputStream;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FailoverPolicyTest {
+
+	@Test
+	void rejectedNullBackoffKeepsThePreviousScheduleAndOtherChoices() {
+		final FailoverPolicy.Builder builder = FailoverPolicy.builder().withPrimaryConnectionAttempts(3)
+				.withPrimaryConnectionRetryDelay(Duration.ofMillis(50)).withPrimaryRecheckInterval(Duration.ofSeconds(2))
+				.withPrimaryRecheckBackoff(2, Duration.ofMinutes(2)).withFailoverOnAuthenticationFailure(true)
+				.withFailoverOnCertificateVerificationFailure(true);
+		final FailoverPolicy original = builder.build();
+
+		assertThatNullPointerException().isThrownBy(() -> builder.withPrimaryRecheckBackoff(10, null))
+				.withMessage("primaryMaximumRecheckInterval");
+
+		assertThat(builder.getPrimaryRecheckBackoffMultiplier()).isEqualTo(2);
+		assertThat(builder.getPrimaryMaximumRecheckInterval()).isEqualTo(Duration.ofMinutes(2));
+		assertThat(builder.build()).isEqualTo(original);
+		assertThatThrownBy(() -> builder.withPrimaryRecheckBackoff(1, Duration.ofMinutes(10))).isInstanceOf(IllegalArgumentException.class);
+		assertThat(builder.build()).isEqualTo(original);
+		final FailoverPolicy replacement = builder.withPrimaryRecheckBackoff(3, Duration.ofMinutes(3)).build();
+		assertThat(replacement.getPrimaryRecheckBackoffMultiplier()).isEqualTo(3);
+		assertThat(replacement.getPrimaryMaximumRecheckInterval()).isEqualTo(Duration.ofMinutes(3));
+		assertThat(original.getPrimaryRecheckBackoffMultiplier()).isEqualTo(2);
+		assertThat(original.getPrimaryMaximumRecheckInterval()).isEqualTo(Duration.ofMinutes(2));
+	}
+
+	@Test
+	void rejectedNullBackoffKeepsTheDefaultAndResetCapsAbsentUntilBuilding() {
+		for (FailoverPolicy.Builder builder : new FailoverPolicy.Builder[]{
+				FailoverPolicy.builder(), FailoverPolicy.builder().resetPrimaryRecheckBackoff()}) {
+			final FailoverPolicy original = builder.build();
+
+			assertThatNullPointerException().isThrownBy(() -> builder.withPrimaryRecheckBackoff(10, null));
+
+			assertThat(builder.getPrimaryRecheckBackoffMultiplier()).isEqualTo(original.getPrimaryRecheckBackoffMultiplier());
+			assertThat(builder.getPrimaryMaximumRecheckInterval()).isNull();
+			assertThat(builder.build()).isEqualTo(original);
+		}
+	}
 
 	@Test
 	void policyDefaultsUseThePublishedMailerConstants() {
@@ -63,6 +101,9 @@ class FailoverPolicyTest {
 
 	@Test
 	void validatesCombinedSuppliedValuesAndRepresentableDurations() {
+		final FailoverPolicy.Builder unfinished = FailoverPolicy.builder().withPrimaryRecheckBackoff(2, Duration.ZERO);
+		assertThat(unfinished.getPrimaryMaximumRecheckInterval()).isEqualTo(Duration.ZERO);
+		assertThatThrownBy(unfinished::build).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> FailoverPolicy.builder().withPrimaryConnectionAttempts(0).build()).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> FailoverPolicy.builder().withPrimaryConnectionRetryDelay(Duration.ofNanos(-1)).build())
 				.isInstanceOf(IllegalArgumentException.class);
