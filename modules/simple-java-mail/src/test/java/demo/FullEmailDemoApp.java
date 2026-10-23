@@ -10,7 +10,6 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.api.SimpleJavaMail;
-import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.CalendarHelper;
 import testutil.ModuleLoaderTestHelper;
 
@@ -48,12 +47,14 @@ public class FullEmailDemoApp extends DemoAppBase {
 	static Email produceMixedRelatedAlternativeIncludingCalendarAndMessageParsingUsingVariousMailersEmail() throws IOException {
 		final String resourcesPathOnDisk = determineResourceFolder("simple-java-mail") + "/test/resources";
 
-		final EmailPopulatingBuilder emailPopulatingBuilderNormal = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+		final SimpleJavaMail sjm = SimpleJavaMail.fromDefaults();
+
+		final EmailPopulatingBuilder emailPopulatingBuilderNormal = sjm.emailBuilder().startingBlank()
 				.withImageResolutionConfig(ImageResolutionConfig.builder().withEmbeddedImageAutoResolutionForFiles(true).withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).build());
 
 		emailPopulatingBuilderNormal.from("Simple Java Mail demo", "simplejavamail@demo.app");
 		// don't forget to add your own address here ->
-		emailPopulatingBuilderNormal.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName("C.Cane").withAddress(YOUR_GMAIL_ADDRESS).withType(RecipientType.TO).build());
+		emailPopulatingBuilderNormal.withRecipients(sjm.recipientBuilder().withName("C.Cane").withAddress(YOUR_GMAIL_ADDRESS).withType(RecipientType.TO).build());
 		emailPopulatingBuilderNormal.withPlainText("Plain text content (ignored in favor of HTML by modern browsers)");
 		emailPopulatingBuilderNormal.withHTMLText("<p>This is an email with \"mixed\", \"related\" and \"alternative\" content: it contains a plain " +
 				"text part (ignored in favor of HTML by modern clients), an HTML content part (this HTML text) which references a related " +
