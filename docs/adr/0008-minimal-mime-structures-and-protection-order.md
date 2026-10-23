@@ -34,6 +34,16 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Locale-independent image metadata (accepted 23 October 2026)
+
+Guessing an embedded image's MIME type from its filename must not depend on the JVM's language or country. Interpret filename extensions
+and charset labels with locale-independent case conversion. This applies to classpath image resolution and to URL resolution when the
+connection supplies no content type. A content type reported by the connection remains authoritative.
+
+This corrects metadata classification without changing resource lookup, path case, names, content IDs, image bytes or content ownership.
+The existing disk mapping and explicitly supplied MIME types retain their behavior. No application setting or global locale change is
+introduced. [#860](https://github.com/bbottema/simple-java-mail/issues/860) tracks implementation and delivery for unreleased 10.0.0.
+
 ## Shared upstream DKIM engine (accepted 23 October 2026)
 
 The upstream DKIM library owns signing semantics; SJM owns MIME finalization, configuration translation and protection ordering.
