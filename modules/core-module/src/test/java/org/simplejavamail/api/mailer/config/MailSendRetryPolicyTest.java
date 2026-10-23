@@ -11,11 +11,48 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_WAITING_CAPACITY;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_MAXIMUM_MESSAGE_SIZE;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_RETRY_MEMORY_LIMIT;
 
 class MailSendRetryPolicyTest {
+    @Test void rejectedNullBackoffKeepsThePreviousScheduleAndResourceChoices() {
+        final MailSendRetryPolicy.Builder builder = MailSendRetryPolicy.builder().withMaximumAttempts(3)
+                .withRetryDelay(Duration.ofSeconds(2)).withRetryBackoff(2, Duration.ofMinutes(2)).withRetryJitter(0.2)
+                .withWaitingCapacity(7).withMaximumMessageSize(1024).withMemoryLimit(4096);
+        final MailSendRetryPolicy original = builder.build();
+
+        assertThatNullPointerException().isThrownBy(() -> builder.withRetryBackoff(10, null)).withMessage("maximumDelay");
+
+        assertThat(builder.getRetryBackoffMultiplier()).isEqualTo(2);
+        assertThat(builder.getMaximumRetryDelay()).isEqualTo(Duration.ofMinutes(2));
+        assertThat(builder.build()).isEqualTo(original);
+        assertThatIllegalArgumentException().isThrownBy(() -> builder.withRetryBackoff(1, Duration.ofMinutes(10)));
+        assertThat(builder.build()).isEqualTo(original);
+        final MailSendRetryPolicy replacement = builder.withRetryBackoff(3, Duration.ofMinutes(3)).build();
+        assertThat(replacement.getRetryBackoffMultiplier()).isEqualTo(3);
+        assertThat(replacement.getMaximumRetryDelay()).isEqualTo(Duration.ofMinutes(3));
+        assertThat(replacement.isMaximumRetryDelayCleared()).isFalse();
+        assertThat(original.getRetryBackoffMultiplier()).isEqualTo(2);
+        assertThat(original.getMaximumRetryDelay()).isEqualTo(Duration.ofMinutes(2));
+    }
+
+    @Test void rejectedNullBackoffKeepsOmittedAndExplicitlyClearedChoicesDistinct() {
+        for (MailSendRetryPolicy.Builder builder : new MailSendRetryPolicy.Builder[]{
+                MailSendRetryPolicy.builder(), MailSendRetryPolicy.builder().resetRetryBackoff(),
+                MailSendRetryPolicy.builder().clearRetrySchedule()}) {
+            final MailSendRetryPolicy original = builder.build();
+
+            assertThatNullPointerException().isThrownBy(() -> builder.withRetryBackoff(10, null));
+
+            assertThat(builder.getRetryBackoffMultiplier()).isEqualTo(original.getRetryBackoffMultiplier());
+            assertThat(builder.getMaximumRetryDelay()).isNull();
+            assertThat(builder.build()).isEqualTo(original);
+            assertThat(builder.build().isMaximumRetryDelayCleared()).isEqualTo(original.isMaximumRetryDelayCleared());
+        }
+    }
+
     @Test void omittedChoicesStayAbsentAndExplicitResetsUsePublishedMailerConstants() {
         final MailSendRetryPolicy.Builder builder = MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(2));
         final MailSendRetryPolicy omitted = builder.build();
@@ -65,6 +102,9 @@ class MailSendRetryPolicyTest {
     }
 
     @Test void validatesSuppliedAndSerializedInvariants() throws Exception {
+        final MailSendRetryPolicy.Builder unfinished = MailSendRetryPolicy.builder().withRetryBackoff(2, Duration.ZERO);
+        assertThat(unfinished.getMaximumRetryDelay()).isEqualTo(Duration.ZERO);
+        assertThatIllegalArgumentException().isThrownBy(unfinished::build);
         assertThatIllegalArgumentException().isThrownBy(() -> suppliedPolicy(1, Duration.ofSeconds(1), 1, null, 0));
         assertThatIllegalArgumentException().isThrownBy(() -> suppliedPolicy(2, Duration.ZERO, 1, null, 0));
         assertThatIllegalArgumentException().isThrownBy(() -> suppliedPolicy(2, Duration.ofSeconds(Long.MAX_VALUE), 1, null, 0));

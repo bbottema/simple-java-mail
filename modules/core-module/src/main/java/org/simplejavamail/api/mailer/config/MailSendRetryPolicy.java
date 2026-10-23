@@ -335,14 +335,16 @@ public class MailSendRetryPolicy implements Serializable {
          * A multiplier of two with a thirty-second initial delay gives thirty, sixty, then 120 seconds before jitter and the cap.
          * @param multiplier Integer greater than one.
          * @param maximumDelay Positive cap at least as long as the initial delay; jitter cannot exceed it.
+         * @throws NullPointerException If the cap is null; the previous choices remain unchanged.
          */
         @NotNull
         public Builder withRetryBackoff(final int multiplier, @NotNull final Duration maximumDelay) {
             if (multiplier <= 1) {
                 throw new IllegalArgumentException("Choose a retry backoff multiplier greater than one, or use resetRetryBackoff() for fixed delays.");
             }
+            requireNonNull(maximumDelay, "maximumDelay");
             retryBackoffMultiplier = multiplier;
-            maximumRetryDelay = requireNonNull(maximumDelay, "maximumDelay");
+            maximumRetryDelay = maximumDelay;
             maximumRetryDelayCleared = false;
             return this;
         }

@@ -19,6 +19,15 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Paired backoff choices (accepted 23 October 2026)
+
+The required-input rule also applies to retry and failover backoff setters: reject a missing maximum duration before replacing either
+the multiplier or its cap. Rejected input preserves omitted choices, explicit removal markers and previously built policies as well as
+an existing configured schedule. The named reset operations retain their fixed-delay meaning; accepting non-null choices does not move
+duration or cross-field validation out of the existing construction boundary. This aligns the policies in [ADR 0029](0029-smtp-submission-failover.md)
+and [ADR 0030](0030-safe-bounded-mail-send-retries.md) with the same required-input contract. [#859](https://github.com/bbottema/simple-java-mail/issues/859)
+tracks this correction for unreleased 10.0.0.
+
 ### Required material inside S/MIME configuration builders (accepted 22 October 2026)
 
 The same required-input rule applies to `SmimeSigningConfigBuilder.pkcs12Config(Pkcs12Config)` and
