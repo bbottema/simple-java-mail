@@ -8,6 +8,7 @@ import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.InternetAddress;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -18,6 +19,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.config.ConfigurationLocks;
+import org.simplejavamail.recipient.internal.MailboxInterpretation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +55,10 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TO_NAME;
  * Recipient locks add required destinations; locks on single-value settings reject conflicting input instead of silently replacing it.
  */
 final class LockedEmailConfiguration {
+
+	private static final String CONFLICTING_EMAIL_VALUE =
+			"The Email, a recipient, or a defaults/overrides template supplies a value that differs from this factory's locked setting. "
+					+ "Remove the conflicting field so the lock can supply it, use the locked value, or change this lock in its configuration source.";
 
 	// Several operational settings also use "defaults.". Only these defaults describe message content or its envelope.
 	private static final Set<Property> MESSAGE_DEFAULTS = Set.of(DEFAULT_SUBJECT, DEFAULT_CONTENT_TRANSFER_ENCODING,
@@ -94,11 +100,21 @@ final class LockedEmailConfiguration {
 		for (Property property : MESSAGE_DEFAULTS) {
 			if (property != DEFAULT_TO_ADDRESS && property != DEFAULT_CC_ADDRESS && property != DEFAULT_BCC_ADDRESS
 					&& locksOf(first).contains(property) && locksOf(second).contains(property)
-					&& !Objects.deepEquals(first.asMap().get(property), second.asMap().get(property))) {
+					&& !Objects.deepEquals(lockComparisonValue(first, property), lockComparisonValue(second, property))) {
 				throw locksOf(second).conflict(property, "Another Mailer on this failover route fixes a different value for the same message setting. "
 						+ "Mandatory message settings remain in force through failover. Ask the configuration owner to make these route definitions compatible.");
 			}
 		}
+	}
+
+	/** Sender address locks constrain the interpreted mailbox address, independently of its ordinary display-name default. */
+	private static Object lockComparisonValue(final SimpleJavaMailConfig config, final Property property) {
+		final Object value = config.asMap().get(property);
+		if (property == DEFAULT_FROM_ADDRESS || property == DEFAULT_BOUNCETO_ADDRESS) {
+			final InternetAddress mailbox = MailboxInterpretation.singleMailbox((String) value);
+			return mailbox != null ? mailbox.getAddress() : value;
+		}
+		return value;
 	}
 
 	LockedEmailConfiguration(final SimpleJavaMailConfig config, final Email configuredDefaults) {
@@ -179,15 +195,16 @@ final class LockedEmailConfiguration {
 
 	private void verifySender(@Nullable final Recipient recipient, final Property address, final Property name) {
 		if (recipient != null) {
-			verifyIfPresent(address, recipient.getAddress());
+			if (locks.contains(address) && !Objects.equals(lockedSenderAddress(address), recipient.getAddress())) {
+				throw locks.conflict(address, CONFLICTING_EMAIL_VALUE);
+			}
 			verifyIfPresent(name, recipient.getName());
 		}
 	}
 
 	private void verifyIfPresent(final Property property, @Nullable final Object value) {
 		if (value != null) {
-			locks.verify(property, value, "The Email, a recipient, or a defaults/overrides template supplies a value that differs from this factory's locked setting. "
-					+ "Remove the conflicting field so the lock can supply it, use the locked value, or change this lock in its configuration source.");
+			locks.verify(property, value, CONFLICTING_EMAIL_VALUE);
 		}
 	}
 
@@ -250,13 +267,19 @@ final class LockedEmailConfiguration {
 	}
 
 	private Recipient lockedSender(@Nullable final Recipient supplied, final Property address, final Property name) {
-		final String resolvedAddress = locks.contains(address) ? String.class.cast(config.asMap().get(address)) : supplied == null ? null : supplied.getAddress();
+		final String resolvedAddress = locks.contains(address) ? lockedSenderAddress(address) : supplied == null ? null : supplied.getAddress();
 		final String resolvedName = locks.contains(name) ? String.class.cast(config.asMap().get(name)) : supplied == null ? null : supplied.getName();
 		if (resolvedAddress == null) {
 			throw locks.conflict(name, "This lock supplies a display name, but no corresponding email address was provided for " + address.key() + ". "
 					+ "A name alone cannot identify a mailbox. Supply the address on the Email or in the configuration, or remove the display-name lock.");
 		}
 		return new Recipient(resolvedName, resolvedAddress, null, null);
+	}
+
+	/** Reuse the normal singular From/bounce interpretation already applied when constructing the configured template. */
+	private String lockedSenderAddress(final Property address) {
+		final Recipient configured = address == DEFAULT_FROM_ADDRESS ? configuredDefaults.getFromRecipient() : configuredDefaults.getBounceToRecipient();
+		return Objects.requireNonNull(configured, "Locked sender has no configured mailbox").getAddress();
 	}
 
 	private void applyRecipients(final EmailPopulatingBuilder target) {
@@ -375,7 +398,7 @@ final class LockedEmailConfiguration {
 			return Objects.equals(config.get(ConfigKeys.DEFAULT_SUBJECT), email.getSubject());
 		}
 		if (key.equals(DEFAULT_FROM_ADDRESS.key())) {
-			return email.getFromRecipient() != null && Objects.equals(config.get(ConfigKeys.DEFAULT_FROM_ADDRESS), email.getFromRecipient().getAddress());
+			return email.getFromRecipient() != null && Objects.equals(lockedSenderAddress(DEFAULT_FROM_ADDRESS), email.getFromRecipient().getAddress());
 		}
 		if (key.equals(DEFAULT_FROM_NAME.key())) {
 			return email.getFromRecipient() != null && Objects.equals(config.get(ConfigKeys.DEFAULT_FROM_NAME), email.getFromRecipient().getName());
