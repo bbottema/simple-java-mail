@@ -166,6 +166,10 @@ public interface EmailPopulatingBuilder {
 	 * This build checks the stored email and recipient choices for conflicting S/MIME and OpenPGP requests before resolving dynamic images.
 	 * The check does not load optional protection modules, validate cryptographic material or read message/attachment content.
 	 * Defaults, overrides and mandatory locks are checked again when completion resolves their effective choices, before MIME protection.
+	 * <p>
+	 * Automatic image resolution applies its generated images and rewritten HTML together after the resolution pass succeeds.
+	 * If a required image cannot be resolved, this builder retains its previous HTML and embedded images for correction and retry.
+	 * This does not roll back external reads or failures after the resolution pass.
 	 *
 	 * @throws IllegalArgumentException If S/MIME signing or encryption is requested at email level or by a To/Cc/Bcc recipient certificate,
 	 *                                 and OpenPGP signing or encryption is also configured. The error identifies the conflicting choices.

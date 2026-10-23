@@ -359,6 +359,8 @@ public class ImageResolutionConfig implements Serializable {
          * <p>
          * Not using this option effectively means a more lenient approach to image sources.
          * References blocked by a configured base boundary count as unresolved.
+         * If required resolution fails, the Email builder retains its HTML and embedded images from before that resolution pass.
+         * Correcting the source or HTML and building again does not retain unused images from the failed pass.
          * <p>
          * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
          * when viewing the email in some client (e.g. relative url's).

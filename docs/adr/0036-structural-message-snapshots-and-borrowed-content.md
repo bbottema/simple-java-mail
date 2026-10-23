@@ -113,6 +113,18 @@ defines their common present-empty meaning at ordinary validation/rendering boun
 interpretation does not mutate the Email or change exact/protected-byte preservation. The clarification is accepted under
 [#848](https://github.com/bbottema/simple-java-mail/issues/848) for unreleased 10.0.0; its issue tracks implementation and delivery.
 
+### Failed automatic-image resolution (accepted 23 October 2026)
+
+An automatic-image resolution pass applies its generated resources and rewritten HTML together after the pass succeeds. If a required
+source cannot be resolved, retain the builder's previous HTML and image resources so retrying an unchanged or corrected draft does not
+accumulate unused generated images. Preserve explicitly supplied resources and their intentional occurrences.
+
+Keep successful-build behavior, source-resolution order and settings, strict versus optional resolution, validation and lock ordering,
+Content-IDs and source ownership. This is not a general promise to roll back every later Email construction failure or undo external I/O;
+it does not introduce resource deduplication or change the separate template-completion contract in [ADR 0037](0037-repeatable-email-completion.md).
+The decision was accepted under [#858](https://github.com/bbottema/simple-java-mail/issues/858) for unreleased 10.0.0. The correction is
+implemented; the issue tracks delivery. Public methods remain unchanged.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

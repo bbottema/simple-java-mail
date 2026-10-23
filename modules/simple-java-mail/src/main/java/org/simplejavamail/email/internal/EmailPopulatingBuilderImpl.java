@@ -608,6 +608,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	private void resolveDynamicEmbeddedImageDataSources() {
 		if (this.textHTML != null) {
 			final Map<String, String> generatedCids = new HashMap<>();
+			final List<AttachmentResource> resolvedImages = new ArrayList<>();
 			final StringBuffer stringBuffer = new StringBuffer();
 
 			final Matcher matcher = IMG_SRC_PATTERN.matcher(this.textHTML);
@@ -619,7 +620,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 						if (dataSource != null) {
 							final String cid = randomCid10();
 							generatedCids.put(srcLocation, cid);
-							withEmbeddedImage(cid, new NamedDataSource(cid, dataSource));
+							resolvedImages.add(AttachmentResource.builder().withName(cid)
+									.withDataSource(new NamedDataSource(cid, dataSource)).build());
 						}
 					}
 					if (generatedCids.containsKey(srcLocation)) {
@@ -630,6 +632,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			}
 			matcher.appendTail(stringBuffer);
 
+			// A later required source can fail; apply the images and HTML only after the complete pass succeeds.
+			this.embeddedImages.addAll(resolvedImages);
 			this.textHTML = stringBuffer.toString();
 		}
 	}

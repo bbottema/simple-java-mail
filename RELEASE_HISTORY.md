@@ -113,6 +113,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#858](https://github.com/bbottema/simple-java-mail/issues/858): failed required automatic-image resolution retains the builder's previous
+  HTML and embedded images. Correcting the draft or supplying the missing source and building again no longer retains unused generated images.
+
 - [#855](https://github.com/bbottema/simple-java-mail/issues/855): DKIM signing delegates to `utils-mail-dkim` 3.4.0, correcting Ed25519-SHA256 signatures while retaining `signWithDomainKey(DkimConfig)`, relaxed/relaxed defaults and the Angus-free MIME boundary. The shared engine signs the final protected bytes after S/MIME or OpenPGP.
 - [#857](https://github.com/bbottema/simple-java-mail/issues/857): imported referenced inline images retain their description and recognized
   transfer encoding through eager/lazy extraction, copying, serialization and subsequent export. Content remains decoded; resource classification,
