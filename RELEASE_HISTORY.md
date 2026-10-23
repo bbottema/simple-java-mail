@@ -113,6 +113,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#859](https://github.com/bbottema/simple-java-mail/issues/859): rejected retry and failover backoff replacements retain the previous multiplier,
+  maximum duration and supplied choices when the required cap is null.
+- [#860](https://github.com/bbottema/simple-java-mail/issues/860): automatic classpath image MIME guessing and URL type fallback use locale-independent
+  case conversion, preserving image types under Turkish JVM locales without changing resource paths, bytes or supplied content types.
 - [#858](https://github.com/bbottema/simple-java-mail/issues/858): failed required automatic-image resolution retains the builder's previous
   HTML and embedded images. Correcting the draft or supplying the missing source and building again no longer retains unused generated images.
 
