@@ -54,6 +54,8 @@ class OutlookSmimeDecryptionStatusTest {
 
 		assertThat(details.getSmimeMode()).isEqualTo(ENCRYPTED);
 		assertThat(details.getDecryptionStatus()).isEqualTo(KEY_MISSING);
+		assertThat(details.getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
+		assertThat(details.getSmimeSignatureValid()).isNull();
 		assertThat(details.getFailureReason()).contains("key");
 		assertThat(outlook.getAttachments()).extracting("name").contains("smime.p7m");
 	}

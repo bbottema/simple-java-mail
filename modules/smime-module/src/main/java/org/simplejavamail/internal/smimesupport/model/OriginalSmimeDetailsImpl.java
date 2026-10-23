@@ -68,7 +68,8 @@ public class OriginalSmimeDetailsImpl implements OriginalSmimeDetails {
 	}
 
 	private VerificationStatus unrecordedVerificationStatus() {
-		return smimeSignatureValid == null && (smimeMode == SmimeMode.SIGNED || smimeMode == SmimeMode.SIGNED_ENCRYPTED || smimeMode == SmimeMode.UNKNOWN)
+		return smimeSignatureValid == null && (smimeMode == SmimeMode.SIGNED || smimeMode == SmimeMode.ENCRYPTED
+				|| smimeMode == SmimeMode.SIGNED_ENCRYPTED || smimeMode == SmimeMode.UNKNOWN)
 				? VerificationStatus.UNKNOWN : VerificationStatus.NOT_SIGNED;
 	}
 

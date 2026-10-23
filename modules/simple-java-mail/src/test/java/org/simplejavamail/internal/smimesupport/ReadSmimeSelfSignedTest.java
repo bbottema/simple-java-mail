@@ -149,6 +149,8 @@ public class ReadSmimeSelfSignedTest {
 		final Email email = EmailConverter.emlToEmail(source);
 
 		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
+		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
+		assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isNull();
 		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("No PKCS12 decryption key");
 		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(readFile(source));
 		assertThat(email.getAttachments()).extracting("name").contains("smime.p7m");
