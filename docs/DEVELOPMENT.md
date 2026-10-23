@@ -138,7 +138,7 @@ The build/runtime path is:
 2. [CliSupport](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java) uses `CliBuilderApi.roots()` for the public bootstrap contracts and internal scalar adapters, including the regular-Mailer and exact-Email scopes.
 3. [BuilderApiToPicocliCommandsMapper](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java) walks public methods on `@Cli.BuilderApiNode` types, skips bean accessors and excluded/incompatible methods, and builds Picocli options with registered string converters.
 4. [TherapiJavadocHelper](../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/therapijavadoc/TherapiJavadocHelper.java) resolves method/parameter documentation; `JavadocForCliFormatter` formats it for terminal help.
-5. Kryo serializes the option model to `modules/cli-module/src/main/resources/cli.data`; resolved Javadoc lookups are cached in `modules/cli-module/src/main/resources/therapi.data`.
+5. Kryo serializes the option model to `modules/cli-module/src/main/resources/cli.data`; resolved Javadoc lookups use the separate versioned `JavadocCacheSerialization` codec in `modules/cli-module/src/main/resources/therapi.data`. Both retain the source-API fingerprint and integrity envelope. Legacy, corrupt or unreadable optional Javadoc caches fall back to embedded Javadocs.
 
 Regenerate both committed files on JDK 17 or the current release JDK:
 

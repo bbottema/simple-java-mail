@@ -6,7 +6,7 @@
     <groupId>org.simplejavamail</groupId>
     <artifactId>maven-master-project</artifactId>
     <packaging>pom</packaging>
-    <version>9.3.6</version>
+    <version>9.3.8</version>
     <inceptionYear>2009</inceptionYear>
 
     <name>Simple Java Mail - Maven master project</name>
@@ -286,7 +286,7 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.19</version>
+                <version>2.0.20</version>
             </dependency>
             <!-- log4j-slf4j2-impl is the SLF4J 2.x bridge; log4j-slf4j-impl only works with SLF4J 1.x -->
             <dependency>
@@ -315,7 +315,7 @@
             <dependency><!-- Gives us SpotBugs suppression annotations. -->
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
-                <version>4.10.4</version>
+                <version>4.10.5</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -447,7 +447,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.11.0</version>
+                <version>0.12.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
