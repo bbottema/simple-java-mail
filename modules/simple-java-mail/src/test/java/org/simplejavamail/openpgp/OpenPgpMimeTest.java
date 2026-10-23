@@ -658,7 +658,8 @@ class OpenPgpMimeTest {
     void dkimOpenPgpAndDeliveryMetadataComposeWithoutSubtypeMatrix() throws Exception {
         final KeyPairGenerator dkimKeyGenerator = KeyPairGenerator.getInstance("RSA");
         dkimKeyGenerator.initialize(1024);
-        final byte[] dkimKey = dkimKeyGenerator.generateKeyPair().getPrivate().getEncoded();
+        final KeyPair dkimPair = dkimKeyGenerator.generateKeyPair();
+        final byte[] dkimKey = dkimPair.getPrivate().getEncoded();
         final Email email = basicEmail("composed")
                 .from("sender@supersecret-testing-domain.com")
                 .withBounceTo("bounce@example.com")
@@ -681,6 +682,8 @@ class OpenPgpMimeTest {
         assertThat(prepared.getDeliveryEnvelope().getDeliveryStatusNotification().getReturnOption())
                 .isEqualTo(HEADERS_ONLY);
         assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+        testutil.DkimSubmissionAssertions.assertPreserved(prepared, mailer.getSession(), dkimPair.getPublic());
+        mailer.close();
     }
 
     @Test

@@ -34,6 +34,26 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Shared upstream DKIM engine (accepted 23 October 2026)
+
+The upstream DKIM library owns signing semantics; SJM owns MIME finalization, configuration translation and protection ordering.
+Future DKIM algorithm support, canonicalization corrections and signing fixes belong in that shared engine. SJM consumes the finalized-byte
+entry point without acquiring Angus linkage or allowing a signing wrapper to reconstruct protected MIME. Its Angus submission adapter remains
+a separate transport concern under [ADR 0007](0007-provider-neutral-mime-boundary.md).
+
+Preserve upstream's existing callers through an additive capability, including public/protected contracts, wrapper inheritance, subclass hooks,
+Java 8, defaults and dependency transitivity. SJM explicitly maps its existing choices and keeps its application API. The new route must not
+register cryptographic providers globally, including during DNS-key handling. A published upstream capability precedes SJM's declared dependency.
+
+This supersedes provisional retention of SJM's local engine, which followed the August 2026 MIME refactor and maintainer-approved triage.
+The later Ed25519 prehash correction reached upstream while SJM's separate implementation diverged. Sharing ownership prevents that split from
+recurring while retaining the finalized-content boundary. This does not rewrite the earlier approval or change the separate S/MIME helper contract.
+
+The maintainer accepted this direction on 23 October 2026, conditional on backwards compatibility and signing without Angus. Implementation and
+delivery are tracked in [SJM #855](https://github.com/bbottema/simple-java-mail/issues/855) and
+[upstream #28](https://github.com/simple-java-mail/java-utils-mail-dkim/issues/28). Concrete public API and execution details belong in the feature
+design and active plan, rather than this ownership decision.
+
 ## Protecting an existing MIME message (accepted 22 October 2026)
 
 The supported `MailerHelper.signAndOrEncryptMessageWithSmime(Session, MimeMessage, Email)` utility protects the supplied MIME message,

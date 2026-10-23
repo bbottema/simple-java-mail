@@ -40,6 +40,6 @@ public class DemoAppBase {
 				.withSMTPServerPassword(gMailPassword)
 				.withTransportStrategy(strategy)
 				.withTransportModeLoggingOnly(LOGGING_MODE)
-				.clearProxy();
+				.withProxyConfig(org.simplejavamail.api.mailer.config.SocksProxyConfig.builder().clearProxy().build());
 	}
 }

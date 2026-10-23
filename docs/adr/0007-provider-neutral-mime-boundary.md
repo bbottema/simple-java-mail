@@ -5,6 +5,8 @@
 - Applies to: Unreleased 10.0.0 MIME, cryptography, conversion, and transport integration
 - Implementation status: Implemented; Angus is the bundled adapter, with explicit third-party extension boundaries
 
+- DKIM engine ownership: [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#shared-upstream-dkim-engine-accepted-23-october-2026), accepted 2026-10-23; [#855](https://github.com/bbottema/simple-java-mail/issues/855) tracks implementation and delivery.
+
 ## Context
 
 OpenPGP/MIME needs signatures over exact serialized MIME entities while retaining normal Mailer governance, proxying, pooling, and receipts. The existing combination of provider-specific message subclasses and security wrappers made it difficult to distinguish MIME content from SMTP envelope behavior and to know when another serialization could invalidate a signature.

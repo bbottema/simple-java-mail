@@ -55,10 +55,28 @@ class DkimWireSignerTest {
 
     @Test
     void hashesNonAsciiBodiesAfterRelaxedCanonicalization() throws Exception {
-        final MimeMessage signed = sign(rawMessage("héllo \t\r\nsecond  line\t\r\n\r\n"), rsaKey(), "SHA256_WITH_RSA");
+        final MimeMessage signed = sign(rawMessage("h\u00e9llo \t\r\nsecond  line\t\r\n\r\n"), rsaKey(), "SHA256_WITH_RSA");
 
         assertThat(bodyHash(unfoldedDkimHeader(signed)))
                 .isEqualTo("wvAVfnfxoXRVE4yjfVkOzIYPyQ925aDc5t9tYnJySXM=");
+    }
+
+    @Test
+    void ed25519SignatureVerifiesAgainstTheEmittedBytes() throws Exception {
+        final KeyPair key = ed25519Key();
+        final FinalizedMimeMessage signed = (FinalizedMimeMessage) sign(rawMessage("body\r\n"), key, "SHA256_WITH_ED25519");
+        SignatureAssertions.assertValidSignature(signed.getSerializedBytes(), key.getPublic());
+    }
+
+    @Test
+    void rsaSignatureVerifiesAndChangedContentIsRejected() throws Exception {
+        final KeyPair key = rsaKey();
+        final FinalizedMimeMessage signed = (FinalizedMimeMessage) sign(rawMessage("body\r\n"), key, "SHA256_WITH_RSA");
+        SignatureAssertions.assertValidSignature(signed.getSerializedBytes(), key.getPublic());
+        final byte[] tampered = signed.getSerializedBytes();
+        tampered[tampered.length - 3] ^= 1;
+        org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class,
+                () -> SignatureAssertions.assertValidSignature(tampered, key.getPublic()));
     }
 
     private static MimeMessage sign(final String rawMessage, final KeyPair keyPair, final String algorithm) throws Exception {
