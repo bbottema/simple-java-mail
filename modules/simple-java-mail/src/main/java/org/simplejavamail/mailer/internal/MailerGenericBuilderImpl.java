@@ -881,6 +881,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		if (!valueNullOrEmpty(smtpClientHostname)) {
 			choices.put(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
 		}
+		// An explicit removal must also replace an unlocked additional Jakarta Mail property on an owned Session.
+		for (final Property property : List.of(Property.SMTP_LOCAL_ADDRESS, Property.SMTP_LOCAL_PORT, Property.SMTP_CLIENT_HOSTNAME)) {
+			if (explicitSessionSettings.containsKey(property) && explicitSessionSettings.get(property) == null) {
+				choices.put(property, null);
+			}
+		}
 		return choices;
 	}
 
