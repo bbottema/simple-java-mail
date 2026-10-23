@@ -164,3 +164,10 @@ The shared infographic's resource layers and ownership remain accurate; #750 add
 | [MailSendTest](../../modules/core-module/src/test/java/org/simplejavamail/api/mailer/MailSendTest.java) — `completionViewsCannotCompleteOrCancelTheOperation`, `cancellationIsAOneShotRequestAndDoesNotResolveTheResult` | Mutating a detached view leaves real work/result untouched; requesting cancellation does not itself settle completion. |
 
 These tests exercise controlled examples, not every CAS interleaving. There is no dedicated barrier-controlled test here forcing the worker to win during `ADMITTING`; that edge is documented from `schedule()` and `run()`. An arbitrary non-cooperative executor or application action can delay completion indefinitely. These diagrams are a map for reviewing those boundaries, not a deadlock proof.
+
+
+## Local preparation and provider entry
+
+Acquiring a connection does not mean provider submission has begun. Local MIME/envelope preparation can still reject a mismatch between final recipient occurrences and typed recipient policies. Under [ADR 0011](../adr/0011-transport-neutral-submission-outcomes.md#local-preparation-before-provider-entry-accepted-23-october-2026), that boundary reports PREPARATION without a receipt consistently through ordinary/retry completion and terminal observation. Genuine provider compatibility results and submission/cleanup receipts retain their separate facts.
+
+This refines classification inside the existing operation and resource owners; it adds no admission, cancellation or lifecycle state. Preserve formerly healthy local-compatibility lease reuse only with evidence that the failure originated before provider entry. A provider/application exception after entry cannot qualify merely by carrying a preparation kind or compatibility cause. [#865](https://github.com/bbottema/simple-java-mail/issues/865) owns the correction.

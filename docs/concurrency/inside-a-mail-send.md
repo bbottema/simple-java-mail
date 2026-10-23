@@ -153,3 +153,8 @@ Reviewed for #756: the five resource layers still apply. Retry coordination adds
 Reviewed for #762: the optional integration observes existing operation, submission and terminal boundaries. SDK resources stay application-owned;
 context scopes are local to execution turns and do not add another worker, connection, lock owner or state machine. The overview remains accurate.
 See [telemetry concurrency](13-mail-send-telemetry.md) for scope retirement, retry suspension and independent observer delivery. No image changes.
+
+
+## Local preparation and submission facts
+
+The [local preparation boundary](01-send-operation.md#local-preparation-and-provider-entry) remains inside the existing Mailer/execution/transport resource layers. A connected socket alone supplies no submission facts; a local MIME/envelope mismatch completes as PREPARATION with no receipt. The shared responsibility overview and artwork keep the same owners and layer relationships. Use the operation guide and ADR 0011 for classification and narrow lease-health provenance under [#865](https://github.com/bbottema/simple-java-mail/issues/865); no new resource owner or graphical layer follows.
