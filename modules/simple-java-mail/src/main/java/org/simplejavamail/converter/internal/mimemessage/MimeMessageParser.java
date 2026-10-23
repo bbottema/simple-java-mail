@@ -566,9 +566,22 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseContentTransferEncoding(@NotNull final MimePart mimePart) {
 		try {
-			return ofNullable(mimePart.getHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), ","))
-					.map(MimeMessageParser::decodeText)
-					.orElse(null);
+			final String header = mimePart.getHeader(MessageHeader.CONTENT_TRANSFER_ENCODING.getName(), ",");
+			if (header == null) {
+				return null;
+			}
+			final String encoding = decodeText(header);
+			try {
+				// Jakarta Mail owns comment/escape/folding grammar. Unlike getEncoding(), require one unambiguous token.
+				final HeaderTokenizer tokenizer = new HeaderTokenizer(encoding, HeaderTokenizer.MIME);
+				final HeaderTokenizer.Token token = tokenizer.next();
+				if (token.getType() == HeaderTokenizer.Token.ATOM && tokenizer.next().getType() == HeaderTokenizer.Token.EOF) {
+					return token.getValue();
+				}
+			} catch (final ParseException e) {
+				// Keep malformed input on the existing strict mapping path instead of recovering a partial encoding.
+			}
+			return encoding;
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_TRANSFER_ENCODING, e);
 		}

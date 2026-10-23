@@ -84,6 +84,11 @@ accepted on 23 October 2026 under [#854](https://github.com/bbottema/simple-java
 results while leaving an uninspected inner signature unknown. Successful decryption retains its established fact through later verification
 errors. Implemented under #854 for unreleased 10.0.0.
 
+The [MIME transfer-encoding comment clarification](0035-tolerant-reading-and-strict-production.md#mime-transfer-encoding-comments-accepted-23-october-2026),
+accepted on 23 October 2026 under [#856](https://github.com/bbottema/simple-java-mail/issues/856), delegates valid comments to Jakarta Mail
+before typed encoding interpretation while retaining existing failure and authoritative-byte boundaries. It targets unreleased 10.0.0;
+the issue records delivery of the implementation.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

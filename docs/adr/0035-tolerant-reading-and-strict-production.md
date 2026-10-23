@@ -149,6 +149,20 @@ remain distinct stored choices even when they render alike. Preserve stored whit
 bypasses header-name injection checks. Exact and protected source bytes retain their separate preservation boundaries. This clarification is
 accepted under [#848](https://github.com/bbottema/simple-java-mail/issues/848) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## MIME transfer-encoding comments (accepted 23 October 2026)
+
+A valid parenthesized comment in `Content-Transfer-Encoding` does not change the encoding. Use Jakarta Mail's existing MIME interpretation
+before mapping an unambiguous source encoding to the public typed value, rather than treating the raw comment text as part of its name.
+For example, `base64 (encoded for transport)` establishes the same encoding as `base64`.
+
+Keep unsupported encodings and genuinely unreadable content on their existing failure paths. This correction does not choose between
+conflicting repeated encoding declarations, introduce permissive JVM/Session settings or change eager/lazy resource ownership. Interpretation
+does not rewrite authoritative exact or protected input bytes. Public methods and enum values remain unchanged.
+
+This applies the comment grammar in [RFC 2045 section 1](https://www.rfc-editor.org/rfc/rfc2045.html#section-1), follows the existing MIME
+delegation decision, and was accepted under [#856](https://github.com/bbottema/simple-java-mail/issues/856) for unreleased 10.0.0. The issue
+records delivery of the implementation.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report
