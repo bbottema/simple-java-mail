@@ -67,11 +67,14 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 		final AtomicInteger failedCount = new AtomicInteger();
 
 		final Mailer mailer = mailerTLSBuilder
-				.withSendHandlers(MailSendHandlers.builder().withProgressObserver(MailSendObserverDemoApp::reportProgress).withResultObserver(outcome -> reportResult(
-						outcome,
-						completedCount,
-						successfulCount,
-						failedCount)).build())
+				.withSendHandlers(MailSendHandlers.builder()
+						.withProgressObserver(MailSendObserverDemoApp::reportProgress)
+						.withResultObserver(outcome -> reportResult(
+								outcome,
+								completedCount,
+								successfulCount,
+								failedCount))
+						.build())
 				.buildMailer();
 		try {
 			final List<CompletableFuture<Void>> completions = new ArrayList<>();
@@ -93,7 +96,11 @@ public class MailSendObserverDemoApp extends DemoAppBase {
 	private static Email createEmail(final int emailNumber) {
 		return SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.from("Simple Java Mail observer demo", "simplejavamail@demo.app")
-				.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(YOUR_GMAIL_ADDRESS).withType(RecipientType.TO).build())
+				.withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder()
+						.withName(null)
+						.withAddress(YOUR_GMAIL_ADDRESS)
+						.withType(RecipientType.TO)
+						.build())
 				.withSubject("Mail-send observer demo " + emailNumber)
 				.withPlainText("This email demonstrates live mail-send progress and a separate final result.")
 				.fixingMessageId("observer-demo-" + emailNumber + "@simplejavamail.org")

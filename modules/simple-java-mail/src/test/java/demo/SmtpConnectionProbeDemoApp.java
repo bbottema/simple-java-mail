@@ -44,7 +44,9 @@ public final class SmtpConnectionProbeDemoApp extends DemoAppBase {
             final CompletableFuture<Void> peer = CompletableFuture.runAsync(() -> serveLocalGreeting(endpoint));
             try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder()
                     .withSMTPServer(endpoint.getInetAddress().getHostAddress(), endpoint.getLocalPort())
-                    .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build()).withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(5000)).build()).buildMailer()) {
+                    .withTlsConfig(TlsConfig.builder().withOpportunisticTLS(false).build())
+                    .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofMillis(5000)).build())
+                    .buildMailer()) {
                 printReport(mailer.async().probeConnection().get(10, TimeUnit.SECONDS));
             }
             peer.get(10, TimeUnit.SECONDS);
