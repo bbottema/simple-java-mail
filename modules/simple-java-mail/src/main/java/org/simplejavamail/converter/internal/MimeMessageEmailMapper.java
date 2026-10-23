@@ -102,9 +102,12 @@ class MimeMessageEmailMapper {
 
 		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			final String resourceName = extractCID(cid.getValue().getName());
+			final MimeDataSource resource = cid.getValue();
+			final String resourceName = extractCID(resource.getName());
 			final String contentId = extractCID(cidName);
-			builder.withEmbeddedImage(AttachmentResource.builder().withName(resourceName).withDataSource(cid.getValue().getDataSource()).withContentId(contentId != null && contentId.equals(resourceName) ? null : contentId).build());
+			builder.withEmbeddedImage(AttachmentResource.builder().withName(resourceName).withDataSource(resource.getDataSource())
+					.withDescription(resource.getContentDescription()).withContentTransferEncoding(toContentTransferEncoding(resource.getContentTransferEncoding()))
+					.withContentId(contentId != null && contentId.equals(resourceName) ? null : contentId).build());
 		}
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())

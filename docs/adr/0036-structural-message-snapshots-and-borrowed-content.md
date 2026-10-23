@@ -68,6 +68,18 @@ also applies ownership at collection replacement: prepare the complete detached 
 builder. Rejecting missing input preserves the old selection; editing or clearing the builder cannot alter previously built
 or restored configurations. Allowing unfinished builder bytes does not weaken immutable construction or deserialization.
 
+### Referenced inline-resource metadata (accepted 23 October 2026)
+
+Referenced inline resources retain their parsed `Content-Description` and recognized transfer encoding, consistently with ordinary
+attachments. Eager and lazy import expose equivalent metadata, and existing copying, supported serialization and subsequent export carry it.
+The imported source supplies decoded content: retain an ordinary output-encoding preference without declaring those bytes pre-encoded.
+
+This clarification does not change content bytes, source-read timing, DataSource ownership, classification, occurrence order, filenames or
+Content-IDs. Authoritative exact and protected representations keep their separate byte-preservation boundary. Public construction and
+inspection remain the existing `AttachmentResource` API under [ADR 0031](0031-public-api-and-internal-construction.md#attachment-resource-construction).
+The correction accepted under [#857](https://github.com/bbottema/simple-java-mail/issues/857) is implemented for unreleased 10.0.0.
+[#856](https://github.com/bbottema/simple-java-mail/issues/856) separately owns encoding-comment interpretation.
+
 ### Attachment type metadata (accepted 22 October 2026)
 
 An attachment's content-type parameters are metadata, including the character encoding needed to interpret its bytes. Preserve valid
