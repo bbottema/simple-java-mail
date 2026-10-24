@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.TlsConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.Mailer;
@@ -59,7 +60,8 @@ class CustomSslFactoryCompanionTest {
         try (Mailer inherited = builder.buildMailer()) {
             assertThat(inherited.getServerConfig().getCustomSSLFactoryClass()).isEqualTo("javax.net.ssl.SSLSocketFactory");
         }
-        builder.withTlsConfig(builder.getTlsConfig().toBuilder().clearCustomSSLFactoryClass().build());
+        builder.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
+                .withTlsConfig(builder.getTlsConfig().toBuilder().clearCustomSSLFactoryClass().build());
         try (Mailer mailer = builder.buildMailer()) {
             assertThat(mailer.getServerConfig().getCustomSSLFactoryClass()).isNull();
         }

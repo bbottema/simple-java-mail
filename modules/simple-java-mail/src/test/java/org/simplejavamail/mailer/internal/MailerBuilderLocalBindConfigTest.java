@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.Mailer;
@@ -68,6 +69,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = configuredMail(
 				"simplejavamail.smtp.localaddress=192.0.2.23\n" +
 						"simplejavamail.smtp.localport=25258\n").mailerBuilder()
+				.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
 				.withSMTPServer("smtp.example.com", 587)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.withConnectionConfig(ConnectionConfig.builder().clearLocalBindAddress().clearLocalBindPort().build())
@@ -127,6 +129,7 @@ public class MailerBuilderLocalBindConfigTest {
 		try (Mailer mailer = configuredMail(
 				"simplejavamail.smtp.clienthostname=relay-identity.example.com\n").mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587)
+				.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.withConnectionConfig(ConnectionConfig.builder().clearSmtpClientHostname().build())
 				.buildMailer()) {

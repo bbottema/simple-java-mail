@@ -235,6 +235,8 @@ public class MailerImpl implements Mailer {
 		if (!ownsSession) {
 			lockedSmtpConfiguration.verifyCallerOwnedSession(session);
 		}
+		LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(factoryConfig),
+				sessionSettings.finalProperties(session, operationalConfig.getProperties()), effectiveTransportStrategy);
 		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		boolean poolRegistrationBegun = false;
@@ -479,18 +481,16 @@ public class MailerImpl implements Mailer {
 	}
 
 	/**
-	 * If a {@link ProxyConfig} was provided with a host address, then the appropriate properties are set on the {@link Session}, overriding any SOCKS
-	 * properties already there.
+	 * Installs the already resolved remote proxy route on the Session. Construction compares explicit connection declarations before reaching this step.
 	 * <p>
-	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. For a caller-supplied Session without Simple Java
-	 * Mail's transport-strategy marker, the proxy-capable SMTP strategies all use <em>"mail.smtp.socks.host"</em> and
-	 * <em>"mail.smtp.socks.port"</em>. Authenticated proxying sets the host to the JVM loopback address. The configured bridge port is used as the
+	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. The resolved SMTP or SMTPS protocol selects the
+	 * property names, including for a caller-supplied Session without Simple Java Mail's transport-strategy marker.
+	 * Authenticated proxying sets the host to the JVM loopback address. The configured bridge port is used as the
 	 * initial port value; after the bridge starts, the actual bound port is written immediately before the transport connects.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
-	 * @param transportStrategy Used to resolve protocol-specific property names. Can be omitted
-	 *                          for a caller-supplied Session, in which case the supported <em>"mail.smtp.socks.*"</em> properties are used.
+	 * @param transportStrategy Resolved protocol used for property names. Internal callers can omit it to use <em>"mail.smtp.socks.*"</em> names.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
 	@Nullable

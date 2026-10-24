@@ -10,7 +10,7 @@ import org.simplejavamail.internal.util.DurationMillis;
 import java.time.Duration;
 
 /**
- * Immutable supplied ConnectionConfig choices. Unset fields inherit the owning Mailer factory snapshot.
+ * Immutable supplied ConnectionConfig choices. Unset fields use the applicable connection baseline and factory configuration when the Mailer is built.
  * Construction and inspection never start workers, connect, resolve configuration sources or own borrowed resources.
  * Replacing this group on a Mailer discards its previous supplied choices.
  */
@@ -130,13 +130,14 @@ public class ConnectionConfig {
          * For example, {@code withSessionTimeout(Duration.ofSeconds(30)).withConnectTimeout(Duration.ofSeconds(10))}
          * selects ten seconds for connecting and thirty seconds each for reading and writing.
          * <p>
-         * An explicitly supplied timeout overrides the corresponding additional Jakarta Mail property. For a library-owned Session, inherited
-         * connection defaults fill timeout properties that have not been explicitly supplied. Factory configuration locks still apply.
-         * When you supply your own Session, its existing timeouts remain unchanged until you call a timeout setter, overlay an additional property
-         * or a factory lock requires a value.
-         * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(Duration.ofSeconds(1))} deliberately replaces
-         * all three socket timeouts with one second. Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session
-         * previously belonged to another Mailer. Additional Jakarta Mail properties retain their configured overlay behavior.
+         * Explicit timeouts and recognized additional Jakarta Mail properties follow the Mailer's
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}. The default rejects differences from explicit factory,
+         * raw or supplied Session values; {@link ConnectionConflictPolicy#ALLOW_EXPLICIT_OVERRIDES} gives explicit typed timeout members precedence.
+         * For a library-owned Session, inherited connection defaults fill timeout properties that have not been explicitly supplied. Factory locks still apply.
+         * When you supply your own Session, untouched timeouts and missing settings remain unchanged unless a factory lock requires a value.
+         * For example, a Session with a five-second read timeout keeps that value. Calling {@code withSessionTimeout(Duration.ofSeconds(1))} requests
+         * one second for all three operations: strict mode rejects the conflicting read timeout, while {@code ALLOW_EXPLICIT_OVERRIDES} permits the replacement.
+         * Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session previously belonged to another Mailer.
          * <p>
          * The property names follow the selected {@code smtp} or {@code smtps} protocol:
          * <ul>
@@ -183,8 +184,9 @@ public class ConnectionConfig {
         @NotNull public Builder useConfiguredSessionTimeout() { connectTimeout = null; readTimeout = null; writeTimeout = null; return this; }
         /**
          * Sets the timeout for establishing the SMTP socket connection, leaving the read and write choices unchanged.
-         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
-         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * This is not a deadline for the whole send. Differences from explicit factory, raw or supplied Session values follow
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}; strict mode rejects conflicts, while override mode gives this typed member precedence.
+         * Inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
          * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
          *
          * @param connectTimeout Socket connection timeout, exactly representable as an integer number of milliseconds.
@@ -208,8 +210,9 @@ public class ConnectionConfig {
         @NotNull public Builder useConfiguredConnectTimeout() { connectTimeout = null; return this; }
         /**
          * Sets the timeout for reading SMTP socket data, leaving the connection and write choices unchanged.
-         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
-         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * This is not a deadline for the whole send. Differences from explicit factory, raw or supplied Session values follow
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}; strict mode rejects conflicts, while override mode gives this typed member precedence.
+         * Inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
          * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
          *
          * @param readTimeout Socket read timeout, exactly representable as an integer number of milliseconds.
@@ -233,8 +236,9 @@ public class ConnectionConfig {
         @NotNull public Builder useConfiguredReadTimeout() { readTimeout = null; return this; }
         /**
          * Sets the timeout for writing SMTP socket data, leaving the connection and read choices unchanged.
-         * This is not a deadline for the whole send. An explicit choice overrides the corresponding additional Jakarta Mail property;
-         * inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
+         * This is not a deadline for the whole send. Differences from explicit factory, raw or supplied Session values follow
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}; strict mode rejects conflicts, while override mode gives this typed member precedence.
+         * Inherited defaults fill unspecified properties on library-owned Sessions and configuration locks still apply.
          * A caller-supplied Session keeps its other timeout settings. The last setter affecting this timeout wins.
          * Timeout scheduler and borrowed-executor ownership follow {@link #withSessionTimeout(Duration)}.
          *
@@ -271,6 +275,7 @@ public class ConnectionConfig {
         @Nullable public String getLocalBindAddress() { return localBindAddress; }
         /**
          * Removes both the local/source address and port, including captured choices, rather than restoring captured configuration.
+         * Removing an imported setting conflicts under the default strict connection policy; removing a previous local-only choice does not.
          * A caller-supplied Session's inherited Properties defaults cannot be removed this way; see
          * {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
          * @see #withLocalBindAddress(String)
@@ -283,6 +288,7 @@ public class ConnectionConfig {
         @NotNull public Builder useConfiguredLocalBindAddress() { localBindAddress = null; localBindAddressCleared = false; return this; }
         /**
          * Replaces only the local socket port. Null explicitly removes a captured port.
+         * Replacement and removal follow {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)} when the Mailer is built.
          * @param localBindPort Port to bind, or null.
          */
         @NotNull public Builder withLocalBindPort(final Integer localBindPort) { this.localBindPort = localBindPort; localBindPortCleared = localBindPort == null; return this; }
@@ -311,6 +317,9 @@ public class ConnectionConfig {
          * <p>
          * Provide the hostname shape expected by your SMTP relay, typically a DNS host name or FQDN. Simple Java Mail deliberately
          * does not over-validate this value because corporate relay identifiers can be environment-specific.
+         * Replacing or removing an imported hostname follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
+         * On a library-created Session, empty Java text suppresses the captured SJM hostname but leaves an applicable raw property intact.
+         * On a supplied Session, empty text is written literally. Use {@link #clearSmtpClientHostname()} for explicit removal.
          *
          * @param smtpClientHostname Hostname to send in the SMTP {@code EHLO} or {@code HELO} command, or {@code null} to remove this direct setting.
          *
@@ -395,8 +404,12 @@ public class ConnectionConfig {
          * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
          * the proxy server's own outbound socket.
          * <p>
-         * A caller-supplied Session keeps its local binding unless you use this setter. A null argument removes that direct Session property;
-         * an inherited Properties default cannot be removed this way. See {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
+         * A caller-supplied Session keeps its local binding when these members are untouched. Replacement or removal follows
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}: strict mode rejects conflicts with imported values.
+         * In override mode, a null argument removes that direct Session property; an inherited Properties default cannot be removed this way.
+         * See {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
+         * On a library-created Session, an empty address suppresses the captured SJM address but leaves an applicable raw property intact.
+         * On a supplied Session, empty text is written literally. Use {@link #clearLocalBindAddress()} for explicit removal.
          *
          * @param localBindAddress Local/source address or host name to bind the SMTP socket to, or {@code null} to remove this direct setting.
          * @param localBindPort Optional local/source port to bind the SMTP socket to, or {@code null} to remove this direct setting.

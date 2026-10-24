@@ -9,9 +9,11 @@ import org.simplejavamail.api.mailer.Mailer;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Immutable supplied SocksProxyConfig choices. Unset fields inherit the owning Mailer factory snapshot.
+ * Immutable supplied SocksProxyConfig choices. Unset fields use applicable raw endpoints and factory configuration when the Mailer is built.
  * Construction and inspection never start workers, connect, resolve configuration sources or own borrowed resources.
  * Replacing this group on a Mailer discards its previous supplied choices.
+ * Connection conflicts are resolved when the Mailer is built, under
+ * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}. Repeated local setters retain ordinary replacement behavior.
  */
 @Value
 public class SocksProxyConfig {
@@ -96,7 +98,9 @@ public class SocksProxyConfig {
             bridgePort = config.bridgePort;
         }
         /**
-         * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
+         * Supplies the optional remote proxy host. A repeated call replaces the previous local choice.
+         * Replacing or removing an imported host follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}:
+         * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
          * @param host Proxy host, or {@code null} to explicitly remove a captured host; an untouched member inherits the captured configuration.
          */
         @NotNull public Builder withHost(final String host) { this.host = host; hostCleared = host == null; return this; }
@@ -113,9 +117,11 @@ public class SocksProxyConfig {
          */
         @NotNull public Builder useConfiguredHost() { host = null; hostCleared = false; return this; }
         /**
-         * Sets the proxy port, which will override any default that might have been set (through properties file or programmatically).
+         * Supplies the remote proxy port. A repeated call replaces the previous local choice.
+         * Replacing or removing an imported port follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}:
+         * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
          * <p>
-         * Defaults to {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_PORT} if no custom default property was configured.
+         * Defaults to {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_PORT} when an active proxy route has no configured or raw port.
          * @param port Proxy port, or {@code null} to explicitly remove a captured port; an untouched member inherits the captured configuration.
          */
         @NotNull public Builder withPort(final Integer port) { this.port = port; portCleared = port == null; return this; }

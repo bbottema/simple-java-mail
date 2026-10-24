@@ -11,9 +11,11 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
  * Configure an SMTP connection and build a Mailer with {@code SimpleJavaMail.fromDefaults().mailerBuilder()}.
  * If you have a configured SimpleJavaMail factory, call its {@code mailerBuilder()} instead to use its immutable configuration snapshot.
  * <p>
- * The factory supplies the initial SMTP host, port, username, password and transport strategy. Builder calls can replace these ordinary configured
- * values; factory-scoped locked settings still apply. This builder also offers the generic Mailer settings and creates the {@link Session} needed
- * for the selected connection.
+ * The factory supplies the initial SMTP host, port, username, password and transport strategy. Repeated builder calls replace previous local choices.
+ * Differences from explicit factory or recognized raw connection settings follow
+ * {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}: the default rejects conflicts;
+ * {@code ALLOW_EXPLICIT_OVERRIDES} permits deliberate replacement. Factory-scoped locked settings remain binding in both modes.
+ * This builder also offers the generic Mailer settings and creates the {@link Session} needed for the selected connection.
  *
  * @see TransportStrategy
  */
@@ -31,6 +33,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * plain {@link TransportStrategy#SMTP} remains opportunistic. See {@link org.simplejavamail.api.mailer.MailerRegularBuilder#buildMailer()} for validation of conflicting extra properties.
 	 * The OAuth2 presets use a fixed token in the password position or the runtime provider configured through
 	 * {@link #withOAuth2AccessTokenProvider(org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider)}.
+	 * Conflicts with explicit captured or raw connection settings follow
+	 * {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
 	 *
 	 * @param transportStrategy The name of the transport strategy to use: {@link TransportStrategy#SMTP}, {@link TransportStrategy#SMTPS},
 	 *                                {@link TransportStrategy#SMTP_TLS}, {@link TransportStrategy#SMTP_OAUTH2}, or
@@ -39,13 +43,16 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	T withTransportStrategy(@NotNull TransportStrategy transportStrategy);
 
 	/**
-	 * Replaces the host, port, username and password together, including values initially loaded from properties.
+	 * Supplies the host, port, username and password together, replacing previous local choices for those fields.
+	 * Replacing values initially loaded from properties follows
+	 * {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; differing values fail construction in the default strict mode.
 	 * A null argument clears that field; it does not restore a captured property. Empty username and password strings also clear their fields.
 	 * A cleared port uses the selected transport strategy's default when building; an ordinary SMTP Mailer still needs a host.
 	 * <p>
 	 * Shorter overloads leave the fields they do not accept unchanged. For a host-only change that retains the configured port and credentials, use
 	 * {@link #withSMTPServerHost(String)}. To remove stored credentials explicitly, pass null for both username and password here, or call their
-	 * named clear methods. Runtime credential providers remain separate. All supplied values and clear operations remain subject to configuration locks.
+	 * named clear methods. Removing an imported value also conflicts in strict mode; removing a previous local-only choice remains ordinary builder editing.
+	 * Runtime credential providers remain separate. All supplied values and clear operations remain subject to configuration locks.
 	 *
 	 * @param host SMTP host to use, or null to remove it.
 	 * @param port SMTP port to use, or null to use the transport strategy's default.
@@ -83,6 +90,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * Changes only the SMTP host, retaining the configured port and credentials.
 	 * Passing null or calling {@link #clearSMTPServerHost()} removes the host; it does not restore a captured property.
 	 * An ordinary SMTP Mailer needs a host when built. Configuration locks still apply, and previously built Mailers remain unchanged.
+	 * Replacement or removal of an imported host follows {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
 	 *
 	 * @param host SMTP host to use, or null to remove it.
 	 */
@@ -98,6 +106,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	/**
 	 * Changes only the SMTP port. Passing null or calling {@link #clearSMTPServerPort()} removes the configured value so the selected transport strategy
 	 * supplies its default port when building. This does not restore a captured property or change any other SMTP setting. Configuration locks still apply.
+	 * Replacement or removal of an imported port follows {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
 	 *
 	 * @param port SMTP port to use, or null to use the transport strategy's default.
 	 */
@@ -114,6 +123,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * Changes only the SMTP username, leaving the password unchanged. Passing null or calling {@link #clearSMTPServerUsername()} removes the username,
 	 * not its password or runtime token provider. Remove both stored credentials when neither should be used; a password without a username is invalid.
 	 * An empty string clears the field. This does not restore a captured property. Configuration locks still apply.
+	 * Replacement or removal of an imported username follows {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
 	 *
 	 * @param username SMTP username to use, or null to remove it.
 	 */
@@ -130,6 +140,7 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * Changes only the SMTP password or fixed OAuth2 token. Passing null or calling {@link #clearSMTPServerPassword()} removes that stored value,
 	 * leaving the username and any runtime token provider unchanged. An empty string clears the field. This does not restore a captured property.
 	 * Use {@link #clearOAuth2AccessTokenProvider()} separately if a runtime token provider should also be removed. Configuration locks still apply.
+	 * Replacement or removal of an imported credential follows {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
 	 *
 	 * @param password SMTP password or fixed OAuth2 token to use, or null to remove it.
 	 */
@@ -147,6 +158,8 @@ public interface MailerRegularBuilder<T extends MailerRegularBuilder<?>> extends
 	 * <p>
 	 * Values not set directly on this builder keep the immutable configuration snapshot captured when the builder was requested from its configured
 	 * factory. Later configuration loads do not change the resulting Mailer.
+	 * Supported connection declarations are resolved under
+	 * {@link #withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)} before Session mutation or connection-resource allocation.
 	 * <p>
 	 * When Simple Java Mail creates a Session with the standard Angus provider, UTF-8 encoding is on by default
 	 * ({@code mail.mime.allowutf8=true}). That lets you send addresses such as {@code josé@example.org} when the server supports them, without

@@ -14,11 +14,13 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Immutable supplied TLS choices. Unset fields inherit the owning Mailer factory snapshot.
+ * Immutable supplied TLS choices. Unset fields use the applicable connection baseline and factory configuration when the Mailer is built.
  * Construction and inspection never start workers, connect, resolve configuration sources or own borrowed resources.
  * Replacing this group on a Mailer discards its previous supplied choices.
  * Custom SSL factories and opportunistic-upgrade choices apply only when Simple Java Mail constructs the Session.
  * Configure those choices on an application-supplied Session itself; supplying them through this group on that builder is rejected.
+ * Replacing or removing imported TLS settings follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)} when the Mailer is built.
+ * The default rejects conflicting explicit settings; configuration locks and mandatory transport requirements remain binding in both modes.
  */
 @Value
 public class TlsConfig {
@@ -111,6 +113,8 @@ public class TlsConfig {
          * <p>
          * This method sets the transport-specific {@code mail.*.ssl.trust} property to a space-separated list of the provided {@code hosts}. If the
          * provided list is empty, the property is unset.
+         * When trust-all is disabled, an exact {@code "*"} list also removes the exception; use {@link #trustingAllHosts(boolean)} to enable wildcard trust.
+         * Replacing or removing an imported trust setting follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
          *
          * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
          * @see #trustingAllHosts(boolean)
@@ -142,6 +146,7 @@ public class TlsConfig {
          * <strong>Security warning:</strong> Setting this to {@code true} disables certificate-authority trust validation for all SMTP hosts. Server identity
          * verification remains a separate check and should stay enabled, but it does not make trusting every certificate safe against an active attacker.
          * Prefer configuring the JVM trust store or, when that is not possible, a narrow exception through {@link #trustingSSLHosts(String...)}.
+         * Conflicts with imported trust settings follow {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
          *
          * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
          * @see #trustingSSLHosts(String...)
@@ -168,6 +173,7 @@ public class TlsConfig {
          * <p>
          * Hostname verification and certificate-authority trust are independent checks. Normal secure TLS requires both a trusted certificate chain and a
          * matching server identity. Disabling this check is intended only for controlled compatibility or testing scenarios.
+         * Conflicts with imported identity-verification settings follow {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
          *
          * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
          * @see #trustingAllHosts(boolean)
@@ -199,6 +205,7 @@ public class TlsConfig {
          * This setting is deliberately limited to plain SMTP. It has no effect on mandatory TLS in {@link TransportStrategy#SMTP_TLS}, OAuth2 transport, or
          * implicit TLS in {@link TransportStrategy#SMTPS}.
          * {@link #resetOpportunisticTLS()} restores the built-in default rather than the captured property; configuration locks still apply.
+         * A differing explicit captured or raw choice follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
          *
          * @param opportunisticTLS Whether plain SMTP should attempt STARTTLS when offered.
          */
@@ -231,7 +238,8 @@ public class TlsConfig {
          * SOCKS socket creation, so check authenticated-proxy usage with your factory.
          * <p>
          * Passing null or calling {@link #clearCustomSSLFactoryClass()} removes only the stored class name; a supplied instance stays in place.
-         * Clearing does not restore a captured property value, and configuration locks still apply.
+         * Clearing does not restore a captured property value. Replacement or removal of an imported class name follows
+         * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}, and configuration locks still apply.
          *
          * @param customSSLFactoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
          *
@@ -269,6 +277,7 @@ public class TlsConfig {
          * <p>
          * Passing null or calling {@link #clearCustomSSLFactoryInstance()} removes this instance so a configured factory class can be used again.
          * This never closes the supplied factory or removes the stored class name.
+         * Conflicts with an imported raw factory instance follow {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
          *
          * @param customSSLFactoryInstance An instance of the {@link SSLSocketFactory} class.
          *

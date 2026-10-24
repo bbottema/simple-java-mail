@@ -257,6 +257,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Ordinary configuration sources resolve their precedence first;
 	 * differences already settled by the loader or Spring are not conflicts. Unknown provider extensions and hidden Authenticator
 	 * state are outside this comparison.
+	 * Policy selection uses this explicit Java choice, then captured {@code simplejavamail.connection.conflictpolicy}, then the built-in default.
+	 * A {@code simplejavamail.locked.connection.conflictpolicy} setting restricts that selection.
 	 * <p>
 	 * {@link ConnectionConflictPolicy#REJECT_CONFLICTS} rejects differing explicit factory declarations, recognized raw properties,
 	 * visible supplied Session settings and final Java choices for the same logical setting. Equivalent parsed values are accepted.
@@ -272,6 +274,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * modifying a supplied Session or allocating connection resources. This setting is independent of configuration-group replacement;
 	 * its position in the builder chain has no effect. Inspect the built Mailer's
 	 * {@link org.simplejavamail.api.mailer.config.OperationalConfig#getConnectionConflictPolicy()} for the resolved policy.
+	 * When a {@link CustomMailer} owns delivery, inactive SJM SMTP and proxy route choices do not cause connection conflicts.
 	 *
 	 * @param policy Non-null local policy choice. A repeated call replaces the previous local policy, subject to a policy lock.
 	 * @see #getConnectionConflictPolicy()
@@ -418,8 +421,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Sets property or removes it if the provided value is <code>null</code>. If provided, the value is always converted <code>toString()</code>.
 	 *
-	 * @param propertyName  The name of the property that wil be set on the internal Session object.
-	 * @param propertyValue The text value of the property that wil be set on the internal Session object.
+	 * @param propertyName The name of the additional Jakarta Mail property.
+	 * @param propertyValue Its text value, or {@code null} to remove this builder's additional-property choice. Removing an imported supported
+	 *                      connection value conflicts in strict mode; removing a local-only choice remains ordinary builder editing.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
 	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
@@ -627,9 +631,12 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	T clearEmailOverrides();
 
 	/**
-	 * Removes all properties.
+	 * Removes all additional-property choices from this builder, including captured additional properties.
+	 * Removing an imported supported connection value conflicts under the default strict policy. Removing local-only choices is ordinary builder editing.
+	 * This does not clear untouched properties belonging to a caller-supplied Session.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
 	 */
 	T clearProperties();
 
@@ -716,8 +723,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
     T useConfiguredAsyncExecutionConfig();
 
     /**
-     * Replaces all supplied ProxyConfig choices. Unset members inherit the captured factory configuration, not the previous group.
+     * Replaces all supplied ProxyConfig choices. Unset members use remaining applicable raw or factory configuration, not the previous group.
      * Caller-owned Sessions retain their baseline for connection choices left unset; configuration locks remain binding.
+     * Explicit replacement or removal of imported connection values follows {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)}.
+     * Compatible raw SOCKS endpoints can supply omitted endpoint members alongside this group's proxy credentials.
      * Detailed setting, resource ownership and reset/clear contracts belong to the supplied value's builder.
      * @param choices Immutable supplied choices; construction starts no workers or connections.
      * @see SocksProxyConfig#builder()
@@ -758,8 +767,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
     T useConfiguredSendingLimitsConfig();
 
     /**
-     * Replaces all supplied ConnectionConfig choices. Unset members inherit the captured factory configuration, not the previous group.
+     * Replaces all supplied ConnectionConfig choices. Unset members use remaining applicable raw or factory configuration, not the previous group.
      * Caller-owned Sessions retain their baseline for connection choices left unset; configuration locks remain binding.
+     * Explicit replacement or removal of imported connection values follows {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)}.
      * Detailed setting, resource ownership and reset/clear contracts belong to the supplied value's builder.
      * @param choices Immutable supplied choices; construction starts no workers or connections.
      * @see ConnectionConfig#builder()
@@ -779,8 +789,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
     T useConfiguredConnectionConfig();
 
     /**
-     * Replaces all supplied TlsConfig choices. Unset members inherit the captured factory configuration, not the previous group.
+     * Replaces all supplied TlsConfig choices. Unset members use remaining applicable raw or factory configuration, not the previous group.
      * Caller-owned Sessions retain their baseline for connection choices left unset; configuration locks remain binding.
+     * Explicit replacement or removal of imported connection values follows {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)}.
      * Custom SSL factory class/instance and opportunistic-TLS choices, including explicit clearing or resetting, apply only when
      * Simple Java Mail constructs the Session. A builder using an application-supplied Session rejects a group containing these choices;
      * configure them on that Session itself. Other TLS choices retain their existing caller-Session support.

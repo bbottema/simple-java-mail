@@ -8,6 +8,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import testutil.EmailHelper;
+import testutil.ConfigLoaderTestHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static jakarta.mail.Message.RecipientType.TO;
@@ -19,7 +20,7 @@ public class DeliveryStatusNotificationMimeMessageProducerTest {
 
 	@Test
 	public void preparedMailCarriesDeliveryStatusNotificationOutsideMimeMessage() throws Exception {
-		final Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
+		final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
 		final PreparedMail preparedMail = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
 				mailer.getSession(), SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
 				.from("sender@example.com")

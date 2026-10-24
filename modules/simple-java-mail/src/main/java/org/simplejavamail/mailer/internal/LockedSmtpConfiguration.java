@@ -27,7 +27,11 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RATE_LIMIT_GR
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RECIPIENT_RATE_LIMIT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RECIPIENT_RATE_PERIOD;
 
-/** Retains a completed Mailer's logical ownership facts alongside its pure, reusable Session requirements. */
+/**
+ * Checks the selected SMTP registration and its live Session, including a different member of a shared pool cluster.
+ * Credentials are checked from the registration that owns them, never inferred from a connection URL.
+ * Pure connection requirements remain separate from the completed Mailer's logical ownership facts.
+ */
 final class LockedSmtpConfiguration {
 
     private final ConfigurationLocks locks;
@@ -50,7 +54,10 @@ final class LockedSmtpConfiguration {
     void applyLockedExtraProperties(final Session session) { connectionRequirements.applyLockedExtraProperties(session); }
     boolean hasLocks() { return !locks.isEmpty(); }
 
-    /** Checks the selected registration and its live Session; construction has already validated the same pure connection requirements. */
+    /**
+     * Checks the selected registration and its live Session without network activity.
+     * Construction has already validated the same pure connection requirements.
+     */
     void verifySelected(final LockedSmtpConfiguration selected, final Session session) {
         if (locks.isEmpty()) {
             return;

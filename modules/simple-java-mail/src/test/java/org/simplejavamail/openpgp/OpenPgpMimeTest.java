@@ -59,6 +59,7 @@ import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.openpgpsupport.OpenPgpSupport;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
+import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -671,7 +672,7 @@ class OpenPgpMimeTest {
                         .dkimSelector("selector")
                         .build())
                 .buildEmailCompletedWithDefaultsAndOverrides();
-        final Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
+        final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
 
         final PreparedMail prepared = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
                 mailer.getSession(), email);

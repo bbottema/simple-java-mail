@@ -33,6 +33,7 @@ final class MailerSessionSettings {
 
     @Nullable private final TransportStrategy transportStrategy;
     private final Map<String, Object> connectionOverrides;
+    @Nullable private final String shadowedFactoryClassProperty;
     @Nullable private final ProxyConfig proxyConfig;
     @Getter(AccessLevel.NONE) private final Properties effectiveProperties;
     @Nullable private final Duration connectTimeout;
@@ -51,6 +52,7 @@ final class MailerSessionSettings {
     boolean shouldApplyDebugEnabled() { return applyDebugEnabled; }
     boolean shouldApplyDebugOutput() { return applyDebugOutput; }
 
+    /** Keep inherited property values visible when validation creates a detached Session from this snapshot. */
     Properties copyEffectiveProperties() {
         final Properties copy = new Properties();
         effectiveProperties.stringPropertyNames().forEach(key -> copy.setProperty(key, effectiveProperties.getProperty(key)));
@@ -61,7 +63,7 @@ final class MailerSessionSettings {
     Properties finalProperties(final Session baseline, final Properties additionalProperties) {
         final Properties copy = copyProperties(baseline);
         copy.putAll(additionalProperties);
-        applyOverrides(copy, connectionOverrides);
+        applyActivationOverrides(copy);
         return copy;
     }
 
@@ -79,14 +81,20 @@ final class MailerSessionSettings {
 
     static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
             final Properties additionalProperties, final Map<String, Object> resolvedOverrides, final Map<String, Object> lockedValues,
-            final ProxyConfig proxyConfig, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
+            final ProxyConfig proxyConfig, @Nullable final String shadowedFactoryClassProperty,
+            final boolean applyDebugEnabled, final boolean applyDebugOutput) {
         final Properties effective = copyProperties(suppliedSession);
         effective.putAll(additionalProperties);
         applyOverrides(effective, resolvedOverrides);
+        if (shadowedFactoryClassProperty != null) {
+            effective.remove(shadowedFactoryClassProperty);
+        }
         verifyRemovedSettings(effective, resolvedOverrides);
         applyLockedExtraProperties(effective, lockedValues);
         return snapshotBuilder(strategy, resolvedOverrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput)
-                .proxyConfig(proxyConfig).build();
+                .proxyConfig(proxyConfig)
+                .shadowedFactoryClassProperty(shadowedFactoryClassProperty)
+                .build();
     }
 
     /** Package-private Mailer test constructors supply already-resolved configuration rather than a builder's customization history. */
@@ -289,7 +297,14 @@ final class MailerSessionSettings {
     }
 
     void applyConnectionOverrides(final Session session) {
-        applyOverrides(session.getProperties(), connectionOverrides);
+        applyActivationOverrides(session.getProperties());
+    }
+
+    private void applyActivationOverrides(final Properties target) {
+        applyOverrides(target, connectionOverrides);
+        if (shadowedFactoryClassProperty != null) {
+            target.remove(shadowedFactoryClassProperty);
+        }
     }
 
     private static void applyOverrides(final Properties target, final Map<String, Object> overrides) {
