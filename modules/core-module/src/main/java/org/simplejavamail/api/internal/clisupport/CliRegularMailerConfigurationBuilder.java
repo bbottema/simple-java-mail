@@ -18,14 +18,18 @@ public interface CliRegularMailerConfigurationBuilder {
 	 * It defaults to {@value MailerGenericBuilder#DEFAULT_OPPORTUNISTIC_TLS};
 	 * setting it to {@code false} is an escape hatch for SMTP servers that break during STARTTLS negotiation.
 	 * <p>
-	 * A configured snapshot supplies the initial value when this builder is created. Calling this method afterwards overrides that value for the Mailer
-	 * built from this builder.
+	 * An untouched choice uses the captured configuration. Calling this method supplies an explicit local choice; a repeated call replaces
+	 * that local choice. A differing explicit captured or recognized raw value follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
+	 * strict mode rejects conflicts, while deliberate override mode permits replacement. Configuration locks still apply.
 	 * <p>
 	 * This setting is deliberately limited to plain SMTP. It has no effect on mandatory TLS in {@link TransportStrategy#SMTP_TLS}, OAuth2 transport, or
 	 * implicit TLS in {@link TransportStrategy#SMTPS}.
 	 * {@link org.simplejavamail.api.mailer.config.TlsConfig.Builder#resetOpportunisticTLS()} restores the built-in default rather than the captured property; configuration locks still apply.
+	 * This option configures library-created Sessions; a Java builder using an application-supplied Session rejects this typed choice.
 	 *
 	 * @param opportunisticTLS Whether plain SMTP should attempt STARTTLS when offered.
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withOpportunisticTLS(boolean)
 	 */
 	MailerRegularBuilder<?> withOpportunisticTLS(boolean opportunisticTLS);
 
@@ -34,6 +38,8 @@ public interface CliRegularMailerConfigurationBuilder {
 
 	/**
 	 * Restores the built-in opportunistic TLS setting rather than the captured property.
+	 * This supplies an explicit choice; conflicting imported settings follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}, and locks still apply.
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withOpportunisticTLS(boolean)
 	 */
 	MailerRegularBuilder<?> resetOpportunisticTLS();
@@ -48,23 +54,28 @@ public interface CliRegularMailerConfigurationBuilder {
 	 * On an owned Angus Session, a failure in your factory stops connection setup by default instead of retrying with the default factory.
 	 * An explicit {@code mail.smtp.socketFactory.fallback=true} (or the {@code mail.smtps} equivalent) retains that advanced behavior,
 	 * but can abandon your factory's client identity or trust decisions. Failed TLS wrapping closes its connected socket before cleanup or fallback.
-	 * This does not add physical cancellation support to a custom factory. Caller-owned Sessions keep their own settings.
+	 * This does not add physical cancellation support to a custom factory. This option configures library-created Sessions;
+	 * a Java builder using an application-supplied Session rejects this typed choice, including explicit clearing.
 	 * <p>
 	 * Sets {@code mail.smtp.ssl.socketFactory.class} or {@code mail.smtps.ssl.socketFactory.class}. A custom factory can bypass the provider's
 	 * SOCKS socket creation, so check authenticated-proxy usage with your factory.
 	 * <p>
 	 * Passing null or calling {@link org.simplejavamail.api.mailer.config.TlsConfig.Builder#clearCustomSSLFactoryClass()} removes only the stored class name; a supplied instance stays in place.
-	 * Clearing does not restore a captured property value, and configuration locks still apply.
+	 * Clearing does not restore a captured property value. Replacement or removal of an imported class name follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}, and locks still apply.
 	 *
-	 * @param factoryClass The fully qualified name of the factory class. Example: <code>javax.net.ssl.SSLSocketFactory</code>
+	 * @param factoryClass The fully qualified factory class name, or omitted to request removal. Example: <code>javax.net.ssl.SSLSocketFactory</code>
 	 *
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html">Java / Jakarta Mail properties</a>
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryClass(String)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	MailerRegularBuilder<?> withCustomSSLFactoryClass(@Nullable @Cli.Optional String factoryClass);
 
 	/**
 	 * Removes only the stored SSL factory class name.
+	 * This does not restore captured configuration or remove a supplied instance. Removing an imported class name follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}, and locks still apply.
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryClass(String)
 	 */
 	MailerRegularBuilder<?> clearCustomSSLFactoryClass();
@@ -80,10 +91,12 @@ public interface CliRegularMailerConfigurationBuilder {
 	 * <p>
 	 * Sets {@code mail.smtp.ssl.socketFactory} or {@code mail.smtps.ssl.socketFactory}. A custom factory can bypass the provider's SOCKS
 	 * socket creation, so check authenticated-proxy usage with your factory. This does not add physical cancellation support.
-	 * Caller-owned Sessions keep their own settings.
+	 * This choice applies to library-created Sessions; a Java builder using an application-supplied Session rejects it, including explicit clearing.
 	 * <p>
 	 * Passing null or calling {@link org.simplejavamail.api.mailer.config.TlsConfig.Builder#clearCustomSSLFactoryInstance()} removes this instance so a configured factory class can be used again.
 	 * This never closes the supplied factory or removes the stored class name.
+	 * Conflicts with an imported raw factory instance follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}, and locks still apply.
 	 *
 	 * @param sslSocketFactoryInstance An instance of the {@link SSLSocketFactory} class.
 	 *
@@ -95,6 +108,8 @@ public interface CliRegularMailerConfigurationBuilder {
 
 	/**
 	 * Removes only the supplied SSL factory instance.
+	 * This never closes the supplied factory or removes the stored class name. Conflicts with imported factory instances follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}, and locks still apply.
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	@Cli.ExcludeApi(reason = "Factory instances are configured only through Java")
