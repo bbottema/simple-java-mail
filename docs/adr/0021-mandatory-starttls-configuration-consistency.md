@@ -72,3 +72,7 @@ The implementation and local-fixture verification ledger is [the SMTPS OAuth2 pl
 - [MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java), especially `validateMandatoryStartTls(...)` and its constructor call before resource setup.
 - [SmtpTlsConfigurationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpTlsConfigurationTest.java), [Spring TLS configuration tests](../../modules/spring-module/src/test/java/org/simplejavamail/springsupport/SimpleJavaMailSpringTlsConfigurationTest.java) and [CLI TLS configuration tests](../../modules/cli-module/src/test/java/org/simplejavamail/internal/clisupport/CliTlsConfigurationTest.java).
 - [10.0.0 migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#mandatory-starttls). Existing test sources were inspected; no runtime behavior was changed or new test run claimed here.
+
+## Connection conflict policy (accepted 24 October 2026)
+
+ADR 0038 adds ordinary connection-conflict handling, but neither policy permits a mandatory transport contradiction rejected here. Perform required transport validation before connection resources or Session mutation; preserve caller-owned and CustomMailer ownership boundaries. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
