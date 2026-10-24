@@ -63,10 +63,12 @@ $registeredWorktrees = @(
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
     # '.local/api-review-example'
+    '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
     # '.local/api-review-example.log'
     # 'docs/plans/example-completed-plan.md'
+    'docs/plans/867-connection-conflict-policy.md'
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(

@@ -70,6 +70,7 @@ public final class ConfigLoader {
 		JAVAXMAIL_DEBUG("simplejavamail.javaxmail.debug"),
 		JAVAXMAIL_DEBUG_OUTPUT("simplejavamail.javaxmail.debug.out"),
 		TRANSPORT_STRATEGY("simplejavamail.transportstrategy"),
+		CONNECTION_CONFLICT_POLICY("simplejavamail.connection.conflictpolicy"),
 		SMTP_HOST("simplejavamail.smtp.host"),
 		SMTP_PORT("simplejavamail.smtp.port"),
 		SMTP_USERNAME("simplejavamail.smtp.username"),

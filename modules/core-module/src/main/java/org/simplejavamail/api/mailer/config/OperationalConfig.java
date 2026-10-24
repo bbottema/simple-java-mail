@@ -26,6 +26,12 @@ import java.util.concurrent.ExecutorService;
  */
 public interface OperationalConfig {
 	/**
+	 * Returns the resolved connection conflict policy used when constructing this Mailer.
+	 * @see MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)
+	 */
+	@NotNull ConnectionConflictPolicy getConnectionConflictPolicy();
+
+	/**
 	 * Returns the resolved settings, including resource limits even when retries are disabled.
 	 * @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy)
 	 */

@@ -141,6 +141,17 @@ public final class CoreOnlyConsumer {
         return configuration.getSessionTimeout();
     }
 
+    /** Connection conflict handling and completed inspection remain core-owned application contracts. */
+    public static org.simplejavamail.api.mailer.config.ConnectionConflictPolicy configureConnectionConflicts(final MailerRegularBuilder<?> builder,
+            final org.simplejavamail.api.mailer.config.OperationalConfig configuration, final SimpleJavaMailConfig factoryConfiguration) {
+        builder.getConnectionConflictPolicy();
+        builder.withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
+                .resetConnectionConflictPolicy().useConfiguredConnectionConflictPolicy();
+        final org.simplejavamail.api.mailer.config.ConnectionConflictPolicy configured = factoryConfiguration.get(
+                org.simplejavamail.config.ConfigKeys.CONNECTION_CONFLICT_POLICY);
+        return configuration.getConnectionConflictPolicy();
+    }
+
     /** Socket timeout configuration and effective inspection need only core and its declared API dependencies. */
     public static org.simplejavamail.api.mailer.config.ConnectionConfig configureSocketTimeouts(final MailerRegularBuilder<?> builder) {
         final org.simplejavamail.api.mailer.config.ConnectionConfig.Builder choices =

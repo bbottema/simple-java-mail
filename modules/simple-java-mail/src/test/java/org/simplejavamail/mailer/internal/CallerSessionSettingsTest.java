@@ -415,6 +415,8 @@ class CallerSessionSettingsTest {
 
     private static SimpleJavaMail factory(final Map<String, String> settings) {
         final Properties properties = new Properties();
+        // These controls exercise deliberate replacement of supplied connection baselines.
+        properties.setProperty("simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES");
         settings.forEach((key, value) -> properties.put("simplejavamail." + key, value));
         return SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
     }

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
@@ -41,6 +42,8 @@ class OperationalConfigImpl implements OperationalConfig {
 	@Getter(AccessLevel.NONE)
 	@ToString.Exclude
 	private final Properties properties;
+
+	@NotNull private final ConnectionConflictPolicy connectionConflictPolicy;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withConnectTimeout(Duration)

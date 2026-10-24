@@ -11,6 +11,7 @@ import org.simplejavamail.internal.util.DurationMillis;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.config.ConfigLoader.Property;
 
@@ -32,6 +33,8 @@ final class MailerSessionSettings {
 
     @Nullable private final TransportStrategy transportStrategy;
     private final Map<String, Object> connectionOverrides;
+    @Nullable private final ProxyConfig proxyConfig;
+    @Getter(AccessLevel.NONE) private final Properties effectiveProperties;
     @Nullable private final Duration connectTimeout;
     @Nullable private final Duration readTimeout;
     @Nullable private final Duration writeTimeout;
@@ -48,6 +51,20 @@ final class MailerSessionSettings {
     boolean shouldApplyDebugEnabled() { return applyDebugEnabled; }
     boolean shouldApplyDebugOutput() { return applyDebugOutput; }
 
+    Properties copyEffectiveProperties() {
+        final Properties copy = new Properties();
+        effectiveProperties.stringPropertyNames().forEach(key -> copy.setProperty(key, effectiveProperties.getProperty(key)));
+        copy.putAll(effectiveProperties);
+        return copy;
+    }
+
+    Properties finalProperties(final Session baseline, final Properties additionalProperties) {
+        final Properties copy = copyProperties(baseline);
+        copy.putAll(additionalProperties);
+        applyOverrides(copy, connectionOverrides);
+        return copy;
+    }
+
     static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
             final Properties additionalProperties, final Map<Property, Object> connectionChoices, final Map<String, Object> lockedValues,
             final boolean applyDebugEnabled, final boolean applyDebugOutput) {
@@ -58,6 +75,18 @@ final class MailerSessionSettings {
         verifyRemovedSettings(effective, overrides);
         applyLockedExtraProperties(effective, lockedValues);
         return snapshot(strategy, overrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput);
+    }
+
+    static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
+            final Properties additionalProperties, final Map<String, Object> resolvedOverrides, final Map<String, Object> lockedValues,
+            final ProxyConfig proxyConfig, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
+        final Properties effective = copyProperties(suppliedSession);
+        effective.putAll(additionalProperties);
+        applyOverrides(effective, resolvedOverrides);
+        verifyRemovedSettings(effective, resolvedOverrides);
+        applyLockedExtraProperties(effective, lockedValues);
+        return snapshotBuilder(strategy, resolvedOverrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput)
+                .proxyConfig(proxyConfig).build();
     }
 
     /** Package-private Mailer test constructors supply already-resolved configuration rather than a builder's customization history. */
@@ -117,7 +146,7 @@ final class MailerSessionSettings {
         return TransportStrategy.SMTP;
     }
 
-    private static Map<String, Object> connectionOverrides(@Nullable final TransportStrategy strategy,
+    static Map<String, Object> connectionOverrides(@Nullable final TransportStrategy strategy,
             final Map<Property, Object> choices, final Properties baseline) {
         final Map<String, Object> overrides = new LinkedHashMap<>();
         if (strategy == null) {
@@ -180,9 +209,15 @@ final class MailerSessionSettings {
 
     private static MailerSessionSettings snapshot(@Nullable final TransportStrategy strategy, final Map<String, Object> overrides,
             final Properties effective, @Nullable final Session suppliedSession, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
+        return snapshotBuilder(strategy, overrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput).build();
+    }
+
+    private static MailerSessionSettingsBuilder snapshotBuilder(@Nullable final TransportStrategy strategy, final Map<String, Object> overrides,
+            final Properties effective, @Nullable final Session suppliedSession, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
         final String trusted = strategy == null ? null : effective.getProperty(strategy.propertyNameSSLTrust());
         return MailerSessionSettings.builder()
                 .transportStrategy(strategy)
+                .effectiveProperties(effective)
                 .debugConfig(debugBaseline(suppliedSession))
                 .applyDebugEnabled(applyDebugEnabled)
                 .applyDebugOutput(applyDebugOutput)
@@ -195,8 +230,7 @@ final class MailerSessionSettings {
                 .smtpClientHostname(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalHost()))
                 .sslHostsToTrust(trustedHosts(trusted))
                 .trustAllSSLHost("*".equals(trusted))
-                .verifyingServerIdentity(strategy != null && booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())))
-                .build();
+                .verifyingServerIdentity(strategy != null && booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())));
     }
 
     private static SessionDebugConfig debugBaseline(@Nullable final Session suppliedSession) {

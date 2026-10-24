@@ -3,7 +3,7 @@
 - Status: Accepted, 2026-10-24
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
-- Implementation status: Planned. Acceptance records the design, not completed implementation.
+- Implementation status: Implemented for unreleased 10.0.0 under #867.
 
 ## Context
 
@@ -84,4 +84,4 @@ Spring Boot combines [ordered property sources](https://docs.spring.io/spring-bo
 
 Applications with conflicting explicit connection declarations may now fail during construction. Align or remove the declarations, or deliberately select `ALLOW_EXPLICIT_OVERRIDES`; locks remain mandatory. This behavior affects migration from released APIs and needs explanatory guidance, not an automatic rewrite that silently opts applications into permissive handling.
 
-Implementation must retain declaration origin and explicit removals independently of resolved defaults. The same rules apply to Java, configuration, Spring and CLI construction, and inspection must describe the resolution actually used. Architecture acceptance alone does not mean these paths are implemented.
+Implementation must retain declaration origin and explicit removals independently of resolved defaults. The same rules apply to Java, configuration, Spring and CLI construction, and inspection must describe the resolution actually used. The tracking issue owns delivery status.

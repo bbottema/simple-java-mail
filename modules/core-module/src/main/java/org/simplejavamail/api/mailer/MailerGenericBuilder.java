@@ -20,6 +20,7 @@ import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.ValidationConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -154,6 +155,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	Duration DEFAULT_SESSION_TIMEOUT = Duration.ofMillis(60_000);
 	/**
+	 * Reject conflicting explicit connection declarations unless deliberate overrides are selected.
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
+	 */
+	ConnectionConflictPolicy DEFAULT_CONNECTION_CONFLICT_POLICY = ConnectionConflictPolicy.REJECT_CONFLICTS;
+	/**
 	 * {@value}
 	 *
 	 * @see org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withThreadPoolSize(Integer)
@@ -244,6 +250,55 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Defaults to <code>{@value}</code>, validating emailaddresses (can be configured seperately, but this does override it) and CRLF injection detection (will arn instead).
 	 */
 	boolean DEFAULT_DISABLE_ALL_CLIENTVALIDATION = false;
+
+	/**
+	 * Selects the advanced policy for overlapping SMTP, SOCKS proxy, socket-timeout, local-binding, EHLO and TLS connection settings.
+	 * The default is {@link ConnectionConflictPolicy#REJECT_CONFLICTS}, exposed through {@link #DEFAULT_CONNECTION_CONFLICT_POLICY}.
+	 * Ordinary configuration sources resolve their precedence first;
+	 * differences already settled by the loader or Spring are not conflicts. Unknown provider extensions and hidden Authenticator
+	 * state are outside this comparison.
+	 * <p>
+	 * {@link ConnectionConflictPolicy#REJECT_CONFLICTS} rejects differing explicit factory declarations, recognized raw properties,
+	 * visible supplied Session settings and final Java choices for the same logical setting. Equivalent parsed values are accepted.
+	 * Built-in defaults are not competing declarations. Repeated setters retain their normal replacement behavior; only the final
+	 * choices are compared. Explicit removal of an imported choice also counts as conflicting customization.
+	 * <p>
+	 * {@link ConnectionConflictPolicy#ALLOW_EXPLICIT_OVERRIDES} permits deliberate customization. Explicit typed Java members win
+	 * over their raw-property counterparts regardless of call order, while omitted members retain applicable raw or baseline values.
+	 * Recognized raw SOCKS endpoints can combine with SJM credentials before an authenticated bridge is derived. Generated local
+	 * bridge addresses and ports are not competing declarations. Ordinary factory defaults never fill unrelated gaps in a supplied Session.
+	 * <p>
+	 * Locks and mandatory transport requirements apply in both modes. Conflicts are checked during Mailer construction before
+	 * modifying a supplied Session or allocating connection resources. This setting is independent of configuration-group replacement;
+	 * its position in the builder chain has no effect. Inspect the built Mailer's
+	 * {@link org.simplejavamail.api.mailer.config.OperationalConfig#getConnectionConflictPolicy()} for the resolved policy.
+	 *
+	 * @param policy Non-null local policy choice. A repeated call replaces the previous local policy, subject to a policy lock.
+	 * @see #getConnectionConflictPolicy()
+	 * @see #resetConnectionConflictPolicy()
+	 * @see #useConfiguredConnectionConflictPolicy()
+	 */
+	@NotNull T withConnectionConflictPolicy(@NotNull ConnectionConflictPolicy policy);
+
+	/**
+	 * Returns the supplied local choice, or {@code null} when captured configuration and the built-in default have not been overridden.
+	 * Does not resolve the effective policy or validate connection conflicts.
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
+	 */
+	@Nullable ConnectionConflictPolicy getConnectionConflictPolicy();
+
+	/**
+	 * Selects {@link ConnectionConflictPolicy#REJECT_CONFLICTS}, overriding ordinary captured policy configuration unless a lock conflicts.
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
+	 */
+	@NotNull T resetConnectionConflictPolicy();
+
+	/**
+	 * Removes the local policy selection so construction uses the captured policy, or {@link #DEFAULT_CONNECTION_CONFLICT_POLICY} when absent.
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
+	 */
+	@Cli.ExcludeApi(reason = "Fresh CLI builders already inherit captured configuration")
+	@NotNull T useConfiguredConnectionConflictPolicy();
 
 	/**
 	 * Replaces this builder's supplied debug choices. Unset fields inherit the factory snapshot, never the previous group.
@@ -344,6 +399,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Adds extra Jakarta Mail settings to the {@link Session} built for this Mailer. Only entries stored directly in this
 	 * {@link Properties} object are copied; values inherited from its defaults are not. To include an inherited value,
 	 * add it explicitly with {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)}.
+	 * Supported connection settings participate in {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)};
+	 * extra properties are not an unconditional override of typed connection choices.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Map)
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)
@@ -353,6 +410,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
 	 * @see #clearProperties()
 	 */
 	T withProperties(@NotNull Map<String, String> properties);
@@ -364,6 +422,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * @param propertyValue The text value of the property that wil be set on the internal Session object.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Properties)
+	 * @see #withConnectionConflictPolicy(ConnectionConflictPolicy)
 	 * @see #clearProperties()
 	 */
 	T withProperty(@NotNull String propertyName, @Nullable @Cli.Optional Object propertyValue);

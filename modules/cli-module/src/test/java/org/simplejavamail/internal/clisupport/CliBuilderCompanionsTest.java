@@ -100,6 +100,7 @@ class CliBuilderCompanionsTest {
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().withMap(properties).load(), provider)) {
             final CliExecutionResult result = execute(environment, "send", "--email:startingBlank", "--email:from", "sender@example.test",
                     "--email:to", "receiver@example.test", "--mailer:withTransportModeLoggingOnly", "true",
+                    "--mailer:withConnectionConflictPolicy", "ALLOW_EXPLICIT_OVERRIDES",
                     "--mailer:clearSMTPServerHost", "--mailer:clearSMTPServerPort", "--mailer:clearSMTPServerUsername",
                     "--mailer:clearSMTPServerPassword", "--mailer:clearCustomSSLFactoryClass", "--mailer:resetOpportunisticTLS",
                     "--mailer:resetLegacySmtpContentSupport");

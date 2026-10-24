@@ -97,6 +97,17 @@ public class SpringModulePackagingTest {
 		}
 	}
 
+	@Test
+	void connectionConflictPolicyHasEnumMetadataForOrdinaryAndLockedConfiguration() throws IOException, URISyntaxException {
+		final String metadata = readUtf8(new File(productionRoot(), CONFIGURATION_METADATA));
+		for (String key : java.util.List.of("simplejavamail.connection.conflictpolicy", "simplejavamail.locked.connection.conflictpolicy")) {
+			final int propertyStart = metadata.indexOf("\"name\": \"" + key + "\"");
+			assertThat(propertyStart).isNotNegative();
+			assertThat(metadata.substring(propertyStart, metadata.indexOf('}', propertyStart)))
+					.contains("\"type\": \"org.simplejavamail.api.mailer.config.ConnectionConflictPolicy\"");
+		}
+	}
+
 	private static String readUtf8(final File file) throws IOException {
 		return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
 	}

@@ -156,7 +156,7 @@ public class MailerImpl implements Mailer {
 		this(null,
 				null,
 				fromSessionBuilder.buildEmailGovernance(),
-				fromSessionBuilder.buildProxyConfig(),
+				verifyNonnull(sessionSettings.getProxyConfig()),
 				fromSessionBuilder.getSession(),
 				fromSessionBuilder.buildOperationalConfig(sessionSettings),
 				fromSessionBuilder.buildObserverNotifier(),
@@ -169,10 +169,10 @@ public class MailerImpl implements Mailer {
 	}
 
 	private MailerImpl(final MailerRegularBuilderImpl regularBuilder, final MailerSessionSettings sessionSettings) {
-		this(regularBuilder.buildServerConfig(),
-				regularBuilder.getTransportStrategy(),
+		this(regularBuilder.buildServerConfig(sessionSettings),
+				sessionSettings.getTransportStrategy(),
 				regularBuilder.buildEmailGovernance(),
-				regularBuilder.buildProxyConfig(),
+				verifyNonnull(sessionSettings.getProxyConfig()),
 				null,
 				regularBuilder.buildOperationalConfig(sessionSettings),
 				regularBuilder.buildObserverNotifier(),
@@ -297,12 +297,14 @@ public class MailerImpl implements Mailer {
 			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final MailerSessionSettings sessionSettings) {
 		// Inferring SMTP property names must not replace a caller Session's existing authentication-selection behavior.
 		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : TransportStrategy.findStrategyForSession(session);
-		final Supplier<String> oauth2AccessTokenProvider = OAuth2AccessTokenResolver.validateConfiguration(
-				session, operationalConfig.getProperties(), authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
-		);
+		final Supplier<String> oauth2AccessTokenProvider = operationalConfig.getCustomMailer() == null ? OAuth2AccessTokenResolver.validateConfiguration(
+				Session.getInstance(sessionSettings.finalProperties(session, operationalConfig.getProperties())), new Properties(),
+				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
+		) : null;
+		initSession(session, operationalConfig, sessionSettings);
 		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
 		try {
-			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider, sessionSettings);
+			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
 			return configuredProxy;
 		} catch (RuntimeException | Error failure) {
 			if (configuredProxy != null) {
@@ -317,8 +319,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void finishSendingSessionConfiguration(final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession,
-			@Nullable final Supplier<String> oauth2AccessTokenProvider, final MailerSessionSettings sessionSettings) {
-		initSession(session, operationalConfig, sessionSettings);
+			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
 		lockedSmtpConfiguration.applyLockedExtraProperties(session);
 		if (operationalConfig.getCustomMailer() == null) {
 			lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
@@ -368,7 +369,7 @@ public class MailerImpl implements Mailer {
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerRegularBuilder#buildMailer()
 	 */
-	private static void validateImplicitTlsOAuth2Protocol(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
+	static void validateImplicitTlsOAuth2Protocol(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
 		if (transportStrategy == TransportStrategy.SMTPS_OAUTH2) {
 			final Object protocolOverride = additionalProperties.get("mail.transport.protocol");
 			if (protocolOverride != null && !"smtps".equals(protocolOverride)) {
@@ -378,7 +379,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private static void validateMandatoryStartTls(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
+	static void validateMandatoryStartTls(@Nullable final TransportStrategy transportStrategy, @NotNull final Properties additionalProperties) {
 		if (transportStrategy != SMTP_TLS && transportStrategy != SMTP_OAUTH2) {
 			return;
 		}
@@ -400,9 +401,8 @@ public class MailerImpl implements Mailer {
 	 * property names according to the respective transport protocol it handles (for the host property for example it would be
 	 * <em>"mail.smtp.host"</em> for SMTP and <em>"mail.smtps.host"</em> for SMTPS)</li> </ol>
 	 * <p>
-	 * Furthermore adds proxy SOCKS properties if a proxy configuration was provided, overwriting any SOCKS properties already present.
-	 * <p>Finally, if there are extra properties in the properties file (i.e. <em>simplejavamail.extraproperties.thisisextra=value</em>), then these
-	 * are loaded directly on the internal Session instance. This Java equivalent of this is: <code>mailer.getSession().getProperties().setProperty(..)</code>.
+	 * This method creates the baseline Session. Mailer construction separately resolves explicit connection declarations, applies the accepted
+	 * Session settings under exclusive ownership and configures the resolved proxy route.
 	 *
 	 * @param serverConfig      Remote SMTP server details.
 	 * @param transportStrategy The transport protocol strategy enum that actually handles the session configuration. Session configuration meaning
