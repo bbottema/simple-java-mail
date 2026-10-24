@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -55,7 +56,8 @@ class MailerBuilderCompanionTest {
 
     @Test
     void smtpClearingDoesNotRestorePropertiesOrChangeAlreadyBuiltMailers() throws Exception {
-        final MailerRegularBuilder<?> builder = configuredFactory().mailerBuilder();
+        final MailerRegularBuilder<?> builder = configuredFactory().mailerBuilder()
+                .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
         try (Mailer original = builder.buildMailer()) {
             assertThat(builder.clearSMTPServerPort()).isSameAs(builder);
             assertThat(builder.clearSMTPServerUsername()).isSameAs(builder);
@@ -105,7 +107,8 @@ class MailerBuilderCompanionTest {
     @Test
     void booleanResetsUseLibraryDefaultsRatherThanCapturedProperties() throws Exception {
         final SimpleJavaMail factory = factory(Map.of("smtp.host", "relay.example.org", "opportunistic.tls", "false", "smtp.legacycontentsupport", "true"));
-        final MailerRegularBuilder<?> builder = factory.mailerBuilder();
+        final MailerRegularBuilder<?> builder = factory.mailerBuilder()
+                .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
         assertThat(builder.getTlsConfig().getOpportunisticTLS()).isNull();
         assertThat(builder.getConnectionConfig().getLegacySmtpContentSupport()).isNull();
         try (Mailer inherited = builder.buildMailer()) {

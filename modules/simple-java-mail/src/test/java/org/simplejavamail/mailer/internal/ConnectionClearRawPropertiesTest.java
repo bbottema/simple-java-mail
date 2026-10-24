@@ -120,16 +120,26 @@ class ConnectionClearRawPropertiesTest {
     }
 
     @Test
-    void useConfiguredRestoresCapturedTypedChoicesAndKeepsTheirExistingRawPrecedence() throws Exception {
+    void useConfiguredRestoresRawPrecedenceWhenJavaMembersAreUnset() throws Exception {
         final TransportStrategy strategy = TransportStrategy.SMTP;
         final Map<String, String> settings = capturedRawSettings(rawProperties(strategy));
         settings.put("simplejavamail.smtp.localaddress", "192.0.2.2");
         settings.put("simplejavamail.smtp.localport", "8001");
         settings.put("simplejavamail.smtp.clienthostname", "captured.example.test");
+        settings.put("simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES");
         final SimpleJavaMail factory = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(settings).load());
         final ConnectionConfig restored = clearAll().toBuilder().useConfiguredLocalBindAddress().useConfiguredLocalBindPort()
                 .useConfiguredSmtpClientHostname().build();
+        assertThat(restored.getLocalBindAddress()).isNull();
+        assertThat(restored.getLocalBindPort()).isNull();
+        assertThat(restored.getSmtpClientHostname()).isNull();
         try (Mailer mailer = builder(factory, strategy).withConnectionConfig(restored).buildMailer()) {
+            assertConnection(mailer, strategy, "192.0.2.1", 8000, "raw.example.test");
+        }
+        final SimpleJavaMail withoutRaw = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(Map.of(
+                "simplejavamail.smtp.localaddress", "192.0.2.2", "simplejavamail.smtp.localport", "8001",
+                "simplejavamail.smtp.clienthostname", "captured.example.test")).load());
+        try (Mailer mailer = builder(withoutRaw, strategy).withConnectionConfig(restored).buildMailer()) {
             assertConnection(mailer, strategy, "192.0.2.2", 8001, "captured.example.test");
         }
     }
@@ -252,7 +262,10 @@ class ConnectionClearRawPropertiesTest {
     }
 
     private static SimpleJavaMail factory(final Map<String, String> raw) {
-        return SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(capturedRawSettings(raw)).load());
+        final Map<String, String> settings = capturedRawSettings(raw);
+        // These controls deliberately remove or replace an imported raw connection baseline.
+        settings.put("simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES");
+        return SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(settings).load());
     }
 
     private static MailerRegularBuilder<?> builder(final SimpleJavaMail factory, final TransportStrategy strategy) {

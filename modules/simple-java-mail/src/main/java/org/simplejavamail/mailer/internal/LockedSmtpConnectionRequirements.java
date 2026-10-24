@@ -1,13 +1,10 @@
 package org.simplejavamail.mailer.internal;
 
-import org.simplejavamail.config.ConfigKeys;
-
-import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
-
 import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.config.ConfigKeys;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.config.ConfigurationLocks;
@@ -36,6 +33,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.TRANSPORT_STRATEGY;
+import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
 /** Pure connection restrictions shared by construction preflight and the completed Mailer's live Session checks. */
@@ -208,8 +206,9 @@ final class LockedSmtpConnectionRequirements {
 		}
 	}
 
-	static void verifyCustomSocketFactory(final ConfigurationLocks locks, final boolean customFactory) {
-		if (!customFactory) {
+	static void verifyCustomSocketFactory(final ConfigurationLocks locks, final Properties resolvedProperties,
+			@Nullable final TransportStrategy strategy) {
+		if (strategy == null || !hasCustomSocketFactory(resolvedProperties, strategy)) {
 			return;
 		}
 		for (Property property : new Property[]{DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUSTED_HOSTS, DEFAULT_VERIFY_SERVER_IDENTITY}) {
@@ -273,9 +272,6 @@ final class LockedSmtpConnectionRequirements {
 
 	void verifyCallerOwnedSession(final Session session) {
 		final TransportStrategy strategy = MailerSessionSettings.transportStrategy(session.getProperties());
-		if (strategy != null) {
-			verifyCustomSocketFactory(locks, hasCustomSocketFactory(session.getProperties(), strategy));
-		}
 		verifyCallerOwnedCredentials();
 		if (strategy == null) {
 			verifyUnknownSessionStrategy();

@@ -3,6 +3,7 @@ package org.simplejavamail.mailer;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
@@ -94,7 +95,9 @@ public class MailerTest {
 
 	@BeforeEach
 	public void configureMailerDefaults() {
+		// This fixture exercises deliberate replacement of a complete imported connection baseline.
 		String s = "simplejavamail.javaxmail.debug=true\n"
+				+ "simplejavamail.connection.conflictpolicy=ALLOW_EXPLICIT_OVERRIDES\n"
 				+ "simplejavamail.transportstrategy=SMTP_TLS\n"
 				+ "simplejavamail.smtp.host=smtp.default.com\n"
 				+ "simplejavamail.smtp.port=25\n"
@@ -237,6 +240,7 @@ public class MailerTest {
 		final Session session = Session.getInstance(properties);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
+				.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
 				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).build())
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
@@ -261,6 +265,7 @@ public class MailerTest {
 		final Session session = Session.getInstance(properties);
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
+				.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
 				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").withBridgePort(8181).build())
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
