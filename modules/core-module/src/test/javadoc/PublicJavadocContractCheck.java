@@ -22,6 +22,7 @@ public final class PublicJavadocContractCheck {
         requireText("../config/ConfigKeys", "CONNECT_TIMEOUT");
         requireText("../config/ConfigKeys", "READ_TIMEOUT");
         requireText("../config/ConfigKeys", "WRITE_TIMEOUT");
+        requireText("../config/ConfigKeys", "CONNECTION_CONFLICT_POLICY");
         requireText("../config/SimpleJavaMailConfig", "id=\"get(org.simplejavamail.config.ConfigKey)\"");
         requireText("../config/SimpleJavaMailConfig", "id=\"hasProperty(org.simplejavamail.config.ConfigKey)\"");
         requireText("../config/SimpleJavaMailConfig", "id=\"getPropertySource(org.simplejavamail.config.ConfigKey)\"");
@@ -53,6 +54,11 @@ public final class PublicJavadocContractCheck {
         requireGetters("mailer/SmtpTlsDetails", "getProtocol", "getCipherSuite", "getPeerIdentities", "isServerIdentityCheckEnabled");
         requireGetters("mailer/spi/DeliveryRecipient", "getAddress", "getNotifyOptions");
         requireGetters("mailer/config/OperationalConfig", "getSessionTimeout", "getConnectTimeout", "getReadTimeout", "getWriteTimeout");
+        requireGetters("mailer/config/OperationalConfig", "getConnectionConflictPolicy");
+        requireText("mailer/config/ConnectionConflictPolicy", "REJECT_CONFLICTS");
+        requireText("mailer/config/ConnectionConflictPolicy", "ALLOW_EXPLICIT_OVERRIDES");
+        requireLinkedCompanions("mailer/MailerGenericBuilder", "getConnectionConflictPolicy", "resetConnectionConflictPolicy",
+                "useConfiguredConnectionConflictPolicy");
         requireGetters("mailer/config/ConnectionConfig", "getSessionTimeout", "getConnectTimeout", "getReadTimeout", "getWriteTimeout");
         requireText("mailer/config/ConnectionConfig", "ConnectionConfig.Builder.html#withConnectTimeout(java.time.Duration)");
         requireText("mailer/config/ConnectionConfig", "ConnectionConfig.Builder.html#withReadTimeout(java.time.Duration)");

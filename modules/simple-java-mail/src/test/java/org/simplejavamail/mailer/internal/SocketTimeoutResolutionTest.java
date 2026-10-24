@@ -89,6 +89,7 @@ class SocketTimeoutResolutionTest {
     @Test
     void separateFactoriesRetainTheirCapturedTimeoutsAfterTheSourceMapChanges() throws Exception {
         final Map<String, Object> source = new LinkedHashMap<>();
+        source.put("simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES");
         source.put("simplejavamail.defaults.sessiontimeoutmillis", "5000");
         source.put("simplejavamail.defaults.readtimeoutmillis", "1000");
         source.put("simplejavamail.extraproperties.mail.smtp.connectiontimeout", "2000");
@@ -279,6 +280,8 @@ class SocketTimeoutResolutionTest {
 
     private static SimpleJavaMail factory(final Map<String, String> settings) {
         final Properties properties = new Properties();
+        // These controls exercise deliberate per-operation overrides of imported settings.
+        properties.setProperty("simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES");
         settings.forEach((key, value) -> properties.put("simplejavamail." + key, value));
         return SimpleJavaMail.withConfig(ConfigLoader.builder().withProperties(properties).load());
     }

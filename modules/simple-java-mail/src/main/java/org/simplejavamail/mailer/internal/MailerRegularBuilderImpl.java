@@ -16,8 +16,8 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import javax.net.ssl.SSLSocketFactory;
+import java.util.Map;
 
-import static java.util.Optional.ofNullable;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
@@ -61,6 +61,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@NotNull
 	private TransportStrategy transportStrategy;
+	private boolean transportStrategyExplicit;
 
 	/**
 	 * @see MailerRegularBuilder#withCustomSSLFactoryClass(String)
@@ -71,6 +72,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * @see MailerRegularBuilder#withCustomSSLFactoryInstance(SSLSocketFactory)
 	 */
 	private SSLSocketFactory customSSLFactoryInstance;
+	private boolean customSSLFactoryInstanceExplicit;
 
 	/**
 	 * @see MailerRegularBuilder#withOpportunisticTLS(boolean)
@@ -132,7 +134,8 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public MailerRegularBuilderImpl withTransportStrategy(@NotNull final TransportStrategy transportStrategy) {
-		this.transportStrategy = transportStrategy;
+		this.transportStrategy = java.util.Objects.requireNonNull(transportStrategy, "transportStrategy");
+		transportStrategyExplicit = true;
 		customizedSessionSetting(TRANSPORT_STRATEGY, transportStrategy);
 		return this;
 	}
@@ -222,6 +225,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withSMTPServerPassword(@Nullable final String password) {
 		this.password = emptyAsNull(password);
+		customizedSessionSetting(SMTP_PASSWORD, this.password);
 		return this;
 	}
 
@@ -253,6 +257,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	@Override
 	public MailerRegularBuilderImpl withCustomSSLFactoryInstance(@Nullable final SSLSocketFactory customSSLFactoryInstance) {
 		this.customSSLFactoryInstance = customSSLFactoryInstance;
+		customSSLFactoryInstanceExplicit = true;
 		return this;
 	}
 
@@ -280,8 +285,8 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		locksOf(configuration()).verify(TRANSPORT_STRATEGY, transportStrategy);
 		locksOf(configuration()).verify(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
 		locksOf(configuration()).verify(OPPORTUNISTIC_TLS, opportunisticTLS);
-		LockedSmtpConfiguration.verifyCustomSocketFactory(locksOf(configuration()), customSSLFactory != null || customSSLFactoryInstance != null
-				|| LockedSmtpConfiguration.hasCustomSocketFactory(getProperties(), transportStrategy));
+		LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(configuration()), customSSLFactory != null || customSSLFactoryInstance != null
+				|| LockedSmtpConnectionRequirements.hasCustomSocketFactory(getProperties(), transportStrategy));
 		if (customSSLFactoryInstance != null && locksOf(configuration()).contains(CUSTOM_SSLFACTORY_CLASS)) {
 			throw locksOf(configuration()).conflict(CUSTOM_SSLFACTORY_CLASS,
 					"withCustomSSLFactoryInstance(...) supplies a factory object, but this configuration locks the factory class to instantiate. "
@@ -292,7 +297,24 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 
 	@Override
 	TransportStrategy transportStrategyForLocks() {
+		if (!transportStrategyExplicit) {
+			final String protocol = getProperties().getProperty("mail.transport.protocol");
+			final boolean oauth2 = OAuth2AccessTokenResolver.isOAuth2Transport(transportStrategy);
+			if ("smtps".equals(protocol) && transportStrategy != TransportStrategy.SMTPS && transportStrategy != TransportStrategy.SMTPS_OAUTH2) {
+				return oauth2 ? TransportStrategy.SMTPS_OAUTH2 : TransportStrategy.SMTPS;
+			}
+			if ("smtp".equals(protocol) && (transportStrategy == TransportStrategy.SMTPS || transportStrategy == TransportStrategy.SMTPS_OAUTH2)) {
+				return oauth2 ? TransportStrategy.SMTP_OAUTH2 : TransportStrategy.SMTP;
+			}
+		}
 		return transportStrategy;
+	}
+
+	@Override void validateOwnedConnectionRequirements() {
+		if (getCustomMailer() == null) {
+			MailerImpl.validateMandatoryStartTls(transportStrategy, getProperties());
+			MailerImpl.validateImplicitTlsOAuth2Protocol(transportStrategy, getProperties());
+		}
 	}
 
 	/**
@@ -300,15 +322,49 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 * Logging-only sends can still be built without an SMTP host; CustomMailer continues to own its connection settings.
 	 */
 	@Nullable
-	ServerConfig buildServerConfig() {
-		if (getCustomMailer() == null && (!isTransportModeLoggingOnly() || !valueNullOrEmpty(host))) {
-			checkArgumentNotEmpty(host, "SMTP server host missing");
-			final int serverPort = ofNullable(port).orElse(transportStrategy.getDefaultServerPort());
-			return new ServerConfigImpl(verifyNonnullOrEmpty(getHost()), serverPort, username, password, customSSLFactory, customSSLFactoryInstance);
+	ServerConfig buildServerConfig(final MailerSessionSettings sessionSettings) {
+		final TransportStrategy strategy = java.util.Objects.requireNonNull(sessionSettings.getTransportStrategy(), "transportStrategy");
+		final Map<String, Object> resolved = sessionSettings.getConnectionOverrides();
+		final String resolvedHost = (String) resolved.get(strategy.propertyNameHost());
+		final String resolvedUsername = (String) resolved.get(strategy.propertyNameUsername());
+		final Object resolvedPort = resolved.get(strategy.propertyNamePort());
+		final String resolvedFactory = (String) resolved.get(strategy.propertyNameSSLSocketFactoryClass());
+		final SSLSocketFactory resolvedFactoryInstance = (SSLSocketFactory) resolved.get(strategy.propertyNameSSLSocketFactory());
+		if (getCustomMailer() == null && (!isTransportModeLoggingOnly() || !valueNullOrEmpty(resolvedHost))) {
+			checkArgumentNotEmpty(resolvedHost, "SMTP server host missing");
+			final int serverPort = resolvedPort == null ? strategy.getDefaultServerPort()
+					: ConnectionConfigurationResolver.integer(resolvedPort, strategy.propertyNamePort());
+			final String resolvedPassword = OAuth2AccessTokenResolver.isOAuth2Transport(strategy)
+					? (String) resolved.get(TransportStrategy.OAUTH2_TOKEN_PROPERTY) : password;
+			return new ServerConfigImpl(verifyNonnullOrEmpty(resolvedHost), serverPort, resolvedUsername, resolvedPassword, resolvedFactory, resolvedFactoryInstance);
 		} else if (getCustomMailer() != null && host != null) {
 			log.warn("Both custom mailer and SMTP server configured, ignoring server configuration");
 		}
 		return null;
+	}
+
+	@Override void addRegularConnectionDefaults(final Map<String, Object> defaults, final TransportStrategy strategy) {
+		if (host != null) { defaults.put(strategy.propertyNameHost(), host); }
+		defaults.put(strategy.propertyNamePort(), port == null ? strategy.getDefaultServerPort() : port);
+		if (username != null) { defaults.put(strategy.propertyNameUsername(), username); }
+		if (password != null) {
+			if (OAuth2AccessTokenResolver.isOAuth2Transport(strategy)) { defaults.put(TransportStrategy.OAUTH2_TOKEN_PROPERTY, password); }
+			else { defaults.put(strategy.propertyNameAuthenticate(), "true"); }
+		}
+		if (customSSLFactoryInstance != null) { defaults.put(strategy.propertyNameSSLSocketFactory(), customSSLFactoryInstance); }
+		else if (customSSLFactory != null) { defaults.put(strategy.propertyNameSSLSocketFactoryClass(), customSSLFactory); }
+		if (strategy == TransportStrategy.SMTP && !opportunisticTLS) {
+			defaults.remove("mail.smtp.starttls.enable");
+			defaults.remove("mail.smtp.starttls.required");
+		}
+	}
+
+	@Override Map<String, Object> regularPhysicalChoices(@Nullable final TransportStrategy strategy) {
+		final Map<String, Object> choices = new java.util.LinkedHashMap<>();
+		if (customSSLFactoryInstanceExplicit && strategy != null) {
+			choices.put(strategy.propertyNameSSLSocketFactory(), customSSLFactoryInstance);
+		}
+		return choices;
 	}
 
 	/**
@@ -377,6 +433,7 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
         customSSLFactory = choices.isCustomSSLFactoryClassCleared() ? null
                 : stringChoice(choices.getCustomSSLFactoryClass(), ConfigKeys.CUSTOM_SSLFACTORY_CLASS);
         customSSLFactoryInstance = choices.getCustomSSLFactoryInstance();
+        customSSLFactoryInstanceExplicit = choices.getCustomSSLFactoryInstance() != null || choices.isCustomSSLFactoryInstanceCleared();
         opportunisticTLS = configuration().valueOrProperty(choices.getOpportunisticTLS(), ConfigKeys.OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
         if (choices.getCustomSSLFactoryClass() != null || choices.isCustomSSLFactoryClassCleared()) {
             customizedSessionSetting(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);

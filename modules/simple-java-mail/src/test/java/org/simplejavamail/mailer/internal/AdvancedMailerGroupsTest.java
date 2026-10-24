@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.api.mailer.config.TlsConfig;
@@ -49,7 +50,9 @@ class AdvancedMailerGroupsTest {
             assertThat(inherited.getSession().getProperty("mail.smtp.localhost")).isEqualTo("captured.example");
             assertThat(inherited.getSession().getProperty("mail.smtp.localaddress")).isEqualTo("192.0.2.7");
         }
-        try (Mailer cleared = factory.mailerBuilder().withConnectionConfig(ConnectionConfig.builder()
+        try (Mailer cleared = factory.mailerBuilder()
+                .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
+                .withConnectionConfig(ConnectionConfig.builder()
                 .withSmtpClientHostname("").withLocalBindAddress("").build()).buildMailer()) {
             assertThat(cleared.getSession().getProperty("mail.smtp.localhost")).isNull();
             assertThat(cleared.getSession().getProperty("mail.smtp.localaddress")).isNull();
@@ -63,6 +66,7 @@ class AdvancedMailerGroupsTest {
             assertThat(inherited.getSession().getProperty("mail.smtp.ssl.socketFactory.class")).isEqualTo("captured.Factory");
         }
         try (Mailer cleared = factory.mailerBuilder()
+                .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
                 .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryClass("").build()).buildMailer()) {
             assertThat(cleared.getSession().getProperty("mail.smtp.ssl.socketFactory.class")).isEmpty();
         }
@@ -89,6 +93,7 @@ class AdvancedMailerGroupsTest {
         final Session session = Session.getInstance(properties);
         try (Mailer mailer = factory(Map.of("simplejavamail.defaults.sessiontimeoutmillis", 999))
                 .mailerBuilder(session)
+                .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
                 .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(3)).build())
                 .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("client.example").build()).buildMailer()) {
             assertThat(session.getProperty("mail.smtp.timeout")).isEqualTo("4321");

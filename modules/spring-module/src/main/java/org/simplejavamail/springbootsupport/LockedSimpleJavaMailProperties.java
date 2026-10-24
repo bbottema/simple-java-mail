@@ -21,6 +21,7 @@ public class LockedSimpleJavaMailProperties {
     // The processor does not expand inherited groups. Reuse their types explicitly; leaf definitions stay in one place.
     @NestedConfigurationProperty private SimpleJavaMailProperties.Javaxmail javaxmail;
     private String transportstrategy;
+    @NestedConfigurationProperty private SimpleJavaMailProperties.Connection connection;
     private Map<String, String> extraproperties;
     /** Named SMTP configurations whose values are locked for IDE metadata; runtime loading still reads Spring's Environment. */
     private Map<String, SimpleJavaMailProperties> mailers;

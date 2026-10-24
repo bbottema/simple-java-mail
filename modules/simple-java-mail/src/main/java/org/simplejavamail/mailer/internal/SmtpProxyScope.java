@@ -39,7 +39,7 @@ final class SmtpProxyScope implements AutoCloseable {
 				throw new MailerException(MailFailureKind.CONNECTION,
 						"Authenticated SOCKS proxy bridge did not bind to a usable loopback port", null);
 			}
-			final TransportStrategy strategy = TransportStrategy.findStrategyForSession(selectedSession);
+			final TransportStrategy strategy = MailerSessionSettings.transportStrategy(selectedSession.getProperties());
 			selectedSession.getProperties().setProperty((strategy == null ? TransportStrategy.SMTP : strategy).propertyNameSocksPort(), String.valueOf(localPort));
 		}
 	}

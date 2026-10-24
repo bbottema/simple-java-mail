@@ -41,8 +41,9 @@ class CliCommandLineProducer {
                         "%n" +
                         "@|bold Note that each and every |@@|"+COMMAND_OPTION_STYLE+",bold --option|@ @|bold has an |@@|"+COMMAND_OPTION_STYLE+",bold --option--help|@ @|bold variation for full documentation.|@" +
                         "%n" +
-                        "Note: All the regular functionality regarding properties and config files work with the CLI so you can provide defaults in a " +
-                        "property file as long as it is visible (on class path) or as system environment variables.")
+                        "Configuration files and environment variables use the same configuration loading as the Java API. " +
+                        "Conflicting explicit connection settings are rejected by default. " +
+                        "Use --mailer:withConnectionConflictPolicy--help for advanced override behavior; locked settings remain enforced.")
                 .version("Simple Java Mail " + CliVersion.value());
         
         rootCommandsHolder.usageMessage()

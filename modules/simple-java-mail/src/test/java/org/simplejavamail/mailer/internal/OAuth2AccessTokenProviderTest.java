@@ -7,6 +7,7 @@ import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.SimpleJavaMail;
+import testutil.ConfigLoaderTestHelper;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,7 +24,7 @@ class OAuth2AccessTokenProviderTest {
 		AtomicInteger calls = new AtomicInteger();
 		OAuth2AccessTokenProvider provider = () -> "token-" + calls.incrementAndGet();
 
-		Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder()
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587, "user@example.com", null)
 				.withTransportStrategy(SMTP_OAUTH2)
 				.withOAuth2AccessTokenProvider(provider)
@@ -38,7 +39,7 @@ class OAuth2AccessTokenProviderTest {
 	void convenienceEntryPointShouldConfigureProvider() {
 		OAuth2AccessTokenProvider provider = () -> "token";
 
-		Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder()
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withOAuth2AccessTokenProvider(provider)
 				.withSMTPServer("smtp.example.com", 587, "user@example.com", null)
 				.withTransportStrategy(SMTP_OAUTH2)
@@ -61,7 +62,7 @@ class OAuth2AccessTokenProviderTest {
 			}
 		};
 
-		Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder()
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587, "user@example.com", null)
 				.withTransportStrategy(SMTP_OAUTH2)
 				.withOAuth2AccessTokenProvider(provider)
@@ -79,7 +80,7 @@ class OAuth2AccessTokenProviderTest {
 		Session session = Session.getInstance(properties);
 		OAuth2AccessTokenProvider provider = () -> "token";
 
-		Mailer mailer = SimpleJavaMail.fromDefaults().mailerBuilder(session)
+		Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(provider)
 				.buildMailer();
 
@@ -91,7 +92,7 @@ class OAuth2AccessTokenProviderTest {
 	void customSessionProviderShouldRequireOAuth2AuthenticationMechanism() {
 		Session session = Session.getInstance(new Properties());
 
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().mailerBuilder(session)
+		assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(() -> "token")
 				.buildMailer())
 				.isInstanceOf(MailException.class)
@@ -100,7 +101,7 @@ class OAuth2AccessTokenProviderTest {
 
 	@Test
 	void fixedTokenAndProviderShouldBeRejected() {
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().mailerBuilder()
+		assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587, "user@example.com", "fixed-token")
 				.withTransportStrategy(SMTP_OAUTH2)
 				.withOAuth2AccessTokenProvider(() -> "provided-token")
@@ -111,7 +112,7 @@ class OAuth2AccessTokenProviderTest {
 
 	@Test
 	void providerShouldRequireOAuth2TransportStrategy() {
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().mailerBuilder()
+		assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 587, "user@example.com", null)
 				.withTransportStrategy(TransportStrategy.SMTP_TLS)
 				.withOAuth2AccessTokenProvider(() -> "provided-token")

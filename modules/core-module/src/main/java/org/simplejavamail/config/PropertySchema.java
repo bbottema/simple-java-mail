@@ -4,6 +4,7 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -42,6 +43,7 @@ final class PropertySchema {
 		DOUBLE,
 		DURATION,
 		TRANSPORT_STRATEGY,
+		CONNECTION_CONFLICT_POLICY,
 		SESSION_DEBUG_OUTPUT,
 		CONTENT_TRANSFER_ENCODING,
 		DSN_RETURN_OPTION,
@@ -82,6 +84,7 @@ final class PropertySchema {
         return bind(p, ValueType.INTEGER, PropertySchema::parseInteger, value -> Duration.ofMillis(value));
     }
     static ConfigKey<TransportStrategy> transportStrategyKey(final Property p) { return enumKey(p, ValueType.TRANSPORT_STRATEGY, TransportStrategy.class); }
+    static ConfigKey<ConnectionConflictPolicy> connectionConflictPolicyKey(final Property p) { return enumKey(p, ValueType.CONNECTION_CONFLICT_POLICY, ConnectionConflictPolicy.class); }
     static ConfigKey<SessionDebugOutput> sessionDebugOutputKey(final Property p) { return enumKey(p, ValueType.SESSION_DEBUG_OUTPUT, SessionDebugOutput.class); }
     static ConfigKey<LoadBalancingStrategy> loadBalancingStrategyKey(final Property p) { return enumKey(p, ValueType.LOAD_BALANCING_STRATEGY, LoadBalancingStrategy.class); }
     static ConfigKey<AsyncQueueOverflowPolicy> asyncQueueOverflowPolicyKey(final Property p) { return enumKey(p, ValueType.ASYNC_QUEUE_OVERFLOW_POLICY, AsyncQueueOverflowPolicy.class); }
@@ -169,6 +172,7 @@ final class PropertySchema {
 				Property.DISABLE_ALL_CLIENTVALIDATION);
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.VISIBLE,
 				Property.TRANSPORT_STRATEGY,
+				Property.CONNECTION_CONFLICT_POLICY,
 				Property.SMTP_HOST,
 				Property.SMTP_PORT,
 				Property.SMTP_USERNAME,

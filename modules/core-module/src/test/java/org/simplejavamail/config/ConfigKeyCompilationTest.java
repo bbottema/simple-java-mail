@@ -22,6 +22,7 @@ class ConfigKeyCompilationTest {
     @Test
     void validKeyReadsAndFallbacksCompile() throws Exception {
         assertCompiles("Integer port = c.get(ConfigKeys.SMTP_PORT); "
+                + "org.simplejavamail.api.mailer.config.ConnectionConflictPolicy policy = c.get(ConfigKeys.CONNECTION_CONFLICT_POLICY); "
                 + "java.time.Duration timeout = c.get(ConfigKeys.SESSION_TIMEOUT); "
                 + "java.time.Duration connect = c.get(ConfigKeys.CONNECT_TIMEOUT); "
                 + "java.time.Duration read = c.get(ConfigKeys.READ_TIMEOUT); "
@@ -43,6 +44,8 @@ class ConfigKeyCompilationTest {
     @Test
     void incorrectGetterTargetTypesDoNotCompile() throws Exception {
         assertDoesNotCompile("String port = c.get(ConfigKeys.SMTP_PORT);");
+        assertDoesNotCompile("String policy = c.get(ConfigKeys.CONNECTION_CONFLICT_POLICY);");
+        assertDoesNotCompile("Object policy = c.valueOrProperty(\"REJECT_CONFLICTS\", ConfigKeys.CONNECTION_CONFLICT_POLICY);");
         assertDoesNotCompile("Integer timeout = c.get(ConfigKeys.SESSION_TIMEOUT);");
         assertDoesNotCompile("Integer connect = c.get(ConfigKeys.CONNECT_TIMEOUT);");
         assertDoesNotCompile("String read = c.get(ConfigKeys.READ_TIMEOUT);");

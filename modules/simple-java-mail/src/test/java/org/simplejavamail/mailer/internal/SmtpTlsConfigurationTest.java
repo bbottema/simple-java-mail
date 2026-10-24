@@ -21,6 +21,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -126,7 +127,9 @@ class SmtpTlsConfigurationTest {
 
         final SimpleJavaMailConfig corrected = loader.withMap("override", Map.of(key, "TrUe")).load();
         try (Mailer fromSource = SimpleJavaMail.withConfig(corrected).mailerBuilder().buildMailer();
-             Mailer fromBuilder = factory.mailerBuilder().withProperty(REQUIRED, true).buildMailer()) {
+             Mailer fromBuilder = factory.mailerBuilder()
+                 .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
+                 .withProperty(REQUIRED, true).buildMailer()) {
             assertThat(fromSource.getSession().getProperty(REQUIRED)).isEqualTo("TrUe");
             assertThat(fromBuilder.getSession().getProperty(REQUIRED)).isEqualTo("true");
             assertThat(corrected.getDiagnostics().toString()).contains(key + " = TrUe (source: override)");

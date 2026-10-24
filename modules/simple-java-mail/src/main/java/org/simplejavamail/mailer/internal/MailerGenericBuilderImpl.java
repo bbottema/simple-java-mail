@@ -25,6 +25,7 @@ import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.ValidationConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueConfig;
@@ -36,7 +37,6 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
-import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
@@ -74,7 +74,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.EXTRA_PROPERTIES;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
-import static org.simplejavamail.internal.util.MiscUtil.checkArgumentNotEmpty;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
@@ -107,6 +106,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private final FactoryMailerRuntime runtime;
 	private final FactoryMailerRuntime.Definition definition;
 	private final Map<Property, Object> explicitSessionSettings = new LinkedHashMap<>();
+	private final Map<String, Object> explicitRawSessionSettings = new LinkedHashMap<>();
+	@Nullable private ConnectionConflictPolicy connectionConflictPolicy;
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
 	@Nullable private SendingRateLimit messageRateLimit;
 	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
@@ -491,6 +492,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	final void validateFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
 		validateLockedConfiguration();
+		validateOwnedConnectionRequirements();
+		final Session suppliedSession = this instanceof MailerFromSessionBuilderImpl ? ((MailerFromSessionBuilderImpl) this).getSession() : null;
+		final MailerSessionSettings connectionSettings = buildSessionSettings(suppliedSession);
+		if (customMailer == null && connectionSettings.getProxyConfig() != null && connectionSettings.getProxyConfig().requiresProxy()
+				&& connectionSettings.getProxyConfig().requiresAuthentication()) {
+			ModuleLoader.loadAuthenticatedSocksModule();
+		}
 		ConfiguredFailover.verifyPolicyLocks(locksOf(config), failoverPolicy);
 		verifyCompatibleAncestorMessageLocks(failoverRoute, config);
 		if (!failoverRoute.add(definition)) {
@@ -576,7 +584,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		validateLockedExtraProperties(locks);
 		validateLockedExecutorSettings(locks);
 		validateCustomMailerLocks(locks);
-		LockedSmtpConfiguration.verifyBuilderCustomizations(locks, explicitSessionSettings, transportStrategyForLocks());
+		LockedSmtpConnectionRequirements.verifyBuilderCustomizations(locks, explicitSessionSettings, transportStrategyForLocks());
 		validateLockedClusterDefaults(locks);
 		if (oauth2AccessTokenProvider != null && locks.contains(Property.SMTP_PASSWORD)) {
 			throw locks.conflict(Property.SMTP_PASSWORD, "withOAuth2AccessTokenProvider(...) supplies credentials at send time, "
@@ -620,6 +628,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	private void validateLockedConnectionSettings(final ConfigurationLocks locks) {
+		locks.verify(Property.CONNECTION_CONFLICT_POLICY, resolvedConnectionConflictPolicy());
 		locks.verify(Property.PROXY_HOST, proxyHost);
 		locks.verify(Property.PROXY_PORT, proxyPort);
 		locks.verify(Property.PROXY_USERNAME, proxyUsername);
@@ -795,30 +804,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	/**
 	 * For internal use.
 	 */
-	ProxyConfig buildProxyConfig() {
-		validateProxy();
-		return new ProxyConfigImpl(getProxyHost(), getProxyPort(), getProxyUsername(), getProxyPassword(), getProxyBridgePort());
-	}
-
-	private void validateProxy() {
-		if (!valueNullOrEmpty(proxyHost)) {
-			checkArgumentNotEmpty(proxyPort, "proxyHost provided, but not a proxyPort");
-
-			if (!valueNullOrEmpty(proxyUsername) && valueNullOrEmpty(proxyPassword)) {
-				throw new IllegalArgumentException("Proxy username provided but not a password");
-			}
-			if (valueNullOrEmpty(proxyUsername) && !valueNullOrEmpty(proxyPassword)) {
-				throw new IllegalArgumentException("Proxy password provided but not a username");
-			}
-			if (!valueNullOrEmpty(proxyUsername) && valueNullOrEmpty(proxyBridgePort)) {
-				throw new IllegalArgumentException("Cannot authenticate with proxy if no proxy bridge port is configured");
-			}
-		}
-	}
-
-	/**
-	 * For internal use.
-	 */
 	EmailGovernance buildEmailGovernance() {
 		return new EmailGovernanceImpl(
 				config,
@@ -831,15 +816,97 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Resolve connection facts once, without changing or claiming a caller-owned Session. */
 	MailerSessionSettings buildSessionSettings(@Nullable final Session suppliedSession) {
+		if (suppliedSession != null) {
+			verifySessionIsUnowned(suppliedSession);
+		}
 		final Map<Property, Object> connectionChoices = suppliedSession == null
 				? ownedConnectionChoices() : new LinkedHashMap<>(explicitSessionSettings);
 		final ConfigurationLocks locks = locksOf(config);
 		final TransportStrategy strategy = transportStrategyForLocks();
+		if (customMailer == null && strategy == null && (!explicitSessionSettings.isEmpty() || proxyCustomized())) {
+			MailerSessionSettings.connectionOverrides(null, explicitSessionSettings.isEmpty()
+					? Collections.singletonMap(Property.PROXY_HOST, proxyHost) : explicitSessionSettings, getProperties());
+		}
 		addLockedConnectionChoices(connectionChoices, strategy, locks);
 		final boolean applyDebugEnabled = suppliedSession == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG);
 		final boolean applyDebugOutput = debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT);
-		return MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), connectionChoices, locks.getValues(),
-				applyDebugEnabled, applyDebugOutput);
+		final Map<Property, Object> declarations = new LinkedHashMap<>(explicitSessionSettings);
+		final Map<String, Object> defaults = new LinkedHashMap<>();
+		if (suppliedSession == null && strategy != null) {
+			strategy.generateProperties().forEach((key, value) -> defaults.put(key.toString(), value));
+			defaults.putAll(MailerSessionSettings.connectionOverrides(strategy, connectionChoices, getProperties()));
+			if (customMailer == null) {
+				addRegularConnectionDefaults(defaults, strategy);
+			}
+		}
+		final ConnectionConfigurationResolver.Resolution resolution = ConnectionConfigurationResolver.resolve(config, suppliedSession, strategy,
+				resolvedConnectionConflictPolicy(), getProperties(), explicitRawSessionSettings, declarations, defaults,
+				regularPhysicalChoices(strategy), new ProxyConfigImpl(proxyHost, proxyPort, proxyUsername, proxyPassword, proxyBridgePort), proxyCustomized(), customMailer == null);
+		// Locked connection members can add a missing caller-Session value, but never settle an ordinary conflict silently.
+		resolution.overrides.putAll(MailerSessionSettings.connectionOverrides(strategy, lockedConnectionChoices(strategy, locks), getProperties()));
+		final MailerSessionSettings resolved = MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), resolution.overrides, locks.getValues(),
+				resolution.proxy, applyDebugEnabled, applyDebugOutput);
+		final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(config, resolution.proxy, resolved.isTrustAllSSLHost(), strategy);
+		requirements.verifyAdditionalProperties(getProperties());
+		requirements.verifyExplicitConnectionChoices(resolution.explicitOverrides);
+		if (suppliedSession != null) {
+			requirements.verifyCallerOwnedSession(suppliedSession);
+		}
+		if (customMailer == null) {
+			final TransportStrategy authenticationStrategy = suppliedSession == null ? strategy : TransportStrategy.findStrategyForSession(suppliedSession);
+			OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(resolved.copyEffectiveProperties()), new Properties(),
+					authenticationStrategy, oauth2AccessTokenProvider);
+		}
+		return resolved;
+	}
+
+	private void verifySessionIsUnowned(final Session session) {
+		SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !locksOf(config).isEmpty());
+		if (session.getProperties().containsKey("org.simplejavamail.internal.mailerOwner")) {
+			throw new IllegalArgumentException("This Session or its Properties object already belongs to another Mailer, which may still be building or shutting down. "
+					+ "Sharing it would mix their email defaults, overrides and connection settings. Reuse the existing Mailer, or create a fresh Session "
+					+ "with independent Properties copied from your original SMTP settings.");
+		}
+	}
+
+	private Map<Property, Object> lockedConnectionChoices(@Nullable final TransportStrategy strategy, final ConfigurationLocks locks) {
+		final Map<Property, Object> choices = new LinkedHashMap<>();
+		addLockedConnectionChoices(choices, strategy, locks);
+		return choices;
+	}
+
+	void addRegularConnectionDefaults(final Map<String, Object> defaults, final TransportStrategy strategy) { }
+	Map<String, Object> regularPhysicalChoices(@Nullable final TransportStrategy strategy) { return Collections.emptyMap(); }
+	void validateOwnedConnectionRequirements() { }
+
+	private boolean proxyCustomized() {
+		return proxyConfig.getHost() != null || proxyConfig.isHostCleared() || proxyConfig.getPort() != null || proxyConfig.isPortCleared()
+				|| proxyConfig.getUsername() != null || proxyConfig.isUsernameCleared() || proxyConfig.getPassword() != null
+				|| proxyConfig.isPasswordCleared() || proxyConfig.getBridgePort() != null
+				|| explicitSessionSettings.keySet().stream().anyMatch(property -> property.name().startsWith("PROXY_"));
+	}
+
+	private void addProxyDeclarations(final Map<Property, Object> declarations) {
+		if (proxyConfig.getHost() != null || proxyConfig.isHostCleared()) { declarations.put(Property.PROXY_HOST, proxyHost); }
+		if (proxyConfig.getPort() != null || proxyConfig.isPortCleared()) { declarations.put(Property.PROXY_PORT, proxyPort); }
+		if (proxyConfig.getUsername() != null || proxyConfig.isUsernameCleared()) { declarations.put(Property.PROXY_USERNAME, proxyUsername); }
+		if (proxyConfig.getPassword() != null || proxyConfig.isPasswordCleared()) { declarations.put(Property.PROXY_PASSWORD, proxyPassword); }
+		if (proxyConfig.getBridgePort() != null) { declarations.put(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort); }
+	}
+
+	/** @see MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy) */
+	@Override public T withConnectionConflictPolicy(final ConnectionConflictPolicy policy) {
+		connectionConflictPolicy = requireNonNull(policy, "connectionConflictPolicy");
+		return (T) this;
+	}
+	/** @see MailerGenericBuilder#getConnectionConflictPolicy() */
+	@Override @Nullable public ConnectionConflictPolicy getConnectionConflictPolicy() { return connectionConflictPolicy; }
+	/** @see MailerGenericBuilder#resetConnectionConflictPolicy() */
+	@Override public T resetConnectionConflictPolicy() { return withConnectionConflictPolicy(DEFAULT_CONNECTION_CONFLICT_POLICY); }
+	/** @see MailerGenericBuilder#useConfiguredConnectionConflictPolicy() */
+	@Override public T useConfiguredConnectionConflictPolicy() { connectionConflictPolicy = null; return (T) this; }
+	private ConnectionConflictPolicy resolvedConnectionConflictPolicy() {
+		return config.valueOrProperty(connectionConflictPolicy, ConfigKeys.CONNECTION_CONFLICT_POLICY, DEFAULT_CONNECTION_CONFLICT_POLICY);
 	}
 
 	private void addLockedConnectionChoices(final Map<Property, Object> connectionChoices, @Nullable final TransportStrategy strategy,
@@ -926,6 +993,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		return new OperationalConfigImpl(
 				getProperties(),
+				resolvedConnectionConflictPolicy(),
 				sessionSettings.getConnectTimeout(),
 				sessionSettings.getReadTimeout(),
 				sessionSettings.getWriteTimeout(),
@@ -1153,6 +1221,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProxyHost(@Nullable final String proxyHost) {
 		this.proxyHost = proxyHost;
+		customizedSessionSetting(Property.PROXY_HOST, proxyHost);
 		return (T) this;
 	}
 
@@ -1162,6 +1231,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProxyPort(@Nullable final Integer proxyPort) {
 		this.proxyPort = proxyPort;
+		customizedSessionSetting(Property.PROXY_PORT, proxyPort);
 		return (T) this;
 	}
 
@@ -1171,6 +1241,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProxyUsername(@Nullable final String proxyUsername) {
 		this.proxyUsername = proxyUsername;
+		customizedSessionSetting(Property.PROXY_USERNAME, proxyUsername);
 		return (T) this;
 	}
 
@@ -1180,6 +1251,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProxyPassword(@Nullable final String proxyPassword) {
 		this.proxyPassword = proxyPassword;
+		customizedSessionSetting(Property.PROXY_PASSWORD, proxyPassword);
 		return (T) this;
 	}
 
@@ -1189,6 +1261,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProxyBridgePort(@NotNull final Integer proxyBridgePort) {
 		this.proxyBridgePort = proxyBridgePort;
+		customizedSessionSetting(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
 		return (T) this;
 	}
 
@@ -1511,6 +1584,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	public T withProperties(@NotNull final Properties properties) {
 		for (Map.Entry<Object, Object> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
+			explicitRawSessionSettings.put(property.getKey().toString(), property.getValue());
 		}
 		return (T) this;
 	}
@@ -1522,6 +1596,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	public T withProperties(@NotNull final Map<String, String> properties) {
 		for (Map.Entry<String, String> property : properties.entrySet()) {
 			this.properties.put(property.getKey(), property.getValue());
+			explicitRawSessionSettings.put(property.getKey(), property.getValue());
 		}
 		return (T) this;
 	}
@@ -1531,6 +1606,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
+		explicitRawSessionSettings.put(propertyName, propertyValue == null ? null : propertyValue.toString());
 		if (propertyValue == null) {
 			this.properties.remove(propertyName);
 		} else {
@@ -1923,6 +1999,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T clearProperties() {
+		for (Object key : properties.keySet()) {
+			explicitRawSessionSettings.put(key.toString(), null);
+		}
 		properties.clear();
 		return (T) this;
 	}
@@ -2274,12 +2353,15 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withProxyConfig(SocksProxyConfig) */
     @Override public T withProxyConfig(@NotNull final SocksProxyConfig choices) {
         requireNonNull(choices, "proxyConfig");
+        for (Property property : List.of(Property.PROXY_HOST, Property.PROXY_PORT, Property.PROXY_USERNAME, Property.PROXY_PASSWORD,
+                Property.PROXY_SOCKS5BRIDGE_PORT)) { explicitSessionSettings.remove(property); }
         proxyHost = choices.isHostCleared() ? null : stringChoice(choices.getHost(), ConfigKeys.PROXY_HOST);
         proxyPort = choices.isPortCleared() ? null : config.valueOrProperty(choices.getPort(), ConfigKeys.PROXY_PORT, DEFAULT_PROXY_PORT);
         proxyUsername = choices.isUsernameCleared() ? null : stringChoice(choices.getUsername(), ConfigKeys.PROXY_USERNAME);
         proxyPassword = choices.isPasswordCleared() ? null : stringChoice(choices.getPassword(), ConfigKeys.PROXY_PASSWORD);
         proxyBridgePort = config.valueOrProperty(choices.getBridgePort(), ConfigKeys.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT);
         proxyConfig = choices;
+        addProxyDeclarations(explicitSessionSettings);
         return (T) this;
     }
     /** @see MailerGenericBuilder#getProxyConfig() */

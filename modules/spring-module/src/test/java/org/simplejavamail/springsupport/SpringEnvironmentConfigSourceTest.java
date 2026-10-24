@@ -15,6 +15,7 @@ import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
@@ -31,6 +32,46 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+	@Test
+	void resolvesConnectionConflictPolicyAfterSpringPrecedenceAndPlaceholderResolution() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("application", "simplejavamail.connection.conflictpolicy", "REJECT_CONFLICTS"));
+		environment.getPropertySources().addFirst(new MapPropertySource("deployment", Map.of(
+				"simple-java-mail.connection.conflictpolicy", "${mail.conflict.policy}",
+				"mail.conflict.policy", "ALLOW_EXPLICIT_OVERRIDES")));
+		ConfigurationPropertySources.attach(environment);
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		assertThat(config.get(ConfigKeys.CONNECTION_CONFLICT_POLICY)).isSameAs(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
+		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), ConfigKeys.CONNECTION_CONFLICT_POLICY.key());
+		assertThat(diagnostic.getDisplayValue()).isEqualTo("ALLOW_EXPLICIT_OVERRIDES");
+		assertThat(diagnostic.getSourceName()).isEqualTo("deployment");
+		assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.SMTP_CONNECTION);
+		assertThat(diagnostic.isRedacted()).isFalse();
+	}
+
+	@Test
+	void resolvesLockedConnectionConflictPolicyWithoutChangingTheOrdinarySchema() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("application", "simplejavamail.connection.conflictpolicy", "ALLOW_EXPLICIT_OVERRIDES"));
+		environment.getPropertySources().addFirst(new MapPropertySource("central deployment", Map.of(
+				"simplejavamail.locked.connection.conflictpolicy", "${mail.conflict.policy}",
+				"mail.conflict.policy", "REJECT_CONFLICTS")));
+		ConfigurationPropertySources.attach(environment);
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		assertThat(config.get(ConfigKeys.CONNECTION_CONFLICT_POLICY)).isSameAs(ConnectionConflictPolicy.REJECT_CONFLICTS);
+		assertThat(locksOf(config).contains(ConfigLoader.Property.CONNECTION_CONFLICT_POLICY)).isTrue();
+		assertThat(diagnostic(config.getDiagnostics(), "simplejavamail.locked.connection.conflictpolicy").getSourceName())
+				.isEqualTo("central deployment");
+	}
+
+	@Test
+	void invalidConnectionConflictPolicyNamesIdentifyTheSpringPropertySource() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("deployment", "simplejavamail.connection.conflictpolicy", "LAST_WINS"));
+		assertThatThrownBy(() -> loadConfig(environment)).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("simplejavamail.connection.conflictpolicy", "deployment", "connection conflict policy");
+	}
+
 	@Test
 	void resolvesIndividualSocketTimeoutsThroughRelaxedNamesPlaceholdersAndLocks() {
 		final StandardEnvironment environment = new StandardEnvironment();

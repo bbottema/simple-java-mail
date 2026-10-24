@@ -3,6 +3,7 @@ package org.simplejavamail.springbootsupport;
 import lombok.Getter;
 import lombok.Setter;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -22,6 +23,7 @@ public class SimpleJavaMailProperties {
 
     private Javaxmail javaxmail;
     private String transportstrategy;
+    private Connection connection;
     private Map<String, String> extraproperties;
 
     /** Named SMTP configurations used by failover routes. Each resolves independently, without inheriting root settings. */
@@ -41,6 +43,17 @@ public class SimpleJavaMailProperties {
     private Custom custom;
     private Transport transport;
     private Opportunistic opportunistic;
+
+    /** @deprecated Metadata only; runtime values are read through Spring's Environment. */
+    @Getter
+    @Setter
+    public static class Connection {
+        /**
+         * Advanced policy for conflicting connection declarations after Spring resolves its property sources.
+         * @see MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)
+         */
+        private ConnectionConflictPolicy conflictpolicy = MailerGenericBuilder.DEFAULT_CONNECTION_CONFLICT_POLICY;
+    }
 
     /** @deprecated Metadata only; runtime values are read through Spring's Environment. */
     @Getter

@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.mailer.config.AsyncQueueOverflowPolicy;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -37,6 +38,9 @@ public final class ConfigKeys {
 
     /** Configured input for {@code simplejavamail.transportstrategy}. */
     public static final ConfigKey<TransportStrategy> TRANSPORT_STRATEGY = PropertySchema.transportStrategyKey(Property.TRANSPORT_STRATEGY);
+
+    /** Configured input for {@code simplejavamail.connection.conflictpolicy}. */
+    public static final ConfigKey<ConnectionConflictPolicy> CONNECTION_CONFLICT_POLICY = PropertySchema.connectionConflictPolicyKey(Property.CONNECTION_CONFLICT_POLICY);
 
     /** Configured input for {@code simplejavamail.smtp.host}. */
     public static final ConfigKey<String> SMTP_HOST = PropertySchema.stringKey(Property.SMTP_HOST);
