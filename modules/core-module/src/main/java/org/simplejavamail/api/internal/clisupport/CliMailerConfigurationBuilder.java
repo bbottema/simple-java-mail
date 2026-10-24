@@ -74,35 +74,55 @@ public interface CliMailerConfigurationBuilder {
 
     /**
      * Sets connection, read and write socket timeouts in milliseconds.
+     * Replaces all three local choices; individual timeout options can then fine-tune them. This is not a total-send deadline.
+     * Differences from explicit factory, raw-property or supplied Session values follow
+     * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
+     * strict mode rejects conflicts, while deliberate override mode gives these typed choices precedence. Configuration locks still apply.
      * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSessionTimeout(Duration)
      */
     MailerGenericBuilder<?> withSessionTimeout(@NotNull Integer timeout);
 
     /**
      * Sets only the connection-establishment socket timeout. A later withSessionTimeout sets all three timeouts again.
+     * Imported connection values follow the conflict policy described by {@link #withSessionTimeout(Integer)}; untouched timeouts on a supplied Session remain unchanged.
      * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withConnectTimeout(Duration)
      */
     MailerGenericBuilder<?> withConnectTimeout(@NotNull Integer timeout);
 
     /**
      * Sets only the socket read timeout. A later withSessionTimeout sets all three timeouts again.
+     * Imported connection values follow the conflict policy described by {@link #withSessionTimeout(Integer)}; untouched timeouts on a supplied Session remain unchanged.
      * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withReadTimeout(Duration)
      */
     MailerGenericBuilder<?> withReadTimeout(@NotNull Integer timeout);
 
     /**
      * Sets only the socket write timeout. A later withSessionTimeout sets all three timeouts again.
+     * Imported connection values follow the conflict policy described by {@link #withSessionTimeout(Integer)}; untouched timeouts on a supplied Session remain unchanged.
      * @param timeout Timeout in milliseconds; zero retains the provider's unlimited setting.
+     * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withWriteTimeout(Duration)
      */
     MailerGenericBuilder<?> withWriteTimeout(@NotNull Integer timeout);
 
-    /** Restores the published library fallback for the connection-establishment socket timeout only. */
+    /**
+     * Selects the published library fallback for the connection-establishment socket timeout only, rather than restoring captured configuration.
+     * Conflicting imported values follow {@link #withSessionTimeout(Integer)}; configuration locks still apply.
+     */
     MailerGenericBuilder<?> resetConnectTimeout();
 
-    /** Restores the published library fallback for the read socket timeout only. */
+    /**
+     * Selects the published library fallback for the read socket timeout only, rather than restoring captured configuration.
+     * Conflicting imported values follow {@link #withSessionTimeout(Integer)}; configuration locks still apply.
+     */
     MailerGenericBuilder<?> resetReadTimeout();
 
-    /** Restores the published library fallback for the write socket timeout only. */
+    /**
+     * Selects the published library fallback for the write socket timeout only, rather than restoring captured configuration.
+     * Conflicting imported values follow {@link #withSessionTimeout(Integer)}; configuration locks still apply.
+     */
     MailerGenericBuilder<?> resetWriteTimeout();
 
     /**
@@ -162,24 +182,41 @@ public interface CliMailerConfigurationBuilder {
 	 * <li>{@link org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)}</li>
 	 * <li>{@link org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withPassword(String)}</li>
 	 * </ol>
+	 * <p>
+	 * Each argument replaces the corresponding local choice. An omitted optional CLI argument becomes {@code null}, requesting removal of that
+	 * captured choice rather than restoring inheritance. Differences from explicit factory values, recognized raw SOCKS properties or visible
+	 * supplied Session settings follow {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
+	 * strict mode rejects conflicts; deliberate override mode gives supplied typed members precedence regardless of option order. Locks still apply.
+	 * <p>
+	 * The remote route is resolved before authenticated routing is derived. Authentication needs the optional
+	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}; Jakarta Mail then connects anonymously to a local loopback bridge,
+	 * which authenticates with the remote SOCKS proxy. The effective Session consequently reports the local bridge endpoint, while
+	 * {@link Mailer#getProxyConfig()} describes the remote proxy. Generated bridge addresses and ports are not competing user configuration.
 	 *
-	 * @param proxyHost See linked documentation above.
-	 * @param proxyPort See linked documentation above.
-	 * @param proxyUsername See linked documentation above.
-	 * @param proxyPassword See linked documentation above.
+	 * @param proxyHost Remote SOCKS host, or omitted to request removal of a captured host.
+	 * @param proxyPort Remote SOCKS port, or omitted to request removal of a captured port. Supply a port when this option selects an active proxy host.
+	 * @param proxyUsername Proxy username, or omitted to request removal of a captured username.
+	 * @param proxyPassword Proxy password, or omitted to request removal of a captured password.
 	 */
 	MailerGenericBuilder<?> withProxy(@Nullable @Cli.Optional String proxyHost, @Nullable @Cli.Optional Integer proxyPort, @Nullable @Cli.Optional String proxyUsername, @Nullable @Cli.Optional String proxyPassword);
 
 	/**
-	 * Sets the optional proxy host, which will override any default that might have been set (through properties file or programmatically).
+	 * Supplies the optional remote proxy host. A repeated call replaces the previous local choice.
+	 * Replacing or removing an imported host follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
+	 * @param proxyHost Remote SOCKS host, or {@code null} to request removal of a captured host.
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withHost(String)
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	MailerGenericBuilder<?> withProxyHost(@Nullable @Cli.Optional String proxyHost);
 
 	/**
-	 * Sets the proxy port, which will override any default that might have been set (through properties file or programmatically).
+	 * Supplies the remote proxy port. A repeated call replaces the previous local choice.
+	 * Replacing or removing an imported port follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
 	 * <p>
-	 * Defaults to {@value MailerGenericBuilder#DEFAULT_PROXY_PORT} if no custom default property was configured.
+	 * An untouched port choice defaults to {@value MailerGenericBuilder#DEFAULT_PROXY_PORT} when an active route has no configured or raw port.
+	 * Explicitly passing {@code null} requests removal instead of that fallback.
+	 * @param proxyPort Remote SOCKS port, or {@code null} to request removal of a captured port.
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withPort(Integer)
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	MailerGenericBuilder<?> withProxyPort(@Nullable @Cli.Optional Integer proxyPort);
@@ -190,6 +227,8 @@ public interface CliMailerConfigurationBuilder {
 	 * then will be:
 	 * <p>
 	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
+	 * Replacing or removing an imported username follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
+	 * @param proxyUsername Proxy username, or {@code null} to request removal of a captured username.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	MailerGenericBuilder<?> withProxyUsername(@Nullable @Cli.Optional String proxyUsername);
@@ -198,7 +237,9 @@ public interface CliMailerConfigurationBuilder {
 	 * Sets the optional password to authenticate with the proxy.
 	 * <p>
 	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
+	 * Replacing or removing an imported password follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
 	 *
+	 * @param proxyPassword Proxy password, or {@code null} to request removal of a captured password.
 	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
@@ -215,11 +256,14 @@ public interface CliMailerConfigurationBuilder {
 	 * not use a bridge port.
 	 * <p>
 	 * Defaults to automatic allocation ({@value MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
+	 * A different explicitly configured bridge port follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; configuration locks still apply.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
 	 *
 	 * @param proxyBridgePort The loopback port to use, or {@code 0} to allocate an available port automatically.
 	 *
+	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
 	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)
 	 */
 	MailerGenericBuilder<?> withProxyBridgePort(@NotNull Integer proxyBridgePort);
@@ -238,10 +282,12 @@ public interface CliMailerConfigurationBuilder {
 	/**
 	 * Sets the same socket timeout for connecting, reading and writing. This is not a deadline for the whole send.
 	 * <p>
-	 * When you supply your own Session, its existing timeouts remain unchanged until you call this method or a factory lock requires a value.
-	 * For example, a Session with a five-second read timeout keeps that value; calling {@code withSessionTimeout(Duration.ofSeconds(1))} deliberately replaces
-	 * all three socket timeouts with one second. Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session
-	 * previously belonged to another Mailer. Additional Jakarta Mail properties retain their configured overlay behavior.
+	 * When you supply your own Session, untouched timeouts and missing settings remain unchanged unless a factory lock requires a value.
+	 * For example, a Session with a five-second read timeout keeps that value. Calling {@code withSessionTimeout(Duration.ofSeconds(1))} requests
+	 * one second for all three operations: the default strict mode rejects the conflicting read timeout, while deliberate override mode permits replacement.
+	 * Explicit factory, recognized raw-property and supplied Session values follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; configuration locks still apply.
+	 * Ordinary SJM connection defaults do not replace caller-supplied settings, even when the Session previously belonged to another Mailer.
 	 * <p>
 	 * The property names follow the selected {@code smtp} or {@code smtps} protocol:
 	 * <ul>
@@ -363,8 +409,9 @@ public interface CliMailerConfigurationBuilder {
 
 	/**
 	 * Sets the local/source address without changing the already configured local/source port.
+	 * Replacement, explicit removal and empty text follow {@link #withLocalBindAddress(String, Integer)}.
 	 *
-	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to.
+	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to, or {@code null} to request removal of this direct setting.
 	 *
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String, Integer)
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#clearLocalBindPort()
@@ -388,12 +435,17 @@ public interface CliMailerConfigurationBuilder {
 	 * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
 	 * the proxy server's own outbound socket.
 	 * <p>
-	 * A caller-supplied Session keeps its local binding unless you use this setter. A null argument removes that direct Session property;
+	 * A caller-supplied Session keeps its local binding when these members are untouched. Replacement or removal follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
+	 * strict mode rejects conflicts with imported values. In override mode, a null argument removes that direct Session property;
 	 * an inherited Properties default cannot be removed this way. See {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
+	 * On a library-created Session, an empty address suppresses the captured SJM address but leaves an applicable raw property intact.
+	 * On a supplied Session, empty text is written literally. Use {@link #clearLocalBindAddress()} for explicit removal.
 	 *
-	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to.
-	 * @param localBindPort Optional local/source port to bind the SMTP socket to.
+	 * @param localBindAddress Local/source address or host name to bind the SMTP socket to, or omitted to request removal of this direct setting.
+	 * @param localBindPort Optional local/source port to bind the SMTP socket to, or omitted to request removal of this direct setting.
 	 *
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String, Integer)
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#clearLocalBindPort()
 	 * @see TransportStrategy#propertyNameLocalAddress()
 	 * @see TransportStrategy#propertyNameLocalPort()
@@ -414,9 +466,14 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * Provide the hostname shape expected by your SMTP relay, typically a DNS host name or FQDN. Simple Java Mail deliberately
 	 * does not over-validate this value because corporate relay identifiers can be environment-specific.
+	 * Replacing or removing an imported hostname follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}.
+	 * On a library-created Session, empty text suppresses the captured SJM hostname but leaves an applicable raw property intact.
+	 * On a supplied Session, empty text is written literally. Use {@link #clearSmtpClientHostname()} for explicit removal.
 	 *
-	 * @param smtpClientHostname Hostname to send in the SMTP {@code EHLO} or {@code HELO} command.
+	 * @param smtpClientHostname Hostname to send in the SMTP {@code EHLO} or {@code HELO} command, or omitted to request removal of this direct setting.
 	 *
+	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSmtpClientHostname(String)
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#clearSmtpClientHostname()
 	 * @see TransportStrategy#propertyNameLocalHost()
 	 * @see <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html#mail.smtp.localhost">mail.smtp.localhost</a>
@@ -711,8 +768,12 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * This method sets the transport-specific {@code mail.*.ssl.trust} property to a space-separated list of the provided {@code hosts}. If the
 	 * provided list is empty, the property is unset.
+	 * When trust-all is disabled, an exact {@code "*"} list also removes the exception; use {@link #trustingAllHosts(boolean)} to enable wildcard trust.
+	 * Replacing or removing an imported trust setting follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 *
 	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingAllHosts(boolean)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#verifyingServerIdentity(boolean)
 	 *
@@ -728,8 +789,11 @@ public interface CliMailerConfigurationBuilder {
 	 * <strong>Security warning:</strong> Setting this to {@code true} disables certificate-authority trust validation for all SMTP hosts. Server identity
 	 * verification remains a separate check and should stay enabled, but it does not make trusting every certificate safe against an active attacker.
 	 * Prefer configuring the JVM trust store or, when that is not possible, a narrow exception through {@link org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)}.
+	 * Conflicts with imported trust settings follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 *
 	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust">mail.smtp.ssl.trust</a>
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingAllHosts(boolean)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#verifyingServerIdentity(boolean)
 	 *
@@ -743,8 +807,11 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * Hostname verification and certificate-authority trust are independent checks. Normal secure TLS requires both a trusted certificate chain and a
 	 * matching server identity. Disabling this check is intended only for controlled compatibility or testing scenarios.
+	 * Conflicts with imported identity-verification settings follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 *
 	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.checkserveridentity">mail.smtp.ssl.checkserveridentity</a>
+	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#verifyingServerIdentity(boolean)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingAllHosts(boolean)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
 	 *
@@ -760,7 +827,9 @@ public interface CliMailerConfigurationBuilder {
 	MailerGenericBuilder<?> resetDisableAllClientValidations();
 
 	/**
-	 * Resets session time to its default ({@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT}).
+	 * Selects the published library fallback ({@link MailerGenericBuilder#DEFAULT_SESSION_TIMEOUT}) for all three socket timeouts,
+	 * rather than restoring captured configuration. Conflicting imported values follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 *
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSessionTimeout(Duration)
 	 */
@@ -881,7 +950,10 @@ public interface CliMailerConfigurationBuilder {
 	MailerGenericBuilder<?> resetConnectionPoolLoadBalancingStrategy();
 
 	/**
-	 * Empties all proxy configuration.
+	 * Removes the supplied remote proxy host, port and credentials, including captured choices, and restores automatic bridge-port allocation.
+	 * This requests removal rather than restoring captured configuration. Conflicts with imported proxy values follow
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
+	 * @see #withProxy(String, Integer, String, String)
 	 */
 	MailerGenericBuilder<?> clearProxy();
 
@@ -904,6 +976,8 @@ public interface CliMailerConfigurationBuilder {
 
 	/**
 	 * Removes all trusted hosts from the list.
+	 * Trust-all remains an independent setting. Removing an imported host exception follows
+	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 *
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingAllHosts(boolean)
@@ -913,14 +987,22 @@ public interface CliMailerConfigurationBuilder {
 
 	/**
 	 * Clears the configured local/source address and port.
+	 * This requests removal, including captured choices, rather than restoring inherited configuration. Removing an imported setting conflicts
+	 * under the default strict policy; removing a previous local-only choice does not. A supplied Session's inherited Properties defaults
+	 * cannot be removed this way. Configuration locks still apply.
 	 *
+	 * @see MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withLocalBindAddress(String, Integer)
 	 */
 	MailerGenericBuilder<?> clearLocalBindAddress();
 
 	/**
 	 * Clears the configured SMTP {@code EHLO}/{@code HELO} client hostname.
+	 * This requests removal, including captured choices, rather than restoring inherited configuration. Removing an imported setting conflicts
+	 * under the default strict policy; removing a previous local-only choice does not. A supplied Session's inherited Properties defaults
+	 * cannot be removed this way. Configuration locks still apply.
 	 *
+	 * @see MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)
 	 * @see org.simplejavamail.api.mailer.config.ConnectionConfig.Builder#withSmtpClientHostname(String)
 	 */
 	MailerGenericBuilder<?> clearSmtpClientHostname();
