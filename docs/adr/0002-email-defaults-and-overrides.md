@@ -228,4 +228,4 @@ Notification destination lists are whole-value choices, not additive template co
 
 [ADR 0039](0039-explicit-configuration-resolution.md) introduces shared internal declaration and resolution mechanics, with Email subject selection as the first Email consumer. Subject precedence, suppression, template replacement, empty values and locks retain this record's contract. ConnectionConflictPolicy does not apply to Email governance. Other scalar fields, collections and compound policies retain their existing owners and are outside this initial migration.
 
-Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.

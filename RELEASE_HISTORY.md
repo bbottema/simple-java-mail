@@ -6,7 +6,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
-- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles.
+- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles. Equivalent raw values and trusted-host membership use the same interpretation through construction and locks; supplied Session gaps and borrowed factory identities remain intact.
 
 - [#847](https://github.com/bbottema/simple-java-mail/issues/847): added `@EnableSjmTelemetry` for explicit Java activation in an existing Spring integration.
   Configured activation properties, including false, override the annotation. A telemetry integration bean selects the default Mailer's integration independently.

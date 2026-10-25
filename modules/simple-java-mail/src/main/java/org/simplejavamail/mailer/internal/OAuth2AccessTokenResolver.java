@@ -24,8 +24,8 @@ public final class OAuth2AccessTokenResolver {
 			@NotNull Properties additionalProperties,
 			@Nullable TransportStrategy transportStrategy,
 			@Nullable OAuth2AccessTokenProvider explicitProvider) {
-		final boolean fixedTokenConfigured = session.getProperties().containsKey(OAUTH2_TOKEN_PROPERTY)
-				|| additionalProperties.containsKey(OAUTH2_TOKEN_PROPERTY);
+		final boolean fixedTokenConfigured = session.getProperty(OAUTH2_TOKEN_PROPERTY) != null
+				|| additionalProperties.getProperty(OAUTH2_TOKEN_PROPERTY) != null;
 		final Object sessionProvider = session.getProperties().get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object additionalProvider = additionalProperties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object configuredProvider = selectProvider(explicitProvider, sessionProvider, additionalProvider);

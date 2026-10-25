@@ -441,13 +441,20 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
-	final MailerImpl buildConfiguredMailer(final Supplier<MailerImpl> constructMailer) {
-		resolveCliFailoverPolicy();
-		validateFailoverGraph(new LinkedHashSet<>());
+	final MailerImpl buildConfiguredMailer() {
+		return prepareFailoverGraph(new LinkedHashSet<>()).construct();
+	}
+
+	abstract MailerImpl constructMailer(ValidatedConnectionPlan plan);
+
+	private MailerImpl constructPreparedMailer(final ValidatedConnectionPlan plan, @Nullable final PreparedMailerBuild namedChild) {
 		final MailerImpl suppliedFailoverMailer = failoverMailer;
 		try {
-			constructNamedFailoverMailer();
-			final MailerImpl configuredMailer = constructMailer.get();
+			if (namedChild != null) {
+				failoverMailer = namedChild.construct();
+				ownsFailoverMailer = true;
+			}
+			final MailerImpl configuredMailer = constructMailer(plan);
 			// Traversal includes the initiating Mailer, so only configured routes may enable this gate.
 			if (configuredMailer.failoverMailer() != null) {
 				enableCoordinatedFailoverFor(configuredMailer);
@@ -459,13 +466,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		} finally {
 			failoverMailer = suppliedFailoverMailer;
 			ownsFailoverMailer = false;
-		}
-	}
-
-	private void constructNamedFailoverMailer() {
-		if (failoverName != null) {
-			failoverMailer = (MailerImpl) new MailerRegularBuilderImpl(runtime.named(failoverName), runtime).buildMailer();
-			ownsFailoverMailer = true;
 		}
 	}
 
@@ -491,9 +491,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 	}
 
-	final void validateFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+	private PreparedMailerBuild prepareFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+		resolveCliFailoverPolicy();
 		validateLockedConfiguration();
-		validateConnectionConstruction();
 		ConfiguredFailover.verifyPolicyLocks(locksOf(config), failoverPolicy);
 		verifyCompatibleAncestorMessageLocks(failoverRoute, config);
 		if (!failoverRoute.add(definition)) {
@@ -501,33 +501,41 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 					+ "Remove the relationship that points back to an earlier definition; each failover route must end.");
 		}
 		verifyLockedRelationship();
-		validateNextFailoverStage(failoverRoute);
+		final PreparedMailerBuild child = prepareNextFailoverStage(failoverRoute);
+		final Session suppliedSession = this instanceof MailerFromSessionBuilderImpl ? ((MailerFromSessionBuilderImpl) this).getSession() : null;
+		final ValidatedConnectionPlan plan = prepareConnectionPlan(suppliedSession);
 		failoverRoute.remove(definition);
+		return new PreparedMailerBuild(this, plan, child);
 	}
 
-	private void validateConnectionConstruction() {
-		validateOwnedConnectionRequirements();
-		final Session suppliedSession = this instanceof MailerFromSessionBuilderImpl
-				? ((MailerFromSessionBuilderImpl) this).getSession() : null;
-		final MailerSessionSettings connectionSettings = buildSessionSettings(suppliedSession);
-		verifyAuthenticatedProxyModuleAvailable(connectionSettings.getProxyConfig());
-	}
-
-	private void verifyAuthenticatedProxyModuleAvailable(@Nullable final ProxyConfig resolvedProxy) {
-		if (customMailer == null && resolvedProxy != null && resolvedProxy.requiresProxy() && resolvedProxy.requiresAuthentication()) {
-			ModuleLoader.loadAuthenticatedSocksModule();
-		}
-	}
-
-	private void validateNextFailoverStage(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+	private PreparedMailerBuild prepareNextFailoverStage(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
 		if (failoverName != null) {
-			new MailerRegularBuilderImpl(runtime.named(failoverName), runtime).validateFailoverGraph(failoverRoute);
+			final MailerGenericBuilderImpl<?> child = new MailerRegularBuilderImpl(runtime.named(failoverName), runtime);
+			return child.prepareFailoverGraph(failoverRoute);
 		} else {
 			for (MailerImpl failoverParticipant = failoverMailer;
 					failoverParticipant != null;
 					failoverParticipant = failoverParticipant.failoverMailer()) {
 				verifySuppliedFailoverRouteLocks(failoverRoute, failoverParticipant);
 			}
+		}
+		return null;
+	}
+
+	private static final class PreparedMailerBuild {
+		private final MailerGenericBuilderImpl<?> builder;
+		private final ValidatedConnectionPlan connection;
+		@Nullable private final PreparedMailerBuild namedChild;
+
+		private PreparedMailerBuild(final MailerGenericBuilderImpl<?> builder, final ValidatedConnectionPlan connection,
+				@Nullable final PreparedMailerBuild namedChild) {
+			this.builder = builder;
+			this.connection = connection;
+			this.namedChild = namedChild;
+		}
+
+		private MailerImpl construct() {
+			return builder.constructPreparedMailer(connection, namedChild);
 		}
 	}
 
@@ -657,7 +665,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		locks.verify(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
 		locks.verify(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
 		if (locks.contains(Property.DEFAULT_TRUSTED_HOSTS)
-				&& !Arrays.asList(config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS).split(";")).equals(sslHostsToTrust)) {
+				&& !ConnectionPropertyValues.equivalent("mail.smtp.ssl.trust",
+						String.join(" ", config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS).split(";")), String.join(" ", sslHostsToTrust))) {
 			throw locks.conflict(Property.DEFAULT_TRUSTED_HOSTS, "trustingSSLHosts(...) supplies a different trusted-host list from the one locked by this factory. "
 					+ "Remove that builder call, use the locked list, or change this lock in its configuration source.");
 		}
@@ -666,7 +675,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private void validateLockedExtraProperties(final ConfigurationLocks locks) {
 		for (final String key : locks.getValues().keySet()) {
 			if (key.startsWith("simplejavamail.extraproperties.")) {
-				locks.verify(key, properties.get(key.substring("simplejavamail.extraproperties.".length())));
+				final String rawKey = key.substring("simplejavamail.extraproperties.".length());
+				if (!ConnectionPropertyValues.isSupported(rawKey)
+						|| !ConnectionPropertyValues.equivalent(rawKey, locks.getValues().get(key), properties.get(rawKey))) {
+					locks.verify(key, properties.get(rawKey));
+				}
 			}
 		}
 	}
@@ -825,6 +838,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Resolve connection facts once, without changing or claiming a caller-owned Session. */
 	MailerSessionSettings buildSessionSettings(@Nullable final Session suppliedSession) {
+		return prepareConnectionPlan(suppliedSession).settings();
+	}
+
+	final ValidatedConnectionPlan prepareConnectionPlan(@Nullable final Session suppliedSession) {
+		validateOwnedConnectionRequirements();
+		final CapturedConnectionInputs inputs = captureConnectionInputs(suppliedSession);
+		final ResolvedConnection resolved = ConnectionConfigurationResolver.resolve(inputs);
+		final MailerSessionSettings settings = sessionSettingsWithLocks(inputs, resolved);
+		return ValidatedConnectionPlan.validate(resolved, settings, this instanceof MailerRegularBuilderImpl ? (MailerRegularBuilderImpl) this : null);
+	}
+
+	CapturedConnectionInputs captureConnectionInputs(@Nullable final Session suppliedSession) {
 		if (suppliedSession != null) {
 			verifySessionIsUnowned(suppliedSession);
 		}
@@ -835,16 +860,19 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		verifyConnectionCustomizationSupported(strategy);
 		addLockedConnectionChoices(connectionChoices, strategy, locks);
 
-		final Map<Property, Object> declarations = new LinkedHashMap<>(explicitSessionSettings);
-		final Map<String, Object> defaults = connectionDefaults(suppliedSession, strategy, connectionChoices);
-		final ConnectionConfigurationResolver.Resolution resolution = ConnectionConfigurationResolver.resolve(config, suppliedSession, strategy,
-				resolvedConnectionConflictPolicy(), getProperties(), explicitRawSessionSettings, declarations, defaults,
-				regularPhysicalChoices(strategy), new ProxyConfigImpl(proxyHost, proxyPort, proxyUsername, proxyPassword, proxyBridgePort),
-				proxyCustomized(), customMailer == null);
-		final MailerSessionSettings resolved = sessionSettingsWithLocks(suppliedSession, strategy, locks, resolution);
-		verifyResolvedConnectionLocks(suppliedSession, strategy, resolution, resolved);
-		verifyResolvedOAuth2Configuration(suppliedSession, strategy, resolved);
-		return resolved;
+		final Properties additional = getProperties();
+		final Map<String, Object> required = MailerSessionSettings.connectionOverrides(strategy, lockedConnectionChoices(strategy, locks), additional);
+		if (strategy != null && Boolean.FALSE.equals(locks.getValues().get(Property.DEFAULT_TRUST_ALL_HOSTS.key()))
+				&& !locks.contains(Property.DEFAULT_TRUSTED_HOSTS)) {
+			required.put(strategy.propertyNameSSLTrust(), ConnectionConfigurationResolver.TrustAllDisabled.INSTANCE);
+		}
+		return CapturedConnectionInputs.builder().config(config).targetSession(suppliedSession).strategy(strategy)
+				.policy(resolvedConnectionConflictPolicy()).additionalProperties(additional)
+				.rawChoices(explicitRawSessionSettings).typedChoices(explicitSessionSettings)
+				.defaults(connectionDefaults(suppliedSession, strategy, connectionChoices)).physicalChoices(regularPhysicalChoices(strategy))
+				.requiredOverrides(required)
+				.proxyFallback(new ProxyConfigImpl(proxyHost, proxyPort, proxyUsername, proxyPassword, proxyBridgePort))
+				.proxyCustomized(proxyCustomized()).customMailer(customMailer).tokenProvider(oauth2AccessTokenProvider).build();
 	}
 
 	private void verifyConnectionCustomizationSupported(@Nullable final TransportStrategy strategy) {
@@ -869,34 +897,12 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return defaults;
 	}
 
-	private MailerSessionSettings sessionSettingsWithLocks(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
-			final ConfigurationLocks locks, final ConnectionConfigurationResolver.Resolution resolution) {
-		// Locked connection members can add a missing caller-Session value, but never settle an ordinary conflict silently.
-		resolution.overrides.putAll(MailerSessionSettings.connectionOverrides(strategy, lockedConnectionChoices(strategy, locks), getProperties()));
-		final boolean applyDebugEnabled = suppliedSession == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG);
+	private MailerSessionSettings sessionSettingsWithLocks(final CapturedConnectionInputs inputs, final ResolvedConnection resolution) {
+		final boolean applyDebugEnabled = inputs.getSuppliedSession() == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG);
 		final boolean applyDebugOutput = debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT);
-		return MailerSessionSettings.resolve(suppliedSession, strategy, getProperties(), resolution.overrides, locks.getValues(),
-				resolution.proxy, resolution.shadowedFactoryClassProperty, applyDebugEnabled, applyDebugOutput);
-	}
-
-	private void verifyResolvedConnectionLocks(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
-			final ConnectionConfigurationResolver.Resolution resolution, final MailerSessionSettings resolved) {
-		final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(config, resolution.proxy, resolved.isTrustAllSSLHost(), strategy);
-		requirements.verifyAdditionalProperties(getProperties());
-		requirements.verifyExplicitConnectionChoices(resolution.explicitOverrides);
-		if (suppliedSession != null) {
-			requirements.verifyCallerOwnedSession(suppliedSession);
-		}
-		LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(config), resolved.copyEffectiveProperties(), strategy);
-	}
-
-	private void verifyResolvedOAuth2Configuration(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
-			final MailerSessionSettings resolved) {
-		if (customMailer == null) {
-			final TransportStrategy authenticationStrategy = suppliedSession == null ? strategy : TransportStrategy.findStrategyForSession(suppliedSession);
-			OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(resolved.copyEffectiveProperties()), new Properties(),
-					authenticationStrategy, oauth2AccessTokenProvider);
-		}
+		return MailerSessionSettings.resolve(inputs.getSuppliedSession(), inputs.getStrategy(), inputs.copyAdditionalProperties(), resolution.overrides, locksOf(config).getValues(),
+				resolution.proxy, resolution.shadowedFactoryClassProperty, applyDebugEnabled, applyDebugOutput).toBuilder()
+				.connectionConflictPolicy(inputs.getPolicy()).customMailer(inputs.getCustomMailer()).tokenProvider(inputs.getTokenProvider()).build();
 	}
 
 	private void verifySessionIsUnowned(final Session session) {
@@ -1063,8 +1069,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
 		}
 		return new OperationalConfigImpl(
-				getProperties(),
-				resolvedConnectionConflictPolicy(),
+				sessionSettings.copyAdditionalProperties(),
+				sessionSettings.getConnectionConflictPolicy(),
 				sessionSettings.getConnectTimeout(),
 				sessionSettings.getReadTimeout(),
 				sessionSettings.getWriteTimeout(),
@@ -1091,8 +1097,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				sessionSettings.isVerifyingServerIdentity(),
 				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
 				isExecutorServiceUserProvided(),
-				getCustomMailer(),
-				getOAuth2AccessTokenProvider(),
+				sessionSettings.getCustomMailer(),
+				sessionSettings.getTokenProvider(),
 				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy,
 				resolveMailSendRetryPolicy());
 	}
@@ -1677,12 +1683,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
-		explicitRawSessionSettings.put(propertyName, propertyValue == null ? null : propertyValue.toString());
-		if (propertyValue == null) {
+		requireNonNull(propertyName, "propertyName");
+		final String text = propertyValue == null ? null : requireNonNull(propertyValue.toString(), "propertyValue.toString()");
+		if (text == null) {
 			this.properties.remove(propertyName);
 		} else {
-			this.properties.put(propertyName, propertyValue.toString());
+			this.properties.setProperty(propertyName, text);
 		}
+		explicitRawSessionSettings.put(propertyName, text);
 		return (T) this;
 	}
 

@@ -410,4 +410,4 @@ ADR 0038 keeps connection conflict handling at Mailer construction. Builders con
 
 [ADR 0039](0039-explicit-configuration-resolution.md) places the shared resolution implementation in the main module's internal configresolution package. Core retains its public input contracts and schema. ConfigurationChoice, ConfigurationDeclaration, ConfigurationOrigin and ConfigurationResolution are internal typed values; they do not add application construction APIs. CapturedConnectionInputs and ResolvedConnection feed a controlled ValidatedConnectionPlan boundary before Session effects. Getters remain passive, ordinary internal assembly uses Lombok when useful, and no generic phase-service hierarchy is required.
 
-Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.

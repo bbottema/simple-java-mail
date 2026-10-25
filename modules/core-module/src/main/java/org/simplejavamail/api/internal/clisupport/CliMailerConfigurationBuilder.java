@@ -187,6 +187,7 @@ public interface CliMailerConfigurationBuilder {
 	 * captured choice rather than restoring inheritance. Differences from explicit factory values, recognized raw SOCKS properties or visible
 	 * supplied Session settings follow {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
 	 * strict mode rejects conflicts; deliberate override mode gives supplied typed members precedence regardless of option order. Locks still apply.
+	 * Raw SOCKS host values can include a port; a separate raw port takes precedence over that embedded port.
 	 * <p>
 	 * The remote route is resolved before authenticated routing is derived. Authentication needs the optional
 	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}; Jakarta Mail then connects anonymously to a local loopback bridge,
@@ -771,6 +772,7 @@ public interface CliMailerConfigurationBuilder {
 	 * When trust-all is disabled, an exact {@code "*"} list also removes the exception; use {@link #trustingAllHosts(boolean)} to enable wildcard trust.
 	 * Replacing or removing an imported trust setting follows
 	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
+	 * Trusted-host lists containing the same exact names are compatible regardless of order or duplicates; inspection retains the selected ordering.
 	 *
 	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#trustingSSLHosts(String...)
