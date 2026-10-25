@@ -3,7 +3,7 @@
 - Status: Accepted, 2026-10-24
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
-- Implementation status: Implemented for unreleased 10.0.0 under #867.
+- Implementation status: Initial policy implemented for unreleased 10.0.0; shared-resolution adoption under ADR 0039 is pending in #867.
 
 ## Context
 
@@ -85,3 +85,13 @@ Spring Boot combines [ordered property sources](https://docs.spring.io/spring-bo
 Applications with conflicting explicit connection declarations may now fail during construction. Align or remove the declarations, or deliberately select `ALLOW_EXPLICIT_OVERRIDES`; locks remain mandatory. This behavior affects migration from released APIs and needs explanatory guidance, not an automatic rewrite that silently opts applications into permissive handling.
 
 Implementation must retain declaration origin and explicit removals independently of resolved defaults. The same rules apply to Java, configuration, Spring and CLI construction, and inspection must describe the resolution actually used. The tracking issue owns delivery status.
+
+## Shared configuration resolution (accepted 25 October 2026)
+
+[ADR 0039](0039-explicit-configuration-resolution.md) provides the shared internal foundation for this policy. Capture final declarations and property views once, resolve complete logical choices, validate conflicts and requirements, then apply an immutable validated plan under Session ownership. String-valued properties retain getProperty visibility separately from direct entries; empty text is present and opaque resources compare by identity. Supported decimal/hexadecimal numeric and Boolean forms have one interpretation across comparison, locks, inspection and application.
+
+Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+
+TLS flags and host exceptions resolve together while retaining ownership-specific inheritance. Trusted-host lists containing the same exact names are equivalent regardless of order or duplicates; the selected ordering remains visible to inspection. Host spelling remains case-sensitive and exact wildcard syntax remains distinct. A request to disable wildcard trust cannot leave an inherited wildcard active, and compatible bounded trust locks must not become apparent removals.
+
+Raw SOCKS endpoint syntax, including an embedded port and the provider's separate-port precedence, contributes to the remote route before bridge derivation. A supplied Session's omitted proxy port remains omitted unless deliberately customized or required by a lock; provider-default inspection does not authorize inserting an ordinary factory port. Preserve the existing behavior of explicit bounded hosts replacing a supplied Session's wildcard trust, while omitted captured TLS members on owned Sessions retain their inheritance.

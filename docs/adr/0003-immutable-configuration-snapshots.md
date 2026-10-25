@@ -265,3 +265,9 @@ Unset group members still inherit; useConfigured restores captured configuration
 ## Connection conflict policy (accepted 24 October 2026)
 
 Source resolution remains ordered. ADR 0038 adds a subsequent connection-declaration comparison with strict rejection by default and an explicit override policy. In permissive mode only explicitly supplied typed members outrank raw counterparts; inherited defaults must not erase raw choices. This supersedes conflicting construction-precedence wording while preserving ordinary source resolution and group editing. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
+
+## Shared configuration resolution (accepted 25 October 2026)
+
+[ADR 0039](0039-explicit-configuration-resolution.md) governs post-loading construction choices and retained declarations. The existing loader, schema-bound keys, ordered source precedence, snapshot isolation and captured source metadata remain authoritative. The shared resolution model consumes that snapshot and final builder choices; it does not reopen sources or replace this loader with another configuration system.
+
+Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).

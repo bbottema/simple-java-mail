@@ -272,3 +272,9 @@ An address lock protects the mailbox address; an embedded display name remains a
 ## Connection conflict policy (accepted 24 October 2026)
 
 ADR 0038 adds a default-strict connection conflict policy independently of value-specific locks. Both modes honor every applicable lock, including a locked connection conflict policy. Validate typed/raw proxy conflicts with their actual remote-versus-bridge meanings; a literal raw Session-routing lock is not a remote proxy declaration. Permissive ordinary resolution never grants permission to defeat a lock. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
+
+## Shared configuration resolution (accepted 25 October 2026)
+
+[ADR 0039](0039-explicit-configuration-resolution.md) retains feature-owned constraint semantics while sharing declaration mechanics. Adopted connection paths compare supported typed and raw representations consistently before applying a validated plan; locks cannot silently mask a contradictory customization. Reusable requirements still check provider initialization and selected pool members. Raw physical proxy requirements remain distinct from logical remote proxy locks. Subject resolution retains the existing Email lock owner.
+
+Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).

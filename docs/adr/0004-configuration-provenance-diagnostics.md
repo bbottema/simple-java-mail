@@ -57,3 +57,9 @@ raw getter returns the effective configured value. Rejected customization names 
 ## Connection conflict policy (accepted 24 October 2026)
 
 ADR 0038 uses captured source names plus construction-local raw, Session and Java declaration labels for actionable connection-conflict errors. The existing public diagnostics remain captured-factory-input reports; this adds no public effective-resolution report or live Session inspection API. Preserve escaping and secret redaction. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
+
+## Shared configuration resolution (accepted 25 October 2026)
+
+[ADR 0039](0039-explicit-configuration-resolution.md) retains origins on internal declarations through selection and validation, reusing the existing escaping and sensitivity rules. Internal resolution facts do not turn ConfigDiagnostics into a live Mailer report or add a public effective-configuration report. Opaque application objects are not rendered to establish meaning or produce conflict diagnostics.
+
+Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
