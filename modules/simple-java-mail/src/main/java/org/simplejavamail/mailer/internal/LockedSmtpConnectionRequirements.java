@@ -57,7 +57,7 @@ final class LockedSmtpConnectionRequirements {
 		for (Map.Entry<String, Object> entry : locks.getValues().entrySet()) {
 			if (entry.getKey().startsWith("simplejavamail.extraproperties.")) {
 				final String key = entry.getKey().substring("simplejavamail.extraproperties.".length());
-				if (requiredSessionValues.containsKey(key) && !sameSessionValue(requiredSessionValues.get(key), entry.getValue())) {
+				if (requiredSessionValues.containsKey(key) && !sameSessionValue(key, requiredSessionValues.get(key), entry.getValue())) {
 					throw locks.conflict(entry.getKey(), "This locked Jakarta Mail property and "
 							+ ConfigurationLocks.lockedName(sessionProperties.get(key).key()) + " configure the same SMTP setting, but their values differ. "
 							+ "Make the two locked values agree, or remove one of these locks from the configuration source.");
@@ -77,12 +77,15 @@ final class LockedSmtpConnectionRequirements {
 			return;
 		}
 		for (Map.Entry<Property, Object> entry : supplied.entrySet()) {
+			if (entry.getKey() == DEFAULT_TRUST_ALL_HOSTS || entry.getKey() == DEFAULT_TRUSTED_HOSTS) {
+				// These choices cooperate; check their final projected value after connection resolution.
+				continue;
+			}
 			if (entry.getKey() == TRANSPORT_STRATEGY) {
 				transportRequirements((TransportStrategy) entry.getValue()).forEach((key, value) -> verifyExtraCustomization(locks, key.toString(), value));
 			} else {
 				for (String key : sessionKeys(entry.getKey(), strategy)) {
-					final Object value = entry.getKey() == DEFAULT_TRUST_ALL_HOSTS ? Boolean.TRUE.equals(entry.getValue()) ? "*" : null : entry.getValue();
-					verifyExtraCustomization(locks, key, value);
+					verifyExtraCustomization(locks, key, entry.getValue());
 				}
 			}
 		}
@@ -90,7 +93,7 @@ final class LockedSmtpConnectionRequirements {
 
 	private static void verifyExtraCustomization(final ConfigurationLocks locks, final String sessionKey, @Nullable final Object value) {
 		final String property = "simplejavamail.extraproperties." + sessionKey;
-		if (locks.getValues().containsKey(property) && !sameSessionValue(value, locks.getValues().get(property))) {
+		if (locks.getValues().containsKey(property) && !sameSessionValue(sessionKey, value, locks.getValues().get(property))) {
 			throw locks.conflict(property, "A Mailer builder call changes the SMTP setting controlled by this locked Jakarta Mail property. "
 					+ "Remove the conflicting builder call, set it to the locked value, or change this lock in its configuration source.");
 		}
@@ -240,7 +243,7 @@ final class LockedSmtpConnectionRequirements {
 			return;
 		}
 		final Object value = config.asMap().get(property);
-		if (requiredSessionValues.containsKey(sessionKey) && !sameSessionValue(requiredSessionValues.get(sessionKey), value)) {
+		if (requiredSessionValues.containsKey(sessionKey) && !sameSessionValue(sessionKey, requiredSessionValues.get(sessionKey), value)) {
 			throw locks.conflict(property, "This lock and " + ConfigurationLocks.lockedName(sessionProperties.get(sessionKey).key())
 					+ " configure the same SMTP setting with different values. Make the locked values agree or remove one of these locks from the configuration source.");
 		}
@@ -333,7 +336,7 @@ final class LockedSmtpConnectionRequirements {
 		if (sessionProperties.get(key) == OPPORTUNISTIC_TLS && Boolean.FALSE.equals(expected) && actual == null) {
 			return;
 		}
-		if (!sameSessionValue(expected, actual)) {
+		if (!sameSessionValue(key, expected, actual)) {
 			final Property property = sessionProperties.get(key);
 			throw locks.conflict(property == null ? "simplejavamail.extraproperties." + key : property.key(),
 					"The supplied or selected SMTP configuration "
@@ -344,7 +347,10 @@ final class LockedSmtpConnectionRequirements {
 		}
 	}
 
-	private static boolean sameSessionValue(@Nullable final Object expected, @Nullable final Object actual) {
+	private static boolean sameSessionValue(final String key, @Nullable final Object expected, @Nullable final Object actual) {
+		if (ConnectionPropertyValues.isSupported(key)) {
+			return ConnectionPropertyValues.equivalent(key, expected, actual);
+		}
 		if (actual == null) {
 			return expected == null;
 		}

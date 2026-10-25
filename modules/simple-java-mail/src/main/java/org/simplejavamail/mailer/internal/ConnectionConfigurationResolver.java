@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
@@ -196,7 +195,7 @@ final class ConnectionConfigurationResolver {
 
     private Map<String, Object> collectExplicitPhysicalChoices(final Map<String, Object> typed, final ProxyConfig proxy) {
         final Map<String, Object> explicitOverrides = new LinkedHashMap<>(typed);
-        explicitOverrides.values().removeIf(value -> value == TrustAllDisabled.INSTANCE);
+        explicitOverrides.replaceAll((key, value) -> value == TrustAllDisabled.INSTANCE ? null : value);
         if (strategy != null && proxy.requiresProxy() && proxy.requiresAuthentication()) {
             // The selected remote route is checked separately from literal locks on the derived local bridge endpoint.
             explicitOverrides.remove(strategy.propertyNameSocksHost());
@@ -554,11 +553,7 @@ final class ConnectionConfigurationResolver {
         if (!key.startsWith(prefix)) {
             return false;
         }
-        final String member = key.substring(prefix.length());
-        return List.of("host", "port", "user", "auth", "socks.host", "socks.port", "localaddress", "localport", "localhost",
-                "connectiontimeout", "timeout", "writetimeout", "ssl.trust", "ssl.checkserveridentity", "ssl.socketFactory",
-                "ssl.socketFactory.class", "socketFactory", "socketFactory.class", "starttls.enable", "starttls.required", "ssl.enable",
-                "auth.mechanisms", "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable").contains(member);
+        return ConnectionPropertyValues.isSupported(key);
     }
 
     static Map<String, Object> visibleProperties(@Nullable final Session session) {
@@ -575,50 +570,7 @@ final class ConnectionConfigurationResolver {
         if (key.endsWith(".ssl.trust") && (first == TrustAllDisabled.INSTANCE || second == TrustAllDisabled.INSTANCE)) {
             return !"*".equals(first) && !"*".equals(second);
         }
-        if (key.endsWith(".ssl.trust") && (first instanceof String) != (second instanceof String)) {
-            // Provider text cannot equal an opaque object just because it resembles the normalized host-list representation.
-            return false;
-        }
-        return Objects.equals(normalize(key, first), normalize(key, second));
-    }
-
-    @Nullable
-    private static Object normalize(final String key, @Nullable final Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (key.endsWith(".ssl.trust")) {
-            return normalizeProviderTrust(value);
-        }
-        if (value instanceof String && ((String) value).isEmpty()) {
-            return null;
-        }
-        if (key.endsWith("port") || key.endsWith("timeout") || key.endsWith(".socks5bridge.port")) {
-            try {
-                return Integer.valueOf(value.toString());
-            } catch (NumberFormatException invalid) {
-                return value;
-            }
-        }
-        if (key.endsWith(".enable") || key.endsWith(".required") || key.endsWith(".disable")
-                || key.endsWith(".auth") || key.endsWith(".checkserveridentity")) {
-            if (Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(value.toString())) {
-                return true;
-            }
-            if (Boolean.FALSE.equals(value) || "false".equalsIgnoreCase(value.toString())) {
-                return false;
-            }
-        }
-        return value instanceof String || value instanceof Number || value instanceof Boolean ? value.toString() : value;
-    }
-
-    private static Object normalizeProviderTrust(final Object value) {
-        if (!(value instanceof String)) {
-            return value;
-        }
-        final String providerText = (String) value;
-        // The provider recognizes only exact "*" as wildcard trust. Present empty lists remain distinct from absence.
-        return "*".equals(providerText) ? WildcardTrust.INSTANCE : List.of(providerText.trim().split("\\s+"));
+        return ConnectionPropertyValues.equivalent(key, first, second);
     }
 
     @Nullable
@@ -658,10 +610,6 @@ final class ConnectionConfigurationResolver {
     }
 
     private enum TrustAllDisabled {
-        INSTANCE
-    }
-
-    private enum WildcardTrust {
         INSTANCE
     }
 
