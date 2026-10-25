@@ -1,6 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.config.ConfigKeys;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolution;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
@@ -309,7 +314,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.TO_RECIPIENTS, additionalLockOwners));
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.CC_RECIPIENTS, additionalLockOwners));
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.BCC_RECIPIENTS, additionalLockOwners));
-		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT));
+		builder.withSubject(resolveSubject(provided));
 		builder.withPlainText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_TEXT));
 		builder.withHTMLText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_HTML));
 		final Email calendarSource = resolveCalendarSource(provided);
@@ -473,6 +478,34 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	private static boolean isCalendarSuppressed(@Nullable final Set<EmailProperty> exclusions) {
 		return exclusions != null && (exclusions.contains(EmailProperty.CALENDAR_METHOD) || exclusions.contains(EmailProperty.CALENDAR_TEXT));
+	}
+
+	@Nullable
+	private String resolveSubject(@Nullable final Email provided) {
+		final boolean defaultsAllowed = provided == null || !provided.isIgnoreDefaults()
+				&& !suppressesSubject(provided.getPropertiesNotToApplyDefaultValueFor());
+		final boolean overridesAllowed = provided == null || !provided.isIgnoreOverrides()
+				&& !suppressesSubject(provided.getPropertiesNotToApplyOverrideValueFor());
+		final ConfigurationResolution<String> subject = ConfigurationResolver.resolve(List.of(
+				subjectDeclaration(ConfigurationOrigin.Kind.OVERRIDE, emailOverrides.getSubject()).withEligibility(overridesAllowed),
+				subjectDeclaration(ConfigurationOrigin.Kind.SUBMITTED, provided == null ? null : provided.getSubject()),
+				subjectDeclaration(ConfigurationOrigin.Kind.DEFAULT, emailDefaults.getSubject()).withEligibility(defaultsAllowed)),
+				SubjectRules.OVERRIDE_MESSAGE_DEFAULT);
+		return subject.valueOrNull();
+	}
+
+	private static boolean suppressesSubject(@Nullable final Set<EmailProperty> suppressed) {
+		return suppressed != null && suppressed.contains(EmailProperty.SUBJECT);
+	}
+
+	private static ConfigurationDeclaration<String> subjectDeclaration(final ConfigurationOrigin.Kind source, @Nullable final String value) {
+		return ConfigurationDeclaration.of(value == null ? ConfigurationChoice.inherit() : ConfigurationChoice.set(value),
+				ConfigurationOrigin.of(source, "subject", source.name()));
+	}
+
+	private static final class SubjectRules {
+		private static final List<ConfigurationOrigin.Kind> OVERRIDE_MESSAGE_DEFAULT = List.of(
+				ConfigurationOrigin.Kind.OVERRIDE, ConfigurationOrigin.Kind.SUBMITTED, ConfigurationOrigin.Kind.DEFAULT);
 	}
 
 	@Nullable

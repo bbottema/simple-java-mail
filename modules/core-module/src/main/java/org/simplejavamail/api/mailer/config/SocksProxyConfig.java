@@ -12,6 +12,7 @@ import static java.util.Objects.requireNonNull;
  * Immutable supplied SocksProxyConfig choices. Unset fields use applicable raw endpoints and factory configuration when the Mailer is built.
  * Construction and inspection never start workers, connect, resolve configuration sources or own borrowed resources.
  * Replacing this group on a Mailer discards its previous supplied choices.
+ * An untouched proxy group on a supplied Session preserves that Session's route and omitted settings.
  * Connection conflicts are resolved when the Mailer is built, under
  * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}. Repeated local setters retain ordinary replacement behavior.
  */
@@ -101,7 +102,7 @@ public class SocksProxyConfig {
          * Supplies the optional remote proxy host. A repeated call replaces the previous local choice.
          * Replacing or removing an imported host follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}:
          * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
-         * @param host Proxy host, or {@code null} to explicitly remove a captured host; an untouched member inherits the captured configuration.
+         * @param host Proxy host, or {@code null} to explicitly remove a captured host; an untouched member uses applicable raw or factory configuration.
          */
         @NotNull public Builder withHost(final String host) { this.host = host; hostCleared = host == null; return this; }
         /** @see #withHost(String) */
@@ -122,7 +123,7 @@ public class SocksProxyConfig {
          * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
          * <p>
          * Defaults to {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_PORT} when an active proxy route has no configured or raw port.
-         * @param port Proxy port, or {@code null} to explicitly remove a captured port; an untouched member inherits the captured configuration.
+         * @param port Proxy port, or {@code null} to explicitly remove a captured port; an untouched member uses applicable raw or factory configuration.
          */
         @NotNull public Builder withPort(final Integer port) { this.port = port; portCleared = port == null; return this; }
         /** @see #withPort(Integer) */

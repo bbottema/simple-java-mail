@@ -45,12 +45,14 @@ final class LockedSmtpConnectionRequirements {
 	private final Map<String, Object> lockedExtraProperties = new LinkedHashMap<>();
 	private final ProxyConfig proxy;
 	private final boolean trustAllSSLHost;
+	@Nullable private final String trustProperty;
 
 	LockedSmtpConnectionRequirements(final SimpleJavaMailConfig config, final ProxyConfig proxy,
 			final boolean trustAllSSLHost, @Nullable final TransportStrategy strategy) {
 		this.locks = locksOf(config);
 		this.proxy = proxy;
 		this.trustAllSSLHost = trustAllSSLHost;
+		this.trustProperty = strategy == null ? null : strategy.propertyNameSSLTrust();
 		if (strategy != null && !locks.isEmpty()) {
 			mapSessionProperties(config, strategy);
 		}
@@ -121,10 +123,6 @@ final class LockedSmtpConnectionRequirements {
 		}
 	}
 
-	void applyLockedExtraProperties(final Session session) {
-		session.getProperties().putAll(lockedExtraProperties);
-	}
-
 	boolean hasLocks() {
 		return !locks.isEmpty();
 	}
@@ -168,7 +166,8 @@ final class LockedSmtpConnectionRequirements {
 						+ "or change the conflicting trust settings in the configuration source.");
 			}
 			put(locks.contains(DEFAULT_TRUST_ALL_HOSTS) ? DEFAULT_TRUST_ALL_HOSTS : DEFAULT_TRUSTED_HOSTS,
-					strategy.propertyNameSSLTrust(), trustAll ? "*" : trusted == null ? null : String.join(" ", trusted.split(";")));
+					strategy.propertyNameSSLTrust(), trustAll ? "*"
+							: ConnectionPropertyValues.boundedTrustValue(trusted == null ? null : String.join(" ", trusted.split(";"))));
 		}
 	}
 
@@ -211,6 +210,11 @@ final class LockedSmtpConnectionRequirements {
 
 	static void verifyCustomSocketFactory(final ConfigurationLocks locks, final Properties resolvedProperties,
 			@Nullable final TransportStrategy strategy) {
+		if (strategy != null && locks.contains(CUSTOM_SSLFACTORY_CLASS)
+				&& resolvedProperties.containsKey(strategy.propertyNameSSLSocketFactory())) {
+			throw locks.conflict(CUSTOM_SSLFACTORY_CLASS, "An SSL factory instance replaces the factory class selected by this lock. "
+					+ "Remove the instance choice or change the class lock in its configuration source.");
+		}
 		if (strategy == null || !hasCustomSocketFactory(resolvedProperties, strategy)) {
 			return;
 		}
@@ -261,6 +265,10 @@ final class LockedSmtpConnectionRequirements {
 	}
 
 	void verifyExplicitConnectionChoices(final Map<?, ?> properties) {
+		if (trustProperty != null && Boolean.FALSE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key()))
+				&& "*".equals(properties.get(trustProperty))) {
+			throw locks.conflict(DEFAULT_TRUST_ALL_HOSTS, "An explicit SMTP trust property enables wildcard trust, but this lock disables it. Remove the conflicting customization.");
+		}
 		for (String key : requiredSessionValues.keySet()) {
 			if (properties.containsKey(key)) {
 				// Ordinary SOCKS declarations describe the remote route. Locked raw properties instead constrain the literal local route.

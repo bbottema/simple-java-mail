@@ -115,6 +115,8 @@ public class TlsConfig {
          * provided list is empty, the property is unset.
          * When trust-all is disabled, an exact {@code "*"} list also removes the exception; use {@link #trustingAllHosts(boolean)} to enable wildcard trust.
          * Replacing or removing an imported trust setting follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}.
+         * Lists containing the same exact host names are equivalent for conflict detection regardless of order or duplicates;
+         * the selected ordering remains available through inspection. Host names are not case-folded or resolved through DNS for comparison.
          *
          * @see <a href="https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#mail.smtp.ssl.trust"><code>mail.smtp.ssl.trust</code></a>
          * @see #trustingAllHosts(boolean)

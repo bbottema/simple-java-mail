@@ -3,7 +3,7 @@
 - Status: Accepted, 2026-10-25
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
-- Implementation status: Pending under #867.
+- Implementation status: Implemented for unreleased 10.0.0 under #867; publication pending.
 
 ## Context
 

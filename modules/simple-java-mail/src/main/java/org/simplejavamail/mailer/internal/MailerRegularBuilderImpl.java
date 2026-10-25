@@ -274,10 +274,13 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	 */
 	@Override
 	public Mailer buildMailer() {
-		return buildConfiguredMailer(() -> {
-			warnAboutIgnoredSmtpSettings();
-			return new MailerImpl(this);
-		});
+		return buildConfiguredMailer();
+	}
+
+	@Override
+	MailerImpl constructMailer(final ValidatedConnectionPlan plan) {
+		warnAboutIgnoredSmtpSettings();
+		return new MailerImpl(this, plan);
 	}
 
 	private void warnAboutIgnoredSmtpSettings() {
@@ -338,11 +341,12 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 		}
 		final TransportStrategy strategy = requireNonNull(sessionSettings.getTransportStrategy(), "transportStrategy");
 		final Map<String, Object> resolved = sessionSettings.getConnectionOverrides();
-		final String resolvedHost = (String) resolved.get(strategy.propertyNameHost());
-		final String resolvedUsername = (String) resolved.get(strategy.propertyNameUsername());
+		final String resolvedHost = stringProperty(resolved.get(strategy.propertyNameHost()));
+		final String resolvedUsername = stringProperty(resolved.get(strategy.propertyNameUsername()));
 		final Object resolvedPort = resolved.get(strategy.propertyNamePort());
-		final String resolvedFactory = (String) resolved.get(strategy.propertyNameSSLSocketFactoryClass());
-		final SSLSocketFactory resolvedFactoryInstance = (SSLSocketFactory) resolved.get(strategy.propertyNameSSLSocketFactory());
+		final String resolvedFactory = stringProperty(resolved.get(strategy.propertyNameSSLSocketFactoryClass()));
+		final Object factoryInstance = resolved.get(strategy.propertyNameSSLSocketFactory());
+		final SSLSocketFactory resolvedFactoryInstance = factoryInstance instanceof SSLSocketFactory ? (SSLSocketFactory) factoryInstance : null;
 		if (!isTransportModeLoggingOnly() || !valueNullOrEmpty(resolvedHost)) {
 			checkArgumentNotEmpty(resolvedHost, "SMTP server host missing");
 			final int serverPort = resolvedServerPort(resolvedPort, strategy);
@@ -350,6 +354,11 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 			return new ServerConfigImpl(verifyNonnullOrEmpty(resolvedHost), serverPort, resolvedUsername, resolvedPassword, resolvedFactory, resolvedFactoryInstance);
 		}
 		return null;
+	}
+
+	@Nullable
+	private static String stringProperty(@Nullable final Object value) {
+		return value instanceof String ? (String) value : null;
 	}
 
 	private static int resolvedServerPort(@Nullable final Object resolvedPort, final TransportStrategy strategy) {

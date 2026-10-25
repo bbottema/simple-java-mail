@@ -262,6 +262,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * {@link ConnectionConflictPolicy#REJECT_CONFLICTS} rejects differing explicit factory declarations, recognized raw properties,
 	 * visible supplied Session settings and final Java choices for the same logical setting. Equivalent parsed values are accepted.
+	 * Trusted-host lists with the same exact names are compatible regardless of ordering or duplicates; opaque factory instances compare by identity.
 	 * Built-in defaults are not competing declarations. Repeated setters retain their normal replacement behavior; only the final
 	 * choices are compared. Explicit removal of an imported choice also counts as conflicting customization.
 	 * <p>

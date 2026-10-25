@@ -270,4 +270,4 @@ Source resolution remains ordered. ADR 0038 adds a subsequent connection-declara
 
 [ADR 0039](0039-explicit-configuration-resolution.md) governs post-loading construction choices and retained declarations. The existing loader, schema-bound keys, ordered source precedence, snapshot isolation and captured source metadata remain authoritative. The shared resolution model consumes that snapshot and final builder choices; it does not reopen sources or replace this loader with another configuration system.
 
-Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.

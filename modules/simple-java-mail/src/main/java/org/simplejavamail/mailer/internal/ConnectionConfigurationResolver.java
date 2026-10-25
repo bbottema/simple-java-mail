@@ -11,13 +11,22 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.ConfigPropertyDiagnostic;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.config.ConfigurationLocks;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolution;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.net.InetAddress;
+import java.util.function.Function;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
@@ -34,7 +43,7 @@ final class ConnectionConfigurationResolver {
     private final SimpleJavaMailConfig config;
     @Nullable private final TransportStrategy strategy;
     private final boolean authenticatedProxy;
-    private final Map<String, List<Declaration>> declarations = new LinkedHashMap<>();
+    private final Map<String, List<ConfigurationDeclaration<Object>>> declarations = new LinkedHashMap<>();
     private final Map<String, String> sourceNames = new LinkedHashMap<>();
 
     private ConnectionConfigurationResolver(final SimpleJavaMailConfig config, @Nullable final TransportStrategy strategy, final boolean authenticatedProxy) {
@@ -48,18 +57,28 @@ final class ConnectionConfigurationResolver {
         }
     }
 
-    static Resolution resolve(final SimpleJavaMailConfig config, @Nullable final Session suppliedSession,
-            @Nullable final TransportStrategy strategy, final ConnectionConflictPolicy policy, final Properties additionalProperties,
-            final Map<String, Object> rawChoices, final Map<Property, Object> typedChoices, final Map<String, Object> defaults,
-            final Map<String, Object> physicalChoices, final ProxyConfig proxyFallback, final boolean proxyCustomized, final boolean smtpActive) {
+    static ResolvedConnection resolve(final CapturedConnectionInputs inputs) {
+        final SimpleJavaMailConfig config = inputs.getConfig();
+        final Session suppliedSession = inputs.getSuppliedSession();
+        final TransportStrategy strategy = inputs.getStrategy();
+        final Properties additionalProperties = inputs.copyAdditionalProperties();
+        final Map<String, Object> rawChoices = inputs.getRawChoices();
+        final Map<Property, Object> typedChoices = inputs.getTypedChoices();
+        final Map<String, Object> defaults = inputs.getDefaults();
+        final Map<String, Object> physicalChoices = inputs.getPhysicalChoices();
+        final Map<String, Object> requiredOverrides = inputs.getRequiredOverrides();
+        final ProxyConfig proxyFallback = inputs.getProxyFallback();
+        final boolean proxyCustomized = inputs.isProxyCustomized();
+        final boolean smtpActive = inputs.isSmtpActive();
         final ConnectionConfigurationResolver resolver = new ConnectionConfigurationResolver(config, strategy, proxyFallback.requiresAuthentication());
         final Map<String, Object> baseline = resolver.captureConnectionBaseline(suppliedSession, additionalProperties);
         final Map<Property, Object> applicableTypedChoices = smtpActive ? typedChoices : inactiveRouteChoices(typedChoices);
         final Map<String, Object> typed = resolver.projectTypedChoices(applicableTypedChoices, baseline, physicalChoices, smtpActive, suppliedSession == null);
-        resolver.verifyDeclarations(suppliedSession, rawChoices, typedChoices, typed, physicalChoices, policy, smtpActive);
+        resolver.collectDeclarations(suppliedSession, rawChoices, typedChoices, typed, physicalChoices, smtpActive);
 
-        final Map<String, Object> effective = resolver.resolveConnectionValues(suppliedSession, defaults, baseline, rawChoices, typed);
+        final Map<String, Object> effective = resolver.resolveConnectionValues(suppliedSession, additionalProperties, defaults, baseline, rawChoices, typed);
         resolver.applyTransportResets(effective, baseline, applicableTypedChoices);
+        requiredOverrides.forEach((key, value) -> putOrRemove(effective, key, value));
         final ProxyConfig proxy;
         if (smtpActive && strategy != null) {
             proxy = resolver.resolveRemoteProxy(effective, typed, proxyFallback, suppliedSession == null || proxyCustomized);
@@ -67,21 +86,68 @@ final class ConnectionConfigurationResolver {
         } else {
             proxy = proxyFallback;
         }
-        return new Resolution(resolver.collectSessionOverrides(effective, typed, rawChoices), proxy,
-                resolver.collectExplicitPhysicalChoices(typed, proxy),
-                resolver.shadowedFactoryClassProperty(suppliedSession, additionalProperties, typed, effective));
+        final Map<String, Object> overrides = resolver.collectSessionOverrides(effective, typed, rawChoices);
+        requiredOverrides.forEach((key, value) -> {
+            if ((value == null || value == TrustAllDisabled.INSTANCE) && !effective.containsKey(key)) {
+                overrides.put(key, null);
+            }
+        });
+        if (suppliedSession != null) {
+            resolver.retainRequestedSessionChanges(overrides, typed, additionalProperties, requiredOverrides, proxyCustomized);
+            if (!proxyCustomized && !locksOf(config).contains(Property.PROXY_PORT)
+                    && strategy != null && !baseline.containsKey(strategy.propertyNameSocksPort())) {
+                overrides.remove(strategy.propertyNameSocksPort());
+            }
+        }
+        return new ResolvedConnection(inputs, overrides, proxy,
+                resolver.collectExplicitPhysicalChoices(typed, effective, proxy),
+                resolver.shadowedFactoryClassProperty(suppliedSession, additionalProperties, typed, effective), resolver.declarations);
+    }
+
+    private void retainRequestedSessionChanges(final Map<String, Object> overrides, final Map<String, Object> typed,
+            final Properties additional, final Map<String, Object> required, final boolean proxyCustomized) {
+        final boolean proxyRequested = proxyCustomized || locksOf(config).contains(Property.PROXY_HOST) || locksOf(config).contains(Property.PROXY_PORT);
+        overrides.entrySet().removeIf(entry -> {
+            final String key = entry.getKey();
+            if (strategy != null && (key.equals(strategy.propertyNameSocksHost()) || key.equals(strategy.propertyNameSocksPort()))) {
+                // Raw overlays already retain their provider endpoint syntax; only a typed route or requirement needs an additional projection.
+                return !proxyRequested;
+            }
+            return !typed.containsKey(key) && !required.containsKey(key) && !additional.containsKey(key);
+        });
+    }
+
+    static void validateDeclarations(final ResolvedConnection resolved) {
+        final CapturedConnectionInputs inputs = resolved.inputs;
+        if (inputs.isSmtpActive() && inputs.getStrategy() != null) {
+            final ConnectionConfigurationResolver validator = new ConnectionConfigurationResolver(inputs.getConfig(), inputs.getStrategy(),
+                    inputs.getProxyFallback().requiresAuthentication());
+            validator.declarations.putAll(resolved.declarations);
+            validator.verifyCompatibleLocks();
+            if (inputs.getPolicy() == ConnectionConflictPolicy.REJECT_CONFLICTS) {
+                validator.declarations.forEach(validator::verifyEquivalentDeclarations);
+            }
+        }
     }
 
     private Map<String, Object> captureConnectionBaseline(@Nullable final Session suppliedSession, final Properties additionalProperties) {
-        final Map<String, Object> baseline = visibleProperties(suppliedSession);
-        additionalProperties.forEach((key, value) -> baseline.put(key.toString(), value));
+        final Properties properties = suppliedSession == null ? new Properties() : SessionPropertyObservation.snapshot(suppliedSession.getProperties());
+        properties.putAll(additionalProperties);
+        final Map<String, Object> baseline = visibleProperties(properties);
+        normalizeRawProxyEndpoint(baseline);
         baseline.entrySet().removeIf(entry -> isMatchingPhysicalProxyLock(entry.getKey(), entry.getValue()));
         return baseline;
     }
 
     private Map<String, Object> projectTypedChoices(final Map<Property, Object> typedChoices, final Map<String, Object> baseline,
             final Map<String, Object> physicalChoices, final boolean smtpActive, final boolean ownsSession) {
-        final Map<String, Object> typed = project(typedChoices, baseline);
+        final Map<Property, Object> completedChoices = new LinkedHashMap<>(typedChoices);
+        if (ownsSession && completedChoices.containsKey(Property.DEFAULT_TRUSTED_HOSTS)
+                && !completedChoices.containsKey(Property.DEFAULT_TRUST_ALL_HOSTS)
+                && Boolean.TRUE.equals(config.get(ConfigKeys.DEFAULT_TRUST_ALL_HOSTS))) {
+            completedChoices.put(Property.DEFAULT_TRUST_ALL_HOSTS, true);
+        }
+        final Map<String, Object> typed = project(completedChoices, baseline);
         if (ownsSession && strategy != null) {
             preserveRawBaselineForOwnedEmptyText(typed, typedChoices, baseline);
         }
@@ -115,50 +181,63 @@ final class ConnectionConfigurationResolver {
         return effective.get(classProperty) != null && !additionalProperties.containsKey(classProperty) ? classProperty : null;
     }
 
-    private void verifyDeclarations(@Nullable final Session suppliedSession, final Map<String, Object> rawChoices,
+    private void collectDeclarations(@Nullable final Session suppliedSession, final Map<String, Object> rawChoices,
             final Map<Property, Object> typedChoices, final Map<String, Object> typed, final Map<String, Object> physicalChoices,
-            final ConnectionConflictPolicy policy, final boolean smtpActive) {
+            final boolean smtpActive) {
         if (smtpActive && strategy != null) {
             collectFactoryDeclarations();
             collectRawDeclarations(suppliedSession, rawChoices);
-            typed.forEach((key, value) -> declare(key, value, physicalChoices.containsKey(key)
-                    ? "typed Java TLS setting (withCustomSSLFactoryInstance/withTlsConfig)" : typedLabel(key, typedChoices, strategy)));
-            if (policy == ConnectionConflictPolicy.REJECT_CONFLICTS) {
-                rejectConflictingDeclarations();
-            }
+            typed.forEach((key, value) -> declare(key, value, ConfigurationOrigin.of(ConfigurationOrigin.Kind.JAVA, key,
+                    physicalChoices.containsKey(key) ? "typed Java TLS setting (withCustomSSLFactoryInstance/withTlsConfig)"
+                            : typedLabel(key, typedChoices, strategy))));
         }
     }
 
-    private Map<String, Object> resolveConnectionValues(@Nullable final Session suppliedSession, final Map<String, Object> defaults,
+    private Map<String, Object> resolveConnectionValues(@Nullable final Session suppliedSession, final Properties additionalProperties, final Map<String, Object> defaults,
             final Map<String, Object> baseline, final Map<String, Object> rawChoices, final Map<String, Object> typed) {
         final Map<String, Object> effective = new LinkedHashMap<>();
         if (suppliedSession == null) {
             defaults.forEach((key, value) -> effective.put(key, propertyValue(value)));
         }
-        effective.putAll(baseline);
-        applyRawChoices(effective, rawChoices);
-        applyTypedChoices(effective, baseline, typed);
+        final Set<String> keys = new LinkedHashSet<>(effective.keySet());
+        keys.addAll(baseline.keySet());
+        keys.addAll(typed.keySet());
+        for (String key : keys) {
+            final List<ConfigurationDeclaration<Object>> candidates = new ArrayList<>();
+            addCandidate(candidates, effective, key, ConfigurationOrigin.Kind.DERIVED);
+            final ConfigurationOrigin.Kind baselineKind = rawChoices.get(key) != null ? ConfigurationOrigin.Kind.JAVA_RAW
+                    : additionalProperties.containsKey(key) ? ConfigurationOrigin.Kind.FACTORY_RAW : ConfigurationOrigin.Kind.SESSION;
+            addCandidate(candidates, baseline, key, baselineKind);
+            addCandidate(candidates, typed, key, ConfigurationOrigin.Kind.JAVA);
+            final ConfigurationResolution<Object> choice = ConfigurationResolver.resolve(candidates, ConnectionRules.PROJECTED_MEMBER);
+            final Object value = choice.valueOrNull();
+            if (choice.getSelected() != null && choice.getSelected().getOrigin().getKind() == ConfigurationOrigin.Kind.JAVA
+                    && value != null && value != TrustAllDisabled.INSTANCE && baseline.containsKey(key) && sameValue(key, value, baseline.get(key))) {
+                effective.put(key, baseline.get(key));
+            } else {
+                // A conditional trust request is completed against the selected lower-priority representation.
+                if (value == TrustAllDisabled.INSTANCE && baseline.containsKey(key)) { effective.put(key, baseline.get(key)); }
+                final ConfigurationOrigin.Kind selectedKind = choice.getSelected() == null ? null : choice.getSelected().getOrigin().getKind();
+                final boolean typedRepresentation = selectedKind == ConfigurationOrigin.Kind.JAVA || selectedKind == ConfigurationOrigin.Kind.DERIVED;
+                putOrRemove(effective, key, typedRepresentation ? propertyValue(value) : value);
+            }
+        }
         return effective;
     }
 
-    private void applyRawChoices(final Map<String, Object> effective, final Map<String, Object> rawChoices) {
-        // A raw removal suppresses a captured overlay, but clearProperties never erases untouched caller Session entries.
-        rawChoices.forEach((key, value) -> {
-            if (value != null && !isMatchingPhysicalProxyLock(key, value)) {
-                effective.put(key, value);
-            }
-        });
+    private static void addCandidate(final List<ConfigurationDeclaration<Object>> candidates, final Map<String, Object> values,
+            final String key, final ConfigurationOrigin.Kind origin) {
+        if (values.containsKey(key)) {
+            final Object value = values.get(key);
+            candidates.add(ConfigurationDeclaration.of(value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value),
+                    ConfigurationOrigin.of(origin, key, null)));
+        }
     }
 
-    private static void applyTypedChoices(final Map<String, Object> effective, final Map<String, Object> baseline,
-            final Map<String, Object> typed) {
-        typed.forEach((key, value) -> {
-            if (value != null && value != TrustAllDisabled.INSTANCE && baseline.containsKey(key) && sameValue(key, value, baseline.get(key))) {
-                effective.put(key, baseline.get(key));
-            } else {
-                putOrRemove(effective, key, propertyValue(value));
-            }
-        });
+    private static final class ConnectionRules {
+        private static final List<ConfigurationOrigin.Kind> PROJECTED_MEMBER = List.of(
+                ConfigurationOrigin.Kind.JAVA, ConfigurationOrigin.Kind.JAVA_RAW, ConfigurationOrigin.Kind.FACTORY_RAW,
+                ConfigurationOrigin.Kind.SESSION, ConfigurationOrigin.Kind.DERIVED);
     }
 
     private void applyTransportResets(final Map<String, Object> effective, final Map<String, Object> baseline,
@@ -193,9 +272,9 @@ final class ConnectionConfigurationResolver {
         return overrides;
     }
 
-    private Map<String, Object> collectExplicitPhysicalChoices(final Map<String, Object> typed, final ProxyConfig proxy) {
+    private Map<String, Object> collectExplicitPhysicalChoices(final Map<String, Object> typed, final Map<String, Object> effective, final ProxyConfig proxy) {
         final Map<String, Object> explicitOverrides = new LinkedHashMap<>(typed);
-        explicitOverrides.replaceAll((key, value) -> value == TrustAllDisabled.INSTANCE ? null : value);
+        explicitOverrides.replaceAll((key, value) -> value == TrustAllDisabled.INSTANCE ? effective.get(key) : value);
         if (strategy != null && proxy.requiresProxy() && proxy.requiresAuthentication()) {
             // The selected remote route is checked separately from literal locks on the derived local bridge endpoint.
             explicitOverrides.remove(strategy.propertyNameSocksHost());
@@ -227,28 +306,37 @@ final class ConnectionConfigurationResolver {
         projected.forEach((key, value) -> {
             final Property property = propertyForKey(key, factory);
             final String name = property == null ? key : locksOf(config).contains(property) ? ConfigurationLocks.lockedName(property.key()) : property.key();
-            declare(key, value, name + sourceSuffix(name));
+            declare(key, value, factoryOrigin(name, ConfigurationOrigin.Kind.FACTORY));
         });
     }
 
     private void collectRawDeclarations(@Nullable final Session suppliedSession, final Map<String, Object> rawChoices) {
         final Map<String, String> captured = config.get(ConfigKeys.EXTRA_PROPERTIES);
         if (captured != null) {
-            captured.forEach((key, value) -> {
-                if (!isMatchingPhysicalProxyLock(key, value)) {
-                    declare(key, value, EXTRA_PREFIX + key + sourceSuffix(EXTRA_PREFIX + key));
-                }
-            });
+            collectRawSource(captured, key -> factoryOrigin(EXTRA_PREFIX + key, ConfigurationOrigin.Kind.FACTORY_RAW));
         }
-        visibleProperties(suppliedSession).forEach((key, value) -> {
-            if (!isMatchingPhysicalProxyLock(key, value)) {
-                declare(key, value, key + " from supplied Session");
+        collectRawSource(visibleProperties(suppliedSession), key -> ConfigurationOrigin.of(ConfigurationOrigin.Kind.SESSION, key,
+                suppliedSession != null && ConnectionPropertyValues.readsString(key)
+                        && !(suppliedSession.getProperties().get(key) instanceof String) && suppliedSession.getProperty(key) != null
+                        ? "supplied Session defaults" : "supplied Session"));
+        final Map<String, Object> finalRawChoices = new LinkedHashMap<>();
+        rawChoices.forEach((key, value) -> {
+            if (value != null || captured != null && captured.containsKey(key)) {
+                finalRawChoices.put(key, value);
             }
         });
-        rawChoices.forEach((key, value) -> {
-            if (!isMatchingPhysicalProxyLock(key, value) && (value != null || captured != null && captured.containsKey(key))) {
-                declare(key, value, "withProperty/withProperties(" + key + ")");
-            }
+        collectRawSource(finalRawChoices, key -> ConfigurationOrigin.of(ConfigurationOrigin.Kind.JAVA_RAW, key,
+                "withProperty/withProperties(" + key + ")"));
+    }
+
+    private void collectRawSource(final Map<String, ?> source, final Function<String, ConfigurationOrigin> origin) {
+        final Map<String, Object> normalized = new LinkedHashMap<>(source);
+        normalized.entrySet().removeIf(entry -> isMatchingPhysicalProxyLock(entry.getKey(), entry.getValue()));
+        normalizeRawProxyEndpoint(normalized);
+        normalized.forEach((key, value) -> {
+            final String originalKey = strategy != null && key.equals(strategy.propertyNameSocksPort()) && !source.containsKey(key)
+                    ? strategy.propertyNameSocksHost() : key;
+            declare(key, value, origin.apply(originalKey));
         });
     }
 
@@ -258,33 +346,30 @@ final class ConnectionConfigurationResolver {
                 && sameValue(key, value, locksOf(config).getValues().get(EXTRA_PREFIX + key));
     }
 
-    private String sourceSuffix(final String property) {
+    private ConfigurationOrigin factoryOrigin(final String property, final ConfigurationOrigin.Kind kind) {
         final String source = sourceNames.get(property);
-        return source == null ? " from captured factory configuration" : " from " + source;
+        return ConfigurationOrigin.of(kind, property, source == null ? "captured factory configuration" : source);
     }
 
-    private void declare(final String key, @Nullable final Object value, final String origin) {
+    private void declare(final String key, @Nullable final Object value, final ConfigurationOrigin origin) {
         if (isSupported(key) || key.equals(PASSWORD) || key.equals(PROXY_USERNAME) || key.equals(PROXY_PASSWORD) || key.equals(PROXY_BRIDGE_PORT)) {
-            declarations.computeIfAbsent(key, ignored -> new ArrayList<>()).add(new Declaration(value, origin));
+            declarations.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ConfigurationDeclaration.of(
+                    value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value), origin));
         }
     }
 
-    private void rejectConflictingDeclarations() {
-        verifyCompatibleLocks();
-        declarations.forEach(this::verifyEquivalentDeclarations);
-    }
-
-    private void verifyEquivalentDeclarations(final String key, final List<Declaration> choices) {
+    private void verifyEquivalentDeclarations(final String key, final List<ConfigurationDeclaration<Object>> choices) {
         for (int first = 0; first < choices.size(); first++) {
             for (int second = first + 1; second < choices.size(); second++) {
-                if (!sameValue(key, choices.get(first).value, choices.get(second).value)) {
+                if (!sameValue(key, choices.get(first).getChoice().valueOrNull(), choices.get(second).getChoice().valueOrNull())) {
                     throw conflictingDeclarations(key, choices.get(first), choices.get(second));
                 }
             }
         }
     }
 
-    private IllegalArgumentException conflictingDeclarations(final String key, final Declaration first, final Declaration second) {
+    private IllegalArgumentException conflictingDeclarations(final String key, final ConfigurationDeclaration<Object> first,
+            final ConfigurationDeclaration<Object> second) {
         final String lockedProperty = lockedPropertyFor(key);
         if (lockedProperty != null) {
             return locksOf(config).conflict(lockedProperty,
@@ -294,7 +379,7 @@ final class ConnectionConfigurationResolver {
                             + "The connection conflict policy cannot override locks.");
         }
         return new IllegalArgumentException("Conflicting connection configuration for " + escapeControlCharacters(key)
-                + ": " + escapeControlCharacters(first.origin) + " disagrees with " + escapeControlCharacters(second.origin)
+                + ": " + first.getOrigin().description() + " disagrees with " + second.getOrigin().description()
                 + ". Align or remove the conflicting declaration, or deliberately select "
                 + "ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES. Configuration locks and mandatory transport rules still apply.");
     }
@@ -358,10 +443,10 @@ final class ConnectionConfigurationResolver {
                 projected.put(key, "*");
             } else if (choices.containsKey(Property.DEFAULT_TRUSTED_HOSTS)) {
                 // Preserve the existing host-list contract: wildcard trust requires the dedicated trust-all choice.
-                projected.put(key, "*".equals(hosts) ? null : hosts);
+                projected.put(key, ConnectionPropertyValues.boundedTrustValue((String) hosts));
             } else {
-                // False means retain a bounded host list but remove wildcard trust; it is not a declaration that no list may exist.
-                projected.put(key, hosts == null || "*".equals(hosts) ? TrustAllDisabled.INSTANCE : hosts);
+                // Disabling wildcard trust is a constraint on the completed choice, not a new declaration of its inherited host list.
+                projected.put(key, TrustAllDisabled.INSTANCE);
             }
         }
         return projected;
@@ -488,7 +573,8 @@ final class ConnectionConfigurationResolver {
         final String host = text(selectProxyMember(hostKey, typed, effective,
                 applyCapturedProxy || hostLocked ? fallback.getRemoteProxyHost() : null));
         final Object portChoice = selectProxyMember(portKey, typed, effective,
-                applyCapturedProxy || portLocked || host != null ? fallback.getRemoteProxyPort() : null);
+                applyCapturedProxy || portLocked ? fallback.getRemoteProxyPort()
+                        : host != null ? org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_PROXY_PORT : null);
         final Integer port = integer(portChoice, portKey);
         final ProxyConfig resolved = new ProxyConfigImpl(host, port, fallback.getUsername(), fallback.getPassword(), fallback.getProxyBridgePort());
         locksOf(config).verify(Property.PROXY_HOST, host);
@@ -557,13 +643,34 @@ final class ConnectionConfigurationResolver {
     }
 
     static Map<String, Object> visibleProperties(@Nullable final Session session) {
+        return session == null ? new LinkedHashMap<>() : visibleProperties(session.getProperties());
+    }
+
+    private static Map<String, Object> visibleProperties(final Properties properties) {
         final Map<String, Object> values = new LinkedHashMap<>();
-        if (session != null) {
-            final Properties properties = session.getProperties();
-            properties.stringPropertyNames().forEach(key -> values.put(key, properties.getProperty(key)));
-            properties.forEach((key, value) -> values.put(key.toString(), value));
+        final Set<String> keys = new LinkedHashSet<>(properties.stringPropertyNames());
+        properties.keySet().forEach(key -> keys.add(key.toString()));
+        for (String key : keys) {
+            final SessionPropertyObservation<?> observed = ConnectionPropertyValues.readsString(key)
+                    ? SessionPropertyObservation.readString(properties, key) : SessionPropertyObservation.readValue(properties, key);
+            final Object visible = observed.providerValueOrNull();
+            values.put(key, visible == null && observed.hasDirectEntry() ? observed.directValueOrNull() : visible);
         }
         return values;
+    }
+
+    private void normalizeRawProxyEndpoint(final Map<String, Object> values) {
+        if (strategy == null) { return; }
+        final Object rawHost = values.get(strategy.propertyNameSocksHost());
+        if (!(rawHost instanceof String)) { return; }
+        final String host = (String) rawHost;
+        final int separator = host.indexOf(':');
+        final String hostname = separator < 0 ? host : host.substring(0, separator);
+        values.put(strategy.propertyNameSocksHost(), hostname.isEmpty() ? InetAddress.getLoopbackAddress().getHostAddress() : hostname);
+        if (separator >= 0 && !values.containsKey(strategy.propertyNameSocksPort())) {
+            final Integer inlinePort = ConnectionPropertyValues.integerValue(host.substring(separator + 1));
+            if (inlinePort != null) { values.put(strategy.propertyNameSocksPort(), inlinePort.toString()); }
+        }
     }
 
     private static boolean sameValue(final String key, @Nullable final Object first, @Nullable final Object second) {
@@ -578,16 +685,14 @@ final class ConnectionConfigurationResolver {
         if (value == null) {
             return null;
         }
-        try {
-            return Integer.valueOf(value.toString());
-        } catch (NumberFormatException invalid) {
-            throw new IllegalArgumentException("Invalid integer connection setting " + key + ". Configure a numeric port.");
-        }
+        final Integer parsed = ConnectionPropertyValues.integerValue(value);
+        if (parsed != null) { return parsed; }
+        throw new IllegalArgumentException("Invalid integer connection setting " + key + ". Configure a numeric port.");
     }
 
     @Nullable
     private static String text(@Nullable final Object value) {
-        return value == null || value.toString().isEmpty() ? null : value.toString();
+        return value instanceof String && !((String) value).isEmpty() ? (String) value : null;
     }
 
     private static boolean isTimeout(final Property property) {
@@ -609,33 +714,8 @@ final class ConnectionConfigurationResolver {
         return value instanceof String || value instanceof Number || value instanceof Boolean ? value.toString() : value;
     }
 
-    private enum TrustAllDisabled {
+    enum TrustAllDisabled {
         INSTANCE
     }
 
-    private static final class Declaration {
-        @Nullable final Object value;
-        final String origin;
-        Declaration(@Nullable final Object value, final String origin) {
-            this.value = value;
-            this.origin = origin;
-        }
-    }
-
-    static final class Resolution {
-        /** Resolved connection choices retained for inspection, including null entries for deliberate removals. */
-        final Map<String, Object> overrides;
-        final ProxyConfig proxy;
-        /** Explicit choices checked against literal Session locks after separating remote proxy routing. */
-        final Map<String, Object> explicitOverrides;
-        /** A retained class choice omitted only when activating its preferred Java instance on an owned Session. */
-        @Nullable final String shadowedFactoryClassProperty;
-        Resolution(final Map<String, Object> overrides, final ProxyConfig proxy, final Map<String, Object> explicitOverrides,
-                @Nullable final String shadowedFactoryClassProperty) {
-            this.overrides = overrides;
-            this.proxy = proxy;
-            this.explicitOverrides = explicitOverrides;
-            this.shadowedFactoryClassProperty = shadowedFactoryClassProperty;
-        }
-    }
 }

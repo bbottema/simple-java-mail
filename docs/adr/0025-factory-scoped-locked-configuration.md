@@ -277,4 +277,4 @@ ADR 0038 adds a default-strict connection conflict policy independently of value
 
 [ADR 0039](0039-explicit-configuration-resolution.md) retains feature-owned constraint semantics while sharing declaration mechanics. Adopted connection paths compare supported typed and raw representations consistently before applying a validated plan; locks cannot silently mask a contradictory customization. Reusable requirements still check provider initialization and selected pool members. Raw physical proxy requirements remain distinct from logical remote proxy locks. Subject resolution retains the existing Email lock owner.
 
-Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.

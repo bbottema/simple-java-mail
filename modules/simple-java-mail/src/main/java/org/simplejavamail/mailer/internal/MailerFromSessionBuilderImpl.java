@@ -51,7 +51,12 @@ public class MailerFromSessionBuilderImpl
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public MailerImpl buildMailer() {
-		return buildConfiguredMailer(() -> new MailerImpl(this));
+		return buildConfiguredMailer();
+	}
+
+	@Override
+	MailerImpl constructMailer(final ValidatedConnectionPlan plan) {
+		return new MailerImpl(this, plan);
 	}
 	
 	/**

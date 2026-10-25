@@ -62,4 +62,4 @@ ADR 0038 uses captured source names plus construction-local raw, Session and Jav
 
 [ADR 0039](0039-explicit-configuration-resolution.md) retains origins on internal declarations through selection and validation, reusing the existing escaping and sensitivity rules. Internal resolution facts do not turn ConfigDiagnostics into a live Mailer report or add a public effective-configuration report. Opaque application objects are not rendered to establish meaning or produce conflict diagnostics.
 
-Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.

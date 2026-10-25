@@ -23,6 +23,7 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_MESSAGE_RATE_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_MESSAGE_RATE_PERIOD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RATE_LIMIT_ALLOW_BURSTS;
+import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RATE_LIMIT_GROUP;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RECIPIENT_RATE_LIMIT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_RECIPIENT_RATE_PERIOD;
@@ -39,19 +40,19 @@ final class LockedSmtpConfiguration {
     @Nullable private final ServerConfig server;
     private final ProxyConfig proxy;
     private final OperationalConfig operational;
+    private final boolean suppliedSslFactoryInstance;
 
     LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
-            final OperationalConfig operational, @Nullable final TransportStrategy strategy) {
+            final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties) {
         this.locks = locksOf(config);
         this.server = server;
         this.proxy = proxy;
         this.operational = operational;
+        this.suppliedSslFactoryInstance = server != null && server.getCustomSSLFactoryInstance() != null
+                || strategy != null && resolvedProperties.containsKey(strategy.propertyNameSSLSocketFactory());
         this.connectionRequirements = new LockedSmtpConnectionRequirements(config, proxy, operational.isTrustAllSSLHost(), strategy);
     }
 
-    void verifyAdditionalProperties(final Properties properties) { connectionRequirements.verifyAdditionalProperties(properties); }
-    void verifyCallerOwnedSession(final Session session) { connectionRequirements.verifyCallerOwnedSession(session); }
-    void applyLockedExtraProperties(final Session session) { connectionRequirements.applyLockedExtraProperties(session); }
     boolean hasLocks() { return !locks.isEmpty(); }
 
     /**
@@ -63,6 +64,10 @@ final class LockedSmtpConfiguration {
             return;
         }
         connectionRequirements.verifySession(session);
+        if (locks.contains(CUSTOM_SSLFACTORY_CLASS) && selected.suppliedSslFactoryInstance) {
+            throw locks.conflict(CUSTOM_SSLFACTORY_CLASS, "The selected SMTP registration supplies an SSL factory instance instead of using the locked class. "
+                    + "Use a compatible registration or separate these configurations into different pool clusters.");
+        }
         verifySelectedValue(SMTP_PASSWORD, selected.server == null ? null : selected.server.getPassword());
         if (locks.contains(SMTP_PASSWORD) && session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY)) {
             throw locks.conflict(SMTP_PASSWORD, "The selected SMTP Session uses a runtime access-token provider, which can replace this Mailer's locked credential. "

@@ -49,7 +49,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
+import java.io.PrintStream;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -149,35 +154,35 @@ public class MailerImpl implements Mailer {
 	@Nullable private CompletableFuture<Void> shutdownFuture;
 
 	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
-		this(fromSessionBuilder, fromSessionBuilder.buildSessionSettings(fromSessionBuilder.getSession()));
+		this(fromSessionBuilder, fromSessionBuilder.prepareConnectionPlan(fromSessionBuilder.getSession()));
 	}
 
-	private MailerImpl(final MailerFromSessionBuilderImpl fromSessionBuilder, final MailerSessionSettings sessionSettings) {
+	MailerImpl(final MailerFromSessionBuilderImpl fromSessionBuilder, final ValidatedConnectionPlan plan) {
 		this(null,
 				null,
 				fromSessionBuilder.buildEmailGovernance(),
-				verifyNonnull(sessionSettings.getProxyConfig()),
-				fromSessionBuilder.getSession(),
-				fromSessionBuilder.buildOperationalConfig(sessionSettings),
+				verifyNonnull(plan.settings().getProxyConfig()),
+				plan.targetSession(),
+				fromSessionBuilder.buildOperationalConfig(plan.settings()),
 				fromSessionBuilder.buildObserverNotifier(),
 				true, fromSessionBuilder.getFactorySendingLimits(), fromSessionBuilder.getDefinition(),
-				fromSessionBuilder.getResolvedFailoverMailer(), fromSessionBuilder.ownsFailoverMailer(), sessionSettings);
+				fromSessionBuilder.getResolvedFailoverMailer(), fromSessionBuilder.ownsFailoverMailer(), plan.settings(), plan);
 	}
 	
 	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
-		this(regularBuilder, regularBuilder.buildSessionSettings(null));
+		this(regularBuilder, regularBuilder.prepareConnectionPlan(null));
 	}
 
-	private MailerImpl(final MailerRegularBuilderImpl regularBuilder, final MailerSessionSettings sessionSettings) {
-		this(regularBuilder.buildServerConfig(sessionSettings),
-				sessionSettings.getTransportStrategy(),
+	MailerImpl(final MailerRegularBuilderImpl regularBuilder, final ValidatedConnectionPlan plan) {
+		this(plan.serverConfig(),
+				plan.settings().getTransportStrategy(),
 				regularBuilder.buildEmailGovernance(),
-				verifyNonnull(sessionSettings.getProxyConfig()),
+				verifyNonnull(plan.settings().getProxyConfig()),
 				null,
-				regularBuilder.buildOperationalConfig(sessionSettings),
+				regularBuilder.buildOperationalConfig(plan.settings()),
 				regularBuilder.buildObserverNotifier(),
 				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits(), regularBuilder.getDefinition(),
-				regularBuilder.getResolvedFailoverMailer(), regularBuilder.ownsFailoverMailer(), sessionSettings);
+				regularBuilder.getResolvedFailoverMailer(), regularBuilder.ownsFailoverMailer(), plan.settings(), plan);
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
@@ -196,14 +201,15 @@ public class MailerImpl implements Mailer {
 		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig,
 				new MailSendObserverNotifier(mailSendResultObserver, operationalConfig.isTransportModeLoggingOnly()), opportunisticTLS,
 				new FactorySendingLimits(), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false,
-				MailerSessionSettings.fromOperationalConfig(operationalConfig, transportStrategy));
+				MailerSessionSettings.fromOperationalConfig(operationalConfig, transportStrategy), null);
 	}
 
 	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
 			@NotNull MailSendObserverNotifier observerNotifier, final boolean opportunisticTLS,
 			@NotNull final FactorySendingLimits factorySendingLimits, final FactoryMailerRuntime.Definition definition,
-			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer, final MailerSessionSettings sessionSettings) {
+			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer, final MailerSessionSettings sessionSettings,
+			@Nullable final ValidatedConnectionPlan preparedPlan) {
 		this.definition = definition;
 		this.failoverMailer = failoverMailer;
 		this.ownsFailoverMailer = ownsFailoverMailer;
@@ -220,34 +226,86 @@ public class MailerImpl implements Mailer {
 		if (session == null) {
 			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
 		}
-		if (ownsSession && operationalConfig.getCustomMailer() == null) {
-			validateMandatoryStartTls(transportStrategy, operationalConfig.getProperties());
-			validateImplicitTlsOAuth2Protocol(transportStrategy, operationalConfig.getProperties());
-		}
+		final ValidatedConnectionPlan applicationPlan = preparedPlan == null
+				? ValidatedConnectionPlan.validateApplication(factoryConfig, serverConfig, proxyConfig, session, operationalConfig, sessionSettings, ownsSession)
+				: preparedPlan;
 		this.session = session;
 		this.operationalConfig = operationalConfig;
 		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
 				supportsBackgroundConnectionSetup());
 		final TransportStrategy effectiveTransportStrategy = sessionSettings.getTransportStrategy();
 		final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
-				operationalConfig, effectiveTransportStrategy);
-		lockedSmtpConfiguration.verifyAdditionalProperties(operationalConfig.getProperties());
-		if (!ownsSession) {
-			lockedSmtpConfiguration.verifyCallerOwnedSession(session);
-		}
-		LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(factoryConfig),
-				sessionSettings.finalProperties(session, operationalConfig.getProperties()), effectiveTransportStrategy);
+				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
 		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
+		final SessionConfigurationRollback callerRollback = ownsSession ? null
+				: new SessionConfigurationRollback(session, applicationPlan, proxyConfig);
 		boolean poolRegistrationBegun = false;
+		boolean configurationStarted = false;
 		try {
 			claimSessionOwnership();
-			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, sessionSettings);
+			configurationStarted = true;
+			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, applicationPlan);
 			poolRegistrationBegun = true;
 			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
 		} catch (RuntimeException | Error failure) {
 			rollbackConstruction(poolRegistrationBegun, failure);
+			if (configurationStarted && callerRollback != null && session.getProperties().get(SESSION_OWNER) != sessionOwner) {
+				callerRollback.restore(failure);
+			}
 			throw failure;
+		}
+	}
+
+	/** Restore only this construction's planned writes after its owned resources and claim have retired. */
+	private static final class SessionConfigurationRollback {
+		private final Session session;
+		private final Map<Object, Object> original = new LinkedHashMap<>();
+		private final Set<Object> absent = new LinkedHashSet<>();
+		private final boolean debug;
+		private final PrintStream debugOut;
+
+		private SessionConfigurationRollback(final Session session, final ValidatedConnectionPlan plan, final ProxyConfig proxy) {
+			this.session = session;
+			this.debug = session.getDebug();
+			this.debugOut = session.getDebugOut();
+			final Set<Object> keys = new LinkedHashSet<>(plan.additionalProperties().keySet());
+			keys.addAll(plan.settings().getConnectionOverrides().keySet());
+			if (proxy.requiresProxy()) {
+				final TransportStrategy strategy = plan.settings().getTransportStrategy() == null ? SMTP : plan.settings().getTransportStrategy();
+				keys.add(strategy.propertyNameSocksHost());
+				keys.add(strategy.propertyNameSocksPort());
+			}
+			for (Object key : keys) {
+				if (session.getProperties().containsKey(key)) {
+					original.put(key, session.getProperties().get(key));
+				} else {
+					absent.add(key);
+				}
+			}
+		}
+
+		private void restore(final Throwable failure) {
+			for (Map.Entry<Object, Object> entry : original.entrySet()) {
+				try {
+					session.getProperties().put(entry.getKey(), entry.getValue());
+				} catch (RuntimeException | Error restoreFailure) {
+					failure.addSuppressed(restoreFailure);
+				}
+			}
+			for (Object key : absent) {
+				try {
+					session.getProperties().remove(key);
+				} catch (RuntimeException | Error restoreFailure) {
+					failure.addSuppressed(restoreFailure);
+				}
+			}
+			try {
+				if (session.getDebugOut() != debugOut) { session.setDebugOut(debugOut); }
+				if (session.getDebug() != debug) { session.setDebug(debug); }
+			} catch (RuntimeException | Error restoreFailure) {
+				failure.addSuppressed(restoreFailure);
+			}
 		}
 	}
 
@@ -296,7 +354,8 @@ public class MailerImpl implements Mailer {
 	/** Configuration may allocate a proxy bridge, but does not start it or connect to SMTP. */
 	@Nullable
 	private AnonymousSocks5Server configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
-			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final MailerSessionSettings sessionSettings) {
+			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final ValidatedConnectionPlan plan) {
+		final MailerSessionSettings sessionSettings = plan.settings();
 		// Inferring SMTP property names must not replace a caller Session's existing authentication-selection behavior.
 		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : TransportStrategy.findStrategyForSession(session);
 		final Supplier<String> oauth2AccessTokenProvider = operationalConfig.getCustomMailer() == null ? OAuth2AccessTokenResolver.validateConfiguration(
@@ -304,7 +363,8 @@ public class MailerImpl implements Mailer {
 				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		) : null;
 		initSession(session, operationalConfig, sessionSettings);
-		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session, effectiveTransportStrategy);
+		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session,
+				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null);
 		try {
 			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
 			return configuredProxy;
@@ -322,7 +382,6 @@ public class MailerImpl implements Mailer {
 
 	private void finishSendingSessionConfiguration(final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession,
 			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
-		lockedSmtpConfiguration.applyLockedExtraProperties(session);
 		if (operationalConfig.getCustomMailer() == null) {
 			lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
 		}
@@ -491,6 +550,7 @@ public class MailerImpl implements Mailer {
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
 	 * @param transportStrategy Resolved protocol used for property names. Internal callers can omit it to use <em>"mail.smtp.socks.*"</em> names.
+	 * @param routePrepared Whether the application plan already installed the anonymous route without filling caller-Session gaps.
 	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
 	@Nullable
@@ -498,7 +558,7 @@ public class MailerImpl implements Mailer {
 			@NotNull final ProxyConfig proxyConfig,
 			@NotNull final OperationalConfig operationalConfig,
 			@NotNull final Session session,
-			@Nullable final TransportStrategy transportStrategy) {
+			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared) {
 		if (operationalConfig.getCustomMailer() != null) {
 			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
 		} else if (!proxyConfig.requiresProxy()) {
@@ -506,8 +566,10 @@ public class MailerImpl implements Mailer {
 		} else {
 			final TransportStrategy proxyPropertyStrategy = transportStrategy != null ? transportStrategy : TransportStrategy.SMTP;
 			final Properties sessionProperties = session.getProperties();
-			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
-			sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
+			if (!routePrepared) {
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
+			}
 			if (proxyConfig.requiresAuthentication()) {
 				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
