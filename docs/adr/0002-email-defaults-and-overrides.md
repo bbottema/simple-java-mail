@@ -223,3 +223,9 @@ The architecture and precedence are settled. Preserving property/template behavi
 ## Accepted plural notification destinations (20 October 2026)
 
 Notification destination lists are whole-value choices, not additive template contributions. Select the first nonempty eligible list from override, submitted and default, independently of the request flag. A deferred enabled request uses all resolved Reply-To recipients, falling back to From. To/Cc/Bcc and Reply-To remain additive; a plural representation does not change notification replacement semantics. Preserve the distinction between absent, explicitly disabled and enabled-but-deferred requests through copying and serialized snapshots.
+
+## Shared configuration resolution (accepted 25 October 2026)
+
+[ADR 0039](0039-explicit-configuration-resolution.md) introduces shared internal declaration and resolution mechanics, with Email subject selection as the first Email consumer. Subject precedence, suppression, template replacement, empty values and locks retain this record's contract. ConnectionConflictPolicy does not apply to Email governance. Other scalar fields, collections and compound policies retain their existing owners and are outside this initial migration.
+
+Design accepted; shared-foundation implementation is pending under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
