@@ -78,6 +78,10 @@ Current parse rules:
 - Since `#491`, a part with `Content-Disposition: attachment` and a Content-ID can be both a downloadable attachment and an embedded resource when HTML references that Content-ID.
 - Explicit/custom Content-ID values survive conversion into `AttachmentResource`; generated `sjm-...@simplejavamail.generated` values do not.
 
+Outlook MSG import follows the same filename/Content-ID separation. Prefer the attachment's non-empty long filename, then its regular filename,
+and use the CID as the name only when neither filename is available. Store the normalized CID separately so HTML references survive EML export.
+See [#869](https://github.com/bbottema/simple-java-mail/issues/869) and `EmailConverterTest.testGithub869_OutlookEmbeddedImageKeepsFilenameAndContentId`.
+
 Current anchors:
 
 - [MimeMessageParser.parseMimePartTree(...)](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/MimeMessageParser.java)

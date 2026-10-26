@@ -516,6 +516,24 @@ public class EmailConverterTest {
 	}
 
 	@Test
+	public void testGithub869_OutlookEmbeddedImageKeepsFilenameAndContentId() {
+		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+		final String contentId = "image001.png@01CDC1CA.B3005370";
+		final Email email = mail.converter().fromOutlookMsg(new File(RESOURCE_TEST_MESSAGES + "/#869 embedded image.msg")).toEmail();
+
+		assertThat(email.getEmbeddedImages()).singleElement().satisfies(image -> {
+			assertThat(image.getName()).isEqualTo("image001.png");
+			assertThat(image.getContentId()).isEqualTo(contentId);
+		});
+		assertThat(email.getHTMLText()).contains("cid:" + contentId);
+
+		final String eml = normalizeNewlines(mail.converter().fromEmail(email).toEml());
+		assertThat(eml).contains("Content-Type: image/png; name=image001.png");
+		assertThat(eml).contains("Content-Disposition: inline; filename=image001.png");
+		assertThat(eml).contains("Content-ID: <" + contentId + ">");
+	}
+
+	@Test
 	public void testGithub602_EmbeddedImageFilenameAndContentIdStaySeparateAfterParsing() {
 
 		final String contentId = "emf08a6e26-b330-4662-b8b1-5122ade7f2f2@2856f0a1.com";
