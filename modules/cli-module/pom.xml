@@ -14,6 +14,7 @@
     <artifactId>cli-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - CLI module</name>
+    <url>https://www.simplejavamail.org/cli.html</url>
     <description>Simple API, Complex Emails. Now with CLI support</description>
 
     <properties>

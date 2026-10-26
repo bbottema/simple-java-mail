@@ -14,6 +14,7 @@
     <artifactId>outlook-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Outlook module</name>
+    <url>https://www.simplejavamail.org/modules.html#outlook-module</url>
     <description>Simple API, Complex Emails. Now with Outlook support</description>
 
     <properties>

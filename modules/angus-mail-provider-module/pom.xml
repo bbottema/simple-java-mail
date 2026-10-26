@@ -14,6 +14,7 @@
     <artifactId>angus-mail-provider-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Angus Mail provider adapter</name>
+    <url>https://www.simplejavamail.org/modules.html#angus-mail-provider-module</url>
     <description>Angus-specific SMTP envelope, DSN, and submission response integration</description>
 
     <properties>

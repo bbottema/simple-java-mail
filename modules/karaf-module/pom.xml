@@ -14,6 +14,7 @@
 	<artifactId>karaf-module</artifactId>
 	<packaging>feature</packaging>
 	<name>Simple Java Mail - Karaf feature</name>
+	<url>https://www.simplejavamail.org/modules.html#karaf-module</url>
 	<description>Feature descriptor for Apache Karaf</description>
 
 	<build>

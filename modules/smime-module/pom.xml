@@ -14,6 +14,7 @@
     <artifactId>smime-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - S/MIME module</name>
+    <url>https://www.simplejavamail.org/modules.html#smime-module</url>
     <description>Simple API, Complex Emails. Now with S/MIME support</description>
 
     <properties>

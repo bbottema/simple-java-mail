@@ -14,6 +14,7 @@
     <artifactId>dkim-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - DKIM module</name>
+    <url>https://www.simplejavamail.org/modules.html#dkim-module</url>
     <description>Simple API, Complex Emails. Now with DKIM support</description>
 
     <properties>

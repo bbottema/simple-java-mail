@@ -14,6 +14,7 @@
     <artifactId>simple-java-mail</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail</name>
+    <url>https://www.simplejavamail.org/</url>
     <description>Simple API, Complex Emails. A light weight wrapper for the JavaMail SMTP API</description>
 
     <properties>

@@ -14,6 +14,7 @@
     <artifactId>authenticated-socks-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Authenticated SOCKS module</name>
+    <url>https://www.simplejavamail.org/modules.html#authenticated-socks-module</url>
     <description>Simple API, Complex Emails. Now with SOCKS5 support</description>
 
     <properties>

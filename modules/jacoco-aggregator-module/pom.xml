@@ -14,6 +14,7 @@
 	<artifactId>jacoco-aggregator-module</artifactId>
 	<packaging>pom</packaging>
 	<name>Simple Java Mail - JaCoCo aggregator module</name>
+	<url>https://github.com/bbottema/simple-java-mail/tree/master/modules/jacoco-aggregator-module</url>
 
 	<dependencies>
 		<dependency>
