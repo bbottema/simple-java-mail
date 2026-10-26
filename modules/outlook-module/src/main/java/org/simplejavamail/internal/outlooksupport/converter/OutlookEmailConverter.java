@@ -15,6 +15,7 @@ import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -128,8 +129,20 @@ public class OutlookEmailConverter implements OutlookModule {
 		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
 		
 		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
-			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(verifyNonnullOrEmpty(extractCID(cidName)), cid.getValue().getData(), cid.getValue().getMimeTag());
+			final String contentId = verifyNonnullOrEmpty(extractCID(checkNonEmptyArgument(cid.getKey(), "cid.key")));
+			final OutlookFileAttachment attachment = cid.getValue();
+			String attachmentName = attachment.getLongFilename();
+			if (valueNullOrEmpty(attachmentName)) {
+				attachmentName = attachment.getFilename();
+			}
+			if (valueNullOrEmpty(attachmentName)) {
+				attachmentName = contentId;
+			}
+			builder.withEmbeddedImage(AttachmentResource.builder()
+					.withName(attachmentName)
+					.withData(attachment.getData(), attachment.getMimeTag())
+					.withContentId(contentId)
+					.build());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
