@@ -13,6 +13,7 @@
     <artifactId>openpgp-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - OpenPGP/MIME module</name>
+    <url>https://www.simplejavamail.org/modules.html#openpgp-module</url>
     <description>RFC 3156 OpenPGP/MIME signing, encryption, verification, and decryption</description>
 
     <properties>

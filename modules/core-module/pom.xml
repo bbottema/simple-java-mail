@@ -14,6 +14,7 @@
     <artifactId>core-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Core module</name>
+    <url>https://www.simplejavamail.org/modules.html#core-module</url>
     <description>Simple API, Complex Emails. Core module support</description>
 
     <properties>

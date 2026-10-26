@@ -14,6 +14,7 @@
     <artifactId>spring-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Spring module</name>
+    <url>https://www.simplejavamail.org/modules.html#spring-module</url>
     <description>Simple API, Complex Emails. Now with Spring support</description>
 
     <properties>

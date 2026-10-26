@@ -14,6 +14,7 @@
     <artifactId>simple-java-mail-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Spring Boot starter</name>
+    <url>https://www.simplejavamail.org/spring.html</url>
     <description>Spring Boot auto-configuration starter for Simple Java Mail</description>
 
     <properties>

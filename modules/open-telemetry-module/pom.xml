@@ -10,6 +10,7 @@
     </parent>
     <artifactId>open-telemetry-module</artifactId>
     <name>Simple Java Mail - OpenTelemetry module</name>
+    <url>https://www.simplejavamail.org/opentelemetry.html</url>
     <description>Explicit, application-owned OpenTelemetry traces and metrics for mail sends</description>
     <properties>
         <automaticModuleName>org.simplejavamail.otel</automaticModuleName>
