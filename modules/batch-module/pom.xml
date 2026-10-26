@@ -14,6 +14,7 @@
     <artifactId>batch-module</artifactId>
     <packaging>jar</packaging>
     <name>Simple Java Mail - Batch module</name>
+    <url>https://www.simplejavamail.org/modules.html#batch-module</url>
     <description>Simple API, Complex Emails. High performance.</description>
 
     <properties>
