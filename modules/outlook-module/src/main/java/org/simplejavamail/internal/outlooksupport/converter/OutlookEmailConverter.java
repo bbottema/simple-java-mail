@@ -109,8 +109,16 @@ public class OutlookEmailConverter implements OutlookModule {
 		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
 		
 		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
-			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
-			builder.withEmbeddedImage(verifyNonnullOrEmpty(extractCID(cidName)), cid.getValue().getData(), cid.getValue().getMimeTag());
+			final String contentId = verifyNonnullOrEmpty(extractCID(checkNonEmptyArgument(cid.getKey(), "cid.key")));
+			final OutlookFileAttachment attachment = cid.getValue();
+			String attachmentName = attachment.getLongFilename();
+			if (valueNullOrEmpty(attachmentName)) {
+				attachmentName = attachment.getFilename();
+			}
+			if (valueNullOrEmpty(attachmentName)) {
+				attachmentName = contentId;
+			}
+			builder.withEmbeddedImage(attachmentName, new ByteArrayDataSource(attachment.getData(), attachment.getMimeTag()), contentId);
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
