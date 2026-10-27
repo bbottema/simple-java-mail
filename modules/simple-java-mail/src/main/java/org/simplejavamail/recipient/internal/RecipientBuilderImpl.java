@@ -82,21 +82,21 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     @NotNull
     public Recipient to(@Nullable final String name, @NotNull final String address) {
-        return withName(name).withAddress(address).withType(RecipientType.TO).build();
+        return withAddress(address).withName(name).withType(RecipientType.TO).build();
     }
 
     /** @see IRecipientBuilder#cc(String, String) */
     @Override
     @NotNull
     public Recipient cc(@Nullable final String name, @NotNull final String address) {
-        return withName(name).withAddress(address).withType(RecipientType.CC).build();
+        return withAddress(address).withName(name).withType(RecipientType.CC).build();
     }
 
     /** @see IRecipientBuilder#bcc(String, String) */
     @Override
     @NotNull
     public Recipient bcc(@Nullable final String name, @NotNull final String address) {
-        return withName(name).withAddress(address).withType(RecipientType.BCC).build();
+        return withAddress(address).withName(name).withType(RecipientType.BCC).build();
     }
 
     /**
@@ -134,13 +134,11 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddress(@NotNull String address) {
-        this.address = checkNonEmptyArgument(address, "address");
-        this.addressName = null;
-        final InternetAddress mailbox = MailboxInterpretation.singleMailbox(address);
-        if (mailbox != null) {
-            this.address = mailbox.getAddress();
-            this.addressName = mailbox.getPersonal();
-        }
+        final InternetAddress mailbox = MailboxInterpretation.singleMailbox(checkNonEmptyArgument(address, "address"));
+        final String interpretedAddress = mailbox == null ? address : mailbox.getAddress();
+        final String interpretedName = mailbox == null ? null : mailbox.getPersonal();
+        this.address = interpretedAddress;
+        this.addressName = interpretedName;
         return this;
     }
 
@@ -169,9 +167,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName) {
-        this.addressName = null;
-        return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
-                .withName(RecipientConfigurationResolver.select("recipient.name", null, address.getPersonal(), defaultName));
+        return interpretAddressData(defaultName, false, checkNonEmptyArgument(address, "address"));
     }
 
     /**
@@ -187,9 +183,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
      */
     @Override
     public IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName) {
-        this.addressName = null;
-        return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
-                .withName(RecipientConfigurationResolver.select("recipient.name", fixedName, address.getPersonal(), null));
+        return interpretAddressData(fixedName, true, checkNonEmptyArgument(address, "address"));
     }
 
     /**
@@ -219,12 +213,23 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     private IRecipientBuilder interpretAddressData(@Nullable final String name, boolean fixedName, @NotNull final String emailAddress) {
         final InternetAddress parsedAddress = MailboxInterpretation.singleMailbox(emailAddress);
         if (parsedAddress == null) {
-            return withName(name)
-                    .withAddress(emailAddress);
+            return withAddress(emailAddress).withName(name);
         }
-        return withName(RecipientConfigurationResolver.select("recipient.name", fixedName ? name : null,
-                parsedAddress.getPersonal(), fixedName ? null : name))
-                .withAddress(parsedAddress.getAddress());
+        final String interpretedName = RecipientConfigurationResolver.select("recipient.name", fixedName ? name : null,
+                parsedAddress.getPersonal(), fixedName ? null : name);
+        return withAddress(parsedAddress.getAddress()).withName(interpretedName);
+    }
+
+    /** Prepares both typed source fields before replacing either the explicit or inferred identity. */
+    @NotNull
+    private IRecipientBuilder interpretAddressData(@Nullable final String name, boolean fixedName, @NotNull final InternetAddress emailAddress) {
+        final String interpretedAddress = checkNonEmptyArgument(emailAddress.getAddress(), "address");
+        final String interpretedName = RecipientConfigurationResolver.select("recipient.name", fixedName ? name : null,
+                emailAddress.getPersonal(), fixedName ? null : name);
+        this.address = interpretedAddress;
+        this.addressName = null;
+        this.name = interpretedName;
+        return this;
     }
 
     /**

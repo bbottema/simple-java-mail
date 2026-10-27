@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#873](https://github.com/bbottema/simple-java-mail/issues/873): rejected recipient shortcuts and address/name helpers retain the earlier complete
+  identity and metadata, rather than leaving a replacement name on the previous address or discarding an inferred name.
+
 - [#872](https://github.com/bbottema/simple-java-mail/issues/872): reject incomplete PKCS12 configurations at construction, preserving explicit empty
   passwords and passive builder inspection. Required null arguments leave earlier choices intact; actual key-store validation remains at S/MIME use.
 

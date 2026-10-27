@@ -12,6 +12,8 @@ import java.util.Set;
 /**
  * Produces immutable recipient object, with a name, emailaddress and recipient type (eg {@link Message.RecipientType#BCC}), and optionally an S/MIME
  * certificate for encrypting messages on a per-user basis and recipient-specific DSN notification preferences.
+ * A rejected operation retains this builder's earlier choices. This applies to one method invocation; an earlier successfully accepted setter
+ * remains applied when a separate later setter is rejected.
  */
 public interface IRecipientBuilder {
 
@@ -42,10 +44,12 @@ public interface IRecipientBuilder {
      * This is a shortcut for setting the name, address and type on this builder and calling {@link #build()}. Any S/MIME certificate or delivery
      * notification preference already configured on the builder is retained. A null name removes a previously configured explicit name and allows an
      * embedded display name. Comma- or semicolon-separated address lists are not split. Use {@link IRecipientsBuilder} for multiple addresses.
+     * Required address input is interpreted before changing the identity, so a rejected replacement retains the earlier choices.
      *
      * @param name Optional explicit display name.
      * @param address One email address, interpreted leniently as with {@link #withAddress(String)}.
      * @return The completed TO recipient.
+     * @throws IllegalArgumentException If the address is null or empty; the earlier recipient choices remain intact.
      * @see #cc(String, String)
      * @see #bcc(String, String)
      */
@@ -120,6 +124,7 @@ public interface IRecipientBuilder {
     /**
      * Sets the typed address and its embedded name, using the default when no embedded name exists. Retains other recipient options.
      * Groups and multiple-mailbox sources remain intact as one value.
+     * Rejected address input retains the earlier explicit and inferred names as well as the address.
      */
     IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName);
 
@@ -132,6 +137,7 @@ public interface IRecipientBuilder {
     /**
      * Sets the typed address, using the non-null fixed name or otherwise the embedded name. Retains other recipient options.
      * Groups and multiple-mailbox sources remain intact as one value.
+     * Rejected address input retains the earlier explicit and inferred names as well as the address.
      */
     IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName);
 

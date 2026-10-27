@@ -33,6 +33,17 @@ duration or cross-field validation out of the existing construction boundary. Th
 and [ADR 0030](0030-safe-bounded-mail-send-retries.md) with the same required-input contract. [#859](https://github.com/bbottema/simple-java-mail/issues/859)
 tracks this correction for unreleased 10.0.0.
 
+### Rejected recipient identity replacements (accepted 27 October 2026)
+
+One recipient operation prepares and validates its replacement address/name before changing stored choices. A rejected To/Cc/Bcc shortcut or
+address/name helper preserves the earlier explicit and inferred names, address, role, certificate and notification preferences. This includes
+typed sources whose required address is absent. Previously built recipients remain unchanged, and incomplete builders remain inspectable.
+
+Successful replacement retains the existing single-recipient leniency, explicit/default/fixed-name selection and address-only behavior.
+This is a per-invocation boundary: a separately accepted setter is not rolled back when a later setter fails. It adds no general transaction,
+new public API or stricter address policy. This follows the paired-backoff principle above and is accepted under
+[#873](https://github.com/bbottema/simple-java-mail/issues/873) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ### Required material inside S/MIME configuration builders (accepted 22 October 2026)
 
 The same required-input rule applies to `SmimeSigningConfigBuilder.pkcs12Config(Pkcs12Config)` and
