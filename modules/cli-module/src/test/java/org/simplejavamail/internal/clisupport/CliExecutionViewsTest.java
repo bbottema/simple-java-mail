@@ -3,6 +3,8 @@ package org.simplejavamail.internal.clisupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.stubbing.Answer;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -17,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +44,40 @@ class CliExecutionViewsTest {
 				assertThat(result.exitCode()).isEqualTo(CliExitCode.CLI_ERROR.code());
 				assertThat(result.stdout()).isEmpty();
 				assertThat(result.stderr()).contains("--mailer:async was removed in 10.0.0.", "send and connect already wait for completion");
+			}
+			verifyNoInteractions(provider);
+		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("helpBeforeRemovedOptions")
+	void genuineHelpIgnoresLaterRemovedOptionsWithoutAcquiringAMailer(final String help, final String removedOption) {
+		final MailerProvider provider = mock(MailerProvider.class);
+		try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), provider)) {
+			final CliExecutionResult result = execute(environment, "send", "--email:withPlainTextFromFile", "missing.txt", help, removedOption);
+			assertThat(result.exitCode()).as(result.stderr()).isZero();
+			assertThat(result.stdout()).contains("Usage", "--email:withSubject");
+			assertThat(result.stderr()).isEmpty();
+			verifyNoInteractions(provider);
+		}
+	}
+
+	private static Stream<Arguments> helpBeforeRemovedOptions() {
+		return Stream.of("--help", "-h", "--email:withSubject--help").flatMap(help ->
+				Stream.of("--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help")
+						.map(removed -> Arguments.of(help, removed)));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help"})
+	void removedOptionsBeforeHelpKeepTheirMigrationDiagnostic(final String removedOption) {
+		final MailerProvider provider = mock(MailerProvider.class);
+		try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), provider)) {
+			for (String help : new String[]{"--help", "-h", "--email:withSubject--help"}) {
+				final CliExecutionResult result = execute(environment, "send", removedOption, help);
+				assertThat(result.exitCode()).isEqualTo(CliExitCode.CLI_ERROR.code());
+				assertThat(result.stdout()).isEmpty();
+				assertThat(result.stderr()).contains("--mailer:async was removed in 10.0.0.");
 			}
 			verifyNoInteractions(provider);
 		}

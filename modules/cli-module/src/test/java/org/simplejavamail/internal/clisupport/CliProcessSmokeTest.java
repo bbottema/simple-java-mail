@@ -2,6 +2,8 @@ package org.simplejavamail.internal.clisupport;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +54,28 @@ public class CliProcessSmokeTest {
 			assertThat(process.exitValue()).as(output).isEqualTo(CliExitCode.CLI_ERROR.code());
 			assertThat(output).contains("--mailer:async was removed in 10.0.0.", "send and connect already wait for completion")
 					.doesNotContain("Connection refused");
+		} finally {
+			if (process.isAlive()) {
+				process.destroyForcibly();
+			}
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"--help", "-h", "--email:withSubject--help"})
+	void helpInAnArgumentFileIgnoresLaterRemovedOptionsAndStaysLocal(final String help) throws Exception {
+		final Path arguments = temporaryDirectory.resolve("help-before-removed.args");
+		final Path outputFile = temporaryDirectory.resolve("help-before-removed.log");
+		Files.writeString(arguments, "send\n--daemon=require\n--daemon-instance=help-does-not-connect\n"
+				+ help + "\n--mailer:async\n");
+		final Process process = new ProcessBuilder(cliCommand("@" + arguments))
+				.redirectErrorStream(true).redirectOutput(outputFile.toFile()).start();
+		try {
+			assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
+			final String output = Files.readString(outputFile);
+			assertThat(process.exitValue()).as(output).isEqualTo(CliExitCode.SUCCESS.code());
+			assertThat(output).contains("Usage", "--email:withSubject")
+					.doesNotContain("--mailer:async was removed", "No daemon", "Connection refused");
 		} finally {
 			if (process.isAlive()) {
 				process.destroyForcibly();

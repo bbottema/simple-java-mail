@@ -26,6 +26,15 @@ mode. Ordinary routed commands and lifecycle operations keep the thin bootstrap.
 needs generated-model recognition before routing; this trades a rare client-side metadata load for consistent option
 meaning, without invoking message builders or reading content.
 
+### Removed execution options follow help ordering (accepted 27 October 2026)
+
+Apply the existing registered-help cutoff before checking removed execution-mode options. A removed option after standard or option-specific
+help is among the later arguments that help deliberately ignores; the same option before help or by itself retains its migration error.
+This follows the selected command model's existing help recognition, including literal values and end-of-options behavior. Keep argument-file
+expansion and local/daemon routing under their existing boundaries, and do not execute builders, read message content or acquire a Mailer for help.
+No public option, additional parser or metadata format is introduced. [#874](https://github.com/bbottema/simple-java-mail/issues/874) tracks
+this correction for unreleased 10.0.0.
+
 ### Preserve each supplied builder call (accepted 22 October 2026)
 
 Repeated CLI builder options represent separate invocations in command-line order. Keep each occurrence's arguments together, including omitted

@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#874](https://github.com/bbottema/simple-java-mail/issues/874): genuine CLI help ignores removed execution-mode options supplied afterward.
+  Earlier or standalone removed options retain their migration error, without executing a mail command for help.
+
 - [#873](https://github.com/bbottema/simple-java-mail/issues/873): rejected recipient shortcuts and address/name helpers retain the earlier complete
   identity and metadata, rather than leaving a replacement name on the previous address or discarding an inferred name.
 
