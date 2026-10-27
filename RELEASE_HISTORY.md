@@ -158,10 +158,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   transfer encoding through eager/lazy extraction, copying, serialization and subsequent export. Content remains decoded; resource classification,
   filenames, Content-IDs and exact/protected source bytes retain their existing behavior.
 
-
 - [#856](https://github.com/bbottema/simple-java-mail/issues/856): MIME/EML import accepts valid comments in body and resource transfer-encoding
   headers, such as `base64 (encoded for transport)`, without treating the comment as part of the encoding name. Conflicting declarations,
   unsupported encodings, required content-read failures and exact/protected source bytes retain their existing boundaries.
+
 - [#854](https://github.com/bbottema/simple-java-mail/issues/854): S/MIME signature status stays `UNKNOWN` while ciphertext is unopened,
   alongside `KEY_MISSING` or `FAILED` decryption. Later signature-processing errors retain successful `DECRYPTED` results and readable content.
 
