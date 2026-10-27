@@ -199,6 +199,19 @@ or transport-safety requirements. Retain existing resource/size bounds; reading 
 | Catch every exception and return an Email | Maximizes apparent availability | Conceals programming failures, unreadable content and incomplete attachments. |
 | Retain only raw bytes and leave interpretation to applications | Avoids recovery policy | Gives up the library's useful mail-domain knowledge and convenient Email read model. |
 
+## Imported sent-date interpretation (accepted 27 October 2026)
+
+MIME/EML source Date headers must establish a usable timestamp before populating the Email sent-date field. Leave impossible calendar values
+and missing or unrecognized timezone information unavailable, while continuing to import readable neighboring content. Preserve Jakarta Mail's
+unambiguous legacy syntax, including obsolete year/zone forms; changing its entire grammar to strict mode would reject useful source facts.
+Calendar rollover and a fallback that silently treats an unknown timezone as UTC are not safe recovery. Trailing RFC comments remain source
+formatting, while competing suffix text does not establish a date.
+
+Keep the existing first-Date selection and ordinary filtered-header contract. This adds no raw-header or warning API. Exact inspection may expose
+an absent interpreted date while retaining every authoritative source byte under ADR 0013. Ordinary reconstructed MIME keeps its existing current-date
+generation when the Email has no fixed date. Outlook's separately typed source-date selection is outside this correction. [#870](https://github.com/bbottema/simple-java-mail/issues/870)
+tracks implementation and delivery for unreleased 10.0.0.
+
 ## Consequences
 
 Import remains useful for imperfect real-world sources. Applications can distinguish recovered facts from unavailable information through the existing

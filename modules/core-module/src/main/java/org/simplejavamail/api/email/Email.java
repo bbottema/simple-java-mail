@@ -977,6 +977,10 @@ public class Email implements Serializable {
 	}
 
 	/**
+	 * Returns the fixed or interpreted source sent date, or {@code null} when no trustworthy date is available.
+	 * MIME/EML import leaves impossible calendar dates and missing or unrecognized timezones unavailable while retaining readable content.
+	 * Ordinary composed rendering supplies its current date when none was fixed; exact EML retains its original bytes.
+	 *
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
 	 */
 	@Nullable
@@ -985,8 +989,9 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * Returns the caller-controlled sent date as an {@link Instant}, or {@code null} when no date was fixed.
+	 * Returns the fixed or interpreted source sent date as an {@link Instant}, or {@code null} when no trustworthy date is available.
 	 *
+	 * @see #getSentDate()
 	 * @see EmailPopulatingBuilder#fixingSentDate(Instant)
 	 */
 	@Nullable
