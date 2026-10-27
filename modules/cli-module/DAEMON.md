@@ -25,6 +25,10 @@ Only actual help options request help. A value such as `--email:withSubject "How
 keeps following options and honors the selected mode, including `--daemon=require`. Generated option help such as
 `--email:withSubject--help` stays local and sends nothing; later arguments are ignored.
 
+In unreleased 10.0.0, retired option spellings also remain usable as message values: `--email:withSubject "--mailer:async=false"`
+uses that text as the subject. An actual unmatched `--mailer:async` option retains its migration error. Picocli determines which arguments
+are values; no extra escaping is needed. This applies to one-shot and daemon commands.
+
 The equivalent startup defaults are the JVM property `simplejavamail.cli.daemon` or environment variable `SIMPLEJAVAMAIL_CLI_DAEMON`, plus `simplejavamail.cli.daemon.instance` or `SIMPLEJAVAMAIL_CLI_DAEMON_INSTANCE`. An explicit command-line selector wins.
 
 The unnamed instance is `default`. A name selects a separate process, state, startup configuration, and lifecycle:
@@ -65,6 +69,9 @@ Classpath `simplejavamail.properties`, environment variables, and JVM system pro
 Relative request files resolve from the client command's working directory, not the directory in which the daemon was started. This includes argument files, bodies, attachments, EML/MSG input, and certificates. The daemon can read only files granted to its operating-system user; the protocol does not upload file contents to bypass operating-system permissions.
 
 Argument files are strict UTF-8, bounded, may be nested four levels, and support comments plus single or double quoting. Relative nested argument files also resolve from the client working directory. Prefix a literal value beginning with `@` with another at sign, such as `@@recipient`, to pass `@recipient`. The existing `picocli.useSimplifiedAtFiles=true` mode still treats each non-comment line as one argument.
+
+In unreleased 10.0.0, expansion happens once before routing. Escaped values remain literal even when a matching file exists. A missing or
+unreadable argument file also remains literal; a file in the daemon's working directory cannot replace it during execution.
 
 A fixed OAuth2 access token supplied through existing configuration is fixed for that daemon generation. A request-supplied changed token creates a different Mailer entry. The CLI does not execute a token-provider command.
 
