@@ -3,7 +3,7 @@
 - Status: Accepted, 2026-10-24
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
-- Implementation status: Implemented for unreleased 10.0.0, including shared-resolution adoption under ADR 0039 in #867; publication pending.
+- Implementation status: Implemented for unreleased 10.0.0, including shared-resolution adoption under ADR 0039 in #867.
 
 ## Context
 
@@ -95,7 +95,7 @@ Implementation must retain declaration origin and explicit removals independentl
 
 [ADR 0039](0039-explicit-configuration-resolution.md) provides the shared internal foundation for this policy. Capture final declarations and property views once, resolve complete logical choices, validate conflicts and requirements, then apply an immutable validated plan under Session ownership. String-valued properties retain getProperty visibility separately from direct entries; empty text is present and opaque resources compare by identity. Supported decimal/hexadecimal numeric and Boolean forms have one interpretation across comparison, locks, inspection and application.
 
-Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867).
 
 TLS flags and host exceptions resolve together while retaining ownership-specific inheritance. Trusted-host lists containing the same exact names are equivalent regardless of order or duplicates; the selected ordering remains visible to inspection. Host spelling remains case-sensitive and exact wildcard syntax remains distinct. A request to disable wildcard trust cannot leave an inherited wildcard active, and compatible bounded trust locks must not become apparent removals.
 
