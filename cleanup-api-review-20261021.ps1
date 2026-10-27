@@ -300,3 +300,42 @@ $deferredCliReviewFiles = @(
     'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\875-cli-literal-values-build.log'
     'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\876-cli-argument-files-build.log'
 )
+
+foreach ($targetPath in $deferredCliReviewDirectories) {
+    if (-not (Test-Path -LiteralPath $targetPath)) { continue }
+    $target = Get-Item -LiteralPath $targetPath -Force
+    if (-not $target.PSIsContainer -or -not $target.FullName.Equals([IO.Path]::GetFullPath($targetPath), $pathComparison) -or
+        (($target.Attributes -band $reparseAttribute) -ne 0)) {
+        throw "Expected an exact ordinary CLI review directory: $targetPath"
+    }
+    foreach ($worktreePath in $registeredWorktrees) {
+        if ($worktreePath.Equals($target.FullName, $pathComparison) -or
+            $worktreePath.StartsWith($target.FullName + [IO.Path]::DirectorySeparatorChar, $pathComparison)) {
+            throw "CLI review directory contains a registered worktree: $worktreePath"
+        }
+    }
+    $pending = [Collections.Generic.Queue[string]]::new()
+    $pending.Enqueue($target.FullName)
+    while ($pending.Count -gt 0) {
+        foreach ($entry in @(Get-ChildItem -LiteralPath $pending.Dequeue() -Force)) {
+            if ($entry.Name -ieq '.git' -or (($entry.Attributes -band $reparseAttribute) -ne 0)) {
+                throw "CLI review directory contains Git metadata or a reparse point: $($entry.FullName)"
+            }
+            if ($entry.PSIsContainer) { $pending.Enqueue($entry.FullName) }
+        }
+    }
+    if ($PSCmdlet.ShouldProcess($target.FullName, 'Remove CLI review scratch directory recursively')) {
+        Remove-Item -LiteralPath $target.FullName -Recurse -Force
+    }
+}
+foreach ($targetPath in $deferredCliReviewFiles) {
+    if (-not (Test-Path -LiteralPath $targetPath)) { continue }
+    $target = Get-Item -LiteralPath $targetPath -Force
+    if ($target.PSIsContainer -or -not $target.FullName.Equals([IO.Path]::GetFullPath($targetPath), $pathComparison) -or
+        (($target.Attributes -band $reparseAttribute) -ne 0)) {
+        throw "Expected an exact ordinary CLI review file: $targetPath"
+    }
+    if ($PSCmdlet.ShouldProcess($target.FullName, 'Remove CLI review temporary file')) {
+        Remove-Item -LiteralPath $target.FullName -Force
+    }
+}
