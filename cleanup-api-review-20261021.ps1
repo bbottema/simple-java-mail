@@ -286,3 +286,17 @@ foreach ($stagedTarget in $stagedScratchTargets) {
         Write-Host "Removed staged scratch entries: $($stagedTarget.Path)"
     }
 }
+
+# Deferred disposable paths for CLI review issues #875 and #876.
+# Remove only these exact round-owned paths after cleanup is permitted; preserve their parents.
+$deferredCliReviewDirectories = @(
+    'C:\workstation\simple-java-mail\tmp\api-review-20261027-cli'
+    'C:\workstation\simple-java-mail\.local\cli-review-delivery-20261027'
+    'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\875-cli-literal-values'
+    'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\876-cli-argument-files'
+    'C:\Users\Benny Bottema\AppData\Local\Temp\sjm-website-cli-delivery-52f0a2219bc946bb84572951c47f98cc'
+)
+$deferredCliReviewFiles = @(
+    'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\875-cli-literal-values-build.log'
+    'C:\workstation\simple-java-mail\simplejavamail.org\.local\validation\876-cli-argument-files-build.log'
+)
