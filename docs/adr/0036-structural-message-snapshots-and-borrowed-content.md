@@ -141,6 +141,17 @@ it does not introduce resource deduplication or change the separate template-com
 The decision was accepted under [#858](https://github.com/bbottema/simple-java-mail/issues/858) for unreleased 10.0.0. The correction is
 implemented; the issue tracks delivery. Public methods remain unchanged.
 
+### Quoted automatic-image sources (accepted 27 October 2026)
+
+An automatically resolved image source ends at the same quote that opened its HTML `src` attribute. The other quote is part of the
+location: `src="it's.png"` selects `it's.png`, not a prefix file called `it`. Preserve both supported delimiter forms and the existing
+named matcher groups, so the rewritten HTML retains its original delimiters around the complete generated Content-ID reference.
+
+This correction keeps source-resolution order, opt-in settings, configured-base containment, required/optional resolution, repeated-source
+handling and the failed-pass boundary above. It does not introduce general HTML parsing, entity decoding or a new malformed-HTML recovery
+policy. The decision is accepted under [#871](https://github.com/bbottema/simple-java-mail/issues/871) for unreleased 10.0.0; implementation
+and delivery are tracked by the issue.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

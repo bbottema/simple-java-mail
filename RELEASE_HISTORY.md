@@ -141,6 +141,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   case conversion, preserving image types under Turkish JVM locales without changing resource paths, bytes or supplied content types.
 - [#858](https://github.com/bbottema/simple-java-mail/issues/858): failed required automatic-image resolution retains the builder's previous
   HTML and embedded images. Correcting the draft or supplying the missing source and building again no longer retains unused generated images.
+- [#871](https://github.com/bbottema/simple-java-mail/issues/871): automatic image resolution matches opening and closing attribute quotes.
+  Filenames such as `it's.png` inside double quotes resolve as a complete location instead of selecting a prefix or leaving a broken Content-ID.
 
 - [#855](https://github.com/bbottema/simple-java-mail/issues/855): DKIM signing delegates to `utils-mail-dkim` 3.4.0, correcting Ed25519-SHA256 signatures while retaining `signWithDomainKey(DkimConfig)`, relaxed/relaxed defaults and the Angus-free MIME boundary. The shared engine signs the final protected bytes after S/MIME or OpenPGP.
 - [#857](https://github.com/bbottema/simple-java-mail/issues/857): imported referenced inline images retain their description and recognized
