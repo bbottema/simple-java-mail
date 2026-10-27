@@ -8,6 +8,16 @@
 
 ## Context and decision drivers
 
+The accepted 26 October 2026 extension of [ADR 0039](0039-explicit-configuration-resolution.md) captures Mailer lock facts as detached data,
+then validates them across the complete owned failover graph before construction. Constraint validation and construction do not reread a
+builder. Actual Session ownership, selected-pool requirements and established allowance registration remain runtime checks with rollback;
+the plan does not freeze borrowed resources or disable mandatory requirements.
+
+Inherited socket-factory class names remain subject to the custom-factory restriction under TLS locks, for both SSL and plain factory slots.
+Caller and live Session checks use the same property-specific observation as declaration capture: inherited TEXT values remain visible behind
+opaque direct entries, while direct numeric, Boolean and resource values retain their provider meaning. This observation rule does not turn
+the ignored defaults of an explicit additional-property overlay into new declarations.
+
 An application can receive centrally supplied mail configuration and still need to customize individual messages. Most settings should remain ordinary defaults: choose a different subject, add recipients, or use another timeout. A few settings may need to stay fixed within that configuration, such as the company relay, mandatory connection TLS, or an archive BCC recipient.
 
 The existing defaults and overrides do not promise that restriction. Builder calls can replace ordinary configuration, Email suppression controls can skip templates, and exact messages deliberately bypass ordinary Email governance. Supplying more of those ordinary overrides through properties would make them easier to distribute, but would not make them non-removable.
@@ -278,3 +288,7 @@ ADR 0038 adds a default-strict connection conflict policy independently of value
 [ADR 0039](0039-explicit-configuration-resolution.md) retains feature-owned constraint semantics while sharing declaration mechanics. Adopted connection paths compare supported typed and raw representations consistently before applying a validated plan; locks cannot silently mask a contradictory customization. Reusable requirements still check provider initialization and selected pool members. Raw physical proxy requirements remain distinct from logical remote proxy locks. Subject resolution retains the existing Email lock owner.
 
 Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+All layered Email/Mailer adapters adopted by ADR 0039 preserve the mandatory restriction owner. Shared selection does not weaken a lock, change its validation boundary, or apply ConnectionConflictPolicy outside connection configuration. Domain-specific lock comparison remains with the feature that understands the value. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

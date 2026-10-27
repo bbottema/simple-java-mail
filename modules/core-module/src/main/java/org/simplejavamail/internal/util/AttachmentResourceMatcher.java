@@ -1,16 +1,18 @@
 package org.simplejavamail.internal.util;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.simplejavamail.api.email.AttachmentResource;
 
 import java.util.Objects;
 
 /** Conservative template matching; deliberately independent of public resource equality. */
-final class AttachmentResourceMatcher {
+@ApiStatus.Internal
+public final class AttachmentResourceMatcher {
 
     private AttachmentResourceMatcher() {
     }
 
-    static boolean sameResource(final AttachmentResource first, final AttachmentResource second) {
+    public static boolean sameResource(final AttachmentResource first, final AttachmentResource second) {
         return first == second || sameMetadata(first, second)
                 && AttachmentDataSources.sameSource(first.getDataSource(), second.getDataSource());
     }

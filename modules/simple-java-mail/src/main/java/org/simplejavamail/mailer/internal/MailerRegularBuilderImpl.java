@@ -1,8 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.config.ConfigKeys;
-
-import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
+import org.simplejavamail.config.ConfigLoader.Property;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -98,15 +97,15 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	MailerRegularBuilderImpl(final FactoryMailerRuntime.Definition definition, final FactoryMailerRuntime runtime) {
 		super(definition, runtime);
 		final SimpleJavaMailConfig config = definition.config;
-		this.opportunisticTLS = config.valueOrProperty(null, ConfigKeys.OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
-		this.host = config.get(ConfigKeys.SMTP_HOST);
-		this.port = config.get(ConfigKeys.SMTP_PORT);
-		this.username = config.get(ConfigKeys.SMTP_USERNAME);
-		this.password = config.get(ConfigKeys.SMTP_PASSWORD);
+		this.opportunisticTLS = MailerConfigurationResolver.resolve(config, ConfigKeys.OPPORTUNISTIC_TLS, null, DEFAULT_OPPORTUNISTIC_TLS);
+		this.host = MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_HOST, null);
+		this.port = MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_PORT, null);
+		this.username = MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_USERNAME, null);
+		this.password = MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_PASSWORD, null);
 		this.transportStrategy = config.hasProperty(ConfigKeys.TRANSPORT_STRATEGY)
-				? verifyNonnullOrEmpty(config.get(ConfigKeys.TRANSPORT_STRATEGY))
+				? verifyNonnullOrEmpty(MailerConfigurationResolver.configured(config, ConfigKeys.TRANSPORT_STRATEGY, null))
 				: TransportStrategy.SMTP;
-		this.customSSLFactory = config.get(ConfigKeys.CUSTOM_SSLFACTORY_CLASS);
+		this.customSSLFactory = MailerConfigurationResolver.configured(config, ConfigKeys.CUSTOM_SSLFACTORY_CLASS, null);
 	}
 
 	/**
@@ -278,33 +277,27 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 	}
 
 	@Override
-	MailerImpl constructMailer(final ValidatedConnectionPlan plan) {
-		warnAboutIgnoredSmtpSettings();
-		return new MailerImpl(this, plan);
-	}
-
-	private void warnAboutIgnoredSmtpSettings() {
-		if (getCustomMailer() != null && host != null) {
+	MailerImpl constructMailer(final ValidatedMailerPlan plan) {
+		if (plan.getConfiguration().getInputs().isIgnoredSmtpSettings()) {
 			log.warn("Both custom mailer and SMTP server configured, ignoring server configuration");
 		}
+		return MailerImpl.construct(plan);
 	}
 
 	@Override
-	void validateLockedConfiguration() {
-		super.validateLockedConfiguration();
-		locksOf(configuration()).verify(SMTP_HOST, host);
-		locksOf(configuration()).verify(SMTP_PORT, port);
-		locksOf(configuration()).verify(SMTP_USERNAME, username);
-		locksOf(configuration()).verify(SMTP_PASSWORD, password);
-		locksOf(configuration()).verify(TRANSPORT_STRATEGY, transportStrategy);
-		locksOf(configuration()).verify(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
-		locksOf(configuration()).verify(OPPORTUNISTIC_TLS, opportunisticTLS);
-		if (customSSLFactoryInstance != null && locksOf(configuration()).contains(CUSTOM_SSLFACTORY_CLASS)) {
-			throw locksOf(configuration()).conflict(CUSTOM_SSLFACTORY_CLASS,
-					"withCustomSSLFactoryInstance(...) supplies a factory object, but this configuration locks the factory class to instantiate. "
-							+ "The supplied object would replace that locked class choice. Remove the builder call, "
-							+ "or remove the factory-class lock from the configuration source if your application should supply the instance.");
-		}
+	void captureLockedServerChoices(final Map<Property, Object> choices) {
+		choices.put(SMTP_HOST, host);
+		choices.put(SMTP_PORT, port);
+		choices.put(SMTP_USERNAME, username);
+		choices.put(SMTP_PASSWORD, password);
+		choices.put(TRANSPORT_STRATEGY, transportStrategy);
+		choices.put(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
+		choices.put(OPPORTUNISTIC_TLS, opportunisticTLS);
+	}
+
+	@Override
+	boolean hasCustomSSLFactoryInstanceForLocks() {
+		return customSSLFactoryInstance != null;
 	}
 
 	@Override
@@ -485,11 +478,13 @@ public class MailerRegularBuilderImpl extends MailerGenericBuilderImpl<MailerReg
 
     @Override void validateTlsConstructionScope(final TlsConfig choices) { }
     @Override void applyRegularTlsChoices(final TlsConfig choices) {
-        customSSLFactory = choices.isCustomSSLFactoryClassCleared() ? null
-                : stringChoice(choices.getCustomSSLFactoryClass(), ConfigKeys.CUSTOM_SSLFACTORY_CLASS);
+        customSSLFactory = MailerConfigurationResolver.resolve(configuration(), ConfigKeys.CUSTOM_SSLFACTORY_CLASS,
+                MailerConfigurationResolver.choice(choices.getCustomSSLFactoryClass(), choices.isCustomSSLFactoryClassCleared()), null,
+                "TlsConfig.withCustomSSLFactoryClass/clearCustomSSLFactoryClass");
         customSSLFactoryInstance = choices.getCustomSSLFactoryInstance();
         customSSLFactoryInstanceExplicit = choices.getCustomSSLFactoryInstance() != null || choices.isCustomSSLFactoryInstanceCleared();
-        opportunisticTLS = configuration().valueOrProperty(choices.getOpportunisticTLS(), ConfigKeys.OPPORTUNISTIC_TLS, DEFAULT_OPPORTUNISTIC_TLS);
+        opportunisticTLS = MailerConfigurationResolver.resolve(configuration(), ConfigKeys.OPPORTUNISTIC_TLS,
+                choices.getOpportunisticTLS(), DEFAULT_OPPORTUNISTIC_TLS);
         if (choices.getCustomSSLFactoryClass() != null || choices.isCustomSSLFactoryClassCleared()) {
             customizedSessionSetting(CUSTOM_SSLFACTORY_CLASS, customSSLFactory);
         }

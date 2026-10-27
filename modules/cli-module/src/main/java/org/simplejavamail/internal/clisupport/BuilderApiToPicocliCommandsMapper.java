@@ -21,8 +21,7 @@ import org.simplejavamail.api.mailer.config.SessionDebugOutput;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper.DocumentedMethodParam;
 import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
-import org.simplejavamail.internal.clisupport.valueinterpreters.EmlFilePathToMimeMessageFunction;
-import org.simplejavamail.internal.clisupport.valueinterpreters.MsgFilePathToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.MessageFilePathToMimeMessageFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToCalendarMethodFunction;
 import org.simplejavamail.internal.clisupport.valueinterpreters.StringToContentTransferEncodingFunction;
@@ -98,7 +97,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		put(Long.class, "NUM");
 		put(double.class, "NUM");
 		put(Double.class, "NUM");
-		put(MimeMessage.class, "EML FILE");
+		put(MimeMessage.class, "EML OR MSG FILE");
 		put(DataSource.class, "FILE");
 		put(byte[].class, "FILE");
 		put(InputStream.class, "FILE");
@@ -116,8 +115,7 @@ public final class BuilderApiToPicocliCommandsMapper {
 		ValueConversionHelper.registerValueConverter(new StringToDurationFunction());
 		ValueConversionHelper.registerValueConverter(new StringToDsnNotifyOptionsFunction());
 		ValueConversionHelper.registerValueConverter(new StringToDsnReturnOptionFunction());
-		ValueConversionHelper.registerValueConverter(new EmlFilePathToMimeMessageFunction());
-		ValueConversionHelper.registerValueConverter(new MsgFilePathToMimeMessageFunction());
+		ValueConversionHelper.registerValueConverter(new MessageFilePathToMimeMessageFunction());
 		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
 		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
 		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());

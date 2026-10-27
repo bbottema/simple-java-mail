@@ -272,3 +272,7 @@ Implementation is tracked under [#751](https://github.com/bbottema/simple-java-m
 
 The [sending-limit guide](../concurrency/09-sending-limits.md#regression-evidence-and-limits) maps the maintained integration and race regressions.
 Documentation checks do not replace runtime tests or establish release readiness.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The layered configuration adapter adopted under ADR 0039 retains complete rate-limit values, explicit clears and captured fallback. Runtime allowance, factory/group identity, initialization validation and burst behavior remain owned by this feature. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.recipient.internal.RecipientConfigurationResolver;
+
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
@@ -41,7 +43,7 @@ final class EmailAddressConvenience {
                         + " must contain one mailbox; use mail.recipientsBuilder() for multiple addresses or address groups");
             }
             if (parsed.length == 1) {
-                return new Recipient(explicitName != null ? explicitName : nonblank(parsed[0].getPersonal()),
+                return new Recipient(RecipientConfigurationResolver.preferName(explicitName, nonblank(parsed[0].getPersonal())),
                         parsed[0].getAddress(), type, null);
             }
         } catch (final AddressException unparseable) {
@@ -55,7 +57,7 @@ final class EmailAddressConvenience {
                                @Nullable final RecipientType type, @NotNull final String parameterName) {
         checkNonEmptyArgument(source, parameterName);
         final String explicitName = nonblank(name);
-        return interpret(explicitName != null ? explicitName : source.getPersonal(), source.getAddress(), type, parameterName);
+        return interpret(RecipientConfigurationResolver.preferName(explicitName, source.getPersonal()), source.getAddress(), type, parameterName);
     }
 
     @Nullable

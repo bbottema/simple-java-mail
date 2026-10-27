@@ -6,6 +6,11 @@
 - Target: 10.0.0
 - Related issue: [#756](https://github.com/bbottema/simple-java-mail/issues/756)
 
+The accepted 26 October 2026 [ADR 0039 extension](0039-explicit-configuration-resolution.md) requires the ordinary Mailer build path to
+construct from a controlled `ValidatedMailerPlan` for the complete owned graph. Captured/resolved settings and internal assembly builders
+remain implementation details. The construction plan retains completed values and borrowed identities, never a live builder. Deliberate
+internal injection constructors retain their completed-facts semantics; no application-facing construction API is added.
+
 ## Required choices and explicit removal (accepted 22 October 2026)
 
 A required, non-null configuration argument rejects null before changing a builder's stored choice. Missing configuration is an argument error, not an implicit request to clear or reset an earlier choice. Provide named clear/reset companions for removal or restoration, consistently with the API expansion workflow. This does not change explicitly nullable component choices that select documented defaults.
@@ -411,3 +416,7 @@ ADR 0038 keeps connection conflict handling at Mailer construction. Builders con
 [ADR 0039](0039-explicit-configuration-resolution.md) places the shared resolution implementation in the main module's internal configresolution package. Core retains its public input contracts and schema. ConfigurationChoice, ConfigurationDeclaration, ConfigurationOrigin and ConfigurationResolution are internal typed values; they do not add application construction APIs. CapturedConnectionInputs and ResolvedConnection feed a controlled ValidatedConnectionPlan boundary before Session effects. Getters remain passive, ordinary internal assembly uses Lombok when useful, and no generic phase-service hierarchy is required.
 
 Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The complete layered adoption in ADR 0039 remains main-owned internal machinery. Core contracts/value builders and optional feature contracts retain their current module boundaries. Public API signatures, passive group inspection and established setter/build validation contracts remain intact; no public rule registry or synthetic application-plan type is added for simple selection. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

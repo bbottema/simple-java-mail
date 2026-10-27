@@ -47,3 +47,7 @@ deduplication guarantee; retry safety still comes from submission facts.
 - Local [AngusMailTransportAdapter](../../modules/angus-mail-provider-module/src/main/java/org/simplejavamail/internal/mailprovider/angus/AngusMailTransportAdapter.java) checks the connection, creates the per-message facade and reports ENVID without changing protected bytes.
 - Local [SmtpEnvelopeIdTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpEnvelopeIdTest.java) and [DSN characterization tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpDsnCharacterizationTest.java) are review evidence. Verification results in the plan belong to the implementation work; no Java tests were rerun for this ADR.
 - #736 was open and explicitly awaiting implementation acceptance/delivery when researched. This record preserves that status and does not mark Phase 4 complete.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+Angus uses the core-owned declaration machinery from ADR 0039 to select existing message/Session extension inputs and recipient notification choices. Raw identifier ownership, wire parsing and per-attempt automatic generation remain provider responsibilities at their existing runtime boundary; shared selection does not pre-generate or freeze dynamic identifiers. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

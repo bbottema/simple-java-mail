@@ -22,6 +22,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
+import org.mockito.MockedConstruction;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
@@ -54,6 +55,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -62,10 +64,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 
 
@@ -471,22 +477,24 @@ class ConnectionFailoverTest {
                 "simplejavamail.failover.mailer", "secondary",
                 "simplejavamail.mailers.secondary.transport.mode.logging.only", "true")).load();
         final FactoryMailerRuntime runtime = new FactoryMailerRuntime(config);
-        final AtomicReference<OperationalConfig> failedConfiguration = new AtomicReference<>();
-        final AtomicReference<MailerImpl> owned = new AtomicReference<>();
         try (Mailer established = new MailerRegularBuilderImpl(config, runtime).clearFailoverMailer().withTransportModeLoggingOnly(true)
                 .withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(1, Duration.ofSeconds(1)).build()).buildMailer()) {
-            final MailerRegularBuilderImpl failing = new MailerRegularBuilderImpl(config, runtime) {
-                @Override OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
-                    final OperationalConfig supplied = super.buildOperationalConfig(sessionSettings);
-                    failedConfiguration.set(supplied);
-                    owned.set(getResolvedFailoverMailer());
-                    return supplied;
+            try (MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class, (executor, context) -> {
+                final AtomicBoolean shutdown = new AtomicBoolean();
+                when(executor.isShutdown()).thenAnswer(invocation -> shutdown.get());
+                when(executor.awaitTermination(anyLong(), any())).thenAnswer(invocation -> shutdown.get());
+                doAnswer(invocation -> { shutdown.set(true); return null; }).when(executor).shutdown();
+            })) {
+                final MailerRegularBuilderImpl failing = new MailerRegularBuilderImpl(config, runtime);
+                assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withSendingLimitsConfig(failing.getSendingLimitsConfig().toBuilder()
+                        .withRateLimitGroup("shared").withMessageRateLimit(2, Duration.ofSeconds(1)).build()).buildMailer())
+                        .hasMessageContaining("sharing a rate-limit group");
+                assertThat(executors.constructed()).hasSize(2);
+                for (MailSendExecutor owned : executors.constructed()) {
+                    verify(owned).shutdown();
+                    assertThat(owned.isShutdown()).isTrue();
                 }
-            };
-            assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withSendingLimitsConfig(failing.getSendingLimitsConfig().toBuilder().withRateLimitGroup("shared").withMessageRateLimit(2, Duration.ofSeconds(1)).build())
-                    .buildMailer()).hasMessageContaining("sharing a rate-limit group");
-            assertThat(failedConfiguration.get().getExecutorService().isShutdown()).isTrue();
-            assertThat(owned.get().getOperationalConfig().getExecutorService().isShutdown()).isTrue();
+            }
             assertThat(established.getOperationalConfig().getExecutorService().isShutdown()).isFalse();
             established.sync().sendMail(email());
         }

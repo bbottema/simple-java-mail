@@ -7,6 +7,11 @@
 
 ## Context
 
+The accepted 26 October 2026 [ADR 0039 extension](0039-explicit-configuration-resolution.md#logical-setting-identity-and-complete-mailer-preparation-accepted-26-october-2026)
+adds logical setting identities and a whole-Mailer construction plan. Supported aliases keep their original source labels and protocol
+applicability. Connection conflict checks run before server representation construction, and the completed connection plan becomes part of
+the full owned graph's validated construction input. This preserves the policy and interpretation contract below.
+
 A configured Mailer can describe one SOCKS proxy while its Session uses another: proxy configuration is applied before additional Jakarta Mail properties. With authenticated proxying, replacing the loopback host while subsequently publishing an allocated bridge port can also create an incoherent route. Values injected through files, Spring, environment variables or deployment systems make such contradictions difficult to discover.
 
 The historical contracts address different responsibilities. [#19](https://github.com/bbottema/simple-java-mail/issues/19) introduced low-level Session customization. [#38](https://github.com/bbottema/simple-java-mail/issues/38) introduced SJM's authenticated proxy bridge, and [#686](https://github.com/bbottema/simple-java-mail/issues/686) reaffirmed configured proxy routing on caller-supplied Sessions. [#785](https://github.com/bbottema/simple-java-mail/issues/785) preserves supplied connection settings; [#845](https://github.com/bbottema/simple-java-mail/issues/845) distinguishes explicit timeout choices from inherited defaults. These decisions do not establish one universal precedence rule for all configuration.
@@ -94,4 +99,15 @@ Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simpl
 
 TLS flags and host exceptions resolve together while retaining ownership-specific inheritance. Trusted-host lists containing the same exact names are equivalent regardless of order or duplicates; the selected ordering remains visible to inspection. Host spelling remains case-sensitive and exact wildcard syntax remains distinct. A request to disable wildcard trust cannot leave an inherited wildcard active, and compatible bounded trust locks must not become apparent removals.
 
+Raw trusted-host text follows the provider's whitespace tokenization without trimming nonseparator control characters out of hostnames.
+Shared comparison and inspection retain that membership interpretation while leaving the selected raw text unchanged.
+
 Raw SOCKS endpoint syntax, including an embedded port and the provider's separate-port precedence, contributes to the remote route before bridge derivation. A supplied Session's omitted proxy port remains omitted unless deliberately customized or required by a lock; provider-default inspection does not authorize inserting an ordinary factory port. Preserve the existing behavior of explicit bounded hosts replacing a supplied Session's wildcard trust, while omitted captured TLS members on owned Sessions retain their inheritance.
+
+Inline SOCKS port suffixes use the provider's decimal grammar; without a separate port, malformed suffixes retain the provider default. The separate numeric port
+property keeps its own accepted forms, including hexadecimal. Adding SJM credentials must preserve the same interpreted remote endpoint.
+Non-String Properties keys remain opaque metadata rather than being rendered into connection-property names during capture or clearing.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The complete ADR 0039 adoption extends shared mechanics to other Email/Mailer families. The conflict policy defined here remains limited to supported connection declarations. Ordinary Email precedence and other feature-owned fallback rules do not gain strict rejection merely because they use the same foundation. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

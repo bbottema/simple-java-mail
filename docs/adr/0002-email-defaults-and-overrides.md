@@ -75,7 +75,18 @@ ordering and repeated-completion boundaries are detailed in [ADR 0037](0037-repe
 | Headers | Combine keys; for the same key, replace the entire value collection in default, submitted, then override order. | Different header keys can coexist, but conflicting values for one key have a clear winner. |
 | Compound configuration values | Resolve at the declared value boundary, not recursively by every member field. | Combining parts of separate signing or notification policies can create a configuration neither caller requested. |
 
-These rules are implemented by [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java), [EmailProperty](../../modules/core-module/src/main/java/org/simplejavamail/internal/config/EmailProperty.java), and the [resolution helpers](../../modules/core-module/src/main/java/org/simplejavamail/internal/util/MiscUtil.java). The rationale column explains the architectural tradeoff; it is not a claim that every original implementation decision had a separate historical design record.
+Header identity is case-insensitive. Within an already materialized Email that contains multiple spellings of one name, retain the last
+matching entry in that source's iteration order, as the previous map-based resolution did. The original outer/inner ownership is no longer
+recoverable from that flat map. New S/MIME merges resolve the collision before flattening, with inner-header precedence under
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#smime-header-identity-clarified-26-october-2026).
+Template suppression and default/submitted/override precedence still apply after this interpretation. This clarification is tracked in [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+
+Under the accepted [ADR 0039 logical-identity extension](0039-explicit-configuration-resolution.md#logical-setting-identity-and-complete-mailer-preparation-accepted-26-october-2026),
+capture preserves header names, origins and eligibility as keyed declarations until selection is complete. Subject/body and other scalar
+declarations also identify their logical target, so sharing a Java value type cannot accidentally combine unrelated fields. This changes no
+template precedence, completion timing, public setter, suppression or exact-message contract.
+
+These rules are implemented by [EmailGovernanceImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/EmailGovernanceImpl.java), the API [EmailProperty](../../modules/core-module/src/main/java/org/simplejavamail/api/email/EmailProperty.java), [EmailConfigurationResolver](../../modules/simple-java-mail/src/main/java/org/simplejavamail/email/internal/EmailConfigurationResolver.java), and core [HeaderSettings](../../modules/core-module/src/main/java/org/simplejavamail/internal/email/HeaderSettings.java). The rationale column explains the architectural tradeoff; it is not a claim that every original implementation decision had a separate historical design record.
 
 Local collection editing follows the same additive vocabulary: `withRecipients`, `to`, `cc`, `bcc` and `withReplyTo` append to existing entries,
 including entries populated by `copying(...)`. Repeated calls retain order and duplicate occurrences; empty recipient/Reply-To additions do nothing.
@@ -229,3 +240,7 @@ Notification destination lists are whole-value choices, not additive template co
 [ADR 0039](0039-explicit-configuration-resolution.md) introduces shared internal declaration and resolution mechanics, with Email subject selection as the first Email consumer. Subject precedence, suppression, template replacement, empty values and locks retain this record's contract. ConnectionConflictPolicy does not apply to Email governance. Other scalar fields, collections and compound policies retain their existing owners and are outside this initial migration.
 
 Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The 26 October extension of ADR 0039 adopts every layered Email contribution, superseding the earlier subject-only adoption limit. Scalars and atomic policies retain override/submitted/default precedence; collections, headers, suppression and mandatory locks retain their distinct rules. Public setters and ordinary buildEmail do not apply templates. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

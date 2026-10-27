@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.internal.config.ConfigurationLocks;
 import org.simplejavamail.internal.config.ConfigurationSnapshot;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -95,10 +97,10 @@ final class LoadedSimpleJavaMailConfig implements ConfigurationSnapshot {
 	public <T> T valueOrProperty(@Nullable final T explicitValue,
 			@NotNull final ConfigKey<T> key,
 			@Nullable final T fallbackValue) {
-		if (!valueNullOrEmpty(explicitValue)) {
-			return explicitValue;
-		}
-		return hasProperty(key) ? get(key) : fallbackValue;
+		final ConfigurationChoice<T> choice = valueNullOrEmpty(explicitValue)
+				? ConfigurationChoice.inherit() : ConfigurationChoice.set(explicitValue);
+		return ConfigurationResolver.resolveValue(this, key, choice, fallbackValue,
+				"SimpleJavaMailConfig.valueOrProperty").valueOrNull();
 	}
 
 	/** @see SimpleJavaMailConfig#valueOrProperty(Object, ConfigKey) */

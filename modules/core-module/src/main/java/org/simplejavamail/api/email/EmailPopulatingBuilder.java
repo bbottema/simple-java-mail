@@ -957,9 +957,11 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However,
 	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumed to be the message
-	 * itself and by default will be merged with the top level email (basically overriding body, headers and attachments).
+	 * itself and by default will be merged with the top level email. The inner message supplies the body, and attachments from both
+	 * messages are retained. Header names are compared case-insensitively: each inner header replaces the complete outer value list
+	 * with that name, retaining the first display spelling. Defaults and overrides still apply later during ordinary completion.
 	 * <br>
-	 * This API disables this behavior and stricly keeps all attachments as-is (still decrypted, but not merged with the email).
+	 * This API disables this behavior and strictly keeps all attachments as-is (still decrypted, but not merged with the email).
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */

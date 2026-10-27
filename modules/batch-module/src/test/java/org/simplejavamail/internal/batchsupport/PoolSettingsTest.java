@@ -30,6 +30,8 @@ class PoolSettingsTest {
 		final OperationalConfig configuration = mock(OperationalConfig.class);
 		when(configuration.getConnectionPoolCoreSize()).thenReturn(2);
 		when(configuration.getConnectionPoolMaxSize()).thenReturn(1);
+		when(configuration.getConnectionPoolClaimTimeout()).thenReturn(Duration.ZERO);
+		when(configuration.getConnectionPoolExpireAfter()).thenReturn(Duration.ZERO);
 		when(configuration.getConnectionPoolExpireAfterCreation()).thenReturn(null);
 		when(configuration.getConnectionPoolLoadBalancingStrategy()).thenReturn(LoadBalancingStrategy.ROUND_ROBIN);
 		when(configuration.getConnectionPoolClusterConfigs()).thenReturn(Map.of(cluster, ConnectionPoolClusterConfig.builder().coreSize(0).build()));

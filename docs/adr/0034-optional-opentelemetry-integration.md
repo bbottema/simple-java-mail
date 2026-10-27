@@ -321,3 +321,7 @@ Implementation and review acceptance do not imply release.
 
 The dated [research findings](../research/762-opentelemetry-integration-research.md#research-findings-2026-10-15) identify the OpenTelemetry repositories
 and limits of the absence finding. They do not assert that SMTP has no standards or that no third-party mail instrumentation exists.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+ADR 0039 shares layered enabled/endpoint-permission selection while preserving the independence of activation and borrowed integration identity. Optional module loading, global integration fallback, locks and initialization remain feature-owned. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

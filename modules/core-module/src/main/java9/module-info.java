@@ -32,6 +32,7 @@ module org.simplejavamail.core {
 	exports org.simplejavamail.api.outlook;
 	exports org.simplejavamail.config;
 	exports org.simplejavamail.internal.config;
+	exports org.simplejavamail.internal.configresolution;
 	exports org.simplejavamail.internal.email;
 	exports org.simplejavamail.internal.modules;
 	exports org.simplejavamail.internal.telemetry;

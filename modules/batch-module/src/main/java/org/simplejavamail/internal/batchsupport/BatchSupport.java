@@ -8,6 +8,8 @@ import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
@@ -40,6 +42,13 @@ public class BatchSupport implements BatchModule {
 	// Retained as a direct field for diagnostics and compatibility with existing internal tests.
 	@Nullable private SmtpConnectionPoolClustered<UUID> smtpConnectionPool;
 	private final Map<UUID, Map<Session, SendingAllowance>> sendingAllowances = new HashMap<>();
+
+	/** @see BatchModule#validateConnectionPoolConfiguration(ConnectionPoolConfig, ConnectionPoolClusterConfig) */
+	@Override
+	public void validateConnectionPoolConfiguration(final ConnectionPoolConfig resolvedDefaults,
+			@Nullable final ConnectionPoolClusterConfig selectedOverride) {
+		PoolSettings.from(resolvedDefaults, selectedOverride);
+	}
 
 	/**
 	 * @see BatchModule#registerToCluster(OperationalConfig, UUID, Session, SendingAllowance)

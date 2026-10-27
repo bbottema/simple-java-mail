@@ -129,3 +129,7 @@ scopes keep their execution ownership. Retries stay with the selected Mailer ins
 ## Connection conflict policy (accepted 24 October 2026)
 
 ADR 0038 supersedes unconditional explicit-connection/proxy override wording with strict conflict rejection by default and an explicit override mode. Different explicit factory, raw, visible Session and Java declarations are checked at construction. A supplied Session still retains omitted settings; ordinary factory defaults do not automatically fill its gaps. Session ownership, execution views, pooling and shutdown retain their own contracts. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+ADR 0039 supplies shared selection for partial Mailer cluster settings over resolved operational defaults and for complete standalone batch cluster configurations. Preserve the distinction: omitted partial members inherit, explicit zero remains supplied, and a complete standalone configuration replaces the previous value as a whole. Registration, first-writer pool policy and borrowed executor ownership remain unchanged. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

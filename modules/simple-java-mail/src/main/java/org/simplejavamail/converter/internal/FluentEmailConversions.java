@@ -3,7 +3,9 @@ package org.simplejavamail.converter.internal;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;
+import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmlConversion;
@@ -20,6 +22,12 @@ import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolution;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import static java.util.Objects.requireNonNull;
 
@@ -124,7 +132,9 @@ class FluentEmailConversions {
 		@Override
 		public final EmailPopulatingBuilder toEmailBuilder() {
 			beginConversion();
-			return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchAttachmentData);
+			final boolean fetchData = selectOptionOrCreateFallback(attachmentDataConfigured ? fetchAttachmentData : null,
+					() -> EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, "withFetchAttachmentData");
+			return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchData);
 		}
 
 		/** @see IncomingConversion#toEmail() */
@@ -169,12 +179,12 @@ class FluentEmailConversions {
 
 		@Override
 		MimeMessage sourceMessage() {
-			return source.apply(session != null ? session : emptySession());
+			return source.apply(selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"));
 		}
 
 		@Override
 		MimeMessage sourceMessageForEmail() {
-			return preservedSource.apply(session != null ? session : emptySession());
+			return preservedSource.apply(selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"));
 		}
 
 		/** @see EmlConversion#toMimeMessage() */
@@ -237,8 +247,9 @@ class FluentEmailConversions {
 
 		final MimeMessage exportEmail(final Email email) {
 			// Export preserves the existing no-template default; factory configuration belongs to imported builders, not implicit outgoing policy.
-			return EmailConverter.emailToMimeMessage(email, session != null ? session : emptySession(),
-					governance != null ? governance : EmailGovernanceImpl.NO_GOVERNANCE());
+			return EmailConverter.emailToMimeMessage(email,
+					selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"),
+					selectOptionOrCreateFallback(governance, EmailGovernanceImpl::NO_GOVERNANCE, "withEmailGovernance"));
 		}
 
 		final void checkImportOptions() {
@@ -398,6 +409,17 @@ class FluentEmailConversions {
 		public byte[] toEmlBytes() {
 			return EmailConverter.mimeMessageToEMLByteArray(toMimeMessage());
 		}
+	}
+
+	/** Select before creating a fallback Session or governance; explicit borrowed inputs must not initialize unused resources. */
+	private static <T> T selectOptionOrCreateFallback(final T supplied, final Supplier<T> fallback, final String setter) {
+		final ConfigurationSetting<T> setting = ConfigurationSetting.of("conversion", setter);
+		final ConfigurationResolution<T> selected = ConfigurationResolver.resolve(setting, List.of(
+				ConfigurationDeclaration.javaChoice(setting, ConfigurationChoice.ofNullable(supplied), setter),
+				ConfigurationDeclaration.of(setting, ConfigurationChoice.remove(),
+						ConfigurationOrigin.of(ConfigurationOrigin.Kind.BUILT_IN, setter, "conversion fallback"))),
+				List.of(ConfigurationOrigin.Kind.JAVA, ConfigurationOrigin.Kind.BUILT_IN));
+		return selected.getSelected().getOrigin().getKind() == ConfigurationOrigin.Kind.JAVA ? selected.valueOrNull() : fallback.get();
 	}
 
 	private static Session emptySession() {

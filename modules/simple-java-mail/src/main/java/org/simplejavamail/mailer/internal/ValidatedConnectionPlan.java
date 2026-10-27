@@ -30,9 +30,19 @@ final class ValidatedConnectionPlan {
 
     static ValidatedConnectionPlan validate(final ResolvedConnection resolved, final MailerSessionSettings settings,
             @Nullable final MailerRegularBuilderImpl regularBuilder) {
-        final CapturedConnectionInputs inputs = resolved.inputs;
         ConnectionConfigurationResolver.validateDeclarations(resolved);
-        final ServerConfig serverConfig = regularBuilder == null ? null : regularBuilder.buildServerConfig(settings);
+        return validateRequirements(resolved, settings, regularBuilder == null ? null : regularBuilder.buildServerConfig(settings));
+    }
+
+    static ValidatedConnectionPlan validateResolved(final ResolvedConnection resolved, final MailerSessionSettings settings,
+            final CapturedMailerInputs inputs) {
+        ConnectionConfigurationResolver.validateDeclarations(resolved);
+        return validateRequirements(resolved, settings, ResolvedMailerConfiguration.resolveServer(inputs, settings));
+    }
+
+    private static ValidatedConnectionPlan validateRequirements(final ResolvedConnection resolved, final MailerSessionSettings settings,
+            @Nullable final ServerConfig serverConfig) {
+        final CapturedConnectionInputs inputs = resolved.inputs;
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(
                 inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy());
         requirements.verifyAdditionalProperties(inputs.copyAdditionalProperties());

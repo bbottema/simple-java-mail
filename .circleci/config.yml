@@ -20,6 +20,8 @@ mvn-collect-artifacts-command: &mvn-collect-artifacts-command
   mvn-collect-artifacts-command: |
     mkdir -p artifacts/cli
     cp modules/cli-module/target/*standalone* artifacts/cli/
+    mkdir -p artifacts/configuration-contracts
+    cp -R modules/simple-java-mail/target/configuration-contract-coverage/. artifacts/configuration-contracts/
 
 mvn-deploy-command: &mvn-deploy-command
   mvn-deploy-command:  |

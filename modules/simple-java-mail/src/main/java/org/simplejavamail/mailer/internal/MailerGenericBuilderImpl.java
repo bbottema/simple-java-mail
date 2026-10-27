@@ -47,6 +47,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.internal.config.ConfigurationLocks;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.internal.util.DurationMillis;
@@ -120,7 +121,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable private MailerImpl failoverMailer;
 	@Nullable private FailoverPolicy failoverPolicy;
 	@Nullable private String failoverName;
-	private boolean ownsFailoverMailer;
 	private final Properties cliFailoverOptions = new Properties();
 	/** @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy) */
 	@NotNull private MailSendRetryPolicy mailSendRetryPolicy = MailSendRetryPolicy.builder().build();
@@ -349,64 +349,74 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		this.runtime = requireNonNull(runtime, "runtime");
 		this.definition = definition;
 		this.sendingLimits = runtime.sendingLimits();
-		this.failoverName = config.get(ConfigKeys.FAILOVER_MAILER);
+		this.failoverName = MailerConfigurationResolver.configured(config, ConfigKeys.FAILOVER_MAILER, null);
 		this.failoverPolicy = ConfiguredFailover.policy(config);
 		this.messageRateLimit = resolveRateLimit(config, ConfigKeys.SMTP_MESSAGE_RATE_LIMIT, ConfigKeys.SMTP_MESSAGE_RATE_PERIOD);
 		this.recipientRateLimit = resolveRateLimit(config, ConfigKeys.SMTP_RECIPIENT_RATE_LIMIT, ConfigKeys.SMTP_RECIPIENT_RATE_PERIOD);
-		this.rateLimitGroup = config.get(ConfigKeys.SMTP_RATE_LIMIT_GROUP);
+		this.rateLimitGroup = MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_RATE_LIMIT_GROUP, null);
 		if (rateLimitGroup != null) {
-			withRateLimitGroup(rateLimitGroup);
+			validateRateLimitGroup(rateLimitGroup);
 		}
-		this.rateLimitBurstsAllowed = config.valueOrProperty(null, ConfigKeys.SMTP_RATE_LIMIT_ALLOW_BURSTS, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
-		this.legacySmtpContentSupportEnabled = config.valueOrProperty(null, ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
-		this.mailSendTimeout = config.valueOrProperty(null, ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT, DEFAULT_MAIL_SEND_TIMEOUT);
+		this.rateLimitBurstsAllowed = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_ALLOW_BURSTS,
+				null, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
+		this.legacySmtpContentSupportEnabled = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT,
+				null, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
+		this.mailSendTimeout = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT, null, DEFAULT_MAIL_SEND_TIMEOUT);
 		if (mailSendTimeout != null) {
 			MailSendControl.positiveTimeoutNanos(mailSendTimeout);
 		}
 		this.asyncQueueConfig = new AsyncQueueConfig(
-				config.valueOrProperty(null, ConfigKeys.DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_CONFIG.getCapacity()),
-				config.valueOrProperty(null, ConfigKeys.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_CONFIG.getOverflowPolicy()),
+				MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_ASYNC_QUEUE_CAPACITY, null, DEFAULT_ASYNC_QUEUE_CONFIG.getCapacity()),
+				MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY,
+						null, DEFAULT_ASYNC_QUEUE_CONFIG.getOverflowPolicy()),
 				configuredDuration(ConfigKeys.ASYNC_QUEUE_WAIT_TIMEOUT, DEFAULT_ASYNC_QUEUE_CONFIG.getWaitTimeout()));
-		final Map<String, String> extraProperties = config.get(ConfigKeys.EXTRA_PROPERTIES);
+		final Map<String, String> extraProperties = MailerConfigurationResolver.configured(config, ConfigKeys.EXTRA_PROPERTIES, null);
 		if (extraProperties != null) {
 			this.properties.putAll(extraProperties);
 		}
-		this.proxyHost = config.get(ConfigKeys.PROXY_HOST);
-		this.proxyUsername = config.get(ConfigKeys.PROXY_USERNAME);
-		this.proxyPassword = config.get(ConfigKeys.PROXY_PASSWORD);
+		this.proxyHost = MailerConfigurationResolver.configured(config, ConfigKeys.PROXY_HOST, null);
+		this.proxyUsername = MailerConfigurationResolver.configured(config, ConfigKeys.PROXY_USERNAME, null);
+		this.proxyPassword = MailerConfigurationResolver.configured(config, ConfigKeys.PROXY_PASSWORD, null);
 		this.clusterKey = config.hasProperty(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
-				? UUID.fromString(verifyNonnullOrEmpty(config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))
+				? UUID.fromString(verifyNonnullOrEmpty(MailerConfigurationResolver.configured(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY, null)))
 				: UUID.randomUUID();
 
-		this.proxyPort =  							verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_PORT, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort = 						verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT));
-		this.clientValidationWarningsOnly = 			verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
+		this.proxyPort =  							verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PORT, null, DEFAULT_PROXY_PORT));
+		this.proxyBridgePort = 						verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT,
+				null, DEFAULT_PROXY_BRIDGE_PORT));
+		this.clientValidationWarningsOnly = 			verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION,
+				null, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.connectTimeout = configuredSocketTimeout(ConfigKeys.CONNECT_TIMEOUT);
 		this.readTimeout = configuredSocketTimeout(ConfigKeys.READ_TIMEOUT);
 		this.writeTimeout = configuredSocketTimeout(ConfigKeys.WRITE_TIMEOUT);
-		this.localBindAddress = 					config.get(ConfigKeys.SMTP_LOCAL_ADDRESS);
-		this.localBindPort = 						config.get(ConfigKeys.SMTP_LOCAL_PORT);
-		this.smtpClientHostname = 					config.get(ConfigKeys.SMTP_CLIENT_HOSTNAME);
-		this.trustAllSSLHost = 						verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS));
-		this.verifyingServerIdentity = 				verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY));
-		this.threadPoolSize = 						verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE));
+		this.localBindAddress = 					MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_LOCAL_ADDRESS, null);
+		this.localBindPort = 						MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_LOCAL_PORT, null);
+		this.smtpClientHostname = 					MailerConfigurationResolver.configured(config, ConfigKeys.SMTP_CLIENT_HOSTNAME, null);
+		this.trustAllSSLHost = 						verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_TRUST_ALL_HOSTS,
+				null, DEFAULT_TRUST_ALL_HOSTS));
+		this.verifyingServerIdentity = 				verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_VERIFY_SERVER_IDENTITY,
+				null, DEFAULT_VERIFY_SERVER_IDENTITY));
+		this.threadPoolSize = 						verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_POOL_SIZE,
+				null, DEFAULT_POOL_SIZE));
 		this.threadPoolKeepAliveTime = configuredDuration(ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME);
 		this.threadPoolSizeExplicit = config.hasProperty(ConfigKeys.DEFAULT_POOL_SIZE);
 		this.threadPoolKeepAliveTimeExplicit = config.hasProperty(ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME);
-		this.connectionPoolCoreSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
-		this.connectionPoolMaxSize = 				verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
+		this.connectionPoolCoreSize = 				verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_CORE_SIZE,
+				null, DEFAULT_CONNECTIONPOOL_CORE_SIZE));
+		this.connectionPoolMaxSize = 				verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_MAX_SIZE,
+				null, DEFAULT_CONNECTIONPOOL_MAX_SIZE));
 		this.connectionPoolClaimTimeout = configuredDuration(ConfigKeys.CONNECTION_POOL_CLAIM_TIMEOUT, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
 		this.connectionPoolExpireAfter = configuredDuration(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER, DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
 		this.connectionPoolExpireAfterCreation = configuredDuration(ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION, DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION);
-		this.connectionPoolLoadBalancingStrategy = 	verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
-				LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
-		final Map<UUID, ConnectionPoolClusterConfig> configuredClusters = config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS);
-		this.connectionPoolClusterConfigs = 		configuredClusters == null
-				? Collections.<UUID, ConnectionPoolClusterConfig>emptyMap()
-				: new LinkedHashMap<>(configuredClusters);
-		this.transportModeLoggingOnly = 			verifyNonnullOrEmpty(config.valueOrProperty(null, ConfigKeys.TRANSPORT_MODE_LOGGING_ONLY, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
+		this.connectionPoolLoadBalancingStrategy = 	verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
+				null, LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY)));
+		final Map<UUID, ConnectionPoolClusterConfig> configuredClusters = MailerConfigurationResolver.configured(config,
+				ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS, Collections.emptyMap());
+		this.connectionPoolClusterConfigs = new LinkedHashMap<>(configuredClusters);
+		this.transportModeLoggingOnly = 			verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.TRANSPORT_MODE_LOGGING_ONLY,
+				null, DEFAULT_TRANSPORT_MODE_LOGGING_ONLY));
 
-		final String trustedHosts = config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS);
+		final String trustedHosts = MailerConfigurationResolver.configured(config, ConfigKeys.DEFAULT_TRUSTED_HOSTS, null);
 		if (trustedHosts != null) {
 			this.sslHostsToTrust = new ArrayList<>(Arrays.asList(trustedHosts.split(";")));
 		}
@@ -416,8 +426,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	@Nullable
 	private static SendingRateLimit resolveRateLimit(final SimpleJavaMailConfig config, final ConfigKey<Integer> countProperty, final ConfigKey<Duration> periodProperty) {
-		final Integer count = config.get(countProperty);
-		final Duration period = config.get(periodProperty);
+		final Integer count = MailerConfigurationResolver.configured(config, countProperty, null);
+		final Duration period = MailerConfigurationResolver.configured(config, periodProperty, null);
 		if (count == null && period == null) {
 			return null;
 		}
@@ -436,145 +446,52 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return definition;
 	}
 
-	boolean ownsFailoverMailer() {
-		return ownsFailoverMailer;
-	}
-
 	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
 	final MailerImpl buildConfiguredMailer() {
-		return prepareFailoverGraph(new LinkedHashSet<>()).construct();
-	}
-
-	abstract MailerImpl constructMailer(ValidatedConnectionPlan plan);
-
-	private MailerImpl constructPreparedMailer(final ValidatedConnectionPlan plan, @Nullable final PreparedMailerBuild namedChild) {
-		final MailerImpl suppliedFailoverMailer = failoverMailer;
-		try {
-			if (namedChild != null) {
-				failoverMailer = namedChild.construct();
-				ownsFailoverMailer = true;
-			}
-			final MailerImpl configuredMailer = constructMailer(plan);
-			// Traversal includes the initiating Mailer, so only configured routes may enable this gate.
-			if (configuredMailer.failoverMailer() != null) {
-				enableCoordinatedFailoverFor(configuredMailer);
-			}
-			return configuredMailer;
-		} catch (RuntimeException | Error failure) {
-			closeOwnedFailoverAfterFailedBuild(failure);
-			throw failure;
-		} finally {
-			failoverMailer = suppliedFailoverMailer;
-			ownsFailoverMailer = false;
-		}
-	}
-
-	private static void enableCoordinatedFailoverFor(final MailerImpl configuredMailer) {
-		for (MailerImpl routeParticipant = configuredMailer;
-				routeParticipant != null;
-				routeParticipant = routeParticipant.failoverMailer()) {
-			routeParticipant.definition().recovery.enableCoordinatedFailover();
-		}
-	}
-
-	private void closeOwnedFailoverAfterFailedBuild(final Throwable failure) {
-		// Supplied Mailers are borrowed; construction rollback may close only privately created named Mailers.
-		if (ownsFailoverMailer && failoverMailer != null) {
-			try {
-				failoverMailer.close();
-			} catch (Exception cleanupFailure) {
-				if (cleanupFailure instanceof InterruptedException) {
-					Thread.currentThread().interrupt();
-				}
-				failure.addSuppressed(cleanupFailure);
+		final CapturedMailerInputs captured = captureMailerInputs();
+		final ResolvedMailerConfiguration resolved = ResolvedMailerConfiguration.resolve(captured);
+		final ValidatedMailerPlan plan = ValidatedMailerPlan.validate(resolved);
+		final MailerImpl mailer = constructMailer(plan);
+		if (mailer.failoverMailer() != null) {
+			for (MailerImpl participant = mailer; participant != null; participant = participant.failoverMailer()) {
+				participant.definition().recovery.enableCoordinatedFailover();
 			}
 		}
+		return mailer;
 	}
 
-	private PreparedMailerBuild prepareFailoverGraph(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
+	abstract MailerImpl constructMailer(ValidatedMailerPlan plan);
+
+	final CapturedMailerInputs captureMailerInputs() {
+		return captureMailerInputs(new LinkedHashSet<>());
+	}
+
+	final CapturedMailerInputs captureMailerInputs(final Set<FactoryMailerRuntime.Definition> route) {
 		resolveCliFailoverPolicy();
-		validateLockedConfiguration();
-		ConfiguredFailover.verifyPolicyLocks(locksOf(config), failoverPolicy);
-		verifyCompatibleAncestorMessageLocks(failoverRoute, config);
-		if (!failoverRoute.add(definition)) {
+		if (!route.add(definition)) {
 			throw new IllegalArgumentException("The named failover Mailers form a cycle. "
 					+ "Remove the relationship that points back to an earlier definition; each failover route must end.");
 		}
-		verifyLockedRelationship();
-		final PreparedMailerBuild child = prepareNextFailoverStage(failoverRoute);
 		final Session suppliedSession = this instanceof MailerFromSessionBuilderImpl ? ((MailerFromSessionBuilderImpl) this).getSession() : null;
-		final ValidatedConnectionPlan plan = prepareConnectionPlan(suppliedSession);
-		failoverRoute.remove(definition);
-		return new PreparedMailerBuild(this, plan, child);
-	}
-
-	private PreparedMailerBuild prepareNextFailoverStage(final Set<FactoryMailerRuntime.Definition> failoverRoute) {
-		if (failoverName != null) {
-			final MailerGenericBuilderImpl<?> child = new MailerRegularBuilderImpl(runtime.named(failoverName), runtime);
-			return child.prepareFailoverGraph(failoverRoute);
-		} else {
-			for (MailerImpl failoverParticipant = failoverMailer;
-					failoverParticipant != null;
-					failoverParticipant = failoverParticipant.failoverMailer()) {
-				verifySuppliedFailoverRouteLocks(failoverRoute, failoverParticipant);
-			}
-		}
-		return null;
-	}
-
-	private static final class PreparedMailerBuild {
-		private final MailerGenericBuilderImpl<?> builder;
-		private final ValidatedConnectionPlan connection;
-		@Nullable private final PreparedMailerBuild namedChild;
-
-		private PreparedMailerBuild(final MailerGenericBuilderImpl<?> builder, final ValidatedConnectionPlan connection,
-				@Nullable final PreparedMailerBuild namedChild) {
-			this.builder = builder;
-			this.connection = connection;
-			this.namedChild = namedChild;
-		}
-
-		private MailerImpl construct() {
-			return builder.constructPreparedMailer(connection, namedChild);
-		}
-	}
-
-	private static void verifySuppliedFailoverRouteLocks(final Set<FactoryMailerRuntime.Definition> failoverRoute,
-			final MailerImpl failoverParticipant) {
-		for (FactoryMailerRuntime.Definition precedingDefinition : failoverRoute) {
-			LockedEmailConfiguration.verifyCompatibleLocks(precedingDefinition.config, failoverParticipant.definition().config);
-			if (failoverParticipant.getOperationalConfig().getCustomMailer() != null) {
-				LockedEmailConfiguration.verifyCustomMailerCompatibility(precedingDefinition.config);
-			}
-		}
-	}
-
-	private static void verifyCompatibleAncestorMessageLocks(final Set<FactoryMailerRuntime.Definition> failoverRoute,
-			final SimpleJavaMailConfig candidateConfiguration) {
-		for (FactoryMailerRuntime.Definition precedingDefinition : failoverRoute) {
-			LockedEmailConfiguration.verifyCompatibleLocks(precedingDefinition.config, candidateConfiguration);
-		}
-	}
-
-	private void verifyLockedRelationship() {
-		if (!locksOf(config).contains(Property.FAILOVER_MAILER)) {
-			return;
-		}
-		final String permittedFailoverName = config.get(ConfigKeys.FAILOVER_MAILER);
-		if (usesPermittedNamedFailover(permittedFailoverName) || usesPermittedSuppliedFailover(permittedFailoverName)) {
-			return;
-		}
-		throw locksOf(config).conflict(Property.FAILOVER_MAILER, "This factory fixes the permitted failover definition and its nested route. "
-				+ "Keep the captured named relationship, or ask the configuration owner to supply a compatible failover route; "
-				+ "an unrelated Mailer with the same name or host is not that definition.");
-	}
-
-	private boolean usesPermittedNamedFailover(final String permittedFailoverName) {
-		return failoverName != null && failoverName.equals(permittedFailoverName);
-	}
-
-	private boolean usesPermittedSuppliedFailover(final String permittedFailoverName) {
-		return failoverMailer != null && failoverMailer.definition() == runtime.named(permittedFailoverName);
+		final MailerRegularBuilderImpl regular = this instanceof MailerRegularBuilderImpl ? (MailerRegularBuilderImpl) this : null;
+		final CapturedConnectionInputs connection = captureConnectionInputs(suppliedSession);
+		final MailerConfigurationRequirements requirements = captureConfigurationRequirements();
+		final MailerOperationalSettings operational = captureOperationalSettings(requirements);
+		final CapturedMailerInputs child = failoverName == null ? null
+				: new MailerRegularBuilderImpl(runtime.named(failoverName), runtime).captureMailerInputs(route);
+		final String lockedName = locksOf(config).contains(Property.FAILOVER_MAILER)
+				? MailerConfigurationResolver.configured(config, ConfigKeys.FAILOVER_MAILER, null) : null;
+		final CapturedMailerInputs result = CapturedMailerInputs.builder().connection(connection).operational(operational).requirements(requirements)
+				.definition(definition).sendingLimits(sendingLimits).emailValidator(emailValidator).emailDefaults(emailDefaults).emailOverrides(emailOverrides)
+				.maximumEmailSize(maximumEmailSize).handlers(sendHandlers).handlersFactory(sendHandlersFactory).idGenerator(sendIdGenerator)
+				.applyDebugEnabled(suppliedSession == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG))
+				.applyDebugOutput(debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT))
+				.regularMailer(regular != null).opportunisticTLS(regular == null || regular.isOpportunisticTLS())
+				.ownedTransportStrategy(regular == null ? null : regular.getTransportStrategy()).password(regular == null ? null : regular.getPassword())
+				.ignoredSmtpSettings(regular != null && customMailer != null && regular.getHost() != null)
+				.permittedFailoverDefinition(lockedName == null ? null : runtime.named(lockedName)).namedChild(child).borrowedFailover(failoverMailer).build();
+		route.remove(definition);
+		return result;
 	}
 
 	final SimpleJavaMailConfig configuration() {
@@ -589,204 +506,133 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Check the finished builder before executor, proxy or pool initialization can make a rejected build observable. */
 	void validateLockedConfiguration() {
-		resolveTelemetrySettings();
-		final MailSendRetryPolicy resolvedRetryPolicy = resolveMailSendRetryPolicy();
-		final ConfigurationLocks locks = locksOf(config);
-		if (locks.isEmpty()) {
-			return;
-		}
-		validateLockedSendingSettings(locks, resolvedRetryPolicy);
-		validateLockedConnectionSettings(locks);
-		validateLockedExecutionSettings(locks);
-		validateLockedExtraProperties(locks);
-		validateLockedExecutorSettings(locks);
-		validateCustomMailerLocks(locks);
-		LockedSmtpConnectionRequirements.verifyBuilderCustomizations(locks, explicitSessionSettings, transportStrategyForLocks());
-		validateLockedClusterDefaults(locks);
-		if (oauth2AccessTokenProvider != null && locks.contains(Property.SMTP_PASSWORD)) {
-			throw locks.conflict(Property.SMTP_PASSWORD, "withOAuth2AccessTokenProvider(...) supplies credentials at send time, "
-					+ "but this factory locks the SMTP credential. "
-					+ "Runtime tokens can replace that locked value, so these settings cannot be combined. Remove that builder call, "
-					+ "or remove the SMTP credential lock from the configuration source if credentials should be supplied dynamically.");
-		}
+		captureConfigurationRequirements().validate();
 	}
 
-	private void validateLockedSendingSettings(final ConfigurationLocks locks, final MailSendRetryPolicy resolvedRetryPolicy) {
-		ConfiguredMailSendRetry.verifyLocks(locks, resolvedRetryPolicy);
-		locks.verify(Property.SMTP_RATE_LIMIT_GROUP, rateLimitGroup);
-		locks.verify(Property.SMTP_MESSAGE_RATE_LIMIT, messageRateLimit == null ? null : messageRateLimit.getCount());
-		locks.verify(Property.SMTP_MESSAGE_RATE_PERIOD, messageRateLimit == null ? null : messageRateLimit.getPeriod());
-		locks.verify(Property.SMTP_RECIPIENT_RATE_LIMIT, recipientRateLimit == null ? null : recipientRateLimit.getCount());
-		locks.verify(Property.SMTP_RECIPIENT_RATE_PERIOD, recipientRateLimit == null ? null : recipientRateLimit.getPeriod());
-		locks.verify(Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, rateLimitBurstsAllowed);
-		locks.verify(Property.SMTP_LEGACY_CONTENT_SUPPORT, legacySmtpContentSupportEnabled);
-		locks.verify(Property.DEFAULT_MAIL_SEND_TIMEOUT, mailSendTimeout);
-		locks.verify(Property.TRANSPORT_MODE_LOGGING_ONLY, transportModeLoggingOnly);
-	}
-
-	private void validateLockedExecutionSettings(final ConfigurationLocks locks) {
-		locks.verify(Property.DEFAULT_ASYNC_QUEUE_CAPACITY, asyncQueueConfig.getCapacity());
-		locks.verify(Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, asyncQueueConfig.getOverflowPolicy());
-		locks.verify(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DurationMillis.toInt(asyncQueueConfig.getWaitTimeout(), "asyncQueueWaitTimeout"));
-		locks.verify(Property.DEFAULT_POOL_SIZE, threadPoolSize);
-		locks.verify(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DurationMillis.toNullableInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime"));
-		if (locks.contains(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)
-				&& !clusterKey.equals(UUID.fromString(config.get(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY)))) {
-			throw locks.conflict(Property.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY,
-					"withClusterKey(...) selects a different pool cluster from the one locked by this factory. "
-					+ "Remove that builder call, use the locked cluster identifier, or change this lock in its configuration source.");
+	MailerConfigurationRequirements captureConfigurationRequirements() {
+		final Map<Property, Object> choices = new LinkedHashMap<>();
+		if (!locksOf(config).isEmpty()) {
+			captureSendingLockChoices(choices);
+			captureConnectionLockChoices(choices);
+			captureExecutionLockChoices(choices);
 		}
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, connectionPoolCoreSize);
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, connectionPoolMaxSize);
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DurationMillis.toNullableInt(connectionPoolClaimTimeout, "connectionPoolClaimTimeout"));
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfter, "connectionPoolExpireAfter"));
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfterCreation, "connectionPoolExpireAfterCreation"));
-		locks.verify(Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, connectionPoolLoadBalancingStrategy);
+		final Map<Property, Object> serverChoices = new LinkedHashMap<>();
+		captureLockedServerChoices(serverChoices);
+		return MailerConfigurationRequirements.builder().config(config).choices(choices).serverChoices(serverChoices)
+				.explicitSessionSettings(explicitSessionSettings).properties(properties)
+				.clusters(connectionPoolClusterConfigs.values()).sslHostsToTrust(sslHostsToTrust).clusterKey(clusterKey)
+				.retryPolicy(resolveMailSendRetryPolicy()).telemetryConfig(resolveTelemetryConfig())
+				.strategy(locksOf(config).isEmpty() ? null : transportStrategyForLocks())
+				.customMailer(customMailer != null).borrowedExecutor(executorService != null)
+				.tokenProvider(oauth2AccessTokenProvider != null).customFactoryInstance(hasCustomSSLFactoryInstanceForLocks()).build();
 	}
 
-	private void validateLockedConnectionSettings(final ConfigurationLocks locks) {
-		locks.verify(Property.CONNECTION_CONFLICT_POLICY, resolvedConnectionConflictPolicy());
-		locks.verify(Property.PROXY_HOST, proxyHost);
-		locks.verify(Property.PROXY_PORT, proxyPort);
-		locks.verify(Property.PROXY_USERNAME, proxyUsername);
-		locks.verify(Property.PROXY_PASSWORD, proxyPassword);
-		locks.verify(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
-		locks.verify(Property.JAVAXMAIL_DEBUG, config.valueOrProperty(debugConfig.getEnabled(), ConfigKeys.JAVAXMAIL_DEBUG, DEFAULT_JAVAXMAIL_DEBUG));
-		locks.verify(Property.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getPrinter() == null
-				? config.valueOrProperty(debugConfig.getOutput(), ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT)
+	void captureLockedServerChoices(final Map<Property, Object> choices) { }
+
+	boolean hasCustomSSLFactoryInstanceForLocks() { return false; }
+
+	private void captureSendingLockChoices(final Map<Property, Object> choices) {
+		choices.put(Property.SMTP_RATE_LIMIT_GROUP, rateLimitGroup);
+		choices.put(Property.SMTP_MESSAGE_RATE_LIMIT, messageRateLimit == null ? null : messageRateLimit.getCount());
+		choices.put(Property.SMTP_MESSAGE_RATE_PERIOD, messageRateLimit == null ? null : messageRateLimit.getPeriod());
+		choices.put(Property.SMTP_RECIPIENT_RATE_LIMIT, recipientRateLimit == null ? null : recipientRateLimit.getCount());
+		choices.put(Property.SMTP_RECIPIENT_RATE_PERIOD, recipientRateLimit == null ? null : recipientRateLimit.getPeriod());
+		choices.put(Property.SMTP_RATE_LIMIT_ALLOW_BURSTS, rateLimitBurstsAllowed);
+		choices.put(Property.SMTP_LEGACY_CONTENT_SUPPORT, legacySmtpContentSupportEnabled);
+		choices.put(Property.DEFAULT_MAIL_SEND_TIMEOUT, mailSendTimeout);
+		choices.put(Property.TRANSPORT_MODE_LOGGING_ONLY, transportModeLoggingOnly);
+	}
+
+	private void captureConnectionLockChoices(final Map<Property, Object> choices) {
+		choices.put(Property.CONNECTION_CONFLICT_POLICY, resolvedConnectionConflictPolicy());
+		choices.put(Property.PROXY_HOST, proxyHost);
+		choices.put(Property.PROXY_PORT, proxyPort);
+		choices.put(Property.PROXY_USERNAME, proxyUsername);
+		choices.put(Property.PROXY_PASSWORD, proxyPassword);
+		choices.put(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
+		choices.put(Property.JAVAXMAIL_DEBUG, MailerConfigurationResolver.resolve(config, ConfigKeys.JAVAXMAIL_DEBUG,
+				debugConfig.getEnabled(), DEFAULT_JAVAXMAIL_DEBUG));
+		choices.put(Property.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getPrinter() == null
+				? MailerConfigurationResolver.resolve(config, ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getOutput(), null)
 				: debugConfig.getPrinter() == System.out ? SessionDebugOutput.STDOUT : debugConfig.getPrinter() == System.err ? SessionDebugOutput.STDERR : null);
-		locks.verify(Property.DISABLE_ALL_CLIENTVALIDATION, clientValidationWarningsOnly);
-		validateLockedSocketTimeout(locks, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS);
-		validateLockedSocketTimeout(locks, Property.DEFAULT_READ_TIMEOUT_MILLIS);
-		validateLockedSocketTimeout(locks, Property.DEFAULT_WRITE_TIMEOUT_MILLIS);
-		locks.verify(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
-		locks.verify(Property.SMTP_LOCAL_PORT, localBindPort);
-		locks.verify(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
-		locks.verify(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
-		locks.verify(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
-		if (locks.contains(Property.DEFAULT_TRUSTED_HOSTS)
-				&& !ConnectionPropertyValues.equivalent("mail.smtp.ssl.trust",
-						String.join(" ", config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS).split(";")), String.join(" ", sslHostsToTrust))) {
-			throw locks.conflict(Property.DEFAULT_TRUSTED_HOSTS, "trustingSSLHosts(...) supplies a different trusted-host list from the one locked by this factory. "
-					+ "Remove that builder call, use the locked list, or change this lock in its configuration source.");
-		}
+		choices.put(Property.DISABLE_ALL_CLIENTVALIDATION, clientValidationWarningsOnly);
+		choices.put(Property.SMTP_LOCAL_ADDRESS, localBindAddress);
+		choices.put(Property.SMTP_LOCAL_PORT, localBindPort);
+		choices.put(Property.SMTP_CLIENT_HOSTNAME, smtpClientHostname);
+		choices.put(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost);
+		choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity);
 	}
 
-	private void validateLockedExtraProperties(final ConfigurationLocks locks) {
-		for (final String key : locks.getValues().keySet()) {
-			if (key.startsWith("simplejavamail.extraproperties.")) {
-				final String rawKey = key.substring("simplejavamail.extraproperties.".length());
-				if (!ConnectionPropertyValues.isSupported(rawKey)
-						|| !ConnectionPropertyValues.equivalent(rawKey, locks.getValues().get(key), properties.get(rawKey))) {
-					locks.verify(key, properties.get(rawKey));
-				}
-			}
-		}
-	}
-
-	private void validateLockedClusterDefaults(final ConfigurationLocks locks) {
-		for (ConnectionPoolClusterConfig cluster : connectionPoolClusterConfigs.values()) {
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, cluster.getCoreSize());
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, cluster.getMaxSize());
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DurationMillis.toNullableInt(cluster.getClaimTimeout(), "clusterClaimTimeout"));
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DurationMillis.toNullableInt(cluster.getExpireAfter(), "clusterExpireAfter"));
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DurationMillis.toNullableInt(cluster.getExpireAfterCreation(), "clusterExpireAfterCreation"));
-			verifyClusterOverride(locks, Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, cluster.getLoadBalancingStrategy());
-		}
-	}
-
-	private static void verifyClusterOverride(final ConfigurationLocks locks, final Property property, @Nullable final Object override) {
-		if (override != null) {
-			locks.verify(property, override, "A pool-cluster setting overrides this factory's locked connection-pool default. "
-					+ "Make the cluster's setting agree with the locked value or remove that cluster override, "
-					+ "or change the lock in its configuration source.");
-		}
-	}
-
-	private void validateCustomMailerLocks(final ConfigurationLocks locks) {
-		if (customMailer == null) {
-			return;
-		}
-		for (String key : locks.getValues().keySet()) {
-			final boolean smtpSetting = key.startsWith("simplejavamail.smtp.") && !key.startsWith("simplejavamail.smtp.ratelimit.");
-			final boolean requiresMailerControlledEnvelope = LockedEmailConfiguration.requiresMailerControlledEnvelope(key);
-			if (smtpSetting || requiresMailerControlledEnvelope || key.startsWith("simplejavamail.proxy.") || key.startsWith("simplejavamail.extraproperties.")
-					|| key.equals(Property.TRANSPORT_STRATEGY.key()) || key.equals(Property.CUSTOM_SSLFACTORY_CLASS.key())
-					|| key.equals(Property.DEFAULT_TRUST_ALL_HOSTS.key()) || key.equals(Property.DEFAULT_TRUSTED_HOSTS.key())
-					|| key.equals(Property.DEFAULT_VERIFY_SERVER_IDENTITY.key()) || key.equals(Property.OPPORTUNISTIC_TLS.key())
-					|| key.equals(Property.DEFAULT_SESSION_TIMEOUT_MILLIS.key()) || key.equals(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS.key())
-					|| key.equals(Property.DEFAULT_READ_TIMEOUT_MILLIS.key()) || key.equals(Property.DEFAULT_WRITE_TIMEOUT_MILLIS.key())) {
-				throw locks.conflict(key, "withCustomMailer(...) hands transport and delivery envelope handling to your callback, "
-						+ "but this factory locks a setting that must be applied there. Simple Java Mail cannot check what the callback does with it. "
-						+ "Remove withCustomMailer(...) to use this factory's SMTP transport, "
-						+ "or remove the corresponding locks from the configuration used for that callback.");
-			}
-		}
-	}
-
-	private void validateLockedExecutorSettings(final ConfigurationLocks locks) {
-		if (executorService != null) {
-			for (final Property property : new Property[]{Property.DEFAULT_POOL_SIZE, Property.DEFAULT_POOL_KEEP_ALIVE_TIME,
-					Property.DEFAULT_ASYNC_QUEUE_CAPACITY, Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY,
-					Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS}) {
-				if (locks.contains(property)) {
-					throw locks.conflict(property, "withExecutorService(...) supplies an application-managed executor, but this factory locks worker or queue settings. "
-							+ "Simple Java Mail cannot configure or verify those settings on your executor. "
-							+ "Remove that builder call so the Mailer creates its executor, or remove the corresponding locks from the configuration source.");
-				}
-			}
-		}
+	private void captureExecutionLockChoices(final Map<Property, Object> choices) {
+		choices.put(Property.DEFAULT_ASYNC_QUEUE_CAPACITY, asyncQueueConfig.getCapacity());
+		choices.put(Property.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, asyncQueueConfig.getOverflowPolicy());
+		choices.put(Property.DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT_MILLIS, DurationMillis.toInt(asyncQueueConfig.getWaitTimeout(), "asyncQueueWaitTimeout"));
+		choices.put(Property.DEFAULT_POOL_SIZE, threadPoolSize);
+		choices.put(Property.DEFAULT_POOL_KEEP_ALIVE_TIME, DurationMillis.toNullableInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime"));
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_CORE_SIZE, connectionPoolCoreSize);
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_MAX_SIZE, connectionPoolMaxSize);
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT_MILLIS, DurationMillis.toNullableInt(connectionPoolClaimTimeout, "connectionPoolClaimTimeout"));
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTER_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfter, "connectionPoolExpireAfter"));
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION_MILLIS, DurationMillis.toNullableInt(connectionPoolExpireAfterCreation, "connectionPoolExpireAfterCreation"));
+		choices.put(Property.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY, connectionPoolLoadBalancingStrategy);
 	}
 
 	/** @see MailerGenericBuilder#withMessageRateLimit(int, Duration) */
 	@Override
 	public T withMessageRateLimit(final int count, @NotNull final Duration period) {
-		messageRateLimit = new SendingRateLimit(count, period);
+		messageRateLimit = resolveRateLimitChoice(new SendingRateLimit(count, period), false, ConfigKeys.SMTP_MESSAGE_RATE_LIMIT, ConfigKeys.SMTP_MESSAGE_RATE_PERIOD);
 		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#withRecipientRateLimit(int, Duration) */
 	@Override
 	public T withRecipientRateLimit(final int count, @NotNull final Duration period) {
-		recipientRateLimit = new SendingRateLimit(count, period);
+		recipientRateLimit = resolveRateLimitChoice(new SendingRateLimit(count, period), false, ConfigKeys.SMTP_RECIPIENT_RATE_LIMIT, ConfigKeys.SMTP_RECIPIENT_RATE_PERIOD);
 		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#withRateLimitGroup(String) */
 	@Override
 	public T withRateLimitGroup(@NotNull final String group) {
+		validateRateLimitGroup(group);
+		rateLimitGroup = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_GROUP,
+				ConfigurationChoice.set(group), null, "withRateLimitGroup");
+		return (T) this;
+	}
+
+	private static void validateRateLimitGroup(final String group) {
 		if (requireNonNull(group, "group").isBlank()) {
 			throw new IllegalArgumentException("A rate-limit group needs a nonblank name; call resetRateLimitGroup() for private allowance.");
 		}
-		rateLimitGroup = group;
-		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#withRateLimitBurstsAllowed(boolean) */
 	@Override
 	public T withRateLimitBurstsAllowed(final boolean allowed) {
-		rateLimitBurstsAllowed = allowed;
+		rateLimitBurstsAllowed = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_ALLOW_BURSTS,
+				ConfigurationChoice.set(allowed), DEFAULT_RATE_LIMIT_BURSTS_ALLOWED, "withRateLimitBurstsAllowed");
 		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#resetMessageRateLimit() */
 	@Override
 	public T resetMessageRateLimit() {
-		messageRateLimit = null;
+		messageRateLimit = resolveRateLimitChoice(null, true, ConfigKeys.SMTP_MESSAGE_RATE_LIMIT, ConfigKeys.SMTP_MESSAGE_RATE_PERIOD);
 		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#resetRecipientRateLimit() */
 	@Override
 	public T resetRecipientRateLimit() {
-		recipientRateLimit = null;
+		recipientRateLimit = resolveRateLimitChoice(null, true, ConfigKeys.SMTP_RECIPIENT_RATE_LIMIT, ConfigKeys.SMTP_RECIPIENT_RATE_PERIOD);
 		return (T) this;
 	}
 
 	/** @see MailerGenericBuilder#resetRateLimitGroup() */
 	@Override
 	public T resetRateLimitGroup() {
-		rateLimitGroup = null;
+		rateLimitGroup = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_GROUP,
+				ConfigurationChoice.remove(), null, "resetRateLimitGroup");
 		return (T) this;
 	}
 
@@ -983,7 +829,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	private ConnectionConflictPolicy resolvedConnectionConflictPolicy() {
-		return config.valueOrProperty(connectionConflictPolicy, ConfigKeys.CONNECTION_CONFLICT_POLICY, DEFAULT_CONNECTION_CONFLICT_POLICY);
+		return MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_CONFLICT_POLICY,
+				connectionConflictPolicy, DEFAULT_CONNECTION_CONFLICT_POLICY);
 	}
 
 	private void addLockedConnectionChoices(final Map<Property, Object> connectionChoices, @Nullable final TransportStrategy strategy,
@@ -1050,57 +897,20 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	private Duration socketTimeoutChoice(@Nullable final Duration supplied, final ConfigKey<Duration> property) {
-		return supplied == null ? configuredSocketTimeout(property) : supplied;
+        return MailerConfigurationResolver.resolve(config, property,
+                supplied, configuredDuration(ConfigKeys.SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT));
 	}
 
-	private void validateLockedSocketTimeout(final ConfigurationLocks locks, final Property property) {
-		// Ordinary inherited values yield to locks; only a deliberate builder choice may contradict one.
-		if (explicitSessionSettings.containsKey(property)) {
-			final Object value = explicitSessionSettings.get(property);
-			locks.verify(Property.DEFAULT_SESSION_TIMEOUT_MILLIS, value);
-			locks.verify(property, value);
-		}
-	}
-
-	/** Assemble supplied configuration; default resolution and caller-Session ownership have already been settled by the builder. */
-	OperationalConfig buildOperationalConfig(final MailerSessionSettings sessionSettings) {
-		resolveTelemetrySettings();
-		if (executorService != null && !asyncQueueConfig.equals(DEFAULT_ASYNC_QUEUE_CONFIG)) {
-			throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
-		}
-		return new OperationalConfigImpl(
-				sessionSettings.copyAdditionalProperties(),
-				sessionSettings.getConnectionConflictPolicy(),
-				sessionSettings.getConnectTimeout(),
-				sessionSettings.getReadTimeout(),
-				sessionSettings.getWriteTimeout(),
-				sessionSettings.getLocalBindAddress(),
-				sessionSettings.getLocalBindPort(),
-				sessionSettings.getSmtpClientHostname(),
-				isLegacySmtpContentSupportEnabled(),
-				resolveTelemetryConfig(),
-				resolvedWorkerCount(),
-				resolvedWorkerKeepAlive(),
-				getClusterKey(),
-				getConnectionPoolCoreSize(),
-				getConnectionPoolMaxSize(),
-				getConnectionPoolClaimTimeout(),
-				getConnectionPoolExpireAfter(),
-				getConnectionPoolExpireAfterCreation(),
-				getConnectionPoolLoadBalancingStrategy(),
-				Collections.unmodifiableMap(new LinkedHashMap<>(connectionPoolClusterConfigs)),
-				isTransportModeLoggingOnly(),
-				resolveDebugConfig(sessionSettings.getDebugConfig()),
-				isClientValidationWarningsOnly(),
-				Collections.unmodifiableList(new ArrayList<>(sessionSettings.getSslHostsToTrust())),
-				sessionSettings.isTrustAllSSLHost(),
-				sessionSettings.isVerifyingServerIdentity(),
-				getExecutorService() != null ? getExecutorService() : determineDefaultExecutorService(),
-				isExecutorServiceUserProvided(),
-				sessionSettings.getCustomMailer(),
-				sessionSettings.getTokenProvider(),
-				getAsyncQueueConfig(), getMailSendTimeout(), messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy,
-				resolveMailSendRetryPolicy());
+	private MailerOperationalSettings captureOperationalSettings(final MailerConfigurationRequirements requirements) {
+		return MailerOperationalSettings.builder().legacySmtpContentSupportEnabled(legacySmtpContentSupportEnabled)
+				.telemetryConfig(requirements.getTelemetryConfig()).threadPoolSize(resolvedWorkerCount()).threadPoolKeepAliveTime(resolvedWorkerKeepAlive())
+				.clusterKey(clusterKey).connectionPoolCoreSize(connectionPoolCoreSize).connectionPoolMaxSize(connectionPoolMaxSize)
+				.connectionPoolClaimTimeout(connectionPoolClaimTimeout).connectionPoolExpireAfter(connectionPoolExpireAfter)
+				.connectionPoolExpireAfterCreation(connectionPoolExpireAfterCreation).connectionPoolLoadBalancingStrategy(connectionPoolLoadBalancingStrategy)
+				.connectionPoolClusterConfigs(connectionPoolClusterConfigs).transportModeLoggingOnly(transportModeLoggingOnly).debugConfig(debugConfig)
+				.clientValidationWarningsOnly(clientValidationWarningsOnly).executorService(executorService).asyncQueueConfig(asyncQueueConfig)
+				.mailSendTimeout(mailSendTimeout).messageRateLimit(messageRateLimit).recipientRateLimit(recipientRateLimit).rateLimitGroup(rateLimitGroup)
+				.rateLimitBurstsAllowed(rateLimitBurstsAllowed).failoverPolicy(failoverPolicy).mailSendRetryPolicy(requirements.getRetryPolicy()).build();
 	}
 
 	/** @see MailerGenericBuilder#withMailSendRetryPolicy(MailSendRetryPolicy) */
@@ -1178,7 +988,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 					+ "Third-party Jakarta Mail providers are supported through a Simple Java Mail Mailer.");
 		}
 		failoverMailer = (MailerImpl) mailer;
-		failoverPolicy = policy;
+		failoverPolicy = MailerConfigurationResolver.select(ConfigurationChoice.set(policy), ConfiguredFailover.policy(config), null,
+				"simplejavamail.failover", "withFailoverMailer");
 		failoverName = null;
 		cliFailoverOptions.clear();
 		return (T) this;
@@ -1265,11 +1076,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Nullable
 	public FailoverPolicy getFailoverPolicy() {
 		return failoverPolicy;
-	}
-
-	@Nullable
-	MailerImpl getResolvedFailoverMailer() {
-		return failoverMailer;
 	}
 
 	/**
@@ -1405,13 +1211,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override public T useConfiguredDebugConfig() { return withDebugConfig(SessionDebugConfig.builder().build()); }
 
 	private SessionDebugConfig resolveDebugConfig(final SessionDebugConfig baseline) {
-		final SessionDebugConfig.Builder resolved = SessionDebugConfig.builder().withEnabled(config.valueOrProperty(
-				debugConfig.getEnabled(), ConfigKeys.JAVAXMAIL_DEBUG, baseline.getEnabled()));
-		if (debugConfig.getPrinter() != null) {
-			return resolved.withPrinter(debugConfig.getPrinter()).build();
-		}
-		final SessionDebugOutput output = config.valueOrProperty(debugConfig.getOutput(), ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT, baseline.getOutput());
-		return output != null ? resolved.withOutput(output).build() : resolved.withPrinter(requireNonNull(baseline.getPrinter(), "baselinePrinter")).build();
+		return ResolvedMailerConfiguration.resolveDebugConfig(config, debugConfig, baseline, this instanceof MailerFromSessionBuilderImpl);
 	}
 
 	/**
@@ -1419,7 +1219,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T disablingAllClientValidation(@NotNull final Boolean clientValidationWarningsOnly) {
-		this.clientValidationWarningsOnly = clientValidationWarningsOnly;
+		this.clientValidationWarningsOnly = MailerConfigurationResolver.resolve(config, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION,
+				ConfigurationChoice.set(clientValidationWarningsOnly), DEFAULT_DISABLE_ALL_CLIENTVALIDATION, "disablingAllClientValidation");
 		return (T) this;
 	}
 
@@ -1473,7 +1274,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	/** @see MailerGenericBuilder#withLegacySmtpContentSupport(boolean) */
 	@Override
 	public T withLegacySmtpContentSupport(final boolean enabled) {
-		this.legacySmtpContentSupportEnabled = enabled;
+		this.legacySmtpContentSupportEnabled = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT,
+				ConfigurationChoice.set(enabled), DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT, "withLegacySmtpContentSupport");
 		return (T) this;
 	}
 
@@ -1488,7 +1290,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withEmailValidator(@NotNull final EmailValidator emailEmailValidator) {
-		this.emailValidator = emailEmailValidator;
+		this.emailValidator = MailerConfigurationResolver.select(ConfigurationChoice.set(emailEmailValidator), null,
+				null, "emailValidator", "withEmailValidator");
 		return (T) this;
 	}
 
@@ -1533,7 +1336,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withThreadPoolSize(@NotNull final Integer threadPoolSize) {
-		this.threadPoolSize = threadPoolSize;
+		this.threadPoolSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_POOL_SIZE,
+				ConfigurationChoice.set(threadPoolSize), DEFAULT_POOL_SIZE, "withThreadPoolSize");
 		threadPoolSizeExplicit = true;
 		return (T) this;
 	}
@@ -1544,7 +1348,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withThreadPoolKeepAliveTime(@NotNull final Duration threadPoolKeepAliveTime) {
 		DurationMillis.toInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime");
-		this.threadPoolKeepAliveTime = threadPoolKeepAliveTime;
+		this.threadPoolKeepAliveTime = MailerConfigurationResolver.resolve(config, ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME,
+				ConfigurationChoice.set(threadPoolKeepAliveTime), DEFAULT_POOL_KEEP_ALIVE_TIME, "withThreadPoolKeepAliveTime");
 		threadPoolKeepAliveTimeExplicit = true;
 		return (T) this;
 	}
@@ -1554,7 +1359,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withClusterKey(@NotNull final UUID clusterKey) {
-		this.clusterKey = clusterKey;
+		this.clusterKey = resolveClusterKey(requireNonNull(clusterKey, "clusterKey"));
 		return (T) this;
 	}
 
@@ -1563,7 +1368,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withConnectionPoolCoreSize(@NotNull final Integer connectionPoolCoreSize) {
-		this.connectionPoolCoreSize = connectionPoolCoreSize;
+		this.connectionPoolCoreSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_CORE_SIZE,
+				ConfigurationChoice.set(connectionPoolCoreSize), DEFAULT_CONNECTIONPOOL_CORE_SIZE, "withConnectionPoolCoreSize");
 		return (T) this;
 	}
 
@@ -1572,7 +1378,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withConnectionPoolMaxSize(@NotNull final Integer connectionPoolMaxSize) {
-		this.connectionPoolMaxSize = connectionPoolMaxSize;
+		this.connectionPoolMaxSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_MAX_SIZE,
+				ConfigurationChoice.set(connectionPoolMaxSize), DEFAULT_CONNECTIONPOOL_MAX_SIZE, "withConnectionPoolMaxSize");
 		return (T) this;
 	}
 
@@ -1582,7 +1389,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withConnectionPoolClaimTimeout(@NotNull final Duration connectionPoolClaimTimeout) {
 		DurationMillis.toInt(connectionPoolClaimTimeout, "connectionPoolClaimTimeout");
-		this.connectionPoolClaimTimeout = connectionPoolClaimTimeout;
+		this.connectionPoolClaimTimeout = MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_POOL_CLAIM_TIMEOUT,
+				ConfigurationChoice.set(connectionPoolClaimTimeout), DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT, "withConnectionPoolClaimTimeout");
 		return (T) this;
 	}
 
@@ -1592,7 +1400,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withConnectionPoolExpireAfter(@NotNull final Duration connectionPoolExpireAfter) {
 		DurationMillis.toInt(connectionPoolExpireAfter, "connectionPoolExpireAfter");
-		this.connectionPoolExpireAfter = connectionPoolExpireAfter;
+		this.connectionPoolExpireAfter = MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER,
+				ConfigurationChoice.set(connectionPoolExpireAfter), DEFAULT_CONNECTIONPOOL_EXPIREAFTER, "withConnectionPoolExpireAfter");
 		return (T) this;
 	}
 
@@ -1602,7 +1411,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withConnectionPoolExpireAfterCreation(@NotNull final Duration connectionPoolExpireAfterCreation) {
 		DurationMillis.toInt(connectionPoolExpireAfterCreation, "connectionPoolExpireAfterCreation");
-		this.connectionPoolExpireAfterCreation = connectionPoolExpireAfterCreation;
+		this.connectionPoolExpireAfterCreation = MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION,
+				ConfigurationChoice.set(connectionPoolExpireAfterCreation), DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION, "withConnectionPoolExpireAfterCreation");
 		return (T) this;
 	}
 
@@ -1611,7 +1421,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withConnectionPoolLoadBalancingStrategy(@NotNull final LoadBalancingStrategy loadBalancingStrategy) {
-		this.connectionPoolLoadBalancingStrategy = loadBalancingStrategy;
+		this.connectionPoolLoadBalancingStrategy = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
+				ConfigurationChoice.set(loadBalancingStrategy),
+				LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY), "withConnectionPoolLoadBalancingStrategy");
 		return (T) this;
 	}
 
@@ -1620,7 +1432,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withTransportModeLoggingOnly(@NotNull final Boolean transportModeLoggingOnly) {
-		this.transportModeLoggingOnly = transportModeLoggingOnly;
+		this.transportModeLoggingOnly = MailerConfigurationResolver.resolve(config, ConfigKeys.TRANSPORT_MODE_LOGGING_ONLY,
+				ConfigurationChoice.set(transportModeLoggingOnly), DEFAULT_TRANSPORT_MODE_LOGGING_ONLY, "withTransportModeLoggingOnly");
 		return (T) this;
 	}
 
@@ -1660,8 +1473,13 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProperties(@NotNull final Properties properties) {
 		for (Map.Entry<Object, Object> property : properties.entrySet()) {
-			this.properties.put(property.getKey(), property.getValue());
-			explicitRawSessionSettings.put(property.getKey().toString(), property.getValue());
+			if (property.getKey() instanceof String) {
+				final String name = (String) property.getKey();
+				this.properties.put(name, resolveRawProperty(name, ConfigurationChoice.set(property.getValue())));
+				explicitRawSessionSettings.put(name, property.getValue());
+			} else {
+				this.properties.put(property.getKey(), property.getValue());
+			}
 		}
 		return (T) this;
 	}
@@ -1672,7 +1490,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withProperties(@NotNull final Map<String, String> properties) {
 		for (Map.Entry<String, String> property : properties.entrySet()) {
-			this.properties.put(property.getKey(), property.getValue());
+			this.properties.put(property.getKey(), resolveRawProperty(property.getKey(), ConfigurationChoice.set(property.getValue())));
 			explicitRawSessionSettings.put(property.getKey(), property.getValue());
 		}
 		return (T) this;
@@ -1685,13 +1503,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	public T withProperty(@NotNull final String propertyName, @Nullable final Object propertyValue) {
 		requireNonNull(propertyName, "propertyName");
 		final String text = propertyValue == null ? null : requireNonNull(propertyValue.toString(), "propertyValue.toString()");
-		if (text == null) {
+		final Object selected = resolveRawProperty(propertyName, MailerConfigurationResolver.choice(text, text == null));
+		if (selected == null) {
 			this.properties.remove(propertyName);
 		} else {
-			this.properties.setProperty(propertyName, text);
+			this.properties.put(propertyName, selected);
 		}
 		explicitRawSessionSettings.put(propertyName, text);
 		return (T) this;
+	}
+
+	@Nullable
+	private Object resolveRawProperty(final String name, final ConfigurationChoice<Object> choice) {
+		final Map<String, String> captured = MailerConfigurationResolver.configured(config, ConfigKeys.EXTRA_PROPERTIES, null);
+		return MailerConfigurationResolver.select(choice, captured == null ? null : captured.get(name), null,
+				"simplejavamail.extraproperties." + name, "withProperty/withProperties");
 	}
 
 	/**
@@ -1743,19 +1569,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	/** Resolves only captured values, retaining the application-owned integration. */
 	MailSendTelemetryConfig resolveTelemetryConfig() {
 		final MailSendTelemetryConfig.Builder resolved = telemetryConfig.toBuilder()
-				.withEnabled(config.valueOrProperty(telemetryConfig.getEnabled(), ConfigKeys.TELEMETRY_ENABLED, DEFAULT_MAIL_SEND_TELEMETRY_ENABLED))
-				.withSmtpEndpointAttributes(config.valueOrProperty(telemetryConfig.getSmtpEndpointAttributes(),ConfigKeys.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES));
+				.withEnabled(MailerConfigurationResolver.resolve(config, ConfigKeys.TELEMETRY_ENABLED,
+						telemetryConfig.getEnabled(), DEFAULT_MAIL_SEND_TELEMETRY_ENABLED))
+				.withSmtpEndpointAttributes(MailerConfigurationResolver.resolve(config, ConfigKeys.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
+						telemetryConfig.getSmtpEndpointAttributes(), DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES));
 		return resolved.build();
-	}
-
-	/** Validate the builder's resolved choices before requesting optional runtime resources. */
-	private void resolveTelemetrySettings() {
-		final MailSendTelemetryConfig resolved = resolveTelemetryConfig();
-		locksOf(config).verify(Property.TELEMETRY_ENABLED, resolved.getEnabled());
-		locksOf(config).verify(Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES, resolved.getSmtpEndpointAttributes());
-		if (Boolean.TRUE.equals(resolved.getEnabled())) {
-			ModuleLoader.loadOpenTelemetryModule();
-		}
 	}
 
 	/** @see MailerGenericBuilder#withSendHandlers(MailSendHandlers) */
@@ -1789,7 +1607,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T withMailSendTimeout(@NotNull final Duration timeout) {
 		MailSendControl.positiveTimeoutNanos(timeout);
-		mailSendTimeout = timeout;
+		mailSendTimeout = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT,
+				ConfigurationChoice.set(timeout), DEFAULT_MAIL_SEND_TIMEOUT, "withMailSendTimeout");
 		return (T) this;
 	}
 
@@ -1798,7 +1617,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T resetMailSendTimeout() {
-		mailSendTimeout = DEFAULT_MAIL_SEND_TIMEOUT;
+		mailSendTimeout = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_MAIL_SEND_TIMEOUT,
+				ConfigurationChoice.remove(), DEFAULT_MAIL_SEND_TIMEOUT, "resetMailSendTimeout");
 		return (T) this;
 	}
 
@@ -1869,12 +1689,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	@Nullable private Duration configuredDuration(final ConfigKey<Duration> property, @Nullable final Duration fallback) {
-		return config.valueOrProperty(null, property, fallback);
-	}
-
-	@NotNull
-	private ExecutorService determineDefaultExecutorService() {
-		return new MailSendExecutor(resolvedWorkerCount(), DurationMillis.toInt(resolvedWorkerKeepAlive(), "threadPoolKeepAliveTime"), asyncQueueConfig);
+		return MailerConfigurationResolver.resolve(config, property, null, fallback);
 	}
 
 	/**
@@ -1979,7 +1794,8 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T clearConnectionPoolExpireAfterCreation() {
-		this.connectionPoolExpireAfterCreation = null;
+		this.connectionPoolExpireAfterCreation = MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION,
+				ConfigurationChoice.remove(), DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION, "clearConnectionPoolExpireAfterCreation");
 		return (T) this;
 	}
 
@@ -2013,7 +1829,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T clearEmailValidator() {
-		this.emailValidator = null;
+		this.emailValidator = MailerConfigurationResolver.select(ConfigurationChoice.remove(), null, null, "emailValidator", "clearEmailValidator");
 		return (T) this;
 	}
 
@@ -2079,7 +1895,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	@Override
 	public T clearProperties() {
 		for (Object key : properties.keySet()) {
-			explicitRawSessionSettings.put(key.toString(), null);
+			if (key instanceof String) { explicitRawSessionSettings.put((String) key, null); }
 		}
 		properties.clear();
 		return (T) this;
@@ -2392,14 +2208,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withConnectionPoolConfig(ConnectionPoolConfig) */
     @Override public T withConnectionPoolConfig(@NotNull final ConnectionPoolConfig choices) {
         requireNonNull(choices, "connectionPoolConfig");
-        connectionPoolCoreSize = config.valueOrProperty(choices.getCoreSize(), ConfigKeys.DEFAULT_CONNECTIONPOOL_CORE_SIZE, DEFAULT_CONNECTIONPOOL_CORE_SIZE);
-        connectionPoolMaxSize = config.valueOrProperty(choices.getMaxSize(), ConfigKeys.DEFAULT_CONNECTIONPOOL_MAX_SIZE, DEFAULT_CONNECTIONPOOL_MAX_SIZE);
+        connectionPoolCoreSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_CORE_SIZE,
+                choices.getCoreSize(), DEFAULT_CONNECTIONPOOL_CORE_SIZE);
+        connectionPoolMaxSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_MAX_SIZE,
+                choices.getMaxSize(), DEFAULT_CONNECTIONPOOL_MAX_SIZE);
         connectionPoolClaimTimeout = durationChoice(choices.getClaimTimeout(), ConfigKeys.CONNECTION_POOL_CLAIM_TIMEOUT, DEFAULT_CONNECTIONPOOL_CLAIMTIMEOUT);
         connectionPoolExpireAfter = durationChoice(choices.getExpireAfter(), ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER, DEFAULT_CONNECTIONPOOL_EXPIREAFTER);
-        connectionPoolExpireAfterCreation = choices.isExpireAfterCreationCleared() ? null : durationChoice(choices.getExpireAfterCreation(),ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION, DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION);
-        clusterKey = choices.getClusterKey() == null ? configuredClusterKey : choices.getClusterKey();
-        connectionPoolLoadBalancingStrategy = config.valueOrProperty(choices.getLoadBalancingStrategy(), ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
-                LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY));
+        connectionPoolExpireAfterCreation = MailerConfigurationResolver.resolve(config, ConfigKeys.CONNECTION_POOL_EXPIRE_AFTER_CREATION,
+                MailerConfigurationResolver.choice(choices.getExpireAfterCreation(), choices.isExpireAfterCreationCleared()),
+                DEFAULT_CONNECTIONPOOL_EXPIREAFTERCREATION, "ConnectionPoolConfig.withExpireAfterCreation/clearExpireAfterCreation");
+        clusterKey = resolveClusterKey(choices.getClusterKey());
+        connectionPoolLoadBalancingStrategy = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY,
+                choices.getLoadBalancingStrategy(), LoadBalancingStrategy.valueOf(DEFAULT_CONNECTIONPOOL_LOADBALANCING_STRATEGY));
         connectionPoolConfig = choices;
         return (T) this;
     }
@@ -2411,15 +2231,18 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withAsyncExecutionConfig(AsyncExecutionConfig) */
     @Override public T withAsyncExecutionConfig(@NotNull final AsyncExecutionConfig choices) {
         requireNonNull(choices, "asyncExecutionConfig");
-        threadPoolSize = config.valueOrProperty(choices.getThreadPoolSize(), ConfigKeys.DEFAULT_POOL_SIZE, DEFAULT_POOL_SIZE);
+        threadPoolSize = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_POOL_SIZE,
+                choices.getThreadPoolSize(), DEFAULT_POOL_SIZE);
         threadPoolKeepAliveTime = durationChoice(choices.getKeepAliveTime(), ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME, DEFAULT_POOL_KEEP_ALIVE_TIME);
         threadPoolSizeExplicit = choices.getThreadPoolSize() != null || config.hasProperty(ConfigKeys.DEFAULT_POOL_SIZE);
         threadPoolKeepAliveTimeExplicit = choices.getKeepAliveTime() != null || config.hasProperty(ConfigKeys.THREAD_POOL_KEEP_ALIVE_TIME);
         executorService = choices.getExecutorService();
-        final AsyncQueueOverflowPolicy policy = choices.getRejectWhenFull() == null
-                ? config.valueOrProperty(null, ConfigKeys.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY)
+        final AsyncQueueOverflowPolicy suppliedPolicy = choices.getRejectWhenFull() == null ? null
                 : choices.getRejectWhenFull() ? AsyncQueueOverflowPolicy.REJECT : AsyncQueueOverflowPolicy.WAIT_FOR_CAPACITY;
-        asyncQueueConfig = new AsyncQueueConfig(config.valueOrProperty(choices.getQueueCapacity(), ConfigKeys.DEFAULT_ASYNC_QUEUE_CAPACITY, DEFAULT_ASYNC_QUEUE_CAPACITY),
+        final AsyncQueueOverflowPolicy policy = MailerConfigurationResolver.resolve(config,
+                ConfigKeys.DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY, suppliedPolicy, DEFAULT_ASYNC_QUEUE_OVERFLOW_POLICY);
+        asyncQueueConfig = new AsyncQueueConfig(MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_ASYNC_QUEUE_CAPACITY,
+                choices.getQueueCapacity(), DEFAULT_ASYNC_QUEUE_CAPACITY),
                 policy, durationChoice(choices.getCapacityWait(), ConfigKeys.ASYNC_QUEUE_WAIT_TIMEOUT, DEFAULT_ASYNC_QUEUE_WAIT_TIMEOUT));
         asyncExecutionConfig = choices;
         return (T) this;
@@ -2434,11 +2257,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
         requireNonNull(choices, "proxyConfig");
         for (Property property : List.of(Property.PROXY_HOST, Property.PROXY_PORT, Property.PROXY_USERNAME, Property.PROXY_PASSWORD,
                 Property.PROXY_SOCKS5BRIDGE_PORT)) { explicitSessionSettings.remove(property); }
-        proxyHost = choices.isHostCleared() ? null : stringChoice(choices.getHost(), ConfigKeys.PROXY_HOST);
-        proxyPort = choices.isPortCleared() ? null : config.valueOrProperty(choices.getPort(), ConfigKeys.PROXY_PORT, DEFAULT_PROXY_PORT);
-        proxyUsername = choices.isUsernameCleared() ? null : stringChoice(choices.getUsername(), ConfigKeys.PROXY_USERNAME);
-        proxyPassword = choices.isPasswordCleared() ? null : stringChoice(choices.getPassword(), ConfigKeys.PROXY_PASSWORD);
-        proxyBridgePort = config.valueOrProperty(choices.getBridgePort(), ConfigKeys.PROXY_SOCKS5BRIDGE_PORT, DEFAULT_PROXY_BRIDGE_PORT);
+        proxyHost = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_HOST,
+                MailerConfigurationResolver.choice(choices.getHost(), choices.isHostCleared()), null, "SocksProxyConfig.withHost/clearHost");
+        proxyPort = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PORT,
+                MailerConfigurationResolver.choice(choices.getPort(), choices.isPortCleared()), DEFAULT_PROXY_PORT, "SocksProxyConfig.withPort/clearPort");
+        proxyUsername = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_USERNAME,
+                MailerConfigurationResolver.choice(choices.getUsername(), choices.isUsernameCleared()), null, "SocksProxyConfig.withUsername/clearUsername");
+        proxyPassword = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PASSWORD,
+                MailerConfigurationResolver.choice(choices.getPassword(), choices.isPasswordCleared()), null, "SocksProxyConfig.withPassword/clearPassword");
+        proxyBridgePort = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT,
+                choices.getBridgePort(), DEFAULT_PROXY_BRIDGE_PORT);
         proxyConfig = choices;
         addProxyDeclarations(explicitSessionSettings);
         return (T) this;
@@ -2451,13 +2279,16 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withSendingLimitsConfig(SendingLimitsConfig) */
     @Override public T withSendingLimitsConfig(@NotNull final SendingLimitsConfig choices) {
         requireNonNull(choices, "sendingLimitsConfig");
-        messageRateLimit = choices.isMessageRateLimitCleared() ? null : choices.getMessageRateLimit() != null ? choices.getMessageRateLimit()
-                : resolveRateLimit(config, ConfigKeys.SMTP_MESSAGE_RATE_LIMIT, ConfigKeys.SMTP_MESSAGE_RATE_PERIOD);
-        recipientRateLimit = choices.isRecipientRateLimitCleared() ? null : choices.getRecipientRateLimit() != null ? choices.getRecipientRateLimit()
-                : resolveRateLimit(config, ConfigKeys.SMTP_RECIPIENT_RATE_LIMIT, ConfigKeys.SMTP_RECIPIENT_RATE_PERIOD);
-        rateLimitGroup = choices.isRateLimitGroupCleared() ? null : config.valueOrProperty(choices.getRateLimitGroup(), ConfigKeys.SMTP_RATE_LIMIT_GROUP, null);
-        if (rateLimitGroup != null) { withRateLimitGroup(rateLimitGroup); }
-        rateLimitBurstsAllowed = config.valueOrProperty(choices.getRateLimitBurstsAllowed(), ConfigKeys.SMTP_RATE_LIMIT_ALLOW_BURSTS, DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
+        messageRateLimit = resolveRateLimitChoice(choices.getMessageRateLimit(), choices.isMessageRateLimitCleared(),
+                ConfigKeys.SMTP_MESSAGE_RATE_LIMIT, ConfigKeys.SMTP_MESSAGE_RATE_PERIOD);
+        recipientRateLimit = resolveRateLimitChoice(choices.getRecipientRateLimit(), choices.isRecipientRateLimitCleared(),
+                ConfigKeys.SMTP_RECIPIENT_RATE_LIMIT, ConfigKeys.SMTP_RECIPIENT_RATE_PERIOD);
+        rateLimitGroup = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_GROUP,
+                MailerConfigurationResolver.choice(valueNullOrEmpty(choices.getRateLimitGroup()) ? null : choices.getRateLimitGroup(), choices.isRateLimitGroupCleared()),
+                null, "SendingLimitsConfig.withRateLimitGroup/clearRateLimitGroup");
+        if (rateLimitGroup != null) { validateRateLimitGroup(rateLimitGroup); }
+        rateLimitBurstsAllowed = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_RATE_LIMIT_ALLOW_BURSTS,
+                choices.getRateLimitBurstsAllowed(), DEFAULT_RATE_LIMIT_BURSTS_ALLOWED);
         sendingLimitsConfig = choices;
         return (T) this;
     }
@@ -2477,10 +2308,17 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
         connectTimeout = socketTimeoutChoice(choices.getConnectTimeout(), ConfigKeys.CONNECT_TIMEOUT);
         readTimeout = socketTimeoutChoice(choices.getReadTimeout(), ConfigKeys.READ_TIMEOUT);
         writeTimeout = socketTimeoutChoice(choices.getWriteTimeout(), ConfigKeys.WRITE_TIMEOUT);
-        localBindAddress = choices.isLocalBindAddressCleared() ? null : stringChoice(choices.getLocalBindAddress(), ConfigKeys.SMTP_LOCAL_ADDRESS);
-        localBindPort = choices.isLocalBindPortCleared() ? null : config.valueOrProperty(choices.getLocalBindPort(), ConfigKeys.SMTP_LOCAL_PORT, null);
-        smtpClientHostname = choices.isSmtpClientHostnameCleared() ? null : stringChoice(choices.getSmtpClientHostname(), ConfigKeys.SMTP_CLIENT_HOSTNAME);
-        legacySmtpContentSupportEnabled = config.valueOrProperty(choices.getLegacySmtpContentSupport(), ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT, DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
+        localBindAddress = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_LOCAL_ADDRESS,
+                MailerConfigurationResolver.choice(choices.getLocalBindAddress(), choices.isLocalBindAddressCleared()), null,
+                "ConnectionConfig.withLocalBindAddress/clearLocalBindAddress");
+        localBindPort = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_LOCAL_PORT,
+                MailerConfigurationResolver.choice(choices.getLocalBindPort(), choices.isLocalBindPortCleared()), null,
+                "ConnectionConfig.withLocalBindPort/clearLocalBindPort");
+        smtpClientHostname = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_CLIENT_HOSTNAME,
+                MailerConfigurationResolver.choice(choices.getSmtpClientHostname(), choices.isSmtpClientHostnameCleared()), null,
+                "ConnectionConfig.withSmtpClientHostname/clearSmtpClientHostname");
+        legacySmtpContentSupportEnabled = MailerConfigurationResolver.resolve(config, ConfigKeys.SMTP_LEGACY_CONTENT_SUPPORT,
+                choices.getLegacySmtpContentSupport(), DEFAULT_LEGACY_SMTP_CONTENT_SUPPORT);
         if (choices.getConnectTimeout() != null) { customizedSessionSetting(Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, DurationMillis.toInt(connectTimeout, "connectTimeout")); }
         if (choices.getReadTimeout() != null) { customizedSessionSetting(Property.DEFAULT_READ_TIMEOUT_MILLIS, DurationMillis.toInt(readTimeout, "readTimeout")); }
         if (choices.getWriteTimeout() != null) { customizedSessionSetting(Property.DEFAULT_WRITE_TIMEOUT_MILLIS, DurationMillis.toInt(writeTimeout, "writeTimeout")); }
@@ -2501,11 +2339,14 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
         validateTlsConstructionScope(choices);
         for (Property property : List.of(Property.DEFAULT_TRUSTED_HOSTS, Property.DEFAULT_TRUST_ALL_HOSTS, Property.DEFAULT_VERIFY_SERVER_IDENTITY,
                 Property.OPPORTUNISTIC_TLS, Property.CUSTOM_SSLFACTORY_CLASS)) { explicitSessionSettings.remove(property); }
-        final String configuredHosts = config.get(ConfigKeys.DEFAULT_TRUSTED_HOSTS);
-        sslHostsToTrust = choices.getSslHostsToTrust() != null ? new ArrayList<>(choices.getSslHostsToTrust())
-                : configuredHosts == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(configuredHosts.split(";")));
-        trustAllSSLHost = config.valueOrProperty(choices.getTrustAllHosts(), ConfigKeys.DEFAULT_TRUST_ALL_HOSTS, DEFAULT_TRUST_ALL_HOSTS);
-        verifyingServerIdentity = config.valueOrProperty(choices.getVerifyingServerIdentity(), ConfigKeys.DEFAULT_VERIFY_SERVER_IDENTITY, DEFAULT_VERIFY_SERVER_IDENTITY);
+        final String configuredHosts = MailerConfigurationResolver.configured(config, ConfigKeys.DEFAULT_TRUSTED_HOSTS, null);
+        final List<String> capturedHosts = configuredHosts == null ? null : Arrays.asList(configuredHosts.split(";"));
+        sslHostsToTrust = new ArrayList<>(MailerConfigurationResolver.select(ConfigurationChoice.ofNullable(choices.getSslHostsToTrust()),
+                capturedHosts, Collections.emptyList(), ConfigKeys.DEFAULT_TRUSTED_HOSTS.key(), "TlsConfig.trustingSSLHosts"));
+        trustAllSSLHost = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_TRUST_ALL_HOSTS,
+                choices.getTrustAllHosts(), DEFAULT_TRUST_ALL_HOSTS);
+        verifyingServerIdentity = MailerConfigurationResolver.resolve(config, ConfigKeys.DEFAULT_VERIFY_SERVER_IDENTITY,
+                choices.getVerifyingServerIdentity(), DEFAULT_VERIFY_SERVER_IDENTITY);
         if (choices.getSslHostsToTrust() != null) { customizedSessionSetting(Property.DEFAULT_TRUSTED_HOSTS, String.join(" ", sslHostsToTrust)); }
         if (choices.getTrustAllHosts() != null) { customizedSessionSetting(Property.DEFAULT_TRUST_ALL_HOSTS, trustAllSSLHost); }
         if (choices.getVerifyingServerIdentity() != null) { customizedSessionSetting(Property.DEFAULT_VERIFY_SERVER_IDENTITY, verifyingServerIdentity); }
@@ -2529,8 +2370,11 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withValidationConfig(ValidationConfig) */
     @Override public T withValidationConfig(@NotNull final ValidationConfig choices) {
         requireNonNull(choices, "validationConfig");
-        clientValidationWarningsOnly = config.valueOrProperty(choices.getClientValidationWarningsOnly(), ConfigKeys.DISABLE_ALL_CLIENTVALIDATION, DEFAULT_DISABLE_ALL_CLIENTVALIDATION);
-        emailValidator = choices.isEmailValidatorCleared() ? null : choices.getEmailValidator() == null ? JMail.strictValidator() : choices.getEmailValidator();
+        clientValidationWarningsOnly = MailerConfigurationResolver.resolve(config, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION,
+                choices.getClientValidationWarningsOnly(), DEFAULT_DISABLE_ALL_CLIENTVALIDATION);
+        emailValidator = MailerConfigurationResolver.select(MailerConfigurationResolver.choice(choices.getEmailValidator(), choices.isEmailValidatorCleared()),
+                null, choices.isEmailValidatorCleared() || choices.getEmailValidator() != null ? null : JMail.strictValidator(),
+                "emailValidator", "ValidationConfig.withEmailValidator/clearEmailValidator");
         maximumEmailSize = choices.getMaximumEmailSize();
         validationConfig = choices;
         return (T) this;
@@ -2540,12 +2384,20 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#useConfiguredValidationConfig() */
     @Override public T useConfiguredValidationConfig() { return withValidationConfig(ValidationConfig.builder().build()); }
 
-    /** Only omitted group members inherit; explicit empty strings retain their setter's validation or clearing semantics. */
-    @Nullable final String stringChoice(@Nullable final String supplied, final ConfigKey<String> property) {
-        return supplied == null ? config.get(property) : supplied;
+    @Nullable private Duration durationChoice(@Nullable final Duration supplied, final ConfigKey<Duration> property, @Nullable final Duration fallback) {
+        return MailerConfigurationResolver.resolve(config, property, supplied, fallback);
     }
 
-    @Nullable private Duration durationChoice(@Nullable final Duration supplied, final ConfigKey<Duration> property, @Nullable final Duration fallback) {
-        return supplied == null ? configuredDuration(property, fallback) : supplied;
+    private UUID resolveClusterKey(@Nullable final UUID supplied) {
+        final boolean captured = config.hasProperty(ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY);
+        return MailerConfigurationResolver.select(ConfigurationChoice.ofNullable(supplied), captured ? configuredClusterKey : null,
+                captured ? null : configuredClusterKey, ConfigKeys.DEFAULT_CONNECTIONPOOL_CLUSTER_KEY.key(), "ConnectionPoolConfig.withClusterKey");
+    }
+
+    @Nullable
+    private SendingRateLimit resolveRateLimitChoice(@Nullable final SendingRateLimit supplied, final boolean removed,
+            final ConfigKey<Integer> count, final ConfigKey<Duration> period) {
+        return MailerConfigurationResolver.select(MailerConfigurationResolver.choice(supplied, removed), resolveRateLimit(config, count, period),
+                null, count.key() + "/" + period.key(), "SendingLimitsConfig.withRateLimit/clearRateLimit");
     }
 }

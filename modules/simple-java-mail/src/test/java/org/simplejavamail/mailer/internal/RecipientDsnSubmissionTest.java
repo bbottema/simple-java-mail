@@ -403,6 +403,8 @@ class RecipientDsnSubmissionTest {
             }
             finishConnection(peer);
         }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withSMTPServer("localhost", server.port(), "test-user", "test-password")
+                .withConnectionConfig(fixture.getConnectionConfig().toBuilder()
+                        .withConnectTimeout(Duration.ofSeconds(10)).withReadTimeout(Duration.ofSeconds(10)).build())
                 .withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withProperties(properties)
                 .withTlsConfig(fixture.getTlsConfig().toBuilder().trustingSSLHosts("localhost").build())).buildMailer()) { // Trust only this loopback fixture's certificate; keep hostname verification enabled.

@@ -18,7 +18,6 @@ import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.config.ConfigLoader.Property;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -228,7 +227,7 @@ final class MailerSessionSettings {
                 .localBindAddress(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalAddress()))
                 .localBindPort(strategy == null ? null : integerValue(propertyValue(effective, strategy.propertyNameLocalPort())))
                 .smtpClientHostname(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalHost()))
-                .sslHostsToTrust(trustedHosts(trusted))
+                .sslHostsToTrust(ConnectionPropertyValues.trustedHosts(trusted))
                 .trustAllSSLHost("*".equals(trusted))
                 .verifyingServerIdentity(strategy != null && booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())))
                 .build();
@@ -238,11 +237,6 @@ final class MailerSessionSettings {
         return suppliedSession == null
                 ? SessionDebugConfig.builder().withEnabled(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG).withOutput(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG_OUTPUT).build()
                 : SessionDebugConfig.builder().withEnabled(suppliedSession.getDebug()).withPrinter(suppliedSession.getDebugOut()).build();
-    }
-
-    private static List<String> trustedHosts(@Nullable final String trusted) {
-        return trusted == null || trusted.trim().isEmpty() || "*".equals(trusted)
-                ? Collections.emptyList() : Collections.unmodifiableList(Arrays.asList(trusted.trim().split("\\s+")));
     }
 
     private static boolean booleanValue(@Nullable final Object value) {

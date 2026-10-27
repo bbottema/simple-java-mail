@@ -10,6 +10,8 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOpti
 import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,11 +162,14 @@ final class AngusRecipientCommands {
      * An absent preference leaves Angus's fallback unchanged; Angus still owns the loop and response handling.
      */
     private static String applyRecipientNotifyOverride(final String parameters, final Set<NotifyOption> options) {
-        if (options.isEmpty()) {
-            return parameters;
-        }
-        return parameters.replaceFirst("(?i) NOTIFY=[^ ]+", "")
-                + " NOTIFY=" + options.stream().sorted().map(Enum::name).collect(joining(","));
+        final ConfigurationSetting<String> setting = ConfigurationSetting.of("angus.recipient", "notify-parameters");
+        final String recipientParameters = options.isEmpty() ? null
+                : parameters.replaceFirst("(?i) NOTIFY=[^ ]+", "")
+                        + " NOTIFY=" + options.stream().sorted().map(Enum::name).collect(joining(","));
+        return AngusConfigurationResolver.resolve(setting, List.of(
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SUBMITTED, "recipient NOTIFY preference", recipientParameters),
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.DEFAULT, "Angus-selected Email/Session NOTIFY", parameters)))
+                .valueOrNull();
     }
 
     /**

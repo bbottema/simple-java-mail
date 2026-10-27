@@ -135,12 +135,16 @@ class SmtpAuthenticationTlsCharacterizationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void requiredStartTlsWithoutAdvertisementFailsEvenWhenEnableIsFalse(final boolean enable) throws Exception {
+    void rawRequiredStartTlsWithoutAdvertisementFailsForEitherEnableFlag(final boolean enable) throws Exception {
         try (Peer server = new Peer(peer -> {
             peer.greet(AUTH_LOGIN);
             peer.expectClosed();
-        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS)
-                .withProperty("mail.smtp.starttls.enable", Boolean.toString(enable)).buildMailer()) {
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP)
+                .withProperty("mail.smtp.starttls.enable", Boolean.toString(enable))
+                .withProperty("mail.smtp.starttls.required", "true").buildMailer()) {
+            // Raw flags describe one source; an explicit SMTP_TLS choice would conflict with enable=false under strict mode.
+            assertThat(mailer.getSession().getProperty("mail.smtp.starttls.enable")).isEqualTo(Boolean.toString(enable));
+            assertThat(mailer.getSession().getProperty("mail.smtp.starttls.required")).isEqualTo("true");
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                     .hasStackTraceContaining("STARTTLS is required");
         }
@@ -232,12 +236,14 @@ class SmtpAuthenticationTlsCharacterizationTest {
     }
 
     @Test
-    void rawTrustAndIdentityPropertiesAreOverwrittenByTheBuilderSettings() throws Exception {
+    void explicitRawTrustAndIdentityPropertiesTakePrecedenceOverBuiltInDefaults() throws Exception {
         try (Mailer mailer = passwordBuilder(12345, SMTP_TLS)
                 .withProperty("mail.smtp.ssl.trust", "*")
                 .withProperty("mail.smtp.ssl.checkserveridentity", "false").buildMailer()) {
-            assertThat(mailer.getSession().getProperties()).doesNotContainKey("mail.smtp.ssl.trust")
-                    .containsEntry("mail.smtp.ssl.checkserveridentity", "true");
+            assertThat(mailer.getSession().getProperties()).containsEntry("mail.smtp.ssl.trust", "*")
+                    .containsEntry("mail.smtp.ssl.checkserveridentity", "false");
+            assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isTrue();
+            assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isFalse();
         }
     }
 
@@ -423,13 +429,15 @@ class SmtpAuthenticationTlsCharacterizationTest {
     }
 
     @Test
-    void oauthBearerIsNotABuiltInAngusMechanism() throws Exception {
+    void rawOauthBearerIsNotABuiltInAngusMechanism() throws Exception {
         try (Peer server = new Peer(peer -> {
-            establishTls(peer, SMTP_OAUTH2, "250-localhost\r\n250 AUTH OAUTHBEARER");
+            establishTls(peer, SMTP_TLS, "250-localhost\r\n250 AUTH OAUTHBEARER");
             peer.expectClosed();
-        }); Mailer mailer = oauthBuilder(server.port(), false, new AtomicInteger())
+        }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withSMTPServerPassword(TOKEN)
                 .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build())
                 .withProperty("mail.smtp.auth.mechanisms", "OAUTHBEARER").buildMailer()) {
+            // The typed OAuth2 strategy selects XOAUTH2. This provider probe deliberately requests only raw OAUTHBEARER.
+            assertThat(mailer.getSession().getProperty("mail.smtp.auth.mechanisms")).isEqualTo("OAUTHBEARER");
             assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
                     .hasStackTraceContaining("No authentication mechanisms supported");
         }

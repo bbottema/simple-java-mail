@@ -405,6 +405,7 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * add it explicitly with {@link org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)}.
 	 * Supported connection settings participate in {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)};
 	 * extra properties are not an unconditional override of typed connection choices.
+	 * Non-String keys and their values are retained as opaque entries; their display text does not make them connection property names.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Map)
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)

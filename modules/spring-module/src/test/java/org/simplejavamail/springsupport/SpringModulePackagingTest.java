@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SpringModulePackagingTest {
@@ -64,6 +65,9 @@ public class SpringModulePackagingTest {
 			assertThat(configurationMetadata).as("Locked Spring metadata should describe %s", property.key())
 					.contains("\"name\": \"" + metadataNameFor(property).replace("simplejavamail.", "simplejavamail.locked.") + "\"");
 		}
+		record("adapter", "spring.metadata");
+		record("rule", "spring.metadata-membership");
+		record("case", "spring.generated-metadata");
 	}
 
 	private static String metadataNameFor(final Property property) {

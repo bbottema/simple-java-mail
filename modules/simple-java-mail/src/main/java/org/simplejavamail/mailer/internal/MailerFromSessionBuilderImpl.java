@@ -55,8 +55,8 @@ public class MailerFromSessionBuilderImpl
 	}
 
 	@Override
-	MailerImpl constructMailer(final ValidatedConnectionPlan plan) {
-		return new MailerImpl(this, plan);
+	MailerImpl constructMailer(final ValidatedMailerPlan plan) {
+		return MailerImpl.construct(plan);
 	}
 	
 	/**

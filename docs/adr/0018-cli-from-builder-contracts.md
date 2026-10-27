@@ -48,6 +48,11 @@ Keep the builder API and its Javadocs authoritative for ordinary email/Mailer CL
 
 Keep the CLI as a layer above the Java library in its own module. The library does not load a CLI implementation to send mail. A request invokes the same builders and sending contracts as a Java caller, with CLI converters taking responsibility for basic file/URL input handling.
 
+Clarification under [#867](https://github.com/bbottema/simple-java-mail/issues/867), accepted 26 October 2026: one registered conversion owns each
+source/target type pair. Message-file conversion supports EML and Outlook MSG through content-based dispatch, preserving extensionless and renamed
+inputs. Registering separate `String` to `MimeMessage` converters must not let the last registration disable the other format. Generated option
+witnesses exercise conversion and binding before feature readback, independently of metadata membership.
+
 Persist generated option metadata in `cli.data` and runtime-Javadoc lookups in `therapi.data`; include these generated artifacts in the CLI distribution and source control. Treat them as replaceable internal startup caches, not a public serialization format. Validate cache kind, format version, source-API fingerprint, bounded payload length and checksum before decoding. Regenerate missing/stale/invalid caches from the trusted local API, and tolerate a read-only classpath by retaining the regenerated model in memory.
 
 Avoid serializers that need reflective access to JDK collection internals. Serialize method references with their explicit declaring-class/name/parameter identity and keep cache generation/consumption compatible with supported modern CLI JDKs. Neither Kryo nor Java object serialization is a daemon wire protocol.

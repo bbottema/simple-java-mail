@@ -190,7 +190,7 @@ class FailoverProviderContractTest {
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer();
              Mailer loggingOnly = builder(secondary.port()).withTransportModeLoggingOnly(true).withFailoverMailer(selected, policy()).buildMailer()) {
             final Throwable failure = catchThrowable(() -> invoking.sync().sendMail(email()));
-            assertThat(failure).isInstanceOf(MailException.class).hasCause(callbackFailure);
+            assertThat(failure).isSameAs(callbackFailure);
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getFailure()).containsSame(failure);
             assertThat(calls).hasValue(1);

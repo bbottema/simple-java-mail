@@ -16,6 +16,7 @@ import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
 import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
 import org.simplejavamail.internal.configresolution.ConfigurationResolution;
 import org.simplejavamail.internal.configresolution.ConfigurationResolver;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +44,7 @@ final class ConnectionConfigurationResolver {
     private final SimpleJavaMailConfig config;
     @Nullable private final TransportStrategy strategy;
     private final boolean authenticatedProxy;
-    private final Map<String, List<ConfigurationDeclaration<Object>>> declarations = new LinkedHashMap<>();
+    private final Map<ConfigurationSetting<Object>, List<ConfigurationDeclaration<Object>>> declarations = new LinkedHashMap<>();
     private final Map<String, String> sourceNames = new LinkedHashMap<>();
 
     private ConnectionConfigurationResolver(final SimpleJavaMailConfig config, @Nullable final TransportStrategy strategy, final boolean authenticatedProxy) {
@@ -209,7 +210,8 @@ final class ConnectionConfigurationResolver {
                     : additionalProperties.containsKey(key) ? ConfigurationOrigin.Kind.FACTORY_RAW : ConfigurationOrigin.Kind.SESSION;
             addCandidate(candidates, baseline, key, baselineKind);
             addCandidate(candidates, typed, key, ConfigurationOrigin.Kind.JAVA);
-            final ConfigurationResolution<Object> choice = ConfigurationResolver.resolve(candidates, ConnectionRules.PROJECTED_MEMBER);
+            final ConfigurationResolution<Object> choice = ConfigurationResolver.resolve(
+                    ConnectionSettings.projectedProperty(key), candidates, ConnectionRules.PROJECTED_MEMBER);
             final Object value = choice.valueOrNull();
             if (choice.getSelected() != null && choice.getSelected().getOrigin().getKind() == ConfigurationOrigin.Kind.JAVA
                     && value != null && value != TrustAllDisabled.INSTANCE && baseline.containsKey(key) && sameValue(key, value, baseline.get(key))) {
@@ -229,7 +231,8 @@ final class ConnectionConfigurationResolver {
             final String key, final ConfigurationOrigin.Kind origin) {
         if (values.containsKey(key)) {
             final Object value = values.get(key);
-            candidates.add(ConfigurationDeclaration.of(value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value),
+            candidates.add(ConfigurationDeclaration.of(ConnectionSettings.projectedProperty(key),
+                    value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value),
                     ConfigurationOrigin.of(origin, key, null)));
         }
     }
@@ -353,12 +356,14 @@ final class ConnectionConfigurationResolver {
 
     private void declare(final String key, @Nullable final Object value, final ConfigurationOrigin origin) {
         if (isSupported(key) || key.equals(PASSWORD) || key.equals(PROXY_USERNAME) || key.equals(PROXY_PASSWORD) || key.equals(PROXY_BRIDGE_PORT)) {
-            declarations.computeIfAbsent(key, ignored -> new ArrayList<>()).add(ConfigurationDeclaration.of(
+            final ConfigurationSetting<Object> setting = ConnectionSettings.projectedProperty(key);
+            declarations.computeIfAbsent(setting, ignored -> new ArrayList<>()).add(ConfigurationDeclaration.of(setting,
                     value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value), origin));
         }
     }
 
-    private void verifyEquivalentDeclarations(final String key, final List<ConfigurationDeclaration<Object>> choices) {
+    private void verifyEquivalentDeclarations(final ConfigurationSetting<Object> setting, final List<ConfigurationDeclaration<Object>> choices) {
+        final String key = ConnectionSettings.propertyName(setting);
         for (int first = 0; first < choices.size(); first++) {
             for (int second = first + 1; second < choices.size(); second++) {
                 if (!sameValue(key, choices.get(first).getChoice().valueOrNull(), choices.get(second).getChoice().valueOrNull())) {
@@ -649,7 +654,7 @@ final class ConnectionConfigurationResolver {
     private static Map<String, Object> visibleProperties(final Properties properties) {
         final Map<String, Object> values = new LinkedHashMap<>();
         final Set<String> keys = new LinkedHashSet<>(properties.stringPropertyNames());
-        properties.keySet().forEach(key -> keys.add(key.toString()));
+        properties.keySet().forEach(key -> { if (key instanceof String) { keys.add((String) key); } });
         for (String key : keys) {
             final SessionPropertyObservation<?> observed = ConnectionPropertyValues.readsString(key)
                     ? SessionPropertyObservation.readString(properties, key) : SessionPropertyObservation.readValue(properties, key);
@@ -668,7 +673,7 @@ final class ConnectionConfigurationResolver {
         final String hostname = separator < 0 ? host : host.substring(0, separator);
         values.put(strategy.propertyNameSocksHost(), hostname.isEmpty() ? InetAddress.getLoopbackAddress().getHostAddress() : hostname);
         if (separator >= 0 && !values.containsKey(strategy.propertyNameSocksPort())) {
-            final Integer inlinePort = ConnectionPropertyValues.integerValue(host.substring(separator + 1));
+            final Integer inlinePort = ConnectionPropertyValues.inlineSocksPort(host.substring(separator + 1));
             if (inlinePort != null) { values.put(strategy.propertyNameSocksPort(), inlinePort.toString()); }
         }
     }

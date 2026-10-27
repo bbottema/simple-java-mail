@@ -22,6 +22,9 @@ import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolution;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +32,7 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
@@ -100,31 +104,35 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         private void retainSessionOptions(final Session session, final String protocol) {
             final String prefix = "mail." + protocol;
             // Match Angus's precedence: a per-message false does not override a Session-wide sendpartial=true.
-            setSendPartial(getSendPartial() || PropUtil.getBooleanProperty(session.getProperties(), prefix + ".sendpartial", false));
+            setSendPartial(AngusConfigurationResolver.messageOrSession(prefix + ".sendpartial", getSendPartial() ? Boolean.TRUE : null,
+                    getSendPartial() ? null : PropUtil.getBooleanProperty(session.getProperties(), prefix + ".sendpartial", false)));
             retainSubmitterDefault(session, prefix);
             retainNotificationDefault(session, prefix);
             retainReturnOptionDefault(session, prefix);
         }
 
         private void retainSubmitterDefault(final Session session, final String prefix) {
-            if (getSubmitter() == null) {
-                setSubmitter(session.getProperty(prefix + ".submitter"));
-            }
+            final String supplied = getSubmitter();
+            setSubmitter(AngusConfigurationResolver.messageOrSession(prefix + ".submitter", supplied,
+                    supplied == null ? session.getProperty(prefix + ".submitter") : null));
         }
 
         private void retainNotificationDefault(final Session session, final String prefix) {
             final String notify = session.getProperty(prefix + ".dsn.notify");
-            if (getNotifyOptions() == 0 && notify != null) {
-                setNotifyOptions(toAngusNotifyOptions(DeliveryStatusNotification.parseNotifyOptions(notify)));
-            }
+            final Integer supplied = getNotifyOptions() == 0 ? null : getNotifyOptions();
+            final Integer fallback = supplied == null && notify != null
+                    ? toAngusNotifyOptions(DeliveryStatusNotification.parseNotifyOptions(notify)) : null;
+            final Integer selected = AngusConfigurationResolver.messageOrSession(prefix + ".dsn.notify", supplied, fallback);
+            if (selected != null) { setNotifyOptions(selected); }
         }
 
         private void retainReturnOptionDefault(final Session session, final String prefix) {
             final String returned = session.getProperty(prefix + ".dsn.ret");
-            if (getReturnOption() == 0 && returned != null) {
-                setReturnOption(DeliveryStatusNotification.parseReturnOption(returned) == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE
-                        ? RETURN_FULL : RETURN_HDRS);
-            }
+            final Integer supplied = getReturnOption() == 0 ? null : getReturnOption();
+            final Integer fallback = supplied == null && returned != null
+                    ? toAngusReturnOption(DeliveryStatusNotification.parseReturnOption(returned)) : null;
+            final Integer selected = AngusConfigurationResolver.messageOrSession(prefix + ".dsn.ret", supplied, fallback);
+            if (selected != null) { setReturnOption(selected); }
         }
 
         @Override public void saveChanges() { /* Frozen bytes, including Message-ID and signatures, are authoritative. */ }
@@ -167,6 +175,10 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             }
         }
         return flags;
+    }
+
+    private static int toAngusReturnOption(final DeliveryStatusNotification.ReturnOption option) {
+        return option == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE ? SMTPMessage.RETURN_FULL : SMTPMessage.RETURN_HDRS;
     }
 
     @Override
@@ -275,11 +287,16 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             return;
         }
         final String propertyName = "mail." + protocol + ".sendpartial";
+        final ConfigurationSetting<Boolean> setting = ConfigurationSetting.of("angus.smtp", propertyName);
         // Composed and exact messages use the selected transport's Session, including caller-owned and clustered sends.
         final Session selectedSession = preparedMail.getMimeMessage().getSession();
-        final boolean sessionAllowsPartialSending = transport instanceof ManagedAngusTransport
-                ? ((ManagedAngusTransport) transport).isPartialSendingEnabled()
-                : selectedSession != null && PropUtil.getBooleanProperty(selectedSession.getProperties(), propertyName, false);
+        final Boolean selectedTransportChoice = transport instanceof ManagedAngusTransport
+                ? ((ManagedAngusTransport) transport).isPartialSendingEnabled() : null;
+        final Boolean sessionChoice = selectedTransportChoice == null
+                ? selectedSession != null && PropUtil.getBooleanProperty(selectedSession.getProperties(), propertyName, false) : null;
+        final boolean sessionAllowsPartialSending = AngusConfigurationResolver.resolve(setting, List.of(
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SUBMITTED, "selected transport partial-send setting", selectedTransportChoice),
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SESSION, propertyName, sessionChoice))).valueOrNull();
         // Angus treats a false message flag as "fall back to the Session", not as an override of Session-wide true.
         if (sessionAllowsPartialSending) {
             throw new MailTransportCompatibilityException("This email uses withSendingToAcceptedRecipients(false) "
@@ -419,7 +436,8 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
             return fixedIdentifier;
         }
         // Older raw MAIL configuration remains caller-owned; do not append a second identifier or claim to have validated it.
-        return supportsDsn && !rawIdentifierPresent ? UUID.randomUUID().toString() : null;
+        final boolean generateIdentifier = supportsDsn && !rawIdentifierPresent;
+        return generateIdentifier ? UUID.randomUUID().toString() : null;
     }
 
     /** RFC 3461 advertises DSN without EHLO parameters; reject parameterized variants instead of guessing at non-standard semantics. */
@@ -442,12 +460,15 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
     @NotNull
     private static ConfiguredMailExtension mailExtensionOf(final MimeMessage message, final String protocol) {
         final String extension = message instanceof SMTPMessage ? ((SMTPMessage) message).getMailExtension() : null;
-        if (extension != null) {
-            return new ConfiguredMailExtension(extension, "SMTPMessage.setMailExtension(...)");
-        }
         final String propertyName = "mail." + protocol + ".mailextension";
-        return new ConfiguredMailExtension(message.getSession() == null ? null : message.getSession().getProperty(propertyName),
-                "the Mailer property '" + propertyName + "'");
+        final ConfigurationSetting<String> setting = ConfigurationSetting.of("angus.smtp", propertyName);
+        final String sourceProperty = "the Mailer property '" + propertyName + "'";
+        final String sessionExtension = extension == null && message.getSession() != null ? message.getSession().getProperty(propertyName) : null;
+        final ConfigurationResolution<String> selected = AngusConfigurationResolver.resolve(setting, List.of(
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.JAVA_RAW, "SMTPMessage.setMailExtension(...)", extension),
+                AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SESSION, sourceProperty, sessionExtension)));
+        return new ConfiguredMailExtension(selected.valueOrNull(), selected.getSelected() == null ? sourceProperty
+                : selected.getSelected().getOrigin().getProperty());
     }
 
     /** Keeps the selected value and its source together so a conflict points to the setting that actually supplied it. */
@@ -575,12 +596,10 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
                     : mailExtensionWithEnvelopeId(envelopeId, mailFromParameters.getMailExtension()));
 
             final DeliveryEnvelope envelope = preparedMail.getDeliveryEnvelope();
-            if (envelope.getSendingToAcceptedRecipients() != null) {
-                super.setSendPartial(envelope.getSendingToAcceptedRecipients());
-            }
-            if (envelope.getEnvelopeFrom() != null) {
-                super.setEnvelopeFrom(envelope.getEnvelopeFrom());
-            }
+            super.setSendPartial(AngusConfigurationResolver.envelopeOrLegacyMessage("sendpartial",
+                    envelope.getSendingToAcceptedRecipients(), super.getSendPartial()));
+            super.setEnvelopeFrom(AngusConfigurationResolver.envelopeOrLegacyMessage("sender",
+                    envelope.getEnvelopeFrom(), super.getEnvelopeFrom()));
             if (envelope.getDeliveryStatusNotification() != null) {
                 configureDeliveryStatusNotification(envelope.getDeliveryStatusNotification());
             }
@@ -674,14 +693,12 @@ public final class AngusMailTransportAdapter implements MailTransportAdapter {
         }
 
         private void configureDeliveryStatusNotification(@NotNull final DeliveryStatusNotification deliveryStatusNotification) {
-            if (!deliveryStatusNotification.getNotifyOptions().isEmpty()) {
-                super.setNotifyOptions(toAngusNotifyOptions(deliveryStatusNotification.getNotifyOptions()));
-            }
-            if (deliveryStatusNotification.getReturnOption() != null) {
-                super.setReturnOption(deliveryStatusNotification.getReturnOption() == DeliveryStatusNotification.ReturnOption.FULL_MESSAGE
-                        ? SMTPMessage.RETURN_FULL
-                        : SMTPMessage.RETURN_HDRS);
-            }
+            final Integer suppliedNotify = deliveryStatusNotification.getNotifyOptions().isEmpty() ? null
+                    : toAngusNotifyOptions(deliveryStatusNotification.getNotifyOptions());
+            super.setNotifyOptions(AngusConfigurationResolver.envelopeOrLegacyMessage("DSN NOTIFY", suppliedNotify, super.getNotifyOptions()));
+            final Integer suppliedReturn = deliveryStatusNotification.getReturnOption() == null ? null
+                    : toAngusReturnOption(deliveryStatusNotification.getReturnOption());
+            super.setReturnOption(AngusConfigurationResolver.envelopeOrLegacyMessage("DSN RET", suppliedReturn, super.getReturnOption()));
         }
 
         @Override

@@ -102,7 +102,9 @@ public final class MailboxInterpretation {
 
     @Nullable
     private static String selectName(@Nullable final String name, final boolean fixedName, @Nullable final String embeddedName) {
-        return name != null && (fixedName || embeddedName == null || embeddedName.isEmpty()) ? name : embeddedName;
+        final boolean suppliedNameWins = fixedName || embeddedName == null || embeddedName.isEmpty();
+        return RecipientConfigurationResolver.select("recipient.name", suppliedNameWins ? name : null,
+                embeddedName, suppliedNameWins ? null : name);
     }
 
     /** Tracks only delimiter context; Jakarta Mail remains responsible for interpreting the resulting grammar. */

@@ -145,3 +145,7 @@ When adding a feature module, cover both presence and absence on the real runtim
 ## Implementation anchors
 
 [ModuleLoader](../../modules/simple-java-mail/src/main/java/org/simplejavamail/internal/moduleloader/ModuleLoader.java), [core module contracts](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules), [optional dependency declarations](../../modules/simple-java-mail/pom.xml), [OpenPGP module dependencies](../../modules/openpgp-module/pom.xml), and [ModuleLoaderTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/internal/moduleloader/ModuleLoaderTest.java) establish the current boundary. These tests were inspected as implementation evidence; this documentation pass does not claim a new runtime test run.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The complete layered adoption in ADR 0039 has real consumers in main, batch and Angus. Its small generic declaration/selection model therefore belongs in core. Feature-specific comparison, policy completion, validation, activation and runtime negotiation remain with the implementing module; optional modules do not acquire a dependency on main. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

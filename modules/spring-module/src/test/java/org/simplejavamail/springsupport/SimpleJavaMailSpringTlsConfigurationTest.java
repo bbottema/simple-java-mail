@@ -11,6 +11,7 @@ import org.springframework.core.env.MapPropertySource;
 
 import java.util.Map;
 
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -26,6 +27,8 @@ class SimpleJavaMailSpringTlsConfigurationTest {
 			assertThatThrownBy(context::refresh).hasRootCauseInstanceOf(MailException.class)
 					.hasStackTraceContaining(strategy + " requires STARTTLS, but mail.smtp.starttls.required disables it.");
 		}
+		record("rule", "spring.static-construction-rejection");
+		record("case", "spring.manual-tls-rejection");
 	}
 
 	@Test
@@ -38,6 +41,8 @@ class SimpleJavaMailSpringTlsConfigurationTest {
 			assertThat(context.getBean(SimpleJavaMailConfig.class).getDiagnostics().toString())
 					.contains(REQUIRED + " = true (source: deployment)");
 		}
+		record("adapter", "spring.manual-context");
+		record("case", "spring.manual-tls-success");
 	}
 
 	private static AnnotationConfigApplicationContext context(final String strategy) {
