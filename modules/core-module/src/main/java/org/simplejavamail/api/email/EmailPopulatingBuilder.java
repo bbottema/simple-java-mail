@@ -147,10 +147,13 @@ public interface EmailPopulatingBuilder {
     EmailPopulatingBuilder useConfiguredSmtpDeliveryOptions();
 
 	/**
-	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document.It needs to cater for various things, like more whitespaces including newlines on any
+	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document. It needs to cater for various things, like more whitespaces including newlines on any
 	 * place, HTML is not case-sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
+	 * A quoted source ends with the same quote that opened it; the opposite quote belongs to the location. The named groups
+	 * {@code imageTagStart}, {@code src} and {@code imageSrcEnd} retain the original delimiters when replacing the source with a Content-ID.
 	 */
-	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])(?<src>[^\"']+?)(?<imageSrcEnd>[\"'])");
+	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])"
+			+ "(?<src>(?<=\")[^\"]+(?=\")|(?<=')[^']+(?='))(?<imageSrcEnd>[\"'])");
 
 	/**
 	 * Builds an Email containing the values supplied to this builder. Use this method instead of constructing or subclassing Email directly.

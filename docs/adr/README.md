@@ -101,6 +101,11 @@ accepted on 23 October 2026 under [#858](https://github.com/bbottema/simple-java
 together after a successful resolution pass, retaining the prior builder state when required resolution fails. The correction is implemented
 for unreleased 10.0.0; the issue tracks delivery.
 
+The [quoted automatic-image source clarification](0036-structural-message-snapshots-and-borrowed-content.md#quoted-automatic-image-sources-accepted-27-october-2026),
+accepted on 27 October 2026 under [#871](https://github.com/bbottema/simple-java-mail/issues/871), requires matching attribute delimiters
+without truncating opposite quotes from source locations. Resolver settings, containment and failed-pass behavior retain their existing roles.
+It targets unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
