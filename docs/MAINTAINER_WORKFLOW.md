@@ -291,7 +291,7 @@ Documentation ownership and plan lifecycle:
 - Keep [CONTRIBUTING.md](CONTRIBUTING.md) as the entry point for developing and maintaining the project, linked from the root README. Keep general guide navigation there and the architecture topic index with the ADRs.
 - Keep migration guidance on the website, architectural decisions in `docs/adr/`, operational procedures in the development and maintainer guides, and send-state details in `docs/concurrency/`.
 - Put active implementation plans under `docs/plans/`, linked to their GitHub issue. GitHub owns ongoing issue and release status; a local plan explains the work still being reviewed or implemented.
-- After completion, incorporate decisions, reusable procedures and regression landmarks into the appropriate existing guides. Keep genuine investigations and reproducible measurements under `docs/research/`, not per-feature test-run diaries or temporary log inventories. Record dated execution results in issue bodies and CI artifacts. Delete completed plans and duplicate audit records after preserving their useful material.
+- After completion, incorporate decisions, reusable procedures and regression landmarks into the appropriate existing guides. Keep genuine investigations and reproducible measurements under `docs/research/`, not per-feature test-run diaries or temporary log inventories. Report dated execution results directly to the maintainer or retain them in CI artifacts, never in GitHub issues or commit messages. Delete completed plans and duplicate audit records after preserving their useful material; do not paste execution records into issues or comments.
 - Update the [contributor and maintainer guide](CONTRIBUTING.md), the [architecture topic index](adr/README.md#find-documentation-by-topic) and incoming links when retiring or moving documents. Use a commit-pinned GitHub link when a historical plan is needed as evidence; current guidance should link to the maintained guide or issue.
 - Preserve unfinished work and deferred issue ownership when retiring a larger plan. CLI package publication remains tracked in [#708](https://github.com/bbottema/simple-java-mail/issues/708); its operational instructions remain in the [CLI daemon guide](../modules/cli-module/DAEMON.md).
 
@@ -339,7 +339,7 @@ Write in casual, plain English, as one maintainer talking to another developer. 
 
 - Start an issue body with a short problem statement and its effect on callers, followed by reproducing example usage. Explain the expected behavior after the example.
 - Closing a user issue should include a short summary and a usage example when useful.
-- Keep test and verification evidence out of closing comments unless the user asks for it. Record execution results in the issue body or CI artifacts; closing comments explain the resolution and supported usage.
+- Never add test or verification evidence prose to issue titles, bodies or comments, including progress/completion comments and collapsed execution records. This includes commands, test counts, pass/fail narratives, build/Javadoc/website results, review verdicts, artifact checksums and claims that work was tested or verified. Report evidence directly to the maintainer or retain it in CI artifacts. Issues describe the problem, reproducing usage, expected behavior and resolution; functional acceptance criteria and commit/ADR references remain appropriate.
 - After a release, add a short availability comment to related GitHub issues that were fixed or materially affected by the release.
 - Comments should stand alone for the issue reporter. Avoid context-dependent wording such as "remaining" unless the comment also links the related issue or commit that explains the split.
 - When a fix is split across layers, link the related GitHub issues or commits so the thread explains the whole path.
@@ -378,7 +378,7 @@ For architecture-conformance changes, name the governing ADRs in the body and ex
 Reference the accepted decision accurately: do not imply that a retrospective clarification historically preceded its code.
 Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Keep test and verification evidence out of commit messages: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, and claims that changes were tested or verified. A commit that changes test code may describe those changes without reporting execution results.
 
-Keep test-first red/green evidence in the active plan during implementation, then issue bodies and CI artifacts, not commit messages, closing comments, the ADR or a permanent per-feature audit file. Do not add sign-offs.
+Keep test-first red/green evidence in the active plan during implementation, then report it directly to the maintainer or retain it in CI artifacts. Never put it in GitHub issue titles, bodies or comments, Git commit messages, the ADR or a permanent per-feature audit file. Retiring a plan does not authorize copying its execution diary into an issue. Do not add sign-offs.
 
 Keep unrelated changes out of the commit. Split docs, release notes, build fixes, and implementation work when they are independently meaningful.
 
