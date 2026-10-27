@@ -3,7 +3,7 @@
 - Status: Accepted, 2026-10-25
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
-- Implementation status: Complete layered adoption and the accepted 2026-10-26 logical-identity/whole-Mailer construction extension are implemented for unreleased 10.0.0 under #867; publication remains pending.
+- Implementation status: Complete layered adoption and the accepted 2026-10-26 logical-identity/whole-Mailer construction extension are implemented for unreleased 10.0.0 under #867.
 
 ## Context
 
