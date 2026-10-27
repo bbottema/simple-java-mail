@@ -102,15 +102,17 @@ final class MailerOperationalSettings {
     void validateExecution() {
         if (executorService != null) {
             if (!asyncQueueConfig.equals(DEFAULT_QUEUE)) {
-                throw new IllegalArgumentException("Configure queue capacity and overflow on the caller-owned executor; built-in async queue settings cannot be combined with withExecutorService");
+                throw new IllegalArgumentException("Built-in async queue settings cannot be combined with a caller-owned executor. "
+                        + "Configure queue capacity and overflow on that executor, or omit withExecutorService(...) to use the built-in executor.");
             }
             return;
         }
         if (threadPoolSize <= 0) {
-            throw new IllegalArgumentException("threadPoolSize must be positive");
+            throw new IllegalArgumentException("Worker thread count must be at least one. Set withThreadPoolSize(...) to a positive number.");
         }
         if (DurationMillis.toInt(threadPoolKeepAliveTime, "threadPoolKeepAliveTime") < 0) {
-            throw new IllegalArgumentException("threadPoolKeepAliveTime must not be negative");
+            throw new IllegalArgumentException("Worker keep-alive time must be zero or positive. "
+                    + "Set AsyncExecutionConfig.Builder.withKeepAliveTime(...) to Duration.ZERO or a positive duration.");
         }
     }
 

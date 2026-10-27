@@ -153,7 +153,13 @@ public class AsyncExecutionConfig {
          * @see #useConfiguredCapacityPolicy()
          * @see Mailer#getAsyncQueueSnapshot()
          */
-        @NotNull public Builder withQueueCapacity(final int queueCapacity) { if (queueCapacity < -1) { throw new IllegalArgumentException("Queue capacity must be -1, zero or positive"); } this.queueCapacity = requireNonNull(queueCapacity, "queueCapacity"); return this; }
+        @NotNull public Builder withQueueCapacity(final int queueCapacity) {
+            if (queueCapacity < -1) {
+                throw new IllegalArgumentException("Async queue capacity must be -1 for an unbounded queue, zero for direct handoff, or a positive limit.");
+            }
+            this.queueCapacity = requireNonNull(queueCapacity, "queueCapacity");
+            return this;
+        }
         /** @see #withQueueCapacity(int) */
         @Nullable public Integer getQueueCapacity() { return queueCapacity; }
         /**
@@ -227,7 +233,9 @@ public class AsyncExecutionConfig {
          * @see #rejectWhenFull()
          */
         @NotNull public Builder waitForCapacity(@NotNull final Duration wait) {
-            if (DurationMillis.toInt(wait, "capacityWait") <= 0) { throw new IllegalArgumentException("Capacity wait must be positive"); }
+            if (DurationMillis.toInt(wait, "capacityWait") <= 0) {
+                throw new IllegalArgumentException("Async queue wait timeout must be positive. Supply a duration such as Duration.ofSeconds(1).");
+            }
             rejectWhenFull = false; capacityWait = wait; return this;
         }
         /**

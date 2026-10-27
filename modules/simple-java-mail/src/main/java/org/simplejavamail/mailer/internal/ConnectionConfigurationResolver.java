@@ -603,16 +603,21 @@ final class ConnectionConfigurationResolver {
     private static void validateActiveProxy(final ProxyConfig resolved) {
         if (resolved.getRemoteProxyHost() != null) {
             if (resolved.getRemoteProxyPort() == null) {
-                throw new IllegalArgumentException("proxyHost provided, but not a proxyPort");
+                throw new IllegalArgumentException("A SOCKS proxy host is configured, but its port is missing. "
+                        + "Set SocksProxyConfig.Builder.withPort(...), or clear the host to disable proxying.");
             }
             if ("".equals(resolved.getUsername()) || "".equals(resolved.getPassword())) {
-                throw new IllegalArgumentException("Proxy credentials cannot be empty. Supply both username and password, or clear both choices.");
+                throw new IllegalArgumentException("SOCKS proxy credentials cannot be empty. "
+                        + "Supply both username and password, or clear both credential choices for an anonymous proxy.");
             }
             if ((resolved.getUsername() == null) != (resolved.getPassword() == null)) {
-                throw new IllegalArgumentException(resolved.getUsername() == null ? "Proxy password provided but not a username" : "Proxy username provided but not a password");
+                throw new IllegalArgumentException(resolved.getUsername() == null
+                        ? "A SOCKS proxy password is configured, but its username is missing. Supply both credentials, or clear both for an anonymous proxy."
+                        : "A SOCKS proxy username is configured, but its password is missing. Supply both credentials, or clear both for an anonymous proxy.");
             }
             if (resolved.requiresAuthentication() && resolved.getProxyBridgePort() == null) {
-                throw new IllegalArgumentException("Cannot authenticate with proxy if no proxy bridge port is configured");
+                throw new IllegalArgumentException("Authenticated SOCKS proxying requires a local bridge port. "
+                        + "Set SocksProxyConfig.Builder.withBridgePort(0) to choose an available port automatically, or supply a fixed local port.");
             }
         }
     }
@@ -692,7 +697,7 @@ final class ConnectionConfigurationResolver {
         }
         final Integer parsed = ConnectionPropertyValues.integerValue(value);
         if (parsed != null) { return parsed; }
-        throw new IllegalArgumentException("Invalid integer connection setting " + key + ". Configure a numeric port.");
+        throw new IllegalArgumentException("Invalid port in Jakarta Mail property " + key + ". Set this property to an integer.");
     }
 
     @Nullable
