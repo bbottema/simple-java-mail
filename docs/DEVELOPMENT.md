@@ -64,6 +64,10 @@ When changing builder signatures or CLI help, also follow [Generated CLI Metadat
 
 ### Coverage
 
+Configuration-route completeness is enforced separately from JaCoCo. See [Configuration contract coverage](CONFIGURATION_CONTRACT_COVERAGE.md)
+for the Java 11 library gate, full-reactor gate, fixed inventories and current-run evidence. Narrow `-Dtest` verification must explicitly skip
+that gate or use the `test` phase; a partial run cannot claim complete coverage.
+
 On JDK 17+, `mvn verify` runs the tests and generates the combined JaCoCo report at
 `modules/jacoco-aggregator-module/target/site/jacoco-aggregate/index.html`. Use `mvn clean verify`
 for a fresh report. Keep tests and JaCoCo enabled: `-DskipTests` or `-Djacoco.skip=true` does not

@@ -6,7 +6,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
-- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles. Equivalent raw values and trusted-host membership use the same interpretation through construction and locks; supplied Session gaps and borrowed factory identities remain intact.
+- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles. Equivalent raw values and trusted-host membership use the same interpretation through construction and locks; supplied Session gaps and borrowed factory identities remain intact. Shared internal declaration selection also governs layered Email and Mailer configuration while preserving their field-specific precedence, merge rules and public APIs. S/MIME merges replace header lists case-insensitively, and incompatible executor/queue choices fail before named failover construction. Logical setting identities preserve declaration scope, and an immutable whole-Mailer plan validates the owned route before construction. Lock checks now preserve inherited provider-visible values, non-String property keys stay opaque, and inline SOCKS ports follow decimal provider syntax.
 
 - [#847](https://github.com/bbottema/simple-java-mail/issues/847): added `@EnableSjmTelemetry` for explicit Java activation in an existing Spring integration.
   Configured activation properties, including false, override the annotation. A telemetry integration bean selects the default Mailer's integration independently.
@@ -114,6 +114,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
 
 ### Bug fixes
+
+- [#867](https://github.com/bbottema/simple-java-mail/issues/867): CLI message-file conversion selects EML or Outlook MSG from the contents,
+  preventing converter registration order from disabling EML input. Extensionless and renamed files retain their format.
 
 - [#861](https://github.com/bbottema/simple-java-mail/issues/861): retain undecodable optional generic root-header text when its encoded-word charset is
   unavailable, preserving readable input and the existing typed, required-content and outgoing validation boundaries.

@@ -6,6 +6,12 @@ Use the opening prompt with this guide to start a new round of gap analysis. The
 
 Use the [API expansion workflow](API_EXPANSION_WORKFLOW.md) for implementation requirements, the [maintainer workflow](MAINTAINER_WORKFLOW.md) for GitHub and delivery conventions, and the [ADR index](adr/README.md) for architectural decisions. The approval gates here govern this review round, including when implementation instructions from those guides may begin.
 
+**Evidence policy:** Never add test or verification evidence prose to GitHub issue titles, bodies or comments, including progress updates, completion comments and collapsed `<details>` records. Never add it to Git commit subjects, bodies or trailers. This applies to both the main and website repositories.
+
+Prohibited additions include execution commands and transcripts, test counts or suite inventories, pass/fail and red/green narratives, build/package/Javadoc/website/link-check results, artifact checksums, review or audit verdicts, environment troubleshooting and claims that work was tested or verified. Moving this material from a comment into an issue body or an appendix does not satisfy the rule. Do not paste retired plans, worker handoffs or execution diaries into issues.
+
+Keep issues focused on the problem, minimal reproducing usage, expected behavior, behavioral acceptance criteria, design decisions and delivered commit/ADR references. A reproduction of the reported bug and a requirement describing intended behavior are allowed; an execution report is not. Perform all required testing and review, report the evidence directly to the maintainer, and retain durable execution records in CI artifacts. This publication rule does not reduce verification requirements.
+
 ## 1. Start with a read-only review
 
 The opening prompt authorizes investigation and findings. It does not authorize repairs, ADR edits, GitHub mutations or implementation subagents.
@@ -45,7 +51,7 @@ If new evidence requires a different public contract, behavior or scope, bring t
 
 After design approval, reconcile the relevant Architecture Decision Records (ADRs). Clarify an existing ADR when it already owns the decision; create a new record for a distinct architectural choice. Link superseding decisions and update the [ADR index](adr/README.md) when needed.
 
-ADRs contain the architectural context, decision, rationale and consequences. Keep implementation tasks, functional specifications, acceptance checklists and dated test results in the issue, active plan, tests or CI artifacts. Keep test and verification evidence out of commit messages. Record the real decision timing; an accepted ADR does not mean its implementation is finished.
+ADRs contain the architectural context, decision, rationale and consequences. Keep implementation tasks, functional specifications and behavioral acceptance criteria in the issue or active plan. Report dated test and verification results directly to the maintainer and retain execution records in CI artifacts, never in GitHub issues or commit messages. Record the real decision timing; an accepted ADR does not mean its implementation is finished.
 
 Create one GitHub issue for each meaningful, coherent gap, or reuse an issue that already tracks that exact gap. Group related corrections when they share a contract; avoid generic audit tickets that hide unrelated changes. Minor typos, formatting and incidental wording tweaks do not need separate issues.
 
@@ -64,6 +70,8 @@ Keep the before example in the body. The final after example belongs in the comp
 Maintain a concise active plan under `docs/plans/` when the round needs coordination. Link the issues and ADRs, record design/execution approval, dependencies, file ownership and remaining verification/documentation obligations. GitHub owns ongoing issue status; the plan explains how the approved work will be completed.
 
 ## 4. Obtain execution approval and delegate the agreed work
+
+For invasive changes, use the [invasive refactor preflight](API_EXPANSION_WORKFLOW.md#invasive-refactor-preflight) to make the scope concrete in the active task plan, then carry its paths, scenarios, affected surfaces and verification order into the work packet. Honor the existing authorization gates; the preflight adds no approval step.
 
 Before starting an implementation subagent, present a concrete work packet or confirm that the maintainer's existing instruction already approves it. Include:
 
@@ -112,7 +120,7 @@ Review the documentation matrix as well as production code. Confirm that issue e
 
 Return implementation defects within the approved design to the subagent. Return design changes or material scope expansion to the maintainer. Keep the issue open while required work or verification remains.
 
-Present the maintainer with a concise outcome for each issue: the repaired usage, important behavior/compatibility consequences, review findings, verification evidence and remaining limitations. Make the concrete diff and relevant examples available. Proceed with delivery only within the maintainer's authorization; if it is missing, request it for this reviewed result. Honor delivery permission already granted.
+Present the maintainer directly with a concise outcome for each issue: the repaired usage, important behavior/compatibility consequences, review findings, verification evidence and remaining limitations. This report belongs in the maintainer conversation, not in a GitHub issue or commit message. Make the concrete diff and relevant examples available. Proceed with delivery only within the maintainer's authorization; if it is missing, request it for this reviewed result. Honor delivery permission already granted.
 
 ## 7. Commit, deliver and close the issue
 
@@ -127,14 +135,14 @@ feat(api): align related configuration contracts (#123, #456)
 
 Name the governing ADRs and explain the alignment in the body, for example `Architecture: ADR 0002, ADR 0031.` Apply the same convention to supporting documentation and website commits. Website bodies also carry qualified main-repository issue references. Do not add sign-offs. Body references alone do not replace the subject suffix.
 
-Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Do not include test or verification evidence: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, or claims that the changes were tested or verified. Put that evidence in the issue body or CI artifacts instead. A commit that changes test code may describe those changes without reporting execution results. This rule applies to both repositories.
+Commit subjects, bodies and trailers describe the problem, resulting behavior, compatibility and architectural decisions. Do not include test or verification evidence: commands, test counts, pass/fail results, red/green narratives, build/package/Javadoc/website-check outcomes, or claims that the changes were tested or verified. Report that evidence directly to the maintainer or retain it in CI artifacts; GitHub issues are also forbidden destinations. A commit that changes test code may describe those changes without reporting execution results. This rule applies to both repositories.
 
 Push only to the branches authorized for the round. When publishing both repositories, publish the website commit before the parent gitlink and verify the remote heads. History rewriting, force-pushing, deployment and releasing require their own explicit authorization; ordinary implementation approval does not imply them. If publication is still pending, retain the reviewed local commits and keep the issue open.
 
 Once the accepted implementation and its required companions are delivered:
 
 1. Add a completion comment starting with the **after usage example** using the final supported API.
-2. Briefly explain the resolved behavior and link the relevant delivered commits and ADRs. Keep test and verification evidence out of completion comments; store it in the issue body or CI artifacts. Preserve the original before example in the issue body. Distinguish completion on the 10.0.0 development branch from a published release.
+2. Briefly explain the resolved behavior and link the relevant delivered commits and ADRs. Keep test and verification evidence out of all issue comments and the issue body; report it directly to the maintainer or retain it in CI artifacts. Preserve the original before example in the issue body. Distinguish completion on the 10.0.0 development branch from a published release.
 3. Close the issue as completed and set its project item to **Done**. Do not close unrelated or unfinished issues merely because a shared commit mentions them.
 4. Verify the issue's labels, milestone, board status and commit references, including any references affected by an explicitly approved history rewrite.
 
@@ -144,7 +152,7 @@ If review rejects or defers a proposed repair, record the maintainer's dispositi
 
 Report completed issues and commits, deferred findings, pending approvals and any remaining compatibility or verification gaps. Reconcile the final public API with the ADRs, website, Journal, case studies and OpenRewrite plan once more across issues that interacted during the round.
 
-Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in issue bodies and CI artifacts. Retire completed plans and one-off audit/verification reports after preserving their useful material in the maintained guides.
+Keep durable decisions in ADRs, ongoing status in GitHub, regression coverage in tests and dated execution evidence in CI artifacts or the direct maintainer conversation. Retire completed plans and one-off audit/verification reports after preserving their useful decisions and reusable procedures in the maintained guides. Do not transfer their execution evidence into GitHub issues, comments or commit messages.
 
 Use a bounded, task-owned scratch directory for temporary probes and track what was created. Stop owned helper processes and remove those temporary files when finished. Preserve other ongoing tracks, registered worktrees and unrelated artifacts; never clean a shared `.local` or temporary parent directory wholesale.
 

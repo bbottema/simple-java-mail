@@ -23,6 +23,28 @@ Read [ADR 0001: Email configuration scopes and inheritance](adr/0001-email-confi
 - Define the scope and meaning of defaults, explicit values, clearing, disabling, and forced overrides before selecting method signatures. Preserve the settled cross-scope rule: explicit recipient values beat the governance-resolved Email fallback, including Email overrides. Group-fixed values apply when constructing that group's recipients; they are not a global enforcement layer.
 - Keep settings that own SMTP connections or execution resources on Mailer. Follow section 7 for those rather than routing them through Email governance.
 
+### Invasive refactor preflight
+
+Use this checklist when a change alters configuration interpretation, operation order, validation timing, resource ownership or a shared path used by multiple entry points or modules. Before refactoring, record one compact impact map in the active task plan under `docs/plans/`. Name concrete paths, files and scenarios rather than copying the general checklists. This preparation uses the existing design and execution authorization; it adds no approval gate. Write and run tests only after execution is authorized.
+
+| Establish | Record in the task plan |
+| --- | --- |
+| Intended changes and preserved behavior | Before/after caller examples, governing ADRs and the behavior that must survive, including applicable defaults, validation timing, ownership and cleanup. Separate deliberate changes from existing behavior that needs characterization. |
+| Execution paths | Trace affected entry points through interpretation, resolution, activation and inspection. Name alternate paths, failure paths and side-effect boundaries, including paths that bypass the main implementation. |
+| Risky interactions | A small scenario table with expected outcomes and existing or planned regression coverage. Derive cases from the actual branches and representations; select meaningful interactions instead of expanding every possible combination. |
+| Affected surfaces | Exact API, implementation, integration and documentation files, using the [review workflow's surface matrix](API_REVIEW_WORKFLOW.md#5-implement-and-keep-every-affected-surface-in-sync). Include separate CLI adapter Javadocs, generated help/cache inputs and downloadable example bundles where applicable. Give a reason for relevant surfaces that need no change. |
+| Verification order | Existing behavioral controls, new regressions, required build lanes and generation steps in dependency order. Identify how to inspect fresh generated outputs and which checks depend on the final combined sources. Use the [development guide](DEVELOPMENT.md) for commands and build constraints. |
+
+Exercise the hardest representative interaction early, through its real entry point to its observable result, before expanding across the remaining settings or paths. Characterize important unchanged behavior before moving it; pair each intended behavioral change with a focused failing regression. A test of an extracted helper alone does not establish that its callers use it correctly.
+
+Configuration changes must also satisfy the [finite configuration contract gate](CONFIGURATION_CONTRACT_COVERAGE.md). Update exact setup-route,
+property/alias and field/category membership, and add an executing wiring witness for each new route. Reuse shared category proofs when the rules
+are unchanged; an inventory label alone does not prove that an adapter applies them.
+
+Apply the [coding style guide](CODING_STYLE_GUIDE.md) while shaping the implementation. Compare removed Javadoc with its replacement and retain useful examples, supported values, defaults, security caveats and ownership details. Reconcile linked and separately maintained help text during implementation.
+
+Before presenting the implementation as complete, account for every mapped surface and selected scenario, including generated artifacts from the final sources. If review discovers an omitted path, update the impact map and verification plan, and report the additional repair work. Repeat checks affected by new changes or unresolved failures; retain sufficient earlier results for unchanged areas. Return material contract changes to the maintainer under the existing design gate.
+
 ### Public API versus internal cross-module types
 
 Follow [ADR 0031](adr/0031-public-api-and-internal-construction.md). Classify the consumer first: application configuration, inspection of a
