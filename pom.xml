@@ -33,6 +33,7 @@
         <bouncycastle.version>1.84</bouncycastle.version>
         <opentelemetry.version>1.67.0</opentelemetry.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
+        <configuration.contract.skip>false</configuration.contract.skip>
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dmaven.javadoc.skip=true -->
@@ -437,6 +438,18 @@
 
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <junit.jupiter.extensions.autodetection.enabled>true</junit.jupiter.extensions.autodetection.enabled>
+                        <sjm.configuration.contract.run>run-${session.request.startTime.time}</sjm.configuration.contract.run>
+                        <sjm.configuration.contract.module>${project.basedir}/.</sjm.configuration.contract.module>
+                        <sjm.configuration.contract.inventory>${maven.multiModuleProjectDirectory}/modules/simple-java-mail/src/test/resources/.</sjm.configuration.contract.inventory>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <extensions>false</extensions>
@@ -624,6 +637,16 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>configuration-contracts-tests-skipped</id>
+            <activation><property><name>skipTests</name><value>true</value></property></activation>
+            <properties><configuration.contract.skip>true</configuration.contract.skip></properties>
+        </profile>
+        <profile>
+            <id>configuration-contracts-test-compilation-skipped</id>
+            <activation><property><name>maven.test.skip</name><value>true</value></property></activation>
+            <properties><configuration.contract.skip>true</configuration.contract.skip></properties>
+        </profile>
         <profile>
             <id>smtp-conformance-embedded-reports</id>
             <activation><property><name>smtp.conformance.embeddedReports</name></property></activation>
