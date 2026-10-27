@@ -94,7 +94,7 @@ class ConfigurationBuilderCompanionContractTest {
 
         builder.pkcs12Store(new byte[0]);
         assertThat(builder.getPkcs12StoreData()).isEmpty();
-        assertThat(builder.build().getPkcs12StoreData()).isEmpty();
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("storePassword");
     }
 
     @Test

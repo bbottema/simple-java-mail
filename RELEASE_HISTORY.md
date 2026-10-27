@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#872](https://github.com/bbottema/simple-java-mail/issues/872): reject incomplete PKCS12 configurations at construction, preserving explicit empty
+  passwords and passive builder inspection. Required null arguments leave earlier choices intact; actual key-store validation remains at S/MIME use.
+
 - [#870](https://github.com/bbottema/simple-java-mail/issues/870): leave impossible imported sent dates and unknown or missing timezones unavailable,
   retaining readable MIME/EML content and unambiguous legacy date formats instead of manufacturing a timestamp.
 

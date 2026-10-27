@@ -144,7 +144,7 @@ class Java11ApiConvenienceTest {
 				.build();
 		final SmimeEncryptionConfig encryptionConfig = SmimeEncryptionConfig.builder().x509Certificate(certificatePath).build();
 		final DkimConfig fileDkimConfig = DkimConfig.builder().dkimPrivateKeyPath(dkimPath.toFile()).build();
-		final Pkcs12Config filePkcs12Config = Pkcs12Config.builder().pkcs12Store(pkcs12Path.toFile()).build();
+		final Pkcs12Config.Pkcs12ConfigBuilder filePkcs12Config = Pkcs12Config.builder().pkcs12Store(pkcs12Path.toFile());
 		final SmimeSigningConfig fileSigningConfig = SmimeSigningConfig.builder()
 				.pkcs12Config(pkcs12Path.toFile(), "letmein", "smime_test_user_alias_rsa", "letmein")
 				.build();
