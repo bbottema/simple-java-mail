@@ -61,9 +61,9 @@ class MailerOperationalSettingsTest {
     void ownedWorkerRequirementsAreCheckedWithoutAllocatingAnExecutor() {
         try (MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
             assertThatThrownBy(() -> settings().threadPoolSize(0).build().validateExecution())
-                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("threadPoolSize");
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("withThreadPoolSize");
             assertThatThrownBy(() -> settings().threadPoolKeepAliveTime(Duration.ofMillis(-1)).build().validateExecution())
-                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("threadPoolKeepAliveTime");
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("withKeepAliveTime");
             settings().threadPoolKeepAliveTime(Duration.ZERO).build().validateExecution();
             assertThat(executors.constructed()).isEmpty();
         }

@@ -177,10 +177,11 @@ public final class BatchTransportExecutorBuilder<K> {
 	 */
 	public BatchTransportExecutor<K> build() {
 		if (threadPoolSize < 1) {
-			throw new IllegalArgumentException("threadPoolSize must be at least one");
+			throw new IllegalArgumentException("Worker thread count must be at least one. Set withThreadPoolSize(...) to a positive number.");
 		}
 		if (threadPoolKeepAliveTime.isNegative()) {
-			throw new IllegalArgumentException("threadPoolKeepAliveTime must not be negative");
+			throw new IllegalArgumentException("Worker keep-alive time must be zero or positive. "
+					+ "Set withThreadPoolKeepAliveTime(...) to Duration.ZERO or a positive duration.");
 		}
 		return new BatchTransportExecutor<>(defaultPoolConfiguration.build(),
 				Collections.unmodifiableMap(new LinkedHashMap<>(clusterConfigurations)), executorService,

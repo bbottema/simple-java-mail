@@ -32,7 +32,8 @@ class ServerConfigImpl implements ServerConfig {
 		this.customSSLFactoryInstance = customSSLFactoryInstance;
 
 		if (valueNullOrEmpty(this.username) && !valueNullOrEmpty(this.password)) {
-			throw new IllegalArgumentException("Password provided but not a username");
+			throw new IllegalArgumentException("An SMTP password or fixed OAuth2 token is configured, but the SMTP username is missing. "
+					+ "Set withSMTPServerUsername(...), or clear the password if authentication is not required.");
 		}
 	}
 	

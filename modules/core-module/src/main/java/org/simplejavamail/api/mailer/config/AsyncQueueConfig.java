@@ -27,10 +27,10 @@ public class AsyncQueueConfig {
      */
     public AsyncQueueConfig(final int capacity, @NotNull final AsyncQueueOverflowPolicy overflowPolicy, @NotNull final Duration waitTimeout) {
         if (capacity < -1) {
-            throw new IllegalArgumentException("Async queue capacity must be -1 (unbounded), zero, or positive");
+            throw new IllegalArgumentException("Async queue capacity must be -1 for an unbounded queue, zero for direct handoff, or a positive limit.");
         }
         if (DurationMillis.toInt(waitTimeout, "asyncQueueWaitTimeout") <= 0) {
-            throw new IllegalArgumentException("Async queue wait timeout must be positive");
+            throw new IllegalArgumentException("Async queue wait timeout must be positive. Supply a duration such as Duration.ofSeconds(1).");
         }
         this.capacity = capacity;
         this.overflowPolicy = requireNonNull(overflowPolicy, "overflowPolicy");

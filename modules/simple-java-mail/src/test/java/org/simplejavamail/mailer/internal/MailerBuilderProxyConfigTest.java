@@ -42,7 +42,7 @@ public class MailerBuilderProxyConfigTest {
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
 		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("proxyHost provided, but not a proxyPort");
+			assertThat(e.getMessage()).containsIgnoringCase("port is missing").contains("withPort");
 		}
 		try {
 			SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
@@ -52,7 +52,7 @@ public class MailerBuilderProxyConfigTest {
 					.buildMailer();
 			fail("IllegalArgumentException expected for proxy port");
 		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage()).containsIgnoringCase("proxyHost provided, but not a proxyPort");
+			assertThat(e.getMessage()).containsIgnoringCase("port is missing").contains("withPort");
 		}
 	}
 

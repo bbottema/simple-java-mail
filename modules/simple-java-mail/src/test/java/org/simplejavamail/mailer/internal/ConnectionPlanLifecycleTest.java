@@ -70,7 +70,7 @@ class ConnectionPlanLifecycleTest {
             builder.withAsyncExecutionConfig(execution.build());
 
             assertThatThrownBy(builder::buildMailer).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("built-in async queue settings cannot be combined with withExecutorService");
+                    .hasMessageContaining("caller-owned executor").hasMessageContaining("withExecutorService");
             verifyNoInteractions(module);
             assertThat(executors.constructed()).isEmpty();
             assertThat(borrowed.isShutdown()).isFalse();
