@@ -26,7 +26,7 @@ public final class DaemonBootstrap {
 		}
 
 		return switch (request.route()) {
-			case LOCAL -> CliSupport.runCLIWithExitCode(request.commandArguments());
+			case LOCAL -> CliSupport.runExpandedCLIWithExitCode(request.commandArguments(), request.workingDirectory());
 			case DAEMON_COMMAND -> writeResultAndReturnExitCode(executeDaemonCommand(request));
 			case MANAGEMENT -> writeResultAndReturnExitCode(executeManagementCommand(request));
 		};

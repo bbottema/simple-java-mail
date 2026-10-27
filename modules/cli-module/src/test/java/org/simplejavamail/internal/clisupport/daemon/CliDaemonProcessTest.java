@@ -318,6 +318,94 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void retiredOptionSpellingsRemainLiteralInOneShotAndDaemonMessages() throws Exception {
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		smtp.start();
+		Invocation start = null;
+		try {
+			start = invoke(true, "daemon", "start", "--daemon-instance=retired-values");
+			assertThat(start.exitCode).as(start.output).isZero();
+			int received = 0;
+			for (String mode : List.of("--daemon=off", "--daemon=require")) {
+				for (String value : List.of("--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help")) {
+					final Invocation result = invoke(true, "send", mode, "--daemon-instance=retired-values",
+							"--email:startingBlank", "--email:from", "sender@example.test", "--email:to", "receiver@example.test",
+							"--email:withSubject", value, "--email:withPlainText", value,
+							"--email:withHeader", "X-Example", value, "--email:withHeader", "X-Example", "retained",
+							"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+							"--mailer:withConnectionPoolCoreSize", "0");
+					assertThat(result.exitCode).as(result.output).isZero();
+					assertThat(smtp.getMessages()).hasSize(++received);
+					final var message = smtp.getMessages().get(received - 1).getMimeMessage();
+					assertThat(message.getSubject()).isEqualTo(value);
+					assertThat(message.getContent().toString().stripTrailing()).isEqualTo(value);
+					assertThat(message.getHeader("X-Example")).containsExactly(value, "retained");
+				}
+			}
+		} finally {
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=retired-values");
+				assertThat(stop.exitCode).as(stop.output).isZero();
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
+	void argumentFilesExpandOnceInTheCallerDirectoryForOneShotAndDaemonSends() throws Exception {
+		final Path callerDirectory = Files.createDirectory(stateRoot.resolve("caller"));
+		final Path daemonDirectory = Files.createDirectory(stateRoot.resolve("daemon"));
+		Files.writeString(callerDirectory.resolve("request.args"), "@nested.args\n--email:withPlainText 'Quoted caller body'\n"
+				+ "--email:withHeader X-Literal @@literal.txt\n--email:withHeader X-Missing @caller-missing.txt\n"
+				+ "--email:withHeader X-Triple @@@literal.txt\n");
+		Files.writeString(callerDirectory.resolve("nested.args"), "--email:withSubject @@literal.txt\n");
+		Files.writeString(callerDirectory.resolve("simple-request.args"), String.join("\n", "@simple-nested.args",
+				"--email:withPlainText", "Simplified caller body", "--email:withHeader", "X-Literal", "@@literal.txt",
+				"--email:withHeader", "X-Missing", "@caller-missing.txt", "--email:withHeader", "X-Triple", "@@@literal.txt"));
+		Files.writeString(callerDirectory.resolve("simple-nested.args"), "--email:withSubject\n@@literal.txt\n");
+		Files.writeString(callerDirectory.resolve("literal.txt"), "wrong-caller-expansion");
+		Files.writeString(daemonDirectory.resolve("literal.txt"), "wrong-daemon-expansion");
+		Files.writeString(daemonDirectory.resolve("caller-missing.txt"), "wrong-daemon-missing-expansion");
+		Files.writeString(daemonDirectory.resolve("request.args"), "--email:withSubject wrong-daemon-request\n");
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		smtp.start();
+		Invocation start = null;
+		try {
+			start = invokeFrom(daemonDirectory, true, "daemon", "start", "--daemon-instance=argument-files");
+			assertThat(start.exitCode).as(start.output).isZero();
+			int received = 0;
+			for (String route : List.of("one-shot", "daemon", "simplified-daemon")) {
+				final boolean simplified = route.equals("simplified-daemon");
+				final String mode = route.equals("one-shot") ? "--daemon=off" : "--daemon=require";
+				final List<String> requestCommand = command(true, new String[] {"send", mode, "--daemon-instance=argument-files",
+						"--email:startingBlank", "--email:from", "sender@example.test", "--email:to", "receiver@example.test",
+						simplified ? "@simple-request.args" : "@request.args", "--mailer:withSMTPServer", "127.0.0.1",
+						Integer.toString(smtp.getServer().getPortAllocated()), "--mailer:withSmtpClientHostname", "localhost",
+						"--mailer:withConnectionPoolCoreSize", "0"});
+				if (simplified) {
+					requestCommand.add(1, "-Dpicocli.useSimplifiedAtFiles=true");
+				}
+				final Invocation result = invoke(requestCommand, callerDirectory);
+				assertThat(result.exitCode).as(result.output).isZero();
+				assertThat(smtp.getMessages()).hasSize(++received);
+				final var message = smtp.getMessages().get(received - 1).getMimeMessage();
+				assertThat(message.getSubject()).isEqualTo("@literal.txt");
+				assertThat(message.getContent().toString().stripTrailing())
+						.isEqualTo(simplified ? "Simplified caller body" : "Quoted caller body");
+				assertThat(message.getHeader("X-Literal")).containsExactly("@literal.txt");
+				assertThat(message.getHeader("X-Missing")).containsExactly("@caller-missing.txt");
+				assertThat(message.getHeader("X-Triple")).containsExactly("@@literal.txt");
+			}
+		} finally {
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=argument-files");
+				assertThat(stop.exitCode).as(stop.output).isZero();
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
 	void daemonAndMailerReuseRemainAvailableWithoutTheOptionalBatchStack() throws Exception {
 		final String classPath = withoutBatchStack(System.getProperty("java.class.path"));
 		assertThat(classPath).doesNotContain("batch-module", "smtp-connection-pool", "clustered-object-pool");
@@ -455,11 +543,22 @@ class CliDaemonProcessTest {
 	}
 
 	private Invocation invoke(final List<String> command) throws Exception {
+		return invoke(command, null);
+	}
+
+	private Invocation invokeFrom(final Path workingDirectory, final boolean forceTcp, final String... arguments) throws Exception {
+		return invoke(command(forceTcp, arguments), workingDirectory);
+	}
+
+	private Invocation invoke(final List<String> command, final Path workingDirectory) throws Exception {
 		final Path output = Files.createTempFile(stateRoot, "cli-", ".log");
-		final Process process = new ProcessBuilder(command)
+		final ProcessBuilder processBuilder = new ProcessBuilder(command)
 				.redirectErrorStream(true)
-				.redirectOutput(output.toFile())
-				.start();
+				.redirectOutput(output.toFile());
+		if (workingDirectory != null) {
+			processBuilder.directory(workingDirectory.toFile());
+		}
+		final Process process = processBuilder.start();
 		final boolean exited = process.waitFor(30, TimeUnit.SECONDS);
 		if (!exited) {
 			process.destroyForcibly();

@@ -115,6 +115,12 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#876](https://github.com/bbottema/simple-java-mail/issues/876): CLI argument files expand once from the caller's directory. Escaped `@@values`
+  remain literal after routing, and missing caller files cannot be replaced by files in a daemon's directory. Existing UTF-8 and expansion limits remain in force.
+
+- [#875](https://github.com/bbottema/simple-java-mail/issues/875): CLI subjects, bodies and header values can contain retired execution-option
+  spellings such as `--mailer:async=false`. Actual retired options retain their migration error and existing help ordering.
+
 - [#874](https://github.com/bbottema/simple-java-mail/issues/874): genuine CLI help ignores removed execution-mode options supplied afterward.
   Earlier or standalone removed options retain their migration error, without executing a mail command for help.
 

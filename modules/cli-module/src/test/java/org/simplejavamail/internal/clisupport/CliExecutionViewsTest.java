@@ -84,6 +84,30 @@ class CliExecutionViewsTest {
 	}
 
 	@Test
+	void aRetiredLiteralDoesNotHideAnActualRetiredOption() {
+		final MailerProvider provider = mock(MailerProvider.class);
+		try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), provider)) {
+			final CliExecutionResult result = execute(environment, "send", "--email:withSubject", "--mailer:async=false",
+					"--mailer:async=true");
+			assertThat(result.exitCode()).isEqualTo(CliExitCode.CLI_ERROR.code());
+			assertThat(result.stderr()).contains("--mailer:async was removed in 10.0.0.");
+			verifyNoInteractions(provider);
+		}
+	}
+
+	@Test
+	void aRetiredLiteralKeepsUnrelatedParserErrors() {
+		final MailerProvider provider = mock(MailerProvider.class);
+		try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), provider)) {
+			final CliExecutionResult result = execute(environment, "send", "--email:withSubject", "--mailer:async=false",
+					"--some-mistyped-option");
+			assertThat(result.exitCode()).isEqualTo(CliExitCode.CLI_ERROR.code());
+			assertThat(result.stderr()).contains("--some-mistyped-option").doesNotContain("--mailer:async was removed");
+			verifyNoInteractions(provider);
+		}
+	}
+
+	@Test
 	void generatedHelpDoesNotAdvertiseRemovedModeOrOptionHelp() {
 		try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), mock(MailerProvider.class))) {
 			final CliExecutionResult result = execute(environment, "send", "--help");

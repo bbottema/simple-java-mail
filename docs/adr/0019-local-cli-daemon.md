@@ -30,6 +30,21 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Expand argument files once (accepted 27 October 2026)
+
+Expand `@argument` files once at the caller boundary before routing. Preserve the existing bounded expander's strict UTF-8 reading,
+file/argument limits, nesting and cycle checks, quoting, simplified mode and caller-directory resolution, including nested files.
+An escaped `@@literal` becomes the literal value `@literal`; a missing or unreadable file remains literal. Neither result becomes another
+file lookup in the execution process, even when the daemon's directory contains a readable file with that name.
+
+Use Picocli's `setExpandAtFiles(false)` for already-expanded requests. Distinguish raw-argument entry points from expanded execution internally:
+direct raw calls still pass through the same bounded expansion boundary, while one-shot routing and authenticated daemon execution consume
+their completed argument list without another expansion. Keep request working directories explicit; do not change process-wide state.
+
+This correction preserves [ADR 0018](0018-cli-from-builder-contracts.md)'s option/value, help-order and repeated-call contracts. It adds no
+application API, configuration switch or escaping syntax. The maintainer accepted it under
+[#876](https://github.com/bbottema/simple-java-mail/issues/876) for unreleased 10.0.0. It is implemented; the issue tracks delivery.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |

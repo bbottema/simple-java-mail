@@ -61,7 +61,7 @@ class CliCommandLineProducer {
         createRootCommand(rootCommandsHolder, "validate", "Rehearse preparing an email with the mailer's defaults, overrides, MIME security and size limit, without connecting to SMTP",
                 colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
-        return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ");
+        return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ").setExpandAtFiles(false);
     }
 
     /** Probe authentication is a per-command choice, not a generated builder option or a Mailer default. */

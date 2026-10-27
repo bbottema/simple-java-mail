@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
+import org.simplejavamail.internal.clisupport.daemon.ArgumentFileExpander;
 import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
 import org.slf4j.Logger;
@@ -41,8 +42,21 @@ public final class CliSupport {
 	}
 
 	public static int runCLIWithExitCode(final String[] args) {
+		final Path workingDirectory = Path.of("").toAbsolutePath();
+		try {
+			return runExpandedCLIWithExitCode(ArgumentFileExpander.expand(args, workingDirectory), workingDirectory);
+		} catch (RuntimeException e) {
+			final CliExecutionResult result = failure(CliExitCode.CLI_ERROR, e,
+					new BoundedOutput(MAX_CAPTURED_OUTPUT), new BoundedOutput(MAX_CAPTURED_OUTPUT));
+			System.err.print(result.stderr());
+			return result.exitCode();
+		}
+	}
+
+	/** Runs one-shot arguments already expanded by the caller boundary, without interpreting at signs again. */
+	public static int runExpandedCLIWithExitCode(final String[] args, final Path workingDirectory) {
 		try (CliExecutionEnvironment environment = CliExecutionEnvironment.oneShot()) {
-			final CliExecutionResult result = execute(args, Path.of("").toAbsolutePath(), UUID.randomUUID(), environment, null);
+			final CliExecutionResult result = executeExpandedArguments(args, workingDirectory, UUID.randomUUID(), environment, null);
 			System.out.print(result.stdout());
 			System.err.print(result.stderr());
 			return result.exitCode();
@@ -52,8 +66,20 @@ public final class CliSupport {
 		}
 	}
 
-	@SuppressWarnings("try")
+	/** Expands raw in-process arguments using the supplied request directory before parsing or executing builders. */
 	public static CliExecutionResult execute(final String[] args, final Path workingDirectory, final UUID requestId,
+			final CliExecutionEnvironment environment, final byte[] profileKey) {
+		try {
+			return executeExpandedArguments(ArgumentFileExpander.expand(args, workingDirectory), workingDirectory,
+					requestId, environment, profileKey);
+		} catch (RuntimeException e) {
+			return failure(CliExitCode.CLI_ERROR, e, new BoundedOutput(MAX_CAPTURED_OUTPUT), new BoundedOutput(MAX_CAPTURED_OUTPUT));
+		}
+	}
+
+	/** Executes the completed argument list from one-shot routing or an authenticated daemon request. */
+	@SuppressWarnings("try")
+	public static CliExecutionResult executeExpandedArguments(final String[] args, final Path workingDirectory, final UUID requestId,
 			final CliExecutionEnvironment environment, final byte[] profileKey) {
 		final BoundedOutput stdout = new BoundedOutput(MAX_CAPTURED_OUTPUT);
 		final BoundedOutput stderr = new BoundedOutput(MAX_CAPTURED_OUTPUT);
@@ -64,8 +90,7 @@ public final class CliSupport {
 			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.DECLARED_OPTIONS;
 			final CommandLine commandLine = configurePicoCli(declaredOptions, CONSOLE_TEXT_WIDTH);
 			final String[] selectedArguments = argumentsThroughFirstHelpOption(args, commandLine);
-			rejectRemovedExecutionModeOption(selectedArguments);
-			final CommandLine.ParseResult parseResult = commandLine.parseArgs(selectedArguments);
+			final CommandLine.ParseResult parseResult = parseCommandLineInput(commandLine, selectedArguments);
 			if (!CliCommandLineConsumerUsageHelper.writeHelpIfRequested(parseResult, CONSOLE_TEXT_WIDTH, out, err)) {
 				final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
 				commandExecutionStarted = true;
@@ -123,12 +148,18 @@ public final class CliSupport {
 		}
 	}
 
-	private static void rejectRemovedExecutionModeOption(final String[] args) {
-		for (final String arg : args) {
-			if (arg.equals("--mailer:async") || arg.startsWith("--mailer:async=") || arg.equals("--mailer:async--help")) {
-				throw new IllegalArgumentException("--mailer:async was removed in 10.0.0. Remove this option: send and connect already wait for completion. "
-						+ "The daemon still runs separate requests concurrently.");
+	private static CommandLine.ParseResult parseCommandLineInput(final CommandLine commandLine, final String[] args) {
+		try {
+			return commandLine.parseArgs(args);
+		} catch (CommandLine.UnmatchedArgumentException e) {
+			// Picocli has already distinguished consumed values from unmatched options.
+			for (final String arg : e.getUnmatched()) {
+				if (arg.equals("--mailer:async") || arg.startsWith("--mailer:async=") || arg.equals("--mailer:async--help")) {
+					throw new IllegalArgumentException("--mailer:async was removed in 10.0.0. Remove this option: send and connect already wait for completion. "
+							+ "The daemon still runs separate requests concurrently.", e);
+				}
 			}
+			throw e;
 		}
 	}
 
