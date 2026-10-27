@@ -21,6 +21,12 @@ public final class ConfigurationChoice<T> {
     public static <T> ConfigurationChoice<T> inherit() { return new ConfigurationChoice<>(State.INHERIT, null); }
     public static <T> ConfigurationChoice<T> set(final T value) { return new ConfigurationChoice<>(State.SET, requireNonNull(value, "value")); }
     public static <T> ConfigurationChoice<T> remove() { return new ConfigurationChoice<>(State.REMOVE, null); }
+
+    /** Nullable draft members inherit; an explicit clear must use {@link #remove()} instead. */
+    public static <T> ConfigurationChoice<T> ofNullable(@Nullable final T value) {
+        return value == null ? inherit() : set(value);
+    }
+
     public State getState() { return state; }
     @Nullable public T valueOrNull() { return value; }
 

@@ -2,8 +2,12 @@ package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.AsyncExecutionConfig;
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
@@ -13,8 +17,11 @@ import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,13 +29,57 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ConnectionPlanLifecycleTest {
+    enum InvalidExecutionInput { JAVA, CONFIGURATION, SUPPLIED_SESSION }
+
+    @ParameterizedTest
+    @EnumSource(InvalidExecutionInput.class)
+    void invalidParentExecutionIsRejectedBeforeNamedChildAllocation(final InvalidExecutionInput input) {
+        final Map<String, Object> properties = new LinkedHashMap<>(Map.of(
+                "simplejavamail.smtp.host", "primary.example.org", "simplejavamail.failover.mailer", "backup",
+                "simplejavamail.mailers.backup.smtp.host", "backup.example.org",
+                "simplejavamail.mailers.backup.proxy.host", "proxy.example.org",
+                "simplejavamail.mailers.backup.proxy.username", "test-user",
+                "simplejavamail.mailers.backup.proxy.password", "test-password"));
+        if (input == InvalidExecutionInput.CONFIGURATION) {
+            properties.put("simplejavamail.defaults.async.queue.capacity", 1);
+        }
+        final var config = ConfigLoader.builder().withMap(properties).load();
+        final Session suppliedSession = Session.getInstance(new Properties());
+        final Properties before = (Properties) suppliedSession.getProperties().clone();
+        final ExecutorService borrowed = Executors.newSingleThreadExecutor();
+        final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
+        when(module.createAnonymousSocks5Server(any())).thenThrow(new AssertionError("Named child allocated a proxy bridge"));
+        try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
+             MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
+            modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
+            final MailerGenericBuilderImpl<?> builder = input == InvalidExecutionInput.SUPPLIED_SESSION
+                    ? new MailerFromSessionBuilderImpl(config).usingSession(suppliedSession) : new MailerRegularBuilderImpl(config);
+            final AsyncExecutionConfig.Builder execution = AsyncExecutionConfig.builder().withExecutorService(borrowed);
+            if (input != InvalidExecutionInput.CONFIGURATION) {
+                execution.withQueueCapacity(1);
+            }
+            builder.withAsyncExecutionConfig(execution.build());
+
+            assertThatThrownBy(builder::buildMailer).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("built-in async queue settings cannot be combined with withExecutorService");
+            verifyNoInteractions(module);
+            assertThat(executors.constructed()).isEmpty();
+            assertThat(borrowed.isShutdown()).isFalse();
+            assertThat(suppliedSession.getProperties()).isEqualTo(before);
+        } finally {
+            borrowed.shutdownNow();
+        }
+    }
+
     @Test
     void aRawSetterCapturesOneTextValueForStorageAndConflictComparison() throws Exception {
         final AtomicInteger renders = new AtomicInteger();
@@ -67,7 +118,7 @@ class ConnectionPlanLifecycleTest {
     @Test
     void constructionConsumesCapturedRawProperties() throws Exception {
         final MailerRegularBuilderImpl builder = new MailerRegularBuilderImpl(ConfigLoader.builder().load()) {
-            @Override MailerImpl constructMailer(final ValidatedConnectionPlan plan) {
+            @Override MailerImpl constructMailer(final ValidatedMailerPlan plan) {
                 withProperty("mail.smtp.timeout", "99999");
                 withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
                 return super.constructMailer(plan);

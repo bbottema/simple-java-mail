@@ -232,8 +232,9 @@ final class LockedSmtpConnectionRequirements {
 	static boolean hasCustomSocketFactory(final Properties properties, final TransportStrategy strategy) {
 		final String sslFactory = strategy.propertyNameSSLSocketFactory();
 		final String plainFactory = sslFactory.replace(".ssl.", ".");
-		return properties.containsKey(sslFactory) || properties.containsKey(sslFactory + ".class")
-				|| properties.containsKey(plainFactory) || properties.containsKey(plainFactory + ".class");
+		// Instance slots use direct objects; class names also remain active through provider-visible inherited Strings.
+		return properties.containsKey(sslFactory) || ConnectionPropertyValues.visibleValue(properties, sslFactory + ".class") != null
+				|| properties.containsKey(plainFactory) || ConnectionPropertyValues.visibleValue(properties, plainFactory + ".class") != null;
 	}
 
 	private void map(final SimpleJavaMailConfig config, final Property property, final String sessionKey) {
@@ -265,6 +266,7 @@ final class LockedSmtpConnectionRequirements {
 	}
 
 	void verifyExplicitConnectionChoices(final Map<?, ?> properties) {
+		// These are literal declarations. Defaults inherited by additional Properties are not copied into the Session.
 		if (trustProperty != null && Boolean.FALSE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key()))
 				&& "*".equals(properties.get(trustProperty))) {
 			throw locks.conflict(DEFAULT_TRUST_ALL_HOSTS, "An explicit SMTP trust property enables wildcard trust, but this lock disables it. Remove the conflicting customization.");
@@ -288,12 +290,12 @@ final class LockedSmtpConnectionRequirements {
 			verifyUnknownSessionStrategy();
 		}
 		lockedExtraProperties.keySet().stream().filter(session.getProperties()::containsKey)
-				.forEach(key -> verifySessionValue(key, session.getProperties().get(key)));
+				.forEach(key -> verifySessionValue(key, ConnectionPropertyValues.visibleValue(session.getProperties(), key)));
 		// These settings belong to the supplied Session, not to the generic builder that initializes operational settings below.
 		for (Map.Entry<String, Property> entry : sessionProperties.entrySet()) {
 			if (entry.getValue() == SMTP_HOST || entry.getValue() == SMTP_PORT || entry.getValue() == SMTP_USERNAME
 					|| entry.getValue() == TRANSPORT_STRATEGY || entry.getValue() == CUSTOM_SSLFACTORY_CLASS || entry.getValue() == OPPORTUNISTIC_TLS) {
-				verifySessionValue(entry.getKey(), MailerSessionSettings.propertyValue(session.getProperties(), entry.getKey()));
+				verifySessionValue(entry.getKey(), ConnectionPropertyValues.visibleValue(session.getProperties(), entry.getKey()));
 			}
 		}
 	}
@@ -328,7 +330,7 @@ final class LockedSmtpConnectionRequirements {
 			return;
 		}
 		for (String key : requiredSessionValues.keySet()) {
-			verifySessionValue(key, MailerSessionSettings.propertyValue(session.getProperties(), key));
+			verifySessionValue(key, ConnectionPropertyValues.visibleValue(session.getProperties(), key));
 		}
 		if (Boolean.FALSE.equals(locks.getValues().get(DEFAULT_TRUST_ALL_HOSTS.key()))) {
 			final TransportStrategy strategy = MailerSessionSettings.transportStrategy(session.getProperties());

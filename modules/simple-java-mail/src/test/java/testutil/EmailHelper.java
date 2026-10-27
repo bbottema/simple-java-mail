@@ -46,6 +46,7 @@ import static java.util.Calendar.SEPTEMBER;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_CONNECTION_CONFLICT_POLICY;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_RATE_LIMIT_BURSTS_ALLOWED;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_ENABLED;
 import static org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES;
@@ -214,43 +215,47 @@ public class EmailHelper {
 			final SessionDebugConfig debugConfig = debugPrinter == null
 					? SessionDebugConfig.builder().withEnabled(debugLogging).withOutput(SessionDebugOutput.STDOUT).build()
 					: SessionDebugConfig.builder().withEnabled(debugLogging).withPrinter(debugPrinter).build();
+			final Duration socketTimeout = Duration.ofMillis(sessionTimeout);
 			return (OperationalConfig) constructor.newInstance(
 					/*0*/properties,
-					/*1*/Duration.ofMillis(sessionTimeout),
-					/*2*/localBindAddress,
-					/*3*/localBindPort,
-					/*4*/smtpClientHostname,
-					/*5*/false,
-					/*6*/MailSendTelemetryConfig.builder().withEnabled(DEFAULT_MAIL_SEND_TELEMETRY_ENABLED)
+					/*1*/DEFAULT_CONNECTION_CONFLICT_POLICY,
+					/*2*/socketTimeout,
+					/*3*/socketTimeout,
+					/*4*/socketTimeout,
+					/*5*/localBindAddress,
+					/*6*/localBindPort,
+					/*7*/smtpClientHostname,
+					/*8*/false,
+					/*9*/MailSendTelemetryConfig.builder().withEnabled(DEFAULT_MAIL_SEND_TELEMETRY_ENABLED)
 							.withSmtpEndpointAttributes(DEFAULT_MAIL_SEND_TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES).build(),
-					/*7*/threadPoolSize,
-					/*8*/Duration.ofMillis(threadPoolKeepAliveTime),
-					/*9*/clusterKey,
-					/*10*/connectionPoolCoreSize,
-					/*11*/connectionPoolMaxSize,
-					/*12*/Duration.ofMillis(connectionPoolClaimTimeoutMillis),
-					/*13*/Duration.ofMillis(connectionPoolExpireAfterMillis),
-					/*14*/null,
-					/*15*/connectionPoolLoadBalancingStrategy,
-					/*16*/connectionPoolClusterConfigs,
-					/*17*/transportModeLoggingOnly,
-					/*18*/debugConfig,
-					/*19*/clientValidationWarningsOnly,
-					/*20*/sslHostsToTrust,
-					/*21*/trustAllSSLHost,
-					/*22*/verifyingServerIdentity,
-					/*23*/executorService,
-					/*24*/isExecutorServiceUserProvided,
-					/*25*/customMailer,
-					/*26*/oauth2AccessTokenProvider,
-					/*27*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)),
-					/*28*/null,
-					/*29*/null,
-					/*30*/null,
+					/*10*/threadPoolSize,
+					/*11*/Duration.ofMillis(threadPoolKeepAliveTime),
+					/*12*/clusterKey,
+					/*13*/connectionPoolCoreSize,
+					/*14*/connectionPoolMaxSize,
+					/*15*/Duration.ofMillis(connectionPoolClaimTimeoutMillis),
+					/*16*/Duration.ofMillis(connectionPoolExpireAfterMillis),
+					/*17*/null,
+					/*18*/connectionPoolLoadBalancingStrategy,
+					/*19*/connectionPoolClusterConfigs,
+					/*20*/transportModeLoggingOnly,
+					/*21*/debugConfig,
+					/*22*/clientValidationWarningsOnly,
+					/*23*/sslHostsToTrust,
+					/*24*/trustAllSSLHost,
+					/*25*/verifyingServerIdentity,
+					/*26*/executorService,
+					/*27*/isExecutorServiceUserProvided,
+					/*28*/customMailer,
+					/*29*/oauth2AccessTokenProvider,
+					/*30*/new AsyncQueueConfig(-1, AsyncQueueOverflowPolicy.REJECT, Duration.ofMillis(1000)),
 					/*31*/null,
-					/*32*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
+					/*32*/null,
 					/*33*/null,
-					/*34*/MailSendRetryPolicy.builder().build());
+					/*34*/null,
+					/*35*/DEFAULT_RATE_LIMIT_BURSTS_ALLOWED,
+					/*36*/null,
+					/*37*/MailSendRetryPolicy.builder().build());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new AssertionError(e.getMessage(), e);
 		}

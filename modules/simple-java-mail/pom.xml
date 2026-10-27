@@ -113,6 +113,28 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.4</version>
+                <executions>
+                    <execution>
+                        <id>configuration-contract-library-gate</id>
+                        <phase>verify</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <skip>${configuration.contract.skip}</skip>
+                            <mainClass>org.simplejavamail.mailer.internal.ConfigurationContractGate</mainClass>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>${maven.multiModuleProjectDirectory}/.</argument>
+                                <argument>run-${session.request.startTime.time}</argument>
+                                <argument>library</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.6.0</version>

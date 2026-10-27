@@ -271,3 +271,7 @@ Source resolution remains ordered. ADR 0038 adds a subsequent connection-declara
 [ADR 0039](0039-explicit-configuration-resolution.md) governs post-loading construction choices and retained declarations. The existing loader, schema-bound keys, ordered source precedence, snapshot isolation and captured source metadata remain authoritative. The shared resolution model consumes that snapshot and final builder choices; it does not reopen sources or replace this loader with another configuration system.
 
 Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+ADR 0039 now adopts all layered Email/Mailer consumers. Core still resolves ordered sources once and supplies typed immutable snapshots. Consumer declarations distinguish explicit Java choices, captured inputs, removals and built-in fallbacks without reopening sources or moving main-runtime machinery into core. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

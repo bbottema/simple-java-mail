@@ -1,5 +1,12 @@
 package org.simplejavamail.internal.smime;
 
+import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -52,11 +59,7 @@ public final class SmimeMessageProtection {
 		if (anyRecipientHasSmimeCert) {
 			final List<X509Certificate> effectiveCerts = email.getRecipients().stream()
 					.filter(r -> r.getType() == TO || r.getType() == CC || r.getType() == BCC)
-					.map(r -> r.getSmimeCertificate() != null
-							? r.getSmimeCertificate()
-							: (email.getSmimeEncryptionConfig() != null
-									? email.getSmimeEncryptionConfig().getX509Certificate()
-									: null))
+					.map(r -> selectRecipientCertificate(r, email))
 					.filter(Objects::nonNull)
 					.collect(Collectors.toList());
 			if (!effectiveCerts.isEmpty()) {
@@ -74,5 +77,16 @@ public final class SmimeMessageProtection {
 			message = FinalizedMimeMessage.finalizeMessage(encrypted, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 		}
 		return message;
+	}
+
+	private static X509Certificate selectRecipientCertificate(final Recipient recipient, final Email email) {
+		final X509Certificate fallback = email.getSmimeEncryptionConfig() == null ? null : email.getSmimeEncryptionConfig().getX509Certificate();
+		final ConfigurationSetting<X509Certificate> setting = ConfigurationSetting.of("smime", "recipient-encryption-certificate");
+		return ConfigurationResolver.resolve(setting, List.of(
+				ConfigurationDeclaration.of(setting, ConfigurationChoice.ofNullable(recipient.getSmimeCertificate()),
+						ConfigurationOrigin.of(ConfigurationOrigin.Kind.SUBMITTED, "recipient.smimeCertificate", "withSmimeCertificate")),
+				ConfigurationDeclaration.of(setting, ConfigurationChoice.ofNullable(fallback),
+						ConfigurationOrigin.of(ConfigurationOrigin.Kind.DEFAULT, "email.smimeEncryptionConfig", "governance-resolved Email"))),
+				List.of(ConfigurationOrigin.Kind.SUBMITTED, ConfigurationOrigin.Kind.DEFAULT)).valueOrNull();
 	}
 }

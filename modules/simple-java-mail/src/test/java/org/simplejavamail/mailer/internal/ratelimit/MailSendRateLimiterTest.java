@@ -3,9 +3,11 @@ package org.simplejavamail.mailer.internal.ratelimit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.config.SendingRateLimit;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.mailer.internal.MailerException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -163,21 +166,26 @@ class MailSendRateLimiterTest {
 		final MailSendControl control = control();
 		try (MailSendRateLimiter.Reservation preparing = limiter.reserve(1, control)) {
 			clock.resetReadBarrier();
-			final CompletableFuture<Boolean> interrupted = new CompletableFuture<>();
+			final CompletableFuture<MailerException> interruptedFailure = new CompletableFuture<>();
+			final AtomicBoolean interruptionFlag = new AtomicBoolean();
 			final Thread waiting = new Thread(() -> {
 				try (MailSendRateLimiter.Reservation unexpected = limiter.reserve(1, control)) {
-					interrupted.completeExceptionally(new AssertionError("The existing preparation must block this reservation"));
-				} catch (IllegalStateException failure) {
-					interrupted.complete(Thread.currentThread().isInterrupted());
+					interruptedFailure.completeExceptionally(new AssertionError("The existing preparation must block this reservation"));
+				} catch (MailerException failure) {
+					interruptionFlag.set(Thread.currentThread().isInterrupted());
+					interruptedFailure.complete(failure);
 				} catch (Throwable failure) {
-					interrupted.completeExceptionally(failure);
+					interruptedFailure.completeExceptionally(failure);
 				}
 			});
 			waiting.start();
 			try {
 				clock.awaitRead();
 				waiting.interrupt();
-				assertThat(interrupted.get(5, SECONDS)).isTrue();
+				final MailerException failure = interruptedFailure.get(5, SECONDS);
+				assertThat(failure).hasCauseInstanceOf(InterruptedException.class);
+				assertThat(failure.getKind()).isEqualTo(MailFailureKind.CAPACITY);
+				assertThat(interruptionFlag.get()).isTrue();
 			} finally {
 				waiting.interrupt();
 				waiting.join(5000);

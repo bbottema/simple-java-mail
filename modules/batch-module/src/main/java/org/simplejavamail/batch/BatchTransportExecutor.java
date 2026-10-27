@@ -5,9 +5,15 @@ import org.simplejavamail.api.mailer.MailFailureKind;
 import jakarta.mail.Session;
 import org.simplejavamail.internal.batchsupport.BatchTransportEngine;
 import org.simplejavamail.internal.batchsupport.concurrent.NonJvmBlockingThreadPoolExecutor;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -43,6 +49,8 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 	private enum State { OPEN, CLOSING, CLOSED }
 
 	private static final ThreadLocal<ExecutionContext> CURRENT_EXECUTION = new ThreadLocal<>();
+	private static final List<ConfigurationOrigin.Kind> CLUSTER_BEFORE_DEFAULT = List.of(
+			ConfigurationOrigin.Kind.OVERRIDE, ConfigurationOrigin.Kind.DERIVED);
 
 	private final Object lifecycleMonitor = new Object();
 	private final BatchTransportEngine<K> engine;
@@ -96,12 +104,23 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 		Objects.requireNonNull(session, "session");
 		synchronized (lifecycleMonitor) {
 			ensureOpen("register a Session");
-			final BatchTransportPoolConfiguration configuration = clusterConfigurations.containsKey(clusterKey)
-					? clusterConfigurations.get(clusterKey)
-					: defaultPoolConfiguration;
-			engine.register(clusterKey, session, configuration);
+			engine.register(clusterKey, session, resolveClusterConfiguration(clusterKey));
 		}
 		return this;
+	}
+
+	/** Standalone cluster choices replace the complete pool value, including an absent creation-age threshold. */
+	private BatchTransportPoolConfiguration resolveClusterConfiguration(final K clusterKey) {
+		final ConfigurationSetting<BatchTransportPoolConfiguration> setting = ConfigurationSetting.of("batch.pool", "configuration");
+		final BatchTransportPoolConfiguration supplied = clusterConfigurations.get(clusterKey);
+		final ConfigurationChoice<BatchTransportPoolConfiguration> clusterChoice = !clusterConfigurations.containsKey(clusterKey)
+				? ConfigurationChoice.inherit() : supplied == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(supplied);
+		return ConfigurationResolver.resolve(setting, List.of(
+				ConfigurationDeclaration.of(setting, clusterChoice,
+						ConfigurationOrigin.of(ConfigurationOrigin.Kind.OVERRIDE, "poolConfiguration", "withClusterConfiguration")),
+				ConfigurationDeclaration.of(setting, ConfigurationChoice.set(defaultPoolConfiguration),
+						ConfigurationOrigin.of(ConfigurationOrigin.Kind.DERIVED, "poolConfiguration", "default pool configuration"))),
+				CLUSTER_BEFORE_DEFAULT).valueOrNull();
 	}
 
 	/**

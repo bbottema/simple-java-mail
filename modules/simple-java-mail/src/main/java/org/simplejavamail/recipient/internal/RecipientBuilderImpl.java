@@ -16,7 +16,6 @@ import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
-import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.recipient.internal.RecipientException.MISSING_ADDRESS;
 
@@ -172,7 +171,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     public IRecipientBuilder withAddressAndNameOrDefault(@NotNull InternetAddress address, @Nullable String defaultName) {
         this.addressName = null;
         return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
-                .withName(defaultTo(address.getPersonal(), defaultName));
+                .withName(RecipientConfigurationResolver.select("recipient.name", null, address.getPersonal(), defaultName));
     }
 
     /**
@@ -190,7 +189,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     public IRecipientBuilder withAddressAndFixedNameOrProvided(@NotNull InternetAddress address, @Nullable String fixedName) {
         this.addressName = null;
         return withAddressOnlyFrom(checkNonEmptyArgument(address, "address"))
-                .withName(defaultTo(fixedName, address.getPersonal()));
+                .withName(RecipientConfigurationResolver.select("recipient.name", fixedName, address.getPersonal(), null));
     }
 
     /**
@@ -223,9 +222,8 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
             return withName(name)
                     .withAddress(emailAddress);
         }
-        return withName((fixedName || parsedAddress.getPersonal() == null)
-                ? defaultTo(name, parsedAddress.getPersonal())
-                : defaultTo(parsedAddress.getPersonal(), name))
+        return withName(RecipientConfigurationResolver.select("recipient.name", fixedName ? name : null,
+                parsedAddress.getPersonal(), fixedName ? null : name))
                 .withAddress(parsedAddress.getAddress());
     }
 
@@ -267,7 +265,7 @@ public class RecipientBuilderImpl implements IRecipientBuilder {
     @Override
     @Nullable
     public String getName() {
-        return defaultTo(name, addressName);
+        return RecipientConfigurationResolver.select("recipient.name", name, addressName, null);
     }
 
     /**

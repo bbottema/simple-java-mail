@@ -250,3 +250,7 @@ Follow the [API expansion workflow](../API_EXPANSION_WORKFLOW.md) and [coding gu
   CustomMailer and logging-only boundaries, property/Spring/CLI parity, provenance, locks, classpath and JPMS consumers.
 
 These obligations apply to changes in the retry engine as well as its initial implementation. Recorded verification belongs in the implementation record.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+ADR 0039 shares declaration selection for supplied, configured and built-in retry settings. Schedule/resource completeness, clear/reset semantics, validation and execution/replay ownership remain with this record's feature; shared configuration does not generalize retry execution. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -72,6 +73,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(factory.getConfig().getDiagnostics().toString())
 					.contains("simplejavamail.locked.smtp.host = relay.example.org (source: commandLineArgs)");
 		}
+		record("rule", "spring-boot.lock-authority");
+		record("case", "spring-boot.locked-config");
 	}
 
 	@ParameterizedTest
@@ -86,6 +89,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			}
 		}).hasRootCauseInstanceOf(MailException.class)
 				.hasStackTraceContaining(strategy + " requires STARTTLS, but mail.smtp.starttls.required disables it.");
+		record("rule", "spring-boot.static-construction-rejection");
+		record("case", "spring-boot.invalid-tls");
 	}
 
 	@Test
@@ -107,6 +112,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBean(SimpleJavaMailConfig.class).getDiagnostics().toString())
 					.contains("simplejavamail.defaults.mailsend.timeout = PT12.5S (source: commandLineArgs)");
 		}
+		record("rule", "spring-boot.bound-operational-value");
+		record("case", "spring-boot.timeout-binding");
 	}
 
 	@Test
@@ -123,6 +130,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("localhost");
 			assertThat(context.getBean(Mailer.class).getOperationalConfig().getOAuth2AccessTokenProvider()).isNull();
 		}
+		record("adapter", "spring-boot.discovery");
+		record("case", "spring-boot.defaults");
 	}
 
 	@Test
@@ -137,6 +146,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 		}
 
 		assertThat(mailerOwnedExecutor.isShutdown()).isTrue();
+		record("adapter", "spring-boot.lifecycle");
+		record("case", "spring-boot.context-close");
 	}
 
 	@Test
@@ -149,6 +160,9 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBean(SimpleJavaMail.class).mailerBuilder().getHost()).isEqualTo("custom-config.example.test");
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("custom-config.example.test");
 		}
+		record("adapter", "spring-boot.snapshot-bean");
+		record("rule", "spring-boot.bean-backoff");
+		record("case", "spring-boot.custom-config");
 	}
 
 	@Test
@@ -160,6 +174,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBeansOfType(SimpleJavaMailConfig.class)).containsOnlyKeys("simpleJavaMailConfig");
 			assertThat(context.getBean(Mailer.class).getServerConfig().getHost()).isEqualTo("custom-factory.example.test");
 		}
+		record("adapter", "spring-boot.factory-bean");
+		record("case", "spring-boot.custom-factory");
 	}
 
 	@Test
@@ -180,6 +196,9 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			customMailer.close();
 		}
 		assertThat(customMailerExecutor.isShutdown()).isTrue();
+		record("adapter", "spring-boot.mailer-bean");
+		record("rule", "spring-boot.resource-ownership");
+		record("case", "spring-boot.custom-mailer");
 	}
 
 	@Test
@@ -221,6 +240,8 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(reportingMailerExecutor.isShutdown()).isFalse();
 			assertThat(reportingMail.mailerBuilder().getHost()).isEqualTo("reporting.example.test");
 		}
+		record("rule", "spring-boot.context-isolation");
+		record("case", "spring-boot.context-isolation");
 	}
 
 	@Test
@@ -237,6 +258,9 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(context.getBean(Mailer.class).getOperationalConfig().getOAuth2AccessTokenProvider())
 					.isSameAs(context.getBean("primaryOAuthProvider", OAuth2AccessTokenProvider.class));
 		}
+		record("adapter", "spring-boot.oauth-provider");
+		record("rule", "spring-boot.selected-provider");
+		record("case", "spring-boot.provider-selection");
 	}
 
 	@Test
@@ -267,6 +291,9 @@ class SimpleJavaMailStarterAutoConfigurationTest {
 			assertThat(diagnostic(config, ConfigLoader.Property.SMTP_PORT.key()).getSourceName()).isEqualTo("commandLineArgs");
 			assertThat(diagnostic(config, "simplejavamail.extraproperties.source").getSourceName()).isEqualTo("commandLineArgs");
 		}
+		record("adapter", "spring-boot.profiles");
+		record("rule", "spring-boot.source-precedence");
+		record("case", "spring-boot.profile-precedence");
 	}
 
 	@Test

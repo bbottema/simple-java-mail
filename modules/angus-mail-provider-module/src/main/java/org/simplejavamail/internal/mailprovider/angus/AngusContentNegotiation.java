@@ -18,6 +18,9 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.ContentRequirement;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,8 +29,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.stream.IntStream;
 
 /** Derives the SMTP extensions needed by the prepared envelope and the bytes Angus will submit. */
@@ -149,23 +154,45 @@ final class AngusContentNegotiation {
     @Nullable
     static String resolveEnvelopeSender(@NotNull final PreparedMail preparedMail, @NotNull final String protocol)
             throws MessagingException {
+        final ConfigurationSetting<String> setting = ConfigurationSetting.of("angus.envelope", "sender");
         final String envelopeFrom = preparedMail.getDeliveryEnvelope().getEnvelopeFrom();
-        if (envelopeFrom != null && !envelopeFrom.isEmpty()) {
-            return envelopeFrom;
+        final List<ConfigurationDeclaration<String>> declarations = new ArrayList<>();
+        declarations.add(AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SUBMITTED, "Email envelope sender", nonEmpty(envelopeFrom)));
+        String selected = AngusConfigurationResolver.resolve(setting, declarations).valueOrNull();
+        if (selected != null) {
+            return selected;
         }
         final MimeMessage message = preparedMail.getMimeMessage();
-        if (envelopeFrom == null && message instanceof SMTPMessage && ((SMTPMessage) message).getEnvelopeFrom() != null
-                && !((SMTPMessage) message).getEnvelopeFrom().isEmpty()) {
-            return ((SMTPMessage) message).getEnvelopeFrom();
+        // An explicit empty Email envelope suppresses the legacy message option, while retaining the established later fallbacks.
+        final String legacySender = envelopeFrom == null && message instanceof SMTPMessage ? ((SMTPMessage) message).getEnvelopeFrom() : null;
+        declarations.add(AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.JAVA_RAW,
+                "SMTPMessage.setEnvelopeFrom(...)", nonEmpty(legacySender)));
+        selected = AngusConfigurationResolver.resolve(setting, declarations).valueOrNull();
+        if (selected != null) {
+            return selected;
         }
         final Session session = message.getSession();
-        if (session != null && session.getProperty("mail." + protocol + ".from") != null
-                && !session.getProperty("mail." + protocol + ".from").isEmpty()) {
-            return session.getProperty("mail." + protocol + ".from");
+        final String property = "mail." + protocol + ".from";
+        declarations.add(AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.SESSION, property,
+                session == null ? null : nonEmpty(session.getProperty(property))));
+        selected = AngusConfigurationResolver.resolve(setting, declarations).valueOrNull();
+        if (selected != null) {
+            return selected;
         }
+        // Header access and the provider's local-address fallback remain lazy: earlier choices need neither operation.
         final Address[] headerFrom = message.getFrom();
-        return headerFrom == null || headerFrom.length == 0
-                ? mailboxOf(session == null ? null : InternetAddress.getLocalAddress(session)) : mailboxOf(headerFrom[0]);
+        if (headerFrom != null && headerFrom.length != 0) {
+            declarations.add(AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.DEFAULT, "MIME From", mailboxOf(headerFrom[0])));
+        } else {
+            declarations.add(AngusConfigurationResolver.declaration(setting, ConfigurationOrigin.Kind.BUILT_IN, "provider local address",
+                    mailboxOf(session == null ? null : InternetAddress.getLocalAddress(session))));
+        }
+        return AngusConfigurationResolver.resolve(setting, declarations).valueOrNull();
+    }
+
+    @Nullable
+    private static String nonEmpty(@Nullable final String value) {
+        return value == null || value.isEmpty() ? null : value;
     }
 
     @Nullable
@@ -194,10 +221,10 @@ final class AngusContentNegotiation {
         if (!transport.supportsExtension("AUTH")) {
             return false;
         }
-        String submitter = message instanceof SMTPMessage ? ((SMTPMessage) message).getSubmitter() : null;
-        if (submitter == null && message.getSession() != null) {
-            submitter = message.getSession().getProperty("mail." + protocol + ".submitter");
-        }
+        final String suppliedSubmitter = message instanceof SMTPMessage ? ((SMTPMessage) message).getSubmitter() : null;
+        final String property = "mail." + protocol + ".submitter";
+        final String submitter = AngusConfigurationResolver.messageOrSession(property, suppliedSubmitter,
+                suppliedSubmitter == null && message.getSession() != null ? message.getSession().getProperty(property) : null);
         if (!containsInternationalizedMailbox(submitter, recipients)) {
             return false;
         }
@@ -216,11 +243,11 @@ final class AngusContentNegotiation {
             return false;
         }
         final MimeMessage message = preparedMail.getMimeMessage();
-        if (message instanceof SMTPMessage && ((SMTPMessage) message).getAllow8bitMIME()) {
-            return true;
-        }
-        final Session session = message.getSession();
-        return session != null && PropUtil.getBooleanProperty(session.getProperties(), "mail." + protocol + ".allow8bitmime", false);
+        final Boolean messageChoice = message instanceof SMTPMessage && ((SMTPMessage) message).getAllow8bitMIME() ? Boolean.TRUE : null;
+        final Session session = messageChoice == null ? message.getSession() : null;
+        final String property = "mail." + protocol + ".allow8bitmime";
+        return AngusConfigurationResolver.messageOrSession(property, messageChoice,
+                messageChoice == null ? session != null && PropUtil.getBooleanProperty(session.getProperties(), property, false) : null);
     }
 
     @Nullable

@@ -9,6 +9,7 @@ import org.simplejavamail.api.email.IRecipientsBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.internal.util.DsnNotifyOptions;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -20,7 +21,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
-import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -252,7 +252,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @NotNull
     public IRecipientsBuilder withRecipients(@NotNull Collection<Recipient> recipients, @Nullable Message.RecipientType fixedRecipientType) {
         for (Recipient recipient : recipients) {
-            withRecipient(new Recipient(recipient.getName(), recipient.getAddress(), defaultTo(fixedRecipientType, recipient.getType()),
+            withRecipient(new Recipient(recipient.getName(), recipient.getAddress(), RecipientConfigurationResolver.select("recipient.type", fixedRecipientType, recipient.getType(), null),
                     recipient.getSmimeCertificate(), recipient.getDeliveryStatusNotificationNotifyOptions()));
         }
         return this;
@@ -280,7 +280,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
     @Override
     public IRecipientsBuilder withRecipient(@Nullable final String name, boolean fixedName, @NotNull final String singleAddress, @Nullable final Message.RecipientType recipientType) {
         final Recipient interpreted = new RecipientBuilderImpl().withAddressAndNameOrDefault(singleAddress, name).build();
-        recipients.add(new Recipient(fixedName && name != null ? name : interpreted.getName(), interpreted.getAddress(), recipientType, null));
+        recipients.add(new Recipient(RecipientConfigurationResolver.select("recipient.name", fixedName ? name : null, interpreted.getName(), null), interpreted.getAddress(), recipientType, null));
         return this;
     }
 
@@ -301,32 +301,20 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
 
     @NotNull
     private Set<NotifyOption> resolveNotifyOptions(@NotNull final Recipient recipient) {
-        switch (groupNotifyMode) {
-            case DEFAULT:
-                return recipient.getDeliveryStatusNotificationNotifyOptions().isEmpty()
-                        ? groupNotifyOptions : recipient.getDeliveryStatusNotificationNotifyOptions();
-            case FIXED:
-                return groupNotifyOptions;
-            case CLEAR:
-                return emptySet();
-            case PRESERVE:
-            default:
-                return recipient.getDeliveryStatusNotificationNotifyOptions();
-        }
+        final ConfigurationChoice<Set<NotifyOption>> fixed = groupNotifyMode == GroupPolicyMode.CLEAR ? ConfigurationChoice.remove()
+                : groupNotifyMode == GroupPolicyMode.FIXED ? ConfigurationChoice.set(groupNotifyOptions) : ConfigurationChoice.inherit();
+        final Set<NotifyOption> selected = RecipientConfigurationResolver.select("recipient.notify", fixed,
+                recipient.getDeliveryStatusNotificationNotifyOptions(),
+                groupNotifyMode != GroupPolicyMode.DEFAULT || !recipient.getDeliveryStatusNotificationNotifyOptions().isEmpty(),
+                groupNotifyMode == GroupPolicyMode.DEFAULT ? groupNotifyOptions : null);
+        return selected == null ? emptySet() : selected;
     }
 
     @Nullable
     private X509Certificate resolveSmimeCertificate(@NotNull final Recipient recipient) {
-        switch (groupSmimeCertificateMode) {
-            case DEFAULT:
-                return defaultTo(recipient.getSmimeCertificate(), groupSmimeCertificate);
-            case FIXED:
-                return groupSmimeCertificate;
-            case CLEAR:
-                return null;
-            case PRESERVE:
-            default:
-                return recipient.getSmimeCertificate();
-        }
+        final ConfigurationChoice<X509Certificate> fixed = groupSmimeCertificateMode == GroupPolicyMode.CLEAR ? ConfigurationChoice.remove()
+                : groupSmimeCertificateMode == GroupPolicyMode.FIXED ? ConfigurationChoice.set(groupSmimeCertificate) : ConfigurationChoice.inherit();
+        return RecipientConfigurationResolver.select("recipient.smimeCertificate", fixed, recipient.getSmimeCertificate(), true,
+                groupSmimeCertificateMode == GroupPolicyMode.DEFAULT ? groupSmimeCertificate : null);
     }
 }

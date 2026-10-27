@@ -3,6 +3,7 @@ package org.simplejavamail.springsupport;
 import org.simplejavamail.config.ConfigKeys;
 
 import java.time.Duration;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class SpringEnvironmentConfigSourceTest {
 		assertThat(diagnostic.getSourceName()).isEqualTo("deployment");
 		assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.SMTP_CONNECTION);
 		assertThat(diagnostic.isRedacted()).isFalse();
+		record("adapter", "spring.environment");
+		record("rule", "spring.source-precedence");
+		record("case", "spring.environment-policy");
 	}
 
 	@Test
@@ -108,6 +112,8 @@ class SpringEnvironmentConfigSourceTest {
 		assertThat(locksOf(config).contains(SMTP_HOST)).isTrue();
 		assertThat(config.getDiagnostics().toString()).contains("simplejavamail.locked.smtp.host = relay.example.org (source: central deployment)",
 				"simplejavamail.locked.javaxmail.debug.out = STDERR", "simplejavamail.locked.extraproperties.mail.smtp.auth = true");
+		record("rule", "spring.lock-authority");
+		record("case", "spring.locked-setting");
 	}
 
 	@Test
@@ -231,11 +237,14 @@ class SpringEnvironmentConfigSourceTest {
 				"simplejavamail.smime.signing.key-password",
 				"secret"));
 
-		final ConfigPropertyDiagnostic diagnostic = diagnostic(load(environment), SMIME_SIGNING_KEY_PASSWORD.key());
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), SMIME_SIGNING_KEY_PASSWORD.key());
 
+		assertThat(config.get(ConfigKeys.SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("secret");
 		assertThat(diagnostic.getPropertyName()).isEqualTo(SMIME_SIGNING_KEY_PASSWORD.key());
 		assertThat(diagnostic.getSourceName()).isEqualTo("legacy application properties");
 		assertThat(diagnostic.isRedacted()).isTrue();
+		record("case", "spring.compatibility-alias");
 	}
 
 	@Test
@@ -255,6 +264,8 @@ class SpringEnvironmentConfigSourceTest {
 
 		assertThat(config.get(ConfigKeys.SMIME_SIGNING_KEY_PASSWORD)).isEqualTo("old secret");
 		assertThat(diagnostic.getSourceName()).isEqualTo("low priority canonical source");
+		record("rule", "spring.canonical-alias");
+		record("case", "spring.canonical-alias-preference");
 	}
 
 	@Test
@@ -267,6 +278,8 @@ class SpringEnvironmentConfigSourceTest {
 
 		assertThat(diagnostic.getDisplayValue()).isEqualTo("smtp.example.test");
 		assertThat(diagnostic.getSourceName()).isEqualTo("mail settings");
+		record("rule", "spring.placeholder-provenance");
+		record("case", "spring.placeholder-source");
 	}
 
 	@Test
@@ -283,6 +296,8 @@ class SpringEnvironmentConfigSourceTest {
 		assertThat(diagnostic(diagnostics, extra("mail.smtp.timeout")).getDisplayValue()).isEqualTo("2000");
 		assertThat(diagnostic(diagnostics, extra("mail.smtp.timeout")).getSourceName()).isEqualTo("profile override");
 		assertThat(diagnostic(diagnostics, extra("mail.smtp.connectiontimeout")).getSourceName()).isEqualTo("low priority");
+		record("rule", "spring.wildcard-provenance");
+		record("case", "spring.wildcard-source");
 	}
 
 	@Test
@@ -321,6 +336,8 @@ class SpringEnvironmentConfigSourceTest {
 
 		assertThat(diagnostic.getDisplayValue()).isEqualTo("smtp.example.test");
 		assertThat(diagnostic.getSourceName()).isEqualTo("relaxed application config");
+		record("rule", "spring.relaxed-name");
+		record("case", "spring.relaxed-source");
 	}
 
 	private static ConfigDiagnostics load(final StandardEnvironment environment) {

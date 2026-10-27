@@ -3,6 +3,7 @@ package org.simplejavamail.springsupport;
 import org.simplejavamail.config.ConfigKeys;
 
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,8 @@ class SpringFailoverConfigurationTest {
             final SimpleJavaMail factory = context.getBean(SimpleJavaMail.class);
             final Map<String, SimpleJavaMailConfig> namedMailerConfigurations = factory.getConfig().get(ConfigKeys.NAMED_MAILERS);
             assertThat(namedMailerConfigurations.get("other").get(ConfigKeys.SMTP_HOST)).isEqualTo("other.example.org");
+            assertThat(factory.getConfig().get(ConfigKeys.SMTP_HOST)).isEqualTo("primary.example.org");
+            assertThat(namedMailerConfigurations.get("other").get(ConfigKeys.FAILOVER_PRIMARY_RECHECK_INTERVAL)).isNull();
             assertThat(locksOf(namedMailerConfigurations.get("other")).contains(ConfigLoader.Property.TRANSPORT_STRATEGY)).isTrue();
             assertThat(factory.getConfig().getDiagnostics().getProperties(ConfigDiagnosticGroup.SMTP_CONNECTION))
                     .filteredOn(SpringFailoverConfigurationTest::isFailoverConfigurationDiagnostic)
@@ -48,6 +51,9 @@ class SpringFailoverConfigurationTest {
                 assertThat(mailer.getOperationalConfig().getFailoverPolicy().getPrimaryRecheckInterval()).isEqualTo(Duration.ofSeconds(5));
             }
         }
+        record("adapter", "spring.named-definitions");
+        record("rule", "spring.named-route-isolation");
+        record("case", "spring.named-route");
     }
 
     private static boolean isFailoverConfigurationDiagnostic(final ConfigPropertyDiagnostic diagnostic) {

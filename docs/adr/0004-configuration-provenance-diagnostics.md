@@ -63,3 +63,7 @@ ADR 0038 uses captured source names plus construction-local raw, Session and Jav
 [ADR 0039](0039-explicit-configuration-resolution.md) retains origins on internal declarations through selection and validation, reusing the existing escaping and sensitivity rules. Internal resolution facts do not turn ConfigDiagnostics into a live Mailer report or add a public effective-configuration report. Opaque application objects are not rendered to establish meaning or produce conflict diagnostics.
 
 Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simple-java-mail/issues/867); publication remains pending.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The expanded ADR 0039 adoption retains source roles and available source labels inside consumer resolution. This does not turn captured-input diagnostics into a live configuration report or add a public resolution API; existing redaction and passive inspection remain binding. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

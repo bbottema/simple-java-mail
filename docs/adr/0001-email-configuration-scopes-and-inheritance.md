@@ -202,3 +202,7 @@ remain authoritative. [ADR 0035](0035-tolerant-reading-and-strict-production.md#
 records the accepted interpretation boundary under [#846](https://github.com/bbottema/simple-java-mail/issues/846).
 
 Notification destinations are immutable lists exposed through plural getters. Each supplied list replaces the local choice and resolves as a whole under override, submitted, then default precedence. An enabled request without explicit destinations resolves to all Reply-To mailboxes, then the single From mailbox. Request flags, clearing and suppression keep their established meanings. Multiple From authors and a Sender API are outside this decision.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+Email and recipient/group source choices now share the internal declaration model from ADR 0039. Individual, group-default/fixed and governance scopes retain this record's ownership and precedence; the foundation introduces no new global authority. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

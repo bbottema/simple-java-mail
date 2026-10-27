@@ -1,7 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Session;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
@@ -12,36 +14,72 @@ import org.simplejavamail.config.ConfigLoader;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Independent trust decision table, including direct/default/opaque interactions rather than pairwise sampling. */
+/** Named trust-category proofs over an independent model, including direct/default/opaque interactions. */
 class ConnectionTrustMatrixTest {
-    @Test
-    void completeRawTrustViewAndLocalChoiceMatrix() {
-        final String[] inheritedValues = {null, "*", "first.example.org", ""};
-        final Object[] directValues = {null, "*", "first.example.org", "first.example.org second.example.org", "", Boolean.FALSE};
-        final Boolean[] flags = {null, false, true};
-        final String[][] lists = {null, {}, {"first.example.org"}, {"second.example.org", "first.example.org", "first.example.org"}, {" * "}};
-        for (TransportStrategy strategy : new TransportStrategy[] {TransportStrategy.SMTP, TransportStrategy.SMTPS}) {
-            for (boolean supplied : new boolean[] {false, true}) {
-                for (ConnectionConflictPolicy policy : ConnectionConflictPolicy.values()) {
-                    for (String inherited : inheritedValues) {
-                        if (!supplied && inherited != null) { continue; }
-                        for (Object direct : directValues) {
-                            for (Boolean flag : flags) {
-                                for (String[] hosts : lists) {
-                                    verify(strategy, supplied, policy, inherited, direct, flag, hosts);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    private static final String A = "first.example.org";
+    private static final String B = "second.example.org";
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("trustRules")
+    void rawTrustAndCompletedLocalChoiceFollowTheirCategoryRule(final String scenario, final TransportStrategy strategy,
+            final boolean supplied, final ConnectionConflictPolicy policy, final String inherited, final Object direct,
+            final Boolean flag, final String[] hosts) {
+        ConfigurationAdoptionCatalogue.assertValueBuilderCategory(ConfigurationAdoptionCatalogue.Owner.MAILER_CONNECTION,
+                TlsConfig.Builder.class);
+        verify(scenario, strategy, supplied, policy, inherited, direct, flag, hosts);
     }
 
-    private static void verify(final TransportStrategy strategy, final boolean supplied, final ConnectionConflictPolicy policy,
+    private static Stream<Arguments> trustRules() {
+        final ConnectionConflictPolicy strict = ConnectionConflictPolicy.REJECT_CONFLICTS;
+        final ConnectionConflictPolicy override = ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES;
+        final TransportStrategy smtp = TransportStrategy.SMTP;
+        final TransportStrategy smtps = TransportStrategy.SMTPS;
+        final String[] first = {A};
+        final String[] second = {B};
+        final String[] empty = {};
+        return Stream.of(
+                Arguments.of("owned Session without trust choices", smtp, false, strict, null, null, null, null),
+                Arguments.of("supplied SMTPS Session preserves a trust gap", smtps, true, override, null, null, null, null),
+                Arguments.of("direct wildcard remains when untouched", smtp, false, strict, null, "*", null, null),
+                Arguments.of("direct bounded list remains when untouched", smtps, true, strict, null, A, null, null),
+                Arguments.of("empty trust text remains present", smtp, true, strict, null, "", null, null),
+                Arguments.of("unsupported direct value remains provider-owned", smtp, false, strict, null, Boolean.FALSE, null, null),
+                Arguments.of("inherited wildcard remains when untouched", smtps, true, strict, "*", null, null, null),
+                Arguments.of("inherited bounded trust survives disabling wildcard", smtp, true, strict, A, null, false, null),
+                Arguments.of("inherited empty text remains present", smtp, true, override, "", null, null, null),
+                Arguments.of("direct text masks inherited wildcard", smtp, true, strict, "*", A, false, null),
+                Arguments.of("strict disable observes wildcard behind opaque entry", smtp, true, strict, "*", Boolean.FALSE, false, null),
+                Arguments.of("override cannot clear an inherited wildcard", smtps, true, override, "*", Boolean.FALSE, false, null),
+                Arguments.of("equivalent typed hosts observe String defaults behind opaque entry", smtp, true, strict, A, Boolean.FALSE, null, first),
+                Arguments.of("opaque direct declaration conflicts with typed bounded hosts", smtp, false, strict, null, Boolean.FALSE, null, first),
+                Arguments.of("explicit override replaces an opaque direct declaration", smtps, true, override, null, Boolean.FALSE, null, first),
+                Arguments.of("conditional wildcard disable does not reinterpret opaque value", smtp, false, strict, null, Boolean.FALSE, false, null),
+                Arguments.of("strict mode rejects removing direct wildcard", smtp, false, strict, null, "*", false, null),
+                Arguments.of("owned override removes direct wildcard", smtps, false, override, null, "*", false, null),
+                Arguments.of("supplied override removes direct wildcard", smtp, true, override, null, "*", false, null),
+                Arguments.of("strict mode rejects broadening bounded trust", smtp, false, strict, null, A, true, null),
+                Arguments.of("override deliberately broadens bounded trust", smtps, true, override, null, A, true, null),
+                Arguments.of("membership ignores ordering and duplicate hosts", smtp, false, strict, null, A + " " + B, null, new String[] {B, A, A}),
+                Arguments.of("host names retain exact case", smtp, true, strict, null, A, null, new String[] {"FIRST.example.org"}),
+                Arguments.of("exact wildcard differs from bounded star token", smtps, false, strict, null, "*", false, new String[] {" * "}),
+                Arguments.of("bounded star text retains its own membership", smtp, false, strict, null, " * ", null, new String[] {" * "}),
+                Arguments.of("strict mode rejects clearing imported bounded trust", smtp, true, strict, null, A, null, empty),
+                Arguments.of("owned override clears direct bounded trust", smtps, false, override, null, A, null, empty),
+                Arguments.of("clear cannot reactivate inherited bounded trust", smtp, true, override, A, null, null, empty),
+                Arguments.of("typed bounded hosts can supply an absent setting", smtp, false, strict, null, null, null, first),
+                Arguments.of("typed wildcard can supply an absent setting", smtps, true, strict, null, null, true, null),
+                Arguments.of("explicit false with equivalent bounded hosts is compatible", smtp, true, strict, null, A, false, first),
+                Arguments.of("completed true flag makes host list inactive", smtp, false, strict, null, "*", true, second),
+                Arguments.of("empty text differs from explicit removal", smtp, true, strict, null, "", null, empty),
+                Arguments.of("override may remove empty direct text", smtps, true, override, null, "", null, empty),
+                Arguments.of("override replaces a different bounded list", smtp, true, override, null, A, null, second));
+    }
+
+    private static void verify(final String scenario, final TransportStrategy strategy, final boolean supplied, final ConnectionConflictPolicy policy,
             final String inherited, final Object direct, final Boolean flag, final String[] hosts) {
         final String visible = direct instanceof String ? (String) direct : inherited;
         final boolean opaque = direct != null && !(direct instanceof String) && inherited == null;
@@ -75,7 +113,7 @@ class ConnectionTrustMatrixTest {
         try {
             actual = ((MailerGenericBuilderImpl<?>) builder).buildSessionSettings(session).copyEffectiveProperties().getProperty(key);
         } catch (RuntimeException rejected) { failure = rejected; }
-        final String context = strategy + " supplied=" + supplied + " " + policy + " default=" + inherited
+        final String context = scenario + ": " + strategy + " supplied=" + supplied + " " + policy + " default=" + inherited
                 + " direct=" + direct + " flag=" + flag + " hosts=" + Arrays.toString(hosts);
         if (rejects) { assertThat(failure).as(context).isInstanceOf(IllegalArgumentException.class); }
         else {

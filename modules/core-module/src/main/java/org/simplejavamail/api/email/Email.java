@@ -20,6 +20,7 @@ import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
+import org.simplejavamail.internal.email.HeaderSettings;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -350,7 +351,7 @@ public class Email implements Serializable {
 				? merge(builder.getDecryptedAttachments(), smimeSignedEmail.getDecryptedAttachments())
 				: builder.getDecryptedAttachments();
 		headers = (smimeMerge)
-				? merge(builder.getHeaders(), smimeSignedEmail.getHeaders())
+				? mergeSmimeHeaders(builder.getHeaders(), smimeSignedEmail.getHeaders())
 				: builder.getHeaders();
 		id = builder.getId();
 		fromRecipient = builder.getFromRecipient();
@@ -386,6 +387,12 @@ public class Email implements Serializable {
 		openPgpEncryptionConfig = builder.getOpenPgpEncryptionConfig();
 		dkimConfig = builder.getDkimConfig();
 		detachMessageMetadata();
+	}
+
+	/** Inner signed-content headers replace whole outer value lists by name, preserving the first display spelling. */
+	private static Map<String, Collection<String>> mergeSmimeHeaders(final Map<String, Collection<String>> outerHeaders,
+			final Map<String, Collection<String>> innerHeaders) {
+		return HeaderSettings.mergeSignedContent(outerHeaders, innerHeaders);
 	}
 
 	/** Copy metadata, not borrowed content sources. The same boundary repairs shared collections in older serialized Emails. */

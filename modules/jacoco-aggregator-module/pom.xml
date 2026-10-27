@@ -19,6 +19,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.simplejavamail</groupId>
+			<artifactId>simple-java-mail-spring-boot-starter</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.simplejavamail</groupId>
 			<artifactId>authenticated-socks-module</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
@@ -87,6 +93,31 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.6.4</version>
+				<executions>
+					<execution>
+						<id>configuration-contract-full-gate</id>
+						<phase>verify</phase>
+						<goals><goal>java</goal></goals>
+						<configuration>
+							<skip>${configuration.contract.skip}</skip>
+							<mainClass>org.simplejavamail.mailer.internal.ConfigurationContractGate</mainClass>
+							<classpathScope>test</classpathScope>
+							<additionalClasspathElements>
+								<additionalClasspathElement>${maven.multiModuleProjectDirectory}/modules/simple-java-mail/target/test-classes</additionalClasspathElement>
+							</additionalClasspathElements>
+							<arguments>
+                                <argument>${maven.multiModuleProjectDirectory}/.</argument>
+								<argument>run-${session.request.startTime.time}</argument>
+								<argument>full</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>

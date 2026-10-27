@@ -29,15 +29,20 @@ final class ConfiguredFailover {
 			rejectPolicyWithoutFailoverDestination(config);
 			return null;
 		}
-		final Duration initialRecheckInterval = config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_RECHECK_INTERVAL, DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
-		final int recheckBackoffMultiplier = config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER,
-				DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER);
+		final Duration initialRecheckInterval = MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_PRIMARY_RECHECK_INTERVAL,
+				null, DEFAULT_FAILOVER_PRIMARY_RECHECK_INTERVAL);
+		final int recheckBackoffMultiplier = MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_PRIMARY_BACKOFF_MULTIPLIER,
+				null, DEFAULT_FAILOVER_PRIMARY_RECHECK_BACKOFF_MULTIPLIER);
 		verifyRecheckBackoffHasMaximum(config, recheckBackoffMultiplier);
-		return new FailoverPolicy(config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS, DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS),
-				config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_RETRY_DELAY, DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY), initialRecheckInterval,
-				recheckBackoffMultiplier, config.valueOrProperty(null, ConfigKeys.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL, initialRecheckInterval),
-				config.valueOrProperty(null, ConfigKeys.FAILOVER_ON_AUTHENTICATION_FAILURE, DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE),
-				config.valueOrProperty(null, ConfigKeys.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE, DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE));
+		return new FailoverPolicy(MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_PRIMARY_CONNECTION_ATTEMPTS,
+				null, DEFAULT_FAILOVER_PRIMARY_CONNECTION_ATTEMPTS),
+				MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_PRIMARY_RETRY_DELAY,
+						null, DEFAULT_FAILOVER_PRIMARY_CONNECTION_RETRY_DELAY), initialRecheckInterval,
+				recheckBackoffMultiplier, MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_PRIMARY_MAXIMUM_RECHECK_INTERVAL,
+						null, initialRecheckInterval),
+				MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_ON_AUTHENTICATION_FAILURE, null, DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE),
+				MailerConfigurationResolver.resolve(config, ConfigKeys.FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE,
+						null, DEFAULT_FAILOVER_ON_CERTIFICATE_VERIFICATION_FAILURE));
 	}
 
 	private static void rejectPolicyWithoutFailoverDestination(final SimpleJavaMailConfig config) {

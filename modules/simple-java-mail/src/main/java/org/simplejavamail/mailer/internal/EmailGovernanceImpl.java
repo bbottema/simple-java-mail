@@ -1,11 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.config.ConfigKeys;
-import org.simplejavamail.internal.configresolution.ConfigurationChoice;
-import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
-import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
-import org.simplejavamail.internal.configresolution.ConfigurationResolution;
-import org.simplejavamail.internal.configresolution.ConfigurationResolver;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
@@ -17,15 +12,12 @@ import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
 import org.simplejavamail.api.email.config.DkimConfig;
-import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
-import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
@@ -36,17 +28,19 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.email.internal.EmailConfigurationResolver;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Function;
+import java.util.function.BiPredicate;
+import java.util.Objects;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -91,10 +85,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYS
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEYSTORE_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_ALIAS;
 import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_PASSWORD;
-import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultCollection;
-import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultRecipients;
-import static org.simplejavamail.internal.util.MiscUtil.overrideAndOrProvideAndOrDefaultHeaders;
-import static org.simplejavamail.internal.util.MiscUtil.overrideOrProvideOrDefaultProperty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 
@@ -178,8 +168,10 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		// A replacement template skips ordinary property defaults, including their key-file reads. Only locked requirements remain applicable.
 		final Email configuredDefaults = emailDefaults == null ? createConfiguredDefaults(property -> config.asMap().containsKey(property))
 				: locksOf(config).isEmpty() ? emailDefaults : createConfiguredDefaults(locksOf(config)::contains);
-		this.emailDefaults = emailDefaults != null ? emailDefaults : configuredDefaults;
-		this.emailOverrides = emailOverrides != null ? emailOverrides : emailBuilder.startingBlank().buildEmail();
+		this.emailDefaults = EmailConfigurationResolver.template(emailDefaults, emailDefaults == null ? configuredDefaults : null,
+				true, "withEmailDefaults");
+		final Email emptyOverrides = emailOverrides == null ? emailBuilder.startingBlank().buildEmail() : null;
+		this.emailOverrides = EmailConfigurationResolver.template(emailOverrides, emptyOverrides, false, "withEmailOverrides");
 		this.maximumEmailSize = maximumEmailSize;
 		this.lockedEmailConfiguration = new LockedEmailConfiguration(config, configuredDefaults);
 	}
@@ -300,13 +292,13 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	/** Earlier owners contribute mandatory comparison context only; this destination still owns all ordinary templates. */
 	Email produceEmailApplyingDefaultsAndOverrides(@Nullable final Email provided, final List<EmailGovernanceImpl> additionalLockOwners) {
-		final MimeMessage emailToForward = resolveEmailProperty(provided, EmailProperty.MAIL_TO_FORWARD);
+		final MimeMessage emailToForward = resolveEmailProperty(provided, EmailProperty.MAIL_TO_FORWARD, Email::getEmailToForward);
 		val builder = emailToForward == null
 				? emailBuilder.startingBlank()
 				: emailBuilder.forwarding(emailToForward);
 		retainTemplateSuppression(provided, (InternalEmailPopulatingBuilder) builder);
 
-		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT);
+		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT, Email::getFromRecipient);
 		final List<Recipient> replyToRecipients = resolveEmailRecipients(provided, EmailProperty.REPLYTO_RECIPIENT, additionalLockOwners);
 
 		ofNullable(fromRecipient).ifPresent(builder::from);
@@ -314,21 +306,21 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.TO_RECIPIENTS, additionalLockOwners));
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.CC_RECIPIENTS, additionalLockOwners));
 		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.BCC_RECIPIENTS, additionalLockOwners));
-		builder.withSubject(resolveSubject(provided));
-		builder.withPlainText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_TEXT));
-		builder.withHTMLText(this.<String>resolveEmailProperty(provided, EmailProperty.BODY_HTML));
+		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT, Email::getSubject));
+		builder.withPlainText(resolveEmailProperty(provided, EmailProperty.BODY_TEXT, Email::getPlainText));
+		builder.withHTMLText(resolveEmailProperty(provided, EmailProperty.BODY_HTML, Email::getHTMLText));
 		final Email calendarSource = resolveCalendarSource(provided);
 		if (calendarSource != null) {
 			builder.withCalendarText(requireNonNull(calendarSource.getCalendarMethod(), "calendarMethod"),
 					requireNonNull(calendarSource.getCalendarText(), "calendarText"));
 		}
 		builder.withHeaders(resolveEmailHeadersProperty(provided));
-		builder.withAttachments(resolveEmailCollectionProperty(provided, EmailProperty.ATTACHMENTS));
-		builder.withEmbeddedImages(resolveEmailCollectionProperty(provided, EmailProperty.EMBEDDED_IMAGES));
+		builder.withAttachments(resolveEmailCollectionProperty(provided, EmailProperty.ATTACHMENTS, Email::getAttachments, EmailConfigurationResolver::sameResource));
+		builder.withEmbeddedImages(resolveEmailCollectionProperty(provided, EmailProperty.EMBEDDED_IMAGES, Email::getEmbeddedImages, EmailConfigurationResolver::sameResource));
 
-		val useReturnReceiptTo = resolveEmailProperty(provided, EmailProperty.USE_RETURN_RECEIPT_TO);
+		val useReturnReceiptTo = resolveEmailProperty(provided, EmailProperty.USE_RETURN_RECEIPT_TO, Email::getUseReturnReceiptTo);
 		if (TRUE.equals(useReturnReceiptTo)) {
-			List<Recipient> returnReceiptToRecipients = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO);
+			List<Recipient> returnReceiptToRecipients = resolveEmailProperty(provided, EmailProperty.RETURN_RECEIPT_TO, email -> nullableRecipients(email.getReturnReceiptToRecipients()));
 			if (returnReceiptToRecipients != null) {
 				builder.withReturnReceiptTo(returnReceiptToRecipients);
 			} else if (!replyToRecipients.isEmpty()) {
@@ -342,9 +334,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			((InternalEmailPopulatingBuilder) builder).withReturnReceiptToState(false, null);
 		}
 
-		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO);
+		val useDispositionNotificationTo = resolveEmailProperty(provided, EmailProperty.USE_DISPOSITION_NOTIFICATION_TO, Email::getUseDispositionNotificationTo);
 		if (TRUE.equals(useDispositionNotificationTo)) {
-			List<Recipient> dispositionNotificationToRecipients = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO);
+			List<Recipient> dispositionNotificationToRecipients = resolveEmailProperty(provided, EmailProperty.DISPOSITION_NOTIFICATION_TO, email -> nullableRecipients(email.getDispositionNotificationToRecipients()));
 			if (dispositionNotificationToRecipients != null) {
 				builder.withDispositionNotificationTo(dispositionNotificationToRecipients);
 			} else if (!replyToRecipients.isEmpty()) {
@@ -358,30 +350,31 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			((InternalEmailPopulatingBuilder) builder).withDispositionNotificationToState(false, null);
 		}
 
-		val overrideReceivers = this.<Recipient>resolveEmailCollectionProperty(provided, EmailProperty.OVERRIDE_RECEIVERS);
+		final List<Recipient> overrideReceivers = resolveEmailCollectionProperty(provided, EmailProperty.OVERRIDE_RECEIVERS,
+				Email::getOverrideReceivers, Objects::equals);
 		if (!overrideReceivers.isEmpty()) {
 			builder.withOverrideReceivers(overrideReceivers);
 		}
-		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withContentTransferEncoding);
-		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.PLAIN_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withPlainTextContentTransferEncoding);
-		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.HTML_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withHTMLTextContentTransferEncoding);
-		ofNullable(this.<ContentTransferEncoding>resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withCalendarTextContentTransferEncoding);
-		ofNullable(this.<SmimeSigningConfig>resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG)).ifPresent(builder::signWithSmime);
-		ofNullable(this.<SmimeEncryptionConfig>resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG)).ifPresent(builder::encryptWithSmime);
-		ofNullable(this.<OpenPgpSigningConfig>resolveEmailProperty(provided, EmailProperty.OPENPGP_SIGNING_CONFIG))
+		ofNullable(resolveEmailProperty(provided, EmailProperty.CONTENT_TRANSFER_ENCODING, Email::getContentTransferEncoding)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withContentTransferEncoding);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.PLAIN_TEXT_CONTENT_TRANSFER_ENCODING, Email::getPlainTextContentTransferEncoding)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withPlainTextContentTransferEncoding);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.HTML_TEXT_CONTENT_TRANSFER_ENCODING, Email::getHTMLTextContentTransferEncoding)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withHTMLTextContentTransferEncoding);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.CALENDAR_TEXT_CONTENT_TRANSFER_ENCODING, Email::getCalendarTextContentTransferEncoding)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withCalendarTextContentTransferEncoding);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.SMIME_SIGNING_CONFIG, Email::getSmimeSigningConfig)).ifPresent(builder::signWithSmime);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.SMIME_ENCRYPTION_CONFIG, Email::getSmimeEncryptionConfig)).ifPresent(builder::encryptWithSmime);
+		ofNullable(resolveEmailProperty(provided, EmailProperty.OPENPGP_SIGNING_CONFIG, Email::getOpenPgpSigningConfig))
 				.ifPresent(builder::signWithOpenPgp);
-		ofNullable(this.<OpenPgpEncryptionConfig>resolveEmailProperty(provided, EmailProperty.OPENPGP_ENCRYPTION_CONFIG))
+		ofNullable(resolveEmailProperty(provided, EmailProperty.OPENPGP_ENCRYPTION_CONFIG, Email::getOpenPgpEncryptionConfig))
 				.ifPresent(builder::encryptWithOpenPgp);
-		ofNullable(this.<DkimConfig>resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG)).ifPresent(builder::signWithDomainKey);
-		builder.withBounceTo(this.<Recipient>resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT));
-		ofNullable(this.<DeliveryStatusNotification>resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withDeliveryStatusNotification);
-		if (TRUE.equals(resolveEmailProperty(provided, EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY))) {
+		ofNullable(resolveEmailProperty(provided, EmailProperty.DKIM_SIGNING_CONFIG, Email::getDkimConfig)).ifPresent(builder::signWithDomainKey);
+		builder.withBounceTo(resolveEmailProperty(provided, EmailProperty.BOUNCETO_RECIPIENT, Email::getBounceToRecipient));
+		ofNullable(resolveEmailProperty(provided, EmailProperty.DELIVERY_STATUS_NOTIFICATION, Email::getDeliveryStatusNotification)).ifPresent(((InternalEmailPopulatingBuilder) builder)::withDeliveryStatusNotification);
+		if (TRUE.equals(resolveEmailProperty(provided, EmailProperty.TLS_REQUIRED_FOR_ONWARD_DELIVERY, email -> email.isTlsRequiredForOnwardDelivery() ? Boolean.TRUE : null))) {
 			((InternalEmailPopulatingBuilder) builder).withTlsRequiredForOnwardDelivery();
 		}
-		ofNullable(this.<Boolean>resolveEmailProperty(provided, EmailProperty.SENDING_TO_ACCEPTED_RECIPIENTS))
+		ofNullable(resolveEmailProperty(provided, EmailProperty.SENDING_TO_ACCEPTED_RECIPIENTS, Email::getSendingToAcceptedRecipients))
 				.ifPresent(((InternalEmailPopulatingBuilder) builder)::withSendingToAcceptedRecipients);
-		ofNullable(this.<Date>resolveEmailProperty(provided, EmailProperty.SENT_DATE)).ifPresent(builder::fixingSentDate);
-		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID));
+		ofNullable(resolveEmailProperty(provided, EmailProperty.SENT_DATE, Email::getSentDate)).ifPresent(builder::fixingSentDate);
+		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID, Email::getId));
 
 		lockedEmailConfiguration.apply(builder, provided, emailDefaults, emailOverrides);
 		val email = builder.buildEmail();
@@ -462,68 +455,41 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	@Nullable
 	private Email resolveCalendarSource(@Nullable final Email provided) {
-		if (emailOverrides.getCalendarText() != null && (provided == null
-				|| !provided.isIgnoreOverrides() && !isCalendarSuppressed(provided.getPropertiesNotToApplyOverrideValueFor()))) {
-			return emailOverrides;
-		}
-		if (provided != null && provided.getCalendarText() != null) {
-			return provided;
-		}
-		if (emailDefaults.getCalendarText() != null && (provided == null
-				|| !provided.isIgnoreDefaults() && !isCalendarSuppressed(provided.getPropertiesNotToApplyDefaultValueFor()))) {
-			return emailDefaults;
-		}
-		return null;
-	}
-
-	private static boolean isCalendarSuppressed(@Nullable final Set<EmailProperty> exclusions) {
-		return exclusions != null && (exclusions.contains(EmailProperty.CALENDAR_METHOD) || exclusions.contains(EmailProperty.CALENDAR_TEXT));
+		return EmailConfigurationResolver.calendarSource(provided, emailDefaults, emailOverrides);
 	}
 
 	@Nullable
-	private String resolveSubject(@Nullable final Email provided) {
-		final boolean defaultsAllowed = provided == null || !provided.isIgnoreDefaults()
-				&& !suppressesSubject(provided.getPropertiesNotToApplyDefaultValueFor());
-		final boolean overridesAllowed = provided == null || !provided.isIgnoreOverrides()
-				&& !suppressesSubject(provided.getPropertiesNotToApplyOverrideValueFor());
-		final ConfigurationResolution<String> subject = ConfigurationResolver.resolve(List.of(
-				subjectDeclaration(ConfigurationOrigin.Kind.OVERRIDE, emailOverrides.getSubject()).withEligibility(overridesAllowed),
-				subjectDeclaration(ConfigurationOrigin.Kind.SUBMITTED, provided == null ? null : provided.getSubject()),
-				subjectDeclaration(ConfigurationOrigin.Kind.DEFAULT, emailDefaults.getSubject()).withEligibility(defaultsAllowed)),
-				SubjectRules.OVERRIDE_MESSAGE_DEFAULT);
-		return subject.valueOrNull();
-	}
-
-	private static boolean suppressesSubject(@Nullable final Set<EmailProperty> suppressed) {
-		return suppressed != null && suppressed.contains(EmailProperty.SUBJECT);
-	}
-
-	private static ConfigurationDeclaration<String> subjectDeclaration(final ConfigurationOrigin.Kind source, @Nullable final String value) {
-		return ConfigurationDeclaration.of(value == null ? ConfigurationChoice.inherit() : ConfigurationChoice.set(value),
-				ConfigurationOrigin.of(source, "subject", source.name()));
-	}
-
-	private static final class SubjectRules {
-		private static final List<ConfigurationOrigin.Kind> OVERRIDE_MESSAGE_DEFAULT = List.of(
-				ConfigurationOrigin.Kind.OVERRIDE, ConfigurationOrigin.Kind.SUBMITTED, ConfigurationOrigin.Kind.DEFAULT);
+	private static List<Recipient> nullableRecipients(final List<Recipient> recipients) {
+		return recipients.isEmpty() ? null : recipients;
 	}
 
 	@Nullable
-	private <T> T resolveEmailProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
-		return overrideOrProvideOrDefaultProperty(email, emailDefaults, emailOverrides, emailProperty);
+	private <T> T resolveEmailProperty(@Nullable final Email email, final EmailProperty property, final Function<Email, T> getter) {
+		return EmailConfigurationResolver.scalar(email, emailDefaults, emailOverrides, property, getter).valueOrNull();
 	}
 
 	@NotNull
-	private <T> List<T> resolveEmailCollectionProperty(@Nullable Email email, @NotNull EmailProperty emailProperty) {
-		return overrideAndOrProvideAndOrDefaultCollection(email, emailDefaults, emailOverrides, emailProperty);
+	private <T> List<T> resolveEmailCollectionProperty(@Nullable final Email email, final EmailProperty property,
+			final Function<Email, ? extends Collection<T>> getter, final BiPredicate<T, T> sameValue) {
+		return EmailConfigurationResolver.collection(email, emailDefaults, emailOverrides, property, getter, sameValue);
 	}
 
 	@NotNull
 	private List<Recipient> resolveEmailRecipients(@Nullable final Email email, @NotNull final EmailProperty emailProperty,
 			final List<EmailGovernanceImpl> additionalLockOwners) {
-		return overrideAndOrProvideAndOrDefaultRecipients(email, emailDefaults, emailOverrides, emailProperty,
+		return EmailConfigurationResolver.collection(email, emailDefaults, emailOverrides, emailProperty, recipientGetter(emailProperty),
 				(first, second) -> recipientForComparison(first, emailProperty, additionalLockOwners)
 						.equals(recipientForComparison(second, emailProperty, additionalLockOwners)));
+	}
+
+	private static Function<Email, List<Recipient>> recipientGetter(final EmailProperty property) {
+		switch (property) {
+			case REPLYTO_RECIPIENT: return Email::getReplyToRecipients;
+			case TO_RECIPIENTS: return Email::getToRecipients;
+			case CC_RECIPIENTS: return Email::getCcRecipients;
+			case BCC_RECIPIENTS: return Email::getBccRecipients;
+			default: throw new IllegalArgumentException("Not a recipient collection: " + property);
+		}
 	}
 
 	private Recipient recipientForComparison(final Recipient recipient, final EmailProperty field,
@@ -537,6 +503,6 @@ public class EmailGovernanceImpl implements EmailGovernance {
 
 	@NotNull
 	private Map<String, Collection<String>> resolveEmailHeadersProperty(@Nullable Email email) {
-		return overrideAndOrProvideAndOrDefaultHeaders(email, emailDefaults, emailOverrides);
+		return EmailConfigurationResolver.headers(email, emailDefaults, emailOverrides);
 	}
 }

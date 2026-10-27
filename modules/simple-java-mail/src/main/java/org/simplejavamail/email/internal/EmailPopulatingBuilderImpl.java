@@ -1,6 +1,12 @@
 package org.simplejavamail.email.internal;
 
 import org.simplejavamail.config.ConfigKeys;
+import org.simplejavamail.config.ConfigKey;
+import org.simplejavamail.internal.configresolution.ConfigurationChoice;
+import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.configresolution.ConfigurationResolver;
+import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
@@ -389,17 +395,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
     @Override
     public EmailPopulatingBuilder withImageResolutionConfig(@NotNull final ImageResolutionConfig choices) {
         requireNonNull(choices, "config");
-        restoreCapturedImageResolution();
-        if (choices.getEmbeddedImageAutoResolutionForFiles() != null) embeddedImageAutoResolutionForFiles = choices.getEmbeddedImageAutoResolutionForFiles();
-        if (choices.getEmbeddedImageAutoResolutionForClassPathResources() != null) embeddedImageAutoResolutionForClassPathResources = choices.getEmbeddedImageAutoResolutionForClassPathResources();
-        if (choices.getEmbeddedImageAutoResolutionForURLs() != null) embeddedImageAutoResolutionForURLs = choices.getEmbeddedImageAutoResolutionForURLs();
-        if (choices.isEmbeddedImageBaseDirConfigured()) embeddedImageBaseDir = choices.getEmbeddedImageBaseDir();
-        if (choices.isEmbeddedImageBaseClassPathConfigured()) embeddedImageBaseClassPath = choices.getEmbeddedImageBaseClassPath();
-        if (choices.isEmbeddedImageBaseUrlConfigured()) embeddedImageBaseUrl = choices.getEmbeddedImageBaseUrl();
-        if (choices.getAllowEmbeddedImageOutsideBaseDir() != null) allowEmbeddedImageOutsideBaseDir = choices.getAllowEmbeddedImageOutsideBaseDir();
-        if (choices.getAllowEmbeddedImageOutsideBaseClassPath() != null) allowEmbeddedImageOutsideBaseClassPath = choices.getAllowEmbeddedImageOutsideBaseClassPath();
-        if (choices.getAllowEmbeddedImageOutsideBaseUrl() != null) allowEmbeddedImageOutsideBaseUrl = choices.getAllowEmbeddedImageOutsideBaseUrl();
-        if (choices.getEmbeddedImageAutoResolutionMustBeSuccesful() != null) embeddedImageAutoResolutionMustBeSuccesful = choices.getEmbeddedImageAutoResolutionMustBeSuccesful();
+        resolveImageChoices(choices);
         imageResolutionConfig = choices;
         return this;
     }
@@ -544,47 +540,57 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
     }
 
     private void restoreCapturedImageResolution() {
-        embeddedImageAutoResolutionForFiles = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_FILES;
-        embeddedImageAutoResolutionForClassPathResources = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_CLASSPATH_RESOURCES;
-        embeddedImageAutoResolutionForURLs = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_URLS;
-        embeddedImageBaseDir = null;
-        embeddedImageBaseClassPath = null;
-        embeddedImageBaseUrl = null;
-        allowEmbeddedImageOutsideBaseDir = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_DIR;
-        allowEmbeddedImageOutsideBaseClassPath = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_CLASSPATH;
-        allowEmbeddedImageOutsideBaseUrl = DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_URL;
-        embeddedImageAutoResolutionMustBeSuccesful = DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_MUST_BE_SUCCESSFUL;
+        resolveImageChoices(ImageResolutionConfig.builder().build());
+    }
 
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)) {
-			withEmbeddedImageAutoResolutionForFiles(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)) {
-			withEmbeddedImageAutoResolutionForClassPathResources(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)) {
-			withEmbeddedImageAutoResolutionForURLs(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)) {
-			withEmbeddedImageBaseDir(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)) {
-			withEmbeddedImageBaseClassPath(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
-			withEmbeddedImageBaseUrl(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)) {
-			allowingEmbeddedImageOutsideBaseDir(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)) {
-			allowingEmbeddedImageOutsideBaseClassPath(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)) {
-			allowingEmbeddedImageOutsideBaseUrl(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL)));
-		}
-		if (config.hasProperty(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)) {
-			embeddedImageAutoResolutionMustBeSuccesful(verifyNonnullOrEmpty(config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL)));
-		}
+    private void resolveImageChoices(final ImageResolutionConfig choices) {
+        embeddedImageAutoResolutionForFiles = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_DIR,
+                ConfigurationChoice.ofNullable(choices.getEmbeddedImageAutoResolutionForFiles()), DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_FILES);
+        embeddedImageAutoResolutionForClassPathResources = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_CLASSPATH,
+                ConfigurationChoice.ofNullable(choices.getEmbeddedImageAutoResolutionForClassPathResources()), DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_CLASSPATH_RESOURCES);
+        embeddedImageAutoResolutionForURLs = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL,
+                ConfigurationChoice.ofNullable(choices.getEmbeddedImageAutoResolutionForURLs()), DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_FOR_URLS);
+        embeddedImageBaseDir = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR,
+                pathChoice(choices.isEmbeddedImageBaseDirConfigured(), choices.getEmbeddedImageBaseDir()), null);
+        embeddedImageBaseClassPath = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH,
+                pathChoice(choices.isEmbeddedImageBaseClassPathConfigured(), choices.getEmbeddedImageBaseClassPath()), null);
+        embeddedImageBaseUrl = resolveImageBaseUrl(choices);
+        allowEmbeddedImageOutsideBaseDir = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_DIR,
+                ConfigurationChoice.ofNullable(choices.getAllowEmbeddedImageOutsideBaseDir()), DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_DIR);
+        allowEmbeddedImageOutsideBaseClassPath = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_CLASSPATH,
+                ConfigurationChoice.ofNullable(choices.getAllowEmbeddedImageOutsideBaseClassPath()), DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_CLASSPATH);
+        allowEmbeddedImageOutsideBaseUrl = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_OUTSIDE_BASE_URL,
+                ConfigurationChoice.ofNullable(choices.getAllowEmbeddedImageOutsideBaseUrl()), DEFAULT_ALLOW_EMBEDDED_IMAGE_OUTSIDE_BASE_URL);
+        embeddedImageAutoResolutionMustBeSuccesful = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_MUSTBESUCCESFUL,
+                ConfigurationChoice.ofNullable(choices.getEmbeddedImageAutoResolutionMustBeSuccesful()), DEFAULT_EMBEDDED_IMAGE_AUTO_RESOLUTION_MUST_BE_SUCCESSFUL);
+    }
+
+    @Nullable
+    private <T> T imageChoice(final ConfigKey<T> key, final ConfigurationChoice<T> supplied, @Nullable final T fallback) {
+        return ConfigurationResolver.resolveValue(config, key, supplied, fallback, "withImageResolutionConfig").valueOrNull();
+    }
+
+    private static ConfigurationChoice<String> pathChoice(final boolean supplied, @Nullable final String path) {
+        return !supplied ? ConfigurationChoice.inherit() : path == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(path);
+    }
+
+    @Nullable
+    private URL resolveImageBaseUrl(final ImageResolutionConfig choices) {
+        final String configuredText = config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL);
+        final URL configured;
+        try {
+            configured = configuredText == null ? null : new URL(configuredText);
+        } catch (MalformedURLException invalidUrl) {
+            throw new EmailException(format(ERROR_PARSING_URL, configuredText), invalidUrl);
+        }
+        final ConfigurationChoice<URL> local = !choices.isEmbeddedImageBaseUrlConfigured() ? ConfigurationChoice.inherit()
+                : choices.getEmbeddedImageBaseUrl() == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(choices.getEmbeddedImageBaseUrl());
+        final ConfigurationSetting<URL> setting = ConfigurationSetting.of("configuration", ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key());
+        return ConfigurationResolver.resolve(setting, List.of(
+                ConfigurationDeclaration.javaChoice(setting, local, "withImageResolutionConfig"),
+                ConfigurationDeclaration.of(setting, ConfigurationChoice.ofNullable(configured), ConfigurationOrigin.of(ConfigurationOrigin.Kind.FACTORY,
+                        ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key(), config.getPropertySource(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)))),
+                List.of(ConfigurationOrigin.Kind.JAVA, ConfigurationOrigin.Kind.FACTORY)).valueOrNull();
     }
 
 	/**

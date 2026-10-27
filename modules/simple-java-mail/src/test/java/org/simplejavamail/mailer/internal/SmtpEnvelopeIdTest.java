@@ -580,7 +580,9 @@ class SmtpEnvelopeIdTest {
                     peer.expectClosed();
                 }
             }
-        }); Mailer mailer = builder(server).withSMTPServer("localhost", server.port(), "test-user", "test-password")
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder()
+                .withConnectTimeout(Duration.ofSeconds(10)).withReadTimeout(Duration.ofSeconds(10)).build()))
+                .withSMTPServer("localhost", server.port(), "test-user", "test-password")
                 .withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withProperties(SmtpCapabilityProbeCharacterizationTest.session(true).getProperties()).buildMailer()) {
             if (supportedAfterTls || !fixed) {

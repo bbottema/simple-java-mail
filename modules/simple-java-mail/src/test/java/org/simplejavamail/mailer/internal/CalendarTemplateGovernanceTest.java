@@ -30,6 +30,7 @@ import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.api.email.EmailProperty.CALENDAR_METHOD;
 import static org.simplejavamail.api.email.EmailProperty.CALENDAR_TEXT;
 import static org.simplejavamail.api.email.EmailProperty.SUBJECT;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 
 class CalendarTemplateGovernanceTest {
 
@@ -99,6 +100,8 @@ class CalendarTemplateGovernanceTest {
 
     @Test
     void completeCalendarsUseOverrideThenSubmittedThenDefaultPrecedence() {
+        ConfigurationAdoptionCatalogue.assertApiCategory(ConfigurationAdoptionCatalogue.Owner.EMAIL_CALENDAR,
+                org.simplejavamail.api.email.EmailPopulatingBuilder.class, "withCalendarText", "clearCalendarText");
         final Email defaults = calendar(REQUEST, "default invitation");
         final Email supplied = calendar(PUBLISH, "supplied calendar");
         final Email overrides = calendar(CANCEL, "override cancellation");
@@ -280,6 +283,9 @@ class CalendarTemplateGovernanceTest {
     private static void assertCalendar(final Email email, final CalendarMethod method, final String text) {
         assertThat(email.getCalendarMethod()).isEqualTo(method);
         assertThat(email.getCalendarText()).isEqualTo(text);
+        record("field", "email.CALENDAR_METHOD");
+        record("field", "email.CALENDAR_TEXT");
+        record("rule", "email.calendar");
     }
 
     private static void assertNoCalendar(final Email email) {

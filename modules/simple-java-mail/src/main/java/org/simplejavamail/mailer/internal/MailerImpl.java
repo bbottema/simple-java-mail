@@ -63,6 +63,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -153,36 +154,54 @@ public class MailerImpl implements Mailer {
 
 	@Nullable private CompletableFuture<Void> shutdownFuture;
 
-	MailerImpl(@NotNull final MailerFromSessionBuilderImpl fromSessionBuilder) {
-		this(fromSessionBuilder, fromSessionBuilder.prepareConnectionPlan(fromSessionBuilder.getSession()));
+	/** Construction consumes only a validated graph; acquired resources remain owned by this attempt until it succeeds. */
+	static MailerImpl construct(final ValidatedMailerPlan plan) {
+		final ResolvedMailerConfiguration resolved = plan.getConfiguration();
+		final CapturedMailerInputs inputs = resolved.getInputs();
+		final MailerOperationalSettings settings = resolved.getOperational();
+		MailerImpl child = inputs.getBorrowedFailover();
+		ExecutorService ownedExecutor = null;
+		try {
+			if (plan.getNamedChild() != null) { child = construct(plan.getNamedChild()); }
+			final ExecutorService executor;
+			if (settings.getExecutorService() == null) {
+				ownedExecutor = settings.createOwnedExecutor();
+				executor = ownedExecutor;
+			} else {
+				executor = settings.getExecutorService();
+			}
+			final OperationalConfig operational = settings.createOperationalConfig(resolved.getSessionSettings(), executor);
+			final MailSendObserverNotifier notifier = bindObserverNotifier(inputs, settings);
+			return new MailerImpl(plan.getConnection().serverConfig(), inputs.isRegularMailer() ? resolved.getSessionSettings().getTransportStrategy() : null,
+					resolved.getGovernance(), verifyNonnull(resolved.getSessionSettings().getProxyConfig()), plan.getConnection().targetSession(), operational,
+					notifier, inputs.isOpportunisticTLS(), inputs.getSendingLimits(), inputs.getDefinition(), child, plan.getNamedChild() != null,
+					resolved.getSessionSettings(), plan.getConnection());
+		} catch (RuntimeException | Error failure) {
+			if (ownedExecutor != null && !ownedExecutor.isShutdown()) {
+				try { ownedExecutor.shutdown(); } catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+			}
+			if (plan.getNamedChild() != null && child != null) { closeOwnedChild(child, failure); }
+			throw failure;
+		}
 	}
 
-	MailerImpl(final MailerFromSessionBuilderImpl fromSessionBuilder, final ValidatedConnectionPlan plan) {
-		this(null,
-				null,
-				fromSessionBuilder.buildEmailGovernance(),
-				verifyNonnull(plan.settings().getProxyConfig()),
-				plan.targetSession(),
-				fromSessionBuilder.buildOperationalConfig(plan.settings()),
-				fromSessionBuilder.buildObserverNotifier(),
-				true, fromSessionBuilder.getFactorySendingLimits(), fromSessionBuilder.getDefinition(),
-				fromSessionBuilder.getResolvedFailoverMailer(), fromSessionBuilder.ownsFailoverMailer(), plan.settings(), plan);
-	}
-	
-	MailerImpl(@NotNull final MailerRegularBuilderImpl regularBuilder) {
-		this(regularBuilder, regularBuilder.prepareConnectionPlan(null));
+	/** Captures observer registrations and binds the already-resolved telemetry permission; no progress dispatcher is started here. */
+	private static MailSendObserverNotifier bindObserverNotifier(final CapturedMailerInputs inputs, final MailerOperationalSettings settings) {
+		return MailSendObserverNotifier.builder().handlers(inputs.getHandlers()).handlersFactory(inputs.getHandlersFactory())
+				.idGenerator(inputs.getIdGenerator()).loggingOnly(settings.isTransportModeLoggingOnly())
+				.telemetry(MailSendTelemetryRecorder.bind(settings.getTelemetryConfig().getIntegration(),
+						Boolean.TRUE.equals(settings.getTelemetryConfig().getEnabled()),
+						Boolean.TRUE.equals(settings.getTelemetryConfig().getSmtpEndpointAttributes()))).build();
 	}
 
-	MailerImpl(final MailerRegularBuilderImpl regularBuilder, final ValidatedConnectionPlan plan) {
-		this(plan.serverConfig(),
-				plan.settings().getTransportStrategy(),
-				regularBuilder.buildEmailGovernance(),
-				verifyNonnull(plan.settings().getProxyConfig()),
-				null,
-				regularBuilder.buildOperationalConfig(plan.settings()),
-				regularBuilder.buildObserverNotifier(),
-				regularBuilder.isOpportunisticTLS(), regularBuilder.getFactorySendingLimits(), regularBuilder.getDefinition(),
-				regularBuilder.getResolvedFailoverMailer(), regularBuilder.ownsFailoverMailer(), plan.settings(), plan);
+	private static void closeOwnedChild(final MailerImpl child, final Throwable failure) {
+		try { child.close(); }
+		catch (Exception cleanup) {
+			if (cleanup instanceof InterruptedException) { Thread.currentThread().interrupt(); }
+			failure.addSuppressed(cleanup);
+		} catch (Error cleanup) {
+			failure.addSuppressed(cleanup);
+		}
 	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
@@ -401,7 +420,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	/** A failed build must not leave a published cluster participant or owned workers behind. The builder owns failover-graph rollback. */
+	/** A failed build must not leave a published cluster participant or owned workers behind. The validated graph constructor owns failover-graph rollback. */
 	private void rollbackConstruction(final boolean poolRegistrationBegun, final Throwable failure) {
 		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();

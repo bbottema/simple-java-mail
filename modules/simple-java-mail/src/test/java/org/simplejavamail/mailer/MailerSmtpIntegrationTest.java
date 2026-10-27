@@ -55,6 +55,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyPairGenerator;
 import java.util.Calendar;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -639,6 +641,11 @@ public class MailerSmtpIntegrationTest {
 		originalEmailPopulatingBuilder.clearOverrideReceivers();
 
 		if (!skipChecksDueToSmime) { // reading a signed mail is different from building a new one
+			// An unspecified output encoding is a caller choice; imported inline encoding is an observed wire fact (ADR 0036).
+			// Keep every other resource fact, decoded payload and duplicate occurrence in the round-trip comparison.
+			final List<AttachmentResource> expectedImages = expectedInlineResourcesAfterWireEncoding(
+					originalEmailPopulatingBuilder.getEmbeddedImages(), receivedEmail.getEmbeddedImages());
+			originalEmailPopulatingBuilder.clearEmbeddedImages().withEmbeddedImages(expectedImages);
 			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		} else {
 			val originalMail = originalEmailPopulatingBuilder.buildEmail();
@@ -654,6 +661,37 @@ public class MailerSmtpIntegrationTest {
 		}
 
 		return receivedEmail;
+	}
+
+	private static List<AttachmentResource> expectedInlineResourcesAfterWireEncoding(final List<AttachmentResource> expected,
+			final List<AttachmentResource> received) {
+		assertThat(received).as("inline resource occurrence count").hasSize(expected.size());
+		// The MIME reader indexes inline resources by Content-ID. Email equality has always matched this list without ordering it.
+		final List<AttachmentResource> unmatched = new ArrayList<>(received);
+		final List<AttachmentResource> normalized = new ArrayList<>();
+		for (final AttachmentResource source : expected) {
+			int matchingIndex = -1;
+			for (int index = 0; index < unmatched.size(); index++) {
+				final AttachmentResource candidate = unmatched.get(index);
+				final AttachmentResource comparable = source.getContentTransferEncoding() == null
+						? candidate.toBuilder().clearContentTransferEncoding().build() : candidate;
+				if (source.equals(comparable) && Arrays.equals(source.readAllBytes(), candidate.readAllBytes())) {
+					matchingIndex = index;
+					break;
+				}
+			}
+			assertThat(matchingIndex).as("inline resource metadata and decoded payload: %s", source.getName()).isNotNegative();
+			final AttachmentResource matched = unmatched.remove(matchingIndex);
+			if (source.getContentTransferEncoding() != null) {
+				assertThat(matched.getContentTransferEncoding()).as("explicit inline encoding: %s", source.getName())
+						.isEqualTo(source.getContentTransferEncoding());
+			} else {
+				assertThat(matched.getContentTransferEncoding()).as("observed inline encoding: %s", source.getName()).isNotNull();
+			}
+			normalized.add(source.toBuilder().withContentTransferEncoding(matched.getContentTransferEncoding()).build());
+		}
+		assertThat(unmatched).as("unexpected inline resource occurrences").isEmpty();
+		return normalized;
 	}
 
 	@NotNull

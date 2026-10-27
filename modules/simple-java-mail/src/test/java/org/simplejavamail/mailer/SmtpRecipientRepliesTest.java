@@ -616,10 +616,13 @@ class SmtpRecipientRepliesTest {
 		// Keep EHLO and Message-ID hostname lookup outside batch completion and pooled-attempt timing.
 		return factory.mailerBuilder()
 				.withSMTPServer(InetAddress.getLoopbackAddress().getHostAddress(), server.port())
-				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(1200)).build()).withProperty("mail.from", "sender@example.org")
-				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(5000)).build())
-				.withProperty("mail.smtp.connectiontimeout", 3000).withProperty("mail.smtp.timeout", 1200)
-				.withProperty("mail.smtp.writetimeout", 3000);
+				.withConnectionConfig(ConnectionConfig.builder()
+						.withSmtpClientHostname("probe.example.test")
+						.withConnectTimeout(Duration.ofSeconds(3))
+						.withReadTimeout(Duration.ofMillis(1200))
+						.withWriteTimeout(Duration.ofSeconds(3)).build())
+				.withProperty("mail.from", "sender@example.org")
+				.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClaimTimeout(Duration.ofMillis(5000)).build());
 	}
 
 	private static Email email(final String... recipientNames) {

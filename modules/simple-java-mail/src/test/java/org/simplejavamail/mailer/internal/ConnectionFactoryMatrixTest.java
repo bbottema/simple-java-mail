@@ -1,8 +1,11 @@
 package org.simplejavamail.mailer.internal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.TlsConfig;
+import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.config.ConfigLoader;
 
@@ -18,43 +21,47 @@ class ConnectionFactoryMatrixTest {
     private static final String CLASS_A = "javax.net.ssl.SSLSocketFactory";
     private static final String CLASS_B = "application.OtherFactory";
 
-    @Test
-    void factoryClassAndBorrowedInstanceSelectionsRetainTheirOwnBoundaries() {
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', value = {
+            // Classes/instances: 0 absent/inherit, 1 first, 2 second. Configured class 2 locks class A; local 3 removes.
+            // rule | protocol | policy | configured class | raw class/instance | Java class/instance | expected class/instance/physical class | rejects
+            "no factory choice | SMTP | REJECT_CONFLICTS | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | false",
+            "captured class selection | SMTPS | REJECT_CONFLICTS | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | false",
+            "raw class selection | SMTP | REJECT_CONFLICTS | 0 | 2 | 0 | 0 | 0 | 2 | 0 | 2 | false",
+            "equivalent class declarations | SMTPS | REJECT_CONFLICTS | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | false",
+            "strict raw class disagreement | SMTP | REJECT_CONFLICTS | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | true",
+            "deliberate Java class override | SMTPS | ALLOW_EXPLICIT_OVERRIDES | 1 | 0 | 0 | 2 | 0 | 2 | 0 | 2 | false",
+            "strict Java class disagreement | SMTP | REJECT_CONFLICTS | 1 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | true",
+            "strict imported class removal | SMTPS | REJECT_CONFLICTS | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | true",
+            "deliberate imported class removal | SMTP | ALLOW_EXPLICIT_OVERRIDES | 1 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | false",
+            "borrowed raw instance | SMTPS | REJECT_CONFLICTS | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | false",
+            "same instance identity accepted | SMTP | REJECT_CONFLICTS | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | false",
+            "distinct instance identity rejected | SMTPS | REJECT_CONFLICTS | 0 | 0 | 1 | 0 | 2 | 0 | 0 | 0 | true",
+            "deliberate instance replacement | SMTP | ALLOW_EXPLICIT_OVERRIDES | 0 | 0 | 1 | 0 | 2 | 0 | 2 | 0 | false",
+            "strict imported instance removal | SMTPS | REJECT_CONFLICTS | 0 | 0 | 1 | 0 | 3 | 0 | 0 | 0 | true",
+            "deliberate imported instance removal | SMTP | ALLOW_EXPLICIT_OVERRIDES | 0 | 0 | 1 | 0 | 3 | 0 | 0 | 0 | false",
+            "typed instance shadows captured class | SMTPS | REJECT_CONFLICTS | 1 | 0 | 0 | 0 | 1 | 1 | 1 | 0 | false",
+            "locked class rejects typed instance | SMTP | ALLOW_EXPLICIT_OVERRIDES | 2 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | true",
+            "locked class rejects raw instance | SMTPS | REJECT_CONFLICTS | 2 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | true",
+            "locked equivalent class accepted | SMTP | REJECT_CONFLICTS | 2 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | false",
+            "override policy cannot defeat class lock | SMTPS | ALLOW_EXPLICIT_OVERRIDES | 2 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | true",
+            "typed instance retains explicit raw class | SMTP | REJECT_CONFLICTS | 0 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | false",
+            "clearing local instance restores class | SMTPS | REJECT_CONFLICTS | 1 | 0 | 0 | 0 | 3 | 1 | 0 | 1 | false",
+            "raw class and instance remain separate choices | SMTP | REJECT_CONFLICTS | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 1 | false"
+    })
+    void factoryRuleCategories(final String rule, final TransportStrategy strategy, final ConnectionConflictPolicy policy,
+            final int configuredClass, final int rawClass, final int rawInstance, final int localClass, final int localInstance,
+            final int expectedClass, final int expectedInstance, final int expectedPhysicalClass, final boolean rejects) {
         final SSLSocketFactory[] instances = {null, mock(SSLSocketFactory.class), mock(SSLSocketFactory.class)};
-        for (ConnectionConflictPolicy policy : ConnectionConflictPolicy.values()) {
-            for (int factoryClass = 0; factoryClass < 3; factoryClass++) {
-                for (int rawClass = 0; rawClass < 3; rawClass++) {
-                    for (int rawInstance = 0; rawInstance < 3; rawInstance++) {
-                        for (int localClass = 0; localClass < 4; localClass++) {
-                            for (int localInstance = 0; localInstance < 4; localInstance++) {
-                                verify(policy, factoryClass, rawClass, rawInstance, localClass, localInstance, instances);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private static void verify(final ConnectionConflictPolicy policy, final int configuredClass, final int rawClass,
-            final int rawInstance, final int localClass, final int localInstance, final SSLSocketFactory[] instances) {
-        final int selectedClass = localClass == 3 ? 0 : localClass != 0 ? localClass : rawClass != 0 ? rawClass : configuredClass == 0 ? 0 : 1;
-        final int selectedInstance = localInstance == 3 ? 0 : localInstance != 0 ? localInstance : rawInstance;
-        final boolean classConflict = configuredClass != 0 && rawClass == 2
-                || configuredClass != 0 && localClass != 0 && localClass != 1
-                || rawClass != 0 && localClass != 0 && (localClass == 3 || localClass != rawClass);
-        final boolean instanceConflict = rawInstance != 0 && localInstance != 0 && (localInstance == 3 || localInstance != rawInstance);
-        final boolean violatesLock = configuredClass == 2 && (rawClass == 2 || localClass == 2 || localClass == 3 || selectedInstance != 0);
-        final boolean rejects = policy == ConnectionConflictPolicy.REJECT_CONFLICTS && (classConflict || instanceConflict) || violatesLock;
         final Map<String, Object> configuration = new LinkedHashMap<>();
         if (configuredClass != 0) {
             configuration.put(configuredClass == 2 ? "simplejavamail.locked.custom.sslfactory.class" : "simplejavamail.custom.sslfactory.class", CLASS_A);
         }
         final MailerRegularBuilderImpl builder = new MailerRegularBuilderImpl(ConfigLoader.builder().withMap(configuration).load())
-                .withSMTPServerHost("relay.example.org").withConnectionConflictPolicy(policy);
+                .withSMTPServerHost("relay.example.org").withTransportStrategy(strategy).withConnectionConflictPolicy(policy);
         final Properties raw = new Properties();
-        if (rawClass != 0) { raw.setProperty("mail.smtp.ssl.socketFactory.class", className(rawClass)); }
-        if (rawInstance != 0) { raw.put("mail.smtp.ssl.socketFactory", instances[rawInstance]); }
+        if (rawClass != 0) { raw.setProperty(strategy.propertyNameSSLSocketFactoryClass(), className(rawClass)); }
+        if (rawInstance != 0) { raw.put(strategy.propertyNameSSLSocketFactory(), instances[rawInstance]); }
         builder.withProperties(raw);
         final TlsConfig.Builder choices = TlsConfig.builder();
         if (localClass != 0) { choices.withCustomSSLFactoryClass(localClass == 3 ? null : className(localClass)); }
@@ -66,16 +73,15 @@ class ConnectionFactoryMatrixTest {
             builder.validateLockedConfiguration();
             plan = builder.prepareConnectionPlan(null);
         } catch (RuntimeException rejected) { failure = rejected; }
-        final String context = policy + " configured=" + configuredClass + " raw=" + rawClass + "/" + rawInstance
+        final String context = rule + " " + policy + " configured=" + configuredClass + " raw=" + rawClass + "/" + rawInstance
                 + " local=" + localClass + "/" + localInstance;
         if (rejects) { assertThat(failure).as(context).isInstanceOf(IllegalArgumentException.class); }
         else {
             assertThat(failure).as(context).isNull();
-            assertThat(plan.serverConfig().getCustomSSLFactoryClass()).as(context).isEqualTo(className(selectedClass));
-            assertThat(plan.serverConfig().getCustomSSLFactoryInstance()).as(context).isSameAs(instances[selectedInstance]);
-            final boolean shadowed = localInstance != 0 && localInstance != 3 && rawClass == 0;
-            assertThat(plan.settings().copyEffectiveProperties().getProperty("mail.smtp.ssl.socketFactory.class"))
-                    .as(context).isEqualTo(shadowed ? null : className(selectedClass));
+            assertThat(plan.serverConfig().getCustomSSLFactoryClass()).as(context).isEqualTo(className(expectedClass));
+            assertThat(plan.serverConfig().getCustomSSLFactoryInstance()).as(context).isSameAs(instances[expectedInstance]);
+            assertThat(plan.settings().copyEffectiveProperties().getProperty(strategy.propertyNameSSLSocketFactoryClass()))
+                    .as(context).isEqualTo(className(expectedPhysicalClass));
         }
     }
 

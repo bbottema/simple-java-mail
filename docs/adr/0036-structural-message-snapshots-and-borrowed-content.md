@@ -20,6 +20,22 @@ provide stronger, deliberately separate byte-snapshot contracts.
 
 ## Decision
 
+### S/MIME header identity (clarified 26 October 2026)
+
+When a retained signed-content Email is merged into its outer Email, compare header names case-insensitively. Preserve the established
+exact-name precedence for every spelling: the inner header's complete value list replaces the outer list, while unrelated headers remain.
+Keep the first display spelling and detach the merged metadata without modifying either source. Body and attachment merging retain their
+existing rules. Disabling the merge preserves the separate views; copying and serialization preserve the resulting snapshot.
+
+This applies while the outer and inner sources are still distinguishable. Do not reinterpret older flat maps when restoring them; ordinary
+template resolution retains the previous last-matching-entry fallback described by [ADR 0002](0002-email-defaults-and-overrides.md).
+The merge does not establish signature validity or rewrite authoritative exact EML bytes. [#867](https://github.com/bbottema/simple-java-mail/issues/867)
+tracks this repair alongside shared configuration resolution.
+
+The accepted ADR 0039 extension makes this ordering structural: capture keyed outer/inner declarations, resolve each logical header name,
+then detach the selected lists into the message snapshot. Keep the source and eligibility facts until resolution; copying and serialization
+preserve the resulting value without inventing lost provenance in older flat snapshots.
+
 ### Copy the structure the message owns
 
 Email and recipient-group values own detached collection structures, including ordered recipient occurrences, attachment metadata, suppression

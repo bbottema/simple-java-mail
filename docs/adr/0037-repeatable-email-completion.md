@@ -132,3 +132,7 @@ lifetimes remain valid under [ADR 0036](0036-structural-message-snapshots-and-bo
 regressions, collection/resource matching, suppression and applicable name-lock coverage, actual send/cluster/MIME behavior, and public
 documentation and migration updates. Keep execution evidence there and in commit history rather than extending this architectural record
 into a run log. Local implementation and review do not imply that the unreleased changes have been published.
+
+## Shared layered resolution (accepted 26 October 2026)
+
+The expanded ADR 0039 implementation captures declarations for all Email contributions while retaining this record's repeatable completion, supplied duplicate/order preservation, resource identity, source suppression and lock semantics. It does not introduce public source tracking or freeze the materialized Email. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).

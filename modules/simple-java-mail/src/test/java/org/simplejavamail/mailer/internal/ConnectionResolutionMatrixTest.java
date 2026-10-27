@@ -1,6 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.Session;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -14,7 +15,9 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.configresolution.ConfigurationContractModel;
 
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.Map;
 import java.util.Properties;
 
@@ -71,22 +74,61 @@ class ConnectionResolutionMatrixTest {
         }
     }
 
+    enum Rule { ABSENCE, SOURCE_MAPPING, EQUIVALENCE, CONFLICT, EXPLICIT_OVERRIDE, MANDATORY_LOCK, CHANNEL_REPLACEMENT }
+
+    enum Scenario {
+        OWNED_GAP(Rule.ABSENCE, TransportStrategy.SMTP, false, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 0,0,0,0,0),
+        SUPPLIED_GAP(Rule.ABSENCE, TransportStrategy.SMTPS, true, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 0,0,0,0,0),
+        CONFIGURED_TYPED(Rule.SOURCE_MAPPING, TransportStrategy.SMTP, false, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 1,0,0,0,0),
+        CONFIGURED_RAW(Rule.SOURCE_MAPPING, TransportStrategy.SMTPS, false, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 0,1,0,0,0),
+        SESSION(Rule.SOURCE_MAPPING, TransportStrategy.SMTP, true, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 0,0,1,0,0),
+        JAVA_RAW(Rule.SOURCE_MAPPING, TransportStrategy.SMTPS, true, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 0,0,0,1,0),
+        JAVA_TYPED(Rule.SOURCE_MAPPING, TransportStrategy.SMTP, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 0,0,0,0,1),
+        EQUAL_DECLARATIONS(Rule.EQUIVALENCE, TransportStrategy.SMTPS, false, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 1,1,0,1,1),
+        RAW_CONFLICT(Rule.CONFLICT, TransportStrategy.SMTP, false, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 1,2,0,0,0),
+        SESSION_CONFLICT(Rule.CONFLICT, TransportStrategy.SMTPS, true, ConnectionConflictPolicy.REJECT_CONFLICTS, 0, 0,0,1,2,0),
+        RAW_OVERRIDE(Rule.EXPLICIT_OVERRIDE, TransportStrategy.SMTPS, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 1,2,0,0,0),
+        TYPED_OVERRIDE(Rule.EXPLICIT_OVERRIDE, TransportStrategy.SMTP, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 1,1,0,1,2),
+        SESSION_OVERRIDE(Rule.EXPLICIT_OVERRIDE, TransportStrategy.SMTP, true, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 0, 0,0,1,2,0),
+        TYPED_LOCK_EQUAL(Rule.MANDATORY_LOCK, TransportStrategy.SMTPS, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 1, 0,0,0,0,1),
+        TYPED_LOCK_CONFLICT(Rule.MANDATORY_LOCK, TransportStrategy.SMTP, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 1, 0,0,0,0,2),
+        RAW_LOCK_EQUAL(Rule.MANDATORY_LOCK, TransportStrategy.SMTP, true, ConnectionConflictPolicy.REJECT_CONFLICTS, 2, 0,0,1,1,0),
+        RAW_LOCK_CONFLICT(Rule.MANDATORY_LOCK, TransportStrategy.SMTPS, true, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 2, 0,0,1,2,0),
+        RAW_CHANNEL_REPLACEMENT(Rule.CHANNEL_REPLACEMENT, TransportStrategy.SMTPS, false, ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES, 1, 0,2,0,1,0);
+
+        final Rule rule;
+        final TransportStrategy strategy;
+        final boolean supplied;
+        final ConnectionConflictPolicy policy;
+        final int lock;
+        final int[] choices;
+        Scenario(final Rule rule, final TransportStrategy strategy, final boolean supplied, final ConnectionConflictPolicy policy,
+                final int lock, final int... choices) {
+            this.rule = rule; this.strategy = strategy; this.supplied = supplied; this.policy = policy; this.lock = lock; this.choices = choices;
+        }
+    }
+
+    @Test
+    void scenarioCatalogueAccountsForEveryAuthorityRuleAndSupportedContext() {
+        final Set<Rule> rules = EnumSet.noneOf(Rule.class);
+        final Set<TransportStrategy> protocols = EnumSet.noneOf(TransportStrategy.class);
+        final Set<ConnectionConflictPolicy> policies = EnumSet.noneOf(ConnectionConflictPolicy.class);
+        for (Scenario scenario : Scenario.values()) { rules.add(scenario.rule); protocols.add(scenario.strategy); policies.add(scenario.policy); }
+        assertThat(rules).containsExactlyInAnyOrderElementsOf(EnumSet.allOf(Rule.class));
+        assertThat(protocols).containsExactlyInAnyOrder(TransportStrategy.SMTP, TransportStrategy.SMTPS);
+        assertThat(policies).containsExactlyInAnyOrderElementsOf(EnumSet.allOf(ConnectionConflictPolicy.class));
+    }
+
     @ParameterizedTest
     @EnumSource(Setting.class)
-    void allFeasibleScalarSourceAndLockCombinations(final Setting setting) {
-        for (TransportStrategy strategy : new TransportStrategy[] {TransportStrategy.SMTP, TransportStrategy.SMTPS}) {
-            for (boolean supplied : new boolean[] {false, true}) {
-                for (ConnectionConflictPolicy policy : ConnectionConflictPolicy.values()) {
-                    for (int lock = 0; lock < 3; lock++) {
-                        for (int scenario = 0; scenario < 243; scenario++) {
-                            final int[] choices = ConfigurationContractModel.digits(scenario, 3, 5);
-                            if (!supplied && choices[2] != 0) { continue; }
-                            if (supplied && endpoint(setting) && choices[4] != 0) { continue; }
-                            verify(setting, strategy, supplied, policy, lock, choices, scenario);
-                        }
-                    }
-                }
-            }
+    void authorityRulesApplyThroughEveryScalarInputAdapter(final Setting setting) {
+        ConfigurationAdoptionCatalogue.assertPropertyCategory(ConfigurationAdoptionCatalogue.Owner.MAILER_CONNECTION,
+                "simplejavamail." + setting.property);
+        ConfigurationAdoptionCatalogue.assertApiCategory(ConfigurationAdoptionCatalogue.Owner.MAILER_CONNECTION,
+                MailerGenericBuilder.class, "withConnectionConfig", "useConfiguredConnectionConfig", "withConnectionConflictPolicy");
+        // Rules are sampled by category once; this small mapping sweep ensures every adopted field reaches those rules.
+        for (Scenario scenario : Scenario.values()) {
+            verify(setting, scenario.strategy, scenario.supplied, scenario.policy, scenario.lock, scenario.choices, scenario.ordinal());
         }
     }
 

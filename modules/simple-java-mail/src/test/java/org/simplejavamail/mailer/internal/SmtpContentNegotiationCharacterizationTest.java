@@ -544,7 +544,9 @@ class SmtpContentNegotiationCharacterizationTest {
             assertThat(content).contains("Content-Transfer-Encoding: quoted-printable")
                     .doesNotContain("Content-Transfer-Encoding: 8bit");
             finishConnection(peer);
-        }); Mailer mailer = builder(server).withTransportStrategy(TransportStrategy.SMTP_TLS)
+        }); Mailer mailer = updateMailer(builder(server), fixture -> fixture.withConnectionConfig(fixture.getConnectionConfig().toBuilder()
+                .withConnectTimeout(Duration.ofSeconds(10)).withReadTimeout(Duration.ofSeconds(10)).build()))
+                .withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withProperties(SmtpCapabilityProbeCharacterizationTest.session(true).getProperties())
                 .withProperty("mail.mime.allowutf8", true).withProperty("mail.smtp.allow8bitmime", true).buildMailer()) {
             mailer.sync().sendMail(eightBitCandidate());

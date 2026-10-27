@@ -9,6 +9,8 @@ import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
+import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.List;
@@ -22,6 +24,18 @@ import java.util.concurrent.Future;
 public interface BatchModule {
 
 	String NAME = "Advanced batch processing module";
+
+	/**
+	 * Validates the selected cluster's effective settings without registering a Session, creating a pool or initializing workers.
+	 * Uses the same resolution and constraints as registration. The caller supplies every resolved default member, with a nullable
+	 * creation-age limit, and only the selected cluster's partial override. Omitted override members inherit those defaults.
+	 * This boundary is invoked only when pooling is available; unused cluster configurations are not inspected.
+	 *
+	 * @param resolvedDefaults Completed Mailer pool defaults; ordinary omitted builder choices have already been resolved.
+	 * @param selectedOverride Optional partial settings for the selected cluster, or null when it has no override.
+	 */
+	void validateConnectionPoolConfiguration(@NotNull ConnectionPoolConfig resolvedDefaults,
+			@Nullable ConnectionPoolClusterConfig selectedOverride);
 
 	/**
 	 * Initializes the connection pool cluster if not initialized yet.

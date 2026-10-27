@@ -3,10 +3,11 @@ package org.simplejavamail.mailer.internal;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -103,7 +104,7 @@ final class ConnectionPropertyValues {
         if (kind == Kind.TRUST) {
             final String text = (String) value;
             // A bounded list containing "*" is different from the provider's exact wildcard token.
-            return "*".equals(text) ? WildcardTrust.INSTANCE : new LinkedHashSet<>(Arrays.asList(text.trim().split("\\s+")));
+            return "*".equals(text) ? WildcardTrust.INSTANCE : new LinkedHashSet<>(trustedHosts(text));
         }
         if (kind == Kind.INTEGER) {
             final Integer parsed = integerValue(value);
@@ -126,6 +127,26 @@ final class ConnectionPropertyValues {
         } catch (NumberFormatException invalid) {
             return null;
         }
+    }
+
+    /** SocketFetcher parses an inline SOCKS suffix as decimal; a malformed suffix leaves its default port in effect. */
+    @Nullable
+    static Integer inlineSocksPort(final String suffix) {
+        try {
+            return Integer.valueOf(suffix);
+        } catch (NumberFormatException invalid) {
+            return null;
+        }
+    }
+
+    /** Provider whitespace separates hosts; trimming other controls would silently change a trusted hostname. */
+    static List<String> trustedHosts(@Nullable final String text) {
+        if (text == null || "*".equals(text)) { return Collections.emptyList(); }
+        final List<String> hosts = new ArrayList<>();
+        for (String host : text.split("\\s+")) {
+            if (!host.isEmpty()) { hosts.add(host); }
+        }
+        return Collections.unmodifiableList(hosts);
     }
 
     /** Typed host-list choices require the separate trust-all flag to enable wildcard trust. */
