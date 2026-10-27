@@ -35,6 +35,17 @@ expansion and local/daemon routing under their existing boundaries, and do not e
 No public option, additional parser or metadata format is introduced. [#874](https://github.com/bbottema/simple-java-mail/issues/874) tracks
 this correction for unreleased 10.0.0.
 
+### Retired execution spellings as literal values (accepted 27 October 2026)
+
+Picocli's selected command model determines which tokens are consumed as values and which remain unmatched options. A subject, body or
+header value matching a retired execution spelling such as `--mailer:async=false` remains literal. Apply the migration diagnostic to actual
+unmatched retired options; do not reserve their spelling throughout message content or add an escaping convention.
+
+Keep the existing help cutoff: a genuine help request ignores later arguments, while a retired option before help or supplied alone retains
+its migration diagnostic. Unrelated parser diagnostics, repeated builder calls and one-shot/daemon execution keep their existing contracts.
+Use the installed Picocli parser's unmatched-argument information without adding a second option/value parser or changing its accepted syntax.
+This correction is accepted and implemented for unreleased 10.0.0 under [#875](https://github.com/bbottema/simple-java-mail/issues/875); the issue tracks delivery.
+
 ### Preserve each supplied builder call (accepted 22 October 2026)
 
 Repeated CLI builder options represent separate invocations in command-line order. Keep each occurrence's arguments together, including omitted
