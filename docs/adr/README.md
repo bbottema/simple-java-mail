@@ -166,7 +166,7 @@ This index replaces the retired mechanisms catalog. Architectural choices and co
 | Smart MIME structure selection and protection | [0008](0008-minimal-mime-structures-and-protection-order.md), with the finalized-content boundary in [0007](0007-provider-neutral-mime-boundary.md). |
 | Send-time validation and rehearsal | [0014](0014-send-time-rehearsal.md). |
 | Runtime non-null instrumentation | [0009](0009-nullability-and-cli-optionality.md), including why current default builds disable it. |
-| Related: config defaults/overrides and Spring property mapping | [0001](0001-email-configuration-scopes-and-inheritance.md)â€“[0005](0005-spring-integration-and-boot-compatibility.md); opt-in restrictions in [0025](0025-factory-scoped-locked-configuration.md). |
+| Related: config defaults/overrides and Spring property mapping | [0001](0001-email-configuration-scopes-and-inheritance.md)–[0005](0005-spring-integration-and-boot-compatibility.md); opt-in restrictions in [0025](0025-factory-scoped-locked-configuration.md). |
 | Related: Outlook/EML conversion, resource naming and parse-side classification | [0006](0006-optional-modules.md), [0008](0008-minimal-mime-structures-and-protection-order.md) and [0013](0013-exact-eml-submission.md); the detailed naming history remains in the existing [MIME resource report](../research/MIME_RESOURCE_NAMING_REPORT.md). |
 | Related: transport strategy properties | [0007](0007-provider-neutral-mime-boundary.md) and [0021](0021-mandatory-starttls-configuration-consistency.md), including Session ownership and TLS-policy boundaries. |
 
