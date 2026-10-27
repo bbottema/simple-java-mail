@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Expands Picocli-compatible {@code @argument} files before daemon routing.
- * Expansion deliberately happens in the short-lived client so relative paths use the caller's working directory.
+ * Expands Picocli-compatible {@code @argument} files at raw CLI entry points before routing or execution.
+ * Expansion stays at the raw caller boundary so relative paths use the caller's working directory.
  * Nesting, cycles, UTF-8 decoding, file size, argument count, and aggregate argument sizes are bounded before any
  * request can reach the daemon.
  */
-final class ArgumentFileExpander {
+public final class ArgumentFileExpander {
 	private static final int MAX_DEPTH = 4;
 	private static final int MAX_ARGUMENTS = 512;
 	private static final int MAX_FILE_BYTES = 64 * 1024;
@@ -27,7 +27,7 @@ final class ArgumentFileExpander {
 	private ArgumentFileExpander() {
 	}
 
-	static String[] expand(final String[] arguments, final Path workingDirectory) {
+	public static String[] expand(final String[] arguments, final Path workingDirectory) {
 		final List<String> expanded = new ArrayList<>();
 		expandInto(List.of(arguments), workingDirectory.toAbsolutePath().normalize(), 0, new HashSet<>(), expanded);
 		return expanded.toArray(new String[0]);

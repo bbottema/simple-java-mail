@@ -35,6 +35,17 @@ class CliHelpOptionValuesTest {
         assertThat(email.getPlainText()).isEqualTo("Here are the instructions.");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help"})
+    void retiredOptionSpellingsRemainLiteralMessageValues(final String value) {
+        final Email email = send("--email:withSubject", value, "--email:withPlainText", value,
+                "--email:withHeader", "X-Example", value, "--email:withHeader", "X-Example", "retained");
+
+        assertThat(email.getSubject()).isEqualTo(value);
+        assertThat(email.getPlainText()).isEqualTo(value);
+        assertThat(email.getHeaders().get("X-Example")).containsExactly(value, "retained");
+    }
+
     @Test
     void bodyAndHeaderValuesKeepFollowingRepeatedOptions() {
         final Email email = send("--email:withPlainText", "Read --help", "--email:appendText", " and continue",

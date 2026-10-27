@@ -61,7 +61,8 @@ class DaemonBootstrapRequestTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"How to use --help", "manual--help", "--not-an-option--help", "--email:notAnOption--help"})
+	@ValueSource(strings = {"How to use --help", "manual--help", "--not-an-option--help", "--email:notAnOption--help",
+			"--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help"})
 	void helpLikeValuesKeepTheSelectedDaemonRoute(final String value) {
 		final DaemonBootstrapRequest request = DaemonBootstrapRequest.parse(new String[] {
 				"send", "--daemon=require", "--email:withSubject", value, "--email:withPlainText", "Retained body"

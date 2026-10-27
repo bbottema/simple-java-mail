@@ -205,7 +205,7 @@ final class DaemonServer {
 	private void completeApplicationRequest(final DaemonRequest request,
 			final RequestLedger.Registration registration) {
 		try {
-			registration.result().complete(CliSupport.execute(request.arguments().toArray(new String[0]),
+			registration.result().complete(CliSupport.executeExpandedArguments(request.arguments().toArray(new String[0]),
 					request.workingDirectory(), request.requestId(), environment, profileSecret));
 		} catch (RuntimeException e) {
 			registration.result().complete(result(CliExitCode.COMMAND_FAILED, safeMessage(e)));
