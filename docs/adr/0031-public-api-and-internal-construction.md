@@ -340,6 +340,18 @@ Both are immutable core-owned application configuration values with explicit bui
 group for each generated send UUID. The generic factory and supplier signatures use only core/JDK contracts; runtime routing and bounded
 delivery remain in the main implementation. Companion Javadocs link to the setter that owns each contract.
 
+### Completed PKCS12 choices (accepted 27 October 2026)
+
+`Pkcs12Config.build()` requires store bytes, store password, key alias and key password. A missing choice fails at construction with its field
+identified, rather than producing a completed value whose non-null getters fail or return null. Explicit empty passwords remain supplied choices;
+do not infer a key password from the store password or choose a key alias automatically. Preserve the existing meaning of non-null store bytes
+and aliases without parsing their contents at this boundary.
+
+Builder getters remain passive and detached for unfinished choices. Required null setter arguments are rejected before replacing an earlier choice.
+Existing material reading, stream ownership, completed-value snapshots and supported serialization retain their contracts. The optional S/MIME
+operation still validates the store, passwords and selected key under [ADR 0006](0006-optional-modules.md); constructing core configuration does
+not load that implementation. [#872](https://github.com/bbottema/simple-java-mail/issues/872) tracks this correction for unreleased 10.0.0.
+
 ## Alternatives considered
 
 - **Treat every public member as supported API:** exposes machinery that is only public for package/module access and makes it needlessly permanent.

@@ -131,7 +131,8 @@ class ManagedKeyMaterialReadTest {
     @ParameterizedTest
     @EnumSource(Reader.class)
     void missingArgumentsRemainArgumentFailures(final Reader reader) {
-        assertThatThrownBy(() -> reader.fromPath(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> reader.fromPath(null))
+                .isInstanceOf(reader == Reader.PKCS12 ? IllegalArgumentException.class : NullPointerException.class);
     }
 
     @Test
