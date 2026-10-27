@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#870](https://github.com/bbottema/simple-java-mail/issues/870): leave impossible imported sent dates and unknown or missing timezones unavailable,
+  retaining readable MIME/EML content and unambiguous legacy date formats instead of manufacturing a timestamp.
+
 - [#867](https://github.com/bbottema/simple-java-mail/issues/867): CLI message-file conversion selects EML or Outlook MSG from the contents,
   preventing converter registration order from disabling EML input. Extensionless and renamed files retain their format.
 

@@ -663,7 +663,7 @@ public final class MimeMessageParser {
 	@Nullable
 	public static Date parseSentDate(@NotNull final MimeMessage mimeMessage) {
 		try {
-			return mimeMessage.getSentDate();
+			return ImportedSentDateParser.parse(mimeMessage.getHeader("Date", null));
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SEND_DATE, e);
 		}
