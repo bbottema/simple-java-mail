@@ -61,10 +61,11 @@ public final class CliSupport {
 		try (PrintStream out = new PrintStream(stdout, true, StandardCharsets.UTF_8);
 			 PrintStream err = new PrintStream(stderr, true, StandardCharsets.UTF_8);
 			 CliRequestContext.Scope ignored = CliRequestContext.install(new CliRequestContext(requestId, workingDirectory))) {
-			rejectRemovedExecutionModeOption(args);
 			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.DECLARED_OPTIONS;
 			final CommandLine commandLine = configurePicoCli(declaredOptions, CONSOLE_TEXT_WIDTH);
-			final CommandLine.ParseResult parseResult = commandLine.parseArgs(argumentsThroughFirstHelpOption(args, commandLine));
+			final String[] selectedArguments = argumentsThroughFirstHelpOption(args, commandLine);
+			rejectRemovedExecutionModeOption(selectedArguments);
+			final CommandLine.ParseResult parseResult = commandLine.parseArgs(selectedArguments);
 			if (!CliCommandLineConsumerUsageHelper.writeHelpIfRequested(parseResult, CONSOLE_TEXT_WIDTH, out, err)) {
 				final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
 				commandExecutionStarted = true;
