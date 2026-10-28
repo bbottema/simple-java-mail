@@ -133,14 +133,13 @@ public final class ArgumentFileExpander {
 			} else if (character == quote) {
 				quote = 0;
 				tokenStarted = true;
-			} else if (quote == 0 && character == '#') {
-				comment = true;
-			} else if (quote == 0 && Character.isWhitespace(character)) {
+			} else if (quote == 0 && (character == '#' || Character.isWhitespace(character))) {
 				if (tokenStarted) {
 					result.add(token.toString());
 					token.setLength(0);
 					tokenStarted = false;
 				}
+				comment = character == '#';
 			} else {
 				token.append(character);
 				tokenStarted = true;
