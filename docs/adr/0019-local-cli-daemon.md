@@ -36,7 +36,7 @@ Daemon routing preserves the command model's ownership of message values, includ
 The accepted [ADR 0018 clarification](0018-cli-from-builder-contracts.md#daemon-selector-spellings-inside-values-accepted-28-october-2026)
 permits model inspection for ambiguous selector-shaped input without builder execution, while retaining lightweight ordinary routing,
 management, discovery and lifecycle operations. Existing request isolation, limits, help ordering and actual selector behavior remain.
-[#896](https://github.com/bbottema/simple-java-mail/issues/896) tracks this correction for unreleased 10.0.0.
+The correction is implemented for unreleased 10.0.0; [#896](https://github.com/bbottema/simple-java-mail/issues/896) records development-branch delivery.
 
 ### Complete startup configuration (accepted 28 October 2026)
 

@@ -115,6 +115,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#895](https://github.com/bbottema/simple-java-mail/issues/895): required Mailer callback, token-provider, template and Session inputs reject null before replacing existing choices. Use the named clear/restoration methods for intentional removal; nullable SMTP components retain their existing behavior.
+
+- [#896](https://github.com/bbottema/simple-java-mail/issues/896): CLI daemon selectors remain literal when consumed as subject, body or header values, preserving genuine routing selectors and their existing diagnostics.
+
 - [#894](https://github.com/bbottema/simple-java-mail/issues/894): reply starters generate a missing quoted body alternative from the original's available format, preserving existing dual-body content and later independent edits. Plain text is escaped into HTML; the plain fallback from HTML retains readable breaks, links and image alt text without fetching resources.
 
 - [#893](https://github.com/bbottema/simple-java-mail/issues/893): keep imported `srcset` CID images embedded when HTML uses character references, interpreting each URL separately from its descriptors while preserving source HTML and resource identities.

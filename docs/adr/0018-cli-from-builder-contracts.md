@@ -50,7 +50,7 @@ their syntax, conflicts and diagnostics. Preserve parser-owned argument boundari
 bounded one-time argument-file expansion across local and daemon execution. Ambiguous selector-shaped arguments may consult the existing
 command model without invoking builders or constructing Mailers; ordinary routing and lifecycle commands retain their lightweight bootstrap
 under [ADR 0019](0019-local-cli-daemon.md). No new escaping syntax or public API is introduced.
-[#896](https://github.com/bbottema/simple-java-mail/issues/896) tracks this accepted correction for unreleased 10.0.0.
+The correction is implemented for unreleased 10.0.0; [#896](https://github.com/bbottema/simple-java-mail/issues/896) records development-branch delivery.
 
 ### Retired execution spellings as literal values (accepted 27 October 2026)
 
