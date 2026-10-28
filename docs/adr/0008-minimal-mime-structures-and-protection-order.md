@@ -323,6 +323,14 @@ Related: [optional modules](0006-optional-modules.md), [provider-neutral MIME](0
 and [public/internal boundaries](0031-public-api-and-internal-construction.md). Acceptance tests and feature contracts belong in the implementation plan,
 not this decision record. Sending ownership, state machines and the shared concurrency infographic's resource layers remain unchanged.
 
+## S/MIME media-type capitalization (accepted 28 October 2026)
+
+Recognize equivalent MIME type/subtype spellings throughout installed S/MIME preprocessing and metadata inspection. A mixed-case
+`Multipart/Signed` or `Application/PKCS7-Mime` declaration must not turn protected input into plain-mail results. Preserve original
+header text and protected bytes, and retain the distinctions between unavailable inspection, missing keys and cryptographic failure.
+This applies the existing source-fact boundary under [#884](https://github.com/bbottema/simple-java-mail/issues/884) for unreleased 10.0.0;
+the issue tracks implementation and delivery.
+
 ## Implementation anchors
 
 [DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)

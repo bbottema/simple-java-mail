@@ -198,6 +198,14 @@ Construction, metadata inspection and copying remain lazy. Neither read API clos
 exact-message and retry snapshots retain their existing boundaries. The consistent ownership and failure model is preferred over retaining
 the previous signatures. Implementation follows this accepted decision on the development branch; 10.0.0 remains unreleased.
 
+## Existing CID schemes during automatic resolution (accepted 28 October 2026)
+
+Skip existing CID references before file, classpath or URL image lookup regardless of scheme capitalization. `CID:logo` and `cId:logo`
+have the same scheme as `cid:logo`, while the Content-ID itself retains its case-sensitive identity. Preserve source HTML and supplied
+resources, and keep required-success policy for actual external lookups. This extends the URI interpretation in
+[ADR 0035](0035-tolerant-reading-and-strict-production.md) to the existing automatic-resolution boundary under
+[#887](https://github.com/bbottema/simple-java-mail/issues/887) for unreleased 10.0.0.
+
 ## Alternatives considered
 
 - **Only wrap builder collections:** cheap, but earlier messages remain changeable through retained aliases.
