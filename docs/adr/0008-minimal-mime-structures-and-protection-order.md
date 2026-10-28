@@ -331,6 +331,15 @@ header text and protected bytes, and retain the distinctions between unavailable
 This applies the existing source-fact boundary under [#884](https://github.com/bbottema/simple-java-mail/issues/884) for unreleased 10.0.0;
 the issue tracks implementation and delivery.
 
+## S/MIME parameter capitalization (accepted 28 October 2026)
+
+Interpret the supported `smime-type` values `signed-data` and `enveloped-data` without regard to capitalization throughout incoming
+S/MIME processing and metadata inspection, including the shared attachment and Outlook paths. Changing only this spelling must not
+select decryption for opaque signed content or describe encrypted content as signed. Preserve the original parameter spelling and
+protected bytes; missing and unknown values retain their existing interpretation. The distinctions between unavailable inspection,
+missing keys and cryptographic failure remain unchanged. This extends the media-type decision under
+[#890](https://github.com/bbottema/simple-java-mail/issues/890) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Implementation anchors
 
 [DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)

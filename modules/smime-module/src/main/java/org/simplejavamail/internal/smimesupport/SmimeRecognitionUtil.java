@@ -31,11 +31,11 @@ public final class SmimeRecognitionUtil {
 
 	@NotNull
 	public static SmimeMode determineSmimeMode(final OriginalSmimeDetails d) {
-		boolean encrypted = isSmimeApplicationType(d.getSmimeMime()) && "enveloped-data".equals(d.getSmimeType());
+		boolean encrypted = isSmimeApplicationType(d.getSmimeMime()) && "enveloped-data".equalsIgnoreCase(d.getSmimeType());
 		boolean signed = !encrypted &&
 				(isSmimeApplicationType(d.getSmimeMime()) ||
 						isSmimeMultiPartSigned(d.getSmimeMime(), d.getSmimeProtocol()) ||
-						"signed-data".equals(d.getSmimeType()));
+						"signed-data".equalsIgnoreCase(d.getSmimeType()));
 
 		return encrypted ? ENCRYPTED : signed ? SIGNED : PLAIN;
 	}

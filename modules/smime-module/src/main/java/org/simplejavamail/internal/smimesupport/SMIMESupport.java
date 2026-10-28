@@ -322,7 +322,7 @@ public class SMIMESupport implements SMIMEModule {
 	private static SmimeState determineIncomingState(@NotNull final MimeMessage message,
 			@NotNull final OriginalSmimeDetails details) {
 		final SmimeState detected = SmimeCryptoSupport.getStatus(message);
-		if (detected == SmimeState.ENCRYPTED && "signed-data".equals(details.getSmimeType())) {
+		if (detected == SmimeState.ENCRYPTED && "signed-data".equalsIgnoreCase(details.getSmimeType())) {
 			return SmimeState.SIGNED;
 		}
 		return detected;
@@ -507,7 +507,7 @@ public class SMIMESupport implements SMIMEModule {
 			final ContentType type = new ContentType(message.getContentType());
 			return ("application/pkcs7-mime".equalsIgnoreCase(type.getBaseType())
 					|| "application/x-pkcs7-mime".equalsIgnoreCase(type.getBaseType()))
-					&& !"signed-data".equals(type.getParameter("smime-type"));
+					&& !"signed-data".equalsIgnoreCase(type.getParameter("smime-type"));
 		} catch (MessagingException e) {
 			return false;
 		}
@@ -823,7 +823,7 @@ public class SMIMESupport implements SMIMEModule {
 		if (trustStatus) {
 			return status;
 		}
-		return "signed-data".equals(messageSmimeDetails.getSmimeType()) ? SmimeState.SIGNED : SmimeState.ENCRYPTED;
+		return "signed-data".equalsIgnoreCase(messageSmimeDetails.getSmimeType()) ? SmimeState.SIGNED : SmimeState.ENCRYPTED;
 	}
 
 	/**
