@@ -97,6 +97,19 @@ class EscapedCidReferenceTest {
         assertReferenced(mail.converter().fromEml(exported).withFetchAttachmentData(eager).toEmail(), cid, html);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void escapedReferenceAndDispositionFreeRelatedClassificationWorkTogether(final boolean eager) {
+        final String cid = "logo/1@example.org";
+        final String html = "<img src=\"cid:logo%2F1@example.org\">";
+        final String source = message(cid, html).replace("Content-Disposition: inline; filename=logo.png\r\n", "");
+        final Email imported = mail.converter().fromEml(source).withFetchAttachmentData(eager).toEmail();
+
+        assertReferenced(imported, cid, html);
+        final String exported = mail.converter().fromEmail(imported).toEml();
+        assertReferenced(mail.converter().fromEml(exported).withFetchAttachmentData(eager).toEmail(), cid, html);
+    }
+
     private static void assertReferenced(final Email imported, final String cid, final String html) {
         assertThat(imported.getHTMLText()).isEqualTo(html);
         assertThat(imported.getEmbeddedImages()).hasSize(1);
