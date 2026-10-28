@@ -63,6 +63,8 @@ $registeredWorktrees = @(
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
     # '.local/api-review-example'
+    # Current six-fix review scratch; managed worktrees must be archived before cleanup.
+    '.local/api-review-six-fixes-20261028'
     '.local/878-openpgp-signatures-20261028'
     '.local/877-openpgp-transfer-decoding-20261028'
     '.local/connection-conflict-20261024'
@@ -74,6 +76,38 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-884-smime-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-884-smime-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-885-htmlcid-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-885-htmlcid-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-886-dsndate-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-886-dsndate-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-887-imagecid-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-887-imagecid-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-888-atcomment-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-888-atcomment-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-889-daemonhelp-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-889-daemonhelp-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028'
+    }
+    @{
+        Path = 'C:\workstation\simple-java-mail\simplejavamail.org\.local\review-six-fixes-site-20261028'
+        Parent = 'C:\workstation\simple-java-mail\simplejavamail.org\.local'
+    }
     # @{
     #     Path = 'C:\workstation\api-review-example'
     #     Parent = 'C:\workstation'
