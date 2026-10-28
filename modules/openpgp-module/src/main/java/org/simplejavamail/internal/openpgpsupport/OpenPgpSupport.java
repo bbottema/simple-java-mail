@@ -133,7 +133,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             final MimeMessage readableMessage = FinalizedMimeMessage.fromMessageBytes(session, readableMessageBytes,
                     FinalizedMimeMessage.ProtectionState.NONE);
             final OpenPgpDetailsImpl details = pgpainlessAdapter.verifyDetachedSignature(
-                    MimeEntitySupport.normalizeCrlf(signedEntity), MimeEntitySupport.partBody(mimeParts.get(1)),
+                    MimeEntitySupport.normalizeCrlf(signedEntity), MimeEntitySupport.decodedPartBody(mimeParts.get(1)),
                     receiveConfig, protectedMessage);
             return OpenPgpParseResultImpl.builder()
                 .recognized(true)
@@ -170,7 +170,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             }
 
             final DecryptionResult decryptionResult = pgpainlessAdapter.decrypt(
-                    MimeEntitySupport.partBody(mimeParts.get(1)), receiveConfig);
+                    MimeEntitySupport.decodedPartBody(mimeParts.get(1)), receiveConfig);
             if (!decryptionResult.isDecrypted()) {
                 return missingDecryptionKey(originalMessage, protectedMessage, decryptionResult.recipientKeyIds);
             }

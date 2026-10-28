@@ -2,10 +2,13 @@ package org.simplejavamail.internal.openpgpsupport;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,12 +154,19 @@ final class MimeEntitySupport {
         return result;
     }
 
-    static byte[] partBody(final byte[] mimePart) {
-        final int separator = findHeaderSeparator(mimePart);
-        if (separator < 0) {
-            return mimePart.clone();
+    /** Decode the protection payload without reserializing the signed MIME entity or the retained message. */
+    static byte[] decodedPartBody(final byte[] mimePart) throws MessagingException, IOException {
+        try (InputStream raw = new ByteArrayInputStream(mimePart)) {
+            final MimeBodyPart part = new MimeBodyPart(raw);
+            // Retain the existing raw-payload tolerance only when no transfer encoding was declared.
+            final boolean emptyHeaders = mimePart.length == 0 || mimePart[0] == '\r' || mimePart[0] == '\n';
+            if (!emptyHeaders && findHeaderSeparator(mimePart) < 0 && part.getEncoding() == null) {
+                return mimePart.clone();
+            }
+            try (InputStream decoded = part.getInputStream()) {
+                return decoded.readAllBytes();
+            }
         }
-        return Arrays.copyOfRange(mimePart, separator + separatorLength(mimePart, separator), mimePart.length);
     }
 
     static String boundary(final MimeMessage message) throws MessagingException {
