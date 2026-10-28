@@ -115,6 +115,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#877](https://github.com/bbottema/simple-java-mail/issues/877): incoming OpenPGP/MIME signature and ciphertext parts honor their MIME transfer encoding before verification or decryption. Signed content and original protected EML bytes retain their existing boundaries; receive configuration and outbound protection are unchanged.
 - [#876](https://github.com/bbottema/simple-java-mail/issues/876): CLI argument files expand once from the caller's directory. Escaped `@@values`
   remain literal after routing, and missing caller files cannot be replaced by files in a daemon's directory. Existing UTF-8 and expansion limits remain in force.
 

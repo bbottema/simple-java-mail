@@ -34,6 +34,23 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Transfer encoding on incoming OpenPGP parts (accepted 28 October 2026)
+
+Decode a signature or ciphertext part's MIME Content-Transfer-Encoding before passing its payload to the OpenPGP implementation.
+Use Jakarta Mail's existing MIME interpretation rather than a new decoder. Keep the first signed MIME entity and retained original protected
+EML bytes unchanged; decoding a protection payload does not authorize reserializing or decoding the signed entity before verification.
+Retain the established raw-payload tolerance when a part has no MIME header separator and no declared transfer encoding. Declared encodings
+still follow Jakarta Mail's interpretation and failure behavior.
+
+Preserve ordinary unencoded input, outbound production and the existing missing-key, invalid-signature, decryption-failure and unavailable-module
+results. Malformed or unsupported encodings retain the existing failure boundary and must not become successful cryptographic results.
+Managed decoding reads close streams they open under [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md); caller-owned top-level
+streams retain their existing lifetime. [ADR 0035](0035-tolerant-reading-and-strict-production.md) owns tolerant input interpretation.
+
+The maintainer approved implementation and full workflow delivery under [#877](https://github.com/bbottema/simple-java-mail/issues/877).
+This correction is implemented for unreleased 10.0.0 without adding public APIs, configuration options or dependencies. Combined packet-level
+signing and encryption is a separate finding and remains outside this decision. The issue records development-branch delivery.
+
 ## Locale-independent image metadata (accepted 23 October 2026)
 
 Guessing an embedded image's MIME type from its filename must not depend on the JVM's language or country. Interpret filename extensions
