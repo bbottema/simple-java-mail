@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 /** Keeps Simple Java Mail's iCalendar handler local to the {@link DataHandler} that needs it. */
 final class CalendarDataContentHandler {
@@ -44,14 +45,18 @@ final class CalendarDataContentHandler {
 		@Override
 		public Object getContent(final DataSource dataSource) throws IOException {
 			final String charset = charset(dataSource.getContentType());
-			try (InputStreamReader reader = new InputStreamReader(dataSource.getInputStream(), charset)) {
-				final StringBuilder content = new StringBuilder();
-				final char[] buffer = new char[4096];
-				int read;
-				while ((read = reader.read(buffer)) != -1) {
-					content.append(buffer, 0, read);
+			try {
+				// Resolve before opening content, since reader construction can reject the charset.
+				final Charset encoding = Charset.forName(charset);
+				try (InputStreamReader reader = new InputStreamReader(dataSource.getInputStream(), encoding)) {
+					final StringBuilder content = new StringBuilder();
+					final char[] buffer = new char[4096];
+					int read;
+					while ((read = reader.read(buffer)) != -1) {
+						content.append(buffer, 0, read);
+					}
+					return content.toString();
 				}
-				return content.toString();
 			} catch (IllegalArgumentException e) {
 				throw new UnsupportedEncodingException(charset);
 			}
