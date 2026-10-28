@@ -165,9 +165,10 @@ public final class MimeMessageParser {
 			LOGGER.warn("Content-Disposition '{}' for data source not recognized (it should be either 'attachment' or 'inline'). Skipping body part", disposition);
 		}
 
-		// Keep traversal slots until reference interpretation identifies which related images are embedded only.
-		if (!isInline || contentID == null) {
-			parsedComponents.attachmentList.add(mimeDataSource);
+		// Preserve every traversal slot independently from CID lookup, which can replace an earlier resource with the same ID.
+		parsedComponents.attachmentList.add(mimeDataSource);
+		if (isInline && contentID != null) {
+			parsedComponents.explicitInlineResources.add(mimeDataSource);
 		}
 		if (contentID != null) {
 			parsedComponents.cidMap.put(contentID, mimeDataSource);
@@ -688,6 +689,10 @@ public final class MimeMessageParser {
 				it.remove();
 			}
 		}
+		// Keep the existing referenced-CID selection, including collisions; only unreferenced inline occurrences become attachments.
+		parsedComponents.attachmentList.removeIf(resource -> parsedComponents.explicitInlineResources.contains(resource)
+				&& referencedCids.contains(resource.getContentId()));
+		parsedComponents.explicitInlineResources.clear();
 	}
 
 	private static void removeReferencedImplicitImageAttachments(final ParsedMimeMessageComponents parsedComponents) {
@@ -705,6 +710,8 @@ public final class MimeMessageParser {
 	public static class ParsedMimeMessageComponents {
 		final Set<MimeDataSource> attachmentList = new LinkedHashSet<>();
 		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
+		@Getter(AccessLevel.NONE)
+		private final Set<MimeDataSource> explicitInlineResources = Collections.newSetFromMap(new IdentityHashMap<>());
 		@Getter(AccessLevel.NONE)
 		private final Set<MimeDataSource> implicitRelatedImages = Collections.newSetFromMap(new IdentityHashMap<>());
 		private final Map<String, Collection<Object>> headers = new HashMap<>();

@@ -286,3 +286,15 @@ classification, intentional occurrences, ordering and eager/lazy ownership under
 Apply the same interpretation during MIME/EML import and exact-message inspection while retaining authoritative exact/protected bytes.
 This does not introduce general HTML rewriting or alter outgoing validation. The correction is accepted under
 [#882](https://github.com/bbottema/simple-java-mail/issues/882) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
+## Unreferenced inline resources with repeated Content-IDs (accepted 28 October 2026)
+
+Retain every readable unreferenced inline MIME resource, even when another source occurrence has the same Content-ID. Preserve each
+occurrence's filename, bytes and position among ordinary attachments; CID lookup must not be the only owner of resource occurrences.
+Repeated source metadata does not justify discarding content that can be represented by the existing attachment API.
+
+Keep eager and lazy content access, parser-opened stream ownership and authoritative exact/protected bytes unchanged under
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md). This correction does not select a new interpretation for HTML-referenced
+duplicate IDs: their existing lookup and presentation remain unchanged pending a separate decision. Ordinary referenced inline images,
+disposition-free related images and explicit attachments retain their classification. [#891](https://github.com/bbottema/simple-java-mail/issues/891)
+tracks implementation and delivery for unreleased 10.0.0.
