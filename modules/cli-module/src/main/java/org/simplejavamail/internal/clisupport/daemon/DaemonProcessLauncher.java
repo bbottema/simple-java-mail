@@ -1,9 +1,9 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
-import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
 import org.simplejavamail.internal.config.ConfigurationLocks;
+import org.simplejavamail.internal.config.ConfigurationPropertyNames;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +12,6 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -105,21 +104,11 @@ final class DaemonProcessLauncher {
 	}
 
 	static void copyConfigurationSystemProperties(final Map<String, String> environment, final Properties properties) {
-		final Map<String, String> propertyEnvironmentNames = new HashMap<>();
-		for (ConfigLoader.Property property : ConfigLoader.Property.values()) {
-			if (!property.key().contains("*")) {
-				propertyEnvironmentNames.put(property.key(), property.key().replace('.', '_').toUpperCase(Locale.ROOT));
-				final String lockedName = ConfigurationLocks.lockedName(property.key());
-				propertyEnvironmentNames.put(lockedName, lockedName.replace('.', '_').toUpperCase(Locale.ROOT));
-			}
-		}
 		for (String name : properties.stringPropertyNames()) {
-			final String environmentName = propertyEnvironmentNames.get(name);
-			if (environmentName != null) {
+			if (ConfigurationPropertyNames.isRecognizedKey(name)) {
+				final String environmentName = ConfigurationPropertyNames.isWildcardKey(ConfigurationLocks.ordinaryName(name))
+						? name : name.replace('.', '_').toUpperCase(Locale.ROOT);
 				environment.put(environmentName, properties.getProperty(name));
-			} else if (ConfigurationLocks.ordinaryName(name).startsWith("simplejavamail.extraproperties.")
-					|| ConfigurationLocks.ordinaryName(name).startsWith("simplejavamail.defaults.connectionpool.clusters.")) {
-				environment.put(name, properties.getProperty(name));
 			}
 		}
 	}

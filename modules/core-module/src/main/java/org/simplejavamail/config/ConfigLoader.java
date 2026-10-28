@@ -26,9 +26,12 @@ import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static java.util.regex.Pattern.compile;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.EXTRA_PROPERTY_PATTERN;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.NAMED_MAILER_PROPERTY_PATTERN;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isRecognizedKey;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isWildcardKey;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
@@ -46,16 +49,6 @@ public final class ConfigLoader {
 	 * By default, the optional file {@value} will be loaded from classpath to load initial defaults.
 	 */
 	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
-
-	/**
-	 * This pattern recognizes extra property lines that should be loaded directly into JavaMail on the Session object.
-	 */
-	private static final Pattern EXTRA_PROPERTY_PATTERN = compile("^simplejavamail\\.extraproperties\\.(?<actualProperty>.*)");
-	private static final Pattern CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN = compile(
-			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>"
-					+ "clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|expireaftercreation\\.millis|loadbalancing\\.strategy)$");
-
-	private static final Pattern NAMED_MAILER_PROPERTY_PATTERN = compile("^simplejavamail\\.mailers\\.(?<name>[A-Za-z0-9_-]+)\\.(?<tail>.+)$");
 
 	private final List<ConfigSource> sources = new ArrayList<>();
 
@@ -657,33 +650,6 @@ public final class ConfigLoader {
 			throw new IllegalArgumentException("ConfigSource name was blank");
 		}
 		return sourceName;
-	}
-
-	private static boolean isRecognizedKey(@Nullable final String key) {
-		if (key == null) {
-			return false;
-		}
-		final String ordinaryKey = ConfigurationLocks.ordinaryName(key);
-		for (Property property : Property.values()) {
-			if (property != Property.EXTRA_PROPERTIES
-					&& property != Property.DEFAULT_CONNECTIONPOOL_CLUSTER_CONFIGS
-					&& property != Property.NAMED_MAILERS
-					&& property.key().equals(ordinaryKey)) {
-				return true;
-			}
-		}
-		return isWildcardKey(ordinaryKey);
-	}
-
-	private static boolean isWildcardKey(final String key) {
-		final Matcher namedMailerProperty = NAMED_MAILER_PROPERTY_PATTERN.matcher(key);
-		if (namedMailerProperty.matches()) {
-			final String propertyTail = namedMailerProperty.group("tail");
-			final boolean isNestedNamedMailerDefinition = propertyTail.startsWith("mailers.");
-			final boolean isNestedLockNamespace = propertyTail.startsWith("locked.");
-			return !isNestedNamedMailerDefinition && !isNestedLockNamespace && isRecognizedKey("simplejavamail." + propertyTail);
-		}
-		return EXTRA_PROPERTY_PATTERN.matcher(key).matches() || CONNECTIONPOOL_CLUSTER_PROPERTY_PATTERN.matcher(key).matches();
 	}
 
 	private static boolean isBlankValue(@Nullable final Object value) {

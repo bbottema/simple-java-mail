@@ -541,6 +541,10 @@ the same snapshot; it does not need a container of prebuilt Mailers. Extend wild
 identity for the captured definitions without a second parser or hidden source overlay. Configuration objects remain supplied-data
 holders; builders resolve defaults and initialize owned runtime resources. There is no automatic reload or new background executor.
 
+The [28 October daemon-startup clarification](0019-local-cli-daemon.md#complete-startup-configuration-accepted-28-october-2026) under #892
+preserves complete supported named definitions and locks when transferring JVM settings to a newly started CLI daemon. A running daemon
+retains its captured defaults; restart captures the complete configuration of the restarting invocation.
+
 Factory-scoped history remains separate from configuration and privately owned transport resources. The implementation must map named
 definitions to stable configured-destination contexts within their owning runtime, preserving sending-limit sharing and observation
 isolation. Equal names/configurations in independent factories do not establish shared identity. Test repeated primary construction and

@@ -30,6 +30,22 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Complete startup configuration (accepted 28 October 2026)
+
+Starting an absent daemon preserves all supported SJM JVM settings supplied by the starting process, including named Mailer definitions,
+their supported fields and locked counterparts. The normal loader owns property-name recognition; process launch must not maintain a
+smaller independently selected catalog. Retain ordinary source precedence, validation and locks, and carry settings through the existing
+child environment without putting secrets on its command line or configuration into discovery state.
+
+The daemon captures defaults once at startup under [ADR 0003](0003-immutable-configuration-snapshots.md). Later clients' JVM properties do
+not reconfigure a running instance, and acquire reuses that instance. Restart captures the complete desired configuration supplied by the
+restarting invocation; it does not recover the old configuration from daemon state. Explicit request Mailer options continue through the
+normal conflict policy and lock checks. [ADR 0029](0029-smtp-submission-failover.md) owns named definitions and their resolved route.
+
+This corrects startup transfer under [#892](https://github.com/bbottema/simple-java-mail/issues/892) for unreleased 10.0.0. It does not add
+live reload, per-request JVM configuration transfer or a new configuration protocol. The correction is implemented; the issue tracks
+development-branch delivery.
+
 ### Expand argument files once (accepted 27 October 2026)
 
 Expand `@argument` files once at the caller boundary before routing. Preserve the existing bounded expander's strict UTF-8 reading,
