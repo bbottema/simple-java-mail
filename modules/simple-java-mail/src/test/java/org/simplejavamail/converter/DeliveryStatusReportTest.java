@@ -180,6 +180,55 @@ class DeliveryStatusReportTest {
 	}
 
 	@Test
+	void retainsDeliveryTimesWithTrailingCommentsAndWhitespace() {
+		for (final String suffix : new String[]{"", " (CEST)", "(CEST)", " (relay (local time))", " (relay\\)time)",
+				" (first)\t(second)", "\r\n\t(CEST)", " (CEST) \t"}) {
+			final DeliveryStatusReport status = convert(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+					+ "Last-Attempt-Date: Fri, 16 Oct 2026 10:20:30 +0200" + suffix + "\r\n"
+					+ "Will-Retry-Until: Sat, 17 Oct 2026 10:20:30 +0200" + suffix + "\r\n")).getDeliveryStatusReport();
+			final RecipientDeliveryReport recipient = status.getRecipients().get(0);
+			assertThat(recipient.getLastAttemptAt()).as(suffix).isEqualTo(Instant.parse("2026-10-16T08:20:30Z"));
+			assertThat(recipient.getRetryUntil()).as(suffix).isEqualTo(Instant.parse("2026-10-17T08:20:30Z"));
+			assertThat(recipient.getStatusCode().toString()).isEqualTo("5.1.1");
+			assertThat(status.getWarnings()).as(suffix).isEmpty();
+		}
+	}
+
+	@Test
+	void leavesUnusableReportDateSuffixesAndTimezonesUnavailable() {
+		for (final String invalid : new String[]{"Fri, 16 Oct 2026 10:20:30 +0200 (unclosed",
+				"Fri, 16 Oct 2026 10:20:30 +0200 (comment) trailing", "Fri, 16 Oct 2026 10:20:30 +0200 )",
+				"Fri, 16 Oct 2026 10:20:30 +0200 (comment))", "Fri, 16 Oct 2026 10:20:30 (CEST)",
+				"Fri, 16 Oct 2026 10:20:30 +1260 (invalid zone)", "Fri, 16 Oct 2026 10:20:30 +020x (invalid zone)",
+				"Tue, 31 Feb 2026 10:20:30 +0200 (impossible date)"}) {
+			final DeliveryStatusReport status = convert(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+					+ "Last-Attempt-Date: " + invalid + "\r\nWill-Retry-Until: " + invalid + "\r\n")).getDeliveryStatusReport();
+			final RecipientDeliveryReport recipient = status.getRecipients().get(0);
+			assertThat(recipient.getLastAttemptAt()).as(invalid).isNull();
+			assertThat(recipient.getRetryUntil()).as(invalid).isNull();
+			assertThat(recipient.getFinalRecipient().getAddress()).isEqualTo("Reader@Example.test");
+			assertThat(recipient.getAction()).isEqualTo(DeliveryAction.FAILED);
+			assertThat(status.getWarnings()).as(invalid).hasSize(2).anySatisfy(warning ->
+					assertThat(warning).contains("invalid Last-Attempt-Date"))
+					.anySatisfy(warning -> assertThat(warning).contains("invalid Will-Retry-Until"));
+		}
+	}
+
+	@Test
+	void interpretsDateCommentsWithoutRewritingExactSourceBytes() throws Exception {
+		final byte[] bytes = report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+				+ "Last-Attempt-Date: Fri, 16 Oct 2026 10:20:30 +0200 (CEST)\r\n"
+				+ "Will-Retry-Until: Sat, 17 Oct 2026 10:20:30 +0200 (relay time)\r\n").getBytes(UTF_8);
+		final Email email = SimpleJavaMail.fromDefaults().emailBuilder().startingFromExactEml(bytes)
+				.withEnvelopeRecipients("archive@example.test").buildEmail();
+		final RecipientDeliveryReport recipient = email.getDeliveryStatusReport().getRecipients().get(0);
+		assertThat(recipient.getLastAttemptAt()).isEqualTo(Instant.parse("2026-10-16T08:20:30Z"));
+		assertThat(recipient.getRetryUntil()).isEqualTo(Instant.parse("2026-10-17T08:20:30Z"));
+		assertThat(email.getDeliveryStatusReport().getWarnings()).isEmpty();
+		assertThat(EmailConverter.mimeMessageToEMLByteArray(EmailConverter.emailToMimeMessage(email))).containsExactly(bytes);
+	}
+
+	@Test
 	void mailboxViewsKeepReportedNamesWithoutInventingOutgoingRecipientSettings() {
 		final String address = "\"Reader, Example\" <Reader@Example.test>";
 		final var recipient = convert(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT.replace("Reader@Example.test", address)))
