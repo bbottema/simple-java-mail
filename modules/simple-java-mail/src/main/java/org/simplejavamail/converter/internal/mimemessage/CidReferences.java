@@ -1,6 +1,11 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.jetbrains.annotations.Nullable;
+import org.jsoup.nodes.Attribute;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Range;
+import org.jsoup.parser.Parser;
+import org.jsoup.parser.StreamParser;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -17,6 +22,48 @@ final class CidReferences {
 
     static Set<String> inHtml(final String html) {
         final Set<String> references = new HashSet<>();
+        if (html.indexOf('&') < 0) {
+            collectReferences(html, references);
+            return references;
+        }
+        // Attribute values are HTML-decoded by the parser. Keep raw-text/CSS inspection separate, and never serialize its DOM.
+        final StringBuilder literalText = new StringBuilder(html);
+        try (StreamParser parser = new StreamParser(Parser.htmlParser().setTrackPosition(true))) {
+            parser.parse(html, "");
+            for (Element element : (Iterable<Element>) parser.stream()::iterator) {
+                for (Attribute attribute : element.attributes()) {
+                    final Range range = attribute.sourceRange().valueRange();
+                    if (range.isTracked() && html.substring(range.start().pos(), range.end().pos()).indexOf('&') >= 0) {
+                        collectAttributeReferences(attribute.getValue(), references);
+                        // Do not also claim a resource matching the attribute's encoded source spelling.
+                        for (int index = range.start().pos(); index < range.end().pos(); index++) {
+                            literalText.setCharAt(index, ' ');
+                        }
+                    }
+                }
+                // Completed nodes are no longer needed. The input String and source offsets remain authoritative.
+                element.remove();
+            }
+        }
+        collectReferences(literalText.toString(), references);
+        return references;
+    }
+
+    private static void collectAttributeReferences(final String value, final Set<String> references) {
+        final String uri = value.strip();
+        final Matcher scheme = SCHEME.matcher(uri);
+        if (scheme.lookingAt()) {
+            // A direct URI attribute has no source quote delimiter after HTML decoding; quotes may be part of its identity.
+            final String cid = decode(uri.substring(scheme.end()));
+            if (cid != null && !cid.isEmpty()) {
+                references.add(cid);
+            }
+        } else {
+            collectReferences(value, references);
+        }
+    }
+
+    private static void collectReferences(final String html, final Set<String> references) {
         final Matcher scheme = SCHEME.matcher(html);
         int searchFrom = 0;
         while (scheme.find(searchFrom)) {
@@ -28,7 +75,6 @@ final class CidReferences {
             }
             searchFrom = end;
         }
-        return references;
     }
 
     private static int referenceEnd(final String html, final int start, final int schemeStart) {

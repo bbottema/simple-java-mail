@@ -33,6 +33,11 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.23.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.simplejavamail</groupId>
             <artifactId>angus-mail-provider-module</artifactId>
             <version>${project.version}</version>
@@ -112,6 +117,19 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile-java9-module-info</id>
+                        <configuration>
+                            <!-- jsoup exposes its module descriptor from Java 11, the library's supported baseline. -->
+                            <release>11</release>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -211,7 +229,7 @@
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
 								<configuration>
-									<includeArtifactIds>core-module,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api</includeArtifactIds>
+									<includeArtifactIds>core-module,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,jsoup</includeArtifactIds>
 									<includeScope>compile</includeScope>
 									<outputFile>${project.build.directory}/provider-neutral-runtime-path.txt</outputFile>
 								</configuration>
@@ -221,7 +239,7 @@
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
 								<configuration>
-									<includeArtifactIds>core-module,dkim-module,utils-mail-dkim,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,bcpkix-jdk18on,bcprov-jdk18on,bcutil-jdk18on,utils-data-fetcher,annotations</includeArtifactIds>
+									<includeArtifactIds>core-module,dkim-module,utils-mail-dkim,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,bcpkix-jdk18on,bcprov-jdk18on,bcutil-jdk18on,utils-data-fetcher,annotations,jsoup</includeArtifactIds>
 									<includeScope>compile</includeScope>
 									<outputFile>${project.build.directory}/dkim-provider-neutral-runtime-path.txt</outputFile>
 								</configuration>
@@ -241,7 +259,7 @@
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
 								<configuration>
-									<includeArtifactIds>core-module,angus-mail-provider-module,angus-mail,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api</includeArtifactIds>
+									<includeArtifactIds>core-module,angus-mail-provider-module,angus-mail,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,jsoup</includeArtifactIds>
 									<includeScope>runtime</includeScope>
 									<outputFile>${project.build.directory}/managed-angus-runtime-path.txt</outputFile>
 								</configuration>
@@ -276,12 +294,12 @@
 											<compilerarg value="org.simplejavamail.core=${project.basedir}/../core-module/target/core-module-${project.version}.jar" />
 										</javac>
 										<mkdir dir="${project.build.directory}/provider-neutral-jpms-classes" />
-										<!-- JDK 11 javac treats a JAR whose descriptor lives under META-INF/versions/9 as an automatic module.
+										<!-- JDK 11 javac treats a JAR whose descriptor lives under META-INF/versions/11 as an automatic module.
 										     Point it at the descriptor directly and patch in the packaged classes. The runtime check below
 										     still launches against the packaged multi-release JAR. -->
 										<javac srcdir="${project.basedir}/src/test/provider-neutral-jpms"
 											   destdir="${project.build.directory}/provider-neutral-jpms-classes"
-											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${providerNeutralPath}"
+											   modulepath="${project.build.directory}/classes/META-INF/versions/11${path.separator}${providerNeutralPath}"
 											   release="${library.java.release}" includeantruntime="false">
 											<compilerarg value="--patch-module" />
 											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
@@ -315,7 +333,7 @@
                                         <mkdir dir="${project.build.directory}/dkim-neutral-jpms" />
                                         <javac srcdir="${project.basedir}/src/test/provider-neutral-dkim"
                                                destdir="${project.build.directory}/dkim-neutral-jpms"
-                                               modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${dkimNeutralPath}"
+                                               modulepath="${project.build.directory}/classes/META-INF/versions/11${path.separator}${dkimNeutralPath}"
                                                release="${library.java.release}" includeantruntime="false" encoding="UTF-8">
                                             <compilerarg value="--patch-module" />
                                             <compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
@@ -331,7 +349,7 @@
 										<mkdir dir="${project.build.directory}/third-party-probe-classes" />
 										<javac srcdir="${project.basedir}/src/test/third-party-probe"
 											   destdir="${project.build.directory}/third-party-probe-classes"
-											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${providerNeutralPath}"
+											   modulepath="${project.build.directory}/classes/META-INF/versions/11${path.separator}${providerNeutralPath}"
 											   release="${library.java.release}" includeantruntime="false">
 											<compilerarg value="--patch-module" />
 											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
@@ -356,7 +374,7 @@
 										<mkdir dir="${project.build.directory}/managed-angus-jpms-classes" />
 										<javac srcdir="${project.basedir}/src/test/managed-angus-jpms"
 											   destdir="${project.build.directory}/managed-angus-jpms-classes"
-											   modulepath="${project.build.directory}/classes/META-INF/versions/9${path.separator}${managedAngusPath}"
+											   modulepath="${project.build.directory}/classes/META-INF/versions/11${path.separator}${managedAngusPath}"
 											   release="${library.java.release}" includeantruntime="false">
 											<compilerarg value="--patch-module" />
 											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
