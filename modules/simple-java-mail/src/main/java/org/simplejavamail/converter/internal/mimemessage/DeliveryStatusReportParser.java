@@ -307,7 +307,7 @@ class DeliveryStatusReportParser {
 		format.setLenient(false);
 		final ParsePosition position = new ParsePosition(0);
 		final Date parsed = format.parse(supplied, position);
-		if (parsed != null && position.getIndex() == supplied.length()) {
+		if (parsed != null && hasOnlyTrailingComments(supplied.substring(position.getIndex()))) {
 			return parsed.toInstant();
 		}
 		try {
@@ -320,6 +320,14 @@ class DeliveryStatusReportParser {
 		}
 		warnings.add("The delivery report has an invalid " + name + " date; that fact was left unavailable.");
 		return null;
+	}
+
+	private static boolean hasOnlyTrailingComments(final String remainder) {
+		try {
+			return new HeaderTokenizer(remainder, HeaderTokenizer.RFC822).next().getType() == HeaderTokenizer.Token.EOF;
+		} catch (final ParseException malformedComment) {
+			return false;
+		}
 	}
 
 	@Value
