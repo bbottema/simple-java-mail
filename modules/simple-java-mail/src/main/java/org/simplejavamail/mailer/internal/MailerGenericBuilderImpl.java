@@ -1300,7 +1300,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withEmailDefaults(@NotNull Email emailDefaults) {
-		this.emailDefaults = emailDefaults;
+		this.emailDefaults = requireNonNull(emailDefaults, "emailDefaults");
 		return (T) this;
 	}
 
@@ -1309,7 +1309,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withEmailOverrides(@NotNull Email emailOverrides) {
-		this.emailOverrides = emailOverrides;
+		this.emailOverrides = requireNonNull(emailOverrides, "emailOverrides");
 		return (T) this;
 	}
 
@@ -1525,7 +1525,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withCustomMailer(@NotNull CustomMailer customMailer) {
-		this.customMailer = customMailer;
+		this.customMailer = requireNonNull(customMailer, "customMailer");
 		return (T) this;
 	}
 
@@ -1541,7 +1541,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider) {
-		this.oauth2AccessTokenProvider = accessTokenProvider;
+		this.oauth2AccessTokenProvider = requireNonNull(accessTokenProvider, "accessTokenProvider");
 		return (T) this;
 	}
 
