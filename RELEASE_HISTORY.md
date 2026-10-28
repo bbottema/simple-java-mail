@@ -115,6 +115,13 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#884](https://github.com/bbottema/simple-java-mail/issues/884): recognize equivalent S/MIME media-type capitalization without losing signed or encrypted source facts.
+- [#885](https://github.com/bbottema/simple-java-mail/issues/885): interpret HTML attribute character references in CID URLs while preserving source HTML, resource identity and bytes. The main module now includes jsoup; custom module paths must include `org.jsoup`, with the Java 11 library baseline unchanged.
+- [#886](https://github.com/bbottema/simple-java-mail/issues/886): retain delivery-report timestamps with well-formed trailing comments, preserving strict calendar and timezone interpretation.
+- [#887](https://github.com/bbottema/simple-java-mail/issues/887): skip existing CID image references regardless of scheme capitalization during required automatic resolution.
+- [#888](https://github.com/bbottema/simple-java-mail/issues/888): keep argument-file values separate from the next line's options around inline comments, including explicitly empty values.
+- [#889](https://github.com/bbottema/simple-java-mail/issues/889): honor genuine CLI help before later malformed daemon selectors while retaining earlier diagnostics.
+
 - [#881](https://github.com/bbottema/simple-java-mail/issues/881): import a referenced image without a disposition inside `multipart/related` as one embedded image, without duplicating it in ordinary attachments. Explicit attachment behavior and intentional resource occurrences remain unchanged.
 - [#882](https://github.com/bbottema/simple-java-mail/issues/882): recognize percent-escaped CID references during MIME/EML import, retaining the original HTML, Content-ID and resource bytes. Literal plus signs and complete, case-sensitive content identities remain distinct.
 - [#883](https://github.com/bbottema/simple-java-mail/issues/883): reject unsupported calendar charsets before acquiring a content stream, retaining conversion failures and the existing ownership of parser-opened and caller-supplied streams.

@@ -70,6 +70,11 @@ Relative request files resolve from the client command's working directory, not 
 
 Argument files are strict UTF-8, bounded, may be nested four levels, and support comments plus single or double quoting. Relative nested argument files also resolve from the client working directory. Prefix a literal value beginning with `@` with another at sign, such as `@@recipient`, to pass `@recipient`. The existing `picocli.useSimplifiedAtFiles=true` mode still treats each non-comment line as one argument.
 
+An unquoted `#` ends a token before starting its comment. For example, `"Hello"# note` keeps `Hello` as one argument and `""# note`
+keeps an empty argument; the next line starts a separate token with LF, CR or CRLF endings. A hash inside quotes remains literal.
+Genuine standard or option-specific help ignores later malformed daemon selectors and stays local. A malformed selector before help
+or without help still produces its diagnostic.
+
 In unreleased 10.0.0, expansion happens once before routing. Escaped values remain literal even when a matching file exists. A missing or
 unreadable argument file also remains literal; a file in the daemon's working directory cannot replace it during execution.
 

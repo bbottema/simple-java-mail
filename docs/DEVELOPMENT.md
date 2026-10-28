@@ -17,6 +17,10 @@ For issue, Dependabot, and release handling workflows, see [MAINTAINER_WORKFLOW.
 
 All published library modules require Java 11 or newer. The separately executable `cli-module` requires Java 17 or newer. A full-reactor build therefore runs on JDK 17+ and compiles non-CLI modules with `--release 11` while compiling only `cli-module` with `--release 17`.
 
+The main module emits its multi-release module descriptor under `META-INF/versions/11`: its jsoup HTML parser dependency exposes a Java 11
+descriptor. Custom module paths include `org.jsoup`, and the main module's narrow consumer fixtures use that descriptor directory. Other
+modules retain their own descriptor configuration.
+
 Use a real JDK 11 lane when validating library compatibility. That lane excludes `cli-module`; JDK 11 cannot load its Java 17 classes. CLI metadata generation runs on JDK 17 or the current release JDK. The Kryo cache has explicit serializers for reflective methods and Therapi's read-only collection shapes, and does not reflect into JDK internals.
 
 Use a local, gitignored `.maintainer-env.ps1` file for machine-specific paths:
