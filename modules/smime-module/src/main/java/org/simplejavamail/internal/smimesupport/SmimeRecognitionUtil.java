@@ -5,17 +5,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 
-import java.util.List;
-
-import static java.util.Arrays.asList;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED;
 
 public final class SmimeRecognitionUtil {
-
-	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime");
 
 	/**
 	 * Used internally to recognize when we should ignore message ID header when starting a new email as a copy.
@@ -26,7 +21,7 @@ public final class SmimeRecognitionUtil {
 	 * @return Whether the given attachment is S/MIME signed / encrypted.
 	 */
 	static boolean isSmimeContentType(@NotNull final ContentType ct) {
-		return SMIME_MIMETYPES.contains(ct.getBaseType()) ||
+		return isSmimeApplicationType(ct.getBaseType()) ||
 				isSmimeMultiPartSigned(ct.getBaseType(), ct.getParameter("protocol"));
 	}
 
@@ -36,9 +31,9 @@ public final class SmimeRecognitionUtil {
 
 	@NotNull
 	public static SmimeMode determineSmimeMode(final OriginalSmimeDetails d) {
-		boolean encrypted = SMIME_MIMETYPES.contains(d.getSmimeMime()) && "enveloped-data".equals(d.getSmimeType());
+		boolean encrypted = isSmimeApplicationType(d.getSmimeMime()) && "enveloped-data".equals(d.getSmimeType());
 		boolean signed = !encrypted &&
-				(SMIME_MIMETYPES.contains(d.getSmimeMime()) ||
+				(isSmimeApplicationType(d.getSmimeMime()) ||
 						isSmimeMultiPartSigned(d.getSmimeMime(), d.getSmimeProtocol()) ||
 						"signed-data".equals(d.getSmimeType()));
 
@@ -46,7 +41,11 @@ public final class SmimeRecognitionUtil {
 	}
 
 	private static boolean isSmimeMultiPartSigned(@Nullable String mime, @Nullable String protocol) {
-		return "multipart/signed".equals(mime) && (protocol == null ||
-						protocol.equals("application/pkcs7-signature") || protocol.equals("application/x-pkcs7-signature"));
+		return "multipart/signed".equalsIgnoreCase(mime) && (protocol == null ||
+						protocol.equalsIgnoreCase("application/pkcs7-signature") || protocol.equalsIgnoreCase("application/x-pkcs7-signature"));
+	}
+
+	private static boolean isSmimeApplicationType(@Nullable final String mime) {
+		return "application/pkcs7-mime".equalsIgnoreCase(mime) || "application/x-pkcs7-mime".equalsIgnoreCase(mime);
 	}
 }
