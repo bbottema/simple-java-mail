@@ -34,7 +34,10 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 		boolean selectorSeen = false;
 		for (int i = 0; i < args.length; i++) {
 			final String arg = args[i];
-			if ("-d".equals(arg) || "--daemon".equals(arg)) {
+			if ("--".equals(arg)) {
+				command.addAll(List.of(args).subList(i, args.length));
+				break;
+			} else if ("-d".equals(arg) || "--daemon".equals(arg)) {
 				mode = mergeMode(mode, DaemonExecutionMode.ACQUIRE, selectorSeen);
 				selectorSeen = true;
 			} else if (arg.startsWith("--daemon=")) {
@@ -52,6 +55,12 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 				instance = validateInstance(args[i]);
 			} else {
 				command.add(arg);
+				// Help ends the request before later selectors can be validated or change its route.
+				// Only an option-shaped candidate needs the generated model; ordinary routing stays thin.
+				if ("--help".equals(arg) || "-h".equals(arg)
+						|| arg.startsWith("--") && arg.endsWith("--help") && requestsOptionHelp(command)) {
+					break;
+				}
 			}
 		}
 		return new RoutingArguments(mode, instance, command);
@@ -88,8 +97,10 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 	private static DaemonBootstrapRequest commandRequest(final RoutingArguments routingArguments,
 			final Path workingDirectory) {
 		final List<String> command = routingArguments.command();
+		final int endOfOptions = command.indexOf("--");
 		final boolean helpOrVersion = command.isEmpty()
-				|| command.stream().anyMatch(DaemonBootstrapRequest::isStandardHelpOrVersion)
+				|| command.subList(0, endOfOptions < 0 ? command.size() : endOfOptions)
+						.stream().anyMatch(DaemonBootstrapRequest::isStandardHelpOrVersion)
 				|| requestsOptionHelp(command);
 		final Route route = helpOrVersion || routingArguments.mode() == DaemonExecutionMode.OFF
 				? Route.LOCAL : Route.DAEMON_COMMAND;
