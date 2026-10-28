@@ -319,4 +319,16 @@ public final class CoreOnlyConsumer {
         config.getDiagnostics().getGroups().forEach(group -> config.getDiagnostics().getProperties(group));
         return converter.fromEml("From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody").toEmail();
     }
+
+    public static boolean inspectOpenPgp(final org.simplejavamail.api.email.OriginalOpenPgpDetails details) {
+        for (org.simplejavamail.api.email.OpenPgpSignatureResult signature : details.getSignatures()) {
+            signature.getSignerKeyId();
+            signature.getSignerFingerprint();
+            signature.getSignatureAlgorithm();
+            signature.getHashAlgorithm();
+            signature.getFailureReason();
+            if (signature.getStatus() != org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus.VALID) return false;
+        }
+        return details.getSignatureStatus() == org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus.VALID;
+    }
 }

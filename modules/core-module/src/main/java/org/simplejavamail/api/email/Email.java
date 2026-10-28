@@ -379,7 +379,7 @@ public class Email implements Serializable {
 		overrideReceivers = builder.getOverrideReceivers();
 		emailToForward = builder.getEmailToForward();
 		originalSmimeDetails = builder.getOriginalSmimeDetails();
-		originalOpenPgpDetails = builder.getOriginalOpenPgpDetails();
+		originalOpenPgpDetails = OpenPgpDetailsImpl.copyOf(builder.getOriginalOpenPgpDetails());
 		sentDate = builder.getSentDate();
 		smimeEncryptionConfig = builder.getSmimeEncryptionConfig();
 		smimeSigningConfig = builder.getSmimeSigningConfig();
@@ -460,7 +460,11 @@ public class Email implements Serializable {
 		detachMessageMetadata();
 		restorePropertySelectors();
 		if (originalOpenPgpDetails == null) {
-			originalOpenPgpDetails = OpenPgpDetailsImpl.plain();
+			originalOpenPgpDetails = OpenPgpDetailsImpl.builder().openPgpMode(OriginalOpenPgpDetails.OpenPgpMode.UNKNOWN)
+					.signatureStatus(OriginalOpenPgpDetails.SignatureStatus.UNKNOWN)
+					.decryptionStatus(OriginalOpenPgpDetails.DecryptionStatus.UNKNOWN).build();
+		} else {
+			originalOpenPgpDetails = OpenPgpDetailsImpl.copyOf(originalOpenPgpDetails);
 		}
 		if (serializationFormatVersion == 0) {
 			emailToForward = null;

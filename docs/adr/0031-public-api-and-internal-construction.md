@@ -101,6 +101,15 @@ application builders own detailed setters, inspection and clearing/resetting. Ro
 and restoration. Removed scalar routes may remain only on internal runtime or CLI contracts; they are not deprecated application aliases.
 Preserve core-only continuing usage, borrowed provider identity, secret redaction and optional-module ownership across these new boundaries.
 
+### Individual OpenPGP result inspection (accepted 28 October 2026)
+
+The complete signature-result decision in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#complete-incoming-openpgp-signature-results-accepted-28-october-2026)
+adds `OpenPgpSignatureResult` as a core-owned, serializable reading contract exposed by `OriginalOpenPgpDetails.getSignatures()`.
+Applications inspect typed immutable facts using core alone after bootstrap. Provider-specific cryptographic types, result assembly and
+aggregation mechanics remain internal; no public result builder or construction SPI is added. Existing singular signer/signature-algorithm
+inspection remains a one-result convenience, while the whole-message signature status is a conservative summary of the inspected facts.
+Implemented for unreleased 10.0.0 under [#878](https://github.com/bbottema/simple-java-mail/issues/878); the issue records development-branch delivery.
+
 ### Keep the API module independent of its implementations
 
 The accepted schema-bound configuration read API puts `ConfigKey<T>` and `ConfigKeys` in core's supported

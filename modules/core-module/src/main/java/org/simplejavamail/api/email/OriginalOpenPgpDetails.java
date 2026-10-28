@@ -42,11 +42,28 @@ public interface OriginalOpenPgpDetails extends Serializable {
     }
 
     @NotNull OpenPgpMode getOpenPgpMode();
+    /**
+     * Conservative summary of all represented signatures and inspection completeness. {@code VALID} requires at least one
+     * signature, complete inspection and every occurrence valid. Known problems take precedence in this order:
+     * {@code INVALID}, {@code ERROR}, {@code KEY_MISSING}, {@code UNKNOWN}. Only complete inspection without signatures yields
+     * {@code NOT_PRESENT}; an unopened layer, unavailable inspection or older selected-only snapshot cannot establish absence.
+     */
     @NotNull SignatureStatus getSignatureStatus();
     @NotNull DecryptionStatus getDecryptionStatus();
+    /**
+     * Detached immutable results for every represented occurrence, including repeats by one signer. Results use a deterministic
+     * metadata order: key ID, status (INVALID, ERROR, KEY_MISSING, UNKNOWN, VALID), fingerprint, signature/hash algorithms and
+     * failure reason, with unavailable text after known text. Getters perform no content reads or cryptographic work.
+     * An empty list does not establish signature absence; inspect {@link #getSignatureStatus()} as well.
+     */
+    @NotNull List<OpenPgpSignatureResult> getSignatures();
+    /** Returns this fact only when exactly one signature occurrence is represented; otherwise {@code null}. */
     @Nullable String getSignerKeyId();
+    /** Returns this fact only when exactly one signature occurrence is represented; otherwise {@code null}. */
     @Nullable String getSignerFingerprint();
+    /** Returns this fact only when exactly one signature occurrence is represented; otherwise {@code null}. */
     @Nullable String getSignatureAlgorithm();
+    /** Returns this fact only when exactly one signature occurrence is represented; otherwise {@code null}. */
     @Nullable String getHashAlgorithm();
     @Nullable String getEncryptionAlgorithm();
     @NotNull List<String> getRecipientKeyIds();

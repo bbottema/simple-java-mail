@@ -34,6 +34,36 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Complete incoming OpenPGP signature results (accepted 28 October 2026)
+
+Retain individual signature results from both combined OpenPGP packets and MIME-nested signing. Use supplied verification keys during
+decryption as well as detached verification. A present packet-level signature must not be reported as absent merely because the decrypted
+content has no `multipart/signed` wrapper. Keep every represented occurrence, including repeated signers, in a detached immutable result list.
+
+The core-owned `OpenPgpSignatureResult` reading contract carries status, available signer identity, algorithms and failure information.
+`OriginalOpenPgpDetails.getSignatures()` exposes those facts without cryptographic work or module loading. The existing summary remains
+conservative: `VALID` requires at least one signature, complete inspection and every signature valid. Known invalid results dominate processing
+errors, then missing verification keys, then unknown/incomplete inspection. Complete inspection with no signatures yields `NOT_PRESENT`;
+an empty list alone establishes no absence. Singular signer and signature/hash algorithm getters are shortcuts for exactly one represented
+signature result and otherwise return null. Signature construction stays internal under [ADR 0031](0031-public-api-and-internal-construction.md).
+
+Keep decryption facts independent of signature results: established decryption remains `DECRYPTED` when signature verification fails or its
+key is missing. Genuine ciphertext/integrity failures keep their existing boundary. Retain original protected bytes and readable content where
+existing import behavior permits it. Key ownership and trust remain application concerns; no automatic key discovery is introduced.
+
+Successful native close establishes decryption and integrity. A typed signature-processing abort before that point retains known error facts
+with unknown decryption; an observed native integrity failure, including one suppressed during close, retains the existing failed-decryption
+and unknown-inner-signature boundary. Keep native armor/provider interpretation, the no-decompression boundary for detached containers and
+bounded inspection. A skipped or stopped signature container cannot establish a complete positive summary; retain established outer results.
+
+Copying and supported serialization preserve detached facts. Older snapshots must not invent complete inspection, absent signatures or
+successful aggregate verification from a formerly selected scalar result. Missing-module and unopened-layer inspection retain truthful
+unknown states. Apply these rules consistently across formats while preserving the transfer-decoding and stream boundaries below.
+
+The maintainer approved this API design, implementation by subagent and full workflow delivery under
+[#878](https://github.com/bbottema/simple-java-mail/issues/878). Implemented for unreleased 10.0.0, with no released 9.x OpenPGP migration.
+The issue records development-branch delivery.
+
 ## Transfer encoding on incoming OpenPGP parts (accepted 28 October 2026)
 
 Decode a signature or ciphertext part's MIME Content-Transfer-Encoding before passing its payload to the OpenPGP implementation.
