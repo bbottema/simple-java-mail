@@ -55,6 +55,37 @@ class ImageSourcePatternTest {
         assertThat(matcher.group("imageSrcEnd")).isEqualTo("\"");
     }
 
+    @Test
+    void sourceTextInsideAnotherAttributeCannotInventASource() {
+        assertThat(EmailPopulatingBuilder.IMG_SRC_PATTERN.matcher("<img alt=\"example src='decoy.png'\">").find()).isFalse();
+        assertThat(EmailPopulatingBuilder.IMG_SRC_PATTERN.matcher("<img alt='example src=\"decoy.png\"'>").find()).isFalse();
+    }
+
+    @Test
+    void aLongAttributePrefixRetainsTheActualSource() {
+        final String before = "<img" + manyAttributes() + " src='";
+        final Matcher matcher = EmailPopulatingBuilder.IMG_SRC_PATTERN.matcher(before + "logo.png'>");
+
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.groupCount()).isEqualTo(3);
+        assertThat(matcher.group("imageTagStart")).isEqualTo(before);
+        assertThat(matcher.group("src")).isEqualTo("logo.png");
+        assertThat(matcher.group("imageSrcEnd")).isEqualTo("'");
+    }
+
+    @Test
+    void aLongAttributePrefixCannotInventAnAbsentSource() {
+        assertThat(EmailPopulatingBuilder.IMG_SRC_PATTERN.matcher("<img" + manyAttributes() + ">").find()).isFalse();
+    }
+
+    private static String manyAttributes() {
+        final StringBuilder attributes = new StringBuilder();
+        for (int index = 0; index < 2000; index++) {
+            attributes.append(" data-item-").append(index).append("='ordinary-value'");
+        }
+        return attributes.toString();
+    }
+
     private static Stream<Arguments> quotedSources() {
         return Stream.of(
                 Arguments.of("<img src=\"it's.png\">", "it's.png", "<img src=\"", "\""),
@@ -63,6 +94,14 @@ class ImageSourcePatternTest {
                 Arguments.of("<img src='\"\"logo.png'>", "\"\"logo.png", "<img src='", "'"),
                 Arguments.of("<img src=\"logo.png\" title='caption'>", "logo.png", "<img src=\"", "\""),
                 Arguments.of("<IMG id='banner'\n SRC = 'logo.png'>", "logo.png", "<IMG id='banner'\n SRC = '", "'"),
-                Arguments.of("<img src=\"folder/it's\nlogo.png\">", "folder/it's\nlogo.png", "<img src=\"", "\""));
+                Arguments.of("<img src=\"folder/it's\nlogo.png\">", "folder/it's\nlogo.png", "<img src=\"", "\""),
+                Arguments.of("<img alt=\"example src='decoy.png'\" src=\"logo.png\">", "logo.png",
+                        "<img alt=\"example src='decoy.png'\" src=\"", "\""),
+                Arguments.of("<img alt='example src=\"decoy.png\"' src='logo.png'>", "logo.png",
+                        "<img alt='example src=\"decoy.png\"' src='", "'"),
+                Arguments.of("<img title=\"a > b\" src=\"logo.png\">", "logo.png", "<img title=\"a > b\" src=\"", "\""),
+                Arguments.of("<img title='a > b' src='logo.png'>", "logo.png", "<img title='a > b' src='", "'"),
+                Arguments.of("<IMG loading=lazy hidden\n data-src=decoy.png SRC = \"logo.png\">", "logo.png",
+                        "<IMG loading=lazy hidden\n data-src=decoy.png SRC = \"", "\""));
     }
 }
