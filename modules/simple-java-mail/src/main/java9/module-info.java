@@ -5,6 +5,7 @@ module org.simplejavamail {
 	requires static org.simplejavamail.openpgp;
 
 	requires com.pivovarit.function;
+	requires org.jsoup;
 
 	requires transitive com.sanctionco.jmail;
 	requires transitive jakarta.activation;
