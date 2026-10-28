@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#892](https://github.com/bbottema/simple-java-mail/issues/892): retain complete supported JVM configuration when starting a CLI daemon, including named failover Mailers and their locks. Running instances keep their startup defaults; restart captures the restarting invocation's configuration.
+
 - [#890](https://github.com/bbottema/simple-java-mail/issues/890): interpret supported S/MIME `smime-type` values regardless of capitalization, preserving signature/decryption selection and the reported protection mode.
 - [#891](https://github.com/bbottema/simple-java-mail/issues/891): retain every unreferenced inline resource with a repeated Content-ID, preserving filenames, bytes and attachment order during eager and lazy import.
 

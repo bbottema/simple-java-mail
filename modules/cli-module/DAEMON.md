@@ -64,7 +64,25 @@ Eviction and shutdown wait for active leases and command futures, remove the Mai
 
 ## Configuration and files
 
-Classpath `simplejavamail.properties`, environment variables, and JVM system properties are captured when the daemon starts. Use `sjm daemon restart` after changing startup defaults. Explicit CLI Mailer options override that snapshot and participate in reuse identity.
+Classpath `simplejavamail.properties`, environment variables, and JVM system properties are captured when the daemon starts. Detached startup
+preserves every SJM JVM setting recognized by the normal loader, including named Mailer definitions, their supported fields and locked
+counterparts. Explicit CLI Mailer options participate in reuse identity and follow the normal connection-conflict policy and locks.
+
+For example, these JVM properties define a primary and its named failover:
+
+```properties
+simplejavamail.smtp.host=primary.example.org
+simplejavamail.failover.mailer=standby
+simplejavamail.mailers.standby.smtp.host=backup.example.org
+```
+
+Supply them with `-D` when starting the selected instance. Both `daemon start` and an initial `--daemon=acquire` retain the complete route;
+`simplejavamail.locked.mailers.*` values are carried along too. In unreleased 10.0.0, this fixes named definitions being lost during detached
+startup. Their setting names and values need no edits.
+
+Later client JVM properties do not change an already running daemon's defaults. Acquire reuses that instance. To change startup defaults,
+supply the complete desired startup configuration again when invoking `daemon restart`; restart uses that invocation's configuration and
+does not recover the old configuration from daemon state. Use a different instance name for independent startup defaults and lifecycle.
 
 Relative request files resolve from the client command's working directory, not the directory in which the daemon was started. This includes argument files, bodies, attachments, EML/MSG input, and certificates. The daemon can read only files granted to its operating-system user; the protocol does not upload file contents to bypass operating-system permissions.
 
