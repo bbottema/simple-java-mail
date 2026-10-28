@@ -114,6 +114,13 @@ under #887, [inline argument-file comments](0019-local-cli-daemon.md#inline-argu
 and [daemon selector help ordering](0018-cli-from-builder-contracts.md#daemon-selectors-follow-help-ordering-accepted-28-october-2026) under #889.
 These corrections are implemented for unreleased 10.0.0; their issues track development-branch delivery.
 
+The subsequent 28 October review accepts [S/MIME parameter capitalization](0008-minimal-mime-structures-and-protection-order.md#smime-parameter-capitalization-accepted-28-october-2026)
+under [#890](https://github.com/bbottema/simple-java-mail/issues/890) and
+[unreferenced inline occurrences with repeated Content-IDs](0035-tolerant-reading-and-strict-production.md#unreferenced-inline-resources-with-repeated-content-ids-accepted-28-october-2026)
+under [#891](https://github.com/bbottema/simple-java-mail/issues/891). The accepted boundaries preserve original protected bytes, eager/lazy
+ownership, unknown S/MIME values and the existing selection for HTML-referenced duplicate IDs. Both corrections are implemented for unreleased
+10.0.0; their issues track development-branch delivery.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

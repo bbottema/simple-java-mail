@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#890](https://github.com/bbottema/simple-java-mail/issues/890): interpret supported S/MIME `smime-type` values regardless of capitalization, preserving signature/decryption selection and the reported protection mode.
+- [#891](https://github.com/bbottema/simple-java-mail/issues/891): retain every unreferenced inline resource with a repeated Content-ID, preserving filenames, bytes and attachment order during eager and lazy import.
+
 - [#884](https://github.com/bbottema/simple-java-mail/issues/884): recognize equivalent S/MIME media-type capitalization without losing signed or encrypted source facts.
 - [#885](https://github.com/bbottema/simple-java-mail/issues/885): interpret HTML attribute character references in CID URLs while preserving source HTML, resource identity and bytes. The main module now includes jsoup; custom module paths must include `org.jsoup`, with the Java 11 library baseline unchanged.
 - [#886](https://github.com/bbottema/simple-java-mail/issues/886): retain delivery-report timestamps with well-formed trailing comments, preserving strict calendar and timezone interpretation.
