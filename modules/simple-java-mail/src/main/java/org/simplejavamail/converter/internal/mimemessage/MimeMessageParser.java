@@ -671,10 +671,11 @@ public final class MimeMessageParser {
 
 	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
+		final Set<String> referencedCids = CidReferences.inHtml(htmlContent);
 		for (Iterator<Map.Entry<String, MimeDataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
 			Map.Entry<String, MimeDataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
-			if (!htmlContent.contains("cid:" + cid)) {
+			if (!referencedCids.contains(cid)) {
 				parsedComponents.attachmentList.add(cidEntry.getValue());
 				it.remove();
 			}
