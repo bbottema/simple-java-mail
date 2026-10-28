@@ -93,20 +93,8 @@ $externalDirectoryTargets = @(
         Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-887-imagecid-20261028'
     }
     @{
-        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-888-atcomment-20261028\simple-java-mail'
-        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-888-atcomment-20261028'
-    }
-    @{
-        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-889-daemonhelp-20261028\simple-java-mail'
-        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-889-daemonhelp-20261028'
-    }
-    @{
         Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028\simple-java-mail'
         Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028'
-    }
-    @{
-        Path = 'C:\workstation\simple-java-mail\simplejavamail.org\.local\review-six-fixes-site-20261028'
-        Parent = 'C:\workstation\simple-java-mail\simplejavamail.org\.local'
     }
     # @{
     #     Path = 'C:\workstation\api-review-example'
