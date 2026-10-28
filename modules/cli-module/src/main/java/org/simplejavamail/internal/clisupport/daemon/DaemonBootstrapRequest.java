@@ -34,6 +34,10 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 		boolean selectorSeen = false;
 		for (int i = 0; i < args.length; i++) {
 			final String arg = args[i];
+			if (isDaemonSelector(arg) && isMessageValue(command, args, i)) {
+				command.add(arg);
+				continue;
+			}
 			if ("--".equals(arg)) {
 				command.addAll(List.of(args).subList(i, args.length));
 				break;
@@ -64,6 +68,21 @@ record DaemonBootstrapRequest(Route route, DaemonExecutionMode mode, String inst
 			}
 		}
 		return new RoutingArguments(mode, instance, command);
+	}
+
+	private static boolean isDaemonSelector(final String arg) {
+		return "-d".equals(arg) || "--daemon".equals(arg) || arg.startsWith("--daemon=")
+				|| "--no-daemon".equals(arg) || "--daemon-instance".equals(arg) || arg.startsWith("--daemon-instance=");
+	}
+
+	private static boolean isMessageValue(final List<String> command, final String[] args, final int selectorIndex) {
+		// Prefix selectors and management commands have no preceding builder input and keep their thin bootstrap.
+		if (isManagementCommand(command) || command.stream().noneMatch(arg -> arg.startsWith("--"))) {
+			return false;
+		}
+		final List<String> inspectionArguments = new ArrayList<>(command);
+		inspectionArguments.addAll(List.of(args).subList(selectorIndex, args.length));
+		return CliSupport.isDaemonSelectorValue(inspectionArguments.toArray(new String[0]), command.size());
 	}
 
 	private static boolean isManagementCommand(final List<String> command) {
