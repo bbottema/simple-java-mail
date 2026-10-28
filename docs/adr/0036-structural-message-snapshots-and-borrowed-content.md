@@ -186,6 +186,17 @@ handling and the failed-pass boundary above. It does not introduce general HTML 
 policy. The decision is accepted under [#871](https://github.com/bbottema/simple-java-mail/issues/871) for unreleased 10.0.0; implementation
 and delivery are tracked by the issue.
 
+### Actual automatic-image source attributes (accepted 28 October 2026)
+
+Automatic resolution selects a quoted `src` attribute on an image tag. Text such as `src='decoy.png'` inside a preceding
+quoted `alt` or other attribute is ordinary attribute content and must not select or rewrite a resource. A `>` inside such a
+quoted value does not end the image tag. Preserve all markup outside the selected source and the existing named matcher groups.
+
+This extends the delimiter-only decision above under [#897](https://github.com/bbottema/simple-java-mail/issues/897) for unreleased
+10.0.0. Keep opt-in settings, file/classpath/URL resolution order, base containment, repeated-source handling, existing CID references
+and failed-pass state unchanged. Entity decoding and a general malformed-HTML recovery policy remain outside this correction;
+no new public API, HTML rewriting framework or dependency is introduced.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

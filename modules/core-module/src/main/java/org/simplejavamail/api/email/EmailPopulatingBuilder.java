@@ -147,12 +147,15 @@ public interface EmailPopulatingBuilder {
     EmailPopulatingBuilder useConfiguredSmtpDeliveryOptions();
 
 	/**
-	 * Regular Expression to find all {@code <img src="...">} entries in an HTML document. It needs to cater for various things, like more whitespaces including newlines on any
-	 * place, HTML is not case-sensitive and there can be arbitrary text between "IMG" and "SRC" like IDs and other things.
+	 * Regular expression to find quoted {@code <img src="...">} attributes in an HTML document, allowing whitespace including newlines
+	 * and case-insensitive tag/attribute names. Preceding attributes are consumed as complete names and values, so {@code src=} text
+	 * or {@code >} inside a quoted value cannot select a different source or end the image tag.
 	 * A quoted source ends with the same quote that opened it; the opposite quote belongs to the location. The named groups
 	 * {@code imageTagStart}, {@code src} and {@code imageSrcEnd} retain the original delimiters when replacing the source with a Content-ID.
 	 */
-	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]\\s*[^>]*?\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])"
+	Pattern IMG_SRC_PATTERN = compile("(?<imageTagStart><[Ii][Mm][Gg]"
+			+ "(?:\\s+(?![Ss][Rr][Cc]\\s*=\\s*[\"'])[^\\s\"'<>/=]++(?:\\s*=\\s*(?:\"[^\"]*+\"|'[^']*+'|[^\\s\"'`=<>]++))?+)*+"
+			+ "\\s+[Ss][Rr][Cc]\\s*=\\s*[\"'])"
 			+ "(?<src>(?<=\")[^\"]+(?=\")|(?<=')[^']+(?='))(?<imageSrcEnd>[\"'])");
 
 	/**
