@@ -9,6 +9,7 @@ import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.internet.*;
 import jakarta.mail.util.ByteArrayDataSource;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -76,18 +77,19 @@ public final class MimeMessageParser {
 		if (DeliveryStatusReportParser.isStatusPart(mimeMessage)) {
 			parsedComponents.deliveryStatusPart = mimeMessage;
 		}
-		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData);
+		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData, false);
 		if (reportContainer && parsedComponents.deliveryStatusReport == null) {
 			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport("The notification has no readable delivery-status part.");
 		}
 		parsedComponents.deliveryStatusPart = null;
 		parsedComponents.deliveryStatusWarning = null;
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
+		removeReferencedImplicitImageAttachments(parsedComponents);
 		return parsedComponents;
 	}
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
-			final boolean fetchAttachmentData) {
+			final boolean fetchAttachmentData, final boolean insideRelated) {
 		final String disposition = parseDisposition(currentPart);
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
@@ -111,12 +113,13 @@ public final class MimeMessageParser {
 			// Interpret the effective root and ordinary body containers; an attached child multipart stays one resource.
 			final Multipart mp = parseContent(currentPart);
 			selectOuterDeliveryStatusPart(currentPart, mp, parsedComponents);
+			final boolean childrenInsideRelated = insideRelated || isMimeType(currentPart, "multipart/related");
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
 				final MimeBodyPart child = getBodyPartAtIndex(mp, i);
-				parseMimePartTree(child, parsedComponents, fetchAttachmentData);
+				parseMimePartTree(child, parsedComponents, fetchAttachmentData, childrenInsideRelated);
 			}
 		} else {
-			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition);
+			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition, insideRelated);
 		}
 	}
 
@@ -146,7 +149,7 @@ public final class MimeMessageParser {
 	}
 
 	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents,
-			boolean fetchAttachmentData, String disposition) {
+			boolean fetchAttachmentData, String disposition, final boolean insideRelated) {
         final String contentID = parseContentID(currentPart);
 		final boolean statusPart = currentPart == parsedComponents.deliveryStatusPart;
 		final MimeDataSource mimeDataSource = parseAttachment(contentID, currentPart, createDataSource(currentPart, fetchAttachmentData, statusPart));
@@ -156,16 +159,21 @@ public final class MimeMessageParser {
 		}
 		final boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition);
 		final boolean isInline = Part.INLINE.equalsIgnoreCase(disposition);
+		final boolean implicitRelatedImage = disposition == null && insideRelated && isMimeType(currentPart, "image/*");
 
 		if (disposition != null && !isAttachment && !isInline) {
 			LOGGER.warn("Content-Disposition '{}' for data source not recognized (it should be either 'attachment' or 'inline'). Skipping body part", disposition);
 		}
 
+		// Keep traversal slots until reference interpretation identifies which related images are embedded only.
 		if (!isInline || contentID == null) {
 			parsedComponents.attachmentList.add(mimeDataSource);
 		}
 		if (contentID != null) {
 			parsedComponents.cidMap.put(contentID, mimeDataSource);
+			if (implicitRelatedImage) {
+				parsedComponents.implicitRelatedImages.add(mimeDataSource);
+			}
 			// when parsing is done, we'll move any sources from cidMap that are not referenced in HTML, to attachments (or remove if already there)
 		}
 	}
@@ -671,20 +679,34 @@ public final class MimeMessageParser {
 
 	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
 		final String htmlContent = parsedComponents.htmlContent.toString();
+		final Set<String> referencedCids = CidReferences.inHtml(htmlContent);
 		for (Iterator<Map.Entry<String, MimeDataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
 			Map.Entry<String, MimeDataSource> cidEntry = it.next();
 			String cid = extractCID(cidEntry.getKey());
-			if (!htmlContent.contains("cid:" + cid)) {
+			if (!referencedCids.contains(cid)) {
 				parsedComponents.attachmentList.add(cidEntry.getValue());
 				it.remove();
 			}
 		}
 	}
 
+	private static void removeReferencedImplicitImageAttachments(final ParsedMimeMessageComponents parsedComponents) {
+		if (parsedComponents.implicitRelatedImages.isEmpty()) {
+			return;
+		}
+		final Set<MimeDataSource> referenced = Collections.newSetFromMap(new IdentityHashMap<>());
+		referenced.addAll(parsedComponents.cidMap.values());
+		// Remove only the same parsed occurrence, leaving ordinary attachment slots and #491's explicit views intact.
+		parsedComponents.attachmentList.removeIf(resource -> parsedComponents.implicitRelatedImages.contains(resource) && referenced.contains(resource));
+		parsedComponents.implicitRelatedImages.clear();
+	}
+
 	@Getter
 	public static class ParsedMimeMessageComponents {
 		final Set<MimeDataSource> attachmentList = new LinkedHashSet<>();
 		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
+		@Getter(AccessLevel.NONE)
+		private final Set<MimeDataSource> implicitRelatedImages = Collections.newSetFromMap(new IdentityHashMap<>());
 		private final Map<String, Collection<Object>> headers = new HashMap<>();
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();

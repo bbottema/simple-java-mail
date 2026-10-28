@@ -812,7 +812,8 @@ public class EmailConverterTest {
 		Email emailOutlook = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#486 TestInvalidSignedOutlookMessage.msg"));
 
 		assertThat(emailMime.getEmbeddedImages()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
-		assertThat(emailMime.getAttachments()).areExactly(2, new Condition<>(at -> at.getName().contains(".jpg"), null));
+		// The related image is embedded once; the separate explicitly attached JPG remains downloadable.
+		assertThat(emailMime.getAttachments()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
 
 		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
 		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);

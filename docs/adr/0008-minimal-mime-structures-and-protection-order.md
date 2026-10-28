@@ -34,6 +34,22 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+## Disposition-free related images (accepted 28 October 2026)
+
+An image inside an interpreted `multipart/related` container does not need `Content-Disposition: inline` to be an embedded resource.
+When HTML references its Content-ID and the image has no disposition, retain it only in `Email.getEmbeddedImages()` so ordinary re-export
+does not create a second attachment for the same source image. An unreferenced image or one without a Content-ID remains an attachment.
+
+Preserve the separate downloadable view for explicitly attached resources established under
+[#491](https://github.com/bbottema/simple-java-mail/issues/491#issuecomment-1938694377), including a referenced attachment that appears in both
+lists. Keep classification outside related containers, explicit inline behavior and intentional source occurrences unchanged. Ordinary nested
+body containers carry their enclosing related context; explicitly attached multipart containers retain their complete-resource boundary.
+
+Retain metadata, bytes, ordering and eager/lazy ownership under [ADR 0035](0035-tolerant-reading-and-strict-production.md) and
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md). Protection preprocessing and authoritative exact/protected representations
+keep their existing boundaries. The maintainer accepted this narrow clarification and authorized full workflow delivery under
+[#881](https://github.com/bbottema/simple-java-mail/issues/881) for unreleased 10.0.0; the issue tracks implementation and delivery.
+
 ## Complete incoming OpenPGP signature results (accepted 28 October 2026)
 
 Retain individual signature results from both combined OpenPGP packets and MIME-nested signing. Use supplied verification keys during
