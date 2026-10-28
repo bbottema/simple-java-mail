@@ -365,9 +365,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * that Email before supplying it here. Use {@link #useConfiguredEmailDefaults()} to restore the Mailer's snapshot-derived defaults,
 	 * or {@link #withoutEmailDefaults()} to suppress ordinary defaults.
 	 * Factory-scoped {@code simplejavamail.locked.} settings are separate restrictions: replacing or suppressing this template cannot remove them.
+	 * A null argument is rejected without changing the current defaults template.
 	 *
 	 * @param emailDefaults The email to use as defaults.
 	 * @see #useConfiguredEmailDefaults()
+	 * @throws NullPointerException If the supplied template is null.
 	 */
 	T withEmailDefaults(@NotNull Email emailDefaults);
 
@@ -381,9 +383,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * The submitted email can suppress overrides through {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#ignoringOverrides()} or
 	 * {@link org.simplejavamail.api.email.config.EmailTemplateOptions.Builder#dontApplyOverrideValueFor}. This replaces the previous override template.
 	 * A template cannot displace factory-scoped {@code simplejavamail.locked.} settings; conflicting values fail during email preparation.
+	 * A null argument is rejected without changing the current override template; use {@link #clearEmailOverrides()} to remove it.
 	 *
 	 * @param emailOverrides The email to use as overrides.
 	 * @see #clearEmailOverrides()
+	 * @throws NullPointerException If the supplied template is null.
 	 */
 	T withEmailOverrides(@NotNull Email emailOverrides);
 
@@ -446,8 +450,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * Calling this method again replaces the provider. {@link #clearOAuth2AccessTokenProvider()} removes it without closing an application object,
 	 * changing the transport strategy, or removing a separately configured SMTP password or token. Previously built Mailers remain unchanged.
+	 * A null argument is rejected without changing the current provider.
 	 *
 	 * @param accessTokenProvider Thread-safe provider of current, nonblank OAuth2 access tokens.
+	 * @throws NullPointerException If the supplied provider is null.
 	 */
 	@Cli.ExcludeApi(reason = "OAuth2 access-token providers are runtime Java integrations and cannot be represented as CLI values")
 	T withOAuth2AccessTokenProvider(@NotNull OAuth2AccessTokenProvider accessTokenProvider);
@@ -549,9 +555,11 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Calling this method again replaces the callback. {@link #clearCustomMailer()} removes it without closing an application object or changing
 	 * SMTP configuration. The next Mailer built from this builder uses its remaining SMTP settings, so it needs a host unless logging-only mode applies.
 	 * Previously built Mailers retain their own callback. Factory configuration locks are still checked when building the next Mailer.
+	 * A null argument is rejected without changing the current callback.
 	 *
 	 * @param customMailer Application-owned delivery callback.
 	 * @see CustomMailer
+	 * @throws NullPointerException If the supplied callback is null.
 	 */
 	T withCustomMailer(@NotNull CustomMailer customMailer);
 

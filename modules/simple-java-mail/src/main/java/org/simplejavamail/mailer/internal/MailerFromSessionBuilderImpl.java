@@ -10,6 +10,8 @@ import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.util.Properties;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * @see MailerFromSessionBuilder
  */
@@ -41,7 +43,7 @@ public class MailerFromSessionBuilderImpl
 	 */
 	@Override
 	public MailerFromSessionBuilderImpl usingSession(@NotNull final Session session) {
-		this.session = session;
+		this.session = requireNonNull(session, "session");
 		return this;
 	}
 	

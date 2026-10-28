@@ -24,6 +24,15 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Required Mailer inputs (accepted 28 October 2026)
+
+Apply the same reject-before-mutation rule to the required CustomMailer, OAuth2 token provider, Email defaults/overrides and supplied
+Session inputs. A missing argument preserves the earlier selection and previously built objects; it must not silently select ordinary SMTP,
+remove message policy or discard a supplied Session. Existing named removal/restoration operations keep their meaning. Explicitly nullable
+SMTP components retain their existing defaults and clearing behavior, and accepted application objects remain borrowed without new reads,
+resource acquisition or ownership changes. [#895](https://github.com/bbottema/simple-java-mail/issues/895) tracks this accepted correction
+for unreleased 10.0.0; acceptance does not imply completed implementation or delivery.
+
 ### Paired backoff choices (accepted 23 October 2026)
 
 The required-input rule also applies to retry and failover backoff setters: reject a missing maximum duration before replacing either

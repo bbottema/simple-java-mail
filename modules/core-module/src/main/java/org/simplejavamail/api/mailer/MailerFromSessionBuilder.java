@@ -51,8 +51,10 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * <p>
 	 * The Session becomes available for another Mailer after successful, completed shutdown of its previous owner. Starting shutdown is not enough:
 	 * wait for {@link Mailer#close()} or the future returned by {@link Mailer#closeAsync()}. If cleanup fails, use a fresh Session.
+	 * A null argument is rejected without discarding the previously supplied Session or changing its properties.
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.
+	 * @throws NullPointerException If the supplied Session is null.
 	 */
 	T usingSession(@NotNull Session session);
 	
