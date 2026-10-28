@@ -76,6 +76,16 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # #895/#896 temporary checkouts remain protected by app primary/in-use ownership.
+    # Archive them through the app before allowing directory cleanup.
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-required-mailer-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-required-mailer-20261028'
+    }
+    @{
+        Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-cli-selectors-20261028\simple-java-mail'
+        Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-cli-selectors-20261028'
+    }
     @{
         Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-884-smime-20261028\simple-java-mail'
         Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-884-smime-20261028'
