@@ -65,6 +65,8 @@ established order-insensitive recipient comparison while distinguishing differen
 The same occurrence rule applies to attachment and embedded-image lists: one attachment is not equal to two copies of it. Keep their existing
 order-insensitive, metadata-based comparison without reading borrowed content. Equality also includes DKIM configuration, consistently with
 the other message-signing configurations; an unsigned message is not equivalent to one configured for signing.
+These are selected comparison rules under the [equality idiom below](#email-equality-idiom-clarified-28-october-2026), rather than a requirement
+to compare every field that structural copying preserves.
 
 Copying an Email preserves its delivery-recipient override independently from its visible recipients. Keep ordered occurrences and per-recipient
 metadata, so a copy used for testing remains directed to the configured test inbox. Copying structure does not consume borrowed attachment content.
@@ -89,6 +91,32 @@ The [OpenPGP replacement clarification](0031-public-api-and-internal-constructio
 also applies ownership at collection replacement: prepare the complete detached list and nested arrays before changing the
 builder. Rejecting missing input preserves the old selection; editing or clearing the builder cannot alter previously built
 or restored configurations. Allowing unfinished builder bytes does not weaken immutable construction or deserialization.
+
+### Email equality idiom (clarified 28 October 2026)
+
+Preserve `Email.equals()` as the established, selective comparison of represented message values. It is useful for assertions about
+constructed, copied and converted Emails. Its [2016 introduction](https://github.com/bbottema/simple-java-mail/commit/0d56314f2e9fbc712fa673fa5b0a470499dd86d5)
+explicitly names JUnit error analysis as its purpose and already compares DataSource metadata without reading content. Later
+[HTML newline normalization](https://github.com/bbottema/simple-java-mail/commit/f137f5e2f5b7eb09e3e9f11320990011ac3c04cf) and the
+[specific occurrence/signing correction under #794](https://github.com/bbottema/simple-java-mail/issues/794) retain that selective idiom.
+They do not establish a general rule that all stored fields must participate.
+
+Keep the existing distinctions: visible, Reply-To and delivery-override recipient lists, and attachment/image lists, ignore order while
+counting occurrences; HTML comparison normalizes line endings; attachment comparison uses metadata without opening or comparing its source
+bytes. Selected message facts and signing choices participate, while global and per-property template-suppression choices do not.
+Runtime types and retained source representations can also distinguish otherwise similar Emails. Structural ownership, copying and
+serialization must still preserve data that equality omits.
+
+Complete construction-choice equality and equivalent future sending behavior are different questions. Two otherwise equal drafts can
+select different template suppression yet produce the same envelope when their selected Mailer has no relevant defaults, or different
+envelopes when it has a default Bcc. Equality receives no selected-Mailer context. Likewise, equal resource metadata does not establish
+equal attachment bytes. Do not use this comparison as proof of byte identity, interchangeable send requests or a delivery-deduplication key.
+
+When adding a field, decide whether it belongs to this comparison's purpose and assess compatibility; copying a field is not sufficient
+reason to add it to equality. Preserve the existing treatment of template suppression under this clarification. A change to that treatment
+would need its own concrete use case and accepted comparison contract. [ADR 0037](0037-repeatable-email-completion.md#match-complete-recipients-and-conservatively-identify-resources)
+continues to define resource matching for template completion independently. This clarification documents existing behavior and changes
+neither equality/hash-code implementation nor serialization or source ownership.
 
 ### Referenced inline-resource metadata (accepted 23 October 2026)
 

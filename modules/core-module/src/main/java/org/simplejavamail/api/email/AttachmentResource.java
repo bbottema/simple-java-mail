@@ -493,6 +493,16 @@ public class AttachmentResource implements Serializable {
 		return 0;
 	}
 
+	/**
+	 * Compares resource metadata: name, description, Content-ID, transfer-encoding choices and the DataSource's name and content type.
+	 * Matching runtime types are required. The comparison uses metadata getters without opening or comparing content bytes.
+	 * Equal resources can therefore contain different bytes; this is not a content fingerprint or the source-identity rule used by
+	 * template completion.
+	 *
+	 * @param o The object to compare with this resource.
+	 * @return Whether the resource metadata matches under these rules.
+	 * @see Email#equals(Object)
+	 */
 	@Override
 	public boolean equals(@Nullable Object o) {
 		if (this == o) return true;
