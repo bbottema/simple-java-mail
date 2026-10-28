@@ -43,6 +43,15 @@ expansion and local/daemon routing under their existing boundaries, and do not e
 No public option, additional parser or metadata format is introduced. [#874](https://github.com/bbottema/simple-java-mail/issues/874) tracks
 this correction for unreleased 10.0.0.
 
+### Daemon selector spellings inside values (accepted 28 October 2026)
+
+Tokens consumed as builder-option values remain literal even when they spell a daemon mode or instance selector. Genuine selectors retain
+their syntax, conflicts and diagnostics. Preserve parser-owned argument boundaries, repeated calls, help ordering, end-of-options and
+bounded one-time argument-file expansion across local and daemon execution. Ambiguous selector-shaped arguments may consult the existing
+command model without invoking builders or constructing Mailers; ordinary routing and lifecycle commands retain their lightweight bootstrap
+under [ADR 0019](0019-local-cli-daemon.md). No new escaping syntax or public API is introduced.
+[#896](https://github.com/bbottema/simple-java-mail/issues/896) tracks this accepted correction for unreleased 10.0.0.
+
 ### Retired execution spellings as literal values (accepted 27 October 2026)
 
 Picocli's selected command model determines which tokens are consumed as values and which remain unmatched options. A subject, body or

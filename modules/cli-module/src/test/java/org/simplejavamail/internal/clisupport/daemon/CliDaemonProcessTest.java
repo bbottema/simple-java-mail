@@ -318,6 +318,40 @@ class CliDaemonProcessTest {
 	}
 
 	@Test
+	void daemonSelectorSpellingsRemainLiteralInOneShotAndDaemonMessages() throws Exception {
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		smtp.start();
+		Invocation start = null;
+		try {
+			start = invoke(true, "daemon", "start", "--daemon-instance=selector-values");
+			assertThat(start.exitCode).as(start.output).isZero();
+			int received = 0;
+			for (String mode : List.of("--daemon=off", "--daemon=require")) {
+				for (String value : List.of("--daemon=off disables persistence", "--daemon=require", "--daemon-instance=../literal", "-d")) {
+					final Invocation result = invoke(true, "send", mode, "--daemon-instance=selector-values",
+							"--email:startingBlank", "--email:from", "sender@example.test", "--email:to", "receiver@example.test",
+							"--email:withSubject", value, "--email:withPlainText", value,
+							"--email:withHeader", "X-Example", value, "--email:withHeader", "X-Example", "retained",
+							"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+							"--mailer:withConnectionPoolCoreSize", "0");
+					assertThat(result.exitCode).as(result.output).isZero();
+					assertThat(smtp.getMessages()).hasSize(++received);
+					final var message = smtp.getMessages().get(received - 1).getMimeMessage();
+					assertThat(message.getSubject()).isEqualTo(value);
+					assertThat(message.getContent().toString().stripTrailing()).isEqualTo(value);
+					assertThat(message.getHeader("X-Example")).containsExactly(value, "retained");
+				}
+			}
+		} finally {
+			if (start != null && start.exitCode == CliExitCode.SUCCESS.code()) {
+				final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=selector-values");
+				assertThat(stop.exitCode).as(stop.output).isZero();
+			}
+			smtp.stop();
+		}
+	}
+
+	@Test
 	void retiredOptionSpellingsRemainLiteralInOneShotAndDaemonMessages() throws Exception {
 		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
 		smtp.start();

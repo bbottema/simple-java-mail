@@ -30,6 +30,14 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Selector and message-value ownership (accepted 28 October 2026)
+
+Daemon routing preserves the command model's ownership of message values, including values shaped like mode or instance selectors.
+The accepted [ADR 0018 clarification](0018-cli-from-builder-contracts.md#daemon-selector-spellings-inside-values-accepted-28-october-2026)
+permits model inspection for ambiguous selector-shaped input without builder execution, while retaining lightweight ordinary routing,
+management, discovery and lifecycle operations. Existing request isolation, limits, help ordering and actual selector behavior remain.
+[#896](https://github.com/bbottema/simple-java-mail/issues/896) tracks this correction for unreleased 10.0.0.
+
 ### Complete startup configuration (accepted 28 October 2026)
 
 Starting an absent daemon preserves all supported SJM JVM settings supplied by the starting process, including named Mailer definitions,

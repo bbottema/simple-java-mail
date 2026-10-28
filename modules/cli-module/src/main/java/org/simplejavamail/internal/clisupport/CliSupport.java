@@ -27,7 +27,7 @@ import static org.simplejavamail.internal.clisupport.CliExecutionException.ERROR
  * Parses and executes the full generated CLI model for one request.
  * Every invocation owns fresh Picocli state, bounded output, and an explicit request context; the supplied execution
  * environment determines whether the resulting Mailer is closed immediately or leased from the daemon registry.
- * Daemon routing consults the generated model only for option-shaped help candidates or actual command execution.
+ * Daemon routing consults the generated model only for ambiguous help/selector candidates or actual command execution.
  */
 public final class CliSupport {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CliSupport.class);
@@ -166,6 +166,32 @@ public final class CliSupport {
 	/** Resolves an option-shaped help candidate for daemon routing without executing builders or converting their values. */
 	public static boolean containsHelpOption(final String[] args) {
 		return firstHelpOptionIndex(args, configurePicoCli(MetadataHolder.DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH)) >= 0;
+	}
+
+	/** Resolves one unregistered daemon-selector spelling as a builder value, without executing builders or converting their inputs. */
+	public static boolean isDaemonSelectorValue(final String[] args, final int selectorIndex) {
+		// Selector spellings are unknown to this model. An equally unknown unique token lets Picocli identify this occurrence,
+		// including repeated identical text and the first of multiple required parameters, using its normal value-consumption rules.
+		final String marker = "--daemon=literal-" + UUID.randomUUID();
+		final String[] markedArguments = args.clone();
+		markedArguments[selectorIndex] = marker;
+		final CommandLine commandLine = configurePicoCli(MetadataHolder.DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
+		commandLine.setUnmatchedArgumentsAllowed(true);
+		collectRoutingInspectionErrors(commandLine);
+		for (CommandLine.ParseResult parsed = commandLine.parseArgs(markedArguments); parsed != null; parsed = parsed.subcommand()) {
+			for (OptionSpec option : parsed.matchedOptions()) {
+				if (option.stringValues().contains(marker)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static void collectRoutingInspectionErrors(final CommandLine commandLine) {
+		// Routing inspects ownership only; command execution later reports the original input's parsing errors.
+		commandLine.getCommandSpec().parser().collectErrors(true);
+		commandLine.getSubcommands().values().forEach(CliSupport::collectRoutingInspectionErrors);
 	}
 
 	private static String[] argumentsThroughFirstHelpOption(final String[] args, final CommandLine commandLine) {

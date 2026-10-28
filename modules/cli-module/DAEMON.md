@@ -29,6 +29,11 @@ In unreleased 10.0.0, retired option spellings also remain usable as message val
 uses that text as the subject. An actual unmatched `--mailer:async` option retains its migration error. Picocli determines which arguments
 are values; no extra escaping is needed. This applies to one-shot and daemon commands.
 
+Daemon selector spellings also remain literal when a builder option consumes them. For example,
+`--email:withSubject "--daemon=off disables persistence"` keeps that complete subject without changing the execution mode.
+The same rule covers bodies, header values and instance-selector text. Put genuine daemon selectors before builder options
+when an earlier option could still consume an optional argument; its normal Picocli argument ownership takes precedence.
+
 The equivalent startup defaults are the JVM property `simplejavamail.cli.daemon` or environment variable `SIMPLEJAVAMAIL_CLI_DAEMON`, plus `simplejavamail.cli.daemon.instance` or `SIMPLEJAVAMAIL_CLI_DAEMON_INSTANCE`. An explicit command-line selector wins.
 
 The unnamed instance is `default`. A name selects a separate process, state, startup configuration, and lifecycle:
