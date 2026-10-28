@@ -77,6 +77,10 @@ AttachmentResource is recognized directly. Different resource objects match only
 identity agree. Include the attachment name, description, Content-ID and ordinary/pre-encoded transfer-encoding choices; retain MIME-type
 distinctions when comparing library-owned source representations. Different attachment/image roles remain separate collections.
 
+[ADR 0036's equality idiom](0036-structural-message-snapshots-and-borrowed-content.md#email-equality-idiom-clarified-28-october-2026), clarified
+on 28 October 2026, preserves public equality as a selective represented-value comparison. The stronger identity needed here prevents
+resource loss during merging; it neither extends public equality nor makes it a complete construction-choice or sending-equivalence check.
+
 Recognize source identity conservatively:
 
 - Reuse of the same DataSource instance establishes the same borrowed source under its existing stable-content obligations.

@@ -63,6 +63,7 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * A visible recipient with no supplied role is interpreted as To, including when restoring supported older snapshots.
  * This does not change the supplied Recipient or the roles of From, Reply-To and envelope-only recipients.
  * Attachment data sources and forwarded MIME messages remain borrowed: building an Email does not read or freeze their content.
+ * Equality compares selected represented message values; see {@link #equals(Object)} for its purpose and limits.
  *
  * <h2>Java serialization</h2>
  * Since 9.2.0, Java serialization produces a send-ready snapshot. Attachment, embedded-image and decrypted-attachment data is read into
@@ -532,6 +533,23 @@ public class Email implements Serializable {
 		return 0;
 	}
 	
+	/**
+	 * Compares selected represented message values using the library's established comparison rules, useful for assertions about
+	 * constructed, copied and converted Emails. Matching runtime types are required; retained source representations can add distinctions.
+	 * <p>
+	 * Visible, Reply-To and delivery-override recipient lists, and attachment/image lists, ignore order while counting occurrences.
+	 * HTML comparison normalizes line endings, and resource comparison uses metadata without opening or comparing source bytes.
+	 * Selected message facts and signing choices participate;
+	 * global and per-property template-suppression choices do not.
+	 * <p>
+	 * This comparison does not establish complete construction-choice equality, identical MIME bytes or equivalent sending behavior
+	 * under a particular Mailer's defaults and overrides. Use the facts relevant to the application's purpose when deciding whether
+	 * requests are interchangeable or should be deduplicated.
+	 *
+	 * @param o The object to compare with this Email.
+	 * @return Whether the selected represented values match under these rules.
+	 * @see AttachmentResource#equals(Object)
+	 */
 	@Override
 	public boolean equals(@Nullable final Object o) {
 		return (this == o) || ((o != null) && (getClass() == o.getClass()) &&
