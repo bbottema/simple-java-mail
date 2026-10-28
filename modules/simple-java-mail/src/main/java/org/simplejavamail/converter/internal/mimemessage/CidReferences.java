@@ -16,13 +16,14 @@ import java.util.regex.Pattern;
 final class CidReferences {
 
     private static final Pattern SCHEME = Pattern.compile("(?<![A-Za-z0-9+.-])(?i:cid):");
+    private static final Pattern SRCSET_ATTRIBUTE = Pattern.compile("(?i)\\bsrcset[\\t\\n\\f\\r ]*=");
 
     private CidReferences() {
     }
 
     static Set<String> inHtml(final String html) {
         final Set<String> references = new HashSet<>();
-        if (html.indexOf('&') < 0) {
+        if (html.indexOf('&') < 0 && !SRCSET_ATTRIBUTE.matcher(html).find()) {
             collectReferences(html, references);
             return references;
         }
@@ -33,8 +34,9 @@ final class CidReferences {
             for (Element element : (Iterable<Element>) parser.stream()::iterator) {
                 for (Attribute attribute : element.attributes()) {
                     final Range range = attribute.sourceRange().valueRange();
-                    if (range.isTracked() && html.substring(range.start().pos(), range.end().pos()).indexOf('&') >= 0) {
-                        collectAttributeReferences(attribute.getValue(), references);
+                    if (range.isTracked() && (isSrcset(attribute)
+                            || html.substring(range.start().pos(), range.end().pos()).indexOf('&') >= 0)) {
+                        collectAttributeReferences(attribute, references);
                         // Do not also claim a resource matching the attribute's encoded source spelling.
                         for (int index = range.start().pos(); index < range.end().pos(); index++) {
                             literalText.setCharAt(index, ' ');
@@ -49,17 +51,76 @@ final class CidReferences {
         return references;
     }
 
-    private static void collectAttributeReferences(final String value, final Set<String> references) {
+    private static boolean isSrcset(final Attribute attribute) {
+        return "srcset".equalsIgnoreCase(attribute.getKey());
+    }
+
+    private static void collectAttributeReferences(final Attribute attribute, final Set<String> references) {
+        final String value = attribute.getValue();
+        if (isSrcset(attribute)) {
+            collectSrcsetReferences(value, references);
+            return;
+        }
         final String uri = value.strip();
         final Matcher scheme = SCHEME.matcher(uri);
         if (scheme.lookingAt()) {
             // A direct URI attribute has no source quote delimiter after HTML decoding; quotes may be part of its identity.
-            final String cid = decode(uri.substring(scheme.end()));
-            if (cid != null && !cid.isEmpty()) {
-                references.add(cid);
-            }
+            addDecodedReference(uri.substring(scheme.end()), references);
         } else {
             collectReferences(value, references);
+        }
+    }
+
+    private static void collectSrcsetReferences(final String value, final Set<String> references) {
+        int position = 0;
+        while (position < value.length()) {
+            while (position < value.length() && (isAsciiWhitespace(value.charAt(position)) || value.charAt(position) == ',')) {
+                position++;
+            }
+            final int urlStart = position;
+            while (position < value.length() && !isAsciiWhitespace(value.charAt(position))) {
+                position++;
+            }
+            int urlEnd = position;
+            // Srcset commas inside a URL belong to it; only trailing commas end a candidate without descriptors.
+            while (urlEnd > urlStart && value.charAt(urlEnd - 1) == ',') {
+                urlEnd--;
+            }
+            final String uri = value.substring(urlStart, urlEnd);
+            final Matcher scheme = SCHEME.matcher(uri);
+            if (scheme.lookingAt()) {
+                addDecodedReference(uri.substring(scheme.end()), references);
+            }
+            if (urlEnd == position) {
+                position = afterSrcsetDescriptors(value, position);
+            }
+        }
+    }
+
+    private static int afterSrcsetDescriptors(final String value, final int start) {
+        boolean inParentheses = false;
+        for (int position = start; position < value.length(); position++) {
+            final char current = value.charAt(position);
+            if (current == ',' && !inParentheses) {
+                return position + 1;
+            }
+            if (current == '(') {
+                inParentheses = true;
+            } else if (current == ')') {
+                inParentheses = false;
+            }
+        }
+        return value.length();
+    }
+
+    private static boolean isAsciiWhitespace(final char character) {
+        return character == ' ' || character == '\t' || character == '\n' || character == '\f' || character == '\r';
+    }
+
+    private static void addDecodedReference(final String reference, final Set<String> references) {
+        final String cid = decode(reference);
+        if (cid != null && !cid.isEmpty()) {
+            references.add(cid);
         }
     }
 
@@ -69,10 +130,7 @@ final class CidReferences {
         while (scheme.find(searchFrom)) {
             final int start = scheme.end();
             final int end = referenceEnd(html, start, scheme.start());
-            final String cid = decode(html.substring(start, end));
-            if (cid != null && !cid.isEmpty()) {
-                references.add(cid);
-            }
+            addDecodedReference(html.substring(start, end), references);
             searchFrom = end;
         }
     }

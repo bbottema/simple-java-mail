@@ -267,6 +267,12 @@ literal plus signs, resource bytes and occurrences. Attribute interpretation mus
 CSS raw-text content or introduce general HTML rewriting. Existing malformed-reference and authoritative-byte boundaries remain.
 [#885](https://github.com/bbottema/simple-java-mail/issues/885) tracks this accepted correction for unreleased 10.0.0.
 
+Clarification accepted 28 October 2026 under [#893](https://github.com/bbottema/simple-java-mail/issues/893): retain the attribute's
+meaning when interpreting decoded CID references. A `srcset` contains separate URL candidates and optional descriptors; neither a
+descriptor nor a following candidate belongs to a Content-ID. Equivalent literal and character-reference spellings must select the
+same embedded resources. Keep complete-identity handling for single-URI attributes, source HTML, resource occurrences, ownership and
+authoritative exact/protected bytes unchanged. This is an import-interpretation correction, not general HTML rewriting or a new public API.
+
 ## Trailing comments in delivery-report dates (accepted 28 October 2026)
 
 Retain a delivery report's unambiguous timestamp when well-formed comments or whitespace follow its explicit timezone. Keep strict
