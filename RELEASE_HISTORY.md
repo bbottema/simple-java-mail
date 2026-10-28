@@ -115,6 +115,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#881](https://github.com/bbottema/simple-java-mail/issues/881): import a referenced image without a disposition inside `multipart/related` as one embedded image, without duplicating it in ordinary attachments. Explicit attachment behavior and intentional resource occurrences remain unchanged.
+- [#882](https://github.com/bbottema/simple-java-mail/issues/882): recognize percent-escaped CID references during MIME/EML import, retaining the original HTML, Content-ID and resource bytes. Literal plus signs and complete, case-sensitive content identities remain distinct.
+- [#883](https://github.com/bbottema/simple-java-mail/issues/883): reject unsupported calendar charsets before acquiring a content stream, retaining conversion failures and the existing ownership of parser-opened and caller-supplied streams.
+
 - [#878](https://github.com/bbottema/simple-java-mail/issues/878): incoming OpenPGP results retain every represented signature through combined signed/encrypted packets and nested MIME layers. Inspect the immutable `OpenPgpSignatureResult` list; the whole-message summary is valid only after complete inspection with every signature valid. Singular signer/algorithm shortcuts apply only to one represented result, and established decryption remains independent of signature failures. Older snapshots keep established selected facts without inventing complete inspection.
 - [#877](https://github.com/bbottema/simple-java-mail/issues/877): incoming OpenPGP/MIME signature and ciphertext parts honor their MIME transfer encoding before verification or decryption. Signed content and original protected EML bytes retain their existing boundaries; receive configuration and outbound protection are unchanged.
 - [#876](https://github.com/bbottema/simple-java-mail/issues/876): CLI argument files expand once from the caller's directory. Escaped `@@values`
