@@ -31,7 +31,7 @@ Session inputs. A missing argument preserves the earlier selection and previousl
 remove message policy or discard a supplied Session. Existing named removal/restoration operations keep their meaning. Explicitly nullable
 SMTP components retain their existing defaults and clearing behavior, and accepted application objects remain borrowed without new reads,
 resource acquisition or ownership changes. [#895](https://github.com/bbottema/simple-java-mail/issues/895) tracks this accepted correction
-for unreleased 10.0.0; acceptance does not imply completed implementation or delivery.
+for unreleased 10.0.0. The correction is implemented; the issue records development-branch delivery.
 
 ### Paired backoff choices (accepted 23 October 2026)
 
