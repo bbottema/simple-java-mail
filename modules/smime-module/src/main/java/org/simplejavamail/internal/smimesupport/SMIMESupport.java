@@ -788,7 +788,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	private String restoreSmimeContentType(@NotNull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {
 		String contentType = attachment.getDataSource().getContentType();
-		if (contentType.contains("multipart/signed") && !contentType.contains("protocol") && originalSmimeDetails.getSmimeProtocol() != null) {
+		if ("multipart/signed".equalsIgnoreCase(contentType) && originalSmimeDetails.getSmimeProtocol() != null) {
 			// this step is needed, because converted messages from Outlook don't come out correctly
 			contentType = format("multipart/signed;protocol=\"%s\";micalg=%s",
 					originalSmimeDetails.getSmimeProtocol(), originalSmimeDetails.getSmimeMicalg());

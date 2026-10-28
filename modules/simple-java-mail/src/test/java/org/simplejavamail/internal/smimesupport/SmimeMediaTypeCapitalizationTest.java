@@ -34,6 +34,7 @@ import java.util.Properties;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.FAILED;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
@@ -130,6 +131,18 @@ class SmimeMediaTypeCapitalizationTest {
 		assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType(
 				"Multipart/Signed; protocol=\"application/pgp-signature\""))).isFalse();
 		assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType("Application/Octet-Stream"))).isFalse();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"multipart/signed", "Multipart/Signed", "MULTIPART/SIGNED"})
+	void legacySignedAttachmentsRetainTheirDeclaredProtocolWhenContentIsBroken(final String mediaType) {
+		final AttachmentResource broken = AttachmentResource.builder().withName("broken.p7m")
+				.withDataSource(new ByteArrayDataSource(new byte[] {1}, mediaType)).build();
+		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder().smimeMode(SIGNED).smimeMime(mediaType)
+				.smimeProtocol("application/pkcs7-signature").smimeMicalg("sha-256").build();
+
+		assertThatThrownBy(() -> new SMIMESupport().decryptAttachments(List.of(broken), null, details))
+				.isInstanceOf(SmimeException.class);
 	}
 
 	private static byte[] detachedMessage(final String mediaType, final String protocol) throws Exception {
