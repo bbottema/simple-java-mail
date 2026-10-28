@@ -258,3 +258,16 @@ Typed receipt/Return-Path interpretation, required body and resource decoding, f
 ## Outlook receipt route parity (accepted 23 October 2026)
 
 Apply the receipt-header name-recognition decision to Outlook MSG import as well as MIME/EML. Disposition-Notification-To and Return-Receipt-To names are case-insensitive across the shared static/fluent, file/path/stream, builder/data-returning and nested Outlook routes. Preserve existing value interpretation, destination order and duplicates, names, unusual/empty/null-path handling, generic-header spelling and message ownership; do not broadly normalize other headers. This completes the same interpretation boundary described in [#407](https://github.com/bbottema/simple-java-mail/issues/407#issuecomment-1189155751) and the MIME/EML correction under #846. [#863](https://github.com/bbottema/simple-java-mail/issues/863) tracks this separate route correction.
+
+## Escaped Content-ID references (accepted 28 October 2026)
+
+Recognize a referenced MIME resource by the decoded identity of its CID URL under [RFC 2392 section 2](https://www.rfc-editor.org/rfc/rfc2392.html#section-2).
+For example, `cid:logo%2F1@example.org` refers to `Content-ID: <logo/1@example.org>`. Interpret percent escapes once, retain literal plus signs,
+and compare the complete Content-ID with its original case. URI scheme spelling is case-insensitive. Malformed percent escapes and unrelated
+or longer identifiers do not establish a reference; they must not claim a resource by a shared prefix.
+
+This changes resource-reference interpretation without rewriting HTML, Content-IDs, metadata or content bytes. Preserve existing resource
+classification, intentional occurrences, ordering and eager/lazy ownership under [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+Apply the same interpretation during MIME/EML import and exact-message inspection while retaining authoritative exact/protected bytes.
+This does not introduce general HTML rewriting or alter outgoing validation. The correction is accepted under
+[#882](https://github.com/bbottema/simple-java-mail/issues/882) for unreleased 10.0.0; the issue tracks implementation and delivery.
