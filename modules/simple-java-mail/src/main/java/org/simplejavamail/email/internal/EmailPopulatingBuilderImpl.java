@@ -620,7 +620,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 			final Matcher matcher = IMG_SRC_PATTERN.matcher(this.textHTML);
 			while (matcher.find()) {
 				final String srcLocation = matcher.group("src");
-				if (!srcLocation.startsWith("cid:")) {
+				if (!srcLocation.regionMatches(true, 0, "cid:", 0, 4)) {
 					if (!generatedCids.containsKey(srcLocation)) {
 						final DataSource dataSource = resolveDynamicEmbeddedImageDataSource(srcLocation);
 						if (dataSource != null) {
