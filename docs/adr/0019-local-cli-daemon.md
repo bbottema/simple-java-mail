@@ -45,6 +45,13 @@ This correction preserves [ADR 0018](0018-cli-from-builder-contracts.md)'s optio
 application API, configuration switch or escaping syntax. The maintainer accepted it under
 [#876](https://github.com/bbottema/simple-java-mail/issues/876) for unreleased 10.0.0. It is implemented; the issue tracks delivery.
 
+### Inline argument-file comments (accepted 28 October 2026)
+
+An unquoted comment completes any argument token already started, including a deliberately quoted empty value. The line terminator
+must not join that token to the next line's first argument, regardless of LF, CR or CRLF spelling. Preserve quoted hash characters,
+existing quoting and escapes, simplified mode, limits and one-time expansion through local and daemon execution. This clarification
+is accepted under [#888](https://github.com/bbottema/simple-java-mail/issues/888) for unreleased 10.0.0.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |

@@ -26,6 +26,14 @@ mode. Ordinary routed commands and lifecycle operations keep the thin bootstrap.
 needs generated-model recognition before routing; this trades a rare client-side metadata load for consistent option
 meaning, without invoking message builders or reading content.
 
+### Daemon selectors follow help ordering (accepted 28 October 2026)
+
+Apply the registered-help cutoff to later daemon selectors as well as generated options. A malformed or conflicting selector after
+genuine standard or option-specific help is ignored. Invalid selectors before help or without help retain their diagnostics. Preserve
+literal values and end-of-options meaning, keep help local, and do not construct a Mailer or start a daemon for help. Retain bounded
+argument-file expansion and thin ordinary routing. [#889](https://github.com/bbottema/simple-java-mail/issues/889) tracks this accepted
+correction for unreleased 10.0.0.
+
 ### Removed execution options follow help ordering (accepted 27 October 2026)
 
 Apply the existing registered-help cutoff before checking removed execution-mode options. A removed option after standard or option-specific

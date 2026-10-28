@@ -259,6 +259,21 @@ Typed receipt/Return-Path interpretation, required body and resource decoding, f
 
 Apply the receipt-header name-recognition decision to Outlook MSG import as well as MIME/EML. Disposition-Notification-To and Return-Receipt-To names are case-insensitive across the shared static/fluent, file/path/stream, builder/data-returning and nested Outlook routes. Preserve existing value interpretation, destination order and duplicates, names, unusual/empty/null-path handling, generic-header spelling and message ownership; do not broadly normalize other headers. This completes the same interpretation boundary described in [#407](https://github.com/bbottema/simple-java-mail/issues/407#issuecomment-1189155751) and the MIME/EML correction under #846. [#863](https://github.com/bbottema/simple-java-mail/issues/863) tracks this separate route correction.
 
+## HTML character references in CID attributes (accepted 28 October 2026)
+
+Interpret character references in HTML attribute values before decoding a CID URL's percent escapes once. Thus
+`src="cid:logo&#64;example.org"` refers to `Content-ID: <logo@example.org>`. Preserve the source HTML, case-sensitive Content-ID,
+literal plus signs, resource bytes and occurrences. Attribute interpretation must not apply HTML character-reference decoding to
+CSS raw-text content or introduce general HTML rewriting. Existing malformed-reference and authoritative-byte boundaries remain.
+[#885](https://github.com/bbottema/simple-java-mail/issues/885) tracks this accepted correction for unreleased 10.0.0.
+
+## Trailing comments in delivery-report dates (accepted 28 October 2026)
+
+Retain a delivery report's unambiguous timestamp when well-formed comments or whitespace follow its explicit timezone. Keep strict
+calendar and timezone interpretation: malformed comments, non-comment suffixes, impossible dates and missing or invalid zones do not
+establish a timestamp. Existing ISO-date recovery and neighboring report facts remain unchanged. This source-fact correction is
+accepted under [#886](https://github.com/bbottema/simple-java-mail/issues/886) for unreleased 10.0.0.
+
 ## Escaped Content-ID references (accepted 28 October 2026)
 
 Recognize a referenced MIME resource by the decoded identity of its CID URL under [RFC 2392 section 2](https://www.rfc-editor.org/rfc/rfc2392.html#section-2).
