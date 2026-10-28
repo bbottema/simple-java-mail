@@ -108,7 +108,7 @@ It targets unreleased 10.0.0; the issue tracks implementation and delivery.
 
 The 28 October follow-up accepts [S/MIME media-type capitalization](0008-minimal-mime-structures-and-protection-order.md#smime-media-type-capitalization-accepted-28-october-2026)
 under #884, [HTML character references in CID attributes](0035-tolerant-reading-and-strict-production.md#html-character-references-in-cid-attributes-accepted-28-october-2026)
-under #885, [delivery-report date comments](0035-tolerant-reading-and-strict-production.md#trailing-comments-in-delivery-report-dates-accepted-28-october-2026)
+under #885 (including separate `srcset` URL candidates under #893), [delivery-report date comments](0035-tolerant-reading-and-strict-production.md#trailing-comments-in-delivery-report-dates-accepted-28-october-2026)
 under #886, [existing CID schemes during automatic resolution](0036-structural-message-snapshots-and-borrowed-content.md#existing-cid-schemes-during-automatic-resolution-accepted-28-october-2026)
 under #887, [inline argument-file comments](0019-local-cli-daemon.md#inline-argument-file-comments-accepted-28-october-2026) under #888,
 and [daemon selector help ordering](0018-cli-from-builder-contracts.md#daemon-selectors-follow-help-ordering-accepted-28-october-2026) under #889.
