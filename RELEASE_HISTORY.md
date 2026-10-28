@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#894](https://github.com/bbottema/simple-java-mail/issues/894): reply starters generate a missing quoted body alternative from the original's available format, preserving existing dual-body content and later independent edits. Plain text is escaped into HTML; the plain fallback from HTML retains readable breaks, links and image alt text without fetching resources.
+
 - [#893](https://github.com/bbottema/simple-java-mail/issues/893): keep imported `srcset` CID images embedded when HTML uses character references, interpreting each URL separately from its descriptors while preserving source HTML and resource identities.
 
 - [#892](https://github.com/bbottema/simple-java-mail/issues/892): retain complete supported JVM configuration when starting a CLI daemon, including named failover Mailers and their locks. Running instances keep their startup defaults; restart captures the restarting invocation's configuration.

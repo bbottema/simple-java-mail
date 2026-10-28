@@ -2,10 +2,12 @@ package org.simplejavamail.internal.clisupport.therapijavadoc;
 
 import com.github.therapi.runtimejavadoc.MethodJavadoc;
 import com.github.therapi.runtimejavadoc.RuntimeJavadoc;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
 
@@ -65,6 +67,15 @@ class TherapiJavadocCacheTest {
 		Method subject = EmailPopulatingBuilder.class.getMethod("withSubject", String.class);
 		assertThat(cache).containsKey(subject.toString());
 		assertThat(cache.get(subject.toString()).getComment().toString()).contains("optional subject");
+	}
+
+	@Test
+	void bundledReplyJavadocDescribesInitialAlternativeGeneration() throws Exception {
+		final Method reply = EmailStartingBuilder.class.getMethod("replyingTo", MimeMessage.class, boolean.class, String.class);
+		final Map<String, MethodJavadoc> cache = TherapiJavadocHelper.loadTherapiCache(CliDataLocator.readTherapiDataFile());
+		assertThat(cache).containsKey(reply.toString());
+		assertThat(cache.get(reply.toString()).getComment().toString())
+				.contains("generated once", "Later body changes remain independent");
 	}
 
 	@Test
