@@ -130,6 +130,12 @@ The 28 October review applies [required Mailer input rejection](0031-public-api-
 under [#895](https://github.com/bbottema/simple-java-mail/issues/895) and [literal daemon selector values](0018-cli-from-builder-contracts.md#daemon-selector-spellings-inside-values-accepted-28-october-2026)
 under [#896](https://github.com/bbottema/simple-java-mail/issues/896). Both corrections are implemented for unreleased 10.0.0; their issues record development-branch delivery.
 
+The 28 October follow-up accepts [actual automatic-image source attributes](0036-structural-message-snapshots-and-borrowed-content.md#actual-automatic-image-source-attributes-accepted-28-october-2026)
+under [#897](https://github.com/bbottema/simple-java-mail/issues/897), preserving quoted preceding attributes while selecting the real image source.
+The [CLI value-spelling clarification](0018-cli-from-builder-contracts.md#cli-option-value-spelling-clarified-28-october-2026) under
+[#898](https://github.com/bbottema/simple-java-mail/issues/898) keeps examples aligned with existing separate option/value tokens.
+Both corrections are implemented for unreleased 10.0.0; their issues record development-branch delivery.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.

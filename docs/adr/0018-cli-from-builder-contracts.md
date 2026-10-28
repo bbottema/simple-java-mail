@@ -96,6 +96,12 @@ Avoid serializers that need reflective access to JDK collection internals. Seria
 
 Reuse immutable declared-option metadata, but build fresh mutable Picocli state for each request. The current working-tree Therapi cache uses `ConcurrentHashMap` even when loaded from a valid cache, because concurrent daemon requests can populate absent entries after invalidation. Persistence takes a sorted copy for deterministic output.
 
+### CLI option value spelling (clarified 28 October 2026)
+
+Documentation follows the generated command model's existing value separator. Ordinary builder options use separate option and value
+tokens, including `--mailer:withMailSendTimeout PT30S`; the corresponding property assignment retains `=`. The documentation correction
+under [#898](https://github.com/bbottema/simple-java-mail/issues/898) changes no parser behavior, option name, value units or public Java API.
+
 ## Recorded reasoning and evolution
 
 | Evidence | What it establishes |

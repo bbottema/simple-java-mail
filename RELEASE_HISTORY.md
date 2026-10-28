@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
+- [#898](https://github.com/bbottema/simple-java-mail/issues/898): corrected the CLI deadline example to use `--mailer:withMailSendTimeout PT30S`, matching the existing separate option/value syntax.
+
 - [#895](https://github.com/bbottema/simple-java-mail/issues/895): required Mailer callback, token-provider, template and Session inputs reject null before replacing existing choices. Use the named clear/restoration methods for intentional removal; nullable SMTP components retain their existing behavior.
 
 - [#896](https://github.com/bbottema/simple-java-mail/issues/896): CLI daemon selectors remain literal when consumed as subject, body or header values, preserving genuine routing selectors and their existing diagnostics.
