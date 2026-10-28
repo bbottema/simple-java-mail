@@ -3,6 +3,10 @@ package org.simplejavamail.email.internal;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Entities;
+import org.jsoup.nodes.TextNode;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
@@ -161,10 +165,32 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		return startingBlank()
 				.withSubject(generatedReply.getSubject())
 				.withRecipients(generatedReply.getRecipients())
-				.withPlainText(EmailStartingBuilder.LINE_START_PATTERN.matcher(defaultTo(repliedTo.getPlainText(), "")).replaceAll("> "))
-				.withHTMLText(format(htmlTemplate, defaultTo(repliedTo.getHTMLText(), "")))
+				.withPlainText(EmailStartingBuilder.LINE_START_PATTERN.matcher(plainTextForReply(repliedTo)).replaceAll("> "))
+				.withHTMLText(format(htmlTemplate, htmlTextForReply(repliedTo)))
 				.withHeaders(generatedReply.getHeaders())
 				.withEmbeddedImages(repliedTo.getEmbeddedImages());
+	}
+
+	private static String plainTextForReply(final Email original) {
+		if (original.getPlainText() != null) {
+			return original.getPlainText();
+		}
+		if (original.getHTMLText() == null) {
+			return "";
+		}
+		final Element body = Jsoup.parse(original.getHTMLText()).body();
+		body.select("script, style").remove();
+		body.select("a[href]").stream().filter(link -> !link.attr("href").isBlank())
+				.forEach(link -> link.appendText(" <" + link.attr("href") + ">"));
+		body.select("img[alt]").forEach(image -> image.before(new TextNode(" " + image.attr("alt") + " ")));
+		body.getAllElements().stream().filter(element -> element != body && element.isBlock())
+				.forEach(element -> element.before(new TextNode("\n")).after(new TextNode("\n")));
+		return body.wholeText().replaceAll("\n{3,}", "\n\n").strip();
+	}
+
+	private static String htmlTextForReply(final Email original) {
+		return original.getHTMLText() != null ? original.getHTMLText()
+				: Entities.escape(defaultTo(original.getPlainText(), "")).replace("\r\n", "\n").replace('\r', '\n').replace("\n", "<br>");
 	}
 	
 	/**

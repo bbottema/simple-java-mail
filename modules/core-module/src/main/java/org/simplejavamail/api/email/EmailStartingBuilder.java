@@ -177,7 +177,10 @@ public interface EmailStartingBuilder {
 	 * Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.
 	 * <p>
 	 * <strong>Note 1:</strong> replaces subject with "Re: &lt;original subject&gt;" (but never nested).<br>
-	 * <strong>Note 2:</strong> always sets both plain text and HTML text, so if you update the content body, be sure to update HTML as well.<br>
+	 * <strong>Note 2:</strong> sets both plain text and HTML text. A missing alternative is generated once while priming the reply:
+	 * plain text is safely escaped into HTML with line breaks, and HTML becomes readable plain text with paragraph/list breaks,
+	 * link destinations and image alternative text. Script and style content is omitted from generated plain text; no network resources are fetched.
+	 * Existing alternatives retain their independent content. Later body changes remain independent, so update both when adding your answer.<br>
 	 * <strong>Note 3:</strong> sets body content: text is replaced with {@code "> text"} and HTML is replaced with the provided (or default) quoting markup
 	 * (add your own content with {@link EmailPopulatingBuilder#prependPlainText(String)} and {@link EmailPopulatingBuilder#prependHTMLText(String)}).
 	 *
@@ -185,7 +188,8 @@ public interface EmailStartingBuilder {
 	 *                     include.
 	 * @param repyToAll    Indicates whether all original receivers should be included in this new reply. Also see {@link
 	 *                     MimeMessage#reply(boolean)}.
-	 * @param htmlTemplate HTML quoting template that should be used in the reply. Should contain the substring {@code "%s"}. Be advised that HTML is very limited in emails.
+	 * @param htmlTemplate HTML quoting template applied once to the original or generated HTML. Should contain the substring {@code "%s"}.
+	 *                     Be advised that HTML is very limited in emails.
 	 *
 	 * @see #replyingTo(Email)
 	 * @see #replyingTo(Email, String)

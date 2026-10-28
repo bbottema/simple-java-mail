@@ -340,6 +340,22 @@ protected bytes; missing and unknown values retain their existing interpretation
 missing keys and cryptographic failure remain unchanged. This extends the media-type decision under
 [#890](https://github.com/bbottema/simple-java-mail/issues/890) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## Missing reply-body alternatives (accepted 28 October 2026)
+
+Reply priming keeps both plain and HTML quotes useful when the interpreted original contains only one body format. Generate the
+missing format once before quoting: escape plain text into HTML while preserving line breaks, or derive readable plain text from HTML
+with paragraph/list breaks, link destinations and useful image alternative text. Script and style content do not contribute to that text.
+When both formats exist, preserve their independent content. Apply the existing HTML quote template once after generation.
+
+Keep this conversion small and internal to the existing Email/MimeMessage reply and reply-all paths, using the existing HTML dependency.
+It does not fetch links/images or add public conversion settings, a rendering framework or dependencies. Later body editing and ordinary
+Email governance retain their existing rules; this is not ongoing synchronization of body alternatives. Keep routing, thread headers,
+resource ownership, authoritative source representations and current empty-part interpretation unchanged under [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+
+This deliberately changes the longstanding empty-quote result for single-format originals while retaining the public signatures in
+[ADR 0031](0031-public-api-and-internal-construction.md). The maintainer accepted the behavior and authorized workflow completion for
+unreleased 10.0.0 under [#894](https://github.com/bbottema/simple-java-mail/issues/894); the issue tracks implementation and delivery.
+
 ## Implementation anchors
 
 [DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)

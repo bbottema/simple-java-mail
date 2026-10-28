@@ -121,6 +121,11 @@ under [#891](https://github.com/bbottema/simple-java-mail/issues/891). The accep
 ownership, unknown S/MIME values and the existing selection for HTML-referenced duplicate IDs. Both corrections are implemented for unreleased
 10.0.0; their issues track development-branch delivery.
 
+The [missing reply-body alternative decision](0008-minimal-mime-structures-and-protection-order.md#missing-reply-body-alternatives-accepted-28-october-2026),
+accepted under [#894](https://github.com/bbottema/simple-java-mail/issues/894), generates a missing quote once while priming a reply.
+Existing body alternatives remain independent, and the conversion stays small and internal to reply composition using the existing HTML dependency.
+The issue tracks implementation and delivery for unreleased 10.0.0.
+
 ## Find documentation by topic
 
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
