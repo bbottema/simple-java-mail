@@ -505,8 +505,8 @@ public class SMIMESupport implements SMIMEModule {
 	private static boolean isEncrypted(@NotNull final MimeMessage message) {
 		try {
 			final ContentType type = new ContentType(message.getContentType());
-			return ("application/pkcs7-mime".equals(type.getBaseType())
-					|| "application/x-pkcs7-mime".equals(type.getBaseType()))
+			return ("application/pkcs7-mime".equalsIgnoreCase(type.getBaseType())
+					|| "application/x-pkcs7-mime".equalsIgnoreCase(type.getBaseType()))
 					&& !"signed-data".equals(type.getParameter("smime-type"));
 		} catch (MessagingException e) {
 			return false;
@@ -696,7 +696,8 @@ public class SMIMESupport implements SMIMEModule {
 	 */
 	@Override
 	public boolean isSmimeAttachment(@NotNull final AttachmentResource attachment) {
-		return SMIME_MIMETYPES.contains(attachment.getDataSource().getContentType());
+		final String contentType = attachment.getDataSource().getContentType();
+		return SMIME_MIMETYPES.stream().anyMatch(type -> type.equalsIgnoreCase(contentType));
 	}
 
 	private AttachmentDecryptionResult decryptAndUnsignAttachment(
