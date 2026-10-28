@@ -63,6 +63,7 @@ $registeredWorktrees = @(
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
     # '.local/api-review-example'
+    '.local/api-review-897-898-20261028'
     # Current six-fix review scratch; managed worktrees must be archived before cleanup.
     '.local/api-review-six-fixes-20261028'
     '.local/878-openpgp-signatures-20261028'
@@ -72,6 +73,7 @@ $relativeTargets = @(
 $relativeFileTargets = @(
     # '.local/api-review-example.log'
     # 'docs/plans/example-completed-plan.md'
+    'docs/plans/897-898-image-attributes-cli-guide.md'
     'docs/plans/867-connection-conflict-policy.md'
 )
 # External directories require both the exact absolute path and its direct parent.
