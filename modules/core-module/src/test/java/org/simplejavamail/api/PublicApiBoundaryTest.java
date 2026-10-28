@@ -178,6 +178,7 @@ class PublicApiBoundaryTest {
                 "org.simplejavamail.api.email.ReportedMailServer.builder()",
                 "org.simplejavamail.api.email.DeliveryDiagnostic.builder()",
                 "org.simplejavamail.api.email.OpenPgpDetails.builder()",
+                "org.simplejavamail.api.email.OpenPgpSignatureResult.builder()",
                 "new org.simplejavamail.api.mailer.MailSendMeasurement(null, null, false)",
                 "new org.simplejavamail.api.mailer.MailSubmissionReceipt(null, null, null)",
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",

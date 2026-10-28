@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pgpainless.exception.KeyException;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.OpenPgpSignatureResult;
 import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
@@ -25,6 +26,7 @@ import org.simplejavamail.internal.openpgpsupport.PgpainlessOpenPgpAdapter.Decry
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -105,7 +107,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
                     "OpenPGP/MIME nesting limit exceeded", protectedMessage);
         }
         if (signed) {
-            return verifySignedMessage(session, message, protectedMessage, receiveConfig);
+            return verifySignedMessage(session, message, protectedMessage, receiveConfig, depth);
         }
         if (encrypted) {
             return decryptEncryptedMessage(session, message, protectedMessage, receiveConfig, depth);
@@ -118,8 +120,9 @@ public final class OpenPgpSupport implements OpenPgpModule {
     }
 
     private OpenPgpParseResult verifySignedMessage(final Session session, final MimeMessage originalMessage,
-            final byte[] protectedMessage, @Nullable final OpenPgpReceiveConfig receiveConfig) {
+            final byte[] protectedMessage, @Nullable final OpenPgpReceiveConfig receiveConfig, final int depth) {
         byte[] readableMessageBytes = null;
+        OpenPgpDetailsImpl established = null;
         try {
             final List<byte[]> mimeParts = MimeEntitySupport.multipartParts(
                     protectedMessage, MimeEntitySupport.boundary(originalMessage));
@@ -130,37 +133,46 @@ public final class OpenPgpSupport implements OpenPgpModule {
 
             final byte[] signedEntity = mimeParts.get(0);
             readableMessageBytes = MimeEntitySupport.restoreMessage(protectedMessage, signedEntity);
-            final MimeMessage readableMessage = FinalizedMimeMessage.fromMessageBytes(session, readableMessageBytes,
-                    FinalizedMimeMessage.ProtectionState.NONE);
-            final OpenPgpDetailsImpl details = pgpainlessAdapter.verifyDetachedSignature(
+            established = pgpainlessAdapter.verifyDetachedSignatures(
                     MimeEntitySupport.normalizeCrlf(signedEntity), MimeEntitySupport.decodedPartBody(mimeParts.get(1)),
                     receiveConfig, protectedMessage);
+            final MimeMessage readableMessage = FinalizedMimeMessage.fromMessageBytes(session, readableMessageBytes,
+                    FinalizedMimeMessage.ProtectionState.NONE);
+            if (isOpenPgpSigned(readableMessage) || isOpenPgpEncrypted(readableMessage)) {
+                final OpenPgpParseResult nested = inspectProtection(session, readableMessage, readableMessageBytes, receiveConfig, depth + 1);
+                return combinedProtection(nested, protectedMessage, established);
+            }
             return OpenPgpParseResultImpl.builder()
                 .recognized(true)
                 .effectiveMimeMessage(readableMessage)
-                .details(details)
+                .details(established)
                 .build();
         } catch (Exception e) {
-            return signatureFailure(session, originalMessage, readableMessageBytes, protectedMessage);
+            return signatureFailure(session, originalMessage, readableMessageBytes, protectedMessage, established);
         }
     }
 
     private static OpenPgpParseResult signatureFailure(final Session session, final MimeMessage originalMessage,
-            @Nullable final byte[] readableMessageBytes, final byte[] protectedMessage) {
+            @Nullable final byte[] readableMessageBytes, final byte[] protectedMessage, @Nullable final OpenPgpDetailsImpl established) {
+        final OpenPgpDetailsImpl details = (established == null ? OpenPgpDetailsImpl.builder().openPgpMode(OpenPgpMode.SIGNED)
+                .decryptionStatus(DecryptionStatus.NOT_ENCRYPTED) : established.toBuilder())
+                .signatureStatus(OpenPgpDetailsImpl.strongestProblem(SignatureStatus.ERROR,
+                        established == null ? SignatureStatus.NOT_PRESENT : established.getSignatureStatus()))
+                .signatureInspectionComplete(false).failureReason("Unable to verify OpenPGP signature")
+                .originalProtectedMessage(protectedMessage).build();
         try {
             final MimeMessage readableMessage = readableMessageBytes == null ? originalMessage
                     : FinalizedMimeMessage.fromMessageBytes(session, readableMessageBytes,
                             FinalizedMimeMessage.ProtectionState.NONE);
-            return failure(readableMessage, OpenPgpMode.SIGNED, SignatureStatus.ERROR,
-                    DecryptionStatus.NOT_ENCRYPTED, "Unable to verify OpenPGP signature", protectedMessage);
+            return OpenPgpParseResultImpl.builder().recognized(true).effectiveMimeMessage(readableMessage).details(details).build();
         } catch (MessagingException ignored) {
-            return failure(originalMessage, OpenPgpMode.SIGNED, SignatureStatus.ERROR,
-                    DecryptionStatus.NOT_ENCRYPTED, "Unable to verify OpenPGP signature", protectedMessage);
+            return OpenPgpParseResultImpl.builder().recognized(true).effectiveMimeMessage(originalMessage).details(details).build();
         }
     }
 
     private OpenPgpParseResult decryptEncryptedMessage(final Session session, final MimeMessage originalMessage,
             final byte[] protectedMessage, @Nullable final OpenPgpReceiveConfig receiveConfig, final int depth) {
+        final DecryptionResult decryptionResult;
         try {
             final List<byte[]> mimeParts = MimeEntitySupport.multipartParts(
                     protectedMessage, MimeEntitySupport.boundary(originalMessage));
@@ -169,15 +181,24 @@ public final class OpenPgpSupport implements OpenPgpModule {
                         DecryptionStatus.FAILED, "Malformed OpenPGP multipart/encrypted message", protectedMessage);
             }
 
-            final DecryptionResult decryptionResult = pgpainlessAdapter.decrypt(
+            decryptionResult = pgpainlessAdapter.decrypt(
                     MimeEntitySupport.decodedPartBody(mimeParts.get(1)), receiveConfig);
-            if (!decryptionResult.isDecrypted()) {
-                return missingDecryptionKey(originalMessage, protectedMessage, decryptionResult.recipientKeyIds);
-            }
-            return inspectDecryptedMessage(session, protectedMessage, receiveConfig, depth, decryptionResult);
         } catch (Exception e) {
             return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.UNKNOWN,
                     DecryptionStatus.FAILED, "Unable to decrypt OpenPGP/MIME message", protectedMessage);
+        }
+        if (!decryptionResult.isDecrypted()) {
+            return OpenPgpParseResultImpl.builder().recognized(true).effectiveMimeMessage(originalMessage)
+                    .details(decryptionResult.details.toBuilder().originalProtectedMessage(protectedMessage).build()).build();
+        }
+        try {
+            return inspectDecryptedMessage(session, protectedMessage, receiveConfig, depth, decryptionResult);
+        } catch (Exception processingFailure) {
+            // Successful native close already established decryption; a later MIME/signature problem cannot erase that fact.
+            return OpenPgpParseResultImpl.builder().recognized(true).effectiveMimeMessage(originalMessage)
+                    .details(decryptionResult.details.toBuilder().originalProtectedMessage(protectedMessage)
+                            .signatureStatus(OpenPgpDetailsImpl.strongestProblem(SignatureStatus.ERROR, decryptionResult.details.getSignatureStatus()))
+                            .signatureInspectionComplete(false).failureReason("Unable to inspect decrypted OpenPGP MIME content").build()).build();
         }
     }
 
@@ -195,7 +216,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
 
         final OpenPgpParseResult nestedProtection = inspectProtection(
                 session, clearMessage, clearMessageBytes, receiveConfig, depth + 1);
-        return combinedProtection(nestedProtection, protectedMessage, decryptionResult);
+        return combinedProtection(nestedProtection, protectedMessage, decryptionResult.details);
     }
 
     private static OpenPgpParseResult decryptedMessage(final MimeMessage clearMessage, final byte[] protectedMessage,
@@ -203,35 +224,27 @@ public final class OpenPgpSupport implements OpenPgpModule {
         return OpenPgpParseResultImpl.builder()
             .recognized(true)
             .effectiveMimeMessage(clearMessage)
-            .details(OpenPgpDetailsImpl.builder()
-                .openPgpMode(OpenPgpMode.ENCRYPTED)
-                .signatureStatus(SignatureStatus.NOT_PRESENT)
-                .decryptionStatus(DecryptionStatus.DECRYPTED)
-                .encryptionAlgorithm(decryptionResult.encryptionAlgorithm)
-                .recipientKeyIds(decryptionResult.recipientKeyIds)
-                .originalProtectedMessage(protectedMessage)
-                .build())
+            .details(decryptionResult.details.toBuilder().originalProtectedMessage(protectedMessage).build())
             .build();
     }
 
     private static OpenPgpParseResult combinedProtection(final OpenPgpParseResult nestedProtection,
-            final byte[] protectedMessage, final DecryptionResult decryptionResult) {
-        final OriginalOpenPgpDetails nestedDetails = nestedProtection.getDetails();
-        final boolean containsSignature = nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED
-                || nestedDetails.getOpenPgpMode() == OpenPgpMode.SIGNED_ENCRYPTED;
+            final byte[] protectedMessage, final OpenPgpDetailsImpl outer) {
+        final OpenPgpDetailsImpl nestedDetails = OpenPgpDetailsImpl.copyOf(nestedProtection.getDetails());
+        final List<OpenPgpSignatureResult> signatures = new ArrayList<>(outer.getSignatures());
+        signatures.addAll(nestedDetails.getSignatures());
+        final boolean signed = signed(outer) || signed(nestedDetails);
+        final boolean encrypted = encrypted(outer) || encrypted(nestedDetails);
         final DecryptionStatus nestedDecryption = nestedDetails.getDecryptionStatus();
         final OpenPgpDetailsImpl combined = OpenPgpDetailsImpl.builder()
-                .openPgpMode(containsSignature ? OpenPgpMode.SIGNED_ENCRYPTED : OpenPgpMode.ENCRYPTED)
-                .signatureStatus(nestedDetails.getSignatureStatus())
+                .openPgpMode(encrypted ? signed ? OpenPgpMode.SIGNED_ENCRYPTED : OpenPgpMode.ENCRYPTED : signed ? OpenPgpMode.SIGNED : OpenPgpMode.PLAIN)
+                .signatures(signatures).signatureInspectionComplete(outer.isSignatureInspectionComplete() && nestedDetails.isSignatureInspectionComplete())
+                .signatureStatus(OpenPgpDetailsImpl.strongestProblem(outer.getSignatureStatus(), nestedDetails.getSignatureStatus()))
                 .decryptionStatus(nestedDecryption == DecryptionStatus.NOT_ENCRYPTED
-                        ? DecryptionStatus.DECRYPTED : nestedDecryption)
-                .signerKeyId(nestedDetails.getSignerKeyId())
-                .signerFingerprint(nestedDetails.getSignerFingerprint())
-                .signatureAlgorithm(nestedDetails.getSignatureAlgorithm())
-                .hashAlgorithm(nestedDetails.getHashAlgorithm())
-                .encryptionAlgorithm(decryptionResult.encryptionAlgorithm)
-                .recipientKeyIds(decryptionResult.recipientKeyIds)
-                .failureReason(nestedDetails.getFailureReason())
+                        ? outer.getDecryptionStatus() : nestedDecryption)
+                .encryptionAlgorithm(outer.getEncryptionAlgorithm() != null ? outer.getEncryptionAlgorithm() : nestedDetails.getEncryptionAlgorithm())
+                .recipientKeyIds(encrypted(outer) ? outer.getRecipientKeyIds() : nestedDetails.getRecipientKeyIds())
+                .failureReason(outer.getFailureReason() != null ? outer.getFailureReason() : nestedDetails.getFailureReason())
                 .originalProtectedMessage(protectedMessage)
                 .build();
         return OpenPgpParseResultImpl.builder()
@@ -241,21 +254,12 @@ public final class OpenPgpSupport implements OpenPgpModule {
             .build();
     }
 
-    private static OpenPgpParseResult missingDecryptionKey(final MimeMessage originalMessage,
-            final byte[] protectedMessage,
-            final List<String> recipientKeyIds) {
-        return OpenPgpParseResultImpl.builder()
-            .recognized(true)
-            .effectiveMimeMessage(originalMessage)
-            .details(OpenPgpDetailsImpl.builder()
-                .openPgpMode(OpenPgpMode.ENCRYPTED)
-                .signatureStatus(SignatureStatus.UNKNOWN)
-                .decryptionStatus(DecryptionStatus.KEY_MISSING)
-                .recipientKeyIds(recipientKeyIds)
-                .failureReason("No decryption key matched an OpenPGP recipient")
-                .originalProtectedMessage(protectedMessage)
-                .build())
-            .build();
+    private static boolean signed(final OriginalOpenPgpDetails details) {
+        return details.getOpenPgpMode() == OpenPgpMode.SIGNED || details.getOpenPgpMode() == OpenPgpMode.SIGNED_ENCRYPTED;
+    }
+
+    private static boolean encrypted(final OriginalOpenPgpDetails details) {
+        return details.getOpenPgpMode() == OpenPgpMode.ENCRYPTED || details.getOpenPgpMode() == OpenPgpMode.SIGNED_ENCRYPTED;
     }
 
     private static boolean isOpenPgpSigned(final MimeMessage message) throws MessagingException {
