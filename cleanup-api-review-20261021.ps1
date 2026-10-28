@@ -63,6 +63,7 @@ $registeredWorktrees = @(
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
     # '.local/api-review-example'
+    '.local/878-openpgp-signatures-20261028'
     '.local/877-openpgp-transfer-decoding-20261028'
     '.local/connection-conflict-20261024'
 )
