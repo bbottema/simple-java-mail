@@ -138,6 +138,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#899](https://github.com/bbottema/simple-java-mail/issues/899): preserve literal angle brackets in imported attachment and embedded-image filenames, keeping Content-ID interpretation separate.
 - [#916](https://github.com/bbottema/simple-java-mail/issues/916): preserve a supplied `UnknownAttachment` filename instead of replacing it with the Content-ID; genuinely missing filenames retain their existing fallbacks.
+- [#920](https://github.com/bbottema/simple-java-mail/issues/920): keep imported inline images matched to HTML when received Content-ID headers contain valid external comments or folding whitespace, retaining literal filenames and complete case-sensitive IDs.
 - [#917](https://github.com/bbottema/simple-java-mail/issues/917): read delivery-report actions with valid comments, retaining unknown results for malformed or competing action tokens.
 - [#918](https://github.com/bbottema/simple-java-mail/issues/918): retain detached S/MIME signatures in decrypted Outlook message exports and signed-content views, so saved signed EML remains verifiable independently of content merging.
 - [#919](https://github.com/bbottema/simple-java-mail/issues/919): reject null String body fragments before appending or prepending, preserving the draft while retaining nullable replacement and empty-fragment behavior.
