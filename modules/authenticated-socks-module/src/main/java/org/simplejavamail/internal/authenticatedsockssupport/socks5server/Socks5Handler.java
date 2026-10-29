@@ -18,6 +18,8 @@ import java.net.Socket;
 public class Socks5Handler implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Handler.class);
     private static final byte[] METHOD_SELECTION_RESPONSE = {(byte) 5, (byte) 0};
+    private static final byte[] NO_ACCEPTABLE_METHOD_RESPONSE = {(byte) 5, (byte) 255};
+    private static final int ANONYMOUS_METHOD = 0;
     private static final int CONNECT_COMMAND = 1;
     public static final int VERSION = 5;
 
@@ -66,8 +68,13 @@ public class Socks5Handler implements Runnable {
     }
 
     private void handle() throws IOException {
-        if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
+        final MethodSelectionMessage greeting = MethodSelectionMessage.read(session.getInputStream());
+        if (greeting.getVersion() != VERSION) {
             throw new SocksException("Protocol error");
+        }
+        if (!greeting.offersMethod(ANONYMOUS_METHOD)) {
+            session.write(NO_ACCEPTABLE_METHOD_RESPONSE);
+            return;
         }
         session.write(METHOD_SELECTION_RESPONSE);
         final CommandMessage command = new CommandMessage();

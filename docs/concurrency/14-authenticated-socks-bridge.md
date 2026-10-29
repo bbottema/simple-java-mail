@@ -15,6 +15,8 @@ The internal setup executor has zero core workers, at most 100 active workers, d
 
 ## Handoff order
 
+The adapter selects anonymous method 00 only from a complete version-5 greeting that offers it. A complete greeting without that method receives 05 FF and retires only that peer; wrong versions and truncated framing close without selecting a method. A subsequent CONNECT requires version 5, reserved byte zero and complete mandatory framing before starting the client reader or remote setup. Valid supported Mailer traffic keeps its existing path; these checks add no authentication method, private preface or transport association.
+
 ```mermaid
 sequenceDiagram
     participant Setup as Setup worker

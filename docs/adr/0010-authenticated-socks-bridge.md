@@ -86,6 +86,12 @@ Effective authenticated SOCKS usernames and passwords each require 1 through 255
 
 These protocol corrections retain the pending setup owner, setup budgets, cancellation and established-tunnel handoff under #909. Listener shutdown remains separate from established pooled/retained tunnel lifetime. They do not add BIND, UDP, proxy chaining or a general-purpose SOCKS service. The issues track implementation and delivery for unreleased 10.0.0.
 
+## Local anonymous greeting and request validation (accepted 29 October 2026)
+
+The loopback adapter retains the client's complete offered method list and selects anonymous method 00 only when offered. For a complete version-5 greeting with no acceptable method, send 05 FF and close only that peer before a remote connection is attempted. Wrong versions or truncated mandatory framing fail without selecting a method. The subsequent CONNECT request must carry version 5 and reserved byte zero before remote effects.
+
+Keep the anonymous, CONNECT-only internal adapter contract, exact address framing, pending owner and existing handoff/cleanup boundaries. Supported Angus/JDK clients already offer anonymous and send valid request headers, so their current behavior remains unchanged. The maintainer approved this optional local hardening as issue-free maintenance; it adds no authentication method, configuration, public API or private preface.
+
 ## Setup capacity is separate from established forwarding (accepted 29 October 2026)
 
 Use the bounded worker pool for local handshake and remote setup rather than the lifetime of established tunnels. After successful setup, transfer forwarding and final closure responsibility explicitly so the setup worker can serve another connection. Keep a single reader for each direction, exact raw-handle ownership, ordered pending-byte handoff and failure preservation. A failed or late forwarding handoff closes that tunnel; it cannot leave an acknowledged unusable connection or a surviving owner.
