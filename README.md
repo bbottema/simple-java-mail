@@ -11,10 +11,10 @@ Simple Java Mail builds well-formed MIME through a streamlined Java API. That sa
 
 ## Send a first email
 
-**Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.6** dependency below.
-For examples you can use with that published release, see the [9.3.6 README](https://github.com/bbottema/simple-java-mail/blob/9.3.6/README.md).
+**Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.9** dependency below.
+For examples you can use with that published release, see the [9.3.9 README](https://github.com/bbottema/simple-java-mail/blob/9.3.9/README.md).
 Until 10.0.0 is released, trying these examples requires artifacts built and installed from this branch, using the version declared in its root POM.
-That development version can still be 9.3.6; Maven Central's published 9.3.6 binaries do not contain this branch's API.
+That development version can still be 9.3.9; Maven Central's published 9.3.9 binaries do not contain this branch's API.
 
 Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. The 10.x libraries require Java 11 or newer; 9.x is the last line that runs on Java 8. After 10.0.0, 9.x is maintenance-only: new work goes to 10.x, while critical fixes may be backported when that can be done safely without dropping Java 8 support.
 
