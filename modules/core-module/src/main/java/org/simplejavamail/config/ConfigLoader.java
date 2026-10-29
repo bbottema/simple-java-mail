@@ -1,5 +1,6 @@
 package org.simplejavamail.config;
 
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.requireInternalConfig;
 
 import org.jetbrains.annotations.NotNull;
@@ -42,6 +43,9 @@ import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacter
  * <p>
  * {@link #builder()} creates an empty loader. Use {@code SimpleJavaMail.fromDefaults()} when the conventional classpath, environment and system-property
  * recipe is wanted.
+ * <p>
+ * Null sources, property maps, file paths, resource names and classloaders are rejected before registration, leaving earlier sources intact. Source names
+ * and property values are validated by {@link #load()}; files and optional classpath resources are opened only then.
  */
 public final class ConfigLoader {
 
@@ -201,7 +205,7 @@ public final class ConfigLoader {
 	 * Adds a custom source at the current priority. Sources are read once per {@link #load()} call and later non-blank values win.
 	 */
 	public ConfigLoader withSource(final @NotNull ConfigSource source) {
-		sources.add(source);
+		sources.add(requireNonNull(source, "source"));
 		return this;
 	}
 
@@ -268,6 +272,7 @@ public final class ConfigLoader {
 	 * @return This loader.
 	 */
 	public ConfigLoader withPropertiesFile(final @NotNull String sourceName, final @NotNull Path propertiesFile) {
+		requireNonNull(propertiesFile, "propertiesFile");
 		return withSource(new ConfigSource() {
 			@Override
 			public String getName() {
@@ -292,6 +297,8 @@ public final class ConfigLoader {
 	 * Adds an optional classpath resource from the given ClassLoader. A missing resource contributes no values.
 	 */
 	public ConfigLoader withClasspathResource(final @NotNull String resourceName, final @NotNull ClassLoader classLoader) {
+		requireNonNull(resourceName, "resourceName");
+		requireNonNull(classLoader, "classLoader");
 		return withSource(new ConfigSource() {
 			@Override
 			public String getName() {
@@ -314,6 +321,7 @@ public final class ConfigLoader {
 	}
 
 	ConfigLoader withEnvironmentVariables(final Map<String, String> environment) {
+		requireNonNull(environment, "environment");
 		return withSource(new ConfigSource() {
 			@Override
 			public String getName() {
@@ -593,6 +601,7 @@ public final class ConfigLoader {
 	}
 
 	private static ConfigSource mapSource(final String sourceName, final Map<?, ?> properties, final boolean strict) {
+		requireNonNull(properties, "properties");
 		return new ConfigSource() {
 			@Override
 			public String getName() {
