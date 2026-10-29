@@ -115,6 +115,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#908](https://github.com/bbottema/simple-java-mail/issues/908): typed delivery-recipient overrides now receive the selected Mailer's address validation and relevant injection checks. Raw custom recipient headers retain their advanced mailbox-validation escape, with general injection checks and mandatory locks.
+- [#909](https://github.com/bbottema/simple-java-mail/issues/909): pending authenticated SOCKS setup owns and closes its remote socket when its client disconnects, times out or is cancelled, while established pooled tunnels retain their lifetime.
+
 - [#901](https://github.com/bbottema/simple-java-mail/issues/901): authenticated SOCKS trace output no longer includes the username/password packet.
 - [#902](https://github.com/bbottema/simple-java-mail/issues/902): read complete SOCKS authentication replies and reject invalid versions or truncated responses.
 - [#907](https://github.com/bbottema/simple-java-mail/issues/907): established authenticated SOCKS tunnels no longer impose a separate bridge read or idle timeout; the SMTP client's configured timeouts govern its waits.
