@@ -783,6 +783,8 @@ public interface EmailPopulatingBuilder {
 	 * Pass {@code true} for {@code replaceHeader} when the new value should replace all earlier values for that header; otherwise it is added
 	 * to the existing collection if it is not already present. Non-null values are stored as Strings. Null remains a distinct stored choice
 	 * and produces a present empty header when converting or sending, just as an explicit empty String does; it does not omit the header.
+	 * Raw custom To/Cc/Bcc headers are an expert escape from typed mailbox validation. General header injection scanning and mandatory
+	 * configuration locks still apply; use the typed recipient methods or {@link #withOverrideReceivers(List)} for ordinary address validation.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
 	 * @param value The value of the header. Non-null values are stored using {@link String#valueOf(Object)}; null is retained in metadata
@@ -1135,6 +1137,8 @@ public interface EmailPopulatingBuilder {
 	 * Appends to the existing delivery-recipient overrides, retaining order, duplicate occurrences and supplied recipient metadata without reparsing.
 	 * Repeated calls accumulate, including on a copied Email. Use {@link #clearOverrideReceivers()} before adding replacements;
 	 * an empty list is rejected rather than clearing existing entries. The provided list's structure is not retained.
+	 * Normal composed-message preparation applies the Mailer's configured address validator and the existing encoded-word and name/address
+	 * injection checks to these typed overrides, as well as the visible recipients. Warnings-only validation retains its existing behavior.
 	 * @param recipients Nonempty list of prepared delivery recipients.
 	 * @throws IllegalArgumentException If the list is null or empty.
 	 */
