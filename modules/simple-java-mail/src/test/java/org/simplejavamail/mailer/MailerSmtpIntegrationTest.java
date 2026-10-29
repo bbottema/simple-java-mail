@@ -669,7 +669,10 @@ public class MailerSmtpIntegrationTest {
 		// The MIME reader indexes inline resources by Content-ID. Email equality has always matched this list without ordering it.
 		final List<AttachmentResource> unmatched = new ArrayList<>(received);
 		final List<AttachmentResource> normalized = new ArrayList<>();
-		for (final AttachmentResource source : expected) {
+		for (final AttachmentResource declared : expected) {
+			// MIME import represents a Content-ID matching the filename as the name-derived choice.
+			final AttachmentResource source = declared.getContentId() != null && declared.getContentId().equals(declared.getName())
+					? declared.toBuilder().clearContentId().build() : declared;
 			int matchingIndex = -1;
 			for (int index = 0; index < unmatched.size(); index++) {
 				final AttachmentResource candidate = unmatched.get(index);
