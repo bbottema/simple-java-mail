@@ -62,6 +62,10 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/feature-review-envelope-validation-20261029'
+    '.local/feature-review-pending-socks-20261029'
+    '.local/feature-review-followup-delivery-20261029'
+    '.local/feature-review-followup-site-20261029'
     '.local/feature-review-auth-20261029'
     '.local/feature-review-tunnel-timeout-20261029'
     '.local/feature-review-retry-20261029'
@@ -81,6 +85,9 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/908-typed-delivery-validation.md'
+    'docs/plans/909-pending-socks-setup.md'
+    'docs/plans/908-909-feature-review-followup.md'
     'docs/plans/901-902-socks-auth.md'
     'docs/plans/907-socks-tunnel-timeout.md'
     'docs/plans/900-retry-receipt.md'
