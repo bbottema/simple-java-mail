@@ -24,6 +24,21 @@ Provide `rehearse(email, false)` and the matching validation overload for a deli
 
 Share preparation rules with sending without calling public rehearsal from the send path. Sending validates the governed Email and converts it once when using the sending Session. Calling full rehearsal first inside every send would render/sign twice, perform unnecessary work and potentially produce two different generated representations.
 
+### Typed delivery overrides and raw header control (accepted 29 October 2026)
+
+Normal composed-message preparation validates typed `withOverrideReceivers` recipients with the selected Mailer's configured address validator,
+encoded-word address protection and name/address injection scanning. Visible typed fields remain validated too. Apply this after ordinary
+governance and applicable locks, retaining supplied order, duplicate occurrences and recipient metadata without reparsing or normalizing values.
+Validation, rehearsal and sending share this boundary; warnings-only mode still reports ordinary findings without blocking preparation.
+
+Raw custom To/Cc/Bcc headers retain their expert escape from typed mailbox validation. They still receive general header injection scanning and
+remain subject to mandatory configuration locks. Do not introduce universal mailbox validation or rewriting of raw recipient headers. Clearing
+the configurable address validator leaves the existing encoded-word and injection checks active, under the same blocking/warnings-only mode.
+Exact EML retains its separate strict envelope validation and authoritative bytes, independently of the composed validator.
+
+[#908](https://github.com/bbottema/simple-java-mail/issues/908) tracks this correction for unreleased 10.0.0. [ADR 0002](0002-email-defaults-and-overrides.md)
+continues owning the templates and copied delivery choices; [ADR 0013](0013-exact-eml-submission.md) owns the exact-source boundary.
+
 ## Recorded rationale and evidence
 
 - [#451](https://github.com/bbottema/simple-java-mail/issues/451), 2023, moved defaults and overrides to Mailer governance to support different server policies and avoid repeated expensive preparation at ordinary Email construction. This explains why validation of the raw draft is insufficient; it is not a historical claim that rehearsal already existed then.

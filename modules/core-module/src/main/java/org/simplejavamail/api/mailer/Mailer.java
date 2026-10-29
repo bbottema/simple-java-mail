@@ -366,6 +366,9 @@ public interface Mailer extends AutoCloseable {
 	 *     <li>checks the final encoded message size against the configured maximum, if any.</li>
 	 * </ul>
 	 * Completeness here means a sender and recipient; an empty subject or body is permitted.
+	 * Address validation includes typed delivery-recipient overrides supplied through {@code withOverrideReceivers(...)} as well as visible
+	 * typed recipients. Raw custom To/Cc/Bcc headers remain an expert escape from mailbox validation; general header injection scanning and
+	 * mandatory configuration locks still apply.
 	 * Exact email instead requires canonical, parseable EML and at least one explicit SMTP-envelope recipient. It deliberately bypasses mailer defaults,
 	 * overrides, composed-content validation, and configured security processing; full validation checks the supplied byte length against the configured
 	 * maximum without changing the message.

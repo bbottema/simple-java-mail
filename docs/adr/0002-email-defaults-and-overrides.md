@@ -159,6 +159,11 @@ The intended delivery-recipient override is part of those choices. A copy retain
 ordered duplicate occurrences and recipient-specific metadata. Editing another field must not silently restore delivery to the visible recipients.
 Clearing that override remains an explicit builder operation; normal governance and suppression rules still apply when preparing the copy.
 
+The [typed-delivery validation clarification in ADR 0014](0014-send-time-rehearsal.md#typed-delivery-overrides-and-raw-header-control-accepted-29-october-2026)
+checks these overrides after governance, without changing their collection identity or metadata. Raw custom recipient headers retain their
+expert mailbox-validation escape; general injection scanning and mandatory locks remain applicable. [#908](https://github.com/bbottema/simple-java-mail/issues/908)
+tracks the correction for unreleased 10.0.0.
+
 ## Recipient and exact-EML boundaries
 
 Recipient-group defaults are construction-time conveniences. They resolve into the group's produced Recipient objects; governance does not maintain a live group hierarchy. Email-level fallback for a recipient-capable field remains useful, but it is not equivalent to rewriting every recipient field.

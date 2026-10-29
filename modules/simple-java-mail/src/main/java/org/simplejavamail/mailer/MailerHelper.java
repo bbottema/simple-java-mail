@@ -127,6 +127,7 @@ public class MailerHelper {
 	 * <ol>
 	 *     <li>from recipient</li>
 	 *     <li>all TO/CC/BCC recipients</li>
+	 *     <li>all typed delivery-recipient overrides</li>
 	 *     <li>reply-to recipient, if provided</li>
 	 *     <li>bounce-to recipient, if provided</li>
 	 *     <li>disposition-notification-to recipient, if provided</li>
@@ -142,6 +143,9 @@ public class MailerHelper {
 				case "To":
 				default: rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_TO_RECIPIENT); break;
 			}
+		}
+		for (final Recipient recipient : email.getOverrideReceivers()) {
+			rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_OVERRIDE_RECIPIENT);
 		}
 		for (final Recipient recipient : email.getReplyToRecipients()) {
 			rejectEncodedWordAddress(recipient, MailInvalidAddressException.INVALID_REPLYTO);
@@ -166,6 +170,9 @@ public class MailerHelper {
 					case "To":
 					default: validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_TO_RECIPIENT); break;
 				}
+			}
+			for (final Recipient recipient : email.getOverrideReceivers()) {
+				validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_OVERRIDE_RECIPIENT);
 			}
 			for (final Recipient recipient : email.getReplyToRecipients()) {
 				validateAddress(emailValidator, recipient, MailInvalidAddressException.INVALID_REPLYTO);
@@ -207,6 +214,7 @@ public class MailerHelper {
 	 *     <li>every replyTo recipient name and address, if provided</li>
 	 *     <li>bounceTo recipient name and address, if provided</li>
 	 *     <li>every TO/CC/BCC recipient name and address</li>
+	 *     <li>every typed delivery-recipient override name and address</li>
 	 *     <li>disposition-notification-to recipient name and address, if provided</li>
 	 *     <li>return-receipt-to recipient name and address, if provided</li>
 	 * </ol>
@@ -262,6 +270,10 @@ public class MailerHelper {
 		for (final Recipient recipient : email.getRecipients()) {
 			scanForInjectionAttack(recipient.getName(), "email.recipient.name");
 			scanForInjectionAttack(recipient.getAddress(), "email.recipient.address");
+		}
+		for (final Recipient recipient : email.getOverrideReceivers()) {
+			scanForInjectionAttack(recipient.getName(), "email.overrideReceiver.name");
+			scanForInjectionAttack(recipient.getAddress(), "email.overrideReceiver.address");
 		}
 	}
 
