@@ -269,3 +269,7 @@ retained S/MIME views, independently of readable-content merging. [#918](https:/
 restoration for unreleased 10.0.0; opaque signature handling and original-source ownership keep their existing contracts.
 
 The [authenticated SOCKS capacity decision](0010-authenticated-socks-bridge.md#setup-capacity-is-separate-from-established-forwarding-accepted-29-october-2026) under [#921](https://github.com/bbottema/simple-java-mail/issues/921) separates bounded setup admission from established forwarding. A reserved forwarding path precedes CONNECT success, explicit ownership transfer releases the setup worker, and overload retires only the new peer. [ADR 0015](0015-execution-views-and-transport-pooling.md#authenticated-proxy-setup-capacity-accepted-29-october-2026) retains the distinction from application executors and transport pools. Client timeouts and the existing established-write observation limit remain unchanged.
+
+The [local anonymous greeting/request clarification](0010-authenticated-socks-bridge.md#local-anonymous-greeting-and-request-validation-accepted-29-october-2026)
+selects method 00 only when offered and rejects invalid CONNECT version/reserved framing before remote effects. This issue-free internal
+hardening preserves supported Angus/JDK traffic, per-peer cleanup and existing bridge ownership without adding methods or configuration.
