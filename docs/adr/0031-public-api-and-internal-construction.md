@@ -24,6 +24,15 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Required body augmentation fragments (accepted 29 October 2026)
+
+Apply required-input rejection to the String `appendPlainText`, `prependPlainText`, `appendHTMLText` and `prependHTMLText` arguments.
+Reject null before changing either body, retaining its previous content or absence. Empty fragments keep their established behavior,
+including establishing an empty body when that alternative was absent. Nullable `withPlainText(String)` and `withHTMLText(String)`
+replacements still clear on null, and named clears remain available. File/path content, valid ordering, other body choices and existing
+Email snapshots retain their contracts. [#919](https://github.com/bbottema/simple-java-mail/issues/919) tracks this correction for unreleased
+10.0.0. It is a separate validation decision from the earlier body-vocabulary rename, which preserved behavior within its own scope.
+
 ### Required calendar replacement inputs (accepted 29 October 2026)
 
 `withCalendarText(method, text)` checks both required arguments before replacing either stored value. A missing method or text leaves the

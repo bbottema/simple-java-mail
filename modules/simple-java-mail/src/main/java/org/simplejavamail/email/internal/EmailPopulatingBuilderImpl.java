@@ -1089,6 +1089,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder prependPlainText(@NotNull final String text) {
+		requireNonNull(text, "text");
 		this.text = text + defaultTo(this.text, "");
 		return this;
 	}
@@ -1120,6 +1121,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder appendPlainText(@NotNull final String text) {
+		requireNonNull(text, "text");
 		this.text = defaultTo(this.text, "") + text;
 		return this;
 	}
@@ -1182,6 +1184,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder prependHTMLText(@NotNull final String textHTML) {
+		requireNonNull(textHTML, "textHTML");
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
 		return this;
 	}
@@ -1213,6 +1216,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder appendHTMLText(@NotNull final String textHTML) {
+		requireNonNull(textHTML, "textHTML");
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;
 	}
