@@ -53,3 +53,9 @@ ADR 0038 resolves compatible raw SOCKS endpoints and SJM credentials into one re
 Keep username/password authentication packet contents out of logging, including TRACE output. The bridge sends the supplied credentials to the remote proxy, but diagnostics may describe only the authentication phase and non-sensitive response facts. Hexadecimal encoding does not make a credential safe to publish. This correction is tracked under [#901](https://github.com/bbottema/simple-java-mail/issues/901).
 
 Treat the two-byte username/password authentication response as one complete protocol frame, independently of socket read boundaries. Require subnegotiation version 1 and the actual success status before issuing CONNECT; reject malformed versions, authentication rejection and EOF before either byte. Consume no bytes from the following exchange. Close the current socket after a rejected, malformed or truncated authentication response, retaining the original failure and suppressing any secondary close failure. This applies the bridge's existing protocol responsibility without changing public configuration or listener/socket ownership; [#902](https://github.com/bbottema/simple-java-mail/issues/902) tracks the correction.
+
+## Established tunnels have no independent timeout (accepted 29 October 2026)
+
+Keep the local socket's ten-second read guard while handling the anonymous SOCKS handshake. After a successful CONNECT, remove that guard before starting transparent forwarding. An established bridge tunnel has no independent read or idle timeout: Angus enforces the application's configured SMTP client timeout from its end of the connection.
+
+This preserves the separation between listener and established-socket lifetimes, including retained and pooled connections. It adds no public configuration and does not change pending remote-proxy setup ownership. [#907](https://github.com/bbottema/simple-java-mail/issues/907) tracks this correction.
