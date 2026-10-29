@@ -545,12 +545,18 @@ public final class MimeMessageParser {
 			// workaround following (copied and modified from JavaMail internal code):
 			// and while we're at it, properly decode the personal names
 			val recipientHeader = mimeMessage.getHeader(getHeaderName(recipientType), ",");
-			return ofNullable(recipientHeader)
-					.map(unchecked(h -> InternetAddress.parseHeader(h, false)))
-					.map(ias -> Arrays.stream(ias)
-							.map(unchecked(ia -> new InternetAddress(ia.getAddress(), decodePersonalName(ia.getPersonal()))))
-							.toArray(Address[]::new))
-					.orElse(null);
+			if (recipientHeader == null) {
+				return null;
+			}
+			final InternetAddress[] addresses;
+			try {
+				addresses = InternetAddress.parseHeader(recipientHeader, false);
+			} catch (final AddressException malformedAddress) {
+				return rawAddressHeader(recipientHeader);
+			}
+			return Arrays.stream(addresses)
+					.map(unchecked(ia -> new InternetAddress(ia.getAddress(), decodePersonalName(ia.getPersonal()))))
+					.toArray(Address[]::new);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(format(MimeMessageParseException.ERROR_GETTING_RECIPIENTS, recipientType), e);
 		}
@@ -631,7 +637,12 @@ public final class MimeMessageParser {
 	@Nullable
 	public static InternetAddress parseFromAddress(@NotNull final MimeMessage mimeMessage) {
 		try {
-			final Address[] addresses = mimeMessage.getFrom();
+			final Address[] addresses;
+			try {
+				addresses = mimeMessage.getFrom();
+			} catch (final AddressException malformedAddress) {
+				return recoverFromAddressHeader(mimeMessage, malformedAddress)[0];
+			}
 			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_FROMADDRESS, e);
@@ -642,11 +653,53 @@ public final class MimeMessageParser {
 	@NotNull
 	public static List<InternetAddress> parseReplyToAddresses(@NotNull final MimeMessage mimeMessage) {
 		try {
-			final Address[] addresses = mimeMessage.getReplyTo();
+			final Address[] addresses;
+			try {
+				addresses = mimeMessage.getReplyTo();
+			} catch (final AddressException malformedAddress) {
+				final InternetAddress[] retained = retainMalformedAddressHeader(mimeMessage.getHeader("Reply-To", ","), malformedAddress);
+				return Arrays.asList(retained != null ? retained : recoverFromAddressHeader(mimeMessage, malformedAddress));
+			}
 			return parseInternetAddresses(addresses);
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_REPLY_TO_ADDRESSES, e);
 		}
+	}
+
+	private static InternetAddress[] recoverFromAddressHeader(final MimeMessage message, final AddressException originalFailure)
+			throws MessagingException {
+		final String from = message.getHeader("From", ",");
+		final InternetAddress[] retained = retainMalformedAddressHeader(from != null ? from : message.getHeader("Sender", ","), originalFailure);
+		if (retained == null) {
+			throw originalFailure;
+		}
+		return retained;
+	}
+
+	/** Attribute a getter failure to its complete source field; empty fields retain their existing fallback, valid fields do not justify recovery. */
+	@Nullable
+	private static InternetAddress[] retainMalformedAddressHeader(@Nullable final String source, final AddressException originalFailure)
+			throws AddressException {
+		if (source == null) {
+			return null;
+		}
+		final InternetAddress[] parsed;
+		try {
+			// Reparse only after a getter's AddressException; every successful Session/getter interpretation remains authoritative.
+			parsed = InternetAddress.parseHeader(source, true);
+		} catch (final AddressException malformedSource) {
+			return rawAddressHeader(source);
+		}
+		if (parsed.length == 0) {
+			return null;
+		}
+		throw originalFailure;
+	}
+
+	private static InternetAddress[] rawAddressHeader(final String source) {
+		final InternetAddress retained = new InternetAddress();
+		retained.setAddress(source);
+		return new InternetAddress[] {retained};
 	}
 
 	@NotNull

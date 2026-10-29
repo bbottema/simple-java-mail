@@ -40,6 +40,9 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
  * Utility to help convert {@link org.simplejavamail.api.email.Email} instances to other formats (MimeMessage, EML etc.) and vice versa.
  * Static conversion methods that produce an email builder use the conventional immutable configuration from {@link SimpleJavaMail#fromDefaults()}.
  * Use {@link SimpleJavaMail#converter()} when conversion must use an explicit factory snapshot.
+ * MIME/EML imports share its tolerant address handling: an address-grammar failure retains the complete offending field in an existing
+ * {@link org.simplejavamail.api.email.Recipient}, so readable mail remains inspectable and ordinary outgoing validation still sees that value.
+ * Successful parsing, missing fields, content/codec failures and exact-message envelope rules retain their separate contracts.
  * <br>
  * For Outlook conversion, add <em>org.simplejavamail:outlook-module</em> using the same version as Simple Java Mail.
  */
