@@ -193,11 +193,13 @@ public interface CliMailerConfigurationBuilder {
 	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}; Jakarta Mail then connects anonymously to a local loopback bridge,
 	 * which authenticates with the remote SOCKS proxy. The effective Session consequently reports the local bridge endpoint, while
 	 * {@link Mailer#getProxyConfig()} describes the remote proxy. Generated bridge addresses and ports are not competing user configuration.
+	 * For an active authenticated route, the effective username and password must each contain 1 through 255 UTF-8 octets. This is checked when
+	 * the Mailer is built, before connecting; collecting and inspecting supplied choices does not validate an incomplete configuration.
 	 *
 	 * @param proxyHost Remote SOCKS host, or omitted to request removal of a captured host.
 	 * @param proxyPort Remote SOCKS port, or omitted to request removal of a captured port. Supply a port when this option selects an active proxy host.
-	 * @param proxyUsername Proxy username, or omitted to request removal of a captured username.
-	 * @param proxyPassword Proxy password, or omitted to request removal of a captured password.
+	 * @param proxyUsername Proxy username, requiring 1 through 255 UTF-8 octets for an active authenticated route, or omitted to request removal of a captured username.
+	 * @param proxyPassword Proxy password, requiring 1 through 255 UTF-8 octets for an active authenticated route, or omitted to request removal of a captured password.
 	 */
 	MailerGenericBuilder<?> withProxy(@Nullable @Cli.Optional String proxyHost, @Nullable @Cli.Optional Integer proxyPort, @Nullable @Cli.Optional String proxyUsername, @Nullable @Cli.Optional String proxyPassword);
 
@@ -229,6 +231,7 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
 	 * Replacing or removing an imported username follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
+	 * An effective active username requires 1 through 255 UTF-8 octets when the Mailer is built; supplied-choice inspection remains passive.
 	 * @param proxyUsername Proxy username, or {@code null} to request removal of a captured username.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
@@ -239,6 +242,7 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
 	 * Replacing or removing an imported password follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
+	 * An effective active password requires 1 through 255 UTF-8 octets when the Mailer is built; supplied-choice inspection remains passive.
 	 *
 	 * @param proxyPassword Proxy password, or {@code null} to request removal of a captured password.
 	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)
@@ -249,8 +253,8 @@ public interface CliMailerConfigurationBuilder {
 	/**
 	 * Relevant only when using username authentication with a proxy.
 	 * <p>
-	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
-	 * loopback address and owns this port while this Mailer has active proxy operations.
+	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to IPv4
+	 * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
 	 * <p>
 	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
 	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do

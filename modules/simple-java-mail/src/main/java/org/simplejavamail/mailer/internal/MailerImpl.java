@@ -48,7 +48,6 @@ import org.simplejavamail.mailer.internal.util.TransportRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -71,6 +70,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
+import static org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge.LOOPBACK_HOST;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
@@ -87,7 +87,6 @@ import static org.simplejavamail.mailer.internal.MailerException.VALIDATION_ERRO
 public class MailerImpl implements Mailer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
-	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
 	private static final String SESSION_OWNER = "org.simplejavamail.internal.mailerOwner";
 
 	/**

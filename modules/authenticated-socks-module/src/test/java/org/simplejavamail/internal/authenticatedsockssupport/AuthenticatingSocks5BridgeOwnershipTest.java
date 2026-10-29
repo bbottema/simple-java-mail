@@ -5,6 +5,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,7 +32,7 @@ class AuthenticatingSocks5BridgeOwnershipTest {
             final IOException original = new IOException("ownership callback failed");
             try {
                 assertThatThrownBy(() -> new AuthenticatingSocks5Bridge(proxy).connect(
-                        "failed-owner", InetAddress.getLoopbackAddress(), 25, raw -> {
+                        "failed-owner", new InetSocketAddress(InetAddress.getLoopbackAddress(), 25), raw -> {
                             allocated.set(raw);
                             assertThat(raw.isConnected()).isFalse();
                             throw original;
@@ -63,7 +64,7 @@ class AuthenticatingSocks5BridgeOwnershipTest {
             final IOException cancelled = new IOException("local client already closed");
 
             assertThatThrownBy(() -> new AuthenticatingSocks5Bridge(proxy).connect(
-                    "early-owner", InetAddress.getLoopbackAddress(), 25, raw -> {
+                    "early-owner", new InetSocketAddress(InetAddress.getLoopbackAddress(), 25), raw -> {
                         published.set(raw);
                         try {
                             assertThat(raw.isConnected()).as("raw handle is owned before TCP setup").isFalse();

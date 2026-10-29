@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,9 +50,13 @@ final class SocksCommandSender {
 			throw new IllegalArgumentException("Unsupported address type");
 		}
 
+		final InetSocketAddress address = (InetSocketAddress) socketAddress;
+		if (address.isUnresolved()) {
+			send(socket, address.getHostString(), address.getPort());
+			return;
+		}
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
-		final InetSocketAddress address = (InetSocketAddress) socketAddress;
 		final byte[] bytesOfAddress = address.getAddress().getAddress();
 		final int ADDRESS_LENGTH = bytesOfAddress.length;
 		final int port = address.getPort();
@@ -112,27 +117,32 @@ final class SocksCommandSender {
 		final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		int temp = 0;
 		for (int i = 0; i < 4; i++) {
-			temp = inputStream.read();
-			byteArrayOutputStream.write(temp);
+			temp = readReplyByte(inputStream, byteArrayOutputStream);
+		}
+		final byte[] header = byteArrayOutputStream.toByteArray();
+		if (header[0] != SOCKS_VERSION) {
+			throw new SocksException("Unsupported SOCKS CONNECT reply version: " + (header[0] & 0xff));
+		}
+		if (header[2] != RESERVED) {
+			throw new SocksException("Invalid reserved byte in SOCKS CONNECT reply: " + (header[2] & 0xff));
 		}
 
-		final byte addressType = (byte) temp;
+		final int addressType = temp;
 		switch (addressType) {
 			case ADDRESS_TYPE_IPV4:
 				for (int i = 0; i < 6; i++) {
-					byteArrayOutputStream.write(inputStream.read());
+					readReplyByte(inputStream, byteArrayOutputStream);
 				}
 				break;
 			case ADDRESS_TYPE_DOMAIN_NAME:
-				temp = inputStream.read();
-				byteArrayOutputStream.write(temp);
+				temp = readReplyByte(inputStream, byteArrayOutputStream);
 				for (int i = 0; i < temp + 2; i++) {
-					byteArrayOutputStream.write(inputStream.read());
+					readReplyByte(inputStream, byteArrayOutputStream);
 				}
 				break;
 			case ADDRESS_TYPE_IPV6:
 				for (int i = 0; i < 18; i++) {
-					byteArrayOutputStream.write(inputStream.read());
+					readReplyByte(inputStream, byteArrayOutputStream);
 				}
 				break;
 			default:
@@ -178,6 +188,16 @@ final class SocksCommandSender {
 		}
 
 		LOGGER.debug("SOCKS server response success");
+	}
+
+	private static int readReplyByte(final InputStream inputStream, final ByteArrayOutputStream reply)
+			throws IOException {
+		final int value = inputStream.read();
+		if (value < 0) {
+			throw new EOFException("End of stream in SOCKS CONNECT reply");
+		}
+		reply.write(value);
+		return value;
 	}
 
 }

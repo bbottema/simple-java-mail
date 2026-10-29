@@ -34,7 +34,7 @@ class Socks5HandlerTimeoutTest {
                 throw new IOException("Stop this fixture at the forwarding boundary");
             }
         };
-        final Socks5Bridge bridge = (id, address, port, owner) -> {
+        final Socks5Bridge bridge = (id, address, owner) -> {
             assertThat(client.getSoTimeout()).as("local command parsed before potentially unlimited remote setup").isZero();
             owner.own(remote);
             return remote;
@@ -49,12 +49,14 @@ class Socks5HandlerTimeoutTest {
     void failedRemoteSetupDoesNotRestoreTheLocalParsingGuard() throws Exception {
         final ClientSocket client = new ClientSocket();
         client.setSoTimeout(10000);
-        new Socks5Handler(new SocksSession(client), (id, address, port, owner) -> {
+        new Socks5Handler(new SocksSession(client), (id, address, owner) -> {
             throw new IOException("Connection refused");
         }).run();
 
         assertThat(client.getSoTimeout()).isZero();
-        assertThat(client.response.toByteArray()).hasSize(12);
+        final byte[] response = client.response.toByteArray();
+        assertThat(response[5]).isIn((byte) 1, (byte) 4);
+        assertThat(response).hasSize(8 + (response[5] == 1 ? 4 : 16));
         assertThat(client.response.toByteArray()[3]).isEqualTo((byte) 5);
         assertThat(client.closed).isTrue();
     }

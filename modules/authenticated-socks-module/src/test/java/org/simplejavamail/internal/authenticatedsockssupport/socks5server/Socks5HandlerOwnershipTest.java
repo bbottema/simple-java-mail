@@ -46,7 +46,7 @@ class Socks5HandlerOwnershipTest {
         final OwnedSocket remote = new OwnedSocket(remoteInput, new ByteArrayOutputStream());
         final SocksTunnel tunnel = new SocksTunnel(local, () -> { });
 
-        new Socks5Handler(new SocksSession(local), (id, address, port, owner) -> {
+        new Socks5Handler(new SocksSession(local), (id, address, owner) -> {
             owner.own(remote);
             return remote;
         }, tunnel).run();

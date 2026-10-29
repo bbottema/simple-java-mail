@@ -27,7 +27,7 @@ class AnonymousSocksPendingLifecycleTest {
         final RemoteSocket remote = new RemoteSocket();
         final CountDownLatch registered = new CountDownLatch(1);
         final CountDownLatch setupFinished = new CountDownLatch(1);
-        final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl((id, address, port, owner) -> {
+        final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl((id, address, owner) -> {
             owner.own(remote);
             registered.countDown();
             try {
@@ -59,7 +59,7 @@ class AnonymousSocksPendingLifecycleTest {
         final RemoteSocket pendingRemote = new RemoteSocket();
         final AtomicInteger connections = new AtomicInteger();
         final CountDownLatch pendingRegistered = new CountDownLatch(1);
-        final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl((id, address, port, owner) -> {
+        final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl((id, address, owner) -> {
             if (connections.incrementAndGet() == 1) {
                 owner.own(establishedRemote);
                 return establishedRemote;
@@ -72,10 +72,13 @@ class AnonymousSocksPendingLifecycleTest {
         server.start();
         try {
             try (Socket establishedClient = beginConnect(server)) {
-                final byte[] success = establishedClient.getInputStream().readNBytes(10);
-                assertThat(success).hasSize(10);
+                final byte[] success = establishedClient.getInputStream().readNBytes(4);
+                assertThat(success).hasSize(4);
                 assertThat(success[0]).isEqualTo((byte) 5);
                 assertThat(success[1]).isZero();
+                assertThat(success[3]).isIn((byte) 1, (byte) 4);
+                final int boundAddressLength = success[3] == 1 ? 4 : 16;
+                assertThat(establishedClient.getInputStream().readNBytes(boundAddressLength + 2)).hasSize(boundAddressLength + 2);
                 assertThat(establishedRemote.reading.await(3, SECONDS)).as("reverse forwarding started").isTrue();
 
                 server.stop();
@@ -111,7 +114,7 @@ class AnonymousSocksPendingLifecycleTest {
     private static Socket beginConnect(final AnonymousSocks5ServerImpl server) throws Exception {
         final Socket client = new Socket();
         try {
-            client.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), server.getLocalPort()), 2000);
+            client.connect(new InetSocketAddress("127.0.0.1", server.getLocalPort()), 2000);
             client.setSoTimeout(3000);
             client.getOutputStream().write(new byte[] {5, 1, 0});
             client.getOutputStream().flush();
@@ -141,7 +144,7 @@ class AnonymousSocksPendingLifecycleTest {
         int octet;
         while ((octet = client.getInputStream().read()) != -1) {
             finalReply.write(octet);
-            assertThat(finalReply.size()).as("at most one final SOCKS reply before closure").isLessThanOrEqualTo(10);
+            assertThat(finalReply.size()).as("at most one final numeric SOCKS reply before closure").isLessThanOrEqualTo(22);
         }
         final byte[] received = finalReply.toByteArray();
         if (received.length >= 2) {

@@ -6,8 +6,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -16,6 +17,8 @@ public class CommandMessage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CommandMessage.class);
 
 	private InetAddress inetAddress;
+
+	private String host;
 
 	private int port;
 
@@ -26,6 +29,9 @@ public class CommandMessage {
 	public void read(final InputStream inputStream)
 			throws IOException {
 		LOGGER.trace("CommandMessage.read");
+		inetAddress = null;
+		host = null;
+		socksServerReplyException = null;
 
 		StreamUtil.checkEnd(inputStream.read()); // version, unused
 		command = StreamUtil.checkEnd(inputStream.read());
@@ -44,20 +50,18 @@ public class CommandMessage {
 				inetAddress = InetAddress.getByAddress(addressBytes);
 				break;
 
+			case AddressType.IPV6:
+				// Retain the explicit address family even for an IPv4-mapped IPv6 payload.
+				inetAddress = Inet6Address.getByAddress(null, read(inputStream, 16), -1);
+				break;
+
 			case AddressType.DOMAIN_NAME:
 				final int domainLength = StreamUtil.checkEnd(inputStream.read());
 				if (domainLength < 1) {
 					throw new SocksException("Length of domain must great than 0");
 				}
 				final byte[] domainBytes = read(inputStream, domainLength);
-				final String host = new String(domainBytes, UTF_8);
-				try {
-					inetAddress = InetAddress.getByName(host);
-				} catch (final UnknownHostException e) {
-					if (socksServerReplyException == null) {
-						socksServerReplyException = new SocksServerReplyException(ServerReply.HOST_UNREACHABLE);
-					}
-				}
+				host = new String(domainBytes, UTF_8);
 				break;
 			default:
 				// TODO Implement later.
@@ -89,6 +93,10 @@ public class CommandMessage {
 
 	public InetAddress getInetAddress() {
 		return inetAddress;
+	}
+
+	public InetSocketAddress getSocketAddress() {
+		return host == null ? new InetSocketAddress(inetAddress, port) : InetSocketAddress.createUnresolved(host, port);
 	}
 
 	public int getPort() {

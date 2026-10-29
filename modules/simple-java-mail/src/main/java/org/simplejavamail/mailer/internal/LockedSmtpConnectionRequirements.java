@@ -9,13 +9,13 @@ import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.config.ConfigurationLocks;
 
-import java.net.InetAddress;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
+import static org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge.LOOPBACK_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SESSION_TIMEOUT_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TRUST_ALL_HOSTS;
@@ -192,7 +192,7 @@ final class LockedSmtpConnectionRequirements {
 		final String portKey = strategy.propertyNameSocksPort();
 		if (locks.contains(PROXY_HOST) || locks.getValues().containsKey("simplejavamail.extraproperties." + hostKey)) {
 			put(PROXY_HOST, strategy.propertyNameSocksHost(), proxy.requiresAuthentication()
-					? InetAddress.getLoopbackAddress().getHostAddress() : proxy.getRemoteProxyHost());
+					? LOOPBACK_HOST : proxy.getRemoteProxyHost());
 		}
 		// An authenticated bridge may bind an ephemeral local port. Its fixed logical destination is checked against the registration instead.
 		if ((locks.contains(PROXY_PORT) || locks.getValues().containsKey("simplejavamail.extraproperties." + portKey)) && !proxy.requiresAuthentication()) {
