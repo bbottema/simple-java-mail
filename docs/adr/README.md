@@ -244,3 +244,8 @@ The next accepted 29 October follow-up distinguishes typed delivery overrides fr
 [ADR 0010](0010-authenticated-socks-bridge.md) and [ADR 0017](0017-deadlines-and-physical-cancellation.md) own per-tunnel pending socket
 ownership and propagation of client closure through authenticated SOCKS setup (#909). These corrections preserve existing validation modes,
 mandatory locks, client timeout authority and established pooled connection lifetimes; the issues track delivery for unreleased 10.0.0.
+
+The maintainer also accepted bounded daemon control/reply separation under [ADR 0019](0019-local-cli-daemon.md) (#915), preserving authenticated
+admission, retained request identities, accepted work and bounded shutdown. [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#914)
+applies existing raw address preservation after a MIME/EML grammar failure, keeping successful interpretation, ordinary outgoing validation,
+content failures and exact-source boundaries unchanged. Both corrections target unreleased 10.0.0; their issues track delivery.
