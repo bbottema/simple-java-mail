@@ -6,7 +6,7 @@ This is the maintenance source for the [architecture infographic](assets/inside-
 
 - Version shown: Simple Java Mail 10.0.0 development line.
 - Path shown: a pooled asynchronous send with configured connection failover and managed Angus transport.
-- Last architecture review: 2026-10-12, including explicit observation ownership, claim handoff and common resource scopes; see the [architecture guide](../failover/architecture.md) and ledger below. Website encoding reviewed on 2026-10-11.
+- Last architecture review: 2026-10-29, including authenticated SOCKS setup/forwarding separation; see the [architecture guide](../failover/architecture.md), [bridge guide](14-authenticated-socks-bridge.md) and ledger below. Website encoding reviewed on 2026-10-11.
 - Not a release-status graphic, a lock-order graph, or an exhaustive map of every send path.
 - Proposed changes stay out of the picture until implemented. Do not add them ahead of the code.
 
@@ -158,3 +158,7 @@ See [telemetry concurrency](13-mail-send-telemetry.md) for scope retirement, ret
 ## Local preparation and submission facts
 
 The [local preparation boundary](01-send-operation.md#local-preparation-and-provider-entry) remains inside the existing Mailer/execution/transport resource layers. A connected socket alone supplies no submission facts; a local MIME/envelope mismatch completes as PREPARATION with no receipt. The shared responsibility overview and artwork keep the same owners and layer relationships. Use the operation guide and ADR 0011 for classification and narrow lease-health provenance under [#865](https://github.com/bbottema/simple-java-mail/issues/865); no new resource owner or graphical layer follows.
+
+## Authenticated SOCKS setup capacity, 2026-10-29
+
+The canonical artwork's five responsibility layers remain accurate for #921: the internal proxy setup executor and forwarding handoff are not pictured as application send workers or transport-pool leases. The [bridge guide](14-authenticated-socks-bridge.md) now maps those inner actors. Established tunnels release setup workers while retained/pooled transport ownership, send supervision, cancellation requests and terminal outcomes keep their existing layer relationships. The master, optimized website derivative and umbrella-issue embed require no image change.
