@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/api-review-899-site'
     # '.local/api-review-example'
     '.local/api-review-897-898-20261028'
     # Current six-fix review scratch; managed worktrees must be archived before cleanup.
@@ -71,6 +72,14 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    '.local/899-red.log'
+    '.local/899-green.log'
+    '.local/899-jdk11.log'
+    '.local/899-site-check.log'
+    '.local/899-site-build.log'
+    '.local/899-cleanup-dryrun.log'
+    '.local/899-cleanup-delivery.index'
+    'docs/plans/899-imported-filenames.md'
     # '.local/api-review-example.log'
     # 'docs/plans/example-completed-plan.md'
     'docs/plans/897-898-image-attributes-cli-guide.md'
