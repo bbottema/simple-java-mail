@@ -94,6 +94,65 @@ class SmimeEncryptedOpaqueSignatureTest {
     }
 
     @ParameterizedTest
+    @MethodSource("detachedProblemCases")
+    void retainedDetachedOutlookSignaturesKeepTheirActualVerificationProblem(
+            final OriginalSmimeDetails.VerificationStatus signatureStatus, final boolean mergeContent) throws Exception {
+        final byte[] message = outlookMessage(encrypted(detachedSigned(signatureStatus)));
+        final EmailPopulatingBuilder builder = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(new ByteArrayInputStream(message))
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
+        if (!mergeContent) {
+            builder.notMergingSingleSMIMESignedAttachment();
+        }
+        final Email email = builder.buildEmail();
+
+        assertFacts(email, signatureStatus, null);
+        assertThat(email.getSmimeSignedEmail().getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signatureStatus);
+        final AttachmentResource retained = email.getDecryptedAttachments().stream()
+                .filter(attachment -> "signed-email.eml".equals(attachment.getName())).findFirst().orElseThrow();
+        final byte[] retainedBytes = retained.readAllBytes();
+        final MimeMessage signedEntity = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(retainedBytes));
+        assertThat(signedEntity.isMimeType("multipart/signed")).isTrue();
+        final Email reimported = EmailConverter.emlToEmail(new ByteArrayInputStream(retainedBytes));
+        assertThat(reimported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signatureStatus);
+        assertThat(reimported.getPlainText()).contains(signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
+        assertThat(reimported.getAttachments()).extracting("name").contains("smime.p7s");
+    }
+
+    private static Stream<Arguments> detachedProblemCases() {
+        return Stream.of(INVALID, ERROR).flatMap(status -> Stream.of(true, false).map(merge -> Arguments.of(status, merge)));
+    }
+
+    private static MimeBodyPart detachedSigned(final OriginalSmimeDetails.VerificationStatus expected) throws Exception {
+        final Pkcs12Config keys = loadPkcs12KeyStore();
+        final KeyStore store = store(keys);
+        final X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
+        final SMIMESignedGenerator generator = new SMIMESignedGenerator();
+        if (expected != ERROR) {
+            generator.addCertificates(new JcaCertStore(List.of(certificate)));
+        }
+        generator.addSignerInfoGenerator(new JcaSimpleSignerInfoGeneratorBuilder().setProvider(SmimeCryptoSupport.BOUNCY_CASTLE)
+                .build("SHA256withRSA", (PrivateKey) store.getKey(keys.getKeyAlias(), keys.getKeyPassword()), certificate));
+        final MimeBodyPart text = new MimeBodyPart();
+        text.setText(ORIGINAL_BODY, "UTF-8");
+        final MimeMultipart content = new MimeMultipart();
+        content.addBodyPart(text);
+        final MimeBodyPart entity = new MimeBodyPart();
+        entity.setContent(content);
+        final MimeMultipart signed = generator.generate(entity);
+        final MimeBodyPart wrapper = new MimeBodyPart();
+        wrapper.setContent(signed);
+        wrapper.setHeader("Content-Type", signed.getContentType());
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        wrapper.writeTo(output);
+        final String encoded = output.toString(ISO_8859_1);
+        if (expected == INVALID) {
+            assertThat(encoded).contains(ORIGINAL_BODY);
+        }
+        return new MimeBodyPart(new ByteArrayInputStream((expected == INVALID
+                ? encoded.replace(ORIGINAL_BODY, TAMPERED_BODY) : encoded).getBytes(ISO_8859_1)));
+    }
+
+    @ParameterizedTest
     @MethodSource("opaqueCases")
     void outlookEnvelopeRetainsItsDecryptedOpaqueSignatureFacts(final String mediaType,
             final OriginalSmimeDetails.VerificationStatus signatureStatus, final boolean mergeContent) throws Exception {

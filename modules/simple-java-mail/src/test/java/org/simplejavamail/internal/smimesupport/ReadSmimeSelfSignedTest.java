@@ -358,6 +358,9 @@ public class ReadSmimeSelfSignedTest {
 				.smimeMime("application/pkcs7-mime")
 				.smimeType("enveloped-data")
 				.smimeName("smime.p7m")
+				.smimeSignatureValid(true)
+				.verificationStatus(VerificationStatus.VALID)
+				.decryptionStatus(DecryptionStatus.DECRYPTED)
 				.build());
 		EmailAssert.assertThat(emailParsedFromMsg.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
 				.smimeMode(SmimeMode.SIGNED)

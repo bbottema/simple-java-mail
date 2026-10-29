@@ -734,6 +734,9 @@ public class SMIMESupport implements SMIMEModule {
 					messageEnvelopeDetails.completeWith(verification);
 					messageEnvelopeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
 				}
+				if (nestedState != SmimeState.SIGNED_ENVELOPED) {
+					return retainDetachedSignedContent(liberatedBodyPart);
+				}
 				final AttachmentDecryptionResult signedContent = extractSignedContent(liberatedBodyPart, SmimeMode.SIGNED_ENCRYPTED);
 				if (signedContent != null) {
 					return signedContent;
@@ -743,6 +746,17 @@ public class SMIMESupport implements SMIMEModule {
 		}
 		LOGGER.warn("Message was encrypted, but no Pkcs12Config was given to decrypt it with, skipping attachment...");
 		return null;
+	}
+
+	@NotNull
+	private AttachmentDecryptionResult retainDetachedSignedContent(final MimeBodyPart signedPart)
+			throws MessagingException, IOException {
+		// Rebuilding its Multipart would update signed headers and invalidate the retained signature.
+		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		signedPart.writeTo(bytes);
+		final AttachmentResource retained = AttachmentResource.builder().withName("signed-email.eml")
+				.withDataSource(new ByteArrayDataSource(bytes.toByteArray(), "message/rfc822")).build();
+		return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, retained);
 	}
 
 	@Nullable
