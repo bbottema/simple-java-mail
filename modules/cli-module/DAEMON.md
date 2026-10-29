@@ -67,6 +67,10 @@ A custom classpath without `batch-module` remains supported. It still avoids rep
 
 Eviction and shutdown wait for active leases and command futures, remove the Mailer from lookup, and close it. The registry and request queue are bounded. Status reports anonymous counts, never configuration values or profile fingerprints.
 
+Slow SMTP commands use separate reply capacity from authentication and management, so command saturation leaves `status` and `stop`
+available. When reply capacity is full, another command receives the authenticated busy result before a new request is registered or
+submitted. A duplicate observer can also receive busy; that does not change the result of its earlier accepted request or cause a replay.
+
 ## Configuration and files
 
 Classpath `simplejavamail.properties`, environment variables, and JVM system properties are captured when the daemon starts. Detached startup
@@ -120,7 +124,7 @@ Daemon logs use bounded rolling files in the instance directory. Raw CLI argumen
 
 ## Status and exit codes
 
-`daemon status` prints stable `key=value` lines for the instance, lifecycle state, PID, uptime, product/protocol versions, transport, active and queued requests, Mailer count, active leases, close failures, recent request tombstones, and retained result bytes.
+`daemon status` prints stable `key=value` lines for the instance, lifecycle state, PID, uptime, product/protocol versions, transport, active and queued requests, Mailer count, active leases, close failures, recent request identities, and retained result bytes. `activeReplies` and `queuedReplies` report execution-reply handling separately from `activeRequests` and `queuedRequests`, which describe application work.
 
 | Code | Meaning |
 | ---: | --- |
@@ -169,6 +173,11 @@ To remove it, run `systemctl --user disable --now sjm-daemon.service`, delete th
 
 ## Shutdown and recovery
 
-Stop first closes intake, then gives accepted commands up to 30 seconds to drain. If work still cannot terminate, its retained result becomes ambiguous, the executor is interrupted, cached Mailers are force-retired, and the CLI process exits rather than claiming successful delivery. Owned discovery/socket state and the instance lock are then removed. A PID is never killed merely because it appears in a file. `restart` performs an authenticated stop, observes termination, and then starts normally.
+Stop first closes intake and refuses commands still awaiting application admission, then gives accepted commands up to 30 seconds to drain.
+Duplicate observers keep the result of the accepted request they already reference. If accepted work cannot produce a terminal result, that
+result becomes ambiguous; closing a reply observer does not cancel or resubmit it. Authentication/control and execution replies then share
+one network-drain budget of up to 30 seconds, after which outstanding channels close. Cached Mailers are retired and owned discovery/socket
+state and the instance lock are removed. A PID is never killed merely because it appears in a file. `restart` performs an authenticated stop,
+observes termination, and then starts normally.
 
 If state is stale after a crash, a new daemon must acquire the instance lock before replacing it or deleting its own derived socket. If status reports incompatible or unverifiable state, use the matching old CLI to stop that daemon or terminate it through the supervisor after independently verifying the process identity. Do not delete state and kill the recorded PID blindly.

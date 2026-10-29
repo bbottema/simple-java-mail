@@ -30,6 +30,29 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Management admission during command saturation (accepted 29 October 2026)
+
+Keep short authentication and management handling separate from bounded execution-reply waiting. Slow SMTP commands must not occupy the
+workers needed to authenticate and answer `status` or `stop`. Reserve execution-reply capacity before retaining a new command identity;
+full reply capacity produces an authenticated busy refusal without admitting that command. Authentication/control capacity remains
+independently bounded rather than sharing a permit budget consumed by commands. This guarantees separation from execution saturation,
+not availability under arbitrary clients exhausting the authentication lane.
+
+Capture the ledger registration and its result future at the authenticated handoff, then queue that observer before any new application
+work is admitted. A delayed observer must not register again after an earlier result or tombstone expires. Publish a new command's owner
+before duplicate observers can overtake it. Keep application admission distinct from reply ownership and preserve the existing application
+worker limits, endpoint, wire protocol and public settings.
+
+Order admission and the transition to quiescing under one short gate. Stop refuses only original registrations that have not reached
+application admission; a duplicate observer never completes, cancels or replaces another command's accepted result. Accepted work continues
+after its client disconnects. Refused or interrupted reply observers release only their own bounded slot and channel. Retain continuous
+channel ownership across handoff and close active as well as abandoned channels when shutdown exhausts its network-drain budget.
+
+Preserve the existing application-drain policy and share one network-drain budget between authentication/control and execution replies.
+After application draining, fence any remaining incomplete accepted results as ambiguous, including tasks that ended without producing a
+result. A new reply lane must not add another sequential shutdown interval or turn reply loss into a reason to resubmit. This correction
+targets unreleased 10.0.0 under [#915](https://github.com/bbottema/simple-java-mail/issues/915).
+
 ### Selector and message-value ownership (accepted 28 October 2026)
 
 Daemon routing preserves the command model's ownership of message values, including values shaped like mode or instance selectors.
