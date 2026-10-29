@@ -62,6 +62,15 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/feature-review-auth-20261029'
+    '.local/feature-review-tunnel-timeout-20261029'
+    '.local/feature-review-retry-20261029'
+    '.local/feature-review-smime-20261029'
+    '.local/feature-review-dsn-20261029'
+    '.local/feature-review-calendar-20261029'
+    '.local/feature-review-config-inputs-20261029'
+    '.local/feature-review-site-20261029'
+    '.local/feature-review-delivery-20261029'
     '.local/api-review-899-site'
     # '.local/api-review-example'
     '.local/api-review-897-898-20261028'
@@ -72,6 +81,14 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/901-902-socks-auth.md'
+    'docs/plans/907-socks-tunnel-timeout.md'
+    'docs/plans/900-retry-receipt.md'
+    'docs/plans/905-906-smime.md'
+    'docs/plans/903-dsn-zone.md'
+    'docs/plans/904-calendar-input.md'
+    'docs/plans/config-loader-required-inputs-20261029.md'
+    'docs/plans/feature-review-20261029.md'
     '.local/899-red.log'
     '.local/899-green.log'
     '.local/899-jdk11.log'
@@ -87,6 +104,10 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    @{
+        Path = 'C:\Users\Benny Bottema\AppData\Local\Temp\surefire3238261096306854804'
+        Parent = 'C:\Users\Benny Bottema\AppData\Local\Temp'
+    }
     # #895/#896 temporary checkouts remain protected by app primary/in-use ownership.
     # Archive them through the app before allowing directory cleanup.
     @{
