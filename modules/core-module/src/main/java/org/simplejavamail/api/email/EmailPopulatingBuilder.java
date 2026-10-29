@@ -601,10 +601,13 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * Sets the optional calendar details that clients such as Outlook might be able to handle. Will be set as alternative bodypart similar to
 	 * {@link #withPlainText(String)} and {@link #withHTMLText(String)}.
+	 * Both arguments are required: a null method or text is rejected without changing the earlier calendar choice.
+	 * Use {@link #clearCalendarText()} to remove both values. Non-null text remains free-form, including empty text; this call does not parse it.
 	 *
 	 * @param calendarMethod An RFC-2446 VEVENT calendar component method. Example: {@code PUBLISH, REQUEST, REPLY, ADD, CANCEL, REFRESH, COUNTER, DECLINECOUNTER}
 	 * @param textCalendar free form text, which you can produce with a library such as
 	 *                        <a href="https://github.com/ical4j/ical4j/wiki/Examples">ical4j</a>.
+	 * @throws NullPointerException If the method or text is null.
 	 *
 	 * @see "The Test demo app in Simple Java Mail's source for a working example."
 	 */
