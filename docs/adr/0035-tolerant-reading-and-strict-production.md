@@ -315,3 +315,20 @@ tracks implementation and delivery for unreleased 10.0.0.
 Preserve decoded MIME filenames on attachments and embedded images, including literal angle brackets. Filenames and Content-IDs are distinct metadata: bracket removal applies only to actual Content-ID interpretation and the established missing-filename CID fallback. Import must not silently sanitize an otherwise interpretable filename.
 
 This applies to static/fluent MIME/EML import and exact inspection. Preserve classification, content bytes, eager/lazy ownership and authoritative exact/protected bytes under ADR 0008 and ADR 0036. Issue [#899](https://github.com/bbottema/simple-java-mail/issues/899) tracks this correction to existing behavior for unreleased 10.0.0.
+
+## Unparseable imported message addresses (accepted 29 October 2026)
+
+When existing MIME/EML interpretation fails on the address grammar of From, To/Cc/Bcc or Reply-To, retain the complete offending field
+in the existing tolerant Recipient value and continue reading usable neighboring fields, bodies and attachments. Apply the established
+Outlook/receipt raw-recipient fallback without guessing a mailbox, selecting only a partially parsed list or hiding the address solely in
+unchecked custom headers. Ordinary outgoing validation must still inspect that typed value; warning-only validation keeps its existing meaning.
+
+Keep all successful Jakarta Mail interpretations, including the non-strict To/Cc/Bcc grammar, existing names, ordered duplicates and singular
+From selection. Missing, empty and comment-only fields retain their current behavior. From falls back to Sender only when absent;
+Reply-To falls back to the From addresses when absent or parsed empty. An explicitly malformed Reply-To retains its own source rather than
+silently becoming From. Recover only the grammar failure of its actual source; an unrelated getter, codec, content, protection or I/O failure
+remains an error. Do not introduce strict preflight, a second general parser, a global permissive setting or a new public representation.
+
+Copying and supported serialization retain recovered typed input. Exact inspection retains authoritative bytes and separately validates its
+explicit envelope. Return-Path keeps #838's distinct absent-typed-value/source-header rule, while receipt fallback and the deferred RFC-group
+policy remain unchanged. This applies the existing tolerant-import decision under [#914](https://github.com/bbottema/simple-java-mail/issues/914).
