@@ -39,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 class DeliveryStatusReportParser {
 
 	private static final Pattern STATUS_CODE = Pattern.compile("[245]\\.[0-9]+\\.[0-9]+");
+	private static final Pattern NUMERIC_TIMEZONE = Pattern.compile("[+-]([0-9]{2})[0-9]{2}$");
 
 	/** Only the effective message's own report container is eligible, never a report attached to ordinary mail. */
 	static boolean isReportContainer(final MimePart part) {
@@ -307,7 +309,8 @@ class DeliveryStatusReportParser {
 		format.setLenient(false);
 		final ParsePosition position = new ParsePosition(0);
 		final Date parsed = format.parse(supplied, position);
-		if (parsed != null && hasOnlyTrailingComments(supplied.substring(position.getIndex()))) {
+		if (parsed != null && hasValidTimezoneHours(supplied.substring(0, position.getIndex()))
+				&& hasOnlyTrailingComments(supplied.substring(position.getIndex()))) {
 			return parsed.toInstant();
 		}
 		try {
@@ -320,6 +323,12 @@ class DeliveryStatusReportParser {
 		}
 		warnings.add("The delivery report has an invalid " + name + " date; that fact was left unavailable.");
 		return null;
+	}
+
+	private static boolean hasValidTimezoneHours(final String parsedText) {
+		// MailDateFormat's strict grammar checks timezone minutes, but accepts any two-digit hour.
+		final Matcher zone = NUMERIC_TIMEZONE.matcher(parsedText);
+		return !zone.find() || Integer.parseInt(zone.group(1)) < 24;
 	}
 
 	private static boolean hasOnlyTrailingComments(final String remainder) {
