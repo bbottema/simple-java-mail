@@ -30,6 +30,7 @@ Recipient DSN policies and automatic ORCPT use the same layers and ownership. Th
 | How do we know an old cancellation callback cannot touch a reused connection? | [05 — Stop registration](05-stop-registration.md) |
 | Who owns a connection while waiting for a pool claim, using it, and returning it? | [06 — Pool claims and leases](06-pool-claims-and-leases.md) |
 | How can cancellation unblock Angus without waiting for its SMTP lock? What if SMTP already accepted the email? | [07 — Angus transport abort](07-angus-transport-abort.md) |
+| How do authenticated SOCKS setup workers hand off established tunnels? What happens under overload? | [14 — Authenticated SOCKS bridge](14-authenticated-socks-bridge.md) |
 | How do the machines fit together, including observers, batches, and future completion? | [08 — Cross-machine contracts](08-cross-machine-contracts.md) |
 | Why select a destination before borrowing? Who charges or releases sending allowance? | [09 — Sending limits](09-sending-limits.md) |
 | Who may recheck a failed primary? Why doesn't a full pool trigger failover? | [10 — Connection failover](10-connection-failover.md) |
@@ -50,7 +51,7 @@ Async destination selection and Email preparation also run during executor execu
 
 Connection tests and capability probes have separate helper paths. A probe opens a dedicated connection without an Email, send-pool lease, observer outcome, or total send deadline. It reuses proxy accounting and holds the Mailer monitor through synchronous cleanup; the async wrapper uses the Mailer's executor. Admission/shutdown failures produce exceptional futures, while connection/cleanup failures are diagnostic reports. See [ADR 0020](../adr/0020-dedicated-smtp-connection-diagnostics.md) for authentication, provider limitations, and future-cancellation semantics.
 
-The authenticated SOCKS bridge's listener and accepted forwarding sockets have distinct lifetimes, described in [ADR 0010](../adr/0010-authenticated-socks-bridge.md). Its request counter participates in send/probe cleanup, while existing pooled sockets can outlive a listener stop. The CLI daemon's retained Mailers and request ledger have their own ownership rules in [ADR 0019](../adr/0019-local-cli-daemon.md).
+The authenticated SOCKS bridge's listener, bounded setup executor and established forwarding sockets have distinct lifetimes, described in [ADR 0010](../adr/0010-authenticated-socks-bridge.md) and the [bridge concurrency guide](14-authenticated-socks-bridge.md). Setup transfers to a reserved forwarding thread after local success; its worker returns while the original client reader and reverse forwarder retain the tunnel. Its request counter participates in send/probe cleanup, while existing pooled sockets can outlive a listener stop and setup-worker retirement. The CLI daemon's retained Mailers and request ledger have their own ownership rules in [ADR 0019](../adr/0019-local-cli-daemon.md).
 
 ## The cooperating machines
 
