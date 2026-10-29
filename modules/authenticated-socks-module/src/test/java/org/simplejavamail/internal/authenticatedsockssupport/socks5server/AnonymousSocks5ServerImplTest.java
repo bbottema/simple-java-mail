@@ -76,7 +76,7 @@ class AnonymousSocks5ServerImplTest {
 	@Test
 	void bindsTheBridgeToLoopbackOnly() throws InterruptedException {
 		final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl(
-				(sessionId, remoteServerAddress, remoteServerPort) -> {
+				(sessionId, remoteServerAddress, remoteServerPort, owner) -> {
 					throw new UnsupportedOperationException("The bridge must not be used by this binding test");
 				},
 				0);
@@ -117,7 +117,7 @@ class AnonymousSocks5ServerImplTest {
 
 	private static AnonymousSocks5ServerImpl newEphemeralServer() {
 		return new AnonymousSocks5ServerImpl(
-				(sessionId, remoteServerAddress, remoteServerPort) -> {
+				(sessionId, remoteServerAddress, remoteServerPort, owner) -> {
 					throw new UnsupportedOperationException("The bridge must not be used by this binding test");
 				},
 				0);

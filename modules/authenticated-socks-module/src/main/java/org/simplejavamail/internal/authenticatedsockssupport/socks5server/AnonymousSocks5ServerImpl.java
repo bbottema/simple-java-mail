@@ -5,8 +5,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
@@ -30,6 +33,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	@Nullable private volatile ExecutorService threadPool;
 	@Nullable private volatile ServerSocket serverSocket;
 	@Nullable private volatile Thread listenerThread;
+	@Nullable private volatile Set<SocksTunnel> tunnels;
 	private volatile boolean stopping = false;
 	private volatile boolean running = false;
 	
@@ -57,12 +61,14 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 				throw e;
 			}
 
+			final Set<SocksTunnel> preparedTunnels = ConcurrentHashMap.newKeySet();
 			threadPool = preparedThreadPool;
 			serverSocket = preparedServerSocket;
+			tunnels = preparedTunnels;
 			running = true;
 			stopping = false;
 			listenerThread = new Thread(
-					() -> runServer(preparedServerSocket, preparedThreadPool),
+					() -> runServer(preparedServerSocket, preparedThreadPool, preparedTunnels),
 					"simple-java-mail SOCKS5 bridge " + preparedServerSocket.getLocalPort());
 			listenerThread.start();
 		}
@@ -87,6 +93,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	public void stop() {
 		final ServerSocket serverSocketToClose;
 		final Thread listenerThreadToJoin;
+		final Set<SocksTunnel> tunnelsToRetire;
 		synchronized (lifecycleMonitor) {
 			if (!running) {
 				return;
@@ -94,6 +101,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			stopping = true;
 			serverSocketToClose = serverSocket;
 			listenerThreadToJoin = listenerThread;
+			tunnelsToRetire = tunnels;
 		}
 
 		try {
@@ -102,6 +110,8 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			}
 		} catch (final IOException e) {
 			throw new SocksException(MailFailureKind.CLEANUP, e.getMessage(), e);
+		} finally {
+			if (tunnelsToRetire != null) { tunnelsToRetire.forEach(SocksTunnel::closeIfPending); }
 		}
 
 		if (listenerThreadToJoin != null && listenerThreadToJoin != Thread.currentThread()) {
@@ -118,33 +128,59 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	public void run() {
 		final ServerSocket activeServerSocket = serverSocket;
 		final ExecutorService activeThreadPool = threadPool;
-		if (activeServerSocket == null || activeThreadPool == null) {
+		final Set<SocksTunnel> activeTunnels = tunnels;
+		if (activeServerSocket == null || activeThreadPool == null || activeTunnels == null) {
 			throw new IllegalStateException("server has not been started");
 		}
-		runServer(activeServerSocket, activeThreadPool);
+		runServer(activeServerSocket, activeThreadPool, activeTunnels);
 	}
 
-	private void runServer(final ServerSocket activeServerSocket, final ExecutorService activeThreadPool) {
+	private void runServer(final ServerSocket activeServerSocket, final ExecutorService activeThreadPool, final Set<SocksTunnel> activeTunnels) {
 		boolean crashed = false;
+		Throwable listenerFailure = null;
 		LOGGER.info("Starting proxy server at loopback:{}", activeServerSocket.getLocalPort());
 		try {
 			while (!activeServerSocket.isClosed()) {
 				LOGGER.info("waiting for new connection...");
-				@SuppressWarnings("SocketOpenedButNotSafelyClosed") // socket is closed elsewhere
 				final Socket socket = activeServerSocket.accept();
-				socket.setSoTimeout(10000);
-				activeThreadPool.execute(new Socks5Handler(new SocksSession(socket), socks5Bridge));
+				final AtomicReference<SocksTunnel> reference = new AtomicReference<>();
+				final SocksTunnel tunnel = new SocksTunnel(socket, () -> activeTunnels.remove(reference.get()));
+				reference.set(tunnel);
+				activeTunnels.add(tunnel);
+				try {
+					if (activeServerSocket.isClosed()) {
+						tunnel.closeIfPending();
+						continue;
+					}
+					socket.setSoTimeout(10000);
+					final SocksSession session = new SocksSession(socket);
+					activeThreadPool.execute(new Socks5Handler(session, socks5Bridge, tunnel));
+				} catch (IOException failure) {
+					tunnel.close(failure);
+					LOGGER.debug("Accepted SOCKS peer closed before its handler could start", failure);
+				} catch (RuntimeException | Error failure) {
+					tunnel.close(failure);
+					throw failure;
+				}
 			}
 		} catch (final IOException e) {
 			if (!activeServerSocket.isClosed()) {
 				crashed = true;
+				listenerFailure = e;
 				LOGGER.error("Authenticated SOCKS proxy bridge crashed", e);
 			}
+		} catch (RuntimeException | Error failure) {
+			crashed = true;
+			listenerFailure = failure;
+			throw failure;
 		} finally {
 			LOGGER.debug("shutting down proxy bridge listener...");
 			if (crashed) {
+				final Throwable failure = listenerFailure;
+				activeTunnels.forEach(tunnel -> tunnel.close(failure));
 				activeThreadPool.shutdownNow();
 			} else {
+				activeTunnels.forEach(SocksTunnel::closeIfPending);
 				// Existing pooled SMTP connections keep using their accepted bridge sockets until those transports close.
 				activeThreadPool.shutdown();
 			}
@@ -153,6 +189,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 					serverSocket = null;
 					threadPool = null;
 					listenerThread = null;
+					tunnels = null;
 					running = false;
 					stopping = false;
 				}

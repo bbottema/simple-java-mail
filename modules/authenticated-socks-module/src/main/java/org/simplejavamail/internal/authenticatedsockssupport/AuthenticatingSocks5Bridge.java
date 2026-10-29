@@ -5,7 +5,6 @@ import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Br
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5client.ProxyCredentials;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5client.Socks5;
-import org.simplejavamail.internal.authenticatedsockssupport.socks5client.SocksSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,28 +32,32 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	}
 
 	/**
-	 * Refer to {@link Socks5Bridge#connect(String, InetAddress, int)}.
+	 * Refer to {@link Socks5Bridge#connect(String, InetAddress, int, SocketOwner)}.
 	 */
 	@Override
-	public Socket connect(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
-			throws IOException {
-		return proxyConfig.requiresAuthentication() ?
-				createSocketAuthenticated(sessionId, remoteServerAddress, remoteServerPort) :
-				createSocketPlainAnonymous(sessionId, remoteServerAddress, remoteServerPort);
-	}
-
-	private Socket createSocketAuthenticated(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
+	public Socket connect(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort, final SocketOwner owner)
 			throws IOException {
 		LOGGER.info("SESSION[{}] bridging to remote proxy {}", sessionId, proxyConfig);
-		final Socks5 proxyAuth = new Socks5(new InetSocketAddress(remoteProxyHost, remoteProxyPort));
-		proxyAuth.setCredentials(new ProxyCredentials(proxyConfig.getUsername(), proxyConfig.getPassword()));
-		return new SocksSocket(proxyAuth, proxyAuth.createProxySocket(), new InetSocketAddress(remoteServerAddress, remoteServerPort));
-	}
-
-	private Socket createSocketPlainAnonymous(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort)
-			throws IOException {
-		LOGGER.info("SESSION[{}] bridging anonymously to remote proxy {}:{}", sessionId, remoteProxyHost, remoteProxyPort);
-		final Socks5 socksProxyAnonymous = new Socks5(new InetSocketAddress(remoteProxyHost, remoteProxyPort));
-		return new SocksSocket(socksProxyAnonymous, new InetSocketAddress(remoteServerAddress, remoteServerPort));
+		final Socket raw = new Socket();
+		try {
+			owner.own(raw);
+		} catch (IOException | RuntimeException | Error failure) {
+			try {
+				if (!raw.isClosed()) { raw.close(); }
+			} catch (IOException | RuntimeException | Error cleanup) {
+				if (cleanup != failure) { failure.addSuppressed(cleanup); }
+			}
+			throw failure;
+		}
+		// The SMTP client's SOCKS connect budget remains authoritative. Its peer closure aborts this exact owned handle.
+		raw.connect(new InetSocketAddress(remoteProxyHost, remoteProxyPort));
+		final Socks5 proxy = new Socks5(new InetSocketAddress(raw.getInetAddress(), remoteProxyPort));
+		proxy.setProxySocket(raw);
+		if (proxyConfig.requiresAuthentication()) {
+			proxy.setCredentials(new ProxyCredentials(proxyConfig.getUsername(), proxyConfig.getPassword()));
+		}
+		proxy.buildConnection();
+		proxy.requestConnect(remoteServerAddress, remoteServerPort);
+		return raw;
 	}
 }

@@ -53,6 +53,8 @@ or failed acquisition cleanup. A socket timeout and the total-send deadline rema
 
 This design adds control state, registration fences and pool/provider cooperation because completion must follow real cleanup. It deliberately does not promise a hard wall-clock completion bound for arbitrary DNS resolution, attachment sources, user callbacks or other non-cooperative code. Stop requests may take effect before the public result completes. The observer/cleanup order for a whole ordinary send also differs from a per-email notification inside a still-open batch or connection scope.
 
+An established authenticated SOCKS tunnel retains its blocking forwarding model. If its local-input forwarder is blocked writing to the remote peer, or waiting for the output-order lock while buffered early bytes are flushed, it can observe client EOF only after that wait returns. Direct tunnel closure does not acquire the forwarding-order lock, but that fact does not promise immediate EOF observation under arbitrary forwarding backpressure. The pending-setup correction below does not introduce another transport or cancellation protocol to change this inherited limit.
+
 ## Implementation and regression anchors
 
 [ADR 0030](0030-safe-bounded-mail-send-retries.md) records the retry extension implemented under #756. Backoff consumes
@@ -63,3 +65,9 @@ as terminal. Existing terminal-failure and acceptance/cleanup arbitration remain
 - [MailTransportLifecycleAdapter](../../modules/core-module/src/main/java/org/simplejavamail/api/mailer/spi/MailTransportLifecycleAdapter.java), [pool claims and leases](../concurrency/06-pool-claims-and-leases.md), [cross-machine regression evidence](../concurrency/08-cross-machine-contracts.md)
 
 The catalogue links existing blocked-I/O, queue retirement, pool-size-one, stale-lease and acceptance-boundary tests. Those are finite regression evidence, not exhaustive scheduling proof; this documentation change did not rerun them.
+
+## Pending authenticated SOCKS setup (accepted 29 October 2026)
+
+For the authenticated bridge, physical client-socket closure must reach the exact remote socket even before proxy setup returns. [ADR 0010](0010-authenticated-socks-bridge.md#pending-setup-belongs-to-one-tunnel-accepted-29-october-2026) assigns that handle to a per-tunnel owner before connect/authentication I/O. Its single local-input reader observes client EOF through pending setup and the forwarding handoff; it does not share a reader with another tunnel or depend on an endpoint/FIFO match.
+
+Keep the existing client connect budget across SOCKS setup and the established SMTP read timeout separate. A client connect failure's cleanup or an explicit supported abort closes its peer; the bridge closes its owned pending TCP/authentication/CONNECT socket waits. No bridge timer or ordinary SMTP read timeout is added to setup. Unlimited connect settings retain their meaning, and this does not strengthen the arbitrary native-DNS, callback, supplied-Session or custom-provider limits described above. Normal listener stop preserves established pooled/retained tunnels while retiring pending owners. [#909](https://github.com/bbottema/simple-java-mail/issues/909) tracks the correction.

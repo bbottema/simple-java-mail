@@ -8,34 +8,31 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.concurrent.atomic.AtomicLong;
 
 class SocksSession {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksSession.class);
 
-	private static int nextSessionId = 0;
+	private static final AtomicLong NEXT_SESSION_ID = new AtomicLong();
 
 	private final Socket socket;
 
-	private final long id = ++nextSessionId;
+	private final long id = NEXT_SESSION_ID.incrementAndGet();
 
-	private InputStream inputStream;
+	private final InputStream inputStream;
 
-	private OutputStream outputStream;
+	private final OutputStream outputStream;
 
 	private final SocketAddress clientAddress;
 
-	public SocksSession(final Socket socket) {
+	public SocksSession(final Socket socket) throws IOException {
 		if (!socket.isConnected()) {
 			throw new IllegalArgumentException("Socket should be a connected socket");
 		}
 		this.socket = socket;
-		try {
-			inputStream = this.socket.getInputStream();
-			outputStream = this.socket.getOutputStream();
-		} catch (final IOException e) {
-			LOGGER.error(e.getMessage(), e);
-		}
+		inputStream = this.socket.getInputStream();
+		outputStream = this.socket.getOutputStream();
 		clientAddress = socket.getRemoteSocketAddress();
 		LOGGER.info("SESSION[{}] opened from {}", getId(), clientAddress);
 	}

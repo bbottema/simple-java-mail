@@ -2,7 +2,6 @@ package org.simplejavamail.internal.authenticatedsockssupport.socks5server;
 
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
-import org.simplejavamail.internal.authenticatedsockssupport.socks5server.io.SocketPipe;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.msg.CommandMessage;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.msg.CommandResponseMessage;
 import org.simplejavamail.internal.authenticatedsockssupport.socks5server.msg.MethodSelectionMessage;
@@ -15,123 +14,96 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+/** Reads the local SOCKS handshake, then owns remote setup and the remote-to-client forwarding direction. */
 public class Socks5Handler implements Runnable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Handler.class);
+    private static final byte[] METHOD_SELECTION_RESPONSE = {(byte) 5, (byte) 0};
+    private static final int CONNECT_COMMAND = 1;
+    public static final int VERSION = 5;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Handler.class);
-	private static final Logger SOCKS5BRIDGE_LOGGER = LoggerFactory.getLogger("socks5bridge");
-	private static final byte[] METHOD_SELECTION_RESPONSE = { (byte) 0x5, (byte) 0x00 };
-	private static final int CONNECT_COMMAND = 0x01;
+    private final SocksSession session;
+    private final Socks5Bridge bridge;
+    private final SocksTunnel tunnel;
 
-	public static final int VERSION = 0x5;
+    public Socks5Handler(final SocksSession session, final Socks5Bridge bridge) {
+        this(session, bridge, new SocksTunnel(session.getSocket(), () -> { }));
+    }
 
-	private final SocksSession session;
-	private final Socks5Bridge socks5Bridge;
+    Socks5Handler(final SocksSession session, final Socks5Bridge bridge, final SocksTunnel tunnel) {
+        this.session = session;
+        this.bridge = bridge;
+        this.tunnel = tunnel;
+    }
 
-	public Socks5Handler(final SocksSession session, final Socks5Bridge socks5Bridge) {
-		this.session = session;
-		this.socks5Bridge = socks5Bridge;
-	}
+    @Override
+    public void run() {
+        Throwable failure = null;
+        try {
+            handle();
+        } catch (Exception problem) {
+            failure = problem;
+            if (tunnel.state() == SocksTunnel.State.CLOSED) {
+                LOGGER.debug("SOCKS session {} ended during setup or forwarding", session.getId());
+            } else {
+                LOGGER.error(problem.getMessage(), problem);
+            }
+        } catch (Error problem) {
+            failure = problem;
+            throw problem;
+        } finally {
+            tunnel.close(failure);
+            try {
+                tunnel.awaitClientReader();
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                final Throwable primary = tunnel.failure();
+                if (primary != null) { primary.addSuppressed(interrupted); }
+            }
+        }
+    }
 
-	@Override
-	public void run() {
-		try {
-			handle(session, socks5Bridge);
-		} catch (final Exception e) {
-			LOGGER.error(e.getMessage(), e);
-		} finally {
-			session.close();
-		}
-	}
+    private void handle() throws IOException {
+        if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
+            throw new SocksException("Protocol error");
+        }
+        session.write(METHOD_SELECTION_RESPONSE);
+        final CommandMessage command = new CommandMessage();
+        command.read(session.getInputStream());
+        if (command.hasSocksException()) {
+            session.write(CommandResponseMessage.getBytes(command.getSocksServerReplyException().getServerReply()));
+            return;
+        }
+        if (command.getCommand() != CONNECT_COMMAND) {
+            throw new SocksException("Only CONNECT command is supported");
+        }
 
-	private void handle(final SocksSession session, final Socks5Bridge socks5Bridge)
-			throws IOException {
-		if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
-			throw new SocksException("Protocol error");
-		}
+        // The local command is complete. A single reader now observes peer closure even while remote setup is blocked.
+        session.getSocket().setSoTimeout(0);
+        tunnel.startClientReader(session.getInputStream());
+        final Socket remote;
+        try {
+            remote = bridge.connect(String.valueOf(session.getId()), command.getInetAddress(), command.getPort(), tunnel);
+            tunnel.own(remote);
+        } catch (IOException failure) {
+            try {
+                session.write(CommandResponseMessage.getBytes(replyFor(failure)));
+            } catch (IOException | RuntimeException | Error secondary) {
+                if (secondary != failure) { failure.addSuppressed(secondary); }
+            }
+            throw failure;
+        }
+        final InetAddress bindAddress = remote.getLocalAddress();
+        session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED,
+                bindAddress == null ? new InetSocketAddress(0).getAddress() : bindAddress, remote.getLocalPort()));
+        tunnel.beginForwarding();
+        tunnel.pumpRemoteToClient();
+    }
 
-		LOGGER.debug("SESSION[{}]", session.getId());
-		// send select method.
-		session.write(METHOD_SELECTION_RESPONSE);
-
-		final CommandMessage commandMessage = new CommandMessage();
-		commandMessage.read(session.getInputStream());
-
-		// If there is a SOCKS exception in command message, It will send a right response to client.
-		if (commandMessage.hasSocksException()) {
-			final ServerReply serverReply = commandMessage.getSocksServerReplyException().getServerReply();
-			session.write(CommandResponseMessage.getBytes(serverReply));
-			LOGGER.debug("SESSION[{}] will close, because {}", session.getId(), serverReply);
-			return;
-		}
-
-		if (commandMessage.getCommand() != CONNECT_COMMAND) {
-			throw new SocksException("Only CONNECT command is supported");
-		}
-		doConnect(session, commandMessage, socks5Bridge);
-	}
-
-	private void doConnect(final SocksSession session, final CommandMessage commandMessage, final Socks5Bridge socks5Bridge)
-			throws IOException {
-		ServerReply reply;
-		Socket socket = null;
-		int bindPort = 0;
-		final InetAddress targetServerAddress = commandMessage.getInetAddress();
-		final int targetServerPort = commandMessage.getPort();
-
-		// set default bind address.
-		InetAddress bindAddress = new InetSocketAddress(0).getAddress();
-		try {
-			// the magic happens here...
-			socket = socks5Bridge.connect(String.valueOf(this.session.getId()), targetServerAddress, targetServerPort);
-			bindAddress = socket.getLocalAddress();
-			bindPort = socket.getLocalPort();
-			reply = ServerReply.SUCCEEDED;
-		} catch (final IOException e) {
-			//noinspection IfCanBeSwitch
-			if (e.getMessage().equals("Connection refused")) {
-				reply = ServerReply.CONNECTION_REFUSED;
-			} else if (e.getMessage().equals("Operation timed out")) {
-				reply = ServerReply.TTL_EXPIRED;
-			} else if (e.getMessage().equals("Network is unreachable")) {
-				reply = ServerReply.NETWORK_UNREACHABLE;
-			} else if (e.getMessage().equals("Connection timed out")) {
-				reply = ServerReply.TTL_EXPIRED;
-			} else {
-				reply = ServerReply.GENERAL_SOCKS_SERVER_FAILURE;
-			}
-			final InetSocketAddress remoteAddress = new InetSocketAddress(targetServerAddress, targetServerPort);
-
-			if (e.getMessage().equals("Permission denied: connect")) {
-				final String msg = "Permission denied - unable to establish outbound connection to proxy. Perhaps blocked by a firewall?";
-				LOGGER.info("connect {} [{}] exception: {}", session.getId(), remoteAddress, msg);
-				SOCKS5BRIDGE_LOGGER.error("connecting to {}: {}", remoteAddress, msg);
-			} else {
-				LOGGER.info("SESSION[{}] connect {} [{}] exception: {}", session.getId(), remoteAddress, reply, e.getMessage());
-			}
-		}
-
-		session.write(CommandResponseMessage.getBytes(reply, bindAddress, bindPort));
-
-		if (reply != ServerReply.SUCCEEDED) {
-			session.close();
-			return;
-		}
-
-		// The local SOCKS handshake is complete. Angus owns SMTP read timeouts on the client end of this transparent tunnel.
-		session.getSocket().setSoTimeout(0);
-		final SocketPipe pipe = new SocketPipe(session.getSocket(), socket);
-		pipe.setName("SESSION[" + session.getId() + "]");
-		pipe.start(); // This method will build tow thread to run tow internal pipes.
-
-		// wait for pipe exit.
-		while (pipe.isRunning()) {
-			try {
-				Thread.sleep(500);
-			} catch (final InterruptedException e) {
-				pipe.stop();
-				session.close();
-				LOGGER.info("SESSION[{}] closed from {}", session.getId(), session.getClientAddress());
-			}
-		}
-	}
+    private static ServerReply replyFor(final IOException failure) {
+        final String message = failure.getMessage();
+        if ("Connection refused".equals(message)) { return ServerReply.CONNECTION_REFUSED; }
+        if ("Operation timed out".equals(message) || "Connection timed out".equals(message)) { return ServerReply.TTL_EXPIRED; }
+        if ("Network is unreachable".equals(message)) { return ServerReply.NETWORK_UNREACHABLE; }
+        return ServerReply.GENERAL_SOCKS_SERVER_FAILURE;
+    }
 }
