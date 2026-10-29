@@ -17,6 +17,7 @@ final class SocksAuthenticationHelper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
 
 	private static final byte SOCKS_VERSION = 0x05;
+	private static final byte USERNAME_PASSWORD_VERSION = 0x01;
 	private static final int ACCEPTABLE_METHODS = 2; // anonymous & user / password
 
 	private static final int NO_AUTHENTICATION_REQUIRED_METHOD = 0x00;
@@ -74,27 +75,33 @@ final class SocksAuthenticationHelper {
 		final byte[] bytesOfPassword = password.getBytes(UTF_8);
 		final byte[] bufferSent = new byte[3 + USERNAME_LENGTH + PASSWORD_LENGTH];
 
-		bufferSent[0] = 0x01; // VER
+		bufferSent[0] = USERNAME_PASSWORD_VERSION;
 		bufferSent[1] = (byte) USERNAME_LENGTH; // ULEN
 		System.arraycopy(bytesOfUsername, 0, bufferSent, 2, USERNAME_LENGTH);// UNAME
 		bufferSent[2 + USERNAME_LENGTH] = (byte) PASSWORD_LENGTH; // PLEN
 		System.arraycopy(bytesOfPassword, 0, bufferSent, 3 + USERNAME_LENGTH, PASSWORD_LENGTH); // PASSWD
 		outputStream.write(bufferSent);
 		outputStream.flush();
-		// logger send bytes
-		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(bufferSent, false));
+		LOGGER.trace("Sent SOCKS username/password authentication request");
 
-		final byte[] authenticationResult = new byte[2];
-		checkEnd(inputStream.read(authenticationResult));
-		// logger
-		LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(authenticationResult, true));
-
-		if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
-			// Close connection if authentication is failed.
-			outputStream.close();
-			inputStream.close();
-			socksProxy.getProxySocket().close();
-			throw new SocksException("Username or password error");
+		try {
+			final byte[] authenticationResult = read2Bytes(inputStream);
+			LOGGER.trace("{}", MiscUtil.buildLogStringForSOCKSCommunication(authenticationResult, true));
+			if (authenticationResult[0] != USERNAME_PASSWORD_VERSION) {
+				throw new SocksException("Unsupported SOCKS username/password authentication version: " + (authenticationResult[0] & 0xff));
+			}
+			if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
+				throw new SocksException("Username or password error");
+			}
+		} catch (IOException | SocksException failure) {
+			try {
+				socksProxy.getProxySocket().close();
+			} catch (IOException | RuntimeException | Error cleanupFailure) {
+				if (cleanupFailure != failure) {
+					failure.addSuppressed(cleanupFailure);
+				}
+			}
+			throw failure;
 		}
 	}
 
