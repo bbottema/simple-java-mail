@@ -228,3 +228,13 @@ The [connection conflict policy in ADR 0038](0038-connection-configuration-confl
 The [26 October extension of ADR 0039](0039-explicit-configuration-resolution.md#complete-layered-adoption-accepted-26-october-2026) adopts all layered Email/Mailer configuration consumers while preserving source-loading, feature-owned merge rules, mandatory restrictions and public contracts. #867 tracks delivery of this implemented expansion.
 
 The 29 October review accepts [literal imported filenames](0035-tolerant-reading-and-strict-production.md#literal-imported-filenames-accepted-29-october-2026) under [#899](https://github.com/bbottema/simple-java-mail/issues/899). Decode filenames without applying Content-ID bracket removal; actual IDs and existing missing-name fallbacks retain their interpretation.
+
+The subsequent 29 October feature review accepts [SOCKS authentication secrecy and complete replies](0010-authenticated-socks-bridge.md#authentication-logging-and-reply-boundaries-accepted-29-october-2026)
+under #901/#902, attempt-specific final retry receipts under [ADR 0011](0011-transport-neutral-submission-outcomes.md) (#900),
+opaque signed content inside encrypted S/MIME under [ADR 0008](0008-minimal-mime-structures-and-protection-order.md) (#905),
+atomic shared S/MIME key loading under [ADR 0006](0006-optional-modules.md) (#906), numeric delivery-report timezone-hour bounds
+under [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#903), and required calendar inputs under
+[ADR 0031](0031-public-api-and-internal-construction.md) (#904). The issues track implementation and delivery for unreleased 10.0.0.
+ConfigLoader required-reference maintenance applies the same existing input-boundary rule without changing source-reading timing.
+The maintainer subsequently accepted transparent established SOCKS forwarding under [ADR 0010](0010-authenticated-socks-bridge.md) (#907):
+remove the accidental bridge-side timeout while retaining client timeout and pool lifetime ownership. Pending remote setup remains a separate design.

@@ -115,6 +115,15 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#901](https://github.com/bbottema/simple-java-mail/issues/901): authenticated SOCKS trace output no longer includes the username/password packet.
+- [#902](https://github.com/bbottema/simple-java-mail/issues/902): read complete SOCKS authentication replies and reject invalid versions or truncated responses.
+- [#907](https://github.com/bbottema/simple-java-mail/issues/907): established authenticated SOCKS tunnels no longer impose a separate bridge read or idle timeout; the SMTP client's configured timeouts govern its waits.
+- [#900](https://github.com/bbottema/simple-java-mail/issues/900): retire an earlier refusal's receipt when another provider invocation starts, so a later unchecked failure cannot publish stale rejection or safe-retry advice.
+- [#905](https://github.com/bbottema/simple-java-mail/issues/905): include opaque S/MIME signatures inside encrypted messages in the outer Email's verification facts for standard and legacy MIME spellings.
+- [#906](https://github.com/bbottema/simple-java-mail/issues/906): make shared S/MIME key loading atomic during concurrent signing and decryption while retaining parsed-key reuse.
+- [#903](https://github.com/bbottema/simple-java-mail/issues/903): leave delivery-report dates unavailable when numeric timezone hours fall outside 00 through 23, retaining source content and neighboring facts.
+- [#904](https://github.com/bbottema/simple-java-mail/issues/904): reject missing required calendar arguments before replacing either part of an existing calendar choice; explicit clearing remains available.
+
 - [#899](https://github.com/bbottema/simple-java-mail/issues/899): preserve literal angle brackets in imported attachment and embedded-image filenames, keeping Content-ID interpretation separate.
 
 - [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
@@ -335,6 +344,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - Updated [SMTP Connection Pool to 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0), [Clustered Object Pool to 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool to 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), retaining failed-lease waiter recovery and connection creation-age retirement. Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751). Finite candidate traversal, claim-scoped connection observations and deferred background top-up support coordinated connection failover under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Fully retired cluster metadata can now be released after disposal, avoiding retention across repeated Mailer creation and closure.
 
 ### Maintenance
+
+- Configuration loaders reject missing required source, map, Properties, path and classloader references before registration, preserving earlier choices and lazy source reads.
 
 - Completed inspection and optional-choice clearing on reviewed security/policy builders, added debug-output companions, and expanded API/Javadoc guards.
 
