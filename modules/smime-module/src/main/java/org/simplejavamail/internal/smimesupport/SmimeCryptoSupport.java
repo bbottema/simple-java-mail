@@ -178,7 +178,7 @@ final class SmimeCryptoSupport {
 					return SmimeState.SIGNED;
 				}
 			}
-			if ("application/x-pkcs7-mime".equalsIgnoreCase(baseType)
+			if (("application/pkcs7-mime".equalsIgnoreCase(baseType) || "application/x-pkcs7-mime".equalsIgnoreCase(baseType))
 					&& "signed-data".equalsIgnoreCase(contentType.getParameter("smime-type"))) {
 				return SmimeState.SIGNED_ENVELOPED;
 			}

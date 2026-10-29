@@ -101,6 +101,14 @@ are core contracts, while their implementations and parser adaptation live in `o
 
 OpenPGP follows the same boundary. Its PGPainless implementation belongs to `openpgp-module`; adding it does not impose OpenPGP dependencies on ordinary senders. The separate provider adapter SPI is covered by [ADR 0007](0007-provider-neutral-mime-boundary.md): replaceable transport providers and the fixed set of bundled optional feature modules use different discovery contracts.
 
+### Shared S/MIME key reuse (accepted 29 October 2026)
+
+Keep the parsed-key cache introduced under #320 to avoid repeatedly loading the same PKCS12 material. Lookup and publication must be
+atomic under concurrent signing and decryption: equal immutable configurations reuse one completed parsed key, distinct configurations
+remain separate, and a failed load leaves no cached result. This applies the existing shared-instance requirement under
+[#906](https://github.com/bbottema/simple-java-mail/issues/906) for unreleased 10.0.0. Cache lifetime, retention and eviction policy remain
+unchanged; this correction does not introduce a public cache API.
+
 ### OpenTelemetry configuration and runtime loading (updated 2026-10-16)
 
 [ADR 0034](0034-optional-opentelemetry-integration.md) follows the ordinary loading contract: enabled Java or property configuration

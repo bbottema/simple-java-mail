@@ -80,9 +80,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
@@ -108,7 +108,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final List<String> SMIME_MIMETYPES = asList("application/pkcs7-mime", "application/x-pkcs7-mime", "multipart/signed");
-	private static final Map<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new HashMap<>();
+	private static final ConcurrentMap<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new ConcurrentHashMap<>();
 
 	/** Inspect and unwrap top-level S/MIME before the ordinary MIME parser traverses the entity. */
 	@NotNull
@@ -124,7 +124,7 @@ public class SMIMESupport implements SMIMEModule {
 			}
 			originalBytes = serializeMessage(originalMessage);
 			final OriginalSmimeDetailsImpl baseDetails = details(contentType, originalBytes);
-			final SmimeState state = determineIncomingState(originalMessage, baseDetails);
+			final SmimeState state = SmimeCryptoSupport.getStatus(originalMessage);
 			if (state == SmimeState.ENCRYPTED) {
 				return processIncomingEncrypted(session, originalMessage, originalBytes, baseDetails, pkcs12Config);
 			}
@@ -317,15 +317,6 @@ public class SMIMESupport implements SMIMEModule {
 		} catch (SmimeException e) {
 			return false;
 		}
-	}
-
-	private static SmimeState determineIncomingState(@NotNull final MimeMessage message,
-			@NotNull final OriginalSmimeDetails details) {
-		final SmimeState detected = SmimeCryptoSupport.getStatus(message);
-		if (detected == SmimeState.ENCRYPTED && "signed-data".equalsIgnoreCase(details.getSmimeType())) {
-			return SmimeState.SIGNED;
-		}
-		return detected;
 	}
 
 	@NotNull
@@ -675,11 +666,14 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final OriginalSmimeDetails messageSmimeDetails,
 			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
 		final List<AttachmentDecryptionResult> decryptedAttachments = new ArrayList<>();
+		// Only the existing sole-attachment boundary identifies a complete Outlook message envelope.
+		final boolean ownsMessageEnvelope = attachments.size() == 1 && isEncryptedMode(messageSmimeDetails.getSmimeMode());
 		for (final AttachmentResource attachment : attachments) {
 			if (isSmimeAttachment(attachment)) {
 				try {
 					LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
-					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails, smimeDetailsToUpdate));
+					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails,
+							smimeDetailsToUpdate, ownsMessageEnvelope));
 				} catch (Exception e) {
 					throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 				}
@@ -704,7 +698,8 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final AttachmentResource attachment,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@NotNull final OriginalSmimeDetails messageSmimeDetails,
-			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
+			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate,
+			final boolean ownsMessageEnvelope) {
 		try {
 			final MimeBodyPart mimeBodyPart = new MimeBodyPart(new InternetHeaders(), readAll(attachment.openStream()));
 			mimeBodyPart.addHeader("Content-Type", restoreSmimeContentType(attachment, messageSmimeDetails));
@@ -713,7 +708,7 @@ public class SMIMESupport implements SMIMEModule {
 
 			final SmimeState smimeState = determineStatus(mimeBodyPart, messageSmimeDetails);
 			if (smimeState == SmimeState.ENCRYPTED) {
-				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart, smimeDetailsToUpdate);
+				liberatedContent = getEncryptedContent(pkcs12Config, mimeBodyPart, ownsMessageEnvelope ? smimeDetailsToUpdate : null);
 			} else if (smimeState == SmimeState.SIGNED) {
 				liberatedContent = getSignedContent(mimeBodyPart, smimeDetailsToUpdate);
 			} else if (smimeState == SmimeState.PROBABLY_SIGNED) {
@@ -728,16 +723,21 @@ public class SMIMESupport implements SMIMEModule {
 
 	@Nullable
 	private AttachmentDecryptionResult getEncryptedContent(final @Nullable Pkcs12Config pkcs12Config, final MimeBodyPart mimeBodyPart,
-			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
+			@Nullable final OriginalSmimeDetailsImpl messageEnvelopeDetails)
 			throws MessagingException, IOException {
 		if (pkcs12Config != null) {
-			MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
-			if (SmimeCryptoSupport.getStatus(liberatedBodyPart) == SmimeState.SIGNED_ENVELOPED) {
-				final AttachmentDecryptionResult signedContent = getSignedContent(liberatedBodyPart, null);
-				if (signedContent != null) {
-					return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, signedContent.getAttachmentResource());
+			final MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
+			final SmimeState nestedState = SmimeCryptoSupport.getStatus(liberatedBodyPart);
+			if (nestedState == SmimeState.SIGNED || nestedState == SmimeState.SIGNED_ENVELOPED || nestedState == SmimeState.PROBABLY_SIGNED) {
+				final OriginalSmimeDetails verification = verifyIncomingSignature(liberatedBodyPart);
+				if (messageEnvelopeDetails != null) {
+					messageEnvelopeDetails.completeWith(verification);
+					messageEnvelopeDetails.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
 				}
-				// apparently the sign was invalid, so ignore and continue with the decrypted attachment instead
+				final AttachmentDecryptionResult signedContent = extractSignedContent(liberatedBodyPart, SmimeMode.SIGNED_ENCRYPTED);
+				if (signedContent != null) {
+					return signedContent;
+				}
 			}
 			return toAttachmentDecryptionResult(SmimeMode.ENCRYPTED, handleLiberatedContent(liberatedBodyPart.getContent()));
 		}
@@ -755,8 +755,14 @@ public class SMIMESupport implements SMIMEModule {
 		if (!validSignature) {
 			LOGGER.warn("Content is S/MIME signed, but signature is not valid; keeping the signed content for parsing.");
 		}
-		MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.getSignedContent(mimeBodyPart);
-		return toAttachmentDecryptionResult(SmimeMode.SIGNED, handleLiberatedContent(liberatedBodyPart.getContent()));
+		return extractSignedContent(mimeBodyPart, SmimeMode.SIGNED);
+	}
+
+	@Nullable
+	private AttachmentDecryptionResult extractSignedContent(final MimeBodyPart mimeBodyPart, final SmimeMode mode)
+			throws MessagingException, IOException {
+		final MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.getSignedContent(mimeBodyPart);
+		return toAttachmentDecryptionResult(mode, handleLiberatedContent(liberatedBodyPart.getContent()));
 	}
 
 	@Nullable
@@ -1085,14 +1091,13 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12Config) {
-		if (!SIMPLE_SMIMESTORE_CACHE.containsKey(pkcs12Config)) {
-			SmimeKey smimeKey = produceSmimeKey(pkcs12Config);
+		return SIMPLE_SMIMESTORE_CACHE.computeIfAbsent(pkcs12Config, configuration -> {
+			final SmimeKey smimeKey = produceSmimeKey(configuration);
 			if (smimeKey == null) {
 				throw new SmimeException(ERROR_OBTAINING_SMIME_KEY);
 			}
-			SIMPLE_SMIMESTORE_CACHE.put(pkcs12Config, smimeKey);
-		}
-        return SIMPLE_SMIMESTORE_CACHE.get(pkcs12Config);
+			return smimeKey;
+		});
 	}
 
 	@Nullable

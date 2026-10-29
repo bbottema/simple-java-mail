@@ -340,6 +340,18 @@ protected bytes; missing and unknown values retain their existing interpretation
 missing keys and cryptographic failure remain unchanged. This extends the media-type decision under
 [#890](https://github.com/bbottema/simple-java-mail/issues/890) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## Opaque signatures inside encrypted S/MIME (accepted 29 October 2026)
+
+Recognize standard `application/pkcs7-mime` and legacy `application/x-pkcs7-mime` opaque signed entities consistently at the
+top level and after decryption. An opened `signed-data` entity contributes its actual signature result to the outer Email's
+`SIGNED_ENCRYPTED` facts. Retain established `DECRYPTED` status when signature verification fails or cannot be completed.
+Signed-content merging changes the content view, not those protection facts. MIME/EML and Outlook message-level envelopes share
+this rule. Keep the existing Outlook message-envelope identification; other protected files do not supply the parent message's
+signature facts merely because that parent is encrypted. Preserve readable content,
+exact outer protected bytes when the source supplies EML, and the existing stream ownership. Outlook does not invent original
+EML bytes. The correction is tracked under [#905](https://github.com/bbottema/simple-java-mail/issues/905)
+for unreleased 10.0.0 and introduces no new configuration or public API.
+
 ## Missing reply-body alternatives (accepted 28 October 2026)
 
 Reply priming keeps both plain and HTML quotes useful when the interpreted original contains only one body format. Generate the
