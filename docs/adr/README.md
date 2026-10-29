@@ -278,3 +278,7 @@ The [authenticated SOCKS capacity decision](0010-authenticated-socks-bridge.md#s
 The [local anonymous greeting/request clarification](0010-authenticated-socks-bridge.md#local-anonymous-greeting-and-request-validation-accepted-29-october-2026)
 selects method 00 only when offered and rejects invalid CONNECT version/reserved framing before remote effects. This issue-free internal
 hardening preserves supported Angus/JDK traffic, per-peer cleanup and existing bridge ownership without adding methods or configuration.
+
+The [OpenPGP module-path clarification in ADR 0006](0006-optional-modules.md#openpgp-on-the-java-module-path-accepted-29-october-2026)
+under [#923](https://github.com/bbottema/simple-java-mail/issues/923) grants the common loader qualified implementation access and resolves the
+existing Kotlin runtime dependency when OpenPGP is selected. Public APIs, ordinary classpath behavior and optional-feature boundaries stay intact.

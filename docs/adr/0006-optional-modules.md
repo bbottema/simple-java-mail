@@ -101,6 +101,18 @@ are core contracts, while their implementations and parser adaptation live in `o
 
 OpenPGP follows the same boundary. Its PGPainless implementation belongs to `openpgp-module`; adding it does not impose OpenPGP dependencies on ordinary senders. The separate provider adapter SPI is covered by [ADR 0007](0007-provider-neutral-mime-boundary.md): replaceable transport providers and the fixed set of bundled optional feature modules use different discovery contracts.
 
+### OpenPGP on the Java module path (accepted 29 October 2026)
+
+Keep the common optional-feature loader unchanged. When OpenPGP is resolved as an explicit Java module, its implementation entry package
+is exported only to the main `org.simplejavamail` module so that loader can instantiate the public entry point. This qualified export does
+not turn implementation classes into application API or open the package for unrestricted reflection.
+
+The OpenPGP descriptor also requires `kotlin.stdlib`, the existing Maven dependency used by the automatic PGPainless module. Declaring that
+runtime edge resolves Kotlin when OpenPGP is selected; it adds no new artifact or dependency to core/main public contracts. Applications
+resolve `org.simplejavamail.openpgp` explicitly and continue through the same public configuration and conversion API. Ordinary classpath
+loading and absence behavior retain their contracts. [#923](https://github.com/bbottema/simple-java-mail/issues/923) tracks this packaging
+correction for unreleased 10.0.0.
+
 ### Shared S/MIME key reuse (accepted 29 October 2026)
 
 Keep the parsed-key cache introduced under #320 to avoid repeatedly loading the same PKCS12 material. Lookup and publication must be

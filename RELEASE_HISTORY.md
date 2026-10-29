@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#923](https://github.com/bbottema/simple-java-mail/issues/923): OpenPGP signing and reading work from named Java modules through narrowly qualified loader access and resolution of the existing Kotlin runtime dependency.
+
 - [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
 
 - [#921](https://github.com/bbottema/simple-java-mail/issues/921): authenticated SOCKS releases setup workers after an explicit forwarding handoff, allowing new connections while established pooled or retained tunnels stay open. Pending admission is bounded, ordinary overload refuses only the new setup, and idle setup workers retire without changing client timeout authority.

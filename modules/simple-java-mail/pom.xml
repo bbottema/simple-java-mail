@@ -255,6 +255,17 @@
 								</configuration>
 							</execution>
 							<execution>
+								<id>openpgp-consumer-dependencies</id>
+								<phase>prepare-package</phase>
+								<goals><goal>build-classpath</goal></goals>
+								<configuration>
+									<!-- SJM JARs are supplied explicitly from this reactor below. -->
+									<includeArtifactIds>angus-mail,angus-activation,jakarta.mail-api,jakarta.activation-api,jmail,throwing-function,slf4j-api,jsoup,bcpg-jdk18on,bcprov-jdk18on,bcutil-jdk18on,pgpainless-core,kotlin-stdlib,annotations,spotbugs-annotations,jsr305</includeArtifactIds>
+									<includeScope>runtime</includeScope>
+									<outputFile>${project.build.directory}/openpgp-consumer-dependencies.txt</outputFile>
+								</configuration>
+							</execution>
+							<execution>
 								<id>managed-angus-runtime-path</id>
 								<phase>prepare-package</phase>
 								<goals><goal>build-classpath</goal></goals>
@@ -345,7 +356,49 @@
                                             <arg value="org.simplejavamail.dkimprobe/org.simplejavamail.dkimprobe.DkimConsumer" />
                                         </exec>
 
-										<!-- The same external adapter JAR must work through META-INF/services and JPMS provides, without Angus. -->
+										<!-- Exercise the same public OpenPGP journey on the classpath and packaged module path. -->
+										<loadfile property="openPgpDependencies" srcFile="${project.build.directory}/openpgp-consumer-dependencies.txt" />
+										<property name="openPgpRuntimePath" value="${project.build.directory}/${project.build.finalName}.jar${path.separator}${project.basedir}/../core-module/target/core-module-${project.version}.jar${path.separator}${project.basedir}/../openpgp-module/target/openpgp-module-${project.version}.jar${path.separator}${project.basedir}/../angus-mail-provider-module/target/angus-mail-provider-module-${project.version}.jar${path.separator}${openPgpDependencies}" />
+										<property name="openPgpAbsentPath" value="${project.build.directory}/${project.build.finalName}.jar${path.separator}${project.basedir}/../core-module/target/core-module-${project.version}.jar${path.separator}${project.basedir}/../angus-mail-provider-module/target/angus-mail-provider-module-${project.version}.jar${path.separator}${openPgpDependencies}" />
+										<property name="openPgpCompilePath" value="${project.build.directory}/openpgp-main-descriptor/META-INF/versions/11${path.separator}${project.basedir}/../core-module/target/core-module-${project.version}.jar${path.separator}${project.basedir}/../openpgp-module/target/openpgp-module-${project.version}.jar${path.separator}${project.basedir}/../angus-mail-provider-module/target/angus-mail-provider-module-${project.version}.jar${path.separator}${openPgpDependencies}" />
+										<mkdir dir="${project.build.directory}/openpgp-classpath-consumer" />
+										<javac srcdir="${project.basedir}/src/test/openpgp-jpms"
+											   destdir="${project.build.directory}/openpgp-classpath-consumer"
+											   classpath="${openPgpRuntimePath}" excludes="module-info.java" sourcepath=""
+											   release="${library.java.release}" encoding="UTF-8" includeantruntime="false" />
+										<java classname="org.simplejavamail.openpgpconsumer.OpenPgpConsumer" fork="true" failonerror="true"
+											  classpath="${project.build.directory}/openpgp-classpath-consumer${path.separator}${openPgpRuntimePath}">
+											<arg value="classpath" />
+											<arg path="${project.basedir}/src/test/resources/openpgpjs" />
+										</java>
+										<java classname="org.simplejavamail.openpgpconsumer.OpenPgpConsumer" fork="true" failonerror="true"
+											  classpath="${project.build.directory}/openpgp-classpath-consumer${path.separator}${openPgpAbsentPath}">
+											<arg value="absent" />
+											<arg path="${project.basedir}/src/test/resources/openpgpjs" />
+										</java>
+										<mkdir dir="${project.build.directory}/openpgp-modulepath-consumer" />
+										<unzip src="${project.build.directory}/${project.build.finalName}.jar"
+											   dest="${project.build.directory}/openpgp-main-descriptor" overwrite="true">
+											<patternset><include name="META-INF/versions/11/module-info.class" /></patternset>
+										</unzip>
+										<javac srcdir="${project.basedir}/src/test/openpgp-jpms"
+											   destdir="${project.build.directory}/openpgp-modulepath-consumer"
+											   modulepath="${openPgpCompilePath}" sourcepath="" release="${library.java.release}"
+											   encoding="UTF-8" includeantruntime="false">
+											<!-- javac 11 needs the actual JAR descriptor separately; patch only its packaged classes. Runtime uses the JAR. -->
+											<compilerarg value="--patch-module" />
+											<compilerarg value="org.simplejavamail=${project.build.directory}/${project.build.finalName}.jar" />
+										</javac>
+										<exec executable="${java.home}/bin/java" failonerror="true">
+											<arg value="--module-path" />
+											<arg path="${project.build.directory}/openpgp-modulepath-consumer${path.separator}${openPgpRuntimePath}" />
+											<arg value="--module" />
+											<arg value="org.simplejavamail.openpgp.consumer/org.simplejavamail.openpgpconsumer.OpenPgpConsumer" />
+											<arg value="modulepath" />
+											<arg path="${project.basedir}/src/test/resources/openpgpjs" />
+										</exec>
+
+                                        <!-- The same external adapter JAR must work through META-INF/services and JPMS provides, without Angus. -->
 										<mkdir dir="${project.build.directory}/third-party-probe-classes" />
 										<javac srcdir="${project.basedir}/src/test/third-party-probe"
 											   destdir="${project.build.directory}/third-party-probe-classes"
