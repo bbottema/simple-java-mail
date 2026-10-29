@@ -28,6 +28,8 @@ public final class RetryProviderTransport extends Transport {
         public boolean partial;
         public boolean permanent;
         public boolean failCleanup;
+        public Throwable laterInvocationFailure;
+        public MessagingException laterConnectionFailure;
     }
 
     public RetryProviderTransport(final Session session, final URLName url) {
@@ -48,7 +50,12 @@ public final class RetryProviderTransport extends Transport {
         return session;
     }
 
-    @Override protected boolean protocolConnect(final String host, final int port, final String user, final String password) { return true; }
+    @Override protected boolean protocolConnect(final String host, final int port, final String user, final String password) throws MessagingException {
+        if (state.invocations.get() > 0 && state.laterConnectionFailure != null) {
+            throw state.laterConnectionFailure;
+        }
+        return true;
+    }
     @Override public void sendMessage(final Message message, final Address[] recipients) { throw new AssertionError("Use the adapter"); }
     @Override public synchronized void close() throws MessagingException {
         setConnected(false);

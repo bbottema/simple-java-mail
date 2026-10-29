@@ -6,14 +6,19 @@ import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Session;
+import jakarta.mail.MessagingException;
 import org.simplejavamail.MailException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionException;
+import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.config.ConfigLoader;
@@ -29,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.regex.Pattern;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,6 +69,65 @@ class RetryProviderBoundaryContractTest {
             assertThat(state.content.get(1)).isEqualTo(state.content.get(0));
             assertThat(outcomes).hasSize(1);
             assertThat(outcomes.get(0).getSubmissionReceipt()).containsSame(receipt);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, {1}")
+    @MethodSource("uncheckedRetryFailures")
+    void laterUncheckedInvocationFailureDoesNotReuseTheEarlierRefusal(final String scope, final Throwable providerFailure) throws Exception {
+        final RetryProviderTransport.State state = new RetryProviderTransport.State();
+        state.laterInvocationFailure = providerFailure;
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        try (Mailer mailer = mailer(state, outcomes)) {
+            final Throwable failure;
+            switch (scope) {
+                case "async":
+                    failure = mailer.async().sendMail(email()).getCompletion().handle((value, cause) -> cause).get(10, SECONDS);
+                    break;
+                case "batch":
+                    failure = catchThrowable(() -> mailer.sync().sendMailsInSimpleBatch(List.of(email(), email())));
+                    break;
+                case "open connection":
+                    failure = catchThrowable(() -> mailer.withOpenConnection(sender -> sender.sendMail(email())));
+                    break;
+                default:
+                    failure = catchThrowable(() -> mailer.sync().sendMail(email()));
+            }
+            assertThat(failure).isSameAs(providerFailure);
+            assertThat(state.invocations).hasValue(2);
+            assertThat(outcomes).hasSize(1);
+            final MailSendOutcome outcome = outcomes.get(0);
+            assertThat(outcome.getFailure()).containsSame(providerFailure);
+            assertThat(outcome.getSubmissionReceipt()).isEmpty();
+            final var history = outcome.getDiagnostics().orElseThrow().getSubmissionHistory();
+            assertThat(history).hasSize(2);
+            assertThat(history.get(0).getSubmissionStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+            assertThat(history.get(0).getSmtpReplyCode()).isEqualTo(451);
+            assertThat(history.get(0).getRetryDelay()).isNotNull();
+            assertThat(history.get(1).getSubmissionStatus()).isEqualTo(MailSubmissionStatus.UNKNOWN);
+            assertThat(history.get(1).getRetryDelay()).isNull();
+        }
+    }
+
+    private static Stream<Arguments> uncheckedRetryFailures() {
+        return Stream.of("sync", "async", "batch", "open connection").flatMap(scope -> Stream.of(
+                Arguments.of(scope, new IllegalStateException("provider failed during its second invocation")),
+                Arguments.of(scope, new AssertionError("provider failed during its second invocation"))));
+    }
+
+    @Test
+    void failedReacquisitionKeepsTheLastRefusalWithoutInventingAnotherSubmission() throws Exception {
+        final RetryProviderTransport.State state = new RetryProviderTransport.State();
+        state.laterConnectionFailure = new MessagingException("fixture reconnect failed");
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        try (Mailer mailer = mailer(state, outcomes)) {
+            assertThat(catchThrowable(() -> mailer.sync().sendMail(email()))).isInstanceOf(MailException.class);
+            assertThat(state.invocations).hasValue(1);
+            assertThat(outcomes).hasSize(1);
+            final var receipt = outcomes.get(0).getSubmissionReceipt().orElseThrow();
+            assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+            assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_ALL);
+            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory()).hasSize(1);
         }
     }
     @Test

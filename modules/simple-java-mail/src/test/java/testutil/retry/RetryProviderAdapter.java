@@ -40,6 +40,12 @@ public final class RetryProviderAdapter implements MailTransportAdapter {
         final RetryProviderTransport.State state = ((RetryProviderTransport) transport).state;
         final int invocation = state.invocations.incrementAndGet();
         recordSubmittedBytes(state, prepared.getMimeMessage());
+        if (invocation > 1 && state.laterInvocationFailure != null) {
+            if (state.laterInvocationFailure instanceof RuntimeException) {
+                throw (RuntimeException) state.laterInvocationFailure;
+            }
+            throw (Error) state.laterInvocationFailure;
+        }
         final SendFailedException failure = new SendFailedException("structured fixture refusal", null, null, prepared.getRecipients(), null);
         final SmtpServerResponse temporary = new SmtpServerResponse(451, "temporary");
         if (state.uncertain) { return MailTransportResult.failedWithUnknownAcceptance(failure, null, null); }
