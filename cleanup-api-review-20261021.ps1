@@ -70,6 +70,12 @@ $relativeTargets = @(
     '.local/feature-review-pending-socks-20261029'
     '.local/feature-review-followup-delivery-20261029'
     '.local/feature-review-followup-site-20261029'
+    '.local/socks-addresses-20261029'
+    '.local/socks-connect-20261029'
+    '.local/socks-credentials-20261029'
+    '.local/socks-docs-20261029'
+    '.local/socks-protocol-repairs-20261029'
+    '.local/socks-combined-20261029'
     '.local/feature-review-auth-20261029'
     '.local/feature-review-tunnel-timeout-20261029'
     '.local/feature-review-retry-20261029'
@@ -95,6 +101,7 @@ $relativeFileTargets = @(
     'docs/plans/908-typed-delivery-validation.md'
     'docs/plans/909-pending-socks-setup.md'
     'docs/plans/908-909-feature-review-followup.md'
+    'docs/plans/910-913-socks-protocol-repairs.md'
     'docs/plans/901-902-socks-auth.md'
     'docs/plans/907-socks-tunnel-timeout.md'
     'docs/plans/900-retry-receipt.md'
@@ -118,6 +125,10 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    @{
+        Path = 'C:\workstation\sjm-socks-final-20261029'
+        Parent = 'C:\workstation'
+    }
     @{
         Path = 'C:\Users\Benny Bottema\AppData\Local\Temp\surefire3238261096306854804'
         Parent = 'C:\Users\Benny Bottema\AppData\Local\Temp'
