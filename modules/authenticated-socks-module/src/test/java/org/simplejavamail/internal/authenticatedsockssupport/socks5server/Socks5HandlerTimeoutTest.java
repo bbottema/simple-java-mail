@@ -13,13 +13,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class Socks5HandlerTimeoutTest {
 
     @Test
-    void retainsTheHandshakeGuardUntilTheConnectionBecomesATransparentTunnel() throws Exception {
+    void removesTheLocalParsingGuardBeforeWaitingForRemoteSetupOrForwarding() throws Exception {
         final ClientSocket client = new ClientSocket();
         client.setSoTimeout(10000);
         final AtomicInteger forwardingTimeout = new AtomicInteger(-1);
@@ -28,13 +29,14 @@ class Socks5HandlerTimeoutTest {
             @Override public int getLocalPort() { return 50025; }
             @Override public OutputStream getOutputStream() { return new ByteArrayOutputStream(); }
             @Override public InputStream getInputStream() throws IOException {
-                // SocketPipe first obtains both streams before starting forwarding threads.
+                // Reverse forwarding obtains the remote stream only after the local CONNECT success.
                 forwardingTimeout.set(client.getSoTimeout());
                 throw new IOException("Stop this fixture at the forwarding boundary");
             }
         };
-        final Socks5Bridge bridge = (id, address, port) -> {
-            assertThat(client.getSoTimeout()).as("local SOCKS handshake guard").isEqualTo(10000);
+        final Socks5Bridge bridge = (id, address, port, owner) -> {
+            assertThat(client.getSoTimeout()).as("local command parsed before potentially unlimited remote setup").isZero();
+            owner.own(remote);
             return remote;
         };
         new Socks5Handler(new SocksSession(client), bridge).run();
@@ -44,14 +46,14 @@ class Socks5HandlerTimeoutTest {
     }
 
     @Test
-    void failedConnectionKeepsTheHandshakeGuardAndDoesNotStartForwarding() throws Exception {
+    void failedRemoteSetupDoesNotRestoreTheLocalParsingGuard() throws Exception {
         final ClientSocket client = new ClientSocket();
         client.setSoTimeout(10000);
-        new Socks5Handler(new SocksSession(client), (id, address, port) -> {
+        new Socks5Handler(new SocksSession(client), (id, address, port, owner) -> {
             throw new IOException("Connection refused");
         }).run();
 
-        assertThat(client.getSoTimeout()).isEqualTo(10000);
+        assertThat(client.getSoTimeout()).isZero();
         assertThat(client.response.toByteArray()).hasSize(12);
         assertThat(client.response.toByteArray()[3]).isEqualTo((byte) 5);
         assertThat(client.closed).isTrue();
@@ -59,9 +61,22 @@ class Socks5HandlerTimeoutTest {
 
     private static final class ClientSocket extends Socket {
         // Anonymous method selection followed by IPv4 CONNECT to localhost:25.
+        private final CountDownLatch closedSignal = new CountDownLatch(1);
         private final InputStream request = new ByteArrayInputStream(new byte[] {
                 5, 1, 0, 5, 1, 0, 1, 127, 0, 0, 1, 0, 25
-        });
+        }) {
+            @Override public synchronized int read(final byte[] bytes, final int offset, final int length) {
+                final int count = super.read(bytes, offset, length);
+                if (count >= 0) { return count; }
+                try {
+                    closedSignal.await();
+                    return -1;
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return -1;
+                }
+            }
+        };
         private final ByteArrayOutputStream response = new ByteArrayOutputStream();
         private int timeout;
         private boolean closed;
@@ -72,6 +87,6 @@ class Socks5HandlerTimeoutTest {
         @Override public OutputStream getOutputStream() { return response; }
         @Override public void setSoTimeout(final int timeout) { this.timeout = timeout; }
         @Override public int getSoTimeout() { return timeout; }
-        @Override public void close() { closed = true; }
+        @Override public void close() { closed = true; closedSignal.countDown(); }
     }
 }

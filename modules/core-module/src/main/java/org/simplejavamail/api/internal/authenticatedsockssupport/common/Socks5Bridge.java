@@ -17,10 +17,17 @@ public interface Socks5Bridge {
 	 * @param sessionId           The current email session context.
 	 * @param remoteServerAddress The target server that is behind the proxy.
 	 * @param remoteServerPort    The target server's port that is behind the proxy.
+	 * @param owner               Owns the raw remote socket before connection or negotiation can block.
 	 *
 	 * @return A socket that channels through an already authenticated SOCKS5 proxy.
 	 * @throws IOException Thrown by the underlying Socket in case of connection issues.
 	 */
-	Socket connect(String sessionId, InetAddress remoteServerAddress, int remoteServerPort)
+	Socket connect(String sessionId, InetAddress remoteServerAddress, int remoteServerPort, SocketOwner owner)
 			throws IOException;
+
+	/** A closed owner rejects and closes a newly published handle; an already owned handle retains its single closer. */
+	@FunctionalInterface
+	interface SocketOwner {
+		void own(Socket socket) throws IOException;
+	}
 }
