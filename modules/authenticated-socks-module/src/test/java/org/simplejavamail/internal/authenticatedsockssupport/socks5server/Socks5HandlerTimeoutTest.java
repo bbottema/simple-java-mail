@@ -39,7 +39,14 @@ class Socks5HandlerTimeoutTest {
             owner.own(remote);
             return remote;
         };
-        new Socks5Handler(new SocksSession(client), bridge).run();
+        final SocksTunnel tunnel = new SocksTunnel(client, () -> { });
+        try {
+            new Socks5Handler(new SocksSession(client), bridge, tunnel).run();
+            tunnel.awaitReservedForwarding();
+        } finally {
+            tunnel.close();
+            tunnel.awaitClientReader();
+        }
 
         assertThat(forwardingTimeout).as("established tunnel has no independent timeout").hasValue(0);
         assertThat(client.closed).isTrue();

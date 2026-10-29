@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#921](https://github.com/bbottema/simple-java-mail/issues/921): authenticated SOCKS releases setup workers after an explicit forwarding handoff, allowing new connections while established pooled or retained tunnels stay open. Pending admission is bounded, ordinary overload refuses only the new setup, and idle setup workers retire without changing client timeout authority.
+
 - [#914](https://github.com/bbottema/simple-java-mail/issues/914): preserve whole imported address text after an address-grammar failure instead of discarding otherwise readable MIME/EML content. Existing successful parsing and outgoing validation retain their separate roles.
 - [#915](https://github.com/bbottema/simple-java-mail/issues/915): keep daemon status and stop responsive during slow mail commands through separately bounded control and reply handling, retaining duplicate-request protection and accepted-work shutdown semantics.
 

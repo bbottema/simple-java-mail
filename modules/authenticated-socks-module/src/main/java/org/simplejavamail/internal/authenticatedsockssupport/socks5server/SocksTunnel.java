@@ -1,6 +1,8 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5server;
 
 import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -8,26 +10,39 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadFactory;
 
 /** Owns one accepted peer and its remote handle through setup, transparent forwarding and closure. */
 final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SocksTunnel.class);
     enum State { PENDING, FORWARDING, CLOSED }
 
     private static final int MAX_PENDING_BYTES = 8192;
     private final Socket local;
     private final Runnable onClosed;
+    private final ThreadFactory forwardingThreads;
+    private final CountDownLatch clientForwardingReady = new CountDownLatch(1);
     // Serializes early-byte handoff with later writes. Socket closure never acquires this forwarding-order lock.
     private final Object clientOutputOrder = new Object();
     private final ByteArrayOutputStream pending = new ByteArrayOutputStream();
     private State state = State.PENDING;
     private Socket remote;
     private Thread clientReader;
+    private Forwarding forwarding;
+    private boolean forwardingTransferred;
+    private boolean clientOutputReady;
     private Throwable operationalFailure;
     private Throwable cleanupFailure;
 
     SocksTunnel(final Socket local, final Runnable onClosed) {
+        this(local, onClosed, task -> new Thread(task, "simple-java-mail SOCKS5 remote reader"));
+    }
+
+    SocksTunnel(final Socket local, final Runnable onClosed, final ThreadFactory forwardingThreads) {
         this.local = local;
         this.onClosed = onClosed;
+        this.forwardingThreads = forwardingThreads;
     }
 
     @Override
@@ -76,32 +91,73 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
     }
 
     private void sendClientBytes(final byte[] bytes, final int count) throws IOException {
-        synchronized (clientOutputOrder) {
-            final Socket destination;
-            synchronized (this) {
-                if (state == State.CLOSED) { return; }
-                if (state == State.PENDING) {
-                    if (count > MAX_PENDING_BYTES - pending.size()) {
-                        throw new IOException("Too much client data arrived before the SOCKS connection was established");
+        while (true) {
+            synchronized (clientOutputOrder) {
+                final Socket destination;
+                synchronized (this) {
+                    if (state == State.CLOSED) { return; }
+                    if (state == State.PENDING) {
+                        if (count > MAX_PENDING_BYTES - pending.size()) {
+                            throw new IOException("Too much client data arrived before the SOCKS connection was established");
+                        }
+                        pending.write(bytes, 0, count);
+                        return;
                     }
-                    pending.write(bytes, 0, count);
+                    destination = clientOutputReady ? remote : null;
+                }
+                if (destination != null) {
+                    final OutputStream output = destination.getOutputStream();
+                    output.write(bytes, 0, count);
+                    output.flush();
                     return;
                 }
-                destination = remote;
             }
-            final OutputStream output = destination.getOutputStream();
-            output.write(bytes, 0, count);
-            output.flush();
+            // Only the committed handoff waits here. Pending setup continues reading bounded early bytes and peer EOF.
+            try {
+                clientForwardingReady.await();
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while starting SOCKS forwarding", interrupted);
+            }
         }
     }
 
-    /** Called only after writing the complete local CONNECT success response. */
+    /** Direct activation for an owner that already delivered its local CONNECT response. */
     void beginForwarding() throws IOException {
+        synchronized (this) {
+            requirePending();
+            if (remote == null) { throw new IllegalStateException("No remote SOCKS socket was published"); }
+            state = State.FORWARDING;
+        }
+        activateForwarding();
+    }
+
+    /** Starts a usable reverse reader before the handler publishes local CONNECT success. It cannot read before handoff. */
+    Forwarding reserveForwarding() throws IOException {
+        final Forwarding reserved = new Forwarding();
+        final Thread worker = forwardingThreads.newThread(reserved);
+        if (worker == null) { throw new IllegalStateException("No SOCKS forwarding thread was supplied"); }
+        reserved.worker = worker;
+        synchronized (this) {
+            requirePending();
+            if (remote == null) { throw new IllegalStateException("No remote SOCKS socket was published"); }
+            if (forwarding != null) { throw new IllegalStateException("SOCKS forwarding was already reserved"); }
+            forwarding = reserved;
+        }
+        try {
+            worker.start();
+            return reserved;
+        } catch (RuntimeException | Error failure) {
+            close(failure);
+            throw failure;
+        }
+    }
+
+    private void activateForwarding() throws IOException {
         synchronized (clientOutputOrder) {
             final Socket destination;
             synchronized (this) {
-                requirePending();
-                if (remote == null) { throw new IllegalStateException("No remote SOCKS socket was published"); }
+                requireForwarding();
                 destination = remote;
             }
             local.setSoTimeout(0);
@@ -109,8 +165,7 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
             final OutputStream output = destination.getOutputStream();
             final byte[] early;
             synchronized (this) {
-                requirePending();
-                state = State.FORWARDING;
+                requireForwarding();
                 early = pending.toByteArray();
                 pending.reset();
             }
@@ -118,6 +173,11 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
                 output.write(early);
                 output.flush();
             }
+            synchronized (this) {
+                requireForwarding();
+                clientOutputReady = true;
+            }
+            clientForwardingReady.countDown();
         }
     }
 
@@ -126,7 +186,12 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
         if (state != State.PENDING) { throw new IllegalStateException("The SOCKS tunnel already forwards data"); }
     }
 
-    /** The handler's worker owns the reverse direction; the existing client reader owns the other direction. */
+    private void requireForwarding() throws SocketException {
+        if (state == State.CLOSED) { throw new SocketException("The SOCKS tunnel is closed"); }
+        if (state != State.FORWARDING) { throw new IllegalStateException("The SOCKS tunnel is not forwarding"); }
+    }
+
+    /** Only the forwarding owner reads this direction; the original client reader owns the opposite direction. */
     void pumpRemoteToClient() throws IOException {
         final Socket source;
         synchronized (this) {
@@ -164,6 +229,8 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
         }
         if (state == State.CLOSED || pendingOnly && state != State.PENDING) { return null; }
         state = State.CLOSED;
+        clientForwardingReady.countDown();
+        if (forwarding != null) { forwarding.released.countDown(); }
         return new Closing(remote);
     }
 
@@ -205,11 +272,67 @@ final class SocksTunnel implements Socks5Bridge.SocketOwner, AutoCloseable {
 
     synchronized State state() { return state; }
     synchronized Throwable failure() { return operationalFailure != null ? operationalFailure : cleanupFailure; }
+    synchronized boolean forwardingTransferred() { return forwardingTransferred; }
 
     void awaitClientReader() throws InterruptedException {
         final Thread reader;
         synchronized (this) { reader = clientReader; }
         if (reader != null && reader != Thread.currentThread()) { reader.join(); }
+    }
+
+    void awaitReservedForwarding() throws InterruptedException {
+        final Thread worker;
+        synchronized (this) { worker = forwarding == null ? null : forwarding.worker; }
+        if (worker != null && worker != Thread.currentThread()) { worker.join(); }
+    }
+
+    final class Forwarding implements Runnable {
+        private final CountDownLatch released = new CountDownLatch(1);
+        private Thread worker;
+
+        /** Commit only after the complete local CONNECT response; this is also the cleanup ownership transfer. */
+        void handoff() throws IOException {
+            synchronized (SocksTunnel.this) {
+                requirePending();
+                if (forwarding != this) { throw new IllegalStateException("This SOCKS forwarding reservation is not current"); }
+                state = State.FORWARDING;
+                forwardingTransferred = true;
+            }
+            released.countDown();
+        }
+
+        @Override public void run() {
+            Throwable failure = null;
+            try {
+                released.await();
+                if (!forwardingTransferred()) { return; }
+                activateForwarding();
+                pumpRemoteToClient();
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                failure = new IOException("Interrupted while handing off SOCKS forwarding", interrupted);
+            } catch (IOException | RuntimeException problem) {
+                failure = problem;
+                if (state() == State.CLOSED) {
+                    LOGGER.debug("SOCKS forwarding ended after peer closure", problem);
+                } else {
+                    LOGGER.error("SOCKS forwarding failed", problem);
+                }
+            } catch (Error problem) {
+                failure = problem;
+                throw problem;
+            } finally {
+                if (failure != null || forwardingTransferred()) { close(failure); }
+                if (forwardingTransferred()) {
+                    try {
+                        awaitClientReader();
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        recordCleanup(interrupted);
+                    }
+                }
+            }
+        }
     }
 
     private static final class Closing {
