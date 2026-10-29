@@ -280,6 +280,11 @@ calendar and timezone interpretation: malformed comments, non-comment suffixes, 
 establish a timestamp. Existing ISO-date recovery and neighboring report facts remain unchanged. This source-fact correction is
 accepted under [#886](https://github.com/bbottema/simple-java-mail/issues/886) for unreleased 10.0.0.
 
+The numeric timezone's hour component must be in 00 through 23; Jakarta Mail's strict date grammar alone does not establish that
+range. Values such as `+2400`, `+9900` and `-2400` leave both last-attempt and retry-until timestamps unavailable with the existing
+invalid-date warning. Keep valid offsets, calendar checks, comments, ISO recovery, neighboring facts and original report content.
+This clarification was accepted on 29 October 2026 under [#903](https://github.com/bbottema/simple-java-mail/issues/903).
+
 ## Escaped Content-ID references (accepted 28 October 2026)
 
 Recognize a referenced MIME resource by the decoded identity of its CID URL under [RFC 2392 section 2](https://www.rfc-editor.org/rfc/rfc2392.html#section-2).

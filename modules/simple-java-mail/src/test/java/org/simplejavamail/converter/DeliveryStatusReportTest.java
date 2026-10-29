@@ -8,6 +8,9 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.DeliveryAction;
 import org.simplejavamail.api.email.DeliveryStatusReport;
@@ -211,6 +214,47 @@ class DeliveryStatusReportTest {
 			assertThat(status.getWarnings()).as(invalid).hasSize(2).anySatisfy(warning ->
 					assertThat(warning).contains("invalid Last-Attempt-Date"))
 					.anySatisfy(warning -> assertThat(warning).contains("invalid Will-Retry-Until"));
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"+2400", "+9900", "-2400", "-9900"})
+	void leavesOutOfRangeReportTimezoneHoursUnavailable(final String zone) throws Exception {
+		final String date = "Fri, 16 Oct 2026 10:20:30 " + zone + " (reported local time)";
+		final byte[] original = report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+				+ "Last-Attempt-Date: " + date + "\r\nWill-Retry-Until: " + date + "\r\n").getBytes(UTF_8);
+		for (final DateImportRoute route : DateImportRoute.values()) {
+			final Email email = importDates(route, original);
+			final DeliveryStatusReport status = email.getDeliveryStatusReport();
+			final RecipientDeliveryReport recipient = status.getRecipients().get(0);
+			assertThat(recipient.getLastAttemptAt()).as("%s %s", route, zone).isNull();
+			assertThat(recipient.getRetryUntil()).as("%s %s", route, zone).isNull();
+			assertThat(recipient.getFinalRecipient().getAddress()).isEqualTo("Reader@Example.test");
+			assertThat(recipient.getAction()).isEqualTo(DeliveryAction.FAILED);
+			assertThat(status.getWarnings()).hasSize(2)
+					.anySatisfy(warning -> assertThat(warning).contains("invalid Last-Attempt-Date"))
+					.anySatisfy(warning -> assertThat(warning).contains("invalid Will-Retry-Until"));
+			assertThat(new String(email.getAttachments().get(0).readAllBytes(), UTF_8))
+					.contains("Last-Attempt-Date: " + date, "Will-Retry-Until: " + date);
+			if (route == DateImportRoute.EXACT_EML) {
+				assertThat(EmailConverter.mimeMessageToEMLByteArray(EmailConverter.emailToMimeMessage(email))).containsExactly(original);
+			}
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({"+0000,2026-10-16T10:20:30Z", "-0000,2026-10-16T10:20:30Z",
+			"+2359,2026-10-15T10:21:30Z", "-2359,2026-10-17T10:19:30Z", "-0230,2026-10-16T12:50:30Z"})
+	void retainsValidReportTimezoneBoundaries(final String zone, final String expected) throws Exception {
+		final String date = "Fri, 16 Oct 2026 10:20:30 " + zone + " (reported local time)";
+		final byte[] original = report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT
+				+ "Last-Attempt-Date: " + date + "\r\nWill-Retry-Until: " + date + "\r\n").getBytes(UTF_8);
+		for (final DateImportRoute route : DateImportRoute.values()) {
+			final DeliveryStatusReport status = importDates(route, original).getDeliveryStatusReport();
+			final RecipientDeliveryReport recipient = status.getRecipients().get(0);
+			assertThat(recipient.getLastAttemptAt()).as("%s %s", route, zone).isEqualTo(Instant.parse(expected));
+			assertThat(recipient.getRetryUntil()).as("%s %s", route, zone).isEqualTo(Instant.parse(expected));
+			assertThat(status.getWarnings()).isEmpty();
 		}
 	}
 
@@ -626,6 +670,24 @@ class DeliveryStatusReportTest {
 
 	private static Email convert(final String eml) {
 		return SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(eml.getBytes(UTF_8))).toEmail();
+	}
+
+	private enum DateImportRoute { FLUENT_EML, FLUENT_MIME, LEGACY_EML, EXACT_EML }
+
+	private static Email importDates(final DateImportRoute route, final byte[] original) throws Exception {
+		switch (route) {
+			case FLUENT_EML:
+				return SimpleJavaMail.fromDefaults().converter().fromEml(original).toEmail();
+			case FLUENT_MIME:
+				return SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message(new String(original, UTF_8))).toEmail();
+			case LEGACY_EML:
+				return EmailConverter.emlToEmail(new ByteArrayInputStream(original));
+			case EXACT_EML:
+				return SimpleJavaMail.fromDefaults().emailBuilder().startingFromExactEml(original)
+						.withEnvelopeRecipients("archive@example.test").buildEmail();
+			default:
+				throw new AssertionError(route);
+		}
 	}
 
 	private static MimeMessage message(final String eml) throws Exception {
