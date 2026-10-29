@@ -190,7 +190,7 @@ public final class MimeMessageParser {
 
 	private static MimeDataSource parseAttachment(@Nullable final String contentId, final @NotNull MimePart mimePart, final DataSource ds) {
 		return MimeDataSource.builder()
-				.name(parseResourceNameOrUnnamed(contentId, parseFileName(mimePart)))
+				.name(parseResourceNameOrUnnamed(contentId, parseFileNameWithoutGenericFallback(mimePart)))
 				.dataSource(ds)
 				.contentDescription(parseContentDescription(mimePart))
 				.contentTransferEncoding(parseContentTransferEncoding(mimePart))
@@ -251,9 +251,16 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@NotNull
 	public static String parseFileName(@NotNull final Part currentPart) {
+		final String fileName = parseFileNameWithoutGenericFallback(currentPart);
+		return fileName != null ? fileName : "UnknownAttachment";
+	}
+
+	@Nullable
+	private static String parseFileNameWithoutGenericFallback(@NotNull final Part currentPart) {
 		try {
-			if (currentPart.getFileName() != null) {
-				return decodeText(currentPart.getFileName());
+			final String fileName = currentPart.getFileName();
+			if (fileName != null) {
+				return decodeText(fileName);
 			} else {
 				// replicate behavior from Thunderbird
 				final String[] contentTypes = currentPart.getHeader(MessageHeader.CONTENT_TYPE.getName());
@@ -261,7 +268,7 @@ public final class MimeMessageParser {
 					return "ForwardedMessage.eml";
 				}
 			}
-			return "UnknownAttachment";
+			return null;
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
 		}
@@ -400,17 +407,17 @@ public final class MimeMessageParser {
 	}
 
 	@NotNull
-	private static String parseResourceNameOrUnnamed(@Nullable final String possibleWrappedContentID, @NotNull final String fileName) {
+	private static String parseResourceNameOrUnnamed(@Nullable final String possibleWrappedContentID, @Nullable final String fileName) {
 		String resourceName = parseResourceName(possibleWrappedContentID, fileName);
 		return valueNullOrEmpty(resourceName) ? "unnamed" : resourceName;
 	}
 
 	@NotNull
-	private static String parseResourceName(@Nullable String possibleWrappedContentID, @NotNull String fileName) {
-		if ((valueNullOrEmpty(fileName) || "UnknownAttachment".equals(fileName)) && !valueNullOrEmpty(possibleWrappedContentID)) {
+	private static String parseResourceName(@Nullable String possibleWrappedContentID, @Nullable String fileName) {
+		if (valueNullOrEmpty(fileName) && !valueNullOrEmpty(possibleWrappedContentID)) {
 			return extractCID(possibleWrappedContentID);
 		} else {
-			return fileName;
+			return fileName != null ? fileName : "UnknownAttachment";
 		}
 	}
 

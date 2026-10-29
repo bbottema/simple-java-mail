@@ -312,9 +312,9 @@ tracks implementation and delivery for unreleased 10.0.0.
 
 ## Literal imported filenames (accepted 29 October 2026)
 
-Preserve decoded MIME filenames on attachments and embedded images, including literal angle brackets. Filenames and Content-IDs are distinct metadata: bracket removal applies only to actual Content-ID interpretation and the established missing-filename CID fallback. Import must not silently sanitize an otherwise interpretable filename.
+Preserve decoded MIME filenames on attachments and embedded images, including literal angle brackets. Filenames and Content-IDs are distinct metadata: bracket removal applies only to actual Content-ID interpretation and the established missing-filename CID fallback. Import must not silently sanitize an otherwise interpretable filename. Retain whether naming metadata was supplied rather than inferring absence from a fallback label: a real filename of `UnknownAttachment`, including one supplied through Content-Type, remains literal. Existing empty-name, genuinely unnamed and forwarded-message fallbacks retain their behavior.
 
-This applies to static/fluent MIME/EML import and exact inspection. Preserve classification, content bytes, eager/lazy ownership and authoritative exact/protected bytes under ADR 0008 and ADR 0036. Issue [#899](https://github.com/bbottema/simple-java-mail/issues/899) tracks this correction to existing behavior for unreleased 10.0.0.
+This applies to static/fluent MIME/EML import and exact inspection. Preserve classification, content bytes, eager/lazy ownership and authoritative exact/protected bytes under ADR 0008 and ADR 0036. Issue [#899](https://github.com/bbottema/simple-java-mail/issues/899) tracks the bracket correction and [#916](https://github.com/bbottema/simple-java-mail/issues/916) tracks the fallback-label clarification accepted on 29 October 2026, both for unreleased 10.0.0.
 
 ## Unparseable imported message addresses (accepted 29 October 2026)
 
