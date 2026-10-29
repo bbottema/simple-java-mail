@@ -138,6 +138,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#916](https://github.com/bbottema/simple-java-mail/issues/916): preserve a supplied `UnknownAttachment` filename instead of replacing it with the Content-ID; genuinely missing filenames retain their existing fallbacks.
 - [#917](https://github.com/bbottema/simple-java-mail/issues/917): read delivery-report actions with valid comments, retaining unknown results for malformed or competing action tokens.
 - [#918](https://github.com/bbottema/simple-java-mail/issues/918): retain detached S/MIME signatures in decrypted Outlook message exports and signed-content views, so saved signed EML remains verifiable independently of content merging.
+- [#919](https://github.com/bbottema/simple-java-mail/issues/919): reject null String body fragments before appending or prepending, preserving the draft while retaining nullable replacement and empty-fragment behavior.
 
 - [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
 - [#898](https://github.com/bbottema/simple-java-mail/issues/898): corrected the CLI deadline example to use `--mailer:withMailSendTimeout PT30S`, matching the existing separate option/value syntax.

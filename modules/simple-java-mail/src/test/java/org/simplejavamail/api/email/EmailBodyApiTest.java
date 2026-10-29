@@ -3,6 +3,8 @@ package org.simplejavamail.api.email;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import testutil.ConfigLoaderTestHelper;
@@ -16,8 +18,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EmailBodyApiTest {
 
@@ -82,6 +87,63 @@ class EmailBodyApiTest {
         assertThat(builder.getCalendarText()).isEqualTo(email.getCalendarText());
         Files.delete(prefix);
         Files.delete(suffix);
+    }
+
+    @ParameterizedTest(name = "{0} rejects a missing fragment before changing the draft")
+    @MethodSource("bodyAugmentations")
+    void rejectsNullFragmentsWithoutChangingExistingOrAbsentBodies(final String name,
+            final BiConsumer<EmailPopulatingBuilder, String> augment, final boolean html) {
+        for (boolean populated : new boolean[]{false, true}) {
+            final EmailPopulatingBuilder builder = bodyDraft(populated);
+            final Email before = builder.buildEmail();
+
+            assertThatThrownBy(() -> augment.accept(builder, null)).isInstanceOf(NullPointerException.class);
+
+            assertThat(builder.getPlainText()).isEqualTo(before.getPlainText());
+            assertThat(builder.getHTMLText()).isEqualTo(before.getHTMLText());
+            assertThat(builder.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
+            assertThat(builder.getCalendarText()).isEqualTo(before.getCalendarText());
+            final Email after = builder.buildEmail();
+            assertThat(after.getPlainText()).isEqualTo(before.getPlainText());
+            assertThat(after.getHTMLText()).isEqualTo(before.getHTMLText());
+            assertThat(before.getPlainText()).isEqualTo(populated ? "plain" : null);
+            assertThat(before.getHTMLText()).isEqualTo(populated ? "<p>html</p>" : null);
+        }
+    }
+
+    @ParameterizedTest(name = "{0} retains its empty-fragment behavior")
+    @MethodSource("bodyAugmentations")
+    void emptyFragmentsRemainValidWithoutChangingOtherBodyChoices(final String name,
+            final BiConsumer<EmailPopulatingBuilder, String> augment, final boolean html) {
+        for (boolean populated : new boolean[]{false, true}) {
+            final EmailPopulatingBuilder builder = bodyDraft(populated);
+            final Email before = builder.buildEmail();
+
+            augment.accept(builder, "");
+
+            assertThat(builder.getPlainText()).isEqualTo(populated ? "plain" : html ? null : "");
+            assertThat(builder.getHTMLText()).isEqualTo(populated ? "<p>html</p>" : html ? "" : null);
+            assertThat(builder.getCalendarText()).isEqualTo(before.getCalendarText());
+            assertThat(before.getPlainText()).isEqualTo(populated ? "plain" : null);
+            assertThat(before.getHTMLText()).isEqualTo(populated ? "<p>html</p>" : null);
+        }
+    }
+
+    private static Stream<Arguments> bodyAugmentations() {
+        return Stream.of(
+                Arguments.of("appendPlainText", (BiConsumer<EmailPopulatingBuilder, String>) EmailPopulatingBuilder::appendPlainText, false),
+                Arguments.of("prependPlainText", (BiConsumer<EmailPopulatingBuilder, String>) EmailPopulatingBuilder::prependPlainText, false),
+                Arguments.of("appendHTMLText", (BiConsumer<EmailPopulatingBuilder, String>) EmailPopulatingBuilder::appendHTMLText, true),
+                Arguments.of("prependHTMLText", (BiConsumer<EmailPopulatingBuilder, String>) EmailPopulatingBuilder::prependHTMLText, true));
+    }
+
+    private static EmailPopulatingBuilder bodyDraft(final boolean populated) {
+        final EmailPopulatingBuilder builder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
+                .withCalendarText(CalendarMethod.REQUEST, "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n");
+        if (populated) {
+            builder.withPlainText("plain").withHTMLText("<p>html</p>");
+        }
+        return builder;
     }
 
     private void assertCompilation(final boolean expected, final String statements) throws Exception {
