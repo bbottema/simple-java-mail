@@ -227,7 +227,7 @@ The [connection conflict policy in ADR 0038](0038-connection-configuration-confl
 
 The [26 October extension of ADR 0039](0039-explicit-configuration-resolution.md#complete-layered-adoption-accepted-26-october-2026) adopts all layered Email/Mailer configuration consumers while preserving source-loading, feature-owned merge rules, mandatory restrictions and public contracts. #867 tracks delivery of this implemented expansion.
 
-The 29 October review accepts [literal imported filenames](0035-tolerant-reading-and-strict-production.md#literal-imported-filenames-accepted-29-october-2026) under [#899](https://github.com/bbottema/simple-java-mail/issues/899). Decode filenames without applying Content-ID bracket removal; actual IDs and existing missing-name fallbacks retain their interpretation.
+The 29 October review accepts [literal imported filenames](0035-tolerant-reading-and-strict-production.md#literal-imported-filenames-accepted-29-october-2026) under [#899](https://github.com/bbottema/simple-java-mail/issues/899) and [#916](https://github.com/bbottema/simple-java-mail/issues/916). Decode filenames without applying Content-ID bracket removal or mistaking a supplied `UnknownAttachment` name for absent metadata; actual IDs and existing missing-name fallbacks retain their interpretation.
 
 The subsequent 29 October feature review accepts [SOCKS authentication secrecy and complete replies](0010-authenticated-socks-bridge.md#authentication-logging-and-reply-boundaries-accepted-29-october-2026)
 under #901/#902, attempt-specific final retry receipts under [ADR 0011](0011-transport-neutral-submission-outcomes.md) (#900),

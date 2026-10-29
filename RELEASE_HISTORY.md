@@ -135,6 +135,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#904](https://github.com/bbottema/simple-java-mail/issues/904): reject missing required calendar arguments before replacing either part of an existing calendar choice; explicit clearing remains available.
 
 - [#899](https://github.com/bbottema/simple-java-mail/issues/899): preserve literal angle brackets in imported attachment and embedded-image filenames, keeping Content-ID interpretation separate.
+- [#916](https://github.com/bbottema/simple-java-mail/issues/916): preserve a supplied `UnknownAttachment` filename instead of replacing it with the Content-ID; genuinely missing filenames retain their existing fallbacks.
 
 - [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
 - [#898](https://github.com/bbottema/simple-java-mail/issues/898): corrected the CLI deadline example to use `--mailer:withMailSendTimeout PT30S`, matching the existing separate option/value syntax.
