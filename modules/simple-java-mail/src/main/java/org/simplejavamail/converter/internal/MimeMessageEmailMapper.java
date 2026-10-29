@@ -103,7 +103,7 @@ class MimeMessageEmailMapper {
 		for (final Map.Entry<String, MimeDataSource> cid : parsed.getCidMap().entrySet()) {
 			final String cidName = checkNonEmptyArgument(cid.getKey(), "cid.key");
 			final MimeDataSource resource = cid.getValue();
-			final String resourceName = extractCID(resource.getName());
+			final String resourceName = resource.getName();
 			final String contentId = extractCID(cidName);
 			builder.withEmbeddedImage(AttachmentResource.builder().withName(resourceName).withDataSource(resource.getDataSource())
 					.withDescription(resource.getContentDescription()).withContentTransferEncoding(toContentTransferEncoding(resource.getContentTransferEncoding()))
@@ -112,7 +112,7 @@ class MimeMessageEmailMapper {
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
 					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
-			builder.withAttachment(AttachmentResource.builder().withName(extractCID(attachment.getName())).withDataSource(attachment.getDataSource()).withDescription(attachment.getContentDescription()).withContentTransferEncoding(encoding).withContentId(userProvidedContentId(attachment)).build());
+			builder.withAttachment(AttachmentResource.builder().withName(attachment.getName()).withDataSource(attachment.getDataSource()).withDescription(attachment.getContentDescription()).withContentTransferEncoding(encoding).withContentId(userProvidedContentId(attachment)).build());
 		}
 		return builder;
 	}

@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#899](https://github.com/bbottema/simple-java-mail/issues/899): preserve literal angle brackets in imported attachment and embedded-image filenames, keeping Content-ID interpretation separate.
+
 - [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
 - [#898](https://github.com/bbottema/simple-java-mail/issues/898): corrected the CLI deadline example to use `--mailer:withMailSendTimeout PT30S`, matching the existing separate option/value syntax.
 
