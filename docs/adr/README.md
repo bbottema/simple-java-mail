@@ -267,3 +267,7 @@ The retained detached-signature clarification in [ADR 0008](0008-minimal-mime-st
 and [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) preserves signed MIME containers in generated decrypted Outlook MSG EML and
 retained S/MIME views, independently of readable-content merging. [#918](https://github.com/bbottema/simple-java-mail/issues/918) tracks this
 restoration for unreleased 10.0.0; opaque signature handling and original-source ownership keep their existing contracts.
+
+The [received-identifier clarification in ADR 0022](0022-dsn-identifiers-belong-to-send-attempts.md#received-identifier-preservation-accepted-29-october-2026)
+preserves reported ENVID spelling and distinguishes different repeated values under the original [#763](https://github.com/bbottema/simple-java-mail/issues/763).
+Ordinary header unfolding and existing leading-whitespace handling remain in place; no API or outgoing policy changes.

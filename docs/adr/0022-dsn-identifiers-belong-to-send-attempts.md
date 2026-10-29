@@ -25,6 +25,19 @@ Report the effective unencoded identifier through `MailTransportResult` and `Mai
 
 Preserve unrelated raw MAIL extensions. A raw ENVID suppresses automatic generation without being reinterpreted or reported as a verified typed identifier; combining raw and fixed ENVID is rejected. Keep transaction metadata in `DeliveryEnvelope` and the provider facade so exact/protected MIME remains unchanged. See [ADR 0007](0007-provider-neutral-mime-boundary.md) and [ADR 0013](0013-exact-eml-submission.md).
 
+## Received identifier preservation (accepted 29 October 2026)
+
+The incoming report reader preserves the Original-Envelope-Id value supplied by Jakarta Mail after ordinary header unfolding, including
+trailing spaces. This is an identity, so generic token-field trimming must not change it or collapse distinct repeated values. Missing or
+empty values remain unavailable; identical repetitions retain their existing warning, and different spellings remain conflicting.
+
+The returned report field is already unencoded. Do not apply a second xtext decoding pass. Jakarta Mail's existing leading field-whitespace
+handling remains in place; this correction does not reconstruct characters it already removed. Neighboring report fields keep their existing
+interpretation, and authoritative exact/protected bytes, snapshots and content ownership remain unchanged.
+
+This follows the report interpretation introduced under [#763](https://github.com/bbottema/simple-java-mail/issues/763), with outgoing identifier
+semantics owned by [#736](https://github.com/bbottema/simple-java-mail/issues/736). It adds no API, property, outgoing policy or automatic correlation.
+
 ## Alternatives and consequences
 
 A globally configured identifier or a UUID generated while building Email would be reused across attempts. Generating at the adapter avoids that state leakage and makes the actual connection authoritative for capability checks. Explicit fixed values deliberately retain caller control, including deliberate reuse.

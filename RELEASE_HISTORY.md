@@ -115,6 +115,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
+
 - [#914](https://github.com/bbottema/simple-java-mail/issues/914): preserve whole imported address text after an address-grammar failure instead of discarding otherwise readable MIME/EML content. Existing successful parsing and outgoing validation retain their separate roles.
 - [#915](https://github.com/bbottema/simple-java-mail/issues/915): keep daemon status and stop responsive during slow mail commands through separately bounded control and reply handling, retaining duplicate-request protection and accepted-work shutdown semantics.
 

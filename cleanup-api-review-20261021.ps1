@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/envid-spelling-763-20261029'
     '.local/content-id-comments-20261029'
     '.local/fixture-alignment-20261029'
     '.local/smime-retained-918-20261029'
@@ -101,6 +102,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/763-envelope-id-preservation-20261029.md'
     'docs/plans/920-content-id-comments.md'
     'docs/plans/918-retained-smime-signatures.md'
     'docs/plans/919-body-null-fragments.md'
