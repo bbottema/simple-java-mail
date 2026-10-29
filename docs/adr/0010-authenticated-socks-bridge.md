@@ -47,3 +47,9 @@ Automatic allocation removes routine port coordination between Mailers. An expli
 ## Connection conflict policy (accepted 24 October 2026)
 
 ADR 0038 resolves compatible raw SOCKS endpoints and SJM credentials into one remote proxy configuration before deriving bridge routing. This extends previous SJM-only endpoint inheritance. Compare user declarations before creating generated loopback routing; retain the listener, socket, optional-module and allocated-port lifecycle described here. See [ADR 0038](0038-connection-configuration-conflicts.md), accepted under [#867](https://github.com/bbottema/simple-java-mail/issues/867). Implementation is tracked separately from design acceptance.
+
+## Authentication logging and reply boundaries (accepted 29 October 2026)
+
+Keep username/password authentication packet contents out of logging, including TRACE output. The bridge sends the supplied credentials to the remote proxy, but diagnostics may describe only the authentication phase and non-sensitive response facts. Hexadecimal encoding does not make a credential safe to publish. This correction is tracked under [#901](https://github.com/bbottema/simple-java-mail/issues/901).
+
+Treat the two-byte username/password authentication response as one complete protocol frame, independently of socket read boundaries. Require subnegotiation version 1 and the actual success status before issuing CONNECT; reject malformed versions, authentication rejection and EOF before either byte. Consume no bytes from the following exchange. Close the current socket after a rejected, malformed or truncated authentication response, retaining the original failure and suppressing any secondary close failure. This applies the bridge's existing protocol responsibility without changing public configuration or listener/socket ownership; [#902](https://github.com/bbottema/simple-java-mail/issues/902) tracks the correction.
