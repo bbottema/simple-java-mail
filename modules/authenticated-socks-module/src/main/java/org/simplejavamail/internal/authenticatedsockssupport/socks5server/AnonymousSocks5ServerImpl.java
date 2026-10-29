@@ -9,6 +9,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
@@ -41,6 +45,11 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 		this.socks5Bridge = socks5Bridge;
 		this.proxyBridgePort = proxyBridgePort;
 	}
+
+	private static ExecutorService createSetupExecutor() {
+		// Established tunnels have their own forwarding lifetime; only actively negotiating peers occupy these workers.
+		return new ThreadPoolExecutor(0, 100, 30, TimeUnit.SECONDS, new SynchronousQueue<>(), Executors.defaultThreadFactory());
+	}
 	
 	/**
 	 * @see AnonymousSocks5Server#start()
@@ -52,7 +61,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 				throw new IllegalStateException("server already running or stopping!");
 			}
 
-			final ExecutorService preparedThreadPool = Executors.newFixedThreadPool(100);
+			final ExecutorService preparedThreadPool = createSetupExecutor();
 			final ServerSocket preparedServerSocket;
 			try {
 				preparedServerSocket = prepareServerSocket();
@@ -155,6 +164,9 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 					socket.setSoTimeout(10000);
 					final SocksSession session = new SocksSession(socket);
 					activeThreadPool.execute(new Socks5Handler(session, socks5Bridge, tunnel));
+				} catch (RejectedExecutionException overload) {
+					tunnel.close(overload);
+					LOGGER.debug("SOCKS setup capacity is occupied; refusing only the new peer");
 				} catch (IOException failure) {
 					tunnel.close(failure);
 					LOGGER.debug("Accepted SOCKS peer closed before its handler could start", failure);

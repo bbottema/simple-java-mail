@@ -14,10 +14,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-/** Reads the local SOCKS handshake, then owns remote setup and the remote-to-client forwarding direction. */
+/** Reads the local SOCKS handshake and remote setup, then hands established forwarding to its own lifetime. */
 public class Socks5Handler implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Handler.class);
     private static final byte[] METHOD_SELECTION_RESPONSE = {(byte) 5, (byte) 0};
+    private static final byte[] NO_ACCEPTABLE_METHOD_RESPONSE = {(byte) 5, (byte) 255};
+    private static final int ANONYMOUS_METHOD = 0;
     private static final int CONNECT_COMMAND = 1;
     public static final int VERSION = 5;
 
@@ -51,20 +53,28 @@ public class Socks5Handler implements Runnable {
             failure = problem;
             throw problem;
         } finally {
-            tunnel.close(failure);
-            try {
-                tunnel.awaitClientReader();
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                final Throwable primary = tunnel.failure();
-                if (primary != null) { primary.addSuppressed(interrupted); }
+            if (!tunnel.forwardingTransferred()) {
+                tunnel.close(failure);
+                try {
+                    tunnel.awaitReservedForwarding();
+                    tunnel.awaitClientReader();
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    final Throwable primary = tunnel.failure();
+                    if (primary != null) { primary.addSuppressed(interrupted); }
+                }
             }
         }
     }
 
     private void handle() throws IOException {
-        if (MethodSelectionMessage.readVersion(session.getInputStream()) != VERSION) {
+        final MethodSelectionMessage greeting = MethodSelectionMessage.read(session.getInputStream());
+        if (greeting.getVersion() != VERSION) {
             throw new SocksException("Protocol error");
+        }
+        if (!greeting.offersMethod(ANONYMOUS_METHOD)) {
+            session.write(NO_ACCEPTABLE_METHOD_RESPONSE);
+            return;
         }
         session.write(METHOD_SELECTION_RESPONSE);
         final CommandMessage command = new CommandMessage();
@@ -93,10 +103,10 @@ public class Socks5Handler implements Runnable {
             throw failure;
         }
         final InetAddress bindAddress = remote.getLocalAddress();
+        final SocksTunnel.Forwarding forwarding = tunnel.reserveForwarding();
         session.write(CommandResponseMessage.getBytes(ServerReply.SUCCEEDED,
                 bindAddress == null ? new InetSocketAddress(0).getAddress() : bindAddress, remote.getLocalPort()));
-        tunnel.beginForwarding();
-        tunnel.pumpRemoteToClient();
+        forwarding.handoff();
     }
 
     private static ServerReply replyFor(final IOException failure) {

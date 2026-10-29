@@ -33,10 +33,15 @@ public class CommandMessage {
 		host = null;
 		socksServerReplyException = null;
 
-		StreamUtil.checkEnd(inputStream.read()); // version, unused
+		final int version = StreamUtil.checkEnd(inputStream.read());
+		if (version != 5) {
+			throw new SocksException("Unsupported SOCKS command version: " + version);
+		}
 		command = StreamUtil.checkEnd(inputStream.read());
 
-		StreamUtil.checkEnd(inputStream.read());
+		if (StreamUtil.checkEnd(inputStream.read()) != 0) {
+			throw new SocksException("SOCKS command reserved byte must be zero");
+		}
 		final int addressType = StreamUtil.checkEnd(inputStream.read());
 
 		if (!AddressType.isSupport(addressType) && socksServerReplyException == null) {
