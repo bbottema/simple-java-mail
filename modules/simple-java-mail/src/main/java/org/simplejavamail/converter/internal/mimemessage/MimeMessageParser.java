@@ -150,7 +150,7 @@ public final class MimeMessageParser {
 
 	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents,
 			boolean fetchAttachmentData, String disposition, final boolean insideRelated) {
-        final String contentID = parseContentID(currentPart);
+        final String contentID = interpretReceivedContentId(parseContentID(currentPart));
 		final boolean statusPart = currentPart == parsedComponents.deliveryStatusPart;
 		final MimeDataSource mimeDataSource = parseAttachment(contentID, currentPart, createDataSource(currentPart, fetchAttachmentData, statusPart));
 		if (statusPart) {
@@ -367,6 +367,69 @@ public final class MimeMessageParser {
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_CONTENT_ID, e);
 		}
+	}
+
+	@Nullable
+	private static String interpretReceivedContentId(@Nullable final String received) {
+		if (received == null) {
+			return null;
+		}
+		try {
+			final HeaderTokenizer prefix = new HeaderTokenizer(received, HeaderTokenizer.RFC822);
+			if (prefix.next().getType() == '<') {
+				final String remainder = prefix.getRemainder();
+				final int closing = remainder == null ? -1 : findContentIdEnd(remainder);
+				if (closing > 0) {
+					final String identity = remainder.substring(0, closing);
+					final HeaderTokenizer suffix = new HeaderTokenizer(remainder.substring(closing + 1), HeaderTokenizer.RFC822);
+					if (suffix.next().getType() == HeaderTokenizer.Token.EOF) {
+						// Keep the established bracketed map key while discarding only valid external CFWS.
+						return '<' + identity + '>';
+					}
+				}
+			}
+		} catch (final ParseException malformedHeader) {
+			// Retain the existing interpretation of malformed or competing source text rather than guessing an ID.
+		}
+		return received;
+	}
+
+	private static int findContentIdEnd(final String remainder) {
+		// Keep the core opaque, including quoted text and domain literals, without copying it once per token.
+		boolean quoted = false;
+		boolean domainLiteral = false;
+		boolean escaped = false;
+		for (int index = 0; index < remainder.length(); index++) {
+			final char current = remainder.charAt(index);
+			if (quoted) {
+				if (current == '>' || current == '\r' || current == '\n') {
+					return -1;
+				} else if (escaped) {
+					escaped = false;
+				} else if (current == '\\') {
+					escaped = true;
+				} else if (current == '"') {
+					quoted = false;
+				}
+			} else if (domainLiteral) {
+				if (current == '[' || current == '>' || current == '\\'
+						|| current == ' ' || current == '\t' || current == '\r' || current == '\n') {
+					return -1;
+				} else if (current == ']') {
+					domainLiteral = false;
+				}
+			} else if (current == '>') {
+				return index;
+			} else if (current == '<' || current == '(' || current == ')' || current == ']'
+					|| current == ' ' || current == '\t' || current == '\r' || current == '\n') {
+				return -1;
+			} else if (current == '"') {
+				quoted = true;
+			} else if (current == '[') {
+				domainLiteral = true;
+			}
+		}
+		return -1;
 	}
 
 	@SuppressWarnings("WeakerAccess")

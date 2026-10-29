@@ -235,6 +235,8 @@ The 29 October review accepts [literal imported filenames](0035-tolerant-reading
 
 The [delivery-report Action clarification](0035-tolerant-reading-and-strict-production.md#comments-in-delivery-report-actions-accepted-29-october-2026) under [#917](https://github.com/bbottema/simple-java-mail/issues/917) reads one recognized action while ignoring valid external comments. Malformed or competing tokens and the existing duplicate-field rules retain unavailable facts and warnings; source content stays unchanged.
 
+The [received Content-ID comment clarification](0035-tolerant-reading-and-strict-production.md#external-comments-on-imported-content-ids-accepted-29-october-2026) under [#920](https://github.com/bbottema/simple-java-mail/issues/920) ignores valid external comments and folding whitespace when interpreting resource identity. Case-sensitive core spelling, filenames, resource occurrence rules and exact/protected source bytes remain unchanged; malformed or competing framing retains its existing fallback.
+
 The subsequent 29 October feature review accepts [SOCKS authentication secrecy and complete replies](0010-authenticated-socks-bridge.md#authentication-logging-and-reply-boundaries-accepted-29-october-2026)
 under #901/#902, attempt-specific final retry receipts under [ADR 0011](0011-transport-neutral-submission-outcomes.md) (#900),
 opaque signed content inside encrypted S/MIME under [ADR 0008](0008-minimal-mime-structures-and-protection-order.md) (#905),
