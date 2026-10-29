@@ -151,6 +151,7 @@ class EmailCompletionHistoryTest {
         builder.withOriginalOpenPgpDetails(OpenPgpDetailsImpl.builder()
                 .openPgpMode(OriginalOpenPgpDetails.OpenPgpMode.SIGNED_ENCRYPTED)
                 .signatureStatus(OriginalOpenPgpDetails.SignatureStatus.VALID)
+                .signatureInspectionComplete(true)
                 .decryptionStatus(OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED)
                 .signerFingerprint("input-fingerprint").recipientKeyIds(List.of("input-recipient"))
                 .originalProtectedMessage(OPENPGP_BYTES).build());
