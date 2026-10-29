@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendOutcome;
@@ -130,6 +132,58 @@ class MailSendTelemetryRecorderTest {
         verify(submission).complete(true, MailSubmissionStatus.ACCEPTED, null, null, null);
         verify(telemetry).complete(argThat(report -> !report.isSuccessful()
                 && report.getSubmissionStatus() == MailSubmissionStatus.ACCEPTED && report.getFailure() == failure));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false, false", "false, true", "true, false", "true, true"})
+    void retryReceiptAuthorityChangesOnlyWhenAnotherInvocationStarts(final boolean observeResults, final boolean anotherInvocationStarts) {
+        final MailSendTelemetryBridge.Runtime runtime = mock(MailSendTelemetryBridge.Runtime.class);
+        final MailSendTelemetryBridge.CapturedContext captured = mock(MailSendTelemetryBridge.CapturedContext.class);
+        final MailSendTelemetryBridge.Attempt telemetry = mock(MailSendTelemetryBridge.Attempt.class);
+        final MailSendTelemetryBridge.Submission submission = mock(MailSendTelemetryBridge.Submission.class);
+        when(runtime.captureContext()).thenReturn(captured);
+        when(captured.beginSend(any())).thenReturn(telemetry);
+        when(telemetry.beginSubmission(anyBoolean())).thenReturn(submission);
+        when(submission.makeCurrent()).thenReturn(() -> { });
+        final AtomicReference<MailSendOutcome> outcome = new AtomicReference<>();
+        final MailSendAttempt attempt = MailSendObserverNotifier.builder()
+                .handlers(observeResults ? org.simplejavamail.api.mailer.MailSendHandlers.builder().withResultObserver(outcome::set).build() : null)
+                .telemetry(runtime)
+                .build()
+                .beginAttempt(SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder().startingBlank().buildEmail());
+        final MailSubmissionReceipt refusal = MailSubmissionReceiptImpl.builder()
+                .submittedAt(Instant.EPOCH)
+                .status(MailSubmissionStatus.REJECTED)
+                .recipientResults(emptyList())
+                .retryDisposition(MailRetryDisposition.SAFE_TO_RETRY_ALL)
+                .build();
+        final RuntimeException failure = new IllegalStateException("later provider invocation failed");
+        attempt.diagnostics().startSubmission();
+        attempt.diagnostics().submissionInvoked();
+        attempt.diagnostics().submissionReturned(refusal, false);
+        attempt.diagnostics().continuingAfterSubmissionRefusal();
+        attempt.diagnostics().startRetryWait();
+        attempt.diagnostics().retryWaitCompleted();
+        if (anotherInvocationStarts) {
+            attempt.diagnostics().startSubmission();
+            attempt.diagnostics().submissionInvoked();
+            attempt.diagnostics().submissionFailed(failure);
+        } else {
+            attempt.diagnostics().startConnectionAcquisition();
+            attempt.diagnostics().failed();
+        }
+        attempt.completeWithFailure(failure);
+        verify(telemetry).complete(argThat(report -> !report.isSuccessful()
+                && report.getSubmissionStatus() == (anotherInvocationStarts ? null : MailSubmissionStatus.REJECTED)
+                && report.getFailure() == failure));
+        if (observeResults) {
+            if (anotherInvocationStarts) {
+                assertThat(outcome.get().getSubmissionReceipt()).isEmpty();
+            } else {
+                assertThat(outcome.get().getSubmissionReceipt()).containsSame(refusal);
+            }
+            assertThat(outcome.get().getFailure()).containsSame(failure);
+        }
     }
 
     @Test

@@ -73,6 +73,10 @@ Every invoked attempt consumes selected sending allowance. Failed capture or acq
 An accepted receipt is retained if later cleanup fails. Reacquisition stays pinned, supplies connection history rather than a fake submission entry,
 and does not restart failover. Cancellation/deadline waits retain the prior genuine refusal receipt.
 
+Another actual provider invocation retires that prior receipt's authority over the final outcome. If an unchecked provider failure then
+prevents a new receipt, terminal observation and telemetry leave acceptance unavailable; they cannot reuse the earlier refusal as evidence
+that the email remains unsent. Bounded submission history retains the earlier result. See [receipt authority across retries](../adr/0011-transport-neutral-submission-outcomes.md#receipt-authority-across-retries-accepted-29-october-2026).
+
 On resumption, reserve the selected allowance before acquiring the next ordinary connection. Waiting at that rate gate must not hold a pooled lease
 or proxy. Retained batch/callback scopes are the explicit exception: their connection remains owned by the surrounding scope.
 

@@ -315,6 +315,10 @@ public final class MailSendDiagnosticsRecorder {
 	}
 
 	public void submissionInvoked(final boolean customMailer) {
+		if (clock != null) {
+			// An earlier refusal cannot establish acceptance once another invocation starts; its facts remain in retry history.
+			receipt = null;
+		}
 		if (progress != null) {
 			progress.submissionInvoked();
 		}
