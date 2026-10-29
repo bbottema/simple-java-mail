@@ -257,12 +257,16 @@ class DeliveryStatusReportParser {
 		final String supplied = singleValue(fields, "Action", true, warnings);
 		if (supplied != null) {
 			try {
-				final DeliveryAction action = DeliveryAction.valueOf(supplied.toUpperCase(Locale.ROOT));
-				if (action != DeliveryAction.UNKNOWN) {
-					return action;
+				final HeaderTokenizer tokens = new HeaderTokenizer(supplied, HeaderTokenizer.RFC822);
+				final HeaderTokenizer.Token token = tokens.next();
+				if (token.getType() == HeaderTokenizer.Token.ATOM && tokens.next().getType() == HeaderTokenizer.Token.EOF) {
+					final DeliveryAction action = DeliveryAction.valueOf(token.getValue().toUpperCase(Locale.ROOT));
+					if (action != DeliveryAction.UNKNOWN) {
+						return action;
+					}
 				}
-			} catch (final IllegalArgumentException unknownAction) {
-				// Only RFC actions are source facts; UNKNOWN is the model's unavailable marker, not a protocol action.
+			} catch (final ParseException | IllegalArgumentException unknownAction) {
+				// Comments are not part of the action; malformed or competing tokens do not establish a source fact.
 			}
 			warnings.add("The delivery report has an unrecognized Action; it was left UNKNOWN.");
 		}

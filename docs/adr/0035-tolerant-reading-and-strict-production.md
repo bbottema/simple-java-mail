@@ -273,6 +273,12 @@ descriptor nor a following candidate belongs to a Content-ID. Equivalent literal
 same embedded resources. Keep complete-identity handling for single-URI attributes, source HTML, resource occurrences, ownership and
 authoritative exact/protected bytes unchanged. This is an import-interpretation correction, not general HTML rewriting or a new public API.
 
+## Comments in delivery-report actions (accepted 29 October 2026)
+
+Interpret a delivery report's Action as one recognized case-insensitive atom, ignoring well-formed external comments and whitespace under RFC 3464 section 2.1.1. For example, `Action: failed (recipient removed)` establishes `FAILED` without a warning. Require the end of the field after comments: extra tokens, quoted values, malformed comments and unknown actions do not establish a recognized action. Missing, repeated and contradictory fields retain their existing availability and warning rules.
+
+Preserve neighboring report facts and original content, including authoritative exact/protected bytes. This corrects interpretation without a new API, parser option, warning model or source read. [#917](https://github.com/bbottema/simple-java-mail/issues/917) tracks this clarification for unreleased 10.0.0.
+
 ## Trailing comments in delivery-report dates (accepted 28 October 2026)
 
 Retain a delivery report's unambiguous timestamp when well-formed comments or whitespace follow its explicit timezone. Keep strict
