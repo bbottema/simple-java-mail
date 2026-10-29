@@ -39,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -127,7 +128,7 @@ class DeliveryStatusReportParser {
 		ReportedMailServer reportingServer = null;
 		try (PushbackInputStream input = new PushbackInputStream(source.getInputStream())) {
 			final InternetHeaders messageFields = readBlock(input, warnings);
-			envelopeId = singleValue(messageFields, "Original-Envelope-Id", false, warnings);
+			envelopeId = singleValue(messageFields, "Original-Envelope-Id", false, warnings, UnaryOperator.identity());
 			reportingServer = reportedServer(typedValue(messageFields, "Reporting-MTA", true, warnings));
 			while (hasMoreContent(input)) {
 				final InternetHeaders recipientFields = readBlock(input, warnings);
@@ -215,6 +216,12 @@ class DeliveryStatusReportParser {
 
 	@Nullable
 	private static String singleValue(final InternetHeaders fields, final String name, final boolean required, final Set<String> warnings) {
+		return singleValue(fields, name, required, warnings, String::trim);
+	}
+
+	@Nullable
+	private static String singleValue(final InternetHeaders fields, final String name, final boolean required,
+			final Set<String> warnings, final UnaryOperator<String> normalizeValue) {
 		final String[] supplied = fields.getHeader(name);
 		if (supplied == null) {
 			if (required) {
@@ -222,7 +229,7 @@ class DeliveryStatusReportParser {
 			}
 			return null;
 		}
-		final Set<String> values = Arrays.stream(supplied).map(MimeUtility::unfold).map(String::trim).collect(Collectors.toSet());
+		final Set<String> values = Arrays.stream(supplied).map(MimeUtility::unfold).map(normalizeValue).collect(Collectors.toSet());
 		if (values.size() != 1 || values.contains("")) {
 			warnings.add("The delivery report has empty or conflicting " + name + " fields; that fact was left unavailable.");
 			return null;
