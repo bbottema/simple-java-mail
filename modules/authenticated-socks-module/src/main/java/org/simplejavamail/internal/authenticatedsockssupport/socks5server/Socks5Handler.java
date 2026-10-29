@@ -117,6 +117,8 @@ public class Socks5Handler implements Runnable {
 			return;
 		}
 
+		// The local SOCKS handshake is complete. Angus owns SMTP read timeouts on the client end of this transparent tunnel.
+		session.getSocket().setSoTimeout(0);
 		final SocketPipe pipe = new SocketPipe(session.getSocket(), socket);
 		pipe.setName("SESSION[" + session.getId() + "]");
 		pipe.start(); // This method will build tow thread to run tow internal pipes.
