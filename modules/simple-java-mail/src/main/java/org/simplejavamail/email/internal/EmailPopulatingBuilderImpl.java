@@ -1222,6 +1222,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withCalendarText(@NotNull final CalendarMethod calendarMethod, @NotNull final String textCalendar) {
+		requireNonNull(calendarMethod, "calendarMethod");
+		requireNonNull(textCalendar, "textCalendar");
 		this.calendarMethod = calendarMethod;
 		this.textCalendar = textCalendar;
 		return this;

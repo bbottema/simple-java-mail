@@ -24,6 +24,15 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Required calendar replacement inputs (accepted 29 October 2026)
+
+`withCalendarText(method, text)` checks both required arguments before replacing either stored value. A missing method or text leaves the
+earlier pair intact; an absent calendar remains absent. Previously built Emails retain their existing snapshots. This applies the required-input
+rule to [ADR 0002's whole calendar value](0002-email-defaults-and-overrides.md#calendar-method-and-text-form-one-value-accepted-22-october-2026).
+`clearCalendarText()` remains the explicit removal operation and permits ordinary template fallback. Non-null free-form text, including empty
+text, remains accepted without iCalendar parsing. Imported-calendar interpretation is separate. [#904](https://github.com/bbottema/simple-java-mail/issues/904)
+tracks this correction for unreleased 10.0.0.
+
 ### Required Mailer inputs (accepted 28 October 2026)
 
 Apply the same reject-before-mutation rule to the required CustomMailer, OAuth2 token provider, Email defaults/overrides and supplied
