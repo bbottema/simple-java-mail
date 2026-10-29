@@ -237,4 +237,10 @@ under [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#903), and req
 [ADR 0031](0031-public-api-and-internal-construction.md) (#904). The issues track implementation and delivery for unreleased 10.0.0.
 ConfigLoader required-reference maintenance applies the same existing input-boundary rule without changing source-reading timing.
 The maintainer subsequently accepted transparent established SOCKS forwarding under [ADR 0010](0010-authenticated-socks-bridge.md) (#907):
-remove the accidental bridge-side timeout while retaining client timeout and pool lifetime ownership. Pending remote setup remains a separate design.
+remove the accidental bridge-side timeout while retaining client timeout and pool lifetime ownership. Pending remote setup is handled separately under #909.
+
+The next accepted 29 October follow-up distinguishes typed delivery overrides from expert raw recipient headers under
+[ADR 0014](0014-send-time-rehearsal.md) and [ADR 0002](0002-email-defaults-and-overrides.md) (#908).
+[ADR 0010](0010-authenticated-socks-bridge.md) and [ADR 0017](0017-deadlines-and-physical-cancellation.md) own per-tunnel pending socket
+ownership and propagation of client closure through authenticated SOCKS setup (#909). These corrections preserve existing validation modes,
+mandatory locks, client timeout authority and established pooled connection lifetimes; the issues track delivery for unreleased 10.0.0.
