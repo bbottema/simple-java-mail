@@ -304,3 +304,9 @@ Keep eager and lazy content access, parser-opened stream ownership and authorita
 duplicate IDs: their existing lookup and presentation remain unchanged pending a separate decision. Ordinary referenced inline images,
 disposition-free related images and explicit attachments retain their classification. [#891](https://github.com/bbottema/simple-java-mail/issues/891)
 tracks implementation and delivery for unreleased 10.0.0.
+
+## Literal imported filenames (accepted 29 October 2026)
+
+Preserve decoded MIME filenames on attachments and embedded images, including literal angle brackets. Filenames and Content-IDs are distinct metadata: bracket removal applies only to actual Content-ID interpretation and the established missing-filename CID fallback. Import must not silently sanitize an otherwise interpretable filename.
+
+This applies to static/fluent MIME/EML import and exact inspection. Preserve classification, content bytes, eager/lazy ownership and authoritative exact/protected bytes under ADR 0008 and ADR 0036. Issue [#899](https://github.com/bbottema/simple-java-mail/issues/899) tracks this correction to existing behavior for unreleased 10.0.0.
