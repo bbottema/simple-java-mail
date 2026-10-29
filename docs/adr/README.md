@@ -256,3 +256,8 @@ The maintainer also accepted bounded daemon control/reply separation under [ADR 
 admission, retained request identities, accepted work and bounded shutdown. [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#914)
 applies existing raw address preservation after a MIME/EML grammar failure, keeping successful interpretation, ordinary outgoing validation,
 content failures and exact-source boundaries unchanged. Both corrections target unreleased 10.0.0; their issues track delivery.
+
+The retained detached-signature clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#retained-detached-signed-content-after-decryption-accepted-29-october-2026)
+and [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) preserves signed MIME containers in generated decrypted Outlook MSG EML and
+retained S/MIME views, independently of readable-content merging. [#918](https://github.com/bbottema/simple-java-mail/issues/918) tracks this
+restoration for unreleased 10.0.0; opaque signature handling and original-source ownership keep their existing contracts.

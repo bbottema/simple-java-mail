@@ -59,6 +59,11 @@ Defaults/overrides completion instead resolves outgoing content and configuratio
 It is not a history-preserving copy operation. Content already represented in ordinary body, header and resource fields remains outgoing
 content, and this boundary does not change equality, import interpretation, byte ownership or the supported serialized form.
 
+For an Outlook MSG containing a decrypted detached S/MIME signature, the retained generated EML owns the signed MIME entity and its signature material under
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#retained-detached-signed-content-after-decryption-accepted-29-october-2026).
+Ordinary copying and serialization retain those bytes independently of the readable-content merge choice. A generated MSG-derived EML
+does not become an exact original EML source. This restoration is tracked under [#918](https://github.com/bbottema/simple-java-mail/issues/918).
+
 Recipient occurrences also matter when comparing Emails: equality must account for repeated entries and remain symmetric. Preserve the
 established order-insensitive recipient comparison while distinguishing different occurrence counts; structural copying does not redefine that order rule.
 

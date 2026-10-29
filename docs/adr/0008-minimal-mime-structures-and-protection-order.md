@@ -352,6 +352,12 @@ exact outer protected bytes when the source supplies EML, and the existing strea
 EML bytes. The correction is tracked under [#905](https://github.com/bbottema/simple-java-mail/issues/905)
 for unreleased 10.0.0 and introduces no new configuration or public API.
 
+## Retained detached-signed content after decryption (accepted 29 October 2026)
+
+When a decrypted Outlook MSG contains a detached `multipart/signed` entity, retain that signed container and its signature material in the historical signed-content view and generated decrypted EML. Signature inspection records the actual result independently from extracting readable content. A valid signature remains independently verifiable after exporting and reimporting the retained EML; ordinary readable/merged body content and resource interpretation keep their existing roles.
+
+Preserve the outer message's established decryption and signature facts, including the standard and legacy opaque handling accepted under #905. This restoration does not broaden the existing MIME/EML or opaque-artifact retention policy, introduce public APIs or settings, change trust decisions, or invent original EML bytes for Outlook MSG. Copying, serialization and source/stream ownership continue under ADR 0036. [#918](https://github.com/bbottema/simple-java-mail/issues/918) tracks implementation and delivery for unreleased 10.0.0.
+
 ## Missing reply-body alternatives (accepted 28 October 2026)
 
 Reply priming keeps both plain and HTML quotes useful when the interpreted original contains only one body format. Generate the
