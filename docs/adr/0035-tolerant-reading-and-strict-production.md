@@ -304,6 +304,12 @@ Apply the same interpretation during MIME/EML import and exact-message inspectio
 This does not introduce general HTML rewriting or alter outgoing validation. The correction is accepted under
 [#882](https://github.com/bbottema/simple-java-mail/issues/882) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## External comments on imported Content-IDs (accepted 29 October 2026)
+
+Interpret well-formed comments and folding whitespace surrounding one complete received Content-ID as header formatting, not part of its identity. Use the same complete, case-sensitive identity for resource lookup and interpreted resource metadata, so a header such as `Content-ID: <logo@example.org> (company logo)` still matches `cid:logo@example.org` in HTML. Keep literal filenames and quoted or domain-literal ID content separate from external comments.
+
+Apply this at the MIME/EML import boundary without changing caller-created resource IDs or rewriting HTML, resource content, or authoritative exact/protected bytes. Preserve existing resource classification and occurrence rules, stream ownership and legacy opaque ID spellings. Malformed or competing framing retains the existing source fallback rather than guessing a different identity; this is not a new general message-ID validator or warning API. [#920](https://github.com/bbottema/simple-java-mail/issues/920) tracks the correction for unreleased 10.0.0.
+
 ## Unreferenced inline resources with repeated Content-IDs (accepted 28 October 2026)
 
 Retain every readable unreferenced inline MIME resource, even when another source occurrence has the same Content-ID. Preserve each

@@ -63,6 +63,7 @@ $registeredWorktrees = @(
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
     '.local/socks-capacity-921-20261029'
+    '.local/content-id-comments-20261029'
     '.local/fixture-alignment-20261029'
     '.local/smime-retained-918-20261029'
     '.local/body-null-fragments-20261029'
@@ -102,6 +103,7 @@ $relativeTargets = @(
 )
 $relativeFileTargets = @(
     'docs/plans/921-socks-setup-capacity.md'
+    'docs/plans/920-content-id-comments.md'
     'docs/plans/918-retained-smime-signatures.md'
     'docs/plans/919-body-null-fragments.md'
     'docs/plans/917-dsn-action-comments.md'
