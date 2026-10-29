@@ -17,7 +17,7 @@ An accepted decision is not a claim that its implementation is complete. Each re
 | [0007](0007-provider-neutral-mime-boundary.md) | Separate finalized MIME content from provider-specific submission. | Accepted, retrospective | Implemented for unreleased 10.0.0. |
 | [0008](0008-minimal-mime-structures-and-protection-order.md) | Select minimal MIME structures, protect content deliberately, and expose interpreted source facts through Email. | Accepted, retrospective; source-facts addendum accepted 2026-10-16; unavailable S/MIME inspection and recipient-triggered protection conflict clarifications accepted 2026-10-21 | Longstanding MIME/protection design; delivery-report interpretation implemented, verified and accepted under #763 for unreleased 10.0.0. Unavailable inspection under [#822](https://github.com/bbottema/simple-java-mail/issues/822) and build-time protection validation under [#823](https://github.com/bbottema/simple-java-mail/issues/823) are implemented for unreleased 10.0.0. |
 | [0009](0009-nullability-and-cli-optionality.md) | Separate Java nullability, build instrumentation and CLI argument optionality. | Accepted, retrospective | Instrumenter retained but disabled by default; CLI optionality is explicit. |
-| [0010](0010-authenticated-socks-bridge.md) | Adapt authenticated SOCKS through a local bridge with distinct listener/socket lifetimes. | Accepted, retrospective | Longstanding bridge; automatic ports added for 10.0.0. |
+| [0010](0010-authenticated-socks-bridge.md) | Adapt authenticated SOCKS through a local bridge with distinct listener/socket lifetimes. | Accepted, retrospective; protocol-boundary clarification accepted 2026-10-29 | Longstanding bridge; automatic ports added for 10.0.0. Issues #910–#913 track destination, frame and credential-boundary corrections. |
 | [0011](0011-transport-neutral-submission-outcomes.md) | Preserve provider-neutral submission facts and uncertain final acceptance; choose exception contracts by operation/resource ownership. | Accepted, retrospective; attachment I/O idiom accepted 2026-10-21 | Implemented for unreleased 10.0.0, including the reviewed attachment I/O revision under [#821](https://github.com/bbottema/simple-java-mail/issues/821). Richer tracking remains distinct from delivery. |
 | [0012](0012-terminal-send-observation.md) | Observe one whole-attempt terminal outcome through the Mailer. | Accepted, retrospective | Implemented for unreleased 10.0.0. |
 | [0013](0013-exact-eml-submission.md) | Treat finalized EML bytes as authoritative while retaining normal send infrastructure. | Accepted, retrospective | Implemented for unreleased 10.0.0. |
@@ -244,6 +244,11 @@ The next accepted 29 October follow-up distinguishes typed delivery overrides fr
 [ADR 0010](0010-authenticated-socks-bridge.md) and [ADR 0017](0017-deadlines-and-physical-cancellation.md) own per-tunnel pending socket
 ownership and propagation of client closure through authenticated SOCKS setup (#909). These corrections preserve existing validation modes,
 mandatory locks, client timeout authority and established pooled connection lifetimes; the issues track delivery for unreleased 10.0.0.
+
+The subsequent SOCKS review accepts [destination and frame boundaries in ADR 0010](0010-authenticated-socks-bridge.md#socks-destination-and-frame-boundaries-accepted-29-october-2026)
+under #910–#913: carry IPv4/IPv6 and unresolved domain destinations, use a provider-compatible IPv4 loopback hop, reject incomplete or malformed
+CONNECT replies, and validate effective username/password lengths in UTF-8 octets before connection effects. Public configuration and the
+separately tracked pending setup ownership remain intact; the issues track delivery for unreleased 10.0.0.
 
 The maintainer also accepted bounded daemon control/reply separation under [ADR 0019](0019-local-cli-daemon.md) (#915), preserving authenticated
 admission, retained request identities, accepted work and bounded shutdown. [ADR 0035](0035-tolerant-reading-and-strict-production.md) (#914)

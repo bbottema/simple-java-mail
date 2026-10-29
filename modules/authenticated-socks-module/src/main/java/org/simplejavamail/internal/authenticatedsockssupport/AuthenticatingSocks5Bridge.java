@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -32,10 +31,10 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 	}
 
 	/**
-	 * Refer to {@link Socks5Bridge#connect(String, InetAddress, int, SocketOwner)}.
+	 * Refer to {@link Socks5Bridge#connect(String, InetSocketAddress, SocketOwner)}.
 	 */
 	@Override
-	public Socket connect(final String sessionId, final InetAddress remoteServerAddress, final int remoteServerPort, final SocketOwner owner)
+	public Socket connect(final String sessionId, final InetSocketAddress remoteServerAddress, final SocketOwner owner)
 			throws IOException {
 		LOGGER.info("SESSION[{}] bridging to remote proxy {}", sessionId, proxyConfig);
 		final Socket raw = new Socket();
@@ -57,7 +56,7 @@ public class AuthenticatingSocks5Bridge implements Socks5Bridge {
 			proxy.setCredentials(new ProxyCredentials(proxyConfig.getUsername(), proxyConfig.getPassword()));
 		}
 		proxy.buildConnection();
-		proxy.requestConnect(remoteServerAddress, remoteServerPort);
+		proxy.requestConnect(remoteServerAddress);
 		return raw;
 	}
 }

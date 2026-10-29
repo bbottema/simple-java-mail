@@ -54,7 +54,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
@@ -91,7 +90,7 @@ public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 	private static final String COUNTING_TRANSPORT_STATE_KEY = MailerTest.class.getName() + ".countingTransportState";
-	private static final String LOOPBACK_HOST = InetAddress.getLoopbackAddress().getHostAddress();
+	private static final String LOOPBACK_HOST = "127.0.0.1";
 
 	@BeforeEach
 	public void configureMailerDefaults() {

@@ -29,6 +29,7 @@ import java.util.Set;
 import java.net.InetAddress;
 import java.util.function.Function;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
 
@@ -615,10 +616,20 @@ final class ConnectionConfigurationResolver {
                         ? "A SOCKS proxy password is configured, but its username is missing. Supply both credentials, or clear both for an anonymous proxy."
                         : "A SOCKS proxy username is configured, but its password is missing. Supply both credentials, or clear both for an anonymous proxy.");
             }
+            if (resolved.requiresAuthentication()) {
+                validateSocksCredentialLength(resolved.getUsername(), "username");
+                validateSocksCredentialLength(resolved.getPassword(), "password");
+            }
             if (resolved.requiresAuthentication() && resolved.getProxyBridgePort() == null) {
                 throw new IllegalArgumentException("Authenticated SOCKS proxying requires a local bridge port. "
                         + "Set SocksProxyConfig.Builder.withBridgePort(0) to choose an available port automatically, or supply a fixed local port.");
             }
+        }
+    }
+
+    private static void validateSocksCredentialLength(final String value, final String member) {
+        if (value.getBytes(UTF_8).length > 255) {
+            throw new IllegalArgumentException("SOCKS proxy " + member + " must contain between 1 and 255 UTF-8 bytes");
         }
     }
 

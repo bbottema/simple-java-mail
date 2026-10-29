@@ -17,7 +17,6 @@ import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.An
 import org.mockito.MockedStatic;
 import org.mockito.MockedConstruction;
 import jakarta.mail.Session;
-import java.net.InetAddress;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
@@ -196,7 +195,7 @@ class ConnectionConflictPolicyTest {
                 assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("remote.example.org");
                 assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(2345);
                 assertThat(mailer.getProxyConfig().requiresAuthentication()).isTrue();
-                assertThat(mailer.getSession().getProperty(prefix + "socks.host")).isEqualTo(InetAddress.getLoopbackAddress().getHostAddress());
+                assertThat(mailer.getSession().getProperty(prefix + "socks.host")).isEqualTo("127.0.0.1");
                 assertThat(mailer.getSession().getProperty(prefix + "socks.port")).isEqualTo("0");
             }
         }
@@ -252,7 +251,7 @@ class ConnectionConflictPolicyTest {
 
     @Test
     void authenticatedRouteCanSatisfyALiteralLockedLoopbackEndpoint() throws Exception {
-        final String loopback = InetAddress.getLoopbackAddress().getHostAddress();
+        final String loopback = "127.0.0.1";
         try (Mailer mailer = factory(Map.of("simplejavamail.locked.extraproperties.mail.smtp.socks.host", loopback,
                 "simplejavamail.locked.extraproperties.mail.smtp.socks.port", "1089"))
                 .mailerBuilder().withSMTPServer("smtp.example.org", 25)

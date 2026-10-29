@@ -76,7 +76,7 @@ class AnonymousSocks5ServerImplTest {
 	@Test
 	void bindsTheBridgeToLoopbackOnly() throws InterruptedException {
 		final AnonymousSocks5ServerImpl server = new AnonymousSocks5ServerImpl(
-				(sessionId, remoteServerAddress, remoteServerPort, owner) -> {
+				(sessionId, remoteServerAddress, owner) -> {
 					throw new UnsupportedOperationException("The bridge must not be used by this binding test");
 				},
 				0);
@@ -103,7 +103,7 @@ class AnonymousSocks5ServerImplTest {
 		assertFalse(server.isRunning());
 
 		try (ServerSocket portBlocker = new ServerSocket()) {
-			portBlocker.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), firstPort));
+			portBlocker.bind(new InetSocketAddress("127.0.0.1", firstPort));
 			server.start();
 			try {
 				assertTrue(server.getLocalPort() > 0);
@@ -117,7 +117,7 @@ class AnonymousSocks5ServerImplTest {
 
 	private static AnonymousSocks5ServerImpl newEphemeralServer() {
 		return new AnonymousSocks5ServerImpl(
-				(sessionId, remoteServerAddress, remoteServerPort, owner) -> {
+				(sessionId, remoteServerAddress, owner) -> {
 					throw new UnsupportedOperationException("The bridge must not be used by this binding test");
 				},
 				0);

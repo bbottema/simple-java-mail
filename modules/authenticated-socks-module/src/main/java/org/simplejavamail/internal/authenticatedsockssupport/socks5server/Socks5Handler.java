@@ -82,7 +82,7 @@ public class Socks5Handler implements Runnable {
         tunnel.startClientReader(session.getInputStream());
         final Socket remote;
         try {
-            remote = bridge.connect(String.valueOf(session.getId()), command.getInetAddress(), command.getPort(), tunnel);
+            remote = bridge.connect(String.valueOf(session.getId()), command.getSocketAddress(), tunnel);
             tunnel.own(remote);
         } catch (IOException failure) {
             try {

@@ -59,7 +59,7 @@ public class SocksSocket extends Socket {
 		this.proxy.buildConnection();
 		proxySocket = this.proxy.getProxySocket();
 		initProxyChain();
-		this.proxy.requestConnect(socketAddress.getAddress(), socketAddress.getPort());
+		this.proxy.requestConnect(socketAddress);
 	}
 
 	@SuppressWarnings("WeakerAccess")
@@ -121,7 +121,7 @@ public class SocksSocket extends Socket {
 			throw new IllegalArgumentException("Unsupported address type");
 		}
 
-		remoteServerHost = ((InetSocketAddress) endpoint).getHostName();
+		remoteServerHost = ((InetSocketAddress) endpoint).getHostString();
 		remoteServerPort = ((InetSocketAddress) endpoint).getPort();
 
 		getProxySocket().setSoTimeout(timeout);

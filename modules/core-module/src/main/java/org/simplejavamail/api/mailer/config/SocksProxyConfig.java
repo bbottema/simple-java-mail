@@ -149,6 +149,9 @@ public class SocksProxyConfig {
          * then will be:
          * <p>
          * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
+         * <p>
+         * For an active authenticated proxy, the effective username and password must each contain 1 through 255 UTF-8 bytes.
+         * The Mailer validates these lengths when it is built; collecting or inspecting supplied choices remains passive.
          * @param username Proxy username, or {@code null} to explicitly remove a captured username; an untouched member inherits the captured configuration.
          */
         @NotNull public Builder withUsername(final String username) { this.username = username; usernameCleared = username == null; return this; }
@@ -166,6 +169,9 @@ public class SocksProxyConfig {
         @NotNull public Builder useConfiguredUsername() { username = null; usernameCleared = false; return this; }
         /**
          * Sets the optional password to authenticate with the proxy.
+         * <p>
+         * For an active authenticated proxy, the effective password must contain 1 through 255 UTF-8 bytes when the Mailer is built.
+         * Collecting or inspecting supplied choices remains passive.
          * <p>
          * <strong>Note:</strong> this is only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
          *
@@ -188,8 +194,8 @@ public class SocksProxyConfig {
         /**
          * Relevant only when using username authentication with a proxy.
          * <p>
-         * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
-         * loopback address and owns this port while this Mailer has active proxy operations.
+         * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to IPv4
+         * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
          * <p>
          * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
          * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do

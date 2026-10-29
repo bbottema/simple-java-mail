@@ -64,15 +64,13 @@ final class SocksAuthenticationHelper {
 			throw new SocksException("Need Username/Password authentication");
 		}
 
-		final String username = credentials.getUsername();
-		final String password = credentials.getPassword();
+		final byte[] bytesOfUsername = credentialBytes(credentials.getUsername(), "username");
+		final byte[] bytesOfPassword = credentialBytes(credentials.getPassword(), "password");
 		final InputStream inputStream = socksProxy.getInputStream();
 		final OutputStream outputStream = socksProxy.getOutputStream();
 
-		final int USERNAME_LENGTH = username.getBytes(UTF_8).length;
-		final int PASSWORD_LENGTH = password.getBytes(UTF_8).length;
-		final byte[] bytesOfUsername = username.getBytes(UTF_8);
-		final byte[] bytesOfPassword = password.getBytes(UTF_8);
+		final int USERNAME_LENGTH = bytesOfUsername.length;
+		final int PASSWORD_LENGTH = bytesOfPassword.length;
 		final byte[] bufferSent = new byte[3 + USERNAME_LENGTH + PASSWORD_LENGTH];
 
 		bufferSent[0] = USERNAME_PASSWORD_VERSION;
@@ -103,6 +101,14 @@ final class SocksAuthenticationHelper {
 			}
 			throw failure;
 		}
+	}
+
+	private static byte[] credentialBytes(final String value, final String member) {
+		final byte[] bytes = value == null ? new byte[0] : value.getBytes(UTF_8);
+		if (bytes.length < 1 || bytes.length > 255) {
+			throw new SocksException("SOCKS proxy " + member + " must contain between 1 and 255 UTF-8 bytes");
+		}
+		return bytes;
 	}
 
 	private static byte[] read2Bytes(final InputStream inputStream)

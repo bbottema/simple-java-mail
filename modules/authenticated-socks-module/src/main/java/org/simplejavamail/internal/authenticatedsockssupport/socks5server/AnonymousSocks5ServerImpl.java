@@ -79,7 +79,7 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 		try {
 			preparedServerSocket = new ServerSocket();
 			preparedServerSocket.setReuseAddress(true);
-			preparedServerSocket.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), proxyBridgePort));
+			preparedServerSocket.bind(new InetSocketAddress(InetAddress.getByName(Socks5Bridge.LOOPBACK_HOST), proxyBridgePort));
 			return preparedServerSocket;
 		} catch (final IOException e) {
 			if (preparedServerSocket != null) {
