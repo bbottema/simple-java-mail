@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -35,12 +37,16 @@ final class DaemonMailerRegistry implements MailerProvider {
 	private static final Duration DEFAULT_IDLE_TIMEOUT = Duration.ofMinutes(15);
 
 	private final ConcurrentHashMap<CliMailerProfile, Entry> entries = new ConcurrentHashMap<>();
+	// Includes entries removed from lookup while their construction or close is still pending.
+	private final ConcurrentHashMap<Entry, CliMailerProfile> ownedEntries = new ConcurrentHashMap<>();
 	private final Object entryCreationLock = new Object();
+	private final Object shutdownGate = new Object();
 	private final Semaphore capacity;
 	private final long idleNanos;
 	private final ScheduledExecutorService reaper;
 	private final AtomicBoolean closed = new AtomicBoolean();
 	private final AtomicInteger closeFailures = new AtomicInteger();
+	private CompletableFuture<Void> shutdownCompletion;
 
 	DaemonMailerRegistry() {
 		this(Integer.getInteger("simplejavamail.cli.daemon.max-mailers", DEFAULT_MAX_ENTRIES),
@@ -90,9 +96,16 @@ final class DaemonMailerRegistry implements MailerProvider {
 			if (!reserveCapacityOrRetireOldest()) {
 				throw new DaemonOverloadedException("Daemon Mailer profile limit reached");
 			}
-			final Entry registered = new Entry();
-			entries.put(profile, registered);
-			return new EntryRegistration(registered, true);
+			synchronized (shutdownGate) {
+				if (closed.get()) {
+					capacity.release();
+					throw shuttingDown();
+				}
+				final Entry registered = new Entry();
+				ownedEntries.put(registered, profile);
+				entries.put(profile, registered);
+				return new EntryRegistration(registered, true);
+			}
 		}
 	}
 
@@ -109,6 +122,7 @@ final class DaemonMailerRegistry implements MailerProvider {
 			if (entries.remove(profile, entry)) {
 				capacity.release();
 			}
+			completeClose(entry, null);
 		}
 		if (closed.get()) {
 			retire(profile, entry);
@@ -202,28 +216,78 @@ final class DaemonMailerRegistry implements MailerProvider {
 	}
 
 	private void forceRetire(final CliMailerProfile profile, final Entry entry) {
+		forceRetire(profile, entry, Runnable::run);
+	}
+
+	private void forceRetire(final CliMailerProfile profile, final Entry entry, final Executor closeExecutor) {
 		if (entry.forceRetire() && entries.remove(profile, entry)) {
 			capacity.release();
-			closeWhenConstructed(entry);
+			closeWhenConstructed(entry, closeExecutor);
 		}
 	}
 
 	private void closeWhenConstructed(final Entry entry) {
+		closeWhenConstructed(entry, Runnable::run);
+	}
+
+	private void closeWhenConstructed(final Entry entry, final Executor closeExecutor) {
 		entry.mailer.whenComplete((mailer, failure) -> {
-			if (mailer == null || !entry.startClose()) {
+			if (mailer == null) {
+				completeClose(entry, null);
+				return;
+			}
+			if (!entry.startClose()) {
 				return;
 			}
 			try {
-				mailer.close();
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				closeFailures.incrementAndGet();
-				LOGGER.warn("A cached daemon Mailer close was interrupted; remaining Mailers will still be retired");
-			} catch (Exception ignored) {
-				closeFailures.incrementAndGet();
-				LOGGER.warn("A cached daemon Mailer could not be closed cleanly; remaining Mailers will still be retired");
+				closeExecutor.execute(() -> closeMailer(entry, mailer));
+			} catch (RuntimeException unavailableCloser) {
+				completeClose(entry, unavailableCloser);
 			}
 		});
+	}
+
+	private void closeMailer(final Entry entry, final Mailer mailer) {
+		try {
+			mailer.close();
+			completeClose(entry, null);
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			recordCloseFailure(entry);
+			observeInterruptedClose(entry, mailer, interrupted);
+			LOGGER.warn("A cached daemon Mailer close was interrupted; remaining Mailers will still be retired");
+		} catch (Exception failure) {
+			completeClose(entry, failure);
+			LOGGER.warn("A cached daemon Mailer could not be closed cleanly; remaining Mailers will still be retired");
+		} catch (Error failure) {
+			completeClose(entry, failure);
+			throw failure;
+		}
+	}
+
+	private void observeInterruptedClose(final Entry entry, final Mailer mailer, final InterruptedException interrupted) {
+		try {
+			// Interruption ends only close()'s wait. Its detached observation still follows the same owned cleanup operation.
+			mailer.closeAsync().whenComplete((ignored, cleanupFailure) ->
+					completeClose(entry, cleanupFailure == null ? interrupted : cleanupFailure));
+		} catch (RuntimeException | Error observationFailure) {
+			completeClose(entry, observationFailure);
+		}
+	}
+
+	private void recordCloseFailure(final Entry entry) {
+		if (entry.closeFailureRecorded.compareAndSet(false, true)) { closeFailures.incrementAndGet(); }
+	}
+
+	private void completeClose(final Entry entry, final Throwable failure) {
+		if (!entry.closeCompleted.compareAndSet(false, true)) { return; }
+		if (failure != null) { recordCloseFailure(entry); }
+		ownedEntries.remove(entry);
+		if (failure == null) {
+			entry.closed.complete(null);
+		} else {
+			entry.closed.completeExceptionally(failure);
+		}
 	}
 
 	@Override
@@ -235,9 +299,40 @@ final class DaemonMailerRegistry implements MailerProvider {
 		closeWithin(Duration.ZERO);
 	}
 
+	/** Initiates each remaining close without running Mailer code on the daemon's shutdown controller. */
+	CompletableFuture<Void> closeAfterExecutorDrainAsync() {
+		final List<Map.Entry<Entry, CliMailerProfile>> retiring;
+		synchronized (shutdownGate) {
+			if (closed.get()) { return shutdownCompletion; }
+			retiring = freezeForShutdown();
+		}
+		reaper.shutdownNow();
+		for (Map.Entry<Entry, CliMailerProfile> entry : retiring) {
+			forceRetire(entry.getValue(), entry.getKey(), DaemonMailerRegistry::startShutdownClose);
+		}
+		return shutdownCompletion;
+	}
+
+	private static void startShutdownClose(final Runnable close) {
+		// The frozen ownership set bounds fan-out to one attempt per entry; a blocked close cannot starve another entry.
+		final Thread thread = new Thread(close, "sjm-daemon-mailer-close");
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	/** The short publication gate cannot be held by an idle Mailer's blocking close. */
+	private List<Map.Entry<Entry, CliMailerProfile>> freezeForShutdown() {
+		closed.set(true);
+		final List<Map.Entry<Entry, CliMailerProfile>> retiring = new ArrayList<>(ownedEntries.entrySet());
+		shutdownCompletion = CompletableFuture.allOf(retiring.stream().map(entry -> entry.getKey().closed)
+				.toArray(CompletableFuture<?>[]::new));
+		return retiring;
+	}
+
 	private void closeWithin(final Duration drainTimeout) {
-		if (!closed.compareAndSet(false, true)) {
-			return;
+		synchronized (shutdownGate) {
+			if (closed.get()) { return; }
+			freezeForShutdown();
 		}
 		reaper.shutdownNow();
 		final long deadline = System.nanoTime() + drainTimeout.toNanos();
@@ -272,6 +367,9 @@ final class DaemonMailerRegistry implements MailerProvider {
 	/** Coordinates construction, leasing, retirement, and close-once state for one cached Mailer. */
 	private static final class Entry {
 		private final CompletableFuture<Mailer> mailer = new CompletableFuture<>();
+		private final CompletableFuture<Void> closed = new CompletableFuture<>();
+		private final AtomicBoolean closeCompleted = new AtomicBoolean();
+		private final AtomicBoolean closeFailureRecorded = new AtomicBoolean();
 		private int active;
 		private boolean retired;
 		private boolean closeStarted;
