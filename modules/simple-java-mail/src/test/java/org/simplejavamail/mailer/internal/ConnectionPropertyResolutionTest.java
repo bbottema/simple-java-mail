@@ -90,7 +90,7 @@ class ConnectionPropertyResolutionTest {
                 }
 
                 try (Mailer mailer = builder.buildMailer()) {
-                    assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isTrue();
+                    assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isTrue();
                     assertThat(PropUtil.getBooleanProperty(mailer.getSession().getProperties(), "mail.smtp.ssl.checkserveridentity", false)).isTrue();
                 }
             }
@@ -120,7 +120,7 @@ class ConnectionPropertyResolutionTest {
                     .withSMTPServerHost(RELAY).withTransportStrategy(strategy).withConnectionConflictPolicy(policy)
                     .withTlsConfig(identityCheck()).buildMailer()) {
                 assertThat(mailer.getSession().getProperty(identityKey)).isEqualTo("TRUE");
-                assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isTrue();
+                assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isTrue();
             }
         }
     }

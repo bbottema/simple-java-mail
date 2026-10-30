@@ -50,7 +50,7 @@ final class MailerSessionSettings {
     @Nullable private final String smtpClientHostname;
     private final List<String> sslHostsToTrust;
     private final boolean trustAllSSLHost;
-    private final boolean verifyingServerIdentity;
+    @Nullable private final Boolean verifyingServerIdentity;
     private final SessionDebugConfig debugConfig;
     @Getter(AccessLevel.NONE) private final boolean applyDebugEnabled;
     @Getter(AccessLevel.NONE) private final boolean applyDebugOutput;
@@ -123,7 +123,9 @@ final class MailerSessionSettings {
             }
             choices.put(DEFAULT_TRUSTED_HOSTS, String.join(" ", config.getSslHostsToTrust()));
             choices.put(DEFAULT_TRUST_ALL_HOSTS, config.isTrustAllSSLHost());
-            choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, config.isVerifyingServerIdentity());
+            if (config.getVerifyingServerIdentity() != null) {
+                choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, config.getVerifyingServerIdentity());
+            }
         }
         return resolve(null, strategy, config.getProperties(), choices, Collections.emptyMap(), true, true).toBuilder()
                 .connectionConflictPolicy(config.getConnectionConflictPolicy()).customMailer(config.getCustomMailer())
@@ -229,7 +231,7 @@ final class MailerSessionSettings {
                 .smtpClientHostname(strategy == null ? null : effective.getProperty(strategy.propertyNameLocalHost()))
                 .sslHostsToTrust(ConnectionPropertyValues.trustedHosts(trusted))
                 .trustAllSSLHost("*".equals(trusted))
-                .verifyingServerIdentity(strategy != null && booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())))
+                .verifyingServerIdentity(strategy == null ? null : booleanValue(propertyValue(effective, strategy.propertyNameCheckServerIdentity())))
                 .build();
     }
 
@@ -239,8 +241,20 @@ final class MailerSessionSettings {
                 : SessionDebugConfig.builder().withEnabled(suppliedSession.getDebug()).withPrinter(suppliedSession.getDebugOut()).build();
     }
 
-    private static boolean booleanValue(@Nullable final Object value) {
-        return Boolean.TRUE.equals(value) || value instanceof String && "true".equalsIgnoreCase((String) value);
+    @Nullable
+    private static Boolean booleanValue(@Nullable final Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof String) {
+            if ("true".equalsIgnoreCase((String) value)) {
+                return Boolean.TRUE;
+            }
+            if ("false".equalsIgnoreCase((String) value)) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
     }
 
     @Nullable

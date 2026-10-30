@@ -236,6 +236,32 @@ class SmtpAuthenticationTlsCharacterizationTest {
     }
 
     @Test
+    void suppliedSessionWithUnspecifiedIdentityCheckingRetainsProviderHostnameRejection() throws Exception {
+        final SSLSocketFactory socketFactory = wrongHostnameFactory();
+        try (Peer server = new Peer(peer -> {
+            beginStartTls(peer);
+            assertThatThrownBy(peer::upgradeToTls).isInstanceOf(IOException.class);
+        })) {
+            final Properties properties = new Properties();
+            properties.setProperty("mail.smtp.host", "localhost");
+            properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
+            properties.setProperty("mail.smtp.localhost", "probe.example.test");
+            properties.setProperty("mail.smtp.starttls.enable", "true");
+            properties.setProperty("mail.smtp.starttls.required", "true");
+            properties.setProperty("mail.smtp.connectiontimeout", "5000");
+            properties.setProperty("mail.smtp.timeout", "5000");
+            properties.put("mail.smtp.ssl.socketFactory", socketFactory);
+            try (Mailer mailer = factory().mailerBuilder(Session.getInstance(properties)).buildMailer()) {
+                assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isNull();
+                assertThat(properties).doesNotContainKey("mail.smtp.ssl.checkserveridentity");
+                assertThatThrownBy(() -> mailer.sync().sendMail(email())).isInstanceOf(RuntimeException.class)
+                        .hasStackTraceContaining("wrong-host.invalid");
+                assertThat(properties).doesNotContainKey("mail.smtp.ssl.checkserveridentity");
+            }
+        }
+    }
+
+    @Test
     void explicitRawTrustAndIdentityPropertiesTakePrecedenceOverBuiltInDefaults() throws Exception {
         try (Mailer mailer = passwordBuilder(12345, SMTP_TLS)
                 .withProperty("mail.smtp.ssl.trust", "*")
@@ -243,7 +269,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
             assertThat(mailer.getSession().getProperties()).containsEntry("mail.smtp.ssl.trust", "*")
                     .containsEntry("mail.smtp.ssl.checkserveridentity", "false");
             assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isTrue();
-            assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isFalse();
+            assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isFalse();
         }
     }
 

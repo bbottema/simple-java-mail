@@ -202,12 +202,12 @@ class ConnectionConfigurationWiringTest {
                 final TlsConfig tls = TlsConfig.builder().verifyingServerIdentity(false).build();
                 ConfigurationContractCoverage.invoke(builder, method, tls);
                 assertThat(builder.getTlsConfig()).isSameAs(tls);
-                assertThat(builder.buildSessionSettings(null).isVerifyingServerIdentity()).isFalse(); fields("verifyingServerIdentity"); break;
+                assertThat(builder.buildSessionSettings(null).getVerifyingServerIdentity()).isFalse(); fields("verifyingServerIdentity"); break;
             case "useConfiguredTlsConfig":
                 builder.withTlsConfig(TlsConfig.builder().verifyingServerIdentity(false).build());
                 ConfigurationContractCoverage.invoke(builder, method);
                 assertThat(builder.getTlsConfig().getVerifyingServerIdentity()).isNull();
-                assertThat(builder.buildSessionSettings(null).isVerifyingServerIdentity()).isTrue(); fields("verifyingServerIdentity"); break;
+                assertThat(builder.buildSessionSettings(null).getVerifyingServerIdentity()).isTrue(); fields("verifyingServerIdentity"); break;
             case "withOAuth2AccessTokenProvider": case "clearOAuth2AccessTokenProvider":
                 final OAuth2AccessTokenProvider provider = () -> { throw new AssertionError("Provider must remain lazy"); };
                 if (name.startsWith("clear")) { builder.withOAuth2AccessTokenProvider(provider); }

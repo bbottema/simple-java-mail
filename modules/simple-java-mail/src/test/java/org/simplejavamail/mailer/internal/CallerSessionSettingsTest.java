@@ -75,7 +75,7 @@ class CallerSessionSettingsTest {
                 assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isEqualTo("caller.example.test");
                 assertThat(mailer.getOperationalConfig().getSslHostsToTrust()).containsExactly("private.example.test");
                 assertThat(mailer.getOperationalConfig().isTrustAllSSLHost()).isFalse();
-                assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isFalse();
+                assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isFalse();
             }
         }
     }
@@ -188,7 +188,7 @@ class CallerSessionSettingsTest {
         try (Mailer mailer = factory(Map.of()).mailerBuilder(Session.getInstance(properties)).buildMailer()) {
             assertThat(mailer.getOperationalConfig().getSessionTimeout()).isEqualTo(Duration.ofMillis(1000));
             assertThat(mailer.getOperationalConfig().getSmtpClientHostname()).isEqualTo("inherited.example.test");
-            assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isTrue();
+            assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isTrue();
         }
     }
 

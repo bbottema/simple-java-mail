@@ -97,7 +97,7 @@ class ConnectionConflictPolicyTest {
                 .withConnectionConfig(ConnectionConfig.builder().withReadTimeout(Duration.ofMillis(123)).build())
                 .withTlsConfig(TlsConfig.builder().verifyingServerIdentity(true).build()).buildMailer()) {
             assertThat(mailer.getOperationalConfig().getReadTimeout()).isEqualTo(Duration.ofMillis(123));
-            assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isTrue();
+            assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isTrue();
         }
     }
 
@@ -106,7 +106,7 @@ class ConnectionConflictPolicyTest {
         try (Mailer mailer = factory(Map.of()).mailerBuilder().withSMTPServer("smtp.example.org", 25)
                 .withProperty("mail.smtp.timeout", "2345").withProperty("mail.smtp.ssl.checkserveridentity", "false").buildMailer()) {
             assertThat(mailer.getOperationalConfig().getReadTimeout()).isEqualTo(Duration.ofMillis(2345));
-            assertThat(mailer.getOperationalConfig().isVerifyingServerIdentity()).isFalse();
+            assertThat(mailer.getOperationalConfig().getVerifyingServerIdentity()).isFalse();
         }
     }
 

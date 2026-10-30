@@ -131,8 +131,8 @@ final class CliMailerInputFixture {
             case "clearTrustedSSLHosts": assertThat(read(session, "getSslHostsToTrust")).isEqualTo(List.of()); return;
             case "trustingAllHosts": equal(session, "isTrustAllSSLHost", first); return;
             case "resetTrustingAllHosts": equal(session, "isTrustAllSSLHost", false); return;
-            case "verifyingServerIdentity": equal(session, "isVerifyingServerIdentity", first); return;
-            case "resetVerifyingServerIdentity": equal(session, "isVerifyingServerIdentity", true); return;
+            case "verifyingServerIdentity": equal(session, "getVerifyingServerIdentity", first); return;
+            case "resetVerifyingServerIdentity": equal(session, "getVerifyingServerIdentity", true); return;
             case "withOpportunisticTLS": equal(captured, "isOpportunisticTLS", first); return;
             case "resetOpportunisticTLS": equal(captured, "isOpportunisticTLS", true); return;
             case "withCustomSSLFactoryClass": equal(actualBuilder, "getCustomSSLFactory", first); return;

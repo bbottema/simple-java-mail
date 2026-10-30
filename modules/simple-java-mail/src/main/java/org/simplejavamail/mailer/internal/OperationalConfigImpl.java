@@ -170,9 +170,9 @@ class OperationalConfigImpl implements OperationalConfig {
 	private final boolean trustAllSSLHost;
 
 	/**
-	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#verifyingServerIdentity(boolean)
+	 * @see OperationalConfig#getVerifyingServerIdentity()
 	 */
-	private final boolean verifyingServerIdentity;
+	@Nullable private final Boolean verifyingServerIdentity;
 
 	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withExecutorService(ExecutorService)
