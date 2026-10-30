@@ -135,7 +135,7 @@ final class MailerOperationalSettings {
                 connectionPoolExpireAfterCreation, connectionPoolLoadBalancingStrategy, connectionPoolClusterConfigs,
                 transportModeLoggingOnly, debugConfig, clientValidationWarningsOnly,
                 Collections.unmodifiableList(new ArrayList<>(sessionSettings.getSslHostsToTrust())),
-                sessionSettings.isTrustAllSSLHost(), sessionSettings.isVerifyingServerIdentity(), runtimeExecutor,
+                sessionSettings.isTrustAllSSLHost(), sessionSettings.getVerifyingServerIdentity(), runtimeExecutor,
                 executorService != null, sessionSettings.getCustomMailer(), sessionSettings.getTokenProvider(), asyncQueueConfig,
                 mailSendTimeout, messageRateLimit, recipientRateLimit, rateLimitGroup, rateLimitBurstsAllowed, failoverPolicy,
                 mailSendRetryPolicy);

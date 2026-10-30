@@ -50,6 +50,10 @@ An accepted decision is not a claim that its implementation is complete. Each re
 
 The 22 October API review clarifies [role-less visible recipients](0001-email-configuration-scopes-and-inheritance.md#role-less-visible-recipients-accepted-22-october-2026) under #829, [unique pool aliases](0003-immutable-configuration-snapshots.md#unique-pool-cluster-aliases-accepted-22-october-2026) under #830, [provider failure facts](0011-transport-neutral-submission-outcomes.md#provider-failure-facts-accepted-22-october-2026) under #831/#832, [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026) under #834, and [parser-opened streams](0036-structural-message-snapshots-and-borrowed-content.md#parser-opened-content-streams-accepted-22-october-2026) under #828. These decisions target unreleased 10.0.0; their issues track delivery.
 
+The [captured TLS identity setting](0015-execution-views-and-transport-pooling.md#captured-tls-identity-setting-accepted-30-october-2026)
+clarification under [#925](https://github.com/bbottema/simple-java-mail/issues/925) replaces primitive inspection with nullable construction data.
+Unspecified settings retain caller-Session authority without guessing provider policy. This targets unreleased 10.0.0.
+
 ADR 0001 determines **where a setting belongs**; ADR 0002 determines **how reusable Email policy is represented and applied**. Their existing follow-up work remains explicit. The retrospective records explain established choices without approving unrelated behavior changes.
 
 Further accepted 22 October corrections apply required certificate arguments under [ADR 0031](0031-public-api-and-internal-construction.md#required-choices-and-explicit-removal-accepted-22-october-2026)

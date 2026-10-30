@@ -59,6 +59,20 @@ remain subject to [ADR 0025](0025-factory-scoped-locked-configuration.md).
 This distinction does not change proxy routing's documented override, managed-provider initialization, conversion-context ownership,
 exclusive Session reuse, pooling or shutdown. A Session may be reused by another Mailer only after its former owner's successful shutdown.
 
+### Captured TLS identity setting (accepted 30 October 2026)
+
+`OperationalConfig.getVerifyingServerIdentity()` returns nullable `Boolean` construction data. Recognized raw Boolean and case-insensitive
+`true`/`false` String settings, including inherited String properties, remain true or false. An absent or unusable setting, or an opaque
+protocol, remains null. Null means unspecified; it does not establish that the provider disables identity verification. Do not ask a live
+provider for its default, write a guessed value back to the Session, or follow later Session mutation. Library-created Sessions still report
+the default actually applied by SJM. Explicit choices and locks retain their existing resolution and enforcement.
+
+Replace the released primitive `isVerifyingServerIdentity()` inspection getter rather than keeping a Boolean shim that conflates absence
+with false. Callers must recompile and handle all three results. The nullable `TlsConfig` getter continues to inspect stored choices; neither
+getter proves the security of a live connection. Internal reconstruction omits unknown choices instead of turning them into explicit removal.
+This is an inspection correction, not a TLS-policy change. [#925](https://github.com/bbottema/simple-java-mail/issues/925) tracks delivery for
+unreleased 10.0.0; passive inspection follows [ADR 0031](0031-public-api-and-internal-construction.md).
+
 ### Independent socket timeout resolution (accepted 22 October 2026)
 
 Apply [ADR 0003's per-operation choices](0003-immutable-configuration-snapshots.md#independent-socket-timeout-choices-accepted-22-october-2026)

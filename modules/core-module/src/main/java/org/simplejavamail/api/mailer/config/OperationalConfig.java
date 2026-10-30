@@ -199,9 +199,15 @@ public interface OperationalConfig {
 	boolean isTrustAllSSLHost();
 
 	/**
+	 * Returns the server-identity verification setting captured when this Mailer was built.
+	 * A {@code null} value means the selected protocol has no usable configured value;
+	 * it does not mean verification is disabled. Provider defaults are not guessed.
+	 * This snapshot does not inspect a live connection or reflect later changes to the Session.
+	 * @return the configured setting, or {@code null} when unspecified or unrecognized
 	 * @see org.simplejavamail.api.mailer.config.TlsConfig.Builder#verifyingServerIdentity(boolean)
 	 */
-	boolean isVerifyingServerIdentity();
+	@Nullable
+	Boolean getVerifyingServerIdentity();
 	
 	/**
 	 * Returns a detached copy of the additional properties captured when this Mailer was built. Changing it does not change the Mailer or its Session.

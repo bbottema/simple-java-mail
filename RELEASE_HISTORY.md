@@ -117,6 +117,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#925](https://github.com/bbottema/simple-java-mail/issues/925): `OperationalConfig.getVerifyingServerIdentity()` replaces the primitive `isVerifyingServerIdentity()` getter with nullable captured configuration. Unspecified or unrecognized settings remain null without changing supplied Session properties or TLS behavior. Recompile callers and handle null explicitly; see the [migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#tls-identity-inspection).
+
 - [#923](https://github.com/bbottema/simple-java-mail/issues/923): OpenPGP signing and reading work from named Java modules through narrowly qualified loader access and resolution of the existing Kotlin runtime dependency.
 
 - [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
