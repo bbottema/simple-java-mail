@@ -112,6 +112,7 @@ public class SmimeEncryptionConfig implements Serializable {
 
         /**
          * Parses the certificate immediately and closes the stream opened for the path.
+         * The previous certificate remains selected if opening, reading, parsing or closing fails.
          *
          * This accepts non-default Java filesystems. Choose key and content algorithms separately through
          * {@link #keyEncapsulationAlgorithm(String)} and {@link #cipherAlgorithm(String)}; null retains the owning module's defaults.
@@ -121,13 +122,15 @@ public class SmimeEncryptionConfig implements Serializable {
          *         The original I/O cause retains any suppressed closing failure. Malformed certificate data retains its parsing failure.
          */
         public SmimeEncryptionConfigBuilder x509Certificate(@NotNull final Path pemPath) {
+            final X509Certificate certificate;
             try (InputStream pemStream = Files.newInputStream(pemPath)) {
-                return x509Certificate(readCertificate(pemStream));
+                certificate = readCertificate(pemStream);
             } catch (IOException e) {
                 throw new KeyMaterialReadException(format("Error reading from path: %s", pemPath), e);
             } catch (CertificateException e) {
                 throw new IllegalStateException("Was unable to convert PEM data to X509 certificate", e);
             }
+            return x509Certificate(certificate);
         }
 
         /**
