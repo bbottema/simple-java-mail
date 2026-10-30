@@ -62,6 +62,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- [#926](https://github.com/bbottema/simple-java-mail/issues/926): failed DKIM, S/MIME and PKCS12 key-file replacements now keep the builder's previous material and related choices, including when closing the file fails after a successful read. Existing exception and stream-ownership contracts remain unchanged.
+
 - [#924](https://github.com/bbottema/simple-java-mail/issues/924): improve standalone CLI daemon shutdown with a 30-second accepted-work grace period inside one 60-second process deadline and independent cleanup of owned Mailers. Stop and restart remain bounded when work stalls; uncertain commands are never automatically replayed, and ordinary Java Mailer closure stays graceful.
 
 - [#845](https://github.com/bbottema/simple-java-mail/issues/845): added independent connect/read/write choices and inspection to `ConnectionConfig`,

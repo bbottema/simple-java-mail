@@ -16,6 +16,13 @@ When deriving recipient groups from a Jakarta Mail failure, search the complete 
 
 Apply the owned-operation exception idiom to complete DKIM, S/MIME and PKCS12 content reads used to construct configuration values. Known opening, reading and closing I/O failures use MailException with failure kind PREPARATION, preserving the original cause and suppression chain. Close streams opened from paths/files; leave supplied streams open for their owner. Preserve argument errors and arbitrary application runtime exceptions, and leave cryptographic validation at its existing feature boundary. [#834](https://github.com/bbottema/simple-java-mail/issues/834) tracks this application of the existing rule.
 
+Accepted 31 October 2026: managed file replacement is atomic for the mutable configuration builder. Prepare the replacement without
+changing its stored choices, including existing parsing and argument checks, then close the owned stream successfully before installing
+the new material. An opening, reading, preparation or closing failure retains the earlier configuration. This lets applications reuse a
+builder after handling a failed replacement without accidentally combining new material with earlier related choices. Preserve primary
+failures and suppressed closing failures, borrowed-stream ownership, unrelated choices and completed snapshots. This adds no eager
+cryptographic validation or public signatures. [#926](https://github.com/bbottema/simple-java-mail/issues/926) tracks implementation and delivery.
+
 ## Context
 
 Completing a send call answers whether the library's operation succeeded, but does not tell the application what the SMTP server accepted. A message may be accepted for some recipients, rejected for others, or accepted without the client ever receiving the final reply. Retrying every exception as a wholly unsent message can duplicate mail.

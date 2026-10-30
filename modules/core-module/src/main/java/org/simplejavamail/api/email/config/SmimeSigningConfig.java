@@ -103,6 +103,7 @@ public class SmimeSigningConfig implements Serializable {
 
         /**
          * Reads the PKCS12 store bytes immediately and closes the stream opened for the path.
+         * The previous configuration remains selected if opening, reading, preparing the replacement or closing fails.
          *
          * The selected alias and passwords are retained with the bytes. Select the signing algorithm separately through
          * {@link #signatureAlgorithm(String)}; null keeps the module's default. This works with non-default Java filesystems.
@@ -116,11 +117,13 @@ public class SmimeSigningConfig implements Serializable {
          */
         public SmimeSigningConfigBuilder pkcs12Config(@NotNull final Path pkcs12StorePath, @NotNull final String storePassword,
                 @NotNull final String keyAlias, @NotNull final String keyPassword) {
+            final Pkcs12Config replacement;
             try (InputStream pkcs12StoreStream = Files.newInputStream(pkcs12StorePath)) {
-                return pkcs12Config(readInputStreamToBytes(pkcs12StoreStream), storePassword, keyAlias, keyPassword);
+                replacement = createPkcs12Config(readInputStreamToBytes(pkcs12StoreStream), storePassword, keyAlias, keyPassword);
             } catch (IOException e) {
                 throw new KeyMaterialReadException(format("Error reading from path: %s", pkcs12StorePath), e);
             }
+            return pkcs12Config(replacement);
         }
 
         /**
@@ -154,12 +157,17 @@ public class SmimeSigningConfig implements Serializable {
          */
         public SmimeSigningConfigBuilder pkcs12Config(byte @NotNull [] pkcs12StoreData, @NotNull String storePassword,
                 @NotNull String keyAlias, @NotNull String keyPassword) {
-            return pkcs12Config(Pkcs12Config.builder()
+            return pkcs12Config(createPkcs12Config(pkcs12StoreData, storePassword, keyAlias, keyPassword));
+        }
+
+        private static Pkcs12Config createPkcs12Config(final byte[] pkcs12StoreData, final String storePassword,
+                final String keyAlias, final String keyPassword) {
+            return Pkcs12Config.builder()
                     .pkcs12Store(pkcs12StoreData)
                     .storePassword(storePassword)
                     .keyAlias(keyAlias)
                     .keyPassword(keyPassword)
-                    .build());
+                    .build();
         }
 
         /**

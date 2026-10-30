@@ -173,6 +173,7 @@ public final class Pkcs12Config implements Serializable {
 
 		/**
 		 * Reads the PKCS12 store bytes immediately and closes the stream opened for the path.
+		 * The previous store choice remains unchanged if opening, reading or closing fails.
 		 *
 		 * @param pkcs12StorePath Path to the PKCS12 store.
 		 * @return This builder.
@@ -181,11 +182,13 @@ public final class Pkcs12Config implements Serializable {
 		 *         The original I/O cause retains any suppressed closing failure.
 		 */
 		public Pkcs12ConfigBuilder pkcs12Store(@NotNull final Path pkcs12StorePath) {
+			final byte[] storeData;
 			try (InputStream pkcs12StoreStream = Files.newInputStream(requireSupplied(pkcs12StorePath, "pkcs12StorePath"))) {
-				return pkcs12Store(MiscUtil.readInputStreamToBytes(pkcs12StoreStream));
+				storeData = MiscUtil.readInputStreamToBytes(pkcs12StoreStream);
 			} catch (IOException e) {
 				throw new KeyMaterialReadException(format("error reading PKCS12 store from path [%s]", pkcs12StorePath), e);
 			}
+			return pkcs12Store(storeData);
 		}
 
 		/**

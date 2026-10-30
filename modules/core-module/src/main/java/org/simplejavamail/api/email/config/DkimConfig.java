@@ -185,6 +185,7 @@ public class DkimConfig implements Serializable {
 
         /**
          * Reads the private-key bytes immediately and closes the stream opened for the path.
+         * The previous key remains selected if opening, reading or closing fails.
          *
          * @param dkimPrivateKeyPath Path to the private-key data.
          * @return This builder.
@@ -194,11 +195,13 @@ public class DkimConfig implements Serializable {
          * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
          */
         public DkimConfigBuilder dkimPrivateKeyPath(@NotNull final Path dkimPrivateKeyPath) {
+            final byte[] privateKeyData;
             try (InputStream dkimPrivateKeyInputStream = Files.newInputStream(dkimPrivateKeyPath)) {
-                return dkimPrivateKeyData(readInputStreamToBytes(dkimPrivateKeyInputStream));
+                privateKeyData = readInputStreamToBytes(dkimPrivateKeyInputStream);
             } catch (IOException e) {
                 throw new KeyMaterialReadException(format("error reading DKIM private key file [%s]", dkimPrivateKeyPath), e);
             }
+            return dkimPrivateKeyData(privateKeyData);
         }
 
         /**
