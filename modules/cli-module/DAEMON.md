@@ -174,10 +174,23 @@ To remove it, run `systemctl --user disable --now sjm-daemon.service`, delete th
 ## Shutdown and recovery
 
 Stop first closes intake and refuses commands still awaiting application admission, then gives accepted commands up to 30 seconds to drain.
-Duplicate observers keep the result of the accepted request they already reference. If accepted work cannot produce a terminal result, that
-result becomes ambiguous; closing a reply observer does not cancel or resubmit it. Authentication/control and execution replies then share
-one network-drain budget of up to 30 seconds, after which outstanding channels close. Cached Mailers are retired and owned discovery/socket
-state and the instance lock are removed. A PID is never killed merely because it appears in a file. `restart` performs an authenticated stop,
-observes termination, and then starts normally.
+The standalone daemon has 60 seconds overall to finish shutdown, measured from the first accepted stop. Repeated stop requests and a
+disconnected stop client do not reset or cancel that deadline.
+
+After the command grace period, the daemon interrupts workers and makes unresolved accepted results ambiguous. Duplicate observers keep the
+same accepted request's result, and completed results stay intact. Closing a reply observer does not cancel or resubmit the command.
+Authentication/control handling, execution replies and asynchronous cached-Mailer cleanup share the remaining overall budget.
+
+If command code or cleanup still blocks at the deadline, the standalone daemon terminates its own process. A successful stop means the
+process exited; it does not establish that unfinished mail was unsent. The daemon never automatically resends an uncertain command.
+Ordinary Java `Mailer.close()` remains graceful, and programmatic bootstrap does not halt its hosting JVM.
+
+The first shutdown origin owns termination. An authenticated stop retains its deadline if JVM shutdown begins later; when JVM shutdown
+starts first, its hook keeps the normal signal exit behavior and waits only for the remaining shutdown budget.
+
+Normal shutdown removes owned discovery/socket state and releases the instance lock after work and cleanup finish. Forced termination can
+leave stale discovery state, but process exit releases the operating-system lock. A later start uses normal validated stale-state recovery.
+A PID is never killed merely because it appears in a file. `restart` performs an authenticated stop, observes actual termination, and then
+starts normally. The stop client retains its 75-second exit wait to allow for the daemon deadline and process-exit observation.
 
 If state is stale after a crash, a new daemon must acquire the instance lock before replacing it or deleting its own derived socket. If status reports incompatible or unverifiable state, use the matching old CLI to stop that daemon or terminate it through the supervisor after independently verifying the process identity. Do not delete state and kill the recorded PID blindly.

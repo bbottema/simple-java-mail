@@ -18,11 +18,13 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -57,6 +59,7 @@ final class DaemonServer {
 	private final ThreadPoolExecutor executionReplies = boundedExecutor("execution-reply", CONNECTION_THREADS, REPLY_CAPACITY);
 	private final ThreadPoolExecutor applications = boundedExecutor("request", APPLICATION_THREADS);
 	private final Function<DaemonRequest, CliExecutionResult> commandExecutor;
+	private final DaemonShutdown shutdown;
 	private final UUID sessionId = UUID.randomUUID();
 	private final byte[] authenticationSecret = randomSecret();
 	private final byte[] profileSecret = randomSecret();
@@ -72,9 +75,22 @@ final class DaemonServer {
 
 	/** Keeps the command boundary separate from authenticated request and channel ownership. */
 	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor) {
+		this(instance, commandExecutor, DaemonShutdown.embedded());
+	}
+
+	/** Standalone authority is explicit; ordinary constructors cannot terminate an embedding JVM. */
+	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor, final DaemonShutdown shutdown) {
+		this(instance, commandExecutor, shutdown, null);
+	}
+
+	/** A supplied registry keeps construction/closure failure fixtures within their owning test process. */
+	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor,
+			final DaemonShutdown shutdown, final DaemonMailerRegistry registry) {
 		paths = DaemonPaths.forInstance(instance);
 		stateStore = new DaemonStateStore(paths);
 		this.commandExecutor = commandExecutor == null ? this::executeCliCommand : commandExecutor;
+		this.shutdown = shutdown;
+		this.registry = registry;
 	}
 
 	int run() {
@@ -117,7 +133,7 @@ final class DaemonServer {
 		configureDaemonLogging();
 		transport = LocalDaemonTransport.openServer(paths);
 		state.set(State.BOUND);
-		registry = new DaemonMailerRegistry();
+		if (registry == null) { registry = new DaemonMailerRegistry(); }
 		environment = new CliExecutionEnvironment(CliExecutionEnvironment.loadConventionalConfig(), registry);
 	}
 
@@ -147,9 +163,8 @@ final class DaemonServer {
 	}
 
 	private void shutdownFromHook() {
-		requestStop();
 		try {
-			stopped.await(75, TimeUnit.SECONDS);
+			shutdown.awaitJvmShutdown(stopped, this::requestStop);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
@@ -332,6 +347,8 @@ final class DaemonServer {
 	}
 
 	private CliExecutionResult stopResult() {
+		// Reaching this boundary already proves the STOP frame's HMAC and session identity, including during failed cleanup.
+		shutdown.beginAuthenticatedStop();
 		requestStop();
 		return new CliExecutionResult(CliExitCode.SUCCESS, "Daemon stopping." + System.lineSeparator(), "");
 	}
@@ -342,6 +359,7 @@ final class DaemonServer {
 			final State current = state.get();
 			changed = (current == State.READY || current == State.BOUND) && state.compareAndSet(current, State.QUIESCING);
 			if (changed) {
+				shutdown.begin();
 				refuseUnadmittedRequests();
 			}
 		}
@@ -366,11 +384,13 @@ final class DaemonServer {
 			return;
 		}
 		stopAcceptingConnections();
+		shutdown.begin();
 		stopNetworkIntake();
 		drainApplicationRequests();
+		final CompletableFuture<Void> mailersClosed = retireMailerRegistry();
 		drainNetworkWorkers();
 		closeOpenConnections();
-		retireMailerRegistry();
+		awaitOwnedWorkAndCleanup(mailersClosed);
 		removeOwnedDiscoveryState();
 		closeInstanceLock(lock);
 		state.set(State.STOPPED);
@@ -401,16 +421,17 @@ final class DaemonServer {
 
 	private void drainApplicationRequests() {
 		applications.shutdown();
-		awaitTerminationOrCancelQueuedWork(applications, 30);
+		if (!awaitTerminationFor(applications, shutdown.applicationRemainingNanos())) {
+			closeAbandonedConnections(applications.shutdownNow());
+		}
 		// A task that ended without producing a result must not strand its reply observer, even after a normal executor drain.
 		ledger.completeIncomplete(result(CliExitCode.DAEMON_AMBIGUOUS,
 				"The daemon stopped waiting for an accepted command; its terminal outcome is unknown."));
 	}
 
 	private void drainNetworkWorkers() {
-		final long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
-		final boolean intakeStopped = awaitTerminationUntil(connections, deadline);
-		final boolean repliesStopped = awaitTerminationUntil(executionReplies, deadline);
+		final boolean intakeStopped = awaitTerminationFor(connections, shutdown.remainingNanos());
+		final boolean repliesStopped = awaitTerminationFor(executionReplies, shutdown.remainingNanos());
 		if (!intakeStopped || !repliesStopped) {
 			closeOpenConnections();
 			closeAbandonedConnections(connections.shutdownNow());
@@ -434,9 +455,40 @@ final class DaemonServer {
 		}
 	}
 
-	private void retireMailerRegistry() {
-		if (registry != null) {
-			registry.closeAfterExecutorDrain();
+	private CompletableFuture<Void> retireMailerRegistry() {
+		return registry == null ? CompletableFuture.completedFuture(null) : registry.closeAfterExecutorDrainAsync();
+	}
+
+	private void awaitOwnedWorkAndCleanup(final CompletableFuture<Void> mailersClosed) {
+		awaitTerminationFor(applications, shutdown.remainingNanos());
+		awaitCloseFor(mailersClosed, shutdown.remainingNanos());
+		// Past the budget, a standalone watchdog (or an already-running JVM shutdown) owns termination.
+		// An embedding caller has no process authority: retain the instance lock until its actual work is finished.
+		boolean interrupted = Thread.interrupted();
+		try {
+			while (hasPendingCleanup(mailersClosed)) {
+				try {
+					TimeUnit.MILLISECONDS.sleep(10);
+				} catch (InterruptedException interruption) {
+					interrupted = true;
+				}
+			}
+		} finally {
+			if (interrupted) { Thread.currentThread().interrupt(); }
+		}
+	}
+
+	private boolean hasPendingCleanup(final CompletableFuture<Void> mailersClosed) {
+		return !applications.isTerminated() || !connections.isTerminated() || !executionReplies.isTerminated() || !mailersClosed.isDone();
+	}
+
+	private static void awaitCloseFor(final CompletableFuture<Void> mailersClosed, final long remainingNanos) {
+		try {
+			mailersClosed.get(remainingNanos, TimeUnit.NANOSECONDS);
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+		} catch (ExecutionException | TimeoutException ignored) {
+			// A failed close is terminal and counted by the registry. Pending cleanup retains ownership until process exit.
 		}
 	}
 
@@ -471,17 +523,9 @@ final class DaemonServer {
 				}, new ThreadPoolExecutor.AbortPolicy());
 	}
 
-	private static boolean awaitTerminationOrCancelQueuedWork(final ThreadPoolExecutor executor, final int seconds) {
-		if (!awaitTerminationUntil(executor, System.nanoTime() + Duration.ofSeconds(seconds).toNanos())) {
-			closeAbandonedConnections(executor.shutdownNow());
-			return false;
-		}
-		return true;
-	}
-
-	private static boolean awaitTerminationUntil(final ThreadPoolExecutor executor, final long deadline) {
+	private static boolean awaitTerminationFor(final ThreadPoolExecutor executor, final long remainingNanos) {
 		try {
-			return executor.awaitTermination(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+			return executor.awaitTermination(remainingNanos, TimeUnit.NANOSECONDS);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			return false;

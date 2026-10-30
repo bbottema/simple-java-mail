@@ -13,7 +13,7 @@ import org.simplejavamail.internal.clisupport.daemon.DaemonBootstrap;
  */
 public class SimpleJavaMail {
 	public static void main(String[] args) {
-		final int exitCode = DaemonBootstrap.run(args);
+		final int exitCode = DaemonBootstrap.runProcess(args);
 		System.exit(exitCode);
 	}
 }

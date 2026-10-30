@@ -33,6 +33,10 @@ shutdown exception type is added.
 
 Use a dedicated daemon cleanup thread to wait outside the Mailer monitor. Reject blocking `close()` from the Mailer's own operation or owned worker to prevent a direct self-wait. Graceful shutdown does not request cancellation. Inline observer work is part of draining; accepted offloaded observer callbacks are application-owned after handoff and are not joined.
 
+The standalone CLI daemon separately owns the process deadline recorded in
+[ADR 0019](0019-local-cli-daemon.md#bounded-standalone-process-shutdown-accepted-30-october-2026) under #924. Its bounded stop and final process
+termination do not change this graceful Mailer contract or add a Mailer cancellation operation.
+
 ### Standalone batch shutdown (accepted 22 October 2026)
 
 Apply the same separation between owned cleanup and caller observation to `BatchTransportExecutor`. Its `shutdown()` and `shutdownNow()`

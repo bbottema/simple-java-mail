@@ -53,6 +53,36 @@ After application draining, fence any remaining incomplete accepted results as a
 result. A new reply lane must not add another sequential shutdown interval or turn reply loss into a reason to resubmit. This correction
 targets unreleased 10.0.0 under [#915](https://github.com/bbottema/simple-java-mail/issues/915).
 
+### Bounded standalone process shutdown (accepted 30 October 2026)
+
+Give accepted commands 30 seconds to drain within one 60-second overall shutdown budget, measured with a monotonic clock from the first
+accepted stop. Repeated stop requests join that shutdown; a disconnected client cannot cancel it or extend its deadline. After the application
+grace period, interrupt command workers, discard queued application work and preserve unresolved accepted results as ambiguous. Completed
+results retain their outcome. Shutdown never automatically replays a command.
+
+Acquire authenticated-stop authority at the validated request boundary, independently of the one-time admission-state transition. A valid
+STOP on an already accepted connection still enforces the remaining budget if runtime failure has moved the daemon into cleanup. It does not
+restart that budget. Invalid authentication, startup failure and lock refusal without a validated STOP do not grant process-termination authority.
+
+Network draining and cached Mailer cleanup share the remaining overall budget. Initiate shutdown closure asynchronously with bounded workers
+and retain close-once ownership, including construction that completes during shutdown. One blocking close must not strand the controller or
+prevent other closure attempts. Ordinary idle retirement and synchronous command execution keep their existing contracts.
+
+Only the standalone CLI process arms an independent watchdog before potentially blocking shutdown work. If work or cleanup remains at the
+overall deadline, terminate that process with `Runtime.halt(0)`. The watchdog performs no potentially blocking logging or cleanup first and
+remains armed through process exit. Programmatic bootstrap and in-process fixtures do not halt their hosting JVM. The first shutdown origin
+owns termination: JVM-first shutdown retains normal signal exit behavior, while an authenticated stop keeps its watchdog authority if JVM
+shutdown begins later. The JVM shutdown hook waits only for the remaining budget. The client continues to observe actual process exit before reporting successful
+stop or starting a replacement for restart; it does not kill a PID taken from discovery state.
+
+Normal discovery removal and instance-lock release follow actual work and cleanup completion. Do not claim clean completion or release the
+lock while unresolved work can still execute. Forced termination can leave stale discovery state; process exit releases the operating-system
+lock, and a later start follows the existing validated stale-state recovery. A successful stop does not prove an unfinished message was unsent.
+
+This CLI-only correction is tracked by [#924](https://github.com/bbottema/simple-java-mail/issues/924) for unreleased 10.0.0. It adds no public
+Mailer operation, configuration setting, CLI option or protocol change. [ADR 0016](0016-bounded-async-admission-and-shutdown.md) continues to
+own graceful Mailer closure; worker interruption and final process termination do not introduce physical send cancellation into that API.
+
 ### Selector and message-value ownership (accepted 28 October 2026)
 
 Daemon routing preserves the command model's ownership of message values, including values shaped like mode or instance selectors.

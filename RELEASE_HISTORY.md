@@ -62,6 +62,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Enhancements
 
+- [#924](https://github.com/bbottema/simple-java-mail/issues/924): improve standalone CLI daemon shutdown with a 30-second accepted-work grace period inside one 60-second process deadline and independent cleanup of owned Mailers. Stop and restart remain bounded when work stalls; uncertain commands are never automatically replayed, and ordinary Java Mailer closure stays graceful.
+
 - [#845](https://github.com/bbottema/simple-java-mail/issues/845): added independent connect/read/write choices and inspection to `ConnectionConfig`,
   retaining `withSessionTimeout` as a convenience for all three. The last group setter affecting an operation wins; individual reset/inheritance
   companions affect only that operation. Explicit raw Jakarta Mail timeout properties now override inherited SJM defaults, while typed choices
