@@ -479,3 +479,12 @@ Implemented for unreleased 10.0.0 under [#867](https://github.com/bbottema/simpl
 ## Shared layered resolution (accepted 26 October 2026)
 
 The complete layered adoption in ADR 0039 remains main-owned internal machinery. Core contracts/value builders and optional feature contracts retain their current module boundaries. Public API signatures, passive group inspection and established setter/build validation contracts remain intact; no public rule registry or synthetic application-plan type is added for simple selection. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+
+## Collection-valued header maps (accepted 31 October 2026)
+
+The application-facing `withHeaders` input accepts maps whose values are collection subtypes, including declared maps of lists or sets.
+Retain the method's generic type parameter and erased Map descriptor while widening the read-only input with bounded wildcards.
+The builder continues to copy the supplied header values using the existing conversion, null, name-identity and occurrence rules;
+the map and value collections remain caller-owned. This is an input compatibility improvement over the released 9.3.9 signature,
+with no new runtime behavior or migration requirement. ADR 0036 continues to own structural snapshots.
+Implemented for unreleased 10.0.0; [#929](https://github.com/bbottema/simple-java-mail/issues/929) tracks delivery.

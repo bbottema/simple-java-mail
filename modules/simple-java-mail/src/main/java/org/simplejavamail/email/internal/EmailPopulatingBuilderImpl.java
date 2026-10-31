@@ -1513,7 +1513,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#withHeaders(Map)
 	 */
 	@Override
-	public <T> EmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers) {
+	public <T> EmailPopulatingBuilder withHeaders(@NotNull final Map<String, ? extends Collection<? extends T>> headers) {
 		return withHeaders(headers, false);
 	}
 
@@ -1525,8 +1525,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	@NotNull
-	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, Collection<T>> headers, final boolean ignoreSmimeMessageId) {
-		for (Map.Entry<String, Collection<T>> headerEntry : headers.entrySet()) {
+	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, ? extends Collection<? extends T>> headers, final boolean ignoreSmimeMessageId) {
+		for (Map.Entry<String, ? extends Collection<? extends T>> headerEntry : headers.entrySet()) {
 			for (final T headerValue : headerEntry.getValue()) {
 				if (!ignoreSmimeMessageId ||
 						!ModuleLoader.smimeModuleAvailable() ||

@@ -766,8 +766,13 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Delegates to {@link #withHeader(String, Object)} for each header in the provided {@code Map}.
+	 * Accepts collection-valued maps, including maps of lists or sets. Values are added in each collection's iteration order
+	 * using the same conversion, header-name identity and repeated-value rules as the singular method.
+	 * The supplied map and collections are not retained.
+	 *
+	 * @param headers Header names and their values, copied into this builder.
 	 */
-	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, Collection<T>> headers);
+	<T> EmailPopulatingBuilder withHeaders(@NotNull Map<String, ? extends Collection<? extends T>> headers);
 
 	/**
 	 * Delegates to {@link #withHeader(String, Object, boolean)} with <em>replaceHeader</em> set to {@code false}.

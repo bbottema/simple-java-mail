@@ -30,7 +30,7 @@ public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, 
 	@Override
 	@NotNull InternalEmailPopulatingBuilder withRecipients(@NotNull Collection<Recipient> recipients);
 	@NotNull InternalEmailPopulatingBuilder withForward(@Nullable MimeMessage emailMessageToForward);
-	@NotNull <T> InternalEmailPopulatingBuilder withHeaders(@NotNull Map<String, Collection<T>> headers, boolean ignoreSmimeMessageId);
+	@NotNull <T> InternalEmailPopulatingBuilder withHeaders(@NotNull Map<String, ? extends Collection<? extends T>> headers, boolean ignoreSmimeMessageId);
 	@NotNull InternalEmailPopulatingBuilder clearDecryptedAttachments();
 	@NotNull InternalEmailPopulatingBuilder withDecryptedAttachments(List<AttachmentResource> decryptedAttachments);
 	@NotNull InternalEmailPopulatingBuilder withSmimeSignedEmail(@NotNull Email smimeSignedEmail);
