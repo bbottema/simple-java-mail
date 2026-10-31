@@ -358,6 +358,18 @@ When a decrypted Outlook MSG contains a detached `multipart/signed` entity, reta
 
 Preserve the outer message's established decryption and signature facts, including the standard and legacy opaque handling accepted under #905. This restoration does not broaden the existing MIME/EML or opaque-artifact retention policy, introduce public APIs or settings, change trust decisions, or invent original EML bytes for Outlook MSG. Copying, serialization and source/stream ownership continue under ADR 0036. [#918](https://github.com/bbottema/simple-java-mail/issues/918) tracks implementation and delivery for unreleased 10.0.0.
 
+## Detached S/MIME attachment occurrences (accepted 31 October 2026)
+
+Keep a detached signature and every ordinary attachment from the signed content as distinct source occurrences in the imported Email's
+ordinary attachment list. A shared filename, media type or payload does not establish that one occurrence already represents another.
+Retain supplied names and ordering rather than renaming either resource or suppressing signature material because a clear attachment has
+the same name. The ordinary parser visits the readable signed content; its attachments do not represent the enclosing signature part.
+
+This applies [ADR 0036's structural occurrence rule](0036-structural-message-snapshots-and-borrowed-content.md#copy-the-structure-the-message-owns)
+without changing readable content, established verification results, historical inspection views, protected source bytes or eager/lazy content
+ownership. It does not expand the protected-artifact retention policy or add another representation of the same source occurrence.
+The correction targets unreleased 10.0.0 under [#704](https://github.com/bbottema/simple-java-mail/issues/704).
+
 ## Missing reply-body alternatives (accepted 28 October 2026)
 
 Reply priming keeps both plain and HTML quotes useful when the interpreted original contains only one body format. Generate the

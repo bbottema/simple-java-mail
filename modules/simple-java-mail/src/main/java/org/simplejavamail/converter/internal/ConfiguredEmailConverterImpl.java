@@ -225,7 +225,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			return emailBuilder;
 		}
 		if (smimeResult != null && smimeResult.isRecognized()) {
-			return applySmimePreprocessingResult(emailBuilder, smimeResult);
+			final boolean detachedSignatureUnwrapped = effectiveMessage != openPgpResult.getEffectiveMimeMessage()
+					&& "multipart/signed".equalsIgnoreCase(smimeResult.getDetails().getSmimeMime());
+			return applySmimePreprocessingResult(emailBuilder, smimeResult, detachedSignatureUnwrapped);
 		}
 		return decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config);
 	}
@@ -318,7 +320,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@NotNull
 	private EmailPopulatingBuilder applySmimePreprocessingResult(
 			@NotNull final EmailPopulatingBuilder emailBuilder,
-			@NotNull final SmimePreprocessingResult result) {
+			@NotNull final SmimePreprocessingResult result,
+			final boolean detachedSignatureUnwrapped) {
 		final List<AttachmentResource> clearAttachments = new ArrayList<>(emailBuilder.getAttachments());
 		AttachmentResource effectiveMessageArtifact = null;
 		for (AttachmentResource artifact : result.getDecryptedArtifacts()) {
@@ -333,7 +336,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			((InternalEmailPopulatingBuilder) emailBuilder).clearContentTransferEncoding();
 		}
 		for (AttachmentResource protectedAttachment : result.getProtectedAttachments()) {
-			if (!hasAttachmentNamed(emailBuilder.getAttachments(), protectedAttachment.getName())) {
+			// An unwrapped signature is outside the parsed clear entity, even when an ordinary file has the same name.
+			// Fallback parsing still visits the protected entity, so retain its existing representation handling.
+			if (detachedSignatureUnwrapped || !hasAttachmentNamed(emailBuilder.getAttachments(), protectedAttachment.getName())) {
 				emailBuilder.withAttachments(singletonList(protectedAttachment));
 			}
 		}
