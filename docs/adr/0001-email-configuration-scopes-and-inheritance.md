@@ -206,3 +206,17 @@ Notification destinations are immutable lists exposed through plural getters. Ea
 ## Shared layered resolution (accepted 26 October 2026)
 
 Email and recipient/group source choices now share the internal declaration model from ADR 0039. Individual, group-default/fixed and governance scopes retain this record's ownership and precedence; the foundation introduces no new global authority. See [ADR 0039](0039-explicit-configuration-resolution.md) and [#867](https://github.com/bbottema/simple-java-mail/issues/867).
+
+## Ordered plural-recipient results (accepted 31 October 2026)
+
+Declare `IRecipientsBuilder.buildRecipients()` as returning `List<Recipient>`, expressing its existing ordered, duplicate-preserving,
+detached and unmodifiable result. Keep the List-based Reply-To and delivery-override setters; callers can pass the plural builder's
+result directly without an adapter. Group policies and recipient metadata keep their existing semantics. Preserve each input's encounter
+order; the return type does not sort or deduplicate recipients.
+
+Ordinary MIME submission retains Jakarta Mail's To/Cc/Bcc envelope grouping and order within each group. Explicit delivery overrides
+retain their supplied order into the transport adapter and Angus. This decision does not add delivery priority, change mixed-role grouping
+or broaden RFC address-group support. Existing source assigning the result to Collection remains valid; compiled callers need recompilation
+because the released Collection return descriptor changes in 10.0.0. Document that binary boundary without inventing a source rewrite.
+The maintainer accepted the design and full delegated implementation/delivery workflow. Implemented for unreleased 10.0.0;
+[#930](https://github.com/bbottema/simple-java-mail/issues/930) tracks delivery.

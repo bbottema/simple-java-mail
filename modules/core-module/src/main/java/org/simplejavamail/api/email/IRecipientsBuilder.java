@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOpti
 
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Produces a flat, ordered list of recipients from mailbox strings, address groups or prepared recipients.
@@ -21,8 +22,16 @@ import java.util.Collection;
  */
 public interface IRecipientsBuilder {
 
+    /**
+     * Builds a detached, unmodifiable list in the order recipients were added, retaining duplicate occurrences and applying
+     * the current group policies. Later builder changes do not change an earlier result.
+     * The list can be supplied directly to ordered recipient inputs such as {@link EmailPopulatingBuilder#withReplyTo(List)}
+     * and {@link EmailPopulatingBuilder#withOverrideReceivers(List)}.
+     *
+     * @return An ordered snapshot of the recipients and their resolved group metadata.
+     */
     @NotNull
-    Collection<Recipient> buildRecipients();
+    List<Recipient> buildRecipients();
 
     /**
      * Applies the given S/MIME certificate to recipients produced by this builder that do not already have a recipient-specific certificate.

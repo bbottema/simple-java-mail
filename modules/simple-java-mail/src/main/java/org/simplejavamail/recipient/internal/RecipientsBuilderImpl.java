@@ -56,7 +56,7 @@ public class RecipientsBuilderImpl implements IRecipientsBuilder {
      */
     @Override
     @NotNull
-    public Collection<Recipient> buildRecipients() {
+    public List<Recipient> buildRecipients() {
         final List<Recipient> recipientsWithGroupPolicies = new ArrayList<>();
         for (final Recipient recipient : recipients) {
             recipientsWithGroupPolicies.add(copyRecipientApplyingGroupPolicies(recipient));
