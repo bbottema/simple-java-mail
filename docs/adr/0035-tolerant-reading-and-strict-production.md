@@ -92,6 +92,18 @@ It does not add arbitrary MIME-tree preservation, alter cryptographic preprocess
 records the pipeline boundary; [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#multipart-attachment-content-ownership-accepted-22-october-2026)
 preserves attachment read timing and ownership.
 
+### Explicitly empty imported bodies (accepted 31 October 2026)
+
+An encountered plain-text or HTML body remains present when its decoded content is empty. Import it as an empty String; reserve null for an
+absent alternative. This retains an interpretable source fact and the empty-versus-absent distinction in
+[ADR 0031](0031-public-api-and-internal-construction.md#required-body-augmentation-fragments-accepted-29-october-2026). Ordinary defaults in
+[ADR 0002](0002-email-defaults-and-overrides.md) can fill an absent alternative, but must not replace an explicitly empty imported body.
+
+Keep existing whitespace, encounter-order concatenation, body/attachment ownership and ordinary MIME structure simplification. Copying,
+serialization and ordinary export preserve the body presence; exact and protected source bytes retain their separate authoritative contracts.
+This is an interpretation correction for unreleased 10.0.0 under [#935](https://github.com/bbottema/simple-java-mail/issues/935), with no new
+public API or configuration switch. It does not add source MIME-tree preservation or change cryptographic processing.
+
 ### Calendar method interpretation (accepted 22 October 2026)
 
 Recognize existing calendar method names and values without regard to capitalization during MIME/EML import. Use Jakarta Mail's Content-Type

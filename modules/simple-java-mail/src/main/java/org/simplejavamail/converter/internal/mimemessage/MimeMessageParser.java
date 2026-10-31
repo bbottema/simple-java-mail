@@ -94,11 +94,13 @@ public final class MimeMessageParser {
 
 		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
+			parsedComponents.plainContentPresent = true;
 			if (parsedComponents.plainTextContentTransferEncoding == null) {
 				parsedComponents.plainTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
 		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
+			parsedComponents.htmlContentPresent = true;
 			if (parsedComponents.htmlTextContentTransferEncoding == null) {
 				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
@@ -854,6 +856,10 @@ public final class MimeMessageParser {
 		@Nullable private String calendarTextContentTransferEncoding;
 		private final StringBuilder plainContent = new StringBuilder();
 		final StringBuilder htmlContent = new StringBuilder();
+		@Getter(AccessLevel.NONE)
+		private boolean plainContentPresent;
+		@Getter(AccessLevel.NONE)
+		private boolean htmlContentPresent;
 		@Nullable private String calendarMethod;
 		@Nullable private String calendarContent;
 		@Nullable private Date sentDate;
@@ -863,12 +869,12 @@ public final class MimeMessageParser {
 
 		@Nullable
 		public String getPlainContent() {
-			return plainContent.length() == 0 ? null : plainContent.toString();
+			return plainContentPresent ? plainContent.toString() : null;
 		}
 
 		@Nullable
 		public String getHtmlContent() {
-			return htmlContent.length() == 0 ? null : htmlContent.toString();
+			return htmlContentPresent ? htmlContent.toString() : null;
 		}
 
 		@Nullable
