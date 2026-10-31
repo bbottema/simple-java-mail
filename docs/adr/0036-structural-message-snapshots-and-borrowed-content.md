@@ -147,6 +147,15 @@ safe production and malformed-input fallback. Existing copying and serialization
 and stronger retry snapshots keep their own boundaries. This clarification is accepted under
 [#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; its issue tracks implementation and delivery.
 
+#### Retained S/MIME artifact types (accepted 31 October 2026)
+
+The same metadata rule applies when top-level S/MIME preprocessing materializes a retained protected payload as an attachment. Carry its
+complete valid Content-Type, including `smime-type` and extension parameters, rather than reducing it to the base media type. An opaque
+signed artifact must still describe `signed-data` when reused independently; its bytes must not become classified as ciphertext merely
+because the original owning Email is no longer available. Apply this to standard and legacy S/MIME media types without changing the
+selected filename, content bytes, source ownership or existing artifact-retention policy. This clarification is accepted under
+[#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0.
+
 ### Multipart attachment content ownership (accepted 22 October 2026)
 
 Explicitly attached child multipart entities use the existing attachment resource boundary: eager extraction reads and closes its acquired

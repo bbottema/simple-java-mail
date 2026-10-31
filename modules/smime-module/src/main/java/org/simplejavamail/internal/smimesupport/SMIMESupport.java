@@ -411,7 +411,7 @@ public class SMIMESupport implements SMIMEModule {
 			final ContentType parsed = new ContentType(contentType);
 			final String name = ofNullable(parsed.getParameter("name")).orElse("smime.p7m");
 			final ByteArrayDataSource dataSource = new ByteArrayDataSource(
-					readAll(message.getInputStream()), parsed.getBaseType());
+					readAll(message.getInputStream()), contentType);
 			dataSource.setName(name);
 			return new ArrayList<>(Collections.singletonList(AttachmentResource.builder().withName(name).withDataSource(dataSource).build()));
 		} catch (Exception e) {
