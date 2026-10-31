@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/recipient-list-930-20261031'
     '.local/review-round-20261031'
     '.local/smime-parameters-927-20261031'
     '.local/cli-help-config-928-20261031'

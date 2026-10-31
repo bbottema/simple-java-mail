@@ -294,3 +294,7 @@ The 31 October review accepts [parameterized S/MIME attachment recognition in AD
 under [#927](https://github.com/bbottema/simple-java-mail/issues/927), [help before mail configuration in ADR 0018](0018-cli-from-builder-contracts.md#help-before-mail-configuration-accepted-31-october-2026)
 under [#488](https://github.com/bbottema/simple-java-mail/issues/488), and [collection-valued header-map inputs in ADR 0031](0031-public-api-and-internal-construction.md#collection-valued-header-maps-accepted-31-october-2026)
 under [#929](https://github.com/bbottema/simple-java-mail/issues/929). Implemented for unreleased 10.0.0; their issues track delivery.
+
+The maintainer also accepted [ordered plural-recipient results in ADR 0001](0001-email-configuration-scopes-and-inheritance.md#ordered-plural-recipient-results-accepted-31-october-2026)
+under [#930](https://github.com/bbottema/simple-java-mail/issues/930): return List from the plural builder while retaining ordered consuming
+APIs, snapshots and existing SMTP grouping. Implemented for unreleased 10.0.0; the issue tracks delivery and the deliberate return-descriptor change.
