@@ -289,3 +289,8 @@ hardening preserves supported Angus/JDK traffic, per-peer cleanup and existing b
 The [OpenPGP module-path clarification in ADR 0006](0006-optional-modules.md#openpgp-on-the-java-module-path-accepted-29-october-2026)
 under [#704](https://github.com/bbottema/simple-java-mail/issues/704) grants the common loader qualified implementation access and resolves the
 existing Kotlin runtime dependency when OpenPGP is selected. Public APIs, ordinary classpath behavior and optional-feature boundaries stay intact.
+
+The 31 October review accepts [parameterized S/MIME attachment recognition in ADR 0035](0035-tolerant-reading-and-strict-production.md#parameterized-smime-attachments-accepted-31-october-2026)
+under [#927](https://github.com/bbottema/simple-java-mail/issues/927), [help before mail configuration in ADR 0018](0018-cli-from-builder-contracts.md#help-before-mail-configuration-accepted-31-october-2026)
+under [#488](https://github.com/bbottema/simple-java-mail/issues/488), and [collection-valued header-map inputs in ADR 0031](0031-public-api-and-internal-construction.md#collection-valued-header-maps-accepted-31-october-2026)
+under [#929](https://github.com/bbottema/simple-java-mail/issues/929). Implemented for unreleased 10.0.0; their issues track delivery.
