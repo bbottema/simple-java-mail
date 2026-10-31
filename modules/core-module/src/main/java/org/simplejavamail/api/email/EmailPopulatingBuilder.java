@@ -971,13 +971,14 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder encryptWithOpenPgp(@NotNull OpenPgpEncryptionConfig openPgpEncryptionConfig);
 
 	/**
-	 * When the S/MIME module is loaded, S/MIME signed / encrypted attachments are decrypted and kept in a separate list. However,
-	 * if it is a single attachment and the actual attachment has mimetype "message/rfc822", it is assumed to be the message
-	 * itself and by default will be merged with the top level email. The inner message supplies the body, and attachments from both
+	 * When S/MIME processing extracts the content of a signed or encrypted attachment, the result is kept in a separate inspection list.
+	 * If this is the only attachment and its extracted content has MIME type {@code message/rfc822}, it is assumed to be the message
+	 * itself and by default is merged with the top level email. The inner message supplies the body, and attachments from both
 	 * messages are retained. Header names are compared case-insensitively: each inner header replaces the complete outer value list
 	 * with that name, retaining the first display spelling. Defaults and overrides still apply later during ordinary completion.
-	 * <br>
-	 * This API disables this behavior and strictly keeps all attachments as-is (still decrypted, but not merged with the email).
+	 * <p>
+	 * Calling this method keeps the extracted attachment separate instead of merging it with the email. It does not change S/MIME
+	 * extraction: if a key is missing or the payload cannot be converted to an attachment, the inspection list retains the original protected resource.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
@@ -1422,8 +1423,10 @@ public interface EmailPopulatingBuilder {
 	List<AttachmentResource> getAttachments();
 
 	/**
-	 * If the S/MIME library is loaded, this method returns a copy list of the attachments, but with any signed
-	 * attachments replaced with decrypted ones.
+	 * Returns the attachment inspection results retained during input conversion. The S/MIME module unwraps supported signed attachments
+	 * and uses the supplied decryption key for encrypted attachments. The extracted content takes
+	 * the original attachment's place in this list. If a key is missing or the extracted content cannot be converted to an attachment,
+	 * the original protected resource remains instead. An entry in this list therefore does not guarantee decryption or a valid signature.
 	 * <p>
 	 * This is a historical inspection list retained by conversion, ordinary copying and supported Java serialization. Defaults/overrides
 	 * completion does not carry it into the result. Ordinary outgoing attachments remain governed independently.

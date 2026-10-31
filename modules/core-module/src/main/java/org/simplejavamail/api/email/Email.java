@@ -199,8 +199,7 @@ public class Email implements Serializable {
 	private List<AttachmentResource> attachments;
 
 	/**
-	 * If the S/MIME module is loaded, this list will contain the same attachments as {@link #attachments},
-	 * but with any S/MIME signed attachments decrypted.
+	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
 	@NotNull
 	private List<AttachmentResource> decryptedAttachments;
@@ -864,8 +863,9 @@ public class Email implements Serializable {
 	}
 
 	/**
-	 * Returns the historical decrypted-attachment inspection list retained during input conversion. Defaults/overrides completion
-	 * does not copy this list into the result; it resolves ordinary outgoing attachments separately.
+	 * Returns the attachment inspection results retained during input conversion. The list can include original protected resources
+	 * when a decryption key was not supplied or the extracted content could not be converted to an attachment.
+	 * Defaults/overrides completion does not copy this list into the result; it resolves ordinary outgoing attachments separately.
 	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
 	 */
 	@NotNull
