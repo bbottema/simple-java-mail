@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-protection-20261031'
     '.local/recipient-list-930-20261031'
     '.local/review-round-20261031'
     '.local/smime-parameters-927-20261031'
@@ -113,6 +114,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/protection-review-20261031.md'
     'docs/plans/927-929-review-round-20261031.md'
     'docs/plans/928-cli-help-config.md'
     'docs/plans/926-key-material-atomicity.md'
