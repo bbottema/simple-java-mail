@@ -156,8 +156,9 @@ class DetachedSmimeFilenameCollisionTest {
         message.setContent(signed);
         message.saveChanges();
         final byte[] wire = bytes(message);
+        final MimeMultipart retainedSigned = (MimeMultipart) message(wire).getContent();
         final byte[] signature;
-        try (InputStream input = signed.getBodyPart(1).getInputStream()) {
+        try (InputStream input = retainedSigned.getBodyPart(1).getInputStream()) {
             signature = input.readAllBytes();
         }
         return new Fixture(wire, signature);
