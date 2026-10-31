@@ -24,6 +24,18 @@ meaning; accepting a certificate still performs no cryptographic interpretation.
 [#835](https://github.com/bbottema/simple-java-mail/issues/835). The correction is implemented and reviewed locally for unreleased 10.0.0;
 the issue tracks delivery.
 
+### Required DKIM identity replacements (accepted 31 October 2026)
+
+`DkimConfigBuilder.dkimSigningDomain(String)` and `dkimSelector(String)` reject an explicit null before changing the stored choice.
+A missing replacement is not an instruction to clear an earlier domain or selector. The field-named `NullPointerException` leaves
+the builder's other choices and previously built configurations intact. [#933](https://github.com/bbottema/simple-java-mail/issues/933)
+tracks this correction for unreleased 10.0.0.
+
+Unfinished builder getters remain passive, and this correction does not add missing-field checks to `DkimConfigBuilder.build()` or reject non-null empty
+values. Optional null/default choices retain their meaning. Domain/selector interpretation, signing-header rules and cryptographic
+validation remain with the optional DKIM implementation under [ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation).
+The direct setters exist in released 9.3.9, so 10.0.0 migration guidance describes the earlier failure for explicit null callers.
+
 ### Required body augmentation fragments (accepted 29 October 2026)
 
 Apply required-input rejection to the String `appendPlainText`, `prependPlainText`, `appendHTMLText` and `prependHTMLText` arguments.

@@ -22,6 +22,7 @@ import java.util.Set;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 
 /**
@@ -249,21 +250,25 @@ public class DkimConfig implements Serializable {
          * Selects the domain being authorized to send. Calling this again replaces the domain without changing key material or selector.
          * When signing, the sender domain must equal this domain or be one of its subdomains; that comparison ignores capitalization.
          * The sender address, its local part and this configured domain retain their supplied spelling.
-         * @param dkimSigningDomain The domain being authorized to send.
+         * Null is rejected before changing the previous choice; it does not clear a configured domain.
+         * @param dkimSigningDomain The non-null domain being authorized to send.
+         * @throws NullPointerException If the domain is null, leaving the previous choices unchanged.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          */
-        public DkimConfigBuilder dkimSigningDomain(String dkimSigningDomain) {
-            this.dkimSigningDomain = dkimSigningDomain;
+        public DkimConfigBuilder dkimSigningDomain(@NotNull String dkimSigningDomain) {
+            this.dkimSigningDomain = requireNonNull(dkimSigningDomain, "dkimSigningDomain");
             return this;
         }
 
         /**
          * Supplies the additional domain specifier used as the DKIM selector. Calling again replaces it independently of the signing domain and key.
-         * @param dkimSelector Additional domain specifier.
+         * Null is rejected before changing the previous choice; it does not clear a configured selector.
+         * @param dkimSelector Non-null additional domain specifier.
+         * @throws NullPointerException If the selector is null, leaving the previous choices unchanged.
          * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
          */
-        public DkimConfigBuilder dkimSelector(String dkimSelector) {
-            this.dkimSelector = dkimSelector;
+        public DkimConfigBuilder dkimSelector(@NotNull String dkimSelector) {
+            this.dkimSelector = requireNonNull(dkimSelector, "dkimSelector");
             return this;
         }
 
