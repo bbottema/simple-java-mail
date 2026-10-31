@@ -129,3 +129,12 @@ The API fingerprint detects signature/annotation changes, not Javadoc prose chan
 - [BuilderApiToPicocliCommandsMapper](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/BuilderApiToPicocliCommandsMapper.java), [CliSupport](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSupport.java), [TherapiJavadocHelper](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/therapijavadoc/TherapiJavadocHelper.java)
 - [CliMetadataCache](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/serialization/CliMetadataCache.java), [CliSourceApiFingerprint](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/CliSourceApiFingerprint.java), [SerializationUtil](../../modules/cli-module/src/main/java/org/simplejavamail/internal/clisupport/serialization/SerializationUtil.java)
 - [API expansion workflow](../API_EXPANSION_WORKFLOW.md), [development workflow](../DEVELOPMENT.md), [ADR 0019](0019-local-cli-daemon.md)
+
+## Help before mail configuration (accepted 31 October 2026)
+
+Render genuine help and version requests using the generated command model before loading conventional mail configuration.
+Invalid mail settings must not prevent users from reading the help needed to correct them. Retain the existing parser-owned
+option/value distinction, help cutoff and diagnostics for arguments before help; do not add a second argument parser. Executable
+commands still load and validate their configuration before execution. Help remains local, without builder execution, content reads,
+Mailer acquisition or daemon startup. Cache generation and persistence contracts remain unchanged. Implemented for unreleased 10.0.0
+under [#488](https://github.com/bbottema/simple-java-mail/issues/488); the issue tracks delivery.

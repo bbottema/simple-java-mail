@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.configurePicoCli;
@@ -53,16 +54,20 @@ public final class CliSupport {
 		}
 	}
 
-	/** Runs one-shot arguments already expanded by the caller boundary, without interpreting at signs again. */
+	/** Runs one-shot arguments already expanded by the caller boundary, loading mail configuration only for execution. */
 	public static int runExpandedCLIWithExitCode(final String[] args, final Path workingDirectory) {
-		try (CliExecutionEnvironment environment = CliExecutionEnvironment.oneShot()) {
-			final CliExecutionResult result = executeExpandedArguments(args, workingDirectory, UUID.randomUUID(), environment, null);
-			System.out.print(result.stdout());
-			System.err.print(result.stderr());
-			return result.exitCode();
+		final CliExecutionResult result = executeExpandedArguments(args, workingDirectory, UUID.randomUUID(),
+				CliSupport::createOneShotEnvironment, true, null);
+		System.out.print(result.stdout());
+		System.err.print(result.stderr());
+		return result.exitCode();
+	}
+
+	private static CliExecutionEnvironment createOneShotEnvironment() {
+		try {
+			return CliExecutionEnvironment.oneShot();
 		} catch (RuntimeException e) {
-			System.err.println("Unable to initialize the CLI configuration.");
-			return CliExitCode.COMMAND_FAILED.code();
+			throw new CliExecutionException("Unable to initialize the CLI configuration.", e);
 		}
 	}
 
@@ -78,9 +83,14 @@ public final class CliSupport {
 	}
 
 	/** Executes the completed argument list from one-shot routing or an authenticated daemon request. */
-	@SuppressWarnings("try")
 	public static CliExecutionResult executeExpandedArguments(final String[] args, final Path workingDirectory, final UUID requestId,
 			final CliExecutionEnvironment environment, final byte[] profileKey) {
+		return executeExpandedArguments(args, workingDirectory, requestId, () -> environment, false, profileKey);
+	}
+
+	@SuppressWarnings("try")
+	private static CliExecutionResult executeExpandedArguments(final String[] args, final Path workingDirectory, final UUID requestId,
+			final Supplier<CliExecutionEnvironment> environmentSupplier, final boolean closeEnvironment, final byte[] profileKey) {
 		final BoundedOutput stdout = new BoundedOutput(MAX_CAPTURED_OUTPUT);
 		final BoundedOutput stderr = new BoundedOutput(MAX_CAPTURED_OUTPUT);
 		boolean commandExecutionStarted = false;
@@ -92,10 +102,22 @@ public final class CliSupport {
 			final String[] selectedArguments = argumentsThroughFirstHelpOption(args, commandLine);
 			final CommandLine.ParseResult parseResult = parseCommandLineInput(commandLine, selectedArguments);
 			if (!CliCommandLineConsumerUsageHelper.writeHelpIfRequested(parseResult, CONSOLE_TEXT_WIDTH, out, err)) {
-				final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
-				commandExecutionStarted = true;
-				final CliExitCode category = CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey, out);
-				return new CliExecutionResult(category, stdout.asString(), stderr.asString());
+				final CliExecutionEnvironment environment;
+				try {
+					environment = environmentSupplier.get();
+				} catch (RuntimeException e) {
+					return failure(CliExitCode.COMMAND_FAILED, e, stdout, stderr);
+				}
+				try {
+					final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
+					commandExecutionStarted = true;
+					final CliExitCode category = CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey, out);
+					return new CliExecutionResult(category, stdout.asString(), stderr.asString());
+				} finally {
+					if (closeEnvironment) {
+						environment.close();
+					}
+				}
 			}
 			return CliExecutionResult.success(stdout.asString(), stderr.asString());
 		} catch (CommandLine.ParameterException e) {
