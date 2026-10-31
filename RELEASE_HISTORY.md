@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#934](https://github.com/bbottema/simple-java-mail/issues/934): MIME and EML import keep repeated custom-header values in source order even when the header name uses different capitalization. The first display spelling is retained.
+
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): retained opaque S/MIME artifacts keep their complete Content-Type parameters, so signed-data remains identifiable when the attachment is saved or reused.
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): retain the detached S/MIME signature alongside a different attachment with the same filename, without renaming either resource.
 - [#933](https://github.com/bbottema/simple-java-mail/issues/933): null DKIM signing-domain and selector replacements now fail before changing the builder's previous choices. Handle missing values explicitly; optional defaults and omitted-field build behavior are unchanged.

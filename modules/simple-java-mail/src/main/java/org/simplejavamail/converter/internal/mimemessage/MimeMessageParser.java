@@ -837,7 +837,7 @@ public final class MimeMessageParser {
 		private final Set<MimeDataSource> explicitInlineResources = Collections.newSetFromMap(new IdentityHashMap<>());
 		@Getter(AccessLevel.NONE)
 		private final Set<MimeDataSource> implicitRelatedImages = Collections.newSetFromMap(new IdentityHashMap<>());
-		private final Map<String, Collection<Object>> headers = new HashMap<>();
+		private final Map<String, Collection<Object>> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 		private final List<InternetAddress> toAddresses = new ArrayList<>();
 		private final List<InternetAddress> ccAddresses = new ArrayList<>();
 		private final List<InternetAddress> bccAddresses = new ArrayList<>();

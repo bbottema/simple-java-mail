@@ -135,6 +135,17 @@ the ownership boundary in [ADR 0036](0036-structural-message-snapshots-and-borro
 No new public metadata API, configuration switch or caller escaping rule is needed. The accepted repair is tracked by
 [#842](https://github.com/bbottema/simple-java-mail/issues/842) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+### Imported custom-header order (accepted 31 October 2026)
+
+When reading MIME or EML, match custom-header names without regard to capitalization and collect their values in source order.
+Keep the first display spelling even when later occurrences use a different one. For example, `X-Step: first`, `x-step: second` and
+`X-Step: third` form one header with the values `first`, `second`, `third`; grouping the spellings separately loses that order.
+
+This applies the existing header identity and distinct-value rules to import under [#934](https://github.com/bbottema/simple-java-mail/issues/934)
+for unreleased 10.0.0. Copying, supported serialization and ordinary reconstructed export retain the resulting metadata. Header filtering,
+root-versus-child ownership and duplicate-value handling keep their current behavior. Exact and protected source bytes remain authoritative;
+this decision does not preserve the global order of unrelated fields or make ordinary export byte-identical to its input.
+
 ### Present empty custom headers (accepted 22 October 2026)
 
 A custom header may be present with no value. The import requirement in [#109](https://github.com/bbottema/simple-java-mail/issues/109)
