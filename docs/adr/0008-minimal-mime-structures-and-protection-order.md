@@ -206,6 +206,17 @@ Preserve the original protected representation, failure information, copying and
 public methods suffice; no separate availability flag is introduced. This clarification is implemented under
 [#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0.
 
+#### Nested encrypted content (accepted 31 October 2026)
+
+Successful outer decryption can expose another encrypted S/MIME entity. Its unopened ciphertext cannot establish that the content is unsigned,
+so retain `UNKNOWN` verification and an absent signature-valid Boolean. Keep the established outer `DECRYPTED` result, the retained original
+protected representation and the existing content/attachment behavior. Copying and supported serialization preserve these historical facts,
+including when automatic content merging is disabled.
+
+This is a narrow application of the unopened-ciphertext distinction, accepted under [#704](https://github.com/bbottema/simple-java-mail/issues/704)
+for unreleased 10.0.0. It adds no recursive decryption and does not change the separate rules for combining represented decryption results.
+Inspected unsigned content and existing signature, missing-key and failure results retain their meanings.
+
 ## Unavailable OpenPGP inspection (accepted 22 October 2026)
 
 Use `UNKNOWN` when OpenPGP inspection could not happen, including ordinary import without the optional implementation. Keep missing-key

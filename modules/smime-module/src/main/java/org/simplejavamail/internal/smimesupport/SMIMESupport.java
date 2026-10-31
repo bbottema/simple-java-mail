@@ -203,7 +203,8 @@ public class SMIMESupport implements SMIMEModule {
 				.recognized(true)
 				.effectiveMimeMessage(effective)
 				.details(copyDetails(baseDetails)
-						.verificationStatus(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED)
+						.verificationStatus(nestedState == SmimeState.ENCRYPTED
+								? OriginalSmimeDetails.VerificationStatus.UNKNOWN : OriginalSmimeDetails.VerificationStatus.NOT_SIGNED)
 						.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED)
 						.build())
 				.protectedAttachments(protectedAttachments)
