@@ -123,6 +123,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): retained opaque S/MIME artifacts keep their complete Content-Type parameters, so signed-data remains identifiable when the attachment is saved or reused.
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): retain the detached S/MIME signature alongside a different attachment with the same filename, without renaming either resource.
+- [#933](https://github.com/bbottema/simple-java-mail/issues/933): null DKIM signing-domain and selector replacements now fail before changing the builder's previous choices. Handle missing values explicitly; optional defaults and omitted-field build behavior are unchanged.
+
 - [#925](https://github.com/bbottema/simple-java-mail/issues/925): `OperationalConfig.getVerifyingServerIdentity()` replaces the primitive `isVerifyingServerIdentity()` getter with nullable captured configuration. Unspecified or unrecognized settings remain null without changing supplied Session properties or TLS behavior. Recompile callers and handle null explicitly; see the [migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#tls-identity-inspection).
 
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP signing and reading work from named Java modules through narrowly qualified loader access and resolution of the existing Kotlin runtime dependency.

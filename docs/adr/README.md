@@ -298,3 +298,9 @@ under [#929](https://github.com/bbottema/simple-java-mail/issues/929). Implement
 The maintainer also accepted [ordered plural-recipient results in ADR 0001](0001-email-configuration-scopes-and-inheritance.md#ordered-plural-recipient-results-accepted-31-october-2026)
 under [#930](https://github.com/bbottema/simple-java-mail/issues/930): return List from the plural builder while retaining ordered consuming
 APIs, snapshots and existing SMTP grouping. Implemented for unreleased 10.0.0; the issue tracks delivery and the deliberate return-descriptor change.
+
+The same review accepts [retained S/MIME artifact types in ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#retained-smime-artifact-types-accepted-31-october-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704), [distinct detached-signature attachment occurrences in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#detached-smime-attachment-occurrences-accepted-31-october-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and [required DKIM identity replacements in ADR 0031](0031-public-api-and-internal-construction.md#required-dkim-identity-replacements-accepted-31-october-2026)
+under [#933](https://github.com/bbottema/simple-java-mail/issues/933). These preserve type metadata, distinct source occurrences and previous
+builder choices after rejected null input, respectively. They target unreleased 10.0.0; their issues track implementation and delivery.
