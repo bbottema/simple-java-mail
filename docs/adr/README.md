@@ -54,6 +54,11 @@ The [imported custom-header order clarification](0035-tolerant-reading-and-stric
 under [#934](https://github.com/bbottema/simple-java-mail/issues/934) keeps differently capitalized occurrences in one logical header with their
 distinct values in source order. It targets unreleased 10.0.0 and leaves exact/protected source bytes under their existing contracts.
 
+The 31 October follow-up preserves [explicitly empty imported bodies](0035-tolerant-reading-and-strict-production.md#explicitly-empty-imported-bodies-accepted-31-october-2026)
+under [#935](https://github.com/bbottema/simple-java-mail/issues/935), keeps signature inspection unknown for [unopened nested S/MIME ciphertext](0008-minimal-mime-structures-and-protection-order.md#nested-encrypted-content-accepted-31-october-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and limits named CLI security-file reads to the [selected failover route](0019-local-cli-daemon.md#selected-named-mailer-profiles-accepted-31-october-2026)
+under [#488](https://github.com/bbottema/simple-java-mail/issues/488). These corrections target unreleased 10.0.0; their issues track delivery.
+
 The 31 October follow-up extends [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026)
 with atomic file replacement under #926: a failed read, preparation or close keeps the builder's earlier configuration.
 

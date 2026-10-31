@@ -123,6 +123,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#935](https://github.com/bbottema/simple-java-mail/issues/935): MIME and EML import preserve explicitly empty plain-text and HTML bodies as empty strings. Missing alternatives remain null, so ordinary defaults no longer replace a source's present-empty body.
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): successful outer S/MIME decryption retains unknown signature verification when the revealed content is another unopened encrypted entity. The established outer decryption result remains available.
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles read named security files only along the selected failover route. Unused named destinations no longer make unrelated commands depend on their key files, while selected key changes still separate retained Mailers.
+
 - [#934](https://github.com/bbottema/simple-java-mail/issues/934): MIME and EML import keep repeated custom-header values in source order even when the header name uses different capitalization. The first display spelling is retained.
 
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): retained opaque S/MIME artifacts keep their complete Content-Type parameters, so signed-data remains identifiable when the attachment is saved or reused.
