@@ -204,7 +204,10 @@ class SmimeEncryptedOpaqueSignatureTest {
         assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
         assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).isNull();
         assertThat(email.getPlainText()).contains("Plain parent body");
-        assertThat(email.getDecryptedAttachments()).extracting("name").contains("independent.p7m", "note.txt");
+        assertThat(email.getDecryptedAttachments()).extracting("name").containsExactly("signed-email.eml", "note.txt");
+        final Email independentlySigned = EmailConverter.emlToEmail(
+                new ByteArrayInputStream(email.getDecryptedAttachments().get(0).readAllBytes()));
+        assertThat(independentlySigned.getPlainText()).contains(signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
     }
 
     private static Stream<Arguments> independentAttachmentCases() {

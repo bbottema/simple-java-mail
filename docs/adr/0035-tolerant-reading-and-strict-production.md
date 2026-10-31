@@ -344,3 +344,13 @@ remains an error. Do not introduce strict preflight, a second general parser, a 
 Copying and supported serialization retain recovered typed input. Exact inspection retains authoritative bytes and separately validates its
 explicit envelope. Return-Path keeps #838's distinct absent-typed-value/source-header rule, while receipt fallback and the deferred RFC-group
 policy remain unchanged. This applies the existing tolerant-import decision under [#914](https://github.com/bbottema/simple-java-mail/issues/914).
+
+## Parameterized S/MIME attachments (accepted 31 October 2026)
+
+Recognize an attachment's S/MIME media type independently of its Content-Type parameters. Valid parameters such as `smime-type`
+and `name` must not prevent requested decryption or signature inspection. Parse metadata at the S/MIME recognition boundary rather
+than stripping parameters from imported resources. Preserve the complete metadata, source bytes, content ownership and existing
+cryptographic failure boundaries. This applies the existing attachment parameter-preservation decision and ADR 0008's protection
+interpretation to ordinary multipart attachments. Independent signed resources do not establish a plain parent's signature facts;
+retain the existing declared signed Outlook-envelope and sole-attachment interpretation. Implemented for unreleased 10.0.0;
+[#927](https://github.com/bbottema/simple-java-mail/issues/927) tracks delivery.
