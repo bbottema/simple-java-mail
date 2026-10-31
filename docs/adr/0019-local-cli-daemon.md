@@ -30,6 +30,19 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Selected named Mailer profiles (accepted 31 October 2026)
+
+A command's reuse profile includes the selected named failover route, using the same factory-wide definition registry as Mailer construction.
+Follow transitive references from the configured destination or the last explicit CLI destination. Unselected definitions must not introduce
+security-file reads or failures into an unrelated command. Keep content fingerprints for selected destinations, their restrictions and the
+ordinary primary configuration; a changed selected key must not reuse a Mailer holding the previous material.
+
+One-shot and daemon execution share this selection boundary. Profile construction remains passive about Mailer resources and leaves missing
+definitions, cycles and conflicting locks to ordinary construction validation. It adds no public setting or CLI removal option and does not
+change configuration-file or request-relative path ownership. [#488](https://github.com/bbottema/simple-java-mail/issues/488) tracks this
+correction for unreleased 10.0.0, applying the named-route ownership in [ADR 0029](0029-smtp-submission-failover.md) and captured configuration
+in [ADR 0039](0039-explicit-configuration-resolution.md).
+
 ### Management admission during command saturation (accepted 29 October 2026)
 
 Keep short authentication and management handling separate from bounded execution-reply waiting. Slow SMTP commands must not occupy the

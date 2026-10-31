@@ -3,10 +3,12 @@ package org.simplejavamail.internal.clisupport;
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.jetbrains.annotations.NotNull;
+import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.config.ConfigKeys;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 
 import javax.crypto.Mac;
@@ -30,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,7 +40,8 @@ import java.util.UUID;
 /**
  * Decides whether two CLI requests may safely share one daemon-owned Mailer.
  * The profile canonicalizes conventional configuration and explicit Mailer options, includes content fingerprints for
- * security files, and HMACs the result with a daemon-local key. Unknown mutable inputs deliberately produce unique
+ * security files in the primary configuration and selected named route, and HMACs the result with a daemon-local key.
+ * Unknown mutable inputs deliberately produce unique
  * profiles; raw configuration and canonical bytes are never retained or exposed through diagnostics.
  */
 public final class CliMailerProfile {
@@ -79,12 +83,8 @@ public final class CliMailerProfile {
 			throws IOException {
 		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (DataOutputStream output = new DataOutputStream(bytes)) {
-			config.asMap().entrySet().stream()
-					.sorted(Comparator.comparing(entry -> entry.getKey().name()))
-					.forEach(configEntry -> writeCanonicalConfigurationEntry(output, configEntry, configurationWorkingDirectory));
-			// Equal effective values are not interchangeable when only one snapshot restricts later customization.
-			writeString(output, "configuration locks");
-			writeValue(output, locksOf(config).getValues());
+			writeConfiguration(output, config, configurationWorkingDirectory);
+			writeNamedMailerDefinitions(output, selectedNamedMailerDefinitions(config, receivedOptions), configurationWorkingDirectory);
 			for (final CliReceivedOptionData option : receivedOptions) {
 				if (option.determineTargetBuilderApi() == CliBuilderApiType.MAILER) {
 					writeString(output, option.getDeclaredOptionSpec().getSourceMethod().toGenericString());
@@ -97,15 +97,25 @@ public final class CliMailerProfile {
 		return bytes.toByteArray();
 	}
 
+	private static void writeConfiguration(final DataOutputStream output, final SimpleJavaMailConfig config,
+			final Path configurationWorkingDirectory) throws IOException {
+		final List<Map.Entry<ConfigLoader.Property, Object>> entries = config.asMap().entrySet().stream()
+				.filter(entry -> entry.getKey() != ConfigLoader.Property.NAMED_MAILERS)
+				.sorted(Comparator.comparing(entry -> entry.getKey().name())).toList();
+		output.writeInt(entries.size());
+		for (final Map.Entry<ConfigLoader.Property, Object> entry : entries) {
+			writeCanonicalConfigurationEntry(output, entry, configurationWorkingDirectory);
+		}
+		// Equal effective values are not interchangeable when only one snapshot restricts later customization.
+		writeString(output, "configuration locks");
+		writeValue(output, locksOf(config).getValues());
+	}
+
 	private static void writeCanonicalConfigurationEntry(final DataOutputStream output, final Map.Entry<ConfigLoader.Property, Object> configEntry,
 			final Path configurationWorkingDirectory) {
 		try {
 			writeString(output, configEntry.getKey().name());
-			if (configEntry.getKey() == ConfigLoader.Property.NAMED_MAILERS) {
-				writeNamedMailerDefinitions(output, configEntry.getValue(), configurationWorkingDirectory);
-			} else {
-				writeValue(output, configEntry.getValue());
-			}
+			writeValue(output, configEntry.getValue());
 			if (configEntry.getValue() instanceof String pathValue && isSecurityFileProperty(configEntry.getKey())) {
 				writeSecurityFileFingerprint(output, configurationWorkingDirectory, pathValue);
 			}
@@ -114,15 +124,37 @@ public final class CliMailerProfile {
 		}
 	}
 
-	/** A named route's complete configuration determines daemon reuse; matching route names alone can still select different servers, locks or key material. */
-	private static void writeNamedMailerDefinitions(final DataOutputStream output, final Object namedMailerDefinitions,
+	/** Named references always use the original factory registry, including references made by a selected child. */
+	private static Map<String, SimpleJavaMailConfig> selectedNamedMailerDefinitions(final SimpleJavaMailConfig config,
+			final Collection<CliReceivedOptionData> receivedOptions) {
+		final Map<String, SimpleJavaMailConfig> definitions = config.get(ConfigKeys.NAMED_MAILERS);
+		final Map<String, SimpleJavaMailConfig> selected = new LinkedHashMap<>();
+		String name = config.get(ConfigKeys.FAILOVER_MAILER);
+		for (final CliReceivedOptionData option : receivedOptions) {
+			if (option.getDeclaredOptionSpec().getSourceMethod().getDeclaringClass() == CliFailoverMailerBuilder.class
+					&& option.getDeclaredOptionSpec().getSourceMethod().getName().equals("withFailoverMailerName")) {
+				name = (String) option.getProvidedOptionValues().get(0);
+			}
+		}
+		while (name != null && definitions != null && !selected.containsKey(name)) {
+			final SimpleJavaMailConfig definition = definitions.get(name);
+			if (definition == null) {
+				break;
+			}
+			selected.put(name, definition);
+			name = definition.get(ConfigKeys.FAILOVER_MAILER);
+		}
+		// Keep declared aliases in each node's bytes; ordinary construction still rejects missing or cyclic routes.
+		return selected;
+	}
+
+	/** Matching route names alone can still select different servers, restrictions or key material. */
+	private static void writeNamedMailerDefinitions(final DataOutputStream output, final Map<String, SimpleJavaMailConfig> namedConfigurations,
 			final Path configurationWorkingDirectory) throws IOException {
-		@SuppressWarnings("unchecked") final Map<String, SimpleJavaMailConfig> namedConfigurations =
-				(Map<String, SimpleJavaMailConfig>) namedMailerDefinitions;
 		output.writeInt(namedConfigurations.size());
-		for (String name : namedConfigurations.keySet().stream().sorted().toList()) {
-			writeString(output, name);
-			writeBytes(output, canonicalMailerInputs(namedConfigurations.get(name), List.of(), configurationWorkingDirectory));
+		for (final Map.Entry<String, SimpleJavaMailConfig> definition : namedConfigurations.entrySet()) {
+			writeString(output, definition.getKey());
+			writeConfiguration(output, definition.getValue(), configurationWorkingDirectory);
 		}
 	}
 
