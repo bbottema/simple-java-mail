@@ -30,6 +30,22 @@ Accepted 20 October 2026: timeout and cancellation remain meaningful subclasses 
 `MailSendException`-specific cast. Translation does not relabel programmer errors or application callback RuntimeExceptions merely because
 a stop request races their propagation. Existing first-failure, cleanup and physical-stop ordering remain binding.
 
+### Lazy simple-batch source boundaries (accepted 1 November 2026)
+
+Check the existing cancellation/deadline control before entering another application source callback: obtaining the iterator, asking
+`hasNext()` and obtaining `next()`. A returned callback or intervening connection-route selection must not admit another source callback
+after a stop is already known. Preserve the established uncancelled callback order and counts, lazy iteration and empty-source connection
+behavior across logging-only, CustomMailer, SMTP, retained retry and failover paths. [#726](https://github.com/bbottema/simple-java-mail/issues/726)
+tracks the correction for unreleased 10.0.0.
+
+An inline final-email observer can cancel the whole batch even when its source would next report exhaustion. Do not enter that exhaustion
+lookup merely to discover that no messages remain. Keep the completed email's successful outcome and all already established acceptance
+facts; untouched emails still have no outcomes. Finish normal owned cleanup before completing the cancelled batch.
+
+This is a cooperative boundary, not interruption of a callback already running or a promise of hard completion bounds for application I/O.
+If that callback fails, retain its existing exception identity and first-failure rules. No new timer, configuration setting, iterator ownership
+or aggregate batch receipt is introduced.
+
 ## Recorded reasoning and implementation trail
 
 | Evidence | What it establishes |

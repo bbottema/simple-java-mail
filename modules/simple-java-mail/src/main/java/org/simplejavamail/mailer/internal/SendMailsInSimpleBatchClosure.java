@@ -72,7 +72,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		try {
 			control.checkStopped();
 			val emailIterator = userProvidedEmails.iterator();
-			if (!emailIterator.hasNext()) {
+			if (!hasNextEmail(emailIterator)) {
 				LOGGER.trace("simple batch contained no emails");
 				return;
 			}
@@ -95,7 +95,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	private void convertAndLogEmailsOnly(@NotNull final Iterator<Email> emailIterator)
 			throws MessagingException {
-		while (emailIterator.hasNext()) {
+		while (hasNextEmail(emailIterator)) {
 			final Email email = prepareNextEmail(emailIterator);
 			control.checkStopped();
 			currentDiagnostics().startMimePreparation();
@@ -108,7 +108,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	private void sendEmailsUsingCustomMailer(@NotNull final Iterator<Email> emailIterator)
 			throws MessagingException {
-		while (emailIterator.hasNext()) {
+		while (hasNextEmail(emailIterator)) {
 			val email = prepareNextEmail(emailIterator);
 			control.checkStopped();
 			MailSubmissionReceipt receipt = null;
@@ -139,7 +139,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 				try {
 					control.checkStopped();
 					TransportConnectionHelper.connectForSending(ownedTransport, session);
-					while (emailIterator.hasNext()) {
+					while (hasNextEmail(emailIterator)) {
 						final Email email = prepareNextEmail(emailIterator);
 						control.checkStopped();
 						if (operationalConfig.getMailSendRetryPolicy().isRetryEnabled()) {
@@ -167,6 +167,11 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 		} finally {
 			LOGGER.trace("closing transport");
 		}
+	}
+
+	private boolean hasNextEmail(@NotNull final Iterator<Email> emailIterator) {
+		control.checkStopped();
+		return emailIterator.hasNext();
 	}
 
 	private Email prepareNextEmail(@NotNull final Iterator<Email> emailIterator) {

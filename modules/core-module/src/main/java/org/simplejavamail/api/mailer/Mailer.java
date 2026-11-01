@@ -117,6 +117,8 @@ public interface Mailer extends AutoCloseable {
 		 * This is a streaming, completion-only operation: receipts are not collected or retained as batch history.
 		 * A configured {@link MailSendResultObserver} receives each attempted email's outcome while the shared connection is still open.
 		 * Untouched emails have no outcomes. The total timeout covers the whole batch, excluding inline observer work between emails.
+		 * Before entering another lazy-source callback, the operation checks for a pending stop or an expired deadline. A callback already
+		 * running is not forcibly interrupted; its return or failure keeps the existing application-callback rules.
 		 * <p>
 		 * For concurrent pooled sending, submit separate emails through {@link Async#sendMail(Email)} with the optional batch-module.
 		 * This simple batch intentionally sends one email at a time. Without configured failover it uses a dedicated connection, outside the pool.
@@ -219,7 +221,9 @@ public interface Mailer extends AutoCloseable {
 		 * or fails with the first failure after cleanup. Null is an immediate argument error; operational and scheduling failures are on completion.
 		 * <p>
 		 * Cancellation and the total timeout cover the whole batch, including admission; inline observer work is excluded from its deadline.
-		 * Untouched emails have no observer outcomes.
+		 * Untouched emails have no observer outcomes. Cancellation requested by the final email's inline observer still cancels the batch
+		 * without asking the source whether it is exhausted; already completed individual sends retain their successful outcomes.
+		 * Lazy-source callbacks use the cooperative stop boundaries described by {@link Sync#sendMailsInSimpleBatch(Iterable)}.
 		 *
 		 * @param emails The lazy source of emails, in send order.
 		 * @return One handle for the whole batch, without a receipt collection.

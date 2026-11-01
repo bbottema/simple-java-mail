@@ -33,6 +33,7 @@ final class FailoverSharedSends {
 	void sendBatch(final Iterable<Email> emails, final MailSendControl control) {
 		control.checkStopped();
 		final Iterator<Email> iterator = emails.iterator();
+		control.checkStopped();
 		if (!iterator.hasNext()) {
 			return;
 		}
@@ -40,12 +41,14 @@ final class FailoverSharedSends {
 			do {
 				control.checkStopped();
 				final RoutedMailConnection routedConnection = route.selectConnection(control);
+				control.checkStopped();
 				final Email email = verifyNonnull(iterator.next());
 				routedConnection.executeWithinOwners(() -> {
 					sendObservedEmail(routedConnection, email, control);
 					return null;
 				});
 				// Observer handoff has finished. Only the untouched next email may move back to a recovered primary.
+				control.checkStopped();
 			} while (iterator.hasNext());
 		}
 	}
