@@ -53,6 +53,17 @@ Operational SIZE enforcement never consumes these bounded snapshots. It scans th
 
 Third-party adapters own secret filtering before constructing the report: escaping text alone does not make raw exceptions or AUTH replies safe. A successful connection may omit unavailable EHLO/TLS details instead of fabricating empty snapshots. The public fixture verifies `META-INF/services` and JPMS `provides` discovery with Angus absent and is not part of published artifacts.
 
+## Provider-visible endpoint ports (accepted 1 November 2026)
+
+The report's configured port follows the supported Angus property's existing lookup and integer interpretation. Direct Integer values and
+decimal or lowercase-`0x` hexadecimal Strings retain their provider meaning. A missing direct entry can inherit a String from Properties
+defaults; an opaque direct value masks that inherited String and leaves the provider default in effect. Absent, invalid and `-1` values
+retain the existing SMTP/implicit-TLS defaults. No default port is invented for an unknown protocol.
+
+This is reporting alignment, not another connection setting or a change to Session configuration. Preserve the source properties, provider
+selection, authentication choice and dedicated-connection ownership. [#733](https://github.com/bbottema/simple-java-mail/issues/733) tracks
+the correction for unreleased 10.0.0.
+
 ## Alternatives and consequences
 
 The dedicated connection and prohibition on debug-log parsing/reflection are explicit issue requirements. Reusing a pooled transport would mix diagnosis with send ownership and report whichever prior state the pool happened to retain. Introducing probes as a send preflight would add another connection without proving the subsequent connection has identical capabilities. Those causal tradeoffs explain the chosen boundary; the probe is not a new gate on ordinary sends.

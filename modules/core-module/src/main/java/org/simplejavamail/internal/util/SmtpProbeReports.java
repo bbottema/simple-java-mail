@@ -21,16 +21,28 @@ public final class SmtpProbeReports {
         final Object sslEnabled = configuredSsl == null ? session.getProperty("mail." + protocol + ".ssl.enable") : configuredSsl;
         final boolean implicitTls = protocol.equals("smtps") || Boolean.TRUE.equals(sslEnabled) || "true".equalsIgnoreCase(sslEnabled instanceof String ? (String) sslEnabled : null);
         final int defaultPort = protocol.equals("smtp") || protocol.equals("smtps") ? (implicitTls ? 465 : 25) : -1;
-        int port = defaultPort;
-        try {
-            final Object configuredPort = session.getProperties().get("mail." + protocol + ".port");
-            port = configuredPort instanceof Integer ? (Integer) configuredPort : Integer.parseInt(session.getProperty("mail." + protocol + ".port"));
-        } catch (NumberFormatException absentOrInvalidPort) {
-            // Angus falls back to its protocol default for an absent or nonnumeric port.
-        }
         return SmtpConnectionReport.builder().host(configuredHost != null ? configuredHost : fallbackHost != null ? fallbackHost : "localhost")
-                .port(port == -1 ? defaultPort : port).protocol(protocol)
+                .port(configuredPort(session, protocol, defaultPort)).protocol(protocol)
                 .startedAt(Instant.now()).authenticationRequested(authenticate).warnings(List.of());
+    }
+
+    private static int configuredPort(final Session session, final String protocol, final int defaultPort) {
+        final String propertyName = "mail." + protocol + ".port";
+        final Object directValue = session.getProperties().get(propertyName);
+        // Like Angus PropUtil, a direct opaque value masks inherited String defaults.
+        final Object value = directValue == null ? session.getProperty(propertyName) : directValue;
+        int port = defaultPort;
+        if (value instanceof Integer) {
+            port = (Integer) value;
+        } else if (value instanceof String) {
+            final String text = (String) value;
+            try {
+                port = text.startsWith("0x") ? Integer.parseInt(text.substring(2), 16) : Integer.parseInt(text);
+            } catch (NumberFormatException invalidPort) {
+                // Retain the protocol default for a value Angus cannot interpret.
+            }
+        }
+        return port == -1 ? defaultPort : port;
     }
 
     public static String describeFailure(final SmtpConnectionPhase phase, final Throwable failure) {
