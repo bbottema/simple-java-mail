@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#726](https://github.com/bbottema/simple-java-mail/issues/726): simple batches observe known cancellation or deadline expiry before entering another lazy-source callback. Completed email outcomes remain intact; cancellation from the final email's observer still cancels the batch without probing for exhaustion.
+
 - [#755](https://github.com/bbottema/simple-java-mail/issues/755): managed Angus setup outages during SMTP authentication can use ordinary connection failover. Genuine credential rejection and certificate failures retain their independent permissions.
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP EML import recognizes the first supported header separator when outer headers use LF or mixed line endings, retaining the original protected content for verification and decryption.
 - [#941](https://github.com/bbottema/simple-java-mail/issues/941): older serialized DKIM configurations restore detached immutable header exclusions, preserving their choices without allowing a returned or retained collection to change a completed configuration.

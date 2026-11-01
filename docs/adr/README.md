@@ -72,6 +72,11 @@ in [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md), and pr
 [#733](https://github.com/bbottema/simple-java-mail/issues/733) in [ADR 0020](0020-dedicated-smtp-connection-diagnostics.md).
 These corrections target unreleased 10.0.0; their issues track delivery.
 
+The 1 November [batch-source cancellation clarification](0017-deadlines-and-physical-cancellation.md) under
+[#726](https://github.com/bbottema/simple-java-mail/issues/726) observes a known stop before another lazy iterator callback.
+Completed email outcomes remain intact, while cancellation from the final observer cancels the batch without an exhaustion probe.
+It targets unreleased 10.0.0 and retains cooperative limits for callbacks already running.
+
 The 31 October follow-up extends [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026)
 with atomic file replacement under #926: a failed read, preparation or close keeps the builder's earlier configuration.
 
