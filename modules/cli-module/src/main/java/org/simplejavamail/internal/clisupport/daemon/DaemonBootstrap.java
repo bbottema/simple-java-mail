@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport.daemon;
 
 import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
+import org.simplejavamail.internal.clisupport.CliMetadataException;
 import org.simplejavamail.internal.clisupport.CliSupport;
 import org.simplejavamail.internal.clisupport.CliVersion;
 
@@ -29,7 +30,7 @@ public final class DaemonBootstrap {
 		final DaemonBootstrapRequest request;
 		try {
 			request = DaemonBootstrapRequest.parse(arguments, Path.of("").toAbsolutePath());
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException | CliMetadataException e) {
 			System.err.println(e.getMessage());
 			return CliExitCode.CLI_ERROR.code();
 		}

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.simplejavamail.internal.clisupport.CliMetadataException;
 import static org.mockito.Mockito.mockStatic;
 
 class TherapiJavadocCacheTest {
@@ -60,10 +62,24 @@ class TherapiJavadocCacheTest {
 		runCacheProcess("read", cacheFile);
 	}
 
+    @Test
+    void aFailedBuildLookupCannotEnableSourceLookupForLaterRuntimeRequests() throws Exception {
+        final Method method = EmailPopulatingBuilder.class.getMethod("withSubject", String.class);
+        try (MockedStatic<RuntimeJavadoc> source = mockStatic(RuntimeJavadoc.class)) {
+            source.when(() -> RuntimeJavadoc.getJavadoc(method)).thenThrow(new IllegalStateException("broken build source"));
+            assertThatThrownBy(() -> {
+                try (TherapiJavadocHelper.GenerationScope ignored = TherapiJavadocHelper.beginGeneration()) {
+                    TherapiJavadocHelper.getParamDescriptions(method);
+                }
+            }).hasMessage("broken build source");
+            assertThat(TherapiJavadocHelper.getParamDescriptions(method)).extracting(parameter -> parameter.getName()).containsExactly("subject");
+            source.verify(() -> RuntimeJavadoc.getJavadoc(method), org.mockito.Mockito.times(1));
+        }
+    }
+
 	@Test
 	void bundledCacheContainsReadableJavadocsRatherThanRelyingOnFallback() throws Exception {
-		File cacheFile = new File(CliDataLocator.locateTherapiDataFile());
-		Map<String, MethodJavadoc> cache = TherapiJavadocHelper.loadTherapiCache(Files.readAllBytes(cacheFile.toPath()));
+        Map<String, MethodJavadoc> cache = TherapiJavadocHelper.loadTherapiCache(CliDataLocator.readTherapiDataFile());
 		Method subject = EmailPopulatingBuilder.class.getMethod("withSubject", String.class);
 		assertThat(cache).containsKey(subject.toString());
 		assertThat(cache.get(subject.toString()).getComment().toString()).contains("optional subject");
@@ -79,24 +95,24 @@ class TherapiJavadocCacheTest {
 	}
 
 	@Test
-	void legacyAndCorruptCacheFilesStillAllowEmbeddedJavadocFallback() throws Exception {
+	void legacyAndCorruptCacheFilesAreInstallationErrors() throws Exception {
 		Map<String, MethodJavadoc> cache = subjectCache();
 		File legacy = new File(temporaryDirectory, "legacy.data");
 		Files.write(legacy.toPath(), SerializationUtil.serialize(cache));
-		assertThat(TherapiJavadocHelper.loadTherapiCache(Files.readAllBytes(legacy.toPath()))).isEmpty();
+		assertThatThrownBy(() -> TherapiJavadocHelper.loadTherapiCache(Files.readAllBytes(legacy.toPath()))).isInstanceOf(CliMetadataException.class);
 
 		File corrupt = new File(temporaryDirectory, "corrupt.data");
 		byte[] valid = TherapiJavadocHelper.serializeCache(cache);
 		Files.write(corrupt.toPath(), java.util.Arrays.copyOf(valid, valid.length - 1));
-		assertThat(TherapiJavadocHelper.loadTherapiCache(Files.readAllBytes(corrupt.toPath()))).isEmpty();
+		assertThatThrownBy(() -> TherapiJavadocHelper.loadTherapiCache(Files.readAllBytes(corrupt.toPath()))).isInstanceOf(CliMetadataException.class);
 	}
 
 	@Test
-	void missingAndUnreadableOptionalCachesAllowFallback() throws Exception {
-		assertThat(TherapiJavadocHelper.loadTherapiCache((byte[]) null)).isEmpty();
+	void missingAndUnreadableRequiredCachesFailClearly() throws Exception {
+		assertThatThrownBy(() -> TherapiJavadocHelper.loadTherapiCache((byte[]) null)).isInstanceOf(CliMetadataException.class);
 		try (MockedStatic<CliDataLocator> locator = mockStatic(CliDataLocator.class)) {
 			locator.when(CliDataLocator::readTherapiDataFile).thenThrow(new IOException("Unreadable optional cache"));
-			assertThat(TherapiJavadocHelper.loadTherapiCache()).isEmpty();
+			assertThatThrownBy(TherapiJavadocHelper::loadTherapiCache).isInstanceOf(CliMetadataException.class);
 		}
 	}
 

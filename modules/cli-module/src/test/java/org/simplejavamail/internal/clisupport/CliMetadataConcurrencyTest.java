@@ -19,6 +19,7 @@ import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class CliMetadataConcurrencyTest {
@@ -26,7 +27,7 @@ class CliMetadataConcurrencyTest {
     @Test
     @Timeout(45)
     @SuppressWarnings("unchecked")
-    void concurrentHelpCanRepopulateMissingJavadocCacheEntries() throws Exception {
+    void concurrentHelpReadsTheSameImmutablePackagedJavadocs() throws Exception {
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder().load(), mock(MailerProvider.class))) {
             assertThat(help(environment).exitCode()).isZero();
             final Field cacheField = TherapiJavadocHelper.class.getDeclaredField("THERAPI_CACHE");
@@ -37,8 +38,7 @@ class CliMetadataConcurrencyTest {
             final CountDownLatch ready = new CountDownLatch(8);
             final CountDownLatch start = new CountDownLatch(1);
             try {
-                // Retain valid option metadata but remove the Javadoc entries, as when the API invalidates therapi.data.
-                cache.clear();
+                assertThatThrownBy(cache::clear).isInstanceOf(UnsupportedOperationException.class);
                 final List<Future<CliExecutionResult>> results = new ArrayList<>();
                 for (int index = 0; index < 8; index++) {
                     results.add(workers.submit(() -> {
@@ -61,8 +61,8 @@ class CliMetadataConcurrencyTest {
                 start.countDown();
                 workers.shutdownNow();
                 assertThat(workers.awaitTermination(10, SECONDS)).isTrue();
-                cache.clear();
-                cache.putAll(original);
+                assertThat(cache).isEqualTo(original);
+                assertThat(cacheField.get(null)).isSameAs(cache);
             }
         }
     }

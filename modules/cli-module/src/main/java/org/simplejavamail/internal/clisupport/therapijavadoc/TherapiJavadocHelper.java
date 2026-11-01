@@ -12,10 +12,10 @@ import org.bbottema.javareflection.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.clisupport.CliDataLocator;
+import org.simplejavamail.internal.clisupport.CliMetadataException;
 import org.simplejavamail.internal.clisupport.CliSourceApiFingerprint;
 import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
 import org.simplejavamail.internal.clisupport.serialization.JavadocCacheSerialization;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -25,7 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
@@ -35,51 +36,85 @@ import static java.util.regex.Pattern.compile;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeDescriptions;
 import static org.simplejavamail.internal.util.ListUtil.getFirst;
 import static org.simplejavamail.internal.util.StringUtil.padRight;
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Converts runtime builder-API Javadoc into CLI option descriptions and cross-references.
- * A validated pre-generated cache avoids repeated runtime traversal during normal startup; development generation
- * persists a canonically ordered cache so supported JDKs produce the same artifact.
+ * Normal requests read required, immutable packaged metadata. Only the explicit Maven generation scope reads source Javadoc;
+ * its canonically ordered output is independent of runtime request state.
  */
 public final class TherapiJavadocHelper {
-	private static final Logger LOGGER = getLogger(TherapiJavadocHelper.class);
-	private static final String REGENERATE_METADATA_PROPERTY = "simplejavamail.cli.metadata.regenerate";
+    private static volatile Map<String, MethodJavadoc> THERAPI_CACHE;
+    private static final ThreadLocal<Map<String, MethodJavadoc>> GENERATION_CACHE = new ThreadLocal<>();
 
-	// An API change can invalidate therapi.data; concurrent daemon requests may then populate missing descriptions.
-	private static final Map<String, MethodJavadoc> THERAPI_CACHE = new ConcurrentHashMap<>(loadTherapiCache());
+    static Map<String, MethodJavadoc> loadTherapiCache() {
+        try {
+            return loadTherapiCache(CliDataLocator.readTherapiDataFile());
+        } catch (IOException e) {
+            throw new CliMetadataException("therapi.data", e);
+        } catch (CliMetadataException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new CliMetadataException("therapi.data", e);
+        }
+    }
 
-	static Map<String, MethodJavadoc> loadTherapiCache() {
-		try {
-			final byte[] encodedCache = Boolean.getBoolean(REGENERATE_METADATA_PROPERTY)
-					? null : CliDataLocator.readTherapiDataFile();
-			return loadTherapiCache(encodedCache);
-		} catch (IOException e) {
-			LOGGER.warn("Could not read therapi.data; using embedded Javadocs: {}", e.toString());
-			return new HashMap<>();
-		}
-	}
+    static Map<String, MethodJavadoc> loadTherapiCache(@Nullable final byte[] encodedCache) {
+        try {
+            if (encodedCache == null) throw new IllegalStateException("Required resource is missing.");
+            final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
+                    CliSourceApiFingerprint.calculate(), encodedCache);
+            return Collections.unmodifiableMap(JavadocCacheSerialization.deserialize(payload));
+        } catch (RuntimeException e) {
+            throw new CliMetadataException("therapi.data", e);
+        }
+    }
 
-	static Map<String, MethodJavadoc> loadTherapiCache(@Nullable final byte[] encodedCache) {
-		if (encodedCache != null) {
-			try {
-				final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.THERAPI_JAVADOC,
-						CliSourceApiFingerprint.calculate(), encodedCache);
-				return JavadocCacheSerialization.deserialize(payload);
-			} catch (RuntimeException e) {
-				LOGGER.warn("Could not use therapi.data; using embedded Javadocs: {}", e.getMessage());
-			}
-		}
-		return new HashMap<>();
-	}
+    /** An explicit build gets fresh source-document lookup; ordinary requests cannot enable it through a property. */
+    public static GenerationScope beginGeneration() {
+        if (GENERATION_CACHE.get() != null) throw new IllegalStateException("A metadata generation scope is already active.");
+        final GenerationScope scope = new GenerationScope();
+        GENERATION_CACHE.set(scope.documents);
+        return scope;
+    }
 
-	public static void persistCache() {
-		try {
-			CliDataLocator.persistTherapiDataFile(serializeCache(THERAPI_CACHE));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    public static final class GenerationScope implements AutoCloseable {
+        private final Thread owner = Thread.currentThread();
+        private final Map<String, MethodJavadoc> documents = new LinkedHashMap<>();
+        private boolean closed;
+
+        private GenerationScope() {
+        }
+
+        public byte[] serializedJavadoc() {
+            requireActive();
+            return serializeCache(documents);
+        }
+
+        private void requireActive() {
+            if (closed || Thread.currentThread() != owner || GENERATION_CACHE.get() != documents) {
+                throw new IllegalStateException("Metadata generation must use its active build thread.");
+            }
+        }
+
+        @Override public void close() {
+            if (!closed) {
+                requireActive();
+                GENERATION_CACHE.remove();
+                closed = true;
+            }
+        }
+    }
+
+    private static Map<String, MethodJavadoc> runtimeDocuments() {
+        Map<String, MethodJavadoc> current = THERAPI_CACHE;
+        if (current == null) {
+            synchronized (TherapiJavadocHelper.class) {
+                current = THERAPI_CACHE;
+                if (current == null) THERAPI_CACHE = current = loadTherapiCache();
+            }
+        }
+        return current;
+    }
 
 	static byte[] serializeCache(final Map<String, MethodJavadoc> cache) {
 		// Reflection order differs across JDKs; retain canonical ordering inside the integrity envelope.
@@ -191,7 +226,13 @@ public final class TherapiJavadocHelper {
 
 	@NotNull
 	private static MethodJavadoc getMethodJavadocCached(final Method m) {
-		return THERAPI_CACHE.computeIfAbsent(m.toString(), methodKey -> RuntimeJavadoc.getJavadoc(m));
+		final Map<String, MethodJavadoc> generation = GENERATION_CACHE.get();
+        if (generation != null) return generation.computeIfAbsent(m.toString(), methodKey -> RuntimeJavadoc.getJavadoc(m));
+        final MethodJavadoc document = runtimeDocuments().get(m.toString());
+        if (document == null) {
+            throw new CliMetadataException("therapi.data", new IllegalStateException("Required method documentation is missing: " + m));
+        }
+        return document;
 	}
 
 	@NotNull

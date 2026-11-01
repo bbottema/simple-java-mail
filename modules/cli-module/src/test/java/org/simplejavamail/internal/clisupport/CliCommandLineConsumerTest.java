@@ -15,6 +15,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.internal.clisupport.therapijavadoc.TherapiJavadocHelper;
 import picocli.CommandLine;
 
 import java.lang.reflect.Method;
@@ -127,7 +128,7 @@ public class CliCommandLineConsumerTest {
 						new CliDeclaredOptionValue("mandatory4", "int", "", true, new String[0])),
 				EMAIL,
 				testMethod);
-		CommandLine commandLine = CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(declaredOption)), 120);
+		CommandLine commandLine = testCommandLine(declaredOption);
 
 		CliReceivedCommand receivedCommand = CliCommandLineConsumer.consumeCommandLineInput(
 				commandLine.parseArgs("send", "--email:test-method", "1", "2", "3", "4"),
@@ -149,7 +150,7 @@ public class CliCommandLineConsumerTest {
 	@Test
 	public void repeatedOptionalOnlyCallsKeepEmptyOccurrencesAndResetForTheNextParse() throws Exception {
 		final CliDeclaredOptionSpec option = optionalOnlyOption();
-		final CommandLine commandLine = CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(option)), 120);
+		final CommandLine commandLine = testCommandLine(option);
 		final CommandLine.ParseResult parsed = commandLine.parseArgs("send", option.getName(), "first",
 				option.getName(), option.getName(), "last");
 		final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parsed, asList(option));
@@ -169,7 +170,7 @@ public class CliCommandLineConsumerTest {
 	@Test
 	public void picocliAttachedValuesKeepTheirOwnOccurrencesWithoutRetokenizing() throws Exception {
 		final CliDeclaredOptionSpec option = optionalOnlyOption();
-		final CommandLine commandLine = CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(option)), 120)
+		final CommandLine commandLine = testCommandLine(option)
 				.setSeparator("=");
 		final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(
 				commandLine.parseArgs("send", option.getName() + "=first=value", option.getName() + "=last=value"), asList(option));
@@ -177,6 +178,13 @@ public class CliCommandLineConsumerTest {
 		assertThat(received.getReceivedOptions().get(0).getProvidedOptionValues()).containsExactly("first=value");
 		assertThat(received.getReceivedOptions().get(1).getProvidedOptionValues()).containsExactly("last=value");
 	}
+
+    private static CommandLine testCommandLine(final CliDeclaredOptionSpec option) {
+        // These methods belong only to the test fixture, so prepare their help in an explicit generation scope.
+        try (TherapiJavadocHelper.GenerationScope ignored = TherapiJavadocHelper.beginGeneration()) {
+            return CliCommandLineProducer.configurePicoCli(new ArrayList<>(asList(option)), 120);
+        }
+    }
 
 	private static CliDeclaredOptionSpec optionalOnlyOption() throws Exception {
 		return new CliDeclaredOptionSpec("--email:optional-only", new ArrayList<>(),

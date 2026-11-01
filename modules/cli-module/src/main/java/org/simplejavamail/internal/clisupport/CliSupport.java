@@ -6,8 +6,6 @@ import org.simplejavamail.email.internal.ImageFileResolutionContext;
 import org.simplejavamail.internal.clisupport.daemon.ArgumentFileExpander;
 import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Model.OptionSpec;
 
@@ -17,13 +15,15 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.generateOptionsFromBuilderApi;
 import static org.simplejavamail.internal.clisupport.CliCommandLineProducer.configurePicoCli;
-import static org.simplejavamail.internal.clisupport.CliExecutionException.ERROR_INVOKING_BUILDER_API;
 
 /**
  * Parses and executes the full generated CLI model for one request.
@@ -32,10 +32,8 @@ import static org.simplejavamail.internal.clisupport.CliExecutionException.ERROR
  * Daemon routing consults the generated model only for ambiguous help/selector candidates or actual command execution.
  */
 public final class CliSupport {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CliSupport.class);
 	private static final int CONSOLE_TEXT_WIDTH = 150;
 	private static final int MAX_CAPTURED_OUTPUT = 256 * 1024;
-	private static final String REGENERATE_METADATA_PROPERTY = "simplejavamail.cli.metadata.regenerate";
 	private CliSupport() {
 	}
 
@@ -98,7 +96,7 @@ public final class CliSupport {
 		try (PrintStream out = new PrintStream(stdout, true, StandardCharsets.UTF_8);
 			 PrintStream err = new PrintStream(stderr, true, StandardCharsets.UTF_8);
 			 CliRequestContext.Scope ignored = CliRequestContext.install(new CliRequestContext(requestId, workingDirectory))) {
-			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.DECLARED_OPTIONS;
+			final List<CliDeclaredOptionSpec> declaredOptions = MetadataHolder.options();
 			final CommandLine commandLine = configurePicoCli(declaredOptions, CONSOLE_TEXT_WIDTH);
 			final String[] selectedArguments = argumentsThroughFirstHelpOption(args, commandLine);
 			final CommandLine.ParseResult parseResult = parseCommandLineInput(commandLine, selectedArguments);
@@ -138,39 +136,39 @@ public final class CliSupport {
 	}
 
 	public static void listUsagesForAllOptions() {
-		for (CliDeclaredOptionSpec declaredOption : MetadataHolder.DECLARED_OPTIONS) {
-			runCLI(new String[] { "send", declaredOption.getName() + "--help" });
+		for (CliDeclaredOptionSpec declaredOption : MetadataHolder.options()) {
+			if (runCLIWithExitCode(new String[] { "send", declaredOption.getName() + "--help" }) != 0) {
+                throw new IllegalStateException("Generated option help failed: " + declaredOption.getName());
+            }
 			System.out.print("\n\n\n");
 		}
 		runCLI(new String[] { "probe", CliCommandLineProducer.AUTHENTICATE_OPTION + CliCommandLineProducer.OPTION_HELP_POSTFIX });
 	}
 
-	private static List<CliDeclaredOptionSpec> loadOrGenerateDeclaredOptions() {
-		final byte[] sourceApiFingerprint = CliSourceApiFingerprint.calculate();
-		try {
-			final byte[] encodedCache = Boolean.getBoolean(REGENERATE_METADATA_PROPERTY)
-					? null : CliDataLocator.readCLIDataFile();
-			if (encodedCache != null) {
-				try {
-					final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.CLI_OPTIONS,
-							sourceApiFingerprint, encodedCache);
-					return SerializationUtil.deserialize(payload);
-				} catch (RuntimeException e) {
-					LOGGER.warn("Could not use cli.data; regenerating the internal cache: {}", e.getMessage());
-				}
-			}
-			LOGGER.info("Generating the internal CLI metadata cache");
-			final List<CliDeclaredOptionSpec> declaredOptions = generateOptionsFromBuilderApi(CliBuilderApi.roots());
-			final byte[] payload = SerializationUtil.serialize(declaredOptions);
-			if (!CliDataLocator.persistCLIDataFile(
-					CliMetadataCache.wrap(CliMetadataCache.Kind.CLI_OPTIONS, sourceApiFingerprint, payload))) {
-				LOGGER.debug("Generated CLI metadata cache is running from a read-only classpath");
-			}
-			return declaredOptions;
-		} catch (IOException e) {
-			throw new CliExecutionException(ERROR_INVOKING_BUILDER_API, e);
-		}
-	}
+    static List<CliDeclaredOptionSpec> loadDeclaredOptions() {
+        try {
+            final byte[] payload = CliMetadataCache.unwrap(CliMetadataCache.Kind.CLI_OPTIONS,
+                    CliSourceApiFingerprint.calculate(), CliDataLocator.readCLIDataFile());
+            final Object decoded = SerializationUtil.deserialize(payload);
+            if (!(decoded instanceof List<?>) || ((List<?>) decoded).isEmpty()) {
+                throw new IllegalStateException("The packaged command list is missing.");
+            }
+            final List<CliDeclaredOptionSpec> options = new ArrayList<>();
+            final Set<String> names = new HashSet<>();
+            for (final Object entry : (List<?>) decoded) {
+                if (!(entry instanceof CliDeclaredOptionSpec)) throw new IllegalStateException("Invalid command entry.");
+                final CliDeclaredOptionSpec option = (CliDeclaredOptionSpec) entry;
+                if (option.getName() == null || !names.add(option.getName()) || option.getSourceMethod() == null
+                        || option.getDescription() == null || option.getDescription().isEmpty()) {
+                    throw new IllegalStateException("Incomplete or duplicate command entry.");
+                }
+                options.add(option);
+            }
+            return Collections.unmodifiableList(options);
+        } catch (IOException | RuntimeException e) {
+            throw new CliMetadataException("cli.data", e);
+        }
+    }
 
 	private static CommandLine.ParseResult parseCommandLineInput(final CommandLine commandLine, final String[] args) {
 		try {
@@ -189,7 +187,7 @@ public final class CliSupport {
 
 	/** Resolves an option-shaped help candidate for daemon routing without executing builders or converting their values. */
 	public static boolean containsHelpOption(final String[] args) {
-		return firstHelpOptionIndex(args, configurePicoCli(MetadataHolder.DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH)) >= 0;
+		return firstHelpOptionIndex(args, configurePicoCli(MetadataHolder.options(), CONSOLE_TEXT_WIDTH)) >= 0;
 	}
 
 	/** Resolves one unregistered daemon-selector spelling as a builder value, without executing builders or converting their inputs. */
@@ -199,7 +197,7 @@ public final class CliSupport {
 		final String marker = "--daemon=literal-" + UUID.randomUUID();
 		final String[] markedArguments = args.clone();
 		markedArguments[selectorIndex] = marker;
-		final CommandLine commandLine = configurePicoCli(MetadataHolder.DECLARED_OPTIONS, CONSOLE_TEXT_WIDTH);
+		final CommandLine commandLine = configurePicoCli(MetadataHolder.options(), CONSOLE_TEXT_WIDTH);
 		commandLine.setUnmatchedArgumentsAllowed(true);
 		collectRoutingInspectionErrors(commandLine);
 		for (CommandLine.ParseResult parsed = commandLine.parseArgs(markedArguments); parsed != null; parsed = parsed.subcommand()) {
@@ -245,10 +243,21 @@ public final class CliSupport {
 		return -1;
 	}
 
-	/** Defers expensive metadata validation and generation until command execution actually needs Picocli. */
-	private static final class MetadataHolder {
-		private static final List<CliDeclaredOptionSpec> DECLARED_OPTIONS = loadOrGenerateDeclaredOptions();
-	}
+	/** Defers expensive metadata loading and validation until command execution actually needs Picocli. */
+    private static final class MetadataHolder {
+        private static volatile List<CliDeclaredOptionSpec> declaredOptions;
+
+        static List<CliDeclaredOptionSpec> options() {
+            List<CliDeclaredOptionSpec> current = declaredOptions;
+            if (current == null) {
+                synchronized (MetadataHolder.class) {
+                    current = declaredOptions;
+                    if (current == null) declaredOptions = current = loadDeclaredOptions();
+                }
+            }
+            return current;
+        }
+    }
 
 	/** Captures bounded UTF-8 command output while reserving enough space for an explicit truncation marker. */
 	private static final class BoundedOutput extends ByteArrayOutputStream {

@@ -19,6 +19,7 @@
 
     <properties>
         <automaticModuleName>org.simplejavamail.cli</automaticModuleName>
+        <sjm.cli.metadata.force>false</sjm.cli.metadata.force>
         <maven.compiler.source>${cli.java.release}</maven.compiler.source>
         <maven.compiler.target>${cli.java.release}</maven.compiler.target>
         <maven.compiler.release>${cli.java.release}</maven.compiler.release>
@@ -26,6 +27,44 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.4</version>
+                <executions>
+                    <execution>
+                        <id>ensure-cli-metadata</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>org.simplejavamail.internal.clisupport.CliMetadataBuild</mainClass>
+                            <classpathScope>compile</classpathScope>
+                            <arguments>
+                                <argument>${project.basedir}</argument>
+                                <argument>${project.build.outputDirectory}</argument>
+                                <argument>${project.basedir}/.build-cache/metadata</argument>
+                                <argument>${sjm.cli.metadata.force}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>verify-cli-metadata-jar</id>
+                        <phase>verify</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>org.simplejavamail.internal.clisupport.CliMetadataPackageVerifier</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                            <arguments>
+                                <argument>jar</argument>
+                                <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                                <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                                <argument>${project.build.outputDirectory}</argument>
+                                <argument>${project.build.directory}/metadata-package-check</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -180,36 +219,100 @@
 
     <profiles>
         <profile>
+            <id>release-cli-metadata</id>
+            <activation><property><name>performRelease</name><value>true</value></property></activation>
+            <properties><sjm.cli.metadata.force>true</sjm.cli.metadata.force></properties>
+        </profile>
+        <profile>
             <id>publish-cli</id>
             <build>
                 <plugins>
                     <plugin>
-                        <!-- always trigger CliListAllSupportedOptionsDemoApp when packaging CLI artifacts, generating cli data files -->
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.6.4</version>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
                         <executions>
                             <execution>
-                                <id>generateCliData</id>
+                                <id>stage-cli-configuration</id>
                                 <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <delete dir="${project.build.directory}/cli-configuration"/>
+                                        <delete dir="${project.build.directory}/appassembler/lib"/>
+                                        <mkdir dir="${project.build.directory}/cli-configuration"/>
+                                        <copy todir="${project.build.directory}/cli-configuration">
+                                            <fileset dir="${project.basedir}/src/main/resources" excludes="cli.data,therapi.data"/>
+                                        </copy>
+                                        <delete file="${project.build.directory}/appassembler/etc/cli.data"/>
+                                        <delete file="${project.build.directory}/appassembler/etc/therapi.data"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>unpack-cli-metadata-checks</id>
+                                <phase>pre-integration-test</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <delete dir="${project.build.directory}/metadata-package-check/zip package"/>
+                                        <delete dir="${project.build.directory}/metadata-package-check/tar package"/>
+                                        <unzip src="${project.build.directory}/${project.build.finalName}-standalone-cli.zip"
+                                               dest="${project.build.directory}/metadata-package-check/zip package"/>
+                                        <untar src="${project.build.directory}/${project.build.finalName}-standalone-cli.tar"
+                                               dest="${project.build.directory}/metadata-package-check/tar package"/>
+                                    </target>
+                                </configuration>
                             </execution>
                         </executions>
-                        <configuration>
-                            <mainClass>demo.CliListAllSupportedOptionsDemoApp</mainClass>
-                            <classpathScope>test</classpathScope>
-                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>verify-cli-metadata-zip</id>
+                                <phase>verify</phase>
+                                <goals><goal>java</goal></goals>
+                                <configuration>
+                                    <mainClass>org.simplejavamail.internal.clisupport.CliMetadataPackageVerifier</mainClass>
+                                    <classpathScope>runtime</classpathScope>
+                                    <arguments>
+                                        <argument>distribution</argument>
+                                        <argument>${project.build.directory}/metadata-package-check/zip package</argument>
+                                        <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                                        <argument>${project.build.outputDirectory}</argument>
+                                        <argument>${project.build.directory}/metadata-package-check</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>verify-cli-metadata-tar</id>
+                                <phase>verify</phase>
+                                <goals><goal>java</goal></goals>
+                                <configuration>
+                                    <mainClass>org.simplejavamail.internal.clisupport.CliMetadataPackageVerifier</mainClass>
+                                    <classpathScope>runtime</classpathScope>
+                                    <arguments>
+                                        <argument>distribution</argument>
+                                        <argument>${project.build.directory}/metadata-package-check/tar package</argument>
+                                        <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+                                        <argument>${project.build.outputDirectory}</argument>
+                                        <argument>${project.build.directory}/metadata-package-check</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>appassembler-maven-plugin</artifactId>
                         <version>2.1.0</version>
                         <configuration>
-                            <configurationSourceDirectory>src/main/resources</configurationSourceDirectory>
+                            <configurationSourceDirectory>${project.build.directory}/cli-configuration</configurationSourceDirectory>
                             <copyConfigurationDirectory>true</copyConfigurationDirectory>
                             <repositoryLayout>flat</repositoryLayout>
+                            <useWildcardClassPath>true</useWildcardClassPath>
                             <repositoryName>lib</repositoryName>
                             <showConsoleWindow>true</showConsoleWindow>
                             <platforms>

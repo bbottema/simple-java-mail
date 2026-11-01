@@ -2,6 +2,14 @@
 
 The daemon is optional. Ordinary `sjm send`, `connect`, `probe`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
 
+## Metadata and source builds
+
+A distribution includes its CLI command/help metadata. Normal CLI execution only loads that data and never regenerates or writes it.
+If an installation reports missing or incompatible metadata, reinstall the complete distribution. Working from source, use the normal
+`mvn -pl modules/cli-module -am verify` build on JDK17+; Maven creates or refreshes the ignored module-local `.build-cache/metadata` entry
+and stages the files before tests. The persistent entry survives `mvn clean`. Release builds generate fresh data and check the finished
+JAR/ZIP/TAR in new JVMs. No separate generation script or editor setup is needed.
+
 ## Commands
 
 ```text
