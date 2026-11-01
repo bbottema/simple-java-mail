@@ -218,7 +218,7 @@ For public API or config changes:
 For CLI-related changes:
 
 - CLI generation depends on Javadocs and builder reflection.
-- Regenerate and commit `modules/cli-module/src/main/resources/cli.data` and `modules/cli-module/src/main/resources/therapi.data` when the CLI surface changes.
+- Let the normal Maven CLI build refresh its ignored `.build-cache/metadata` entry when generation inputs change. Do not commit generated metadata. Release mode (`performRelease=true`) always generates fresh data; package checks verify the JAR/ZIP/TAR even when unit tests are skipped.
 - Use `-Ppublish-cli` when verifying release packaging.
 - Regenerate CLI metadata on JDK 17 or the current release JDK.
 
@@ -470,7 +470,7 @@ If CircleCI successfully published to Maven Central but failed to update the rep
 
 ```powershell
 mvn versions:set "-DnewVersion=x.y.z"
-git add pom.xml modules/*/pom.xml modules/cli-module/src/main/resources/therapi.data
+git add pom.xml modules/*/pom.xml
 git commit -m "released x.y.z [skip ci]"
 git tag x.y.z
 git push origin master --tags

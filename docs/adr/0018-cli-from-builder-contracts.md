@@ -3,7 +3,7 @@
 - Status: Accepted, recorded retrospectively
 - Decision recorded: 2026-09-16; not the original decision date
 - Applies to: Existing CLI architecture and `codex/10.0.0`
-- Implementation status: Existing mechanism with unreleased 10.0.0 hardening; concurrent Therapi-cache repair is present in the inspected working tree
+- Implementation status: Existing mechanism; Maven-managed generation and read-only startup accepted for unreleased 10.0.0 on 1 November 2026
 
 ## Context
 
@@ -90,11 +90,31 @@ source/target type pair. Message-file conversion supports EML and Outlook MSG th
 inputs. Registering separate `String` to `MimeMessage` converters must not let the last registration disable the other format. Generated option
 witnesses exercise conversion and binding before feature readback, independently of metadata membership.
 
-Persist generated option metadata in `cli.data` and runtime-Javadoc lookups in `therapi.data`; include these generated artifacts in the CLI distribution and source control. Treat them as replaceable internal startup caches, not a public serialization format. Validate cache kind, format version, source-API fingerprint, bounded payload length and checksum before decoding. Regenerate missing/stale/invalid caches from the trusted local API, and tolerate a read-only classpath by retaining the regenerated model in memory.
+### Maven-managed metadata (accepted 1 November 2026)
+
+Generate `cli.data` and `therapi.data` as part of the ordinary Maven CLI build, after the API has been compiled and before CLI tests run.
+Keep reusable results under `modules/cli-module/.build-cache/metadata/`, outside Maven's normal build output and ignored by Git. Do not keep
+generated binaries in source control or require developers to remember a separate generation command. The build uses the same repository
+configuration for every developer, without AI tooling, personal scripts or machine-specific setup.
+
+Choose a cache entry by the contents of the generation inputs, including compiled contracts and Javadoc, generation/serialization code and
+resolved dependencies. Ignore archive timestamps and generated output when calculating the key, so an unchanged clean build can reuse its
+entry. Only reuse a complete validated pair. Stage a new pair separately and mark it complete after both files have been checked. Copy the
+selected pair into the normal build output for packaging; source directories and the invocation's working directory are not cache locations.
+
+Release builds force fresh generation even when a reusable entry exists. Check the finished JAR and standalone distributions in new JVMs
+before publication, including builds that skip ordinary unit tests. A check must use the packaged resources and must not share the generator's
+already loaded model. Existing binary codecs and integrity envelopes remain internal formats.
+
+Normal CLI execution only loads packaged metadata. Validate cache kind, format version, source-API fingerprint, bounded payload length and
+checksum before decoding. Missing, damaged, incompatible or incomplete metadata produces a clear installation/build error; startup never
+regenerates commands, fills missing Javadoc entries or writes replacement files. Keep loading lazy so thin daemon control/routing paths do not
+pay for a command model they do not need. This replaces the earlier runtime-recovery policy and follows the performance goal of #323.
 
 Avoid serializers that need reflective access to JDK collection internals. Serialize method references with their explicit declaring-class/name/parameter identity and keep cache generation/consumption compatible with supported modern CLI JDKs. Neither Kryo nor Java object serialization is a daemon wire protocol.
 
-Reuse immutable declared-option metadata, but build fresh mutable Picocli state for each request. The current working-tree Therapi cache uses `ConcurrentHashMap` even when loaded from a valid cache, because concurrent daemon requests can populate absent entries after invalidation. Persistence takes a sorted copy for deterministic output.
+Reuse immutable declared-option and Javadoc metadata, but build fresh mutable Picocli state for each request. The generator uses its own
+documentation lookup and takes a sorted copy for deterministic persistence. Runtime lookup does not mutate or refill the generated metadata.
 
 ### CLI option value spelling (clarified 28 October 2026)
 
@@ -114,7 +134,7 @@ under [#726](https://github.com/bbottema/simple-java-mail/issues/726) changes no
 | [#583](https://github.com/bbottema/simple-java-mail/issues/583), [a6479f5c](https://github.com/bbottema/simple-java-mail/commit/a6479f5c4ce438a1e31f216475eb8a5704980f27) | Java 25 startup exposed illegal reflective collection access. The fix removes the offending serializers, writes method references directly and disables Kryo unsafe access. |
 | [131bdf52](https://github.com/bbottema/simple-java-mail/commit/131bdf52a2103d3e6cd62c4e9f33eec32bd1ce41), [daemon metadata step](https://github.com/bbottema/simple-java-mail/blob/2653e804838e14e4b10291bdb9863b2d9a1ff67c/02_CLI_DAEMON_IMPROVEMENT_PLAN/phase-1-contract-and-build/04-modernize-cli-bootstrap-and-generated-metadata.md) | A broad reflection compatibility scan caused a heap blowup; explicit parameter compatibility replaced it. Later daemon work added cache envelopes, deferred bootstrap loading and cross-JDK generation checks. |
 
-The cache concurrency change is an uncommitted implementation fact, explained by its source comment and the [generation and verification procedure](../DEVELOPMENT.md#generated-cli-metadata). It is not attributed to an earlier commit or GitHub resolution.
+The [generation and verification procedure](../DEVELOPMENT.md#generated-cli-metadata) records the maintained developer and release workflow.
 
 ## Alternatives and consequences
 
@@ -122,7 +142,7 @@ Hand-maintained commands and duplicated help were explicitly displaced by the #1
 
 The chosen approach makes Java API evolution affect CLI option generation. Exclusions, converters and complete parameter Javadocs are part of the public feature workflow. Not every Java object or overload has a sensible CLI representation, so generated parity is intentionally selective. `@Cli.Optional` is the CLI argument contract; Java nullability has its separate meaning.
 
-The API fingerprint detects signature/annotation changes, not Javadoc prose changes. Documentation-only edits still require metadata regeneration. A checksum detects corruption and mismatch; it is not authentication or permission to load untrusted serialized metadata. Committed binaries must be regenerated alongside relevant source changes and checked on the supported CLI runtime lanes.
+The runtime API fingerprint detects signature/annotation changes, not Javadoc prose changes. The separate build-cache key includes compiler-produced Javadoc and generation inputs, so the Maven build refreshes documentation changes automatically. A checksum detects corruption and mismatch; it is not authentication or permission to load untrusted serialized metadata. Fresh packaged consumers on the supported CLI JDKs remain part of verification.
 
 ## Implementation anchors
 

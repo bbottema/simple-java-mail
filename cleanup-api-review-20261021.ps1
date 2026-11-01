@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/cli-metadata-workflow-20261101'
     '.local/review-html-boundaries-20261101'
     '.local/review-unused-defaults-20261101'
     '.local/review-readable-reply-20261101'
@@ -126,6 +127,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/cli-metadata-build-cache-20261101.md'
     'docs/plans/952-html-resource-boundaries-20261101.md'
     'docs/plans/951-cli-unused-default-files-20261101.md'
     'docs/plans/950-readable-reply-20261101.md'
@@ -601,4 +603,16 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-html-
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\952-html-resource-boundaries-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\952-html-resource-boundaries-20261101.md', 'Remove retired HTML resource-boundary review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\952-html-resource-boundaries-20261101.md' -Force
+}
+
+# CLI metadata workflow scratch and retired plan; remove after delivery.
+# The website archive moved from simplejavamail.org/.local/cli-metadata-workflow-20261101 into this exact scratch root.
+# Persistent developer modules/cli-module/.build-cache entries are not disposable review paths.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\cli-metadata-workflow-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\cli-metadata-workflow-20261101', 'Remove CLI metadata workflow scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\cli-metadata-workflow-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md', 'Remove retired CLI metadata workflow plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md' -Force
 }
