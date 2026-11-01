@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.mailprovider.angus;
 
 import jakarta.mail.Address;
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -14,6 +15,7 @@ import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter.Connectio
 import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.internal.util.SmtpSizeSupport;
 import org.simplejavamail.internal.util.SmtpServiceUnavailableException;
+import org.simplejavamail.internal.util.SmtpAuthenticationAvailabilityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +50,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
     // Setup failures are eligible for failover only before Angus can begin a mail submission.
     private boolean connectionSetupInProgress;
     private boolean awaitingGreeting;
+    @Nullable private MessagingException connectionSetupReadFailure;
     private final AtomicReference<MailTransportProgress> connectionProgress = new AtomicReference<>();
     private int pendingRecipientIndex = -1;
     @Nullable private SmtpServerResponse finalResponse;
@@ -124,6 +128,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
         final AngusSocketFactory.SocketTracker previous = socketFactory == null ? null : socketFactory.bind(this::trackSocket);
         connectionSetupInProgress = true;
         awaitingGreeting = true;
+        connectionSetupReadFailure = null;
         try {
             final boolean connected = super.protocolConnect(host, port, user, password);
             if (!connected) {
@@ -132,11 +137,17 @@ public final class ManagedAngusTransport extends SMTPTransport {
             return connected;
         } catch (MessagingException | RuntimeException | Error failure) {
             releaseAfterFailure(failure);
+            if (failure instanceof AuthenticationFailedException && connectionSetupReadFailure != null
+                    && failure.getCause() == connectionSetupReadFailure) {
+                // Angus wraps the actual response-read failure as authentication failure. Retain both, with their observed meaning.
+                throw new SmtpAuthenticationAvailabilityException((AuthenticationFailedException) failure);
+            }
             throw failure;
         } finally {
             connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
             connectionSetupInProgress = false;
             awaitingGreeting = false;
+            connectionSetupReadFailure = null;
             if (socketFactory != null) {
                 socketFactory.restore(previous);
             }
@@ -420,6 +431,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
     protected int readServerResponse() throws MessagingException {
         final boolean greeting = connectionSetupInProgress && awaitingGreeting;
         awaitingGreeting = false;
+        connectionSetupReadFailure = null;
         if (greeting) {
             connectionStage(MailSendProgressStage.WAITING_FOR_GREETING);
         }
@@ -432,10 +444,21 @@ public final class ManagedAngusTransport extends SMTPTransport {
             throwIfConnectionSetupFailed(response);
             recordServerResponse(response);
             return response;
+        } catch (MessagingException failure) {
+            retainSetupReadOutage(failure);
+            throw failure;
         } finally {
             if (greeting) {
                 connectionStage(MailSendProgressStage.ACQUIRING_CONNECTION);
             }
+        }
+    }
+
+    private void retainSetupReadOutage(final MessagingException failure) {
+        final Throwable cause = failure.getCause();
+        if (connectionSetupInProgress && (failure instanceof SmtpServiceUnavailableException
+                || cause instanceof EOFException || cause instanceof SocketTimeoutException || cause instanceof SocketException)) {
+            connectionSetupReadFailure = failure;
         }
     }
 

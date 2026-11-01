@@ -7,6 +7,7 @@ import jakarta.mail.MessagingException;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.internal.util.SmtpServiceUnavailableException;
+import org.simplejavamail.internal.util.SmtpAuthenticationAvailabilityException;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.EOFException;
@@ -68,14 +69,21 @@ public final class ConnectionSetupFailure extends MailException {
 
 	/** Security failures outrank nested I/O symptoms. Jakarta Mail may retain evidence in nextException instead of cause. */
 	private static Kind classify(final Throwable failure) {
+		final Set<Throwable> causes = causalFailures(failure);
+		final Set<Throwable> observedOutageWrappers = Collections.newSetFromMap(new IdentityHashMap<>());
+		for (final Throwable current : causes) {
+			if (current instanceof SmtpAuthenticationAvailabilityException) {
+				observedOutageWrappers.add(current.getCause());
+			}
+		}
 		Kind result = Kind.UNKNOWN;
-		for (Throwable current : causalFailures(failure)) {
+		for (Throwable current : causes) {
 			if (current instanceof CertificateException || current instanceof SSLPeerUnverifiedException) {
 				return Kind.CERTIFICATE;
 			}
-			if (current instanceof AuthenticationFailedException) {
+			if (current instanceof AuthenticationFailedException && !observedOutageWrappers.contains(current)) {
 				result = Kind.AUTHENTICATION;
-			} else if (result != Kind.AUTHENTICATION && isAvailabilityFailure(current)) {
+			} else if (result != Kind.AUTHENTICATION && (current instanceof SmtpAuthenticationAvailabilityException || isAvailabilityFailure(current))) {
 				result = Kind.AVAILABILITY;
 			}
 		}

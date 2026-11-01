@@ -275,6 +275,22 @@ opaque third-party failures. Do not claim that arbitrary provider implementation
 
 This is an accepted coverage obligation, not a claim that those tests or connection classifications already exist.
 
+#### AUTH wrapper outage evidence (accepted 1 November 2026)
+
+For the managed Angus transport, an authentication wrapper does not establish credential rejection when it wraps the exact response-read
+failure already observed during connection setup. Retain narrowly typed provider-owned evidence for a setup-time 421, EOF/reset or read
+timeout, together with the original Angus exception chain. That observation permits ordinary availability failover without enabling the
+authentication-rejection option. Apply it at the physical connection boundary for both direct and pooled acquisition.
+
+Only the identified synthetic authentication wrapper receives that interpretation. Independent authentication-rejection evidence,
+certificate/identity failures, unresolved cleanup and operation stops retain their existing precedence and permissions. Do not match
+exception text or give arbitrary nested socket exceptions precedence over authentication failures. [#755](https://github.com/bbottema/simple-java-mail/issues/755)
+tracks this correction for unreleased 10.0.0.
+
+A caller-supplied Session using the ordinary Angus transport is not automatically replaced with the managed transport. Its unmarked
+authentication wrappers retain the conservative authentication-failure interpretation and existing explicit opt-in. Preserve that Session,
+its provider and its factories; this correction adds no provider SPI and does not claim to recover facts an arbitrary provider has not supplied.
+
 ### Inspection and offline preparation stay specific to the called Mailer
 
 | Call on Mailer A | Meaning with failover configured |
