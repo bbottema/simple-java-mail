@@ -12,7 +12,6 @@ import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
-import org.simplejavamail.api.mailer.MailSubmissionStatus;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
@@ -35,7 +34,6 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	/** Used only for lease health; a retained callback may already have caught this send failure. */
 	@Nullable private Throwable sendFailure;
 	@Nullable private Object sendFailurePreparationOwner;
-	@Nullable private MailSubmissionReceipt receipt;
 	private boolean closed;
 
 	private AcquiredMailTransport(final Session session, final Transport transport, @Nullable final LifecycleDelegatingTransport pooledLease,
@@ -164,11 +162,9 @@ public final class AcquiredMailTransport implements AutoCloseable {
 	public MailSubmissionReceipt send(final Email email, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
 			final MailSendControl control) throws MessagingException {
 		this.activeControl = control;
-		receipt = null;
 		final Object preparationOwner = new Object();
 		try {
-			receipt = TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance, preparationOwner);
-			return receipt;
+			return TransportRunner.sendMessageOnTransport(transport, session, email, control, diagnostics, allowance, preparationOwner);
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;
 			sendFailurePreparationOwner = preparationOwner;
@@ -181,11 +177,9 @@ public final class AcquiredMailTransport implements AutoCloseable {
 			final MailSendControl control, final MailSendDiagnosticsRecorder diagnostics, final SendingAllowance.Reservation allowance,
 			final Runnable invocationStarted) throws MessagingException {
 		activeControl = control;
-		receipt = null;
 		try {
-			receipt = TransportRunner.sendPreparedMessageOnTransport(transport, prepared, messageId, subject, control, diagnostics, allowance,
+			return TransportRunner.sendPreparedMessageOnTransport(transport, prepared, messageId, subject, control, diagnostics, allowance,
 					invocationStarted);
-			return receipt;
 		} catch (MessagingException | RuntimeException | Error failure) {
 			sendFailure = failure;
 			sendFailurePreparationOwner = null;
@@ -206,11 +200,6 @@ public final class AcquiredMailTransport implements AutoCloseable {
 				pooledLease.signalTransportUsed();
 			} else {
 				pooledLease.signalTransportFailed();
-			}
-		} catch (MessagingException | RuntimeException | Error cleanupFailure) {
-			// The owning try-with-resources suppresses cleanup only on an exception still escaping, not one already handled by a callback.
-			if (receipt == null || receipt.getStatus() != MailSubmissionStatus.ACCEPTED || !activeControl.isStopRequested()) {
-				throw cleanupFailure;
 			}
 		} finally {
 			if (abortRegistration != null) {
