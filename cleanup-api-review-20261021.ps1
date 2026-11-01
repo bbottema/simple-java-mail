@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-accepted-20261101'
     '.local/oauth-inherited-20261101'
     '.local/review-followup-20261031'
     '.local/review-header-order-20261031'
@@ -117,6 +118,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/accepted-review-20261101.md'
     'docs/plans/oauth-inherited-20261101.md'
     'docs/plans/review-followup-20261031.md'
     'docs/plans/934-imported-header-order.md'
@@ -480,4 +482,15 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\oauth-inheri
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md', 'Remove retired OAuth2 review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md' -Force
+}
+
+# Deferred disposal from the accepted AUTH, OpenPGP, DKIM and probe review (#939-#942).
+# These exact paths also remain in the guarded allowlists above.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-accepted-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-accepted-20261101', 'Remove accepted review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-accepted-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\accepted-review-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\accepted-review-20261101.md', 'Remove retired accepted review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\accepted-review-20261101.md' -Force
 }
