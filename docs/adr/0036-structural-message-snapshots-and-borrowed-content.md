@@ -83,6 +83,17 @@ Deserialization restores these guarantees even when an older snapshot contains m
 Preserve supported field identities and serialization identifiers. Never normalize an internal Email subtype into a plain Email or lose its
 authoritative source merely to copy collections.
 
+#### Restored DKIM header exclusions (accepted 1 November 2026)
+
+Restoring a DKIM configuration reestablishes detached, unmodifiable header-exclusion storage, including for released snapshots such as 9.1.8
+that retained a mutable Set. An external reference to that old Set in the same serialized graph must not change the restored configuration
+or an Email that uses it. Preserve absence separately from an empty Set and retain supplied entries literally, including historical null,
+blank, whitespace-bearing or `From` entries. This is an ownership correction, not another signing-policy validation boundary.
+
+Retain the configuration's runtime identity, other signing preferences, serialized field names and serial identifier. Do not replace its
+object while restoring it or interpret key material. Existing construction, getters and the later DKIM module's validation keep their meanings.
+[#941](https://github.com/bbottema/simple-java-mail/issues/941) tracks this correction for unreleased 10.0.0.
+
 Java serialization retains the OpenPGP signing and encryption configuration of a composed Email, consistently with
 the existing S/MIME snapshot contract. The immutable configuration values restore their construction invariants and
 detach nested arrays/lists even when another object in the serialized graph refers to their storage. Signing material

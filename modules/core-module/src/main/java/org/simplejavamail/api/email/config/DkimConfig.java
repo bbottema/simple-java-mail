@@ -12,6 +12,7 @@ import org.simplejavamail.internal.util.KeyMaterialReadException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,7 +66,7 @@ public class DkimConfig implements Serializable {
      * @see org.simplejavamail.api.email.config.DkimConfig.DkimConfigBuilder#dkimPrivateKeyData(byte[])
      */
     @Nullable
-    private final Set<String> excludedHeadersFromDkimDefaultSigningList;
+    private Set<String> excludedHeadersFromDkimDefaultSigningList;
 
     @Nullable
     private final Canonicalization headerCanonicalization;
@@ -90,6 +91,12 @@ public class DkimConfig implements Serializable {
         this.headerCanonicalization = headerCanonicalization;
         this.bodyCanonicalization = bodyCanonicalization;
         this.signingAlgorithm = signingAlgorithm;
+    }
+
+    /** Restores owned exclusions even when an older snapshot shares its mutable Set with another object. */
+    private void readObject(final ObjectInputStream input) throws IOException, ClassNotFoundException {
+        input.defaultReadObject();
+        excludedHeadersFromDkimDefaultSigningList = copyExcludedHeaders(excludedHeadersFromDkimDefaultSigningList);
     }
 
     /**
@@ -119,7 +126,12 @@ public class DkimConfig implements Serializable {
         return useLengthParam;
     }
 
-    /** @see DkimConfigBuilder#excludedHeadersFromDkimDefaultSigningList(Set) */
+    /**
+     * Returns the immutable supplied exclusions, or null when no exclusion choice is configured.
+     * Restored older snapshots expose the same immutable ownership without changing their stored entries.
+     *
+     * @see DkimConfigBuilder#excludedHeadersFromDkimDefaultSigningList(Set)
+     */
     @Nullable
     public Set<String> getExcludedHeadersFromDkimDefaultSigningList() {
         return excludedHeadersFromDkimDefaultSigningList;
