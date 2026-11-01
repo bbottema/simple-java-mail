@@ -25,6 +25,10 @@ Carry cancellation and the remaining budget into pool claims. Fence acquisition 
 
 Preserve protocol facts independently of the stop reason. If the final commit may have reached SMTP but its reply was lost, report unknown acceptance and duplicate risk. Preserve observed acceptance when cancellation arrives during later cleanup. Socket closure is not an SMTP rollback.
 
+The [independent-cleanup clarification](0011-transport-neutral-submission-outcomes.md#independent-cleanup-after-a-late-stop-accepted-1-november-2026)
+under [#726](https://github.com/bbottema/simple-java-mail/issues/726) keeps unrelated close/release failures visible after a late stop while
+retaining the already accepted receipt. Only the owning provider can establish an expected physical-abort socket-close consequence.
+
 Accepted 20 October 2026: timeout and cancellation remain meaningful subclasses of core `MailException`, classified as `TIMEOUT` and
 `CANCELLED`. Optional receipts are read on the common root, so stop translation retains facts from every library-owned failure without a
 `MailSendException`-specific cast. Translation does not relabel programmer errors or application callback RuntimeExceptions merely because

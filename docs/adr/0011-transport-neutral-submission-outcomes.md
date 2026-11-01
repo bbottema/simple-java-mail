@@ -98,6 +98,16 @@ the receipt when submission returned normally but per-email cleanup failed. An e
 provider cause and receipt; secondary cleanup errors are suppressed. Shared connection-scope cleanup does not invent one receipt for an entire batch.
 Absence of a receipt must never be interpreted as proof that no message was accepted. [ADR 0012](0012-terminal-send-observation.md) describes whole-attempt reporting.
 
+### Independent cleanup after a late stop (accepted 1 November 2026)
+
+An accepted SMTP receipt and a cancellation/deadline request do not establish that a cleanup failure was caused by stopping the connection.
+Keep independent provider close and pooled release/disposal failures observable with their original causes and any already captured receipt.
+Expected socket-close consequences may be suppressed at the owning provider's physical-abort boundary, where that cause is established;
+do not infer it from a stop flag in the connection owner. JVM errors remain unwrapped, and existing application/programmer-failure boundaries
+and primary/suppressed ordering remain unchanged. Late stop translation may retain its cancellation/timeout subtype without discarding cleanup facts.
+This clarification adds no API, acceptance state or retry permission. It is accepted under
+[#726](https://github.com/bbottema/simple-java-mail/issues/726) for unreleased 10.0.0; the issue tracks delivery.
+
 ### Common failure and explicit acceptance contracts (accepted 20 October 2026)
 
 Library-owned operational failures use the existing core `MailException` root, including asynchronous admission and local message-size

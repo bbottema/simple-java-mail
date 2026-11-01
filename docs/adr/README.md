@@ -181,6 +181,10 @@ Both corrections are implemented for unreleased 10.0.0; their issues record deve
 
 ## Find documentation by topic
 
+The 1 November [independent-cleanup clarification](0011-transport-neutral-submission-outcomes.md#independent-cleanup-after-a-late-stop-accepted-1-november-2026)
+under [#726](https://github.com/bbottema/simple-java-mail/issues/726) preserves independent close/release failures after a late stop together with
+already captured acceptance facts. Expected physical-abort socket errors remain provider-owned; no API, receipt status or retry rule changes.
+
 The 1 November review accepted [missing Outlook attachment-type recovery](0035-tolerant-reading-and-strict-production.md#missing-outlook-attachment-types-accepted-1-november-2026)
 under [#946](https://github.com/bbottema/simple-java-mail/issues/946), [finalized S/MIME body encodings](0007-provider-neutral-mime-boundary.md#finalized-smime-body-encodings-accepted-1-november-2026)
 under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and [ordered Outlook receipt occurrences](0035-tolerant-reading-and-strict-production.md#ordered-outlook-receipt-occurrences-accepted-1-november-2026)

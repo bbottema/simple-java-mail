@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#726](https://github.com/bbottema/simple-java-mail/issues/726): late cancellation or deadline expiry no longer hides an independent connection cleanup failure after SMTP acceptance. Original causes and accepted receipt facts remain available.
+
 - [#946](https://github.com/bbottema/simple-java-mail/issues/946): readable MSG attachments without a MIME type or usable filename retain their content with an `application/octet-stream` fallback instead of aborting the import.
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): S/MIME retains selected body transfer encodings and finalized content headers for single-part messages, consistently with multipart content.
 - [#812](https://github.com/bbottema/simple-java-mail/issues/812): Outlook receipt destinations retain raw source order and duplicates across interleaved capitalization of repeated receipt headers.
