@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -281,15 +282,18 @@ public final class MimeMessageParser {
      */
 	@NotNull
     public static String parseCalendarContent(@NotNull MimePart currentPart) {
+		final Charset encoding;
 		try {
-			CalendarDataContentHandler.configure(currentPart.getDataHandler());
-		} catch (MessagingException e) {
+			final DataHandler dataHandler = currentPart.getDataHandler();
+			encoding = CalendarDataContentHandler.readCharset(dataHandler.getContentType(), UTF_8);
+			CalendarDataContentHandler.configure(dataHandler);
+		} catch (MessagingException | UnsupportedEncodingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
 		}
         Object content = parseContent(currentPart);
         if (content instanceof InputStream) {
             try (InputStream calendarContent = (InputStream) content) {
-                return MiscUtil.readInputStreamToString(calendarContent, UTF_8);
+                return MiscUtil.readInputStreamToString(calendarContent, encoding);
             } catch (IOException e) {
                 throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CALENDAR_CONTENT, e);
             }

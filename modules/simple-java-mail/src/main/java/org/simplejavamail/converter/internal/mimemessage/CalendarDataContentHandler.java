@@ -80,11 +80,25 @@ final class CalendarDataContentHandler {
 	}
 
 	private static String charset(final String mimeType) {
+		return charset(mimeType, "us-ascii");
+	}
+
+	/** Validates the declaration before a provider can acquire its calendar content stream. */
+	static Charset readCharset(final String mimeType, final Charset defaultCharset) throws UnsupportedEncodingException {
+		final String charset = charset(mimeType, defaultCharset.name());
+		try {
+			return Charset.forName(charset);
+		} catch (IllegalArgumentException e) {
+			throw new UnsupportedEncodingException(charset);
+		}
+	}
+
+	private static String charset(final String mimeType, final String defaultCharset) {
 		try {
 			final String configured = new ContentType(mimeType).getParameter("charset");
-			return configured != null ? configured : "us-ascii";
+			return configured != null ? configured : defaultCharset;
 		} catch (Exception ignored) {
-			return "us-ascii";
+			return defaultCharset;
 		}
 	}
 }
