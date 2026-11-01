@@ -4,8 +4,10 @@ import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
+import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigKeys;
@@ -19,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,7 +43,7 @@ import java.util.UUID;
 /**
  * Decides whether two CLI requests may safely share one daemon-owned Mailer.
  * The profile canonicalizes conventional configuration and explicit Mailer options, includes content fingerprints for
- * security files in the primary configuration and selected named route, and HMACs the result with a daemon-local key.
+ * used security files in the primary configuration and selected named route, and HMACs the result with a daemon-local key.
  * Unknown mutable inputs deliberately produce unique
  * profiles; raw configuration and canonical bytes are never retained or exposed through diagnostics.
  */
@@ -64,8 +67,8 @@ public final class CliMailerProfile {
 
 	/**
 	 * Produces an opaque cache key without retaining the configuration it represents.
-	 * A {@code null} daemon key selects the stable one-shot key; relative security files are fingerprinted against the
-	 * configuration working directory so identical path text with different content cannot share a Mailer.
+	 * A {@code null} daemon key selects the stable one-shot key. Relative security files used by effective defaults or required locks are
+	 * fingerprinted against the configuration working directory, so different used file contents cannot share a Mailer.
 	 */
 	public static CliMailerProfile create(@NotNull final SimpleJavaMailConfig config,
 			@NotNull final Collection<CliReceivedOptionData> receivedOptions,
@@ -83,7 +86,7 @@ public final class CliMailerProfile {
 			throws IOException {
 		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (DataOutputStream output = new DataOutputStream(bytes)) {
-			writeConfiguration(output, config, configurationWorkingDirectory);
+			writeConfiguration(output, config, configurationWorkingDirectory, usesConfiguredEmailDefaults(receivedOptions));
 			writeNamedMailerDefinitions(output, selectedNamedMailerDefinitions(config, receivedOptions), configurationWorkingDirectory);
 			for (final CliReceivedOptionData option : receivedOptions) {
 				if (option.determineTargetBuilderApi() == CliBuilderApiType.MAILER) {
@@ -97,14 +100,35 @@ public final class CliMailerProfile {
 		return bytes.toByteArray();
 	}
 
+	private static boolean usesConfiguredEmailDefaults(final Collection<CliReceivedOptionData> receivedOptions) {
+		boolean configuredDefaults = true;
+		for (final CliReceivedOptionData option : receivedOptions) {
+			if (option.determineTargetBuilderApi() != CliBuilderApiType.MAILER) {
+				continue;
+			}
+			final Method method = option.getDeclaredOptionSpec().getSourceMethod();
+			if (method.getDeclaringClass() == MailerGenericBuilder.class) {
+				if (method.getName().equals("withoutEmailDefaults") || method.getName().equals("withEmailDefaults")) {
+					configuredDefaults = false;
+				} else if (method.getName().equals("useConfiguredEmailDefaults")) {
+					configuredDefaults = true;
+				}
+			} else if (method.getDeclaringClass() == CliMailerConfigurationBuilder.class && method.getName().equals("clearEmailDefaults")) {
+				configuredDefaults = true;
+			}
+		}
+		return configuredDefaults;
+	}
+
 	private static void writeConfiguration(final DataOutputStream output, final SimpleJavaMailConfig config,
-			final Path configurationWorkingDirectory) throws IOException {
+			final Path configurationWorkingDirectory, final boolean configuredEmailDefaults) throws IOException {
 		final List<Map.Entry<ConfigLoader.Property, Object>> entries = config.asMap().entrySet().stream()
 				.filter(entry -> entry.getKey() != ConfigLoader.Property.NAMED_MAILERS)
 				.sorted(Comparator.comparing(entry -> entry.getKey().name())).toList();
 		output.writeInt(entries.size());
 		for (final Map.Entry<ConfigLoader.Property, Object> entry : entries) {
-			writeCanonicalConfigurationEntry(output, entry, configurationWorkingDirectory);
+			writeCanonicalConfigurationEntry(output, entry, configurationWorkingDirectory,
+					configuredEmailDefaults || locksOf(config).contains(entry.getKey()));
 		}
 		// Equal effective values are not interchangeable when only one snapshot restricts later customization.
 		writeString(output, "configuration locks");
@@ -112,12 +136,16 @@ public final class CliMailerProfile {
 	}
 
 	private static void writeCanonicalConfigurationEntry(final DataOutputStream output, final Map.Entry<ConfigLoader.Property, Object> configEntry,
-			final Path configurationWorkingDirectory) {
+			final Path configurationWorkingDirectory, final boolean securityMaterialUsed) {
 		try {
 			writeString(output, configEntry.getKey().name());
 			writeValue(output, configEntry.getValue());
 			if (configEntry.getValue() instanceof String pathValue && isSecurityFileProperty(configEntry.getKey())) {
-				writeSecurityFileFingerprint(output, configEntry.getKey(), configurationWorkingDirectory, pathValue);
+				if (securityMaterialUsed) {
+					writeSecurityFileFingerprint(output, configEntry.getKey(), configurationWorkingDirectory, pathValue);
+				} else {
+					output.writeBoolean(false);
+				}
 			}
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to derive Mailer identity", e);
@@ -154,7 +182,7 @@ public final class CliMailerProfile {
 		output.writeInt(namedConfigurations.size());
 		for (final Map.Entry<String, SimpleJavaMailConfig> definition : namedConfigurations.entrySet()) {
 			writeString(output, definition.getKey());
-			writeConfiguration(output, definition.getValue(), configurationWorkingDirectory);
+			writeConfiguration(output, definition.getValue(), configurationWorkingDirectory, true);
 		}
 	}
 
