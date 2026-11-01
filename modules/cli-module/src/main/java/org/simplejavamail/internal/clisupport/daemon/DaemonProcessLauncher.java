@@ -2,8 +2,6 @@ package org.simplejavamail.internal.clisupport.daemon;
 
 import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
-import org.simplejavamail.internal.config.ConfigurationLocks;
-import org.simplejavamail.internal.config.ConfigurationPropertyNames;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,7 +11,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -104,13 +101,7 @@ final class DaemonProcessLauncher {
 	}
 
 	static void copyConfigurationSystemProperties(final Map<String, String> environment, final Properties properties) {
-		for (String name : properties.stringPropertyNames()) {
-			if (ConfigurationPropertyNames.isRecognizedKey(name)) {
-				final String environmentName = ConfigurationPropertyNames.isWildcardKey(ConfigurationLocks.ordinaryName(name))
-						? name : name.replace('.', '_').toUpperCase(Locale.ROOT);
-				environment.put(environmentName, properties.getProperty(name));
-			}
-		}
+		DaemonStartupConfiguration.copySystemProperties(environment, properties);
 	}
 
 	private static List<String> daemonCommand(final DaemonPaths paths, final String instance) {

@@ -1,8 +1,12 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.simplejavamail.internal.clisupport.CliExitCode;
+import org.subethamail.smtp.server.SMTPServer;
+import org.subethamail.wiser.Wiser;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +23,51 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DaemonStartupConfigurationProcessTest {
 
 	@TempDir Path stateRoot;
+
+	@Test
+	void blankJvmChoiceDoesNotTurnAnAcquiredLoggingOnlySendIntoSmtpSubmission() throws Exception {
+		assertLoggingOnlyAcrossStartup("blank-logging", Map.of("simplejavamail.transport.mode.logging.only", ""),
+				Map.of("SIMPLEJAVAMAIL_TRANSPORT_MODE_LOGGING_ONLY", "true"), "org.simplejavamail.cli.SimpleJavaMail");
+	}
+
+	@Test
+	void typedDirectChoiceDoesNotReviveAnInheritedFalseValueDuringStartup() throws Exception {
+		assertLoggingOnlyAcrossStartup("typed-logging", Map.of(), Map.of(), TypedLoggingOnlyLauncher.class.getName());
+	}
+
+	private void assertLoggingOnlyAcrossStartup(final String instance, final Map<String, String> properties,
+			final Map<String, String> environment, final String entryPoint) throws Exception {
+		final Wiser smtp = Wiser.create(SMTPServer.port(0));
+		smtp.start();
+		try {
+			for (String mode : List.of("off", "acquire")) {
+				assertSuccess(invoke(properties, environment, entryPoint,
+						"send", "--daemon=" + mode, "--daemon-instance=" + instance,
+						"--email:startingBlank", "--email:from", "sender@example.org", "--email:to", "recipient@example.org",
+						"--email:withPlainText", "Logging-only startup",
+						"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+						"--mailer:withConnectionPoolCoreSize", "0"));
+				assertThat(smtp.getMessages()).as("%s keeps logging-only enabled", mode).isEmpty();
+			}
+		} finally {
+			try {
+				final Invocation stopped = invoke(Map.of(), "daemon", "stop", "--daemon-instance=" + instance);
+				assertThat(stopped.exitCode()).as(stopped.output()).isIn(0, CliExitCode.DAEMON_ABSENT.code());
+			} finally {
+				smtp.stop();
+			}
+		}
+	}
+
+	public static final class TypedLoggingOnlyLauncher {
+		public static void main(final String[] args) {
+			System.setProperty("simplejavamail.transport.mode.logging.only", "false");
+			final Properties properties = new Properties(System.getProperties());
+			properties.put("simplejavamail.transport.mode.logging.only", Boolean.TRUE);
+			System.setProperties(properties);
+			org.simplejavamail.cli.SimpleJavaMail.main(args);
+		}
+	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"start", "acquire"})
@@ -76,16 +126,23 @@ class DaemonStartupConfigurationProcessTest {
 	}
 
 	private Invocation invoke(final Map<String, String> properties, final String... arguments) throws Exception {
+		return invoke(properties, Map.of(), "org.simplejavamail.cli.SimpleJavaMail", arguments);
+	}
+
+	private Invocation invoke(final Map<String, String> properties, final Map<String, String> environment,
+			final String entryPoint, final String... arguments) throws Exception {
 		final List<String> command = new ArrayList<>();
 		command.add(Path.of(System.getProperty("java.home"), "bin", DaemonPaths.isWindows() ? "java.exe" : "java").toString());
 		command.add("-D" + DaemonPaths.STATE_DIRECTORY_PROPERTY + "=" + stateRoot);
 		command.add("-D" + DaemonPaths.FORCE_TCP_PROPERTY + "=true");
 		command.add("-Dsimplejavamail.cli.daemon.console-child=true");
 		properties.forEach((name, value) -> command.add("-D" + name + "=" + value));
-		command.addAll(List.of("-cp", System.getProperty("java.class.path"), "org.simplejavamail.cli.SimpleJavaMail"));
+		command.addAll(List.of("-cp", System.getProperty("java.class.path"), entryPoint));
 		command.addAll(List.of(arguments));
 		final Path output = Files.createTempFile(stateRoot, "cli-", ".log");
-		final Process process = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile()).start();
+		final ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile());
+		builder.environment().putAll(environment);
+		final Process process = builder.start();
 		try {
 			assertThat(process.waitFor(30, TimeUnit.SECONDS)).as("CLI process completed").isTrue();
 			return new Invocation(process.exitValue(), Files.readString(output, StandardCharsets.UTF_8));
