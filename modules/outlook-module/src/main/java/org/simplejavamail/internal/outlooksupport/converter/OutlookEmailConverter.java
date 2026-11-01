@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -111,9 +113,11 @@ public class OutlookEmailConverter implements OutlookModule {
 		outlookMessage.getHeadersMap().entrySet().stream()
 				.filter(e -> !valueNullOrEmpty(e.getKey()))
 				.filter(e -> !e.getKey().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName()))
+				.filter(e -> !isReceiptHeader(e.getKey()))
 				.forEach((entry) -> entry.getValue()
 						.forEach(headerValue -> parseHeader(entry.getKey(), MimeUtility.unfold(headerValue), builder))
 				);
+		parseReceiptHeaders(outlookMessage, builder);
 		parseReturnPathHeaders(outlookMessage, builder);
 		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
 		builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
@@ -214,17 +218,60 @@ public class OutlookEmailConverter implements OutlookModule {
 			.build();
 	}
 
-	@SuppressWarnings("StatementWithEmptyBody")
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
-		if (isEmailHeader(headerName, headerValue, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
-			builder.withDispositionNotificationTo(importedRecipients(null, headerValue));
-		} else if (isEmailHeader(headerName, headerValue, MessageHeader.RETURN_RECEIPT_TO.getName())) {
-			builder.withReturnReceiptTo(importedRecipients(null, headerValue));
-		} else if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
+		if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerName)) {
 			builder.withHeader(headerName, headerValue);
-		} else {
-			// header recognized, but not relevant (see #HEADERS_TO_IGNORE)
 		}
+	}
+
+	private static void parseReceiptHeaders(final OutlookMessage message, final EmailPopulatingBuilder builder) {
+		final List<Recipient> dispositionRecipients = new ArrayList<>();
+		final List<Recipient> returnRecipients = new ArrayList<>();
+		for (final Header header : orderedReceiptHeaders(message)) {
+			final String value = MimeUtility.unfold(header.getValue());
+			if (isEmailHeader(header.getName(), value, MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())) {
+				dispositionRecipients.addAll(importedRecipients(null, value));
+			} else if (isEmailHeader(header.getName(), value, MessageHeader.RETURN_RECEIPT_TO.getName())) {
+				returnRecipients.addAll(importedRecipients(null, value));
+			} else {
+				parseHeader(header.getName(), value, builder);
+			}
+		}
+		if (!dispositionRecipients.isEmpty()) {
+			builder.withDispositionNotificationTo(dispositionRecipients);
+		}
+		if (!returnRecipients.isEmpty()) {
+			builder.withReturnReceiptTo(returnRecipients);
+		}
+	}
+
+	private static List<Header> orderedReceiptHeaders(final OutlookMessage message) {
+		final List<Header> receipts = new ArrayList<>();
+		final Set<String> rawReceiptNames = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		if (message.getHeaders() != null) {
+			try {
+				final InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(message.getHeaders().getBytes(StandardCharsets.UTF_8)), true);
+				for (final Enumeration<Header> entries = headers.getAllHeaders(); entries.hasMoreElements();) {
+					final Header header = entries.nextElement();
+					if (isReceiptHeader(header.getName())) {
+						receipts.add(header);
+						rawReceiptNames.add(header.getName());
+					}
+				}
+			} catch (final MessagingException unreadable) {
+				// Fall back to the specialist parser's available receipt values.
+			}
+		}
+		message.getHeadersMap().entrySet().stream()
+				.filter(entry -> entry.getKey() != null && isReceiptHeader(entry.getKey()))
+				.filter(entry -> !rawReceiptNames.contains(entry.getKey()))
+				.forEach(entry -> entry.getValue().forEach(value -> receipts.add(new Header(entry.getKey(), value))));
+		return receipts;
+	}
+
+	private static boolean isReceiptHeader(final String name) {
+		return name.equalsIgnoreCase(MessageHeader.DISPOSITION_NOTIFICATION_TO.getName())
+				|| name.equalsIgnoreCase(MessageHeader.RETURN_RECEIPT_TO.getName());
 	}
 
 	private static void parseReturnPathHeaders(final OutlookMessage message, final EmailPopulatingBuilder builder) {
