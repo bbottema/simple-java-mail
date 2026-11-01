@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/oauth-inherited-20261101'
     '.local/review-followup-20261031'
     '.local/review-header-order-20261031'
     '.local/review-protection-20261031'
@@ -116,6 +117,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/oauth-inherited-20261101.md'
     'docs/plans/review-followup-20261031.md'
     'docs/plans/934-imported-header-order.md'
     'docs/plans/protection-review-20261031.md'
@@ -467,4 +469,15 @@ foreach ($targetPath in $deferredCliReviewFiles) {
     if ($PSCmdlet.ShouldProcess($target.FullName, 'Remove CLI review temporary file')) {
         Remove-Item -LiteralPath $target.FullName -Force
     }
+}
+
+# Deferred OAuth2 review cleanup (#938) for a later manual run.
+# These exact paths also remain in the guarded allowlists above.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\oauth-inherited-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\oauth-inherited-20261101', 'Remove OAuth2 review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\oauth-inherited-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md', 'Remove retired OAuth2 review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\oauth-inherited-20261101.md' -Force
 }
