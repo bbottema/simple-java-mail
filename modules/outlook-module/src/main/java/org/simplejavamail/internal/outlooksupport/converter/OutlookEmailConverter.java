@@ -140,13 +140,13 @@ public class OutlookEmailConverter implements OutlookModule {
 			}
 			builder.withEmbeddedImage(AttachmentResource.builder()
 					.withName(attachmentName)
-					.withData(attachment.getData(), attachment.getMimeTag())
+					.withData(attachment.getData(), attachmentMimeType(attachment))
 					.withContentId(contentId)
 					.build());
 		}
 		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
-			builder.withAttachment(attachmentName, attachment.getData(), attachment.getMimeTag());
+			builder.withAttachment(attachmentName, attachment.getData(), attachmentMimeType(attachment));
 		}
 		for (int i = 0; i < outlookMessage.getOutlookAttachments().size(); i++) {
 			final OutlookAttachment attachment = outlookMessage.getOutlookAttachments().get(i);
@@ -177,6 +177,12 @@ public class OutlookEmailConverter implements OutlookModule {
 			.outlookMessage(new OutlookMessageProxy(outlookMessage))
 			.outlookMessageData(extractOutlookMessageData(outlookMessage))
 			.build();
+	}
+
+	@NotNull
+	private static String attachmentMimeType(@NotNull final OutlookFileAttachment attachment) {
+		final String mimeType = attachment.getMimeTag();
+		return valueNullOrEmpty(mimeType) ? "application/octet-stream" : mimeType;
 	}
 
 	private static boolean hasNoMimeContent(@NotNull final Email email) {
