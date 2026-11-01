@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/exact-eml-inspection-20261101'
     '.local/batch-cancel-boundary-20261101'
     '.local/review-accepted-20261101'
     '.local/oauth-inherited-20261101'
@@ -119,6 +120,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/exact-eml-inspection-20261101.md'
     'docs/plans/batch-cancel-boundary-20261101.md'
     'docs/plans/accepted-review-20261101.md'
     'docs/plans/oauth-inherited-20261101.md'
@@ -506,4 +508,15 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\batch-cancel
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\batch-cancel-boundary-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\batch-cancel-boundary-20261101.md', 'Remove retired batch cancellation review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\batch-cancel-boundary-20261101.md' -Force
+}
+
+# Deferred exact-EML inspection cleanup (#944).
+# These exact paths also remain in the guarded allowlists above.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\exact-eml-inspection-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\exact-eml-inspection-20261101', 'Remove exact EML inspection scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\exact-eml-inspection-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md', 'Remove retired exact EML inspection plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md' -Force
 }
