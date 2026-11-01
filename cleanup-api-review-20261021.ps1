@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-cleanup-cancel-20261101'
     '.local/review-selected-20261101'
     '.local/review-wide-repairs-20261101'
     '.local/exact-eml-inspection-20261101'
@@ -122,6 +123,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/949-late-cancellation-cleanup-20261101.md'
     'docs/plans/selected-review-repairs-20261101.md'
     'docs/plans/wide-review-repairs-20261101.md'
     'docs/plans/exact-eml-inspection-20261101.md'
@@ -545,4 +547,16 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-selec
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\selected-review-repairs-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\selected-review-repairs-20261101.md', 'Remove retired selected review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\selected-review-repairs-20261101.md' -Force
+}
+
+# Late-cancellation review task-owned paths (#949); remove after delivery.
+# Keep these exact paths in the guarded allowlists above as well.
+# The website export moved from simplejavamail.org/.local/949-cleanup-cancel-website into this task's scratch directory.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-cleanup-cancel-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-cleanup-cancel-20261101', 'Remove late-cancellation review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-cleanup-cancel-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md', 'Remove retired late-cancellation review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md' -Force
 }
