@@ -67,7 +67,14 @@ Keep decryption facts independent of signature results: established decryption r
 key is missing. Genuine ciphertext/integrity failures keep their existing boundary. Retain original protected bytes and readable content where
 existing import behavior permits it. Key ownership and trust remain application concerns; no automatic key discovery is introduced.
 
-Successful native close establishes decryption and integrity. A typed signature-processing abort before that point retains known error facts
+Successful native close establishes decryption and integrity only when native metadata also confirms an encrypted layer. Processing an
+unencrypted literal, compressed literal or signed-only packet does not establish decryption merely because its MIME wrapper declares
+`multipart/encrypted`. With receive keys selected, retain that inconsistent wrapper's original bytes and unopened view with `FAILED`
+decryption and conservative unknown signature facts; do not expose its payload as successfully decrypted content. Missing-key handling and
+actual encrypted content retain their existing outcomes. This clarification was accepted on 1 November 2026 as follow-up work on the
+unreleased OpenPGP feature [#704](https://github.com/bbottema/simple-java-mail/issues/704); it adds no receive setting or public result state.
+
+A typed signature-processing abort before established decryption retains known error facts
 with unknown decryption; an observed native integrity failure, including one suppressed during close, retains the existing failed-decryption
 and unknown-inner-signature boundary. Keep native armor/provider interpretation, the no-decompression boundary for detached containers and
 bounded inspection. A skipped or stopped signature container cannot establish a complete positive summary; retain established outer results.

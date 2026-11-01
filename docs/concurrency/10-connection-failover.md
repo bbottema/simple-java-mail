@@ -10,6 +10,10 @@ This mechanism lets an operation use another approved SMTP destination after a c
 
 `FactoryMailerRuntime.Definition` owns connection observations and named identity, separate from immutable configuration. `ConnectionRecovery` protects only observations, their generation and recheck ownership. `DestinationConnectionObserver` translates those observations into duplicate-suppressed logs. `RoutedConnectionScope` owns transport, proxy and delegated lifetimes through cleanup. `ReadyMailSend` adds one governed Email and reservation; `RoutedMailConnection` reserves separately for each retained-scope Email. `AcquiredMailTransport` owns the physical connection or pooled lease and its health decision.
 
+Failed and cached-skipped connection-history entries retain only explicit logical endpoint facts. Provider-visible direct port values take
+precedence over shadowed inherited String defaults; unknown or unspecified ports remain absent. Successful acquisitions retain transport-reported
+facts. This inspection does not mutate a caller's Session or change routing, recovery, protocol phases or ownership.
+
 ## Explicit private states and transitions
 
 `ConnectionRecovery` implements these states as private Java 11 objects. `ConnectionFailureRecorded` owns incident evidence and timing;

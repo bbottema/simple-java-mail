@@ -67,7 +67,8 @@ public class FirstSend {
 Match the port and transport strategy to your SMTP service. In an application, build the Mailer once, reuse it, and close it during shutdown;
 Spring manages that lifecycle for its Mailer bean. The standalone example above uses try-with-resources.
 
-To change a built message, use `mail.emailBuilder().copying(email)` and build a replacement. Copies retain test-inbox routing and other metadata.
+To change a built message, use `mail.emailBuilder().copying(email)` and build a replacement. Copies retain test-inbox routing and other metadata;
+later builder edits take precedence over the copied content, including content imported from a merged S/MIME message.
 
 ## Add HTML and attachments
 

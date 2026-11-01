@@ -24,6 +24,11 @@ Use bounded, authenticated local IPC, preferring Unix-domain sockets and allowin
 
 Run both one-shot and daemon commands through the same request-scoped `CliSupport.execute(...)`. Each request gets fresh Picocli state, explicit working-directory context, a UUID and bounded output. Do not mutate process-wide `user.dir`, `System.out` or `System.err` to emulate an individual command's environment. Commands use synchronous Mailer operations; daemon-owned workers supply request concurrency.
 
+Clarification accepted 1 November 2026 under [#488](https://github.com/bbottema/simple-java-mail/issues/488): filesystem image bases supplied
+by a request, and relative image sources with no configured base, resolve against that request's working directory. Configuration-owned bases
+retain the configuration directory. Preserve raw choices for lock comparison, containment rules and URL/classpath interpretation; a daemon
+started elsewhere must not substitute a same-named file from its own directory. Internal request context is scoped and retired on failure too.
+
 Lease Mailers from a bounded registry keyed by the captured immutable configuration and converted Mailer options. Secret and security-file values affect compatibility, but retained keys are daemon-keyed HMACs rather than plaintext configurations or reusable unkeyed credential hashes. Unknown mutable inputs receive unique profiles. Compatible commands may share a Mailer; changing SMTP, credential, proxy, trust or pool inputs prevents reuse. Remove retired entries before closing them exactly once. Retain SMTP connections only through the optional batch module.
 
 Bound connections, workers, queued requests, Mailer entries and retained result bytes/time. Register each request identity before executing it. While its ledger entry is retained, the same UUID and content retrieves or attaches to the original result; changed content under that UUID is rejected. Under output pressure, replace old result bodies with lightweight ambiguous-result tombstones rather than executing again. Retain tombstones across the authentication freshness window.
@@ -36,6 +41,11 @@ A command's reuse profile includes the selected named failover route, using the 
 Follow transitive references from the configured destination or the last explicit CLI destination. Unselected definitions must not introduce
 security-file reads or failures into an unrelated command. Keep content fingerprints for selected destinations, their restrictions and the
 ordinary primary configuration; a changed selected key must not reuse a Mailer holding the previous material.
+
+The 1 November 2026 follow-up under [#488](https://github.com/bbottema/simple-java-mail/issues/488) applies that rule to the documented DKIM
+`file:` spelling as well as legacy filenames. Interpret file, inline and `base64:` inputs consistently with the DKIM loader before deriving
+content identity. Keep file ownership in the configuration directory, selected-route filtering and ordinary invalid-file behavior; immutable
+configuration retains the path choice, while a newly constructed Mailer captures its selected material.
 
 One-shot and daemon execution share this selection boundary. Profile construction remains passive about Mailer resources and leaves missing
 definitions, cycles and conflicting locks to ordinary construction validation. It adds no public setting or CLI removal option and does not
@@ -110,6 +120,11 @@ Starting an absent daemon preserves all supported SJM JVM settings supplied by t
 their supported fields and locked counterparts. The normal loader owns property-name recognition; process launch must not maintain a
 smaller independently selected catalog. Retain ordinary source precedence, validation and locks, and carry settings through the existing
 child environment without putting secrets on its command line or configuration into discovery state.
+
+The 1 November 2026 follow-up under [#488](https://github.com/bbottema/simple-java-mail/issues/488) includes value semantics: a blank JVM
+entry cannot erase a winning environment setting or lock, and a supported typed direct entry remains authoritative over inherited String
+defaults. Invalid values retain normal loader rejection instead of disappearing or becoming valid through arbitrary object rendering.
+Transfer preserves schema interpretation and lower-source locks without executing application `toString()` methods for opaque values.
 
 The daemon captures defaults once at startup under [ADR 0003](0003-immutable-configuration-snapshots.md). Later clients' JVM properties do
 not reconfigure a running instance, and acquire reuses that instance. Restart captures the complete desired configuration supplied by the

@@ -26,12 +26,28 @@ provide stronger, deliberately separate byte-snapshot contracts.
 
 ## Decision
 
+### Explicit edits after copying (accepted 1 November 2026)
+
+Copying supplies a new builder's starting values; subsequent builder operations are authoritative. Retained signed-content history must not
+replace an explicit body or encoding choice, resurrect a cleared field/resource, or append old resources after the caller replaces the list.
+An untouched copy retains the represented content, metadata, intentional resource occurrences and borrowed identities. Repeated copying must
+not duplicate nested resources or read their content. Preserve original protection facts and bytes as history, without implying that edited
+content retains an original signature's validity. Exact Email copying still starts ordinary composition, and template governance remains a
+separate operation. This supersedes historical merge bookkeeping wherever it would override explicit edits, while preserving ordinary import
+merge behavior. The maintainer approved this rule as follow-up work under [#786](https://github.com/bbottema/simple-java-mail/issues/786).
+
+A copied separate view can explicitly opt into merging through the existing merge-reset operation. Integrate the retained inner content once
+at that call so subsequent builder edits lead. Repeating the reset does not re-add represented resources, and disabling merging after content
+has been materialized does not strip that visible content. Ordinary clear/replacement operations own those edits. Keep existing import-builder
+merge timing separate from this editable-copy boundary.
+
 ### S/MIME header identity (clarified 26 October 2026)
 
 When a retained signed-content Email is merged into its outer Email, compare header names case-insensitively. Preserve the established
 exact-name precedence for every spelling: the inner header's complete value list replaces the outer list, while unrelated headers remain.
 Keep the first display spelling and detach the merged metadata without modifying either source. Body and attachment merging retain their
-existing rules. Disabling the merge preserves the separate views; copying and serialization preserve the resulting snapshot.
+existing import rules. Disabling the import merge preserves the separate views; copying and serialization preserve the resulting snapshot,
+with later builder edits governed by the explicit-edit rule above.
 
 This applies while the outer and inner sources are still distinguishable. Do not reinterpret older flat maps when restoring them; ordinary
 template resolution retains the previous last-matching-entry fallback described by [ADR 0002](0002-email-defaults-and-overrides.md).
@@ -54,7 +70,8 @@ new equivalent template additions during repeated completion. It does not change
 resource/Email equality or the borrowed-content boundary below.
 
 As clarified on 21 October 2026, ordinary copying and supported serialization retain historical input facts: original protection results
-and bytes, received delivery reports, decrypted-attachment inspection lists and retained S/MIME signed-content views/merge bookkeeping.
+and bytes, received delivery reports, decrypted-attachment inspection lists and retained S/MIME signed-content views. Merge bookkeeping is
+internal and must not override subsequent builder edits under the accepted rule above.
 Defaults/overrides completion instead resolves outgoing content and configuration under [ADR 0002](0002-email-defaults-and-overrides.md).
 It is not a history-preserving copy operation. Content already represented in ordinary body, header and resource fields remains outgoing
 content, and this boundary does not change equality, import interpretation, byte ownership or the supported serialized form.

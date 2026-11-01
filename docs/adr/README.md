@@ -336,3 +336,11 @@ under [#704](https://github.com/bbottema/simple-java-mail/issues/704), [distinct
 under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and [required DKIM identity replacements in ADR 0031](0031-public-api-and-internal-construction.md#required-dkim-identity-replacements-accepted-31-october-2026)
 under [#933](https://github.com/bbottema/simple-java-mail/issues/933). These preserve type metadata, distinct source occurrences and previous
 builder choices after rejected null input, respectively. They target unreleased 10.0.0; their issues track implementation and delivery.
+
+The 1 November 2026 feature follow-ups clarify [actual OpenPGP decryption evidence in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#complete-incoming-openpgp-signature-results-accepted-28-october-2026)
+under #704; [daemon startup, selected-key identity and request directories in ADR 0019](0019-local-cli-daemon.md) under #488, #488 and #488;
+[explicit failed-route ports in ADR 0026](0026-actual-send-diagnostics.md#connection-failover-and-executor-side-preparation) under #755;
+[protected header boundaries and calendar charsets in ADR 0035](0035-tolerant-reading-and-strict-production.md#first-protected-mime-header-boundary-accepted-1-november-2026)
+under #704 and #945; and [explicit edits after copying in ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#explicit-edits-after-copying-accepted-1-november-2026)
+under #786. Existing feature issues retain the unreleased follow-up work; #945 separately tracks a declared-charset bug present in released 9.3.9.
+The issues distinguish accepted decisions from implementation and delivery.

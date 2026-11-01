@@ -76,6 +76,8 @@ submitted. A duplicate observer can also receive busy; that does not change the 
 Classpath `simplejavamail.properties`, environment variables, and JVM system properties are captured when the daemon starts. Detached startup
 preserves every SJM JVM setting recognized by the normal loader, including named Mailer definitions, their supported fields and locked
 counterparts. Explicit CLI Mailer options participate in reuse identity and follow the normal connection-conflict policy and locks.
+Blank JVM entries do not erase earlier environment values or locks. Supported typed direct JVM entries retain their authority over inherited
+String defaults, and invalid values retain ordinary loader rejection. Startup transfer keeps secrets off the child command line.
 
 For example, these JVM properties define a primary and its named failover:
 
@@ -94,6 +96,14 @@ supply the complete desired startup configuration again when invoking `daemon re
 does not recover the old configuration from daemon state. Use a different instance name for independent startup defaults and lifecycle.
 
 Relative request files resolve from the client command's working directory, not the directory in which the daemon was started. This includes argument files, bodies, attachments, EML/MSG input, and certificates. The daemon can read only files granted to its operating-system user; the protocol does not upload file contents to bypass operating-system permissions.
+
+Request-supplied relative filesystem image bases and relative HTML image sources with no configured base use the client directory too.
+Configuration-owned image bases retain the configuration directory. Absolute bases, containment, locks and URL/classpath interpretation keep
+their ordinary meaning; request context never changes process-wide `user.dir`.
+
+Selected security files contribute their contents to Mailer reuse identity. DKIM `file:` values and legacy filenames both identify the actual
+file; `base64:` values remain inline material. Replacing a selected key file prevents reuse of a Mailer retaining its earlier bytes. Unselected
+named destinations do not introduce key-file reads for an unrelated request.
 
 Argument files are strict UTF-8, bounded, may be nested four levels, and support comments plus single or double quoting. Relative nested argument files also resolve from the client working directory. Prefix a literal value beginning with `@` with another at sign, such as `@@recipient`, to pass `@recipient`. The existing `picocli.useSimplifiedAtFiles=true` mode still treats each non-comment line as one argument.
 

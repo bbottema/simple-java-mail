@@ -66,7 +66,11 @@ Internal construction and the accepted snapshot-format boundary follow ADR 0031.
 
 `getConnectionHistory()` adds immutable per-email acquisition/skip facts with explicit getters. Retain the first 63 and latest entries, reporting
 omitted entries separately; this budget never limits routing. Failed acquisitions and cached skips are distinct. Logical names/endpoints are optional,
-bounded and excluded from automatic report rendering. No history or endpoint reads occur without an observer. Shared-scope setup is not repeated for
+bounded and excluded from automatic report rendering. Failed/skipped endpoint facts must respect the selected provider's explicit property
+interpretation; a typed direct port cannot be replaced by a shadowed inherited String default. Keep unknown/unspecified ports absent rather
+than guessing defaults, and preserve successful transport facts and caller-owned Session state. This clarification was accepted on 1 November
+2026 as follow-up work under [#755](https://github.com/bbottema/simple-java-mail/issues/755).
+No history or endpoint reads occur without an observer. Shared-scope setup is not repeated for
 every batch email. Timings and history cannot authorize replay after provider invocation.
 
 ## Alternatives considered

@@ -123,12 +123,18 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP receive inspection requires an actual encrypted layer before reporting successful decryption. An unencrypted packet inside an encrypted MIME wrapper retains failed-decryption facts and its original representation.
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI filesystem images use the requesting command's directory for explicit relative bases and no-base sources, while configured bases retain their configuration directory.
+- [#755](https://github.com/bbottema/simple-java-mail/issues/755): failed and skipped connection history respects explicit provider-visible port values, including typed direct values above inherited defaults.
+- [#945](https://github.com/bbottema/simple-java-mail/issues/945): calendar imports through provider-returned streams honor their declared charset, retaining existing absent-charset defaults and stream ownership.
+- [#786](https://github.com/bbottema/simple-java-mail/issues/786): explicit builder changes after copying a merged S/MIME Email take precedence over retained signed-content history, without duplicating or resurrecting copied resources.
+
 - [#713](https://github.com/bbottema/simple-java-mail/issues/713): exact EML construction automatically fills existing S/MIME and OpenPGP inspection results with established facts or UNKNOWN. Missing optional modules do not by themselves prevent relay from the original EML; the original parsed content view and authoritative bytes remain unchanged.
 
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): simple batches observe known cancellation or deadline expiry before entering another lazy-source callback. Completed email outcomes remain intact; cancellation from the final email's observer still cancels the batch without probing for exhaustion.
 
 - [#755](https://github.com/bbottema/simple-java-mail/issues/755): managed Angus setup outages during SMTP authentication can use ordinary connection failover. Genuine credential rejection and certificate failures retain their independent permissions.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP EML import recognizes the first supported header separator when outer headers use LF or mixed line endings, retaining the original protected content for verification and decryption.
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP and S/MIME EML import recognize the first supported header separator when outer headers use LF or mixed line endings, retaining the original protected content for verification and decryption.
 - [#941](https://github.com/bbottema/simple-java-mail/issues/941): older serialized DKIM configurations restore detached immutable header exclusions, preserving their choices without allowing a returned or retained collection to change a completed configuration.
 - [#733](https://github.com/bbottema/simple-java-mail/issues/733): connection probe reports honor Angus's valid hexadecimal SMTP port values instead of describing the protocol default.
 
@@ -136,7 +142,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#935](https://github.com/bbottema/simple-java-mail/issues/935): MIME and EML import preserve explicitly empty plain-text and HTML bodies as empty strings. Missing alternatives remain null, so ordinary defaults no longer replace a source's present-empty body.
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): successful outer S/MIME decryption retains unknown signature verification when the revealed content is another unopened encrypted entity. The established outer decryption result remains available.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles read named security files only along the selected failover route. Unused named destinations no longer make unrelated commands depend on their key files, while selected key changes still separate retained Mailers.
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles read named security files only along the selected failover route. Unused named destinations no longer make unrelated commands depend on their key files, while selected key changes, including DKIM `file:` paths, separate retained Mailers.
 
 - [#934](https://github.com/bbottema/simple-java-mail/issues/934): MIME and EML import keep repeated custom-header values in source order even when the header name uses different capitalization. The first display spelling is retained.
 
@@ -189,7 +195,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#893](https://github.com/bbottema/simple-java-mail/issues/893): keep imported `srcset` CID images embedded when HTML uses character references, interpreting each URL separately from its descriptors while preserving source HTML and resource identities.
 
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): retain complete supported JVM configuration when starting a CLI daemon, including named failover Mailers and their locks. Running instances keep their startup defaults; restart captures the restarting invocation's configuration.
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): retain complete supported JVM configuration when starting a CLI daemon, including named failover Mailers, locks, nonblank source precedence and supported typed direct values. Running instances keep their startup defaults; restart captures the restarting invocation's configuration.
 
 - [#890](https://github.com/bbottema/simple-java-mail/issues/890): interpret supported S/MIME `smime-type` values regardless of capitalization, preserving signature/decryption selection and the reported protection mode.
 - [#891](https://github.com/bbottema/simple-java-mail/issues/891): retain every unreferenced inline resource with a repeated Content-ID, preserving filenames, bytes and attachment order during eager and lazy import.

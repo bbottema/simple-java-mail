@@ -214,14 +214,23 @@ or transport-safety requirements. Retain existing resource/size bounds; reading 
 
 ### First protected MIME header boundary (accepted 1 November 2026)
 
-When the OpenPGP byte-oriented helper separates a message's headers from its body, use the first empty header line made from the supported
+When the OpenPGP or S/MIME byte-oriented helper separates a message's headers from its body, use the first empty header line made from the supported
 CRLF or LF endings. Each of the two line endings may use either spelling. An earlier LF or mixed separator must not be displaced by a later
-CRLF separator inside a nested MIME part. The same rule applies when separating a recovered content entity during unwrapping.
+CRLF separator inside a nested MIME part or encoded ciphertext. The same rule applies when separating a recovered content entity during unwrapping.
 
 This interprets the header boundary consistently with the tolerated input parser; it does not rewrite retained protected bytes, change
 cryptographic verification or transfer decoding, or add support for arbitrary malformed or CR-only MIME. Exact EML submission retains its
 canonical-CRLF restrictions under [ADR 0013](0013-exact-eml-submission.md). The correction targets unreleased 10.0.0 under
-[#704](https://github.com/bbottema/simple-java-mail/issues/704).
+[#704](https://github.com/bbottema/simple-java-mail/issues/704). The earlier OpenPGP implementation did not change the separate S/MIME scanner;
+the maintainer accepted applying the same rule to that scanner on 1 November 2026.
+
+### Declared calendar charset on provider streams (accepted 1 November 2026)
+
+A provider returning an InputStream for `text/calendar` must retain the declared charset's meaning, as the ordinary calendar content handler
+does. Resolve a declared charset before acquiring the parser-owned stream; unsupported or illegal declarations retain their conversion failure.
+Read and close acquired streams under ADR 0036, retaining read causes and suppressed close failures. Keep the established absent-charset defaults
+of each path and calendar-method interpretation. [#945](https://github.com/bbottema/simple-java-mail/issues/945) tracks the correction for 10.0.0;
+the incorrect declared-charset behavior is also present in released 9.3.9, so migration guidance describes the changed interpretation.
 
 ## Alternatives considered
 
