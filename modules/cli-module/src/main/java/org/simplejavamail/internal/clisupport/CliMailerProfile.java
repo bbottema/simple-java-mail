@@ -117,7 +117,7 @@ public final class CliMailerProfile {
 			writeString(output, configEntry.getKey().name());
 			writeValue(output, configEntry.getValue());
 			if (configEntry.getValue() instanceof String pathValue && isSecurityFileProperty(configEntry.getKey())) {
-				writeSecurityFileFingerprint(output, configurationWorkingDirectory, pathValue);
+				writeSecurityFileFingerprint(output, configEntry.getKey(), configurationWorkingDirectory, pathValue);
 			}
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to derive Mailer identity", e);
@@ -158,10 +158,17 @@ public final class CliMailerProfile {
 		}
 	}
 
-	private static void writeSecurityFileFingerprint(final DataOutputStream output, final Path workingDirectory,
+	private static void writeSecurityFileFingerprint(final DataOutputStream output, final ConfigLoader.Property property, final Path workingDirectory,
 			final String pathValue) throws IOException {
+		final boolean dkimKey = property == ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA;
+		// Match DKIM key loading: explicit Base64 is inline, while file: names the path after the prefix.
+		if (dkimKey && pathValue.startsWith("base64:")) {
+			output.writeBoolean(false);
+			return;
+		}
+		final String filePath = dkimKey && pathValue.startsWith("file:") ? pathValue.substring("file:".length()) : pathValue;
 		try {
-			final Path raw = Path.of(pathValue);
+			final Path raw = Path.of(filePath);
 			final Path resolved = (raw.isAbsolute() ? raw : workingDirectory.resolve(raw)).normalize();
 			if (Files.isRegularFile(resolved)) {
 				output.writeBoolean(true);
