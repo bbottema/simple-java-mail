@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.activation.DataHandler;
 import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -67,6 +68,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -1119,13 +1121,15 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	private static MimeBodyPart extractMimeBodyPart(@NotNull final MimeMessage message)
-			throws MessagingException, IOException {
-		final Object content = message.getContent();
+			throws MessagingException {
 		final UpdatableMimeBodyPart bodyPart = new UpdatableMimeBodyPart();
-		if (content instanceof Multipart) {
-			bodyPart.setContent((Multipart) content);
-		} else {
-			bodyPart.setContent(content, message.getDataHandler().getContentType());
+		bodyPart.setDataHandler(new IsolatedContentDataHandler(message.getDataHandler()));
+		final Enumeration<Header> headers = message.getAllHeaders();
+		while (headers.hasMoreElements()) {
+			final Header header = headers.nextElement();
+			if (header.getName().regionMatches(true, 0, "Content-", 0, "Content-".length())) {
+				bodyPart.addHeader(header.getName(), header.getValue());
+			}
 		}
 		bodyPart.updateHeadersPublic();
 		return bodyPart;
@@ -1167,6 +1171,26 @@ public class SMIMESupport implements SMIMEModule {
 	private static final class UpdatableMimeBodyPart extends MimeBodyPart {
 		private void updateHeadersPublic() throws MessagingException {
 			super.updateHeaders();
+		}
+	}
+
+	/** Isolates Bouncy Castle's command-map changes while retaining the source codec and synchronous I/O failures. */
+	private static final class IsolatedContentDataHandler extends DataHandler {
+		private final DataHandler source;
+
+		private IsolatedContentDataHandler(final DataHandler source) {
+			super(source.getDataSource());
+			this.source = source;
+		}
+
+		@Override
+		public Object getContent() throws IOException {
+			return source.getContent();
+		}
+
+		@Override
+		public void writeTo(final OutputStream output) throws IOException {
+			source.writeTo(output);
 		}
 	}
 
