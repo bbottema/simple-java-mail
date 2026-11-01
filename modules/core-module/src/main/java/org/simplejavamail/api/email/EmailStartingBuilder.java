@@ -113,26 +113,29 @@ public interface EmailStartingBuilder {
 	ExactEmailBuilder startingFromExactEml(@NotNull Path emlPath);
 	
 	/**
-	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code> and a default HTML quoting
-	 * template.
+	 * Primes a reply to the sender from the composed Email's readable content, using the default HTML quoting template.
+	 * Outgoing protection is not applied while obtaining the quote. The original Email's protection and the reply's own protection choices
+	 * still apply during normal conversion or sending. Exact Email input retains its authoritative MIME/receive-side interpretation.
+	 *
+	 * @see #replyingTo(MimeMessage, boolean, String)
 	 */
 	EmailPopulatingBuilder replyingTo(@NotNull Email email);
 	
 	/**
-	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code> and a default HTML quoting
-	 * template.
+	 * Primes a reply-all from the composed Email's readable content, with the protection boundary of {@link #replyingTo(Email)}
+	 * and the default HTML quoting template.
 	 */
 	EmailPopulatingBuilder replyingToAll(@NotNull Email email);
 	
 	/**
-	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>true</code>.
+	 * Primes a reply-all with a custom HTML quote, using the readable-content and protection boundary of {@link #replyingTo(Email)}.
 	 *
 	 * @see #DEFAULT_QUOTING_MARKUP
 	 */
 	EmailPopulatingBuilder replyingToAll(@NotNull Email email, @NotNull String customQuotingTemplate);
 	
 	/**
-	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
+	 * Primes a reply to the sender with a custom HTML quote, using the readable-content and protection boundary of {@link #replyingTo(Email)}.
 	 */
 	EmailPopulatingBuilder replyingTo(@NotNull Email email, @NotNull String customQuotingTemplate);
 	

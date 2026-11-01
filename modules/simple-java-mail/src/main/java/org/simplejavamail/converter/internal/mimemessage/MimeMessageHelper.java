@@ -4,6 +4,7 @@ import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
+import jakarta.mail.EncodingAware;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Part;
@@ -17,6 +18,7 @@ import jakarta.mail.internet.MimePart;
 import jakarta.mail.internet.MimeUtility;
 import jakarta.mail.internet.ParameterList;
 import jakarta.mail.internet.PreencodedMimeBodyPart;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +30,7 @@ import org.simplejavamail.api.internal.general.MessageHeader;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.MimeTypeUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
+import org.simplejavamail.internal.util.MessageIdFixingMimeMessage;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -35,9 +38,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import static java.lang.Boolean.TRUE;
@@ -46,6 +52,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
+import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
 /**
@@ -58,6 +65,71 @@ public class MimeMessageHelper {
 	 */
 	private static final Charset CHARACTER_ENCODING = UTF_8;
 	private static final String GENERATED_CONTENT_ID_DOMAIN = "simplejavamail.generated";
+
+	/** Projects visible reply headers without rendering, protecting or reading the source content. */
+	public static MimeMessage createReplyHeaders(final Email email, final Session session) throws MessagingException, UnsupportedEncodingException {
+		final MimeMessage message = new MessageIdFixingMimeMessage(session, email.getId());
+		setSubject(email, message);
+		setFrom(email, message);
+		setReplyTo(email, message);
+		setRecipients(email, message);
+		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
+			setHeader(message, header);
+		}
+		// Only headers drive MimeMessage.reply(); a placeholder avoids materializing the original body or resources.
+		message.setText("", CHARACTER_ENCODING.name());
+		message.setSentDate(ofNullable(email.getSentDate()).orElseGet(Date::new));
+		message.saveChanges();
+		return message;
+	}
+
+	/** Matches the ordinary parser's referenced-CID selection and owned snapshots, without reading unrelated attachments. */
+	public static List<AttachmentResource> replyEmbeddedImages(final Email email) {
+		final Set<String> referenced = CidReferences.inHtml(defaultTo(email.getHTMLText(), ""));
+		final Map<String, AttachmentResource> selected = new TreeMap<>();
+		for (final AttachmentResource resource : email.getEmbeddedImages()) {
+			addReplyResource(resource, Part.INLINE, referenced, selected);
+		}
+		for (final AttachmentResource resource : email.getAttachments()) {
+			if (!valueNullOrEmpty(resource.getContentId())) {
+				addReplyResource(resource, Part.ATTACHMENT, referenced, selected);
+			}
+		}
+		final List<AttachmentResource> snapshots = new ArrayList<>();
+		for (final AttachmentResource resource : selected.values()) {
+			snapshots.add(snapshotReplyResource(resource));
+		}
+		return snapshots;
+	}
+
+	private static void addReplyResource(final AttachmentResource resource, final String disposition,
+			final Set<String> referenced, final Map<String, AttachmentResource> selected) {
+		final String contentId = determineContentId(resource, disposition);
+		if (referenced.contains(contentId)) {
+			final ContentType type = MimeTypeUtil.parseOrDefault(resource.getDataSource().getContentType());
+			if (Part.INLINE.equals(disposition) && (type.match("text/plain") || type.match("text/html") || type.match("text/calendar"))) {
+				return;
+			}
+			final String name = determineResourceFileName(resource, disposition);
+			selected.put('<' + contentId + '>', resource.toBuilder().withName(name)
+					.withContentId(contentId.equals(name) ? null : contentId).build());
+		}
+	}
+
+	private static AttachmentResource snapshotReplyResource(final AttachmentResource resource) {
+		final DataSource source = resource.getDataSource();
+		final String contentType = MimeTypeUtil.parseOrDefault(source.getContentType()).toString();
+		final ByteArrayDataSource snapshot = new ByteArrayDataSource(
+				MimeMessageParser.readContent(MimeMessageParser.retrieveInputStream(source)), contentType);
+		snapshot.setName(resource.getName());
+		ContentTransferEncoding encoding = determineResourceContentTransferEncoding(resource);
+		if (encoding == null) {
+			final String preferred = source instanceof EncodingAware ? ((EncodingAware) source).getEncoding() : null;
+			encoding = ContentTransferEncoding.byEncoder(preferred != null ? preferred : MimeUtility.getEncoding(snapshot));
+		}
+		return AttachmentResource.builder().withName(resource.getName()).withDataSource(snapshot).withDescription(resource.getDescription())
+				.withContentId(resource.getContentId()).withContentTransferEncoding(encoding).build();
+	}
 
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
 		message.setSubject(email.getSubject(), CHARACTER_ENCODING.name());

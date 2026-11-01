@@ -587,7 +587,7 @@ public final class MimeMessageParser {
 		return !valueNullOrEmpty(result) ? decodeText(result) : null;
 	}
 
-	private static byte @NotNull [] readContent(@NotNull final InputStream is) {
+	static byte @NotNull [] readContent(@NotNull final InputStream is) {
 		try (InputStream content = is) {
 			return MiscUtil.readInputStreamToBytes(content);
 		} catch (final IOException e) {

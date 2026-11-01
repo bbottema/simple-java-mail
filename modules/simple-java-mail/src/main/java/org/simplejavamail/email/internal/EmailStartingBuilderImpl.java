@@ -8,6 +8,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Entities;
 import org.jsoup.nodes.TextNode;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -17,12 +18,17 @@ import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.ExactEmailBuilderImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
+import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -85,7 +91,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final Email email) {
-		return replyingTo(EmailConverter.emailToMimeMessage(email), false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
+		return replyingTo(email, false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
 	/**
@@ -93,7 +99,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email) {
-		return replyingTo(EmailConverter.emailToMimeMessage(email), true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
+		return replyingTo(email, true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
 	
 	/**
@@ -101,7 +107,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
-		return replyingTo(EmailConverter.emailToMimeMessage(email), true, customQuotingTemplate);
+		return replyingTo(email, true, customQuotingTemplate);
 	}
 	
 	/**
@@ -109,7 +115,19 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
-		return replyingTo(EmailConverter.emailToMimeMessage(email), false, customQuotingTemplate);
+		return replyingTo(email, false, customQuotingTemplate);
+	}
+
+	private EmailPopulatingBuilder replyingTo(final Email email, final boolean replyToAll, final String htmlTemplate) {
+		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
+			return replyingTo(EmailConverter.emailToMimeMessage(email), replyToAll, htmlTemplate);
+		}
+		try {
+			final MimeMessage headers = MimeMessageHelper.createReplyHeaders(email, JakartaMailImplementation.createSession(new Properties()));
+			return primeReply(createReplyMessage(headers, replyToAll), email, MimeMessageHelper.replyEmbeddedImages(email), htmlTemplate);
+		} catch (final MessagingException | UnsupportedEncodingException e) {
+			throw new EmailException("was unable to prepare email headers for a reply", e);
+		}
 	}
 	
 	/**
@@ -149,16 +167,24 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage emailMessage, final boolean repyToAll, @NotNull final String htmlTemplate) {
-		final MimeMessage replyMessage;
+		final MimeMessage replyMessage = createReplyMessage(emailMessage, repyToAll);
+		final Email repliedTo = converter().fromMimeMessage(emailMessage).toEmail();
+		return primeReply(replyMessage, repliedTo, repliedTo.getEmbeddedImages(), htmlTemplate);
+	}
+
+	private static MimeMessage createReplyMessage(final MimeMessage source, final boolean replyToAll) {
 		try {
-			replyMessage = (MimeMessage) emailMessage.reply(repyToAll);
+			final MimeMessage replyMessage = (MimeMessage) source.reply(replyToAll);
 			replyMessage.setText("ignore");
 			replyMessage.setFrom("ignore@ignore.ignore");
+			return replyMessage;
 		} catch (final MessagingException e) {
 			throw new EmailException("was unable to parse mimemessage to produce a reply for", e);
 		}
+	}
 
-		final Email repliedTo = converter().fromMimeMessage(emailMessage).toEmail();
+	private EmailPopulatingBuilder primeReply(final MimeMessage replyMessage, final Email repliedTo,
+			final List<AttachmentResource> embeddedImages, final String htmlTemplate) {
 		final Email generatedReply = converter().fromMimeMessage(replyMessage).toEmail();
 
 		return startingBlank()
@@ -167,7 +193,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 				.withPlainText(EmailStartingBuilder.LINE_START_PATTERN.matcher(plainTextForReply(repliedTo)).replaceAll("> "))
 				.withHTMLText(format(htmlTemplate, htmlTextForReply(repliedTo)))
 				.withHeaders(generatedReply.getHeaders())
-				.withEmbeddedImages(repliedTo.getEmbeddedImages());
+				.withEmbeddedImages(embeddedImages);
 	}
 
 	private static String plainTextForReply(final Email original) {
