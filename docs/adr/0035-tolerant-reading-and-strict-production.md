@@ -4,6 +4,23 @@
 - Decision recorded: 2026-10-17; records the maintainer's established import philosophy, not an invented original decision date
 - Applies to: Inbound MIME, EML and Outlook conversion, interpreted source facts, and their boundary with outbound production
 
+### Missing Outlook attachment types (accepted 1 November 2026)
+
+An Outlook attachment with readable binary content remains importable when neither a MIME type nor either filename property is available.
+At the SJM import boundary, use `application/octet-stream` only when the specialist importer supplies no usable type. Preserve supplied or
+filename-inferred types, content bytes, existing missing-name/CID fallbacks, attachment classification and ownership. The same rule applies
+to an inline CID resource whose type cannot be inferred. Strict outgoing attachment construction retains its required MIME-type contract.
+This narrow recovery is accepted under [#946](https://github.com/bbottema/simple-java-mail/issues/946) for unreleased 10.0.0; the issue tracks delivery.
+
+### Ordered Outlook receipt occurrences (accepted 1 November 2026)
+
+Interpret `Return-Receipt-To` and `Disposition-Notification-To` occurrences in their raw MSG header order even when capitalization is
+interleaved. Preserve destination order, duplicates, names and existing malformed/empty/null-path recovery. The specialist importer's
+case-sensitive grouped map must not reorder these typed receipt facts. Use the existing raw-header representation when available while
+retaining the established fallback for sources without it. Broader generic-header ordering remains outside this clarification.
+This applies the Outlook receipt-parity decision below under [#812](https://github.com/bbottema/simple-java-mail/issues/812) for unreleased 10.0.0;
+the issue tracks delivery. Copying, serialization and resource ownership retain ADR 0036's contracts.
+
 ## Context and decision drivers
 
 Applications import mail produced by other software, not only by Simple Java Mail. Outlook sources, archived EML and received headers can be

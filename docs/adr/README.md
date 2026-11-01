@@ -181,6 +181,11 @@ Both corrections are implemented for unreleased 10.0.0; their issues record deve
 
 ## Find documentation by topic
 
+The 1 November review accepted [missing Outlook attachment-type recovery](0035-tolerant-reading-and-strict-production.md#missing-outlook-attachment-types-accepted-1-november-2026)
+under [#946](https://github.com/bbottema/simple-java-mail/issues/946), [finalized S/MIME body encodings](0007-provider-neutral-mime-boundary.md#finalized-smime-body-encodings-accepted-1-november-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and [ordered Outlook receipt occurrences](0035-tolerant-reading-and-strict-production.md#ordered-outlook-receipt-occurrences-accepted-1-november-2026)
+under [#812](https://github.com/bbottema/simple-java-mail/issues/812). These decisions target unreleased 10.0.0; their issues track delivery.
+
 This index replaces the retired mechanisms catalog. Architectural choices and constraints live in the records; build procedures, implementation checklists, and detailed state transitions live in the guides linked from the [contributor and maintainer entry](../CONTRIBUTING.md). One mechanism can embody several decisions, so shared decisions are linked rather than duplicated.
 
 | Topic | Architectural decisions and supporting documentation |

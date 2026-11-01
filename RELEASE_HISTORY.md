@@ -123,6 +123,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#946](https://github.com/bbottema/simple-java-mail/issues/946): readable MSG attachments without a MIME type or usable filename retain their content with an `application/octet-stream` fallback instead of aborting the import.
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): S/MIME retains selected body transfer encodings and finalized content headers for single-part messages, consistently with multipart content.
+- [#812](https://github.com/bbottema/simple-java-mail/issues/812): Outlook receipt destinations retain raw source order and duplicates across interleaved capitalization of repeated receipt headers.
+
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP receive inspection requires an actual encrypted layer before reporting successful decryption. An unencrypted packet inside an encrypted MIME wrapper retains failed-decryption facts and its original representation.
 - [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI filesystem images use the requesting command's directory for explicit relative bases and no-base sources, while configured bases retain their configuration directory.
 - [#755](https://github.com/bbottema/simple-java-mail/issues/755): failed and skipped connection history respects explicit provider-visible port values, including typed direct values above inherited defaults.

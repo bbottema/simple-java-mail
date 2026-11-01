@@ -15,6 +15,10 @@ Keep the Email model separate from wire encoding. Choose the least complex MIME 
 
 Finalize the ordinary MIME entity, then apply **either S/MIME or OpenPGP/MIME**, signing before encryption within that family, and apply DKIM last. The builder rejects simultaneous outbound S/MIME and OpenPGP configuration. The sequential checks inside the producer are not an API promise to support both families on one composed message.
 
+The [finalized S/MIME body-encoding clarification](0007-provider-neutral-mime-boundary.md#finalized-smime-body-encodings-accepted-1-november-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704) preserves relevant content headers when the ordinary entity becomes an S/MIME
+body part. A selected body encoding must not depend on whether that content was the message root or already a multipart child.
+
 Clarification accepted 2026-10-21: recipient certificates remain active S/MIME encryption requests, including certificates supplied through
 recipient-group policies. A composed Email build rejects their combination with outbound OpenPGP signing or encryption, just as it rejects
 conflicting email-level protection choices. Check the stored choices without cryptographic work or content reads, and explain the conflicting

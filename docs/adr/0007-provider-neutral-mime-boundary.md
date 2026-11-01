@@ -32,6 +32,16 @@ Exactly one supporting adapter may handle a transport. Ambiguity fails before su
 transport-only boundary. Adapters must explicitly honor or reject a requested choice; it does not change MIME authority, adapter discovery
 or transport lifecycle ownership. No shared Session mutation or copied SMTP state machine is authorized.
 
+### Finalized S/MIME body encodings (accepted 1 November 2026)
+
+Moving a finalized single-part MIME message into S/MIME input preserves the content entity's relevant MIME headers, including its selected
+`Content-Transfer-Encoding`. Signing, encryption and combined protection must not discard that selection by reconstructing decoded content
+and choosing a new encoding. The same body choice has the same meaning whether it is the ordinary message root or a child of a multipart.
+Keep existing defaults, canonicalization, content ownership and protection ordering; this does not assert identity with arbitrary original
+source bytes. Any internal content-handler adaptation retains source-specific codecs and original I/O failures without mutating the source
+handler's configuration or reporting unreadable borrowed content as successful protection. This clarification of the finalized-content boundary is accepted under
+[#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0; the issue tracks delivery.
+
 ### Provider discovery lifetime (#749)
 
 Discover submission, lifecycle and probe adapter factories once per thread-context class loader. Keep the factory list, not a shared `ServiceLoader` or adapter instance: every operation still constructs its own adapters and checks the actual transport or provider. Abort actions and send state remain operation-owned. Discovery failures are retried, and constructor failures do not poison the factory list. JPMS provider methods remain supported alongside classpath constructors.
