@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#713](https://github.com/bbottema/simple-java-mail/issues/713): exact EML construction automatically fills existing S/MIME and OpenPGP inspection results with established facts or UNKNOWN. Missing optional modules do not by themselves prevent relay from the original EML; the original parsed content view and authoritative bytes remain unchanged.
+
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): simple batches observe known cancellation or deadline expiry before entering another lazy-source callback. Completed email outcomes remain intact; cancellation from the final email's observer still cancels the batch without probing for exhaustion.
 
 - [#755](https://github.com/bbottema/simple-java-mail/issues/755): managed Angus setup outages during SMTP authentication can use ordinary connection failover. Genuine credential rejection and certificate failures retain their independent permissions.

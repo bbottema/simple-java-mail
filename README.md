@@ -400,7 +400,13 @@ Email email = mail.emailBuilder()
 MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 ```
 
-The result remains an ordinary `Email`, so all getters and all existing send methods still apply. Its getters are a parsed view; sending, conversion, and rehearsal use the copied input bytes unchanged. Exact mode therefore bypasses defaults, overrides, composed-content validation, embedded-image resolution, MIME rebuilding, and cryptographic processing. It also retains headers normally removed during submission—including `Bcc`, `Resent-Bcc`, and `Content-Length`—so supply an already safe outbound message and always provide the real SMTP-envelope recipients separately. Copying this `Email` through the normal builder intentionally returns to composed-email behavior.
+The result remains an ordinary `Email`, so all getters and all existing send methods still apply. Its body and header getters keep the original parsed view; sending, conversion, and rehearsal use the copied input bytes unchanged. Exact mode bypasses defaults, overrides, composed-content validation, embedded-image resolution, MIME rebuilding, and outgoing signing or encryption.
+
+The existing S/MIME and OpenPGP getters automatically report protection facts established during construction. Unavailable or inconclusive inspection leaves unestablished results `UNKNOWN`; precise results that were established remain available. When constructing from the original EML, missing optional modules do not by themselves prevent relay. This inspection neither opens a new editable content view nor changes the authoritative EML; use ordinary conversion when supplying receive keys or reading unwrapped content.
+
+A Java snapshot still needs the classes and modules stored in its object graph when restored. S/MIME inspection results produced by the optional module can require that module's result classes. Retain the original EML for relay independently of those optional-module classes.
+
+Exact mode also retains headers normally removed during submission—including `Bcc`, `Resent-Bcc`, and `Content-Length`—so supply an already safe outbound message and always provide the real SMTP-envelope recipients separately. Copying this `Email` through the normal builder intentionally returns to composed-email behavior.
 
 Exact EML must be non-empty, parseable, use canonical CRLF line endings, and end in CRLF. A missing Message-ID remains missing. The bundled Angus adapter supports full-byte preservation; another transport adapter must opt in explicitly. See the [exact EML guide](https://www.simplejavamail.org/features.html#section-exact-eml) and the manually runnable [file submission demo](modules/simple-java-mail/src/test/java/demo/ExactEmlSendDemoApp.java).
 

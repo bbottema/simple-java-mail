@@ -77,6 +77,11 @@ The 1 November [batch-source cancellation clarification](0017-deadlines-and-phys
 Completed email outcomes remain intact, while cancellation from the final observer cancels the batch without an exhaustion probe.
 It targets unreleased 10.0.0 and retains cooperative limits for callbacks already running.
 
+The 1 November [exact EML inspection clarification](0013-exact-eml-submission.md) under
+[#713](https://github.com/bbottema/simple-java-mail/issues/713) automatically populates existing protection getters with established facts
+or UNKNOWN under [ADR 0008](0008-minimal-mime-structures-and-protection-order.md). Read-only incoming inspection leaves the original parsed
+view and authoritative bytes unchanged; outgoing transformations remain bypassed. It targets unreleased 10.0.0.
+
 The 31 October follow-up extends [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026)
 with atomic file replacement under #926: a failed read, preparation or close keeps the builder's earlier configuration.
 
