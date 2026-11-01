@@ -353,7 +353,7 @@ class SmtpsOAuth2Test {
                 .withSubject("Loopback implicit TLS OAuth2").withPlainText("Synthetic local SMTP fixture.").buildEmail();
     }
 
-    private static void establishTls(final SmtpConversation peer, final String name) throws Exception {
+    static void establishTls(final SmtpConversation peer, final String name) throws Exception {
         if (name.startsWith("SMTPS")) {
             peer.upgradeToTls();
             peer.greet(EHLO);
@@ -370,7 +370,7 @@ class SmtpsOAuth2Test {
         peer.reply("235 authenticated");
     }
 
-    private static void acceptMessage(final SmtpConversation peer) throws IOException {
+    static void acceptMessage(final SmtpConversation peer) throws IOException {
         expect(peer, "MAIL FROM:<sender@example.test>");
         peer.reply("250 sender accepted");
         peer.expect("RCPT TO:<recipient@example.test>");
@@ -386,7 +386,7 @@ class SmtpsOAuth2Test {
         peer.reply("250 2.0.0 accepted");
     }
 
-    private static void quit(final SmtpConversation peer) throws IOException {
+    static void quit(final SmtpConversation peer) throws IOException {
         expect(peer, "QUIT");
         peer.reply("221 bye");
         peer.expectClosed();
@@ -399,14 +399,14 @@ class SmtpsOAuth2Test {
     }
 
     @FunctionalInterface
-    private interface Script { void run(SmtpConversation peer) throws Exception; }
+    interface Script { void run(SmtpConversation peer) throws Exception; }
 
-    private static final class Peer implements AutoCloseable {
+    static final class Peer implements AutoCloseable {
         private final ServerSocket server;
         private final ExecutorService executor = Executors.newSingleThreadExecutor();
         private final CompletableFuture<Void> completion;
 
-        private Peer(final String host, final int connections, final Script script) throws IOException {
+        Peer(final String host, final int connections, final Script script) throws IOException {
             server = new ServerSocket(0, 4, InetAddress.getByName(host));
             server.setSoTimeout(10000);
             completion = CompletableFuture.runAsync(() -> {
@@ -418,7 +418,7 @@ class SmtpsOAuth2Test {
             }, executor);
         }
 
-        private int port() { return server.getLocalPort(); }
+        int port() { return server.getLocalPort(); }
 
         public void close() throws Exception {
             try { completion.get(15, SECONDS); }

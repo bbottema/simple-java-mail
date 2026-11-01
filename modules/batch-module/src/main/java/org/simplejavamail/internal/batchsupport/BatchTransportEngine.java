@@ -415,7 +415,7 @@ public final class BatchTransportEngine<K> {
 
 	private static void bridgeOAuth2Properties(final Session session) {
 		final Properties properties = session.getProperties();
-		if (properties.containsKey(OAUTH2_TOKEN_PROPERTY)) {
+		if (properties.getProperty(OAUTH2_TOKEN_PROPERTY) != null) {
 			properties.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY, properties.getProperty(OAUTH2_TOKEN_PROPERTY));
 		}
 		if (properties.containsKey(OAUTH2_TOKEN_PROVIDER_PROPERTY)) {

@@ -167,3 +167,16 @@ The plan certifies checks possible from captured input. Session ownership can ch
 pool/allowance state remains live. Keep atomic registration, post-initialization/selected-pool verification, cleanup and rollback. Type boundaries
 enforce phase order and construction inputs; behavioral contracts establish interpretation and constraint completeness. Simple scalar consumers
 such as subject selection retain direct resolution without a synthetic construction lifecycle.
+
+### Inherited fixed OAuth2 token activation (accepted 1 November 2026)
+
+Apply the provider-visible String interpretation to fixed-token activation when opening a transport, consistently with credential validation
+and token resolution. A token inherited through a supplied Session's `Properties` defaults, including one behind an opaque direct entry,
+remains visible without adding or replacing the direct `simplejavamail.oauth2.token` entry. Direct connections and the optional pool's
+credential bridge use this same visibility, including sending, connection checks and authenticated probes. Existing pool-owned credential
+aliases keep their separate role. The normal builder and direct-token paths retain their existing behavior.
+
+The callback-provider slot remains a direct-entry object lookup, with lazy invocation and its existing validation and failure contracts.
+Do not render, replace or remove opaque entries, flatten caller defaults, or change authentication mechanisms, precedence or TLS choices.
+This correction adds no public API or setting. [#938](https://github.com/bbottema/simple-java-mail/issues/938) tracks the change for 10.0.0;
+it completes the String-versus-resource interpretation shared with [ADR 0038](0038-connection-configuration-conflicts.md).

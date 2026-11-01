@@ -38,7 +38,7 @@ public class TransportConnectionHelper {
     }
 
 	private static boolean usesOAuth2Authentication(final Session session) {
-		return session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY)
+		return session.getProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY) != null
 				|| session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY);
 	}
 
