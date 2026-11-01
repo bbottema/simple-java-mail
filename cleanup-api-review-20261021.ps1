@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-readable-reply-20261101'
     '.local/review-cleanup-cancel-20261101'
     '.local/review-selected-20261101'
     '.local/review-wide-repairs-20261101'
@@ -123,6 +124,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/950-readable-reply-20261101.md'
     'docs/plans/949-late-cancellation-cleanup-20261101.md'
     'docs/plans/selected-review-repairs-20261101.md'
     'docs/plans/wide-review-repairs-20261101.md'
@@ -559,4 +561,16 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-clean
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md', 'Remove retired late-cancellation review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\949-late-cancellation-cleanup-20261101.md' -Force
+}
+
+# Readable-reply review task-owned paths (#950); remove after delivery.
+# Keep these exact paths in the guarded allowlists above as well.
+# The website export moves from simplejavamail.org/.local/950-readable-reply-website into this task's scratch directory.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-readable-reply-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-readable-reply-20261101', 'Remove readable-reply review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-readable-reply-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md', 'Remove retired readable-reply review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md' -Force
 }
