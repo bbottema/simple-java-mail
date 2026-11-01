@@ -90,7 +90,6 @@ import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
-import static org.simplejavamail.internal.util.MiscUtil.tryResolveImageFileDataSourceFromDisk;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveUrlDataSource;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
@@ -649,7 +648,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		try {
 			DataSource resolvedDataSource = null;
 			if (embeddedImageAutoResolutionForFiles) {
-				resolvedDataSource = tryResolveImageFileDataSourceFromDisk(embeddedImageBaseDir, allowEmbeddedImageOutsideBaseDir, srcLocation);
+				final boolean configuredBase = !imageResolutionConfig.isEmbeddedImageBaseDirConfigured()
+						|| locksOf(config).contains(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR);
+				resolvedDataSource = ImageFileResolutionContext.resolveFile(embeddedImageBaseDir, allowEmbeddedImageOutsideBaseDir,
+						srcLocation, configuredBase);
 			}
 			if (resolvedDataSource == null && embeddedImageAutoResolutionForClassPathResources) {
 				resolvedDataSource = tryResolveFileDataSourceFromClassPath(embeddedImageBaseClassPath, allowEmbeddedImageOutsideBaseClassPath, srcLocation);

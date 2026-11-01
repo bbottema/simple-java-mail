@@ -246,15 +246,24 @@ public final class MiscUtil {
 
 	@Nullable
 	public static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final boolean allowOutsideBaseDir, final @NotNull String srcLocation) {
+		return tryResolveImageFileDataSourceFromDisk(baseDir, allowOutsideBaseDir, srcLocation, null, null);
+	}
+
+	/** Internal filesystem adapter: relative bases and standalone sources can belong to different operation directories. */
+	@Nullable
+	public static DataSource tryResolveImageFileDataSourceFromDisk(final @Nullable String baseDir, final boolean allowOutsideBaseDir,
+			final @NotNull String srcLocation, @Nullable final Path baseDirectory, @Nullable final Path sourceDirectory) {
 		if (baseDir == null) {
-			return tryLoadingFromDiskWithoutBase(srcLocation);
+			return tryLoadingFromDiskWithoutBase(srcLocation, sourceDirectory);
 		}
 
 		try {
-			final Path configuredBasePath = Paths.get(baseDir).toAbsolutePath().normalize();
+			final Path configuredBasePath = (baseDirectory == null ? Paths.get(baseDir) : baseDirectory.resolve(baseDir))
+					.toAbsolutePath().normalize();
 			final Path realBasePath = configuredBasePath.toRealPath();
 			final Path configuredSourcePath = Paths.get(srcLocation);
-			final Path directSourcePath = configuredSourcePath.toAbsolutePath().normalize();
+			final Path directSourcePath = (sourceDirectory == null ? configuredSourcePath : sourceDirectory.resolve(configuredSourcePath))
+					.toAbsolutePath().normalize();
 			final Path sourcePath;
 
 			if (configuredSourcePath.isAbsolute() || directSourcePath.startsWith(configuredBasePath)) {
@@ -269,7 +278,7 @@ public final class MiscUtil {
 			}
 			return dataSource;
 		} catch (IOException | InvalidPathException e) {
-			return allowOutsideBaseDir ? tryLoadingFromDiskWithoutBase(srcLocation) : null;
+			return allowOutsideBaseDir ? tryLoadingFromDiskWithoutBase(srcLocation, sourceDirectory) : null;
 		}
 	}
 
@@ -342,7 +351,14 @@ public final class MiscUtil {
 	}
 
 	@Nullable
-	private static DataSource tryLoadingFromDiskWithoutBase(@NotNull final String srcLocation) {
+	private static DataSource tryLoadingFromDiskWithoutBase(@NotNull final String srcLocation, @Nullable final Path sourceDirectory) {
+		if (sourceDirectory != null) {
+			try {
+				return tryLoadingFromDisk(sourceDirectory.resolve(srcLocation).toFile());
+			} catch (InvalidPathException notAFilePath) {
+				return null;
+			}
+		}
 		DataSource dataSource = tryLoadingFromDisk(new File(srcLocation));
 		if (dataSource == null) {
 			dataSource = tryLoadingFromDisk(new File(".", srcLocation));

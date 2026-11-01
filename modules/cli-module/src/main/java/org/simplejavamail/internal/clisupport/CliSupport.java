@@ -2,6 +2,7 @@ package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
+import org.simplejavamail.email.internal.ImageFileResolutionContext;
 import org.simplejavamail.internal.clisupport.daemon.ArgumentFileExpander;
 import org.simplejavamail.internal.clisupport.serialization.CliMetadataCache;
 import org.simplejavamail.internal.clisupport.serialization.SerializationUtil;
@@ -108,7 +109,8 @@ public final class CliSupport {
 				} catch (RuntimeException e) {
 					return failure(CliExitCode.COMMAND_FAILED, e, stdout, stderr);
 				}
-				try {
+				try (ImageFileResolutionContext imageDirectories = ImageFileResolutionContext.install(workingDirectory,
+						environment.configurationWorkingDirectory())) {
 					final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
 					commandExecutionStarted = true;
 					final CliExitCode category = CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey, out);
