@@ -59,6 +59,10 @@ under [#935](https://github.com/bbottema/simple-java-mail/issues/935), keeps sig
 under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and limits named CLI security-file reads to the [selected failover route](0019-local-cli-daemon.md#selected-named-mailer-profiles-accepted-31-october-2026)
 under [#488](https://github.com/bbottema/simple-java-mail/issues/488). These corrections target unreleased 10.0.0; their issues track delivery.
 
+The [inherited fixed OAuth2 token clarification](0039-explicit-configuration-resolution.md#inherited-fixed-oauth2-token-activation-accepted-1-november-2026)
+accepted on 1 November under [#938](https://github.com/bbottema/simple-java-mail/issues/938) carries provider-visible String lookup through
+connection activation. Supplied property defaults remain intact and token-provider objects retain their direct, lazy lookup. It targets unreleased 10.0.0.
+
 The 31 October follow-up extends [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026)
 with atomic file replacement under #926: a failed read, preparation or close keeps the builder's earlier configuration.
 
