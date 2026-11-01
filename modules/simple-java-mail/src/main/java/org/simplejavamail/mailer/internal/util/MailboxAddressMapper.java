@@ -12,10 +12,10 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Maps Jakarta Mail address objects to the mailbox-only representation exposed by provider-neutral APIs.
+ * Turns the addresses passed to a transport into strings for inspection. A named group remains one entry;
+ * this mapper does not expand it into its members.
  * <p>
- * Submission receipts omit unresolved provider facts so a malformed address supplied by an adapter cannot mask the original submission failure.
- * Rehearsals use {@link #requireMailboxAddresses(Address[])} because their envelope-recipient snapshot must be complete.
+ * Rehearsals use {@link #requireMailboxAddresses(Address[])} so every supplied address has an entry in the result.
  */
 public final class MailboxAddressMapper {
 
@@ -23,7 +23,7 @@ public final class MailboxAddressMapper {
 	}
 
 	/**
-	 * @return Resolved mailbox addresses in input order, omitting null or otherwise unresolved entries.
+	 * @return The address strings in input order. Null addresses and null address values are omitted; groups remain one entry.
 	 */
 	@NotNull
 	public static List<String> toMailboxAddresses(@NotNull final Address[] addresses) {
@@ -38,8 +38,8 @@ public final class MailboxAddressMapper {
 	}
 
 	/**
-	 * @return Every resolved mailbox address in input order.
-	 * @throws MessagingException When any input entry has no mailbox representation.
+	 * @return Every address string in input order, with each group kept as one entry.
+	 * @throws MessagingException When an input address or its string value is null.
 	 */
 	@NotNull
 	public static List<String> requireMailboxAddresses(@NotNull final Address[] addresses) throws MessagingException {

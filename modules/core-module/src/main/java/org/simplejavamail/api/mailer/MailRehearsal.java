@@ -50,7 +50,9 @@ public interface MailRehearsal extends Serializable {
 	String getEnvelopeSender();
 
 	/**
-	 * @return The immutable, ordered mailbox addresses that would be supplied to the transport. Override receivers replace the MIME recipients here.
+	 * @return The addresses this Mailer would pass to the mail transport, in order. A named group can appear as one entry, so counting entries
+	 * won't always tell you how many mailboxes will receive the message. If you set override receivers, you'll see those here instead of the
+	 * recipients from the message headers. You cannot change the returned list.
 	 */
 	@NotNull
 	List<String> getEnvelopeRecipients();

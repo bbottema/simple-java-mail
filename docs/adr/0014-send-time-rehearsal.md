@@ -39,6 +39,17 @@ Exact EML retains its separate strict envelope validation and authoritative byte
 [#908](https://github.com/bbottema/simple-java-mail/issues/908) tracks this correction for unreleased 10.0.0. [ADR 0002](0002-email-defaults-and-overrides.md)
 continues owning the templates and copied delivery choices; [ADR 0013](0013-exact-eml-submission.md) owns the exact-source boundary.
 
+### Recipient addresses in a rehearsal (accepted 1 November 2026)
+
+The rehearsal's recipient list shows the addresses this Mailer would pass to the mail transport, in order. A named group in a raw To, Cc or Bcc
+header can remain one entry, so counting entries does not always count individual mailboxes. Ordinary recipient conveniences already expand
+group members. If override receivers are supplied, the list shows those instead of the recipients from the message headers. The returned list
+cannot be changed.
+
+Document this existing behavior without adding group expansion to the getter or changing preparation and sending. Rehearsal describes local
+preparation before the transport handles those addresses. Explicit support for preserving named RFC groups remains separate research under
+[#727](https://github.com/bbottema/simple-java-mail/issues/727). This clarification applies to both rehearsal modes in unreleased 10.0.0.
+
 ## Recorded rationale and evidence
 
 - [#451](https://github.com/bbottema/simple-java-mail/issues/451), 2023, moved defaults and overrides to Mailer governance to support different server policies and avoid repeated expensive preparation at ordinary Email construction. This explains why validation of the raw draft is insufficient; it is not a historical claim that rehearsal already existed then.

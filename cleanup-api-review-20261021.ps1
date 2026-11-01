@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-rehearsal-wording-20261101'
     '.local/cli-metadata-workflow-20261101'
     '.local/review-html-boundaries-20261101'
     '.local/review-unused-defaults-20261101'
@@ -615,4 +616,11 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\cli-metadata
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md', 'Remove retired CLI metadata workflow plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\cli-metadata-build-cache-20261101.md' -Force
+}
+
+# Rehearsal recipient wording review scratch; remove after delivery.
+# The website export moves from simplejavamail.org/.local/rehearsal-wording-20261101 into this task's scratch directory.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101', 'Remove rehearsal recipient wording scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101' -Recurse -Force
 }
