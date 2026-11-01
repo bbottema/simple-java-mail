@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-wide-repairs-20261101'
     '.local/exact-eml-inspection-20261101'
     '.local/batch-cancel-boundary-20261101'
     '.local/review-accepted-20261101'
@@ -120,6 +121,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/wide-review-repairs-20261101.md'
     'docs/plans/exact-eml-inspection-20261101.md'
     'docs/plans/batch-cancel-boundary-20261101.md'
     'docs/plans/accepted-review-20261101.md'
@@ -519,4 +521,14 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\exact-eml-in
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md', 'Remove retired exact EML inspection plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\exact-eml-inspection-20261101.md' -Force
+}
+
+# Wide review delivery is complete; these exact task-owned paths await manual disposal.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-wide-repairs-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-wide-repairs-20261101', 'Remove completed wide review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-wide-repairs-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\wide-review-repairs-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\wide-review-repairs-20261101.md', 'Remove retired wide review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\wide-review-repairs-20261101.md' -Force
 }
