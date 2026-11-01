@@ -533,18 +533,20 @@ public class SMIMESupport implements SMIMEModule {
 	}
 
 	private static int bodyOffset(final byte[] serialized) throws MessagingException {
-		for (int i = 0; i <= serialized.length - 4; i++) {
-			if (serialized[i] == '\r' && serialized[i + 1] == '\n'
-					&& serialized[i + 2] == '\r' && serialized[i + 3] == '\n') {
-				return i + 4;
-			}
-		}
-		for (int i = 0; i <= serialized.length - 2; i++) {
-			if (serialized[i] == '\n' && serialized[i + 1] == '\n') {
-				return i + 2;
+		for (int i = 0; i < serialized.length; i++) {
+			final int firstLineEnding = lineEndingLength(serialized, i);
+			final int secondLineEnding = lineEndingLength(serialized, i + firstLineEnding);
+			if (firstLineEnding > 0 && secondLineEnding > 0) {
+				return i + firstLineEnding + secondLineEnding;
 			}
 		}
 		throw new MessagingException("S/MIME message has no header/body separator");
+	}
+
+	private static int lineEndingLength(final byte[] bytes, final int offset) {
+		if (offset >= bytes.length) return 0;
+		if (bytes[offset] == '\n') return 1;
+		return bytes[offset] == '\r' && offset + 1 < bytes.length && bytes[offset + 1] == '\n' ? 2 : 0;
 	}
 
 	private static boolean isEncrypted(@NotNull final MimeMessage message) {
