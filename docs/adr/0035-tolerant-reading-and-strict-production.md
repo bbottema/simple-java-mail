@@ -212,6 +212,17 @@ Outgoing composition, send-time validation, injection checks, transport requirem
 contracts. Successful import does not promise successful sending. Exact submission is a preservation mode, not permission to repair or weaken its byte
 or transport-safety requirements. Retain existing resource/size bounds; reading tolerantly does not authorize unbounded work on hostile input.
 
+### First protected MIME header boundary (accepted 1 November 2026)
+
+When the OpenPGP byte-oriented helper separates a message's headers from its body, use the first empty header line made from the supported
+CRLF or LF endings. Each of the two line endings may use either spelling. An earlier LF or mixed separator must not be displaced by a later
+CRLF separator inside a nested MIME part. The same rule applies when separating a recovered content entity during unwrapping.
+
+This interprets the header boundary consistently with the tolerated input parser; it does not rewrite retained protected bytes, change
+cryptographic verification or transfer decoding, or add support for arbitrary malformed or CR-only MIME. Exact EML submission retains its
+canonical-CRLF restrictions under [ADR 0013](0013-exact-eml-submission.md). The correction targets unreleased 10.0.0 under
+[#704](https://github.com/bbottema/simple-java-mail/issues/704).
+
 ## Alternatives considered
 
 | Alternative | Benefit | Reason not selected |

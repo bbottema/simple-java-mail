@@ -242,19 +242,24 @@ final class MimeEntitySupport {
     }
 
     private static int findHeaderSeparator(final byte[] bytes) {
-        for (int i = 0; i <= bytes.length - 4; i++) {
-            if (bytes[i] == '\r' && bytes[i + 1] == '\n' && bytes[i + 2] == '\r' && bytes[i + 3] == '\n') {
+        for (int i = 0; i < bytes.length; i++) {
+            final int firstLineEnding = lineEndingLength(bytes, i);
+            if (firstLineEnding > 0 && lineEndingLength(bytes, i + firstLineEnding) > 0) {
                 return i;
             }
-        }
-        for (int i = 0; i <= bytes.length - 2; i++) {
-            if (bytes[i] == '\n' && bytes[i + 1] == '\n') return i;
         }
         return -1;
     }
 
     private static int separatorLength(final byte[] bytes, final int offset) {
-        return offset + 3 < bytes.length && bytes[offset] == '\r' ? 4 : 2;
+        final int firstLineEnding = lineEndingLength(bytes, offset);
+        return firstLineEnding + lineEndingLength(bytes, offset + firstLineEnding);
+    }
+
+    private static int lineEndingLength(final byte[] bytes, final int offset) {
+        if (offset >= bytes.length) return 0;
+        if (bytes[offset] == '\n') return 1;
+        return bytes[offset] == '\r' && offset + 1 < bytes.length && bytes[offset + 1] == '\n' ? 2 : 0;
     }
 
     private static int afterLine(final byte[] bytes, final int from) {
