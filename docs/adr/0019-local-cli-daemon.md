@@ -34,7 +34,8 @@ Lease Mailers from a bounded registry keyed by the captured immutable configurat
 The [effective-default fingerprint clarification](0039-explicit-configuration-resolution.md#cli-fingerprints-follow-default-selection-accepted-1-november-2026)
 accepted under [#488](https://github.com/bbottema/simple-java-mail/issues/488) limits security-file reads to material consumed by the selected
 default policy or mandatory requirements. Disabled ordinary defaults must not make an unused file block a command or invalidate a retained Mailer.
-Ordered restoration, independent selected named-Mailer defaults and lock enforcement retain their existing meaning. Implementation remains pending.
+Ordered restoration, independent selected named-Mailer defaults and lock enforcement retain their existing meaning. The correction is implemented
+for unreleased 10.0.0; the issue tracks delivery.
 
 Bound connections, workers, queued requests, Mailer entries and retained result bytes/time. Register each request identity before executing it. While its ledger entry is retained, the same UUID and content retrieves or attaches to the original result; changed content under that UUID is rejected. Under output pressure, replace old result bodies with lightweight ambiguous-result tombstones rather than executing again. Retain tombstones across the authentication freshness window.
 

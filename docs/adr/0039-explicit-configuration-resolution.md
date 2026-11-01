@@ -4,7 +4,7 @@
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
 - Implementation status: Complete layered adoption and the accepted 2026-10-26 logical-identity/whole-Mailer construction extension are implemented for unreleased 10.0.0 under #867.
-- Follow-up: CLI default-file fingerprint eligibility is accepted under [#488](https://github.com/bbottema/simple-java-mail/issues/488); implementation remains pending.
+- Follow-up: CLI default-file fingerprint eligibility is implemented for unreleased 10.0.0 under [#488](https://github.com/bbottema/simple-java-mail/issues/488); the issue tracks delivery.
 
 ## Context
 
@@ -193,4 +193,5 @@ Preserve reads and content identity for active material and requirements still d
 does not suppress a selected named Mailer's independently resolved defaults. One-shot and daemon commands share the rule, with existing
 configuration-directory ownership, path/inline-data interpretation, named-route selection, redacted identity and actual construction validation
 unchanged. This clarifies reuse-profile eligibility rather than changing security policy, source precedence, public APIs or configuration keys.
-The maintainer accepted the behavior under [#488](https://github.com/bbottema/simple-java-mail/issues/488); design is recorded and execution remains pending.
+The maintainer accepted the behavior under [#488](https://github.com/bbottema/simple-java-mail/issues/488). It is implemented for unreleased 10.0.0;
+the issue tracks delivery.

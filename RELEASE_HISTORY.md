@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles skip security-file reads for disabled ordinary Email defaults. Active defaults, ordered restoration, selected named routes and mandatory locked material retain their fingerprints and enforcement.
+
 - [#950](https://github.com/bbottema/simple-java-mail/issues/950): composed Email reply/reply-all starters quote represented readable content without applying outgoing protection first. Original and reply protection still apply through normal conversion and sending, with reply routing and referenced resources retained.
 
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): late cancellation or deadline expiry no longer hides an independent connection cleanup failure after SMTP acceptance. Original causes and accepted receipt facts remain available.
