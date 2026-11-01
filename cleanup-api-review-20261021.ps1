@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-unused-defaults-20261101'
     '.local/review-readable-reply-20261101'
     '.local/review-cleanup-cancel-20261101'
     '.local/review-selected-20261101'
@@ -124,6 +125,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/951-cli-unused-default-files-20261101.md'
     'docs/plans/950-readable-reply-20261101.md'
     'docs/plans/949-late-cancellation-cleanup-20261101.md'
     'docs/plans/selected-review-repairs-20261101.md'
@@ -573,4 +575,16 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-reada
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md', 'Remove retired readable-reply review plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\950-readable-reply-20261101.md' -Force
+}
+
+# Unused-default-file review task-owned paths (#951); remove after delivery.
+# Keep these exact paths in the guarded allowlists above as well.
+# The website export moves from simplejavamail.org/.local/951-unused-defaults-website into this task's scratch directory.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-unused-defaults-20261101') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-unused-defaults-20261101', 'Remove unused-default-file review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-unused-defaults-20261101' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\951-cli-unused-default-files-20261101.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\951-cli-unused-default-files-20261101.md', 'Remove retired unused-default-file review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\951-cli-unused-default-files-20261101.md' -Force
 }
