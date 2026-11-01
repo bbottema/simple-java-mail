@@ -123,7 +123,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
-- [#938](https://github.com/bbottema/simple-java-mail/issues/938): sending, connection tests and authenticated probes honor fixed OAuth2 tokens inherited through a supplied Session's property defaults. The inherited token stays in its original location; direct tokens and lazy token providers retain their behavior.
+- [#938](https://github.com/bbottema/simple-java-mail/issues/938): sending, connection tests and authenticated probes honor fixed OAuth2 tokens inherited through a supplied Session's property defaults. The direct `simplejavamail.oauth2.token` entry and caller defaults remain intact; direct tokens and lazy token providers retain their behavior.
 
 - [#935](https://github.com/bbottema/simple-java-mail/issues/935): MIME and EML import preserve explicitly empty plain-text and HTML bodies as empty strings. Missing alternatives remain null, so ordinary defaults no longer replace a source's present-empty body.
 - [#704](https://github.com/bbottema/simple-java-mail/issues/704): successful outer S/MIME decryption retains unknown signature verification when the revealed content is another unopened encrypted entity. The established outer decryption result remains available.
