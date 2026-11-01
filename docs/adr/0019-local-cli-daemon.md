@@ -31,6 +31,11 @@ started elsewhere must not substitute a same-named file from its own directory. 
 
 Lease Mailers from a bounded registry keyed by the captured immutable configuration and converted Mailer options. Secret and security-file values affect compatibility, but retained keys are daemon-keyed HMACs rather than plaintext configurations or reusable unkeyed credential hashes. Unknown mutable inputs receive unique profiles. Compatible commands may share a Mailer; changing SMTP, credential, proxy, trust or pool inputs prevents reuse. Remove retired entries before closing them exactly once. Retain SMTP connections only through the optional batch module.
 
+The [effective-default fingerprint clarification](0039-explicit-configuration-resolution.md#cli-fingerprints-follow-default-selection-accepted-1-november-2026)
+accepted under [#488](https://github.com/bbottema/simple-java-mail/issues/488) limits security-file reads to material consumed by the selected
+default policy or mandatory requirements. Disabled ordinary defaults must not make an unused file block a command or invalidate a retained Mailer.
+Ordered restoration, independent selected named-Mailer defaults and lock enforcement retain their existing meaning. Implementation remains pending.
+
 Bound connections, workers, queued requests, Mailer entries and retained result bytes/time. Register each request identity before executing it. While its ledger entry is retained, the same UUID and content retrieves or attaches to the original result; changed content under that UUID is rejected. Under output pressure, replace old result bodies with lightweight ambiguous-result tombstones rather than executing again. Retain tombstones across the authentication freshness window.
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.

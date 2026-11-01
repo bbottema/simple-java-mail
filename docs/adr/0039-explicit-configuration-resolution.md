@@ -4,6 +4,7 @@
 - Target: Unreleased 10.0.0
 - Tracking: [#867](https://github.com/bbottema/simple-java-mail/issues/867)
 - Implementation status: Complete layered adoption and the accepted 2026-10-26 logical-identity/whole-Mailer construction extension are implemented for unreleased 10.0.0 under #867.
+- Follow-up: CLI default-file fingerprint eligibility is accepted under [#488](https://github.com/bbottema/simple-java-mail/issues/488); implementation remains pending.
 
 ## Context
 
@@ -180,3 +181,16 @@ The callback-provider slot remains a direct-entry object lookup, with lazy invoc
 Do not render, replace or remove opaque entries, flatten caller defaults, or change authentication mechanisms, precedence or TLS choices.
 This correction adds no public API or setting. [#938](https://github.com/bbottema/simple-java-mail/issues/938) tracks the change for 10.0.0;
 it completes the String-versus-resource interpretation shared with [ADR 0038](0038-connection-configuration-conflicts.md).
+
+### CLI fingerprints follow default selection (accepted 1 November 2026)
+
+The CLI's reuse identity must respect the same effective Email-default selection as Mailer construction. When an explicit replacement or
+`withoutEmailDefaults()` makes ordinary configured security material unused, profile generation must not read those files or treat their
+content rotation as a compatibility change. Existing ordered restoration remains meaningful: the CLI's `clearEmailDefaults` adapter restores
+the captured defaults, corresponding to Java's `useConfiguredEmailDefaults()`.
+
+Preserve reads and content identity for active material and requirements still demanded by locks. A primary Mailer's ordinary-default choice
+does not suppress a selected named Mailer's independently resolved defaults. One-shot and daemon commands share the rule, with existing
+configuration-directory ownership, path/inline-data interpretation, named-route selection, redacted identity and actual construction validation
+unchanged. This clarifies reuse-profile eligibility rather than changing security policy, source precedence, public APIs or configuration keys.
+The maintainer accepted the behavior under [#488](https://github.com/bbottema/simple-java-mail/issues/488); design is recorded and execution remains pending.

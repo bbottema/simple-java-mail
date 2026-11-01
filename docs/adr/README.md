@@ -181,6 +181,10 @@ Both corrections are implemented for unreleased 10.0.0; their issues record deve
 
 ## Find documentation by topic
 
+The 1 November [CLI default-file eligibility clarification](0039-explicit-configuration-resolution.md#cli-fingerprints-follow-default-selection-accepted-1-november-2026)
+under [#488](https://github.com/bbottema/simple-java-mail/issues/488) aligns reuse-profile file reads with effective Email defaults and mandatory
+requirements. The design is accepted; implementation is pending for unreleased 10.0.0.
+
 The 1 November [readable composed-reply clarification](0008-minimal-mime-structures-and-protection-order.md#readable-composed-replies-accepted-1-november-2026)
 under [#950](https://github.com/bbottema/simple-java-mail/issues/950) separates quoting readable content from applying outgoing protection.
 Normal source/reply protection, governance and exact/received-source authority remain intact; the issue tracks unreleased 10.0.0 delivery.
