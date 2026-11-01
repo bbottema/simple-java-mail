@@ -64,6 +64,14 @@ accepted on 1 November under [#938](https://github.com/bbottema/simple-java-mail
 connection activation while preserving the direct `simplejavamail.oauth2.token` entry and caller defaults. Token-provider objects retain
 their direct, lazy lookup. It targets unreleased 10.0.0.
 
+The 1 November review clarifies reliable AUTH-stage outage classification under [#755](https://github.com/bbottema/simple-java-mail/issues/755)
+in [ADR 0029](0029-smtp-submission-failover.md), first-header-boundary recognition for OpenPGP input under
+[#704](https://github.com/bbottema/simple-java-mail/issues/704) in [ADR 0035](0035-tolerant-reading-and-strict-production.md),
+immutable restoration of legacy DKIM exclusions under [#941](https://github.com/bbottema/simple-java-mail/issues/941)
+in [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md), and provider-consistent probe ports under
+[#733](https://github.com/bbottema/simple-java-mail/issues/733) in [ADR 0020](0020-dedicated-smtp-connection-diagnostics.md).
+These corrections target unreleased 10.0.0; their issues track delivery.
+
 The 31 October follow-up extends [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026)
 with atomic file replacement under #926: a failed read, preparation or close keeps the builder's earlier configuration.
 

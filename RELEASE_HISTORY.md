@@ -123,6 +123,11 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#755](https://github.com/bbottema/simple-java-mail/issues/755): managed Angus setup outages during SMTP authentication can use ordinary connection failover. Genuine credential rejection and certificate failures retain their independent permissions.
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP EML import recognizes the first supported header separator when outer headers use LF or mixed line endings, retaining the original protected content for verification and decryption.
+- [#941](https://github.com/bbottema/simple-java-mail/issues/941): older serialized DKIM configurations restore detached immutable header exclusions, preserving their choices without allowing a returned or retained collection to change a completed configuration.
+- [#733](https://github.com/bbottema/simple-java-mail/issues/733): connection probe reports honor Angus's valid hexadecimal SMTP port values instead of describing the protocol default.
+
 - [#938](https://github.com/bbottema/simple-java-mail/issues/938): sending, connection tests and authenticated probes honor fixed OAuth2 tokens inherited through a supplied Session's property defaults. The direct `simplejavamail.oauth2.token` entry and caller defaults remain intact; direct tokens and lazy token providers retain their behavior.
 
 - [#935](https://github.com/bbottema/simple-java-mail/issues/935): MIME and EML import preserve explicitly empty plain-text and HTML bodies as empty strings. Missing alternatives remain null, so ordinary defaults no longer replace a source's present-empty body.
