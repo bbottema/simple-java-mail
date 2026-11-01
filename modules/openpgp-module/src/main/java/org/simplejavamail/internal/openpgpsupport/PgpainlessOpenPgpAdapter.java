@@ -170,8 +170,12 @@ final class PgpainlessOpenPgpAdapter {
             try (DecryptionStream closingDecryptionStream = decryptionStream) {
                 clearContent = closingDecryptionStream.readAllBytes();
             }
-            // Only successful close establishes decrypted content and integrity; rejected signatures remain independent facts.
+            // Successful packet processing alone does not establish encryption; literal and signed-only input also closes normally.
             final MessageMetadata metadata = decryptionStream.getMetadata();
+            if (!metadata.isEncrypted()) {
+                throw new PGPException("OpenPGP/MIME encrypted payload contains no encrypted data");
+            }
+            // Successful close and an encrypted layer establish decryption and integrity; rejected signatures remain independent facts.
             final List<OpenPgpSignatureResult> signatures = new ArrayList<>();
             for (SignatureVerification signature : metadata.getVerifiedInlineSignatures()) signatures.add(valid(signature));
             for (SignatureVerification.Failure signature : metadata.getRejectedInlineSignatures()) signatures.add(rejected(signature, verificationKeys.failed));
