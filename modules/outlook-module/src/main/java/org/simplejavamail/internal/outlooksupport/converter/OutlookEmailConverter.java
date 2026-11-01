@@ -41,6 +41,8 @@ import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -132,7 +134,8 @@ public class OutlookEmailConverter implements OutlookModule {
 		builder.withPlainText(outlookMessage.getBodyText());
 		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
 		
-		for (final Map.Entry<String, OutlookFileAttachment> cid : outlookMessage.fetchCIDMap().entrySet()) {
+		final Map<String, OutlookFileAttachment> cidMap = referencedImages(outlookMessage, internalEmailConverter);
+		for (final Map.Entry<String, OutlookFileAttachment> cid : cidMap.entrySet()) {
 			final String contentId = verifyNonnullOrEmpty(extractCID(checkNonEmptyArgument(cid.getKey(), "cid.key")));
 			final OutlookFileAttachment attachment = cid.getValue();
 			String attachmentName = attachment.getLongFilename();
@@ -148,7 +151,7 @@ public class OutlookEmailConverter implements OutlookModule {
 					.withContentId(contentId)
 					.build());
 		}
-		for (final OutlookFileAttachment attachment : outlookMessage.fetchTrueAttachments()) {
+		for (final OutlookFileAttachment attachment : ordinaryAttachments(outlookMessage, cidMap)) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
 			builder.withAttachment(attachmentName, attachment.getData(), attachmentMimeType(attachment));
 		}
@@ -181,6 +184,49 @@ public class OutlookEmailConverter implements OutlookModule {
 			.outlookMessage(new OutlookMessageProxy(outlookMessage))
 			.outlookMessageData(extractOutlookMessageData(outlookMessage))
 			.build();
+	}
+
+	@NotNull
+	private static Map<String, OutlookFileAttachment> referencedImages(final OutlookMessage message, final InternalEmailConverter converter) {
+		final Map<String, OutlookFileAttachment> selected = new HashMap<>();
+		final String nativeHtml = message.getBodyHTML();
+		final String html = !valueNullOrEmpty(nativeHtml) ? nativeHtml : message.getConvertedBodyHTML();
+		if (!valueNullOrEmpty(html)) {
+			final Set<String> references = converter.referencedContentIds(html);
+			for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
+				if (attachment instanceof OutlookFileAttachment) {
+					final OutlookFileAttachment file = (OutlookFileAttachment) attachment;
+					if (file.getData().length != 0 && !selectReferencedImage(selected, references, file, file.getContentId())
+							&& !selectReferencedImage(selected, references, file, file.getFilename())) {
+						selectReferencedImage(selected, references, file, file.getLongFilename());
+					}
+				}
+			}
+		}
+		return selected;
+	}
+
+	private static boolean selectReferencedImage(final Map<String, OutlookFileAttachment> selected, final Set<String> references,
+			final OutlookFileAttachment attachment, @Nullable final String candidate) {
+		if (!valueNullOrEmpty(candidate) && references.contains(candidate)) {
+			selected.put(candidate, attachment);
+			return true;
+		}
+		return false;
+	}
+
+	private static List<OutlookFileAttachment> ordinaryAttachments(final OutlookMessage message,
+			final Map<String, OutlookFileAttachment> cidMap) {
+		// Retain the specialist parser's existing set/collision semantics instead of introducing a new occurrence or ordering policy.
+		final Set<OutlookAttachment> remaining = new HashSet<>(message.getOutlookAttachments());
+		remaining.removeAll(cidMap.values());
+		final List<OutlookFileAttachment> files = new ArrayList<>();
+		for (final OutlookAttachment attachment : remaining) {
+			if (attachment instanceof OutlookFileAttachment) {
+				files.add((OutlookFileAttachment) attachment);
+			}
+		}
+		return files;
 	}
 
 	@NotNull

@@ -239,6 +239,22 @@ This extends the delimiter-only decision above under [#897](https://github.com/b
 and failed-pass state unchanged. Entity decoding and a general malformed-HTML recovery policy remain outside this correction;
 no new public API, HTML rewriting framework or dependency is introduced.
 
+### Shared HTML attribute interpretation (accepted 1 November 2026)
+
+Automatic image resolution and received CID matching share the existing HTML parser's interpretation of attribute values. Decode HTML
+character references once at that boundary: `src="a&amp;b.png"` selects a location named `a&b.png`, while `src="a&amp;amp;b.png"` selects the
+literal location `a&amp;b.png`. Keep tracked source spans so automatic embedding replaces only the selected quoted image-source value;
+do not serialize a parsed DOM or rewrite unrelated markup. Each consumer retains its existing attribute and resource-selection policy.
+
+This extends the deliberately limited entity-decoding scope of #871 and #897 under [#952](https://github.com/bbottema/simple-java-mail/issues/952).
+Preserve resolution opt-ins and file/classpath/URL order, base containment after attribute interpretation, repeated-source behavior,
+existing CID references, required/optional failures and the atomic failed-pass boundary. HTML decoding does not add URL percent decoding
+to file locations or a second round of interpretation. CSS raw text keeps its own grammar.
+
+The HTML boundary does not normalize stored filenames or Content-IDs. [ADR 0035](0035-tolerant-reading-and-strict-production.md#representation-specific-resource-identities-accepted-1-november-2026)
+owns those separate representations. Ordinary copying, replies and conversion retain their resource-selection and eager/lazy ownership
+contracts; authoritative exact/protected bytes remain unchanged. No public API, dependency or malformed-HTML recovery policy is added.
+
 ### Borrow external content deliberately
 
 Ordinary construction does not read or deep-copy application-owned DataSources, forwarded MimeMessages, certificates or provider objects.

@@ -1,11 +1,8 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.jetbrains.annotations.Nullable;
-import org.jsoup.nodes.Attribute;
-import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Range;
-import org.jsoup.parser.Parser;
-import org.jsoup.parser.StreamParser;
+import org.simplejavamail.internal.html.HtmlAttributeValues;
+import org.simplejavamail.internal.html.HtmlAttributeValues.AttributeValue;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Interprets CID URL identities without changing the source HTML or MIME resources. */
-final class CidReferences {
+public final class CidReferences {
 
     private static final Pattern SCHEME = Pattern.compile("(?<![A-Za-z0-9+.-])(?i:cid):");
     private static final Pattern SRCSET_ATTRIBUTE = Pattern.compile("(?i)\\bsrcset[\\t\\n\\f\\r ]*=");
@@ -21,7 +18,7 @@ final class CidReferences {
     private CidReferences() {
     }
 
-    static Set<String> inHtml(final String html) {
+    public static Set<String> inHtml(final String html) {
         final Set<String> references = new HashSet<>();
         if (html.indexOf('&') < 0 && !SRCSET_ATTRIBUTE.matcher(html).find()) {
             collectReferences(html, references);
@@ -29,33 +26,24 @@ final class CidReferences {
         }
         // Attribute values are HTML-decoded by the parser. Keep raw-text/CSS inspection separate, and never serialize its DOM.
         final StringBuilder literalText = new StringBuilder(html);
-        try (StreamParser parser = new StreamParser(Parser.htmlParser().setTrackPosition(true))) {
-            parser.parse(html, "");
-            for (Element element : (Iterable<Element>) parser.stream()::iterator) {
-                for (Attribute attribute : element.attributes()) {
-                    final Range range = attribute.sourceRange().valueRange();
-                    if (range.isTracked() && (isSrcset(attribute)
-                            || html.substring(range.start().pos(), range.end().pos()).indexOf('&') >= 0)) {
-                        collectAttributeReferences(attribute, references);
-                        // Do not also claim a resource matching the attribute's encoded source spelling.
-                        for (int index = range.start().pos(); index < range.end().pos(); index++) {
-                            literalText.setCharAt(index, ' ');
-                        }
-                    }
+        HtmlAttributeValues.forEachIn(html, attribute -> {
+            if (isSrcset(attribute) || html.substring(attribute.getStart(), attribute.getEnd()).indexOf('&') >= 0) {
+                collectAttributeReferences(attribute, references);
+                // Do not also claim a resource matching the attribute's encoded source spelling.
+                for (int index = attribute.getStart(); index < attribute.getEnd(); index++) {
+                    literalText.setCharAt(index, ' ');
                 }
-                // Completed nodes are no longer needed. The input String and source offsets remain authoritative.
-                element.remove();
             }
-        }
+        });
         collectReferences(literalText.toString(), references);
         return references;
     }
 
-    private static boolean isSrcset(final Attribute attribute) {
-        return "srcset".equalsIgnoreCase(attribute.getKey());
+    private static boolean isSrcset(final AttributeValue attribute) {
+        return "srcset".equalsIgnoreCase(attribute.getName());
     }
 
-    private static void collectAttributeReferences(final Attribute attribute, final Set<String> references) {
+    private static void collectAttributeReferences(final AttributeValue attribute, final Set<String> references) {
         final String value = attribute.getValue();
         if (isSrcset(attribute)) {
             collectSrcsetReferences(value, references);

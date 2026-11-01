@@ -46,6 +46,18 @@ Do not move a validator into core to avoid a dependency cycle. Keep the implemen
 intermediary contract in core. Reuse an existing contract before adding another. Core-owned JDK conversions, such as reading an X.509
 certificate, must not imply a dependency on a particular optional cryptographic provider.
 
+### Shared CID interpretation during Outlook conversion (accepted 1 November 2026)
+
+Interpreted Email conversion uses the same complete CID URL identity rules for Outlook MSG and MIME/EML input. Keep HTML parsing and
+character-reference/percent interpretation in the main runtime. Reuse the existing core-owned `InternalEmailConverter` bridge to supply
+interpreted CID identities to the Outlook module, which still owns specialist attachment construction and candidate selection.
+
+Preserve the explicit Content-ID, short filename, then long filename candidate order, nonempty inline-content guard, filename fallbacks,
+resource collision/occurrence policy, nested conversion and protection boundaries. The optional parser's raw runtime view remains its
+specialist view; it is not a second authority for the interpreted Email's resource classification. This adds no application API, parser
+dependency in core/outlook or sibling-library change. [ADR 0035](0035-tolerant-reading-and-strict-production.md#representation-specific-resource-identities-accepted-1-november-2026)
+owns the shared identities; [#952](https://github.com/bbottema/simple-java-mail/issues/952) tracks implementation for unreleased 10.0.0.
+
 ### DKIM identity-domain comparison (accepted 22 October 2026)
 
 The optional DKIM implementation compares the sender identity domain with the configured signing domain without regard to capitalization.

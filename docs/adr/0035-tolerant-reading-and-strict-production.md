@@ -333,6 +333,22 @@ descriptor nor a following candidate belongs to a Content-ID. Equivalent literal
 same embedded resources. Keep complete-identity handling for single-URI attributes, source HTML, resource occurrences, ownership and
 authoritative exact/protected bytes unchanged. This is an import-interpretation correction, not general HTML rewriting or a new public API.
 
+## Representation-specific resource identities (accepted 1 November 2026)
+
+Interpret each resource identifier at the boundary that owns its representation. The shared HTML attribute reader decodes character
+references once for CID matching and automatic image lookup. A CID URL then decodes its RFC 2392 percent escapes once, preserving literal
+plus signs and the complete case-sensitive identity. Stored filenames remain literal metadata: `a&amp;b.png` is not another spelling of
+`a&b.png` when it is a filename. Missing filename metadata remains distinct from a supplied fallback-looking name such as `UnknownAttachment`.
+
+Keep filename and Content-ID mapping separate through MIME/EML and MSG conversion, copying and replies. MSG interpreted conversion uses
+the shared complete identities through [ADR 0006's internal bridge](0006-optional-modules.md#shared-cid-interpretation-during-outlook-conversion-accepted-1-november-2026),
+rather than the specialist parser's raw HTML regex classification. Retain existing missing-name
+fallbacks and the supported name-as-CID shorthand when no separate ID was supplied. Sharing HTML interpretation is not a general unescape
+operation for MIME metadata or CSS raw text. Source markup, resource occurrences, eager/lazy ownership and authoritative exact/protected bytes
+keep their existing contracts. [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#shared-html-attribute-interpretation-accepted-1-november-2026)
+owns automatic-image replacement and lookup boundaries. [#952](https://github.com/bbottema/simple-java-mail/issues/952) tracks this accepted
+clarification and its implementation for unreleased 10.0.0, extending #885/#893 without weakening #882/#899/#916/#920.
+
 ## Comments in delivery-report actions (accepted 29 October 2026)
 
 Interpret a delivery report's Action as one recognized case-insensitive atom, ignoring well-formed external comments and whitespace under RFC 3464 section 2.1.1. For example, `Action: failed (recipient removed)` establishes `FAILED` without a warning. Require the end of the field after comments: extra tokens, quoted values, malformed comments and unknown actions do not establish a recognized action. Missing, repeated and contradictory fields retain their existing availability and warning rules.

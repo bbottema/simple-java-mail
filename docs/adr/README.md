@@ -50,6 +50,12 @@ An accepted decision is not a claim that its implementation is complete. Each re
 
 The 22 October API review clarifies [role-less visible recipients](0001-email-configuration-scopes-and-inheritance.md#role-less-visible-recipients-accepted-22-october-2026) under #829, [unique pool aliases](0003-immutable-configuration-snapshots.md#unique-pool-cluster-aliases-accepted-22-october-2026) under #830, [provider failure facts](0011-transport-neutral-submission-outcomes.md#provider-failure-facts-accepted-22-october-2026) under #710/#832, [managed key-material reads](0011-transport-neutral-submission-outcomes.md#managed-key-material-reads-accepted-22-october-2026) under #834, and [parser-opened streams](0036-structural-message-snapshots-and-borrowed-content.md#parser-opened-content-streams-accepted-22-october-2026) under #828. These decisions target unreleased 10.0.0; their issues track delivery.
 
+The 1 November [shared HTML attribute interpretation](0036-structural-message-snapshots-and-borrowed-content.md#shared-html-attribute-interpretation-accepted-1-november-2026)
+under [#952](https://github.com/bbottema/simple-java-mail/issues/952) decodes image-source attributes once while preserving literal filenames and
+[complete CID identities](0035-tolerant-reading-and-strict-production.md#representation-specific-resource-identities-accepted-1-november-2026).
+[ADR 0006](0006-optional-modules.md#shared-cid-interpretation-during-outlook-conversion-accepted-1-november-2026) retains the optional Outlook module's
+construction responsibility through the existing internal conversion bridge. The correction targets unreleased 10.0.0.
+
 The [imported custom-header order clarification](0035-tolerant-reading-and-strict-production.md#imported-custom-header-order-accepted-31-october-2026)
 under [#934](https://github.com/bbottema/simple-java-mail/issues/934) keeps differently capitalized occurrences in one logical header with their
 distinct values in source order. It targets unreleased 10.0.0 and leaves exact/protected source bytes under their existing contracts.

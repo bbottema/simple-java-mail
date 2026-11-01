@@ -6,7 +6,10 @@ import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.converter.EmailConverter;
+import org.simplejavamail.converter.internal.mimemessage.CidReferences;
 import org.simplejavamail.internal.util.InternalEmailConverter;
+
+import java.util.Set;
 
 /**
  * @see InternalEmailConverter
@@ -24,5 +27,10 @@ public class InternalEmailConverterImpl implements InternalEmailConverter {
 	@Override
 	public byte[] mimeMessageToEMLByteArray(@NotNull final MimeMessage mimeMessage) {
 		return EmailConverter.mimeMessageToEMLByteArray(mimeMessage);
+	}
+
+	@Override
+	public Set<String> referencedContentIds(@NotNull final String html) {
+		return CidReferences.inHtml(html);
 	}
 }

@@ -121,6 +121,10 @@ public class ImageResolutionConfig implements Serializable {
          * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-file-resolution, you can just
          * refer to the file instead and the data will be included dynamically with a generated <em>cid</em>.
          * <p>
+         * Quoted HTML image-source attributes are interpreted once: {@code src="a&amp;b.png"} selects {@code a&b.png}, and
+         * {@code src="a&amp;amp;b.png"} selects the literal filename {@code a&amp;b.png}. Stored attachment names stay literal;
+         * successful resolution replaces only the selected source value and preserves the surrounding HTML.
+         * <p>
          * This option is disabled by default. Enabling it lets HTML image references read from the filesystem. When the HTML is not fully trusted, set
          * {@link #withEmbeddedImageBaseDir(String)} and leave {@link #allowingEmbeddedImageOutsideBaseDir(boolean)} disabled.
          *
@@ -148,6 +152,9 @@ public class ImageResolutionConfig implements Serializable {
          * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-classpath-resolution, you can just
          * refer to the resource on the classpath instead and the data will be included dynamically with a generated <em>cid</em>.
          * <p>
+         * HTML character references in the quoted image source are interpreted once, so {@code src="a&amp;b.png"} selects
+         * {@code a&b.png}. This does not decode stored resource names or rewrite other markup.
+         * <p>
          * This option is disabled by default. Enabling it lets HTML image references read classpath resources. When the HTML is not fully trusted, set
          * {@link #withEmbeddedImageBaseClassPath(String)} and leave {@link #allowingEmbeddedImageOutsideBaseClassPath(boolean)} disabled.
          *
@@ -174,6 +181,10 @@ public class ImageResolutionConfig implements Serializable {
          * Normally, you would manually mark up your HTML with images using {@code cid:<some_id>} and then add an embedded image
          * resource with the same name ({@code emailBuilder.withEmbeddedImage(..)}). With auto-URL-resolution, you can just
          * refer to the hosted image instead and the data will be downloaded and included dynamically with a generated <em>cid</em>.
+         * <p>
+         * HTML character references in the quoted image source are interpreted once before URL resolution: for example,
+         * {@code src="logo.png?x=1&amp;y=2"} requests {@code logo.png?x=1&y=2}. The URL's percent escapes and literal plus signs
+         * keep their URL meaning; HTML interpretation does not add another percent-decoding pass.
          * <p>
          * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
          * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.

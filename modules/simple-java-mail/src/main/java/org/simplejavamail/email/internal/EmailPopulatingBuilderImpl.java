@@ -1,5 +1,8 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.internal.html.HtmlAttributeValues;
+import org.simplejavamail.internal.html.HtmlAttributeValues.AttributeValue;
+
 import org.simplejavamail.config.ConfigKeys;
 import org.simplejavamail.config.ConfigKey;
 import org.simplejavamail.internal.configresolution.ConfigurationChoice;
@@ -67,13 +70,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
-import static java.util.regex.Matcher.quoteReplacement;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_CLASSPATH;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_DIR;
 import static org.simplejavamail.config.ConfigLoader.Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL;
@@ -614,14 +615,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	}
 
 	private void resolveDynamicEmbeddedImageDataSources() {
-		if (this.textHTML != null) {
+		if (this.textHTML != null && (embeddedImageAutoResolutionForFiles || embeddedImageAutoResolutionForClassPathResources
+				|| embeddedImageAutoResolutionForURLs)) {
 			final Map<String, String> generatedCids = new HashMap<>();
 			final List<AttachmentResource> resolvedImages = new ArrayList<>();
-			final StringBuffer stringBuffer = new StringBuffer();
+			final StringBuilder rewrittenHtml = new StringBuilder();
+			int copiedUntil = 0;
 
-			final Matcher matcher = IMG_SRC_PATTERN.matcher(this.textHTML);
-			while (matcher.find()) {
-				final String srcLocation = matcher.group("src");
+			for (final AttributeValue source : dynamicImageSources(this.textHTML)) {
+				final String srcLocation = source.getValue();
 				if (!srcLocation.regionMatches(true, 0, "cid:", 0, 4)) {
 					if (!generatedCids.containsKey(srcLocation)) {
 						final DataSource dataSource = resolveDynamicEmbeddedImageDataSource(srcLocation);
@@ -633,17 +635,30 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 						}
 					}
 					if (generatedCids.containsKey(srcLocation)) {
-						final String imgSrcReplacement = matcher.group("imageTagStart") + "cid:" + generatedCids.get(srcLocation) + matcher.group("imageSrcEnd");
-						matcher.appendReplacement(stringBuffer, quoteReplacement(imgSrcReplacement));
+						rewrittenHtml.append(this.textHTML, copiedUntil, source.getStart());
+						rewrittenHtml.append("cid:").append(generatedCids.get(srcLocation));
+						copiedUntil = source.getEnd();
 					}
 				}
 			}
-			matcher.appendTail(stringBuffer);
+			rewrittenHtml.append(this.textHTML, copiedUntil, this.textHTML.length());
 
 			// A later required source can fail; apply the images and HTML only after the complete pass succeeds.
 			this.embeddedImages.addAll(resolvedImages);
-			this.textHTML = stringBuffer.toString();
+			this.textHTML = rewrittenHtml.toString();
 		}
+	}
+
+	private static List<AttributeValue> dynamicImageSources(final String html) {
+		final List<AttributeValue> sources = new ArrayList<>();
+		HtmlAttributeValues.forEachIn(html, attribute -> {
+			if ("img".equals(attribute.getElementName()) && "src".equalsIgnoreCase(attribute.getName())
+					&& attribute.isQuoted() && !attribute.getValue().isEmpty()) {
+				sources.add(attribute);
+			}
+		});
+		sources.sort(java.util.Comparator.comparingInt(AttributeValue::getStart));
+		return sources;
 	}
 
 	@Nullable
