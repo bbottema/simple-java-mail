@@ -123,6 +123,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Bug fixes
 
+- [#950](https://github.com/bbottema/simple-java-mail/issues/950): composed Email reply/reply-all starters quote represented readable content without applying outgoing protection first. Original and reply protection still apply through normal conversion and sending, with reply routing and referenced resources retained.
+
 - [#726](https://github.com/bbottema/simple-java-mail/issues/726): late cancellation or deadline expiry no longer hides an independent connection cleanup failure after SMTP acceptance. Original causes and accepted receipt facts remain available.
 
 - [#946](https://github.com/bbottema/simple-java-mail/issues/946): readable MSG attachments without a MIME type or usable filename retain their content with an `application/octet-stream` fallback instead of aborting the import.

@@ -181,6 +181,10 @@ Both corrections are implemented for unreleased 10.0.0; their issues record deve
 
 ## Find documentation by topic
 
+The 1 November [readable composed-reply clarification](0008-minimal-mime-structures-and-protection-order.md#readable-composed-replies-accepted-1-november-2026)
+under [#950](https://github.com/bbottema/simple-java-mail/issues/950) separates quoting readable content from applying outgoing protection.
+Normal source/reply protection, governance and exact/received-source authority remain intact; the issue tracks unreleased 10.0.0 delivery.
+
 The 1 November [independent-cleanup clarification](0011-transport-neutral-submission-outcomes.md#independent-cleanup-after-a-late-stop-accepted-1-november-2026)
 under [#726](https://github.com/bbottema/simple-java-mail/issues/726) preserves independent close/release failures after a late stop together with
 already captured acceptance facts. Expected physical-abort socket errors remain provider-owned; no API, receipt status or retry rule changes.

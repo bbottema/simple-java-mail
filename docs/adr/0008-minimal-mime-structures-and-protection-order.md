@@ -421,6 +421,24 @@ This deliberately changes the longstanding empty-quote result for single-format 
 [ADR 0031](0031-public-api-and-internal-construction.md). The maintainer accepted the behavior and authorized workflow completion for
 unreleased 10.0.0 under [#894](https://github.com/bbottema/simple-java-mail/issues/894); the issue tracks implementation and delivery.
 
+## Readable composed replies (accepted 1 November 2026)
+
+Reply and reply-all priming from a composed Email quotes the readable content already represented by that value. It may project the source's
+visible headers into an internal reply-routing message, but does not apply outgoing signing or encryption merely to obtain the quote. Preserve
+the existing reply address/thread rules, quote templates, generated missing alternative and referenced-resource selection. Selected quoted
+images retain the ordinary import path's eager owned byte snapshots, including managed stream closure and original read/close failures.
+Unrelated attachments need not be consumed to quote readable text. Exact Email and MimeMessage inputs retain their authoritative source and
+receive-side interpretation boundaries.
+
+This correction must not alter email protection. The original Email retains its configuration, source facts and content, and ordinary public
+conversion, rehearsal and sending still apply its configured protection. A reply's own explicit protection and normal governance remain separate
+choices. The temporary preparation view is internal and cannot replace a protected send representation. Incoming ciphertext still requires
+explicit receive-side decryption; reply priming does not weaken that boundary or introduce a new public API.
+
+The maintainer accepted this condition under [#950](https://github.com/bbottema/simple-java-mail/issues/950) for unreleased 10.0.0. The issue
+tracks delivery. [ADR 0007](0007-provider-neutral-mime-boundary.md) retains the finalized protected-send boundary and
+[ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) retains source/resource ownership.
+
 ## Implementation anchors
 
 [DeliveryStatusReportParser](../../modules/simple-java-mail/src/main/java/org/simplejavamail/converter/internal/mimemessage/DeliveryStatusReportParser.java)
