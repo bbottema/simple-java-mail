@@ -892,13 +892,10 @@ public class MailerImpl implements Mailer {
 		if (serverConfig != null) {
 			return serverConfig.getPort();
 		}
-		try {
-			final String value = session.getProperty(selectedProtocolPrefix() + ".port");
-			final int port = value == null ? -1 : Integer.parseInt(value);
-			return port >= 1 && port <= 65535 ? port : null;
-		} catch (NumberFormatException unspecifiedPort) {
-			return null;
-		}
+		final String propertyName = selectedProtocolPrefix() + ".port";
+		final Integer port = ConnectionPropertyValues.integerValue(
+				ConnectionPropertyValues.visibleValue(session.getProperties(), propertyName));
+		return port != null && port >= 1 && port <= 65535 ? port : null;
 	}
 
 	private String selectedProtocolPrefix() {
