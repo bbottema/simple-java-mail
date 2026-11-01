@@ -240,11 +240,11 @@ checkout, leaving unfinished Journal articles, substantial case-study revisions,
 The shared Polar Meridian Mailer helper, its tests and usage notes are included because the runnable example calls that helper. The two case
 studies gain only their supplementary links to the corresponding runnable patterns.
 
-- All **14 local Docker configurations** passed on committed library baseline `9b2f42aba8a304afa8c4a4ad8d0d241ea224e06e`. The framework runs cover
+- All **14 local Docker configurations** passed on committed library baseline `8447651cefa2db43992ac2c038c4fc0db46656c4`. The framework runs cover
   their happy, partial, unknown and delayed scenarios; batch restart again reported two submissions before interruption and five total after
   resumption, with no duplicates. Docker builds passed all **31 distinct application Java tests**.
 - While that run was in progress, the independent API repairs were committed. The isolated selection was refreshed to library baseline
-  `a116bf3f5d84cb7d5811c2fb3caf3d8581c6fd66` and website baseline `a8ef5a26002249e6ef2d32ae6d9f345b91096340`, preserving those commits.
+  `42c003b2edd962e5faf3a3d7a6332440ac1e0f77` and website baseline `ea52bb825e21edd611d412cd49ffa94a42768f4e`, preserving those commits.
   Polar Meridian, Polar with the Collector, HTTPS CustomMailer handoff and the transaction outbox were rebuilt and passed on this newer baseline.
   These builds repeat **25 distinct application Java tests**; they are a focused compatibility pass, rather than a second complete portfolio run.
 - The shared helpers compile with `javac --release 11` and passed **27 Mailer checks** plus **73 dispatcher/accounting checks** on JDK 21 using

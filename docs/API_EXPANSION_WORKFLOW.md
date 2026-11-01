@@ -8,7 +8,7 @@ For architectural decisions and source anchors, see the [architecture topic inde
 
 ## Ownership and design gate
 
-For a holistic review round, follow the [public API review workflow](API_REVIEW_WORKFLOW.md). Present findings and obtain the maintainer's design and execution approval before starting the implementation and test steps below.
+For a holistic review round, follow the [public API review workflow](API_REVIEW_WORKFLOW.md). Present findings and obtain the maintainer's design and execution approval before starting the implementation and test steps below. Corrections confined to an unreleased feature extend its existing issue as dated addenda under that workflow; they are part of delivering the feature and do not create additional released bug fixes or independent feature entries.
 
 Map each architectural correction to its governing ADR before implementation. Amend an existing record when clarification is sufficient;
 create a new ADR only for a distinct architectural choice. Keep implementation checklists and verification evidence in the plan, not the ADR.

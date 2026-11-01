@@ -172,6 +172,10 @@ $actualReleaseDate = ([DateTimeOffset]$publishedAt).UtcDateTime.ToString("yyyy-M
 For historical bookkeeping, derive the actual date from the version's release notes or published GitHub release. A closed release
 milestone must never be left without a due date, because GitHub uses it to order milestones by release date.
 
+Before creating a review follow-up, identify the affected published version and the issue that introduced the feature. Corrections confined to unreleased feature work extend that feature issue as dated addenda; reopen it only while work remains. Use separate issues for defects affecting published behavior or independent additions. If a substantial follow-up needs its own ticket, link its owner and identify it as completion of unreleased work. Preserve substantive discussion for maintainer triage during consolidation.
+
+Release summaries describe each feature's final behavior, including refinements made before its first publication. Do not derive bug-fix totals from issue labels, closed tickets or `fix:` commits. A counted released-behavior fix needs an affected published version, and each distinct defect counts once. Keep unverified or mixed-scope corrections outside those totals.
+
 Use existing labels. Common labels include:
 
 - Added functionality, choose one when applicable: `enhancement` or `major feature`

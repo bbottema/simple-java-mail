@@ -53,7 +53,11 @@ After design approval, reconcile the relevant Architecture Decision Records (ADR
 
 ADRs contain the architectural context, decision, rationale and consequences. Keep implementation tasks, functional specifications and behavioral acceptance criteria in the issue or active plan. Report dated test and verification results directly to the maintainer and retain execution records in CI artifacts, never in GitHub issues or commit messages. Record the real decision timing; an accepted ADR does not mean its implementation is finished.
 
-Create one GitHub issue for each meaningful, coherent gap, or reuse an issue that already tracks that exact gap. Group related corrections when they share a contract; avoid generic audit tickets that hide unrelated changes. Minor typos, formatting and incidental wording tweaks do not need separate issues.
+Before opening an issue, establish whether the affected behavior exists in a published release and identify the issue that introduced the feature. A correction or refinement confined to an unreleased feature belongs in its existing feature issue as a dated addendum, even when the initial implementation is already closed. Reopen that issue while accepted follow-up work remains and close it again after delivery. Preserve the original request and earlier completion context.
+
+Create a separate issue for a defect affecting published behavior or for an independent capability. A substantial follow-up may use a separate tracking issue when needed, but must identify its owning feature and state that it completes unreleased work. Group corrections sharing one contract and avoid generic audit tickets that hide unrelated changes. Minor typos, formatting and incidental wording tweaks do not need separate issues.
+
+Issue and commit counts do not measure released bug fixes or independently delivered features. Count a released-behavior defect only with an identified affected published version, count each distinct defect once, and describe pre-release corrections within their final feature entry. Unverified and mixed-scope cases remain outside bug-fix totals until triaged. Consolidating existing tickets or rewriting history requires the maintainer's authorization; preserve substantive discussion for triage before deleting a ticket.
 
 Write issue titles, bodies and completion comments in casual, plain English, as a maintainer explaining a change to another developer. Favor short, connected paragraphs with a natural flow. Avoid stacked declarations, disconnected assertions and repeated labels such as "Scope:", "Contract:" and "Boundary:". Use headings, bullets and checklists when they help readers follow distinct points or tasks; the bookkeeping checklist below is not an issue-body template.
 
@@ -61,7 +65,7 @@ The issue must:
 
 1. Start with a short **problem statement** explaining what goes wrong or makes the API awkward and why it matters to the caller. Follow it with the **before usage example** that reproduces or demonstrates the gap, then explain the agreed expected behavior.
 2. Link the governing ADRs and identify the intended scope and acceptance criteria.
-3. Use the repository's existing canonical `bug`, `enhancement` and/or `documentation` labels as appropriate. Follow the maintainer workflow for additional labels and preserve intentional labels on reused issues.
+3. Use the repository's canonical labels for the owning issue. Use `bug` for an identified defect in published behavior and `enhancement` or `major feature` for an independent addition. Completing an unreleased feature does not create another bug or feature classification. Follow the maintainer workflow for additional labels and preserve intentional labels on reused issues.
 4. Belong to milestone **10.0.0** and the existing **Simple Java Mail 10.0.0** project board. Resolve their live identifiers rather than creating replacements.
 5. Remain **open** while implementation, review or delivery is pending. Use **Todo** before execution and **In Progress** when approved work starts; **Done** follows accepted completion and closure.
 

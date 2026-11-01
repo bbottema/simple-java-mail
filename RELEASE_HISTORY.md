@@ -6,27 +6,47 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Major Features
 
-- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles. Equivalent raw values and trusted-host membership use the same interpretation through construction and locks; supplied Session gaps and borrowed factory identities remain intact. Shared internal declaration selection also governs layered Email and Mailer configuration while preserving their field-specific precedence, merge rules and public APIs. S/MIME merges replace header lists case-insensitively, and incompatible executor/queue choices fail before named failover construction. Logical setting identities preserve declaration scope, and an immutable whole-Mailer plan validates the owned route before construction. Lock checks now preserve inherited provider-visible values, non-String property keys stay opaque, and inline SOCKS ports follow decimal provider syntax.
+- [#488](https://github.com/bbottema/simple-java-mail/issues/488): added an opt-in local CLI daemon that retains isolated Mailers and can reuse SMTP connections. Argument files expand once in the caller's directory, escaped values remain literal, and help is available before configuration loading. Startup captures complete supported JVM configuration; later clients retain the running instance's snapshot. Control commands stay responsive, standalone shutdown is bounded, and Mailer reuse fingerprints include only selected security material. Relative filesystem images follow the requesting directory unless a configured base owns them.
+
+- [#693](https://github.com/bbottema/simple-java-mail/issues/693): replaced static configuration with instance-based factories and immutable snapshots. Configuration reads use schema-bound `ConfigKeys` and `get(ConfigKey<T>)`, including Duration views without changing textual keys or units. Loading captures inherited Java Properties defaults with ordinary precedence, typing and locks. Property containers and trusted-host collections are detached at input, capture and inspection boundaries; borrowed resource objects retain their identity.
+
+- [#704](https://github.com/bbottema/simple-java-mail/issues/704): added optional OpenPGP/MIME signing, encryption, verification and decryption, with complete immutable signature results and truthful unknown states when inspection is unavailable. Key builders preserve earlier choices when replacements fail, and the module supports classpath and named-module use. The provider-neutral finalized MIME pipeline protects S/MIME or OpenPGP content before DKIM and preserves original protected bytes, Content-Type parameters, detached-signature occurrences and selected body encodings. Incoming protection parts honor transfer encoding and the first outer header boundary; unopened ciphertext keeps unestablished signature facts unknown. Conflicting recipient-triggered S/MIME and OpenPGP choices fail during Email construction.
+
+- [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost. Provider-result helpers retain recipient facts through nested Jakarta Mail exceptions and leave acceptance unknown when a response cannot establish rejection.
+
+- [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports. Existing protection getters expose established incoming facts or UNKNOWN without making optional cryptography a prerequisite for exact relay.
+
+- [#726](https://github.com/bbottema/simple-java-mail/issues/726): added `MailSend` completion handles with optional `requestCancellation()`, opt-in total send deadlines, protocol-aware Angus socket abort and fenced pooled-lease cleanup, plus application-executor observer dispatch. Inspect receipts after cancellation or timeout: a lost final reply can still mean duplicate risk. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722). Simple batches check cancellation before entering another lazy-source callback, and late cancellation retains independent cleanup failures alongside known acceptance. Managed Sessions share write-timeout monitoring with cleanup after their last connection closes; supplied schedulers remain application-owned.
+
+- [#733](https://github.com/bbottema/simple-java-mail/issues/733): added dedicated SMTP connection probes with immutable pre-/post-TLS capability snapshots, optional credential testing, TLS metadata where available, and safe partial failure reports. Available through the Java API and CLI `probe` command, with optional `--authenticate` and one-shot/daemon support. No email is sent or pooled transport borrowed. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722). Reports retain the actual provider-visible endpoint, including supported hexadecimal port values.
+
+- [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration. From and bounce-address locks compare interpreted singular mailboxes while keeping display-name choices separate.
+
+- [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. Failover does not replay after provider invocation; separately enabled safe retries stay on the selected destination. Ordinary capacity/rate waiting does not trigger failover. Setup outages during authentication follow connection-failover policy, while genuine credential and certificate failures retain their separate permissions. Failed and skipped history retains explicit provider-visible ports.
+
+- [#756](https://github.com/bbottema/simple-java-mail/issues/756): added opt-in bounded retries of safely refused temporary SMTP submissions, with selected-Mailer schedules, immutable in-memory replay, cancellation-aware waits and one final completion/observer outcome. Ordinary async waits release their worker and connection; partial or uncertain acceptance is never replayed automatically. Each new provider invocation owns its receipt, so a later failure cannot reuse an earlier refusal or its retry advice.
 
 - [#762](https://github.com/bbottema/simple-java-mail/issues/762): added `@EnableSjmTelemetry` for explicit Java activation in an existing Spring integration.
-  Configured activation properties, including false, override the annotation. A telemetry integration bean selects the default Mailer's integration independently.
+  Configured activation properties, including false, override the annotation. A telemetry integration bean selects the default Mailer's integration independently. Spring applications can activate it through `@EnableSjmTelemetry`; explicit activation properties and locks remain authoritative, while selecting an integration bean stays independent.
+
+- [#763](https://github.com/bbottema/simple-java-mail/issues/763): expose structured delivery-status reports through the converted notification Email, with ordered recipient actions, strongly typed status codes, reported recipients/servers, diagnostics, correlation facts and parsing warnings. Internet-mailbox and SMTP-response views are available when interpretable. Existing MIME/protection conversion remains the gateway; reports are received claims, not final-delivery proof or automatic retry instructions. Report dates and actions accept valid comments while retaining strict calendar/timezone interpretation and literal envelope identifiers. Template completion keeps received-report history with its source Email.
+
+- [#867](https://github.com/bbottema/simple-java-mail/issues/867): connection configuration now rejects conflicting explicit inputs by default. Select `ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES` for deliberate Java customization; compatible raw SOCKS endpoints and SJM credentials form one proxy route. Source precedence, caller-Session gaps, locks and mandatory transport rules retain their separate roles. Equivalent raw values and trusted-host membership use the same interpretation through construction and locks; supplied Session gaps and borrowed factory identities remain intact. Shared internal declaration selection also governs layered Email and Mailer configuration while preserving their field-specific precedence, merge rules and public APIs. S/MIME merges replace header lists case-insensitively, and incompatible executor/queue choices fail before named failover construction. Logical setting identities preserve declaration scope, and an immutable whole-Mailer plan validates the owned route before construction. Lock checks now preserve inherited provider-visible values, non-String property keys stay opaque, and inline SOCKS ports follow decimal provider syntax.
+
 - Email To/Cc/Bcc, Reply-To and notification conveniences parse all supplied mailboxes, retaining order, duplicates and embedded names.
   Explicit names override every parsed name; From/bounce and individual Recipient extraction keep their own singular contracts.
-- Notification destinations use immutable plural getters and complete-list replacement. Automatic requests use all resolved Reply-To addresses,
-  falling back to From. Supported older serialized singleton destinations remain readable.
+- [#812](https://github.com/bbottema/simple-java-mail/issues/812): notification destinations use immutable plural getters and complete-list replacement. Automatic requests use all resolved Reply-To addresses,
+  falling back to From. Supported older serialized singleton destinations remain readable. Outlook import retains source order and duplicates across repeated, differently capitalized receipt headers.
 - Empty SMTP credentials normalize consistently across setters without changing partial-update overloads. Retry/failover policies provide
   `toBuilder()` to preserve configured budgets and other choices while editing a policy.
-
-- Configuration reads use schema-bound `ConfigKeys` and `get(ConfigKey<T>)`, including Duration views of time settings.
-  Keys also constrain explicit/fallback values at compile time. Textual property names, numeric units, locks and raw-map integration remain unchanged.
 
 - Added `TransportStrategy.SMTPS_OAUTH2` for XOAUTH2 over implicit TLS, using port 465 by default. Existing fixed access tokens and
   application-owned token providers work with it; `SMTP_OAUTH2` retains required STARTTLS and default port 587.
 
-- Grouped advanced Java settings into seven Mailer configuration values and four Email configuration values, keeping common SMTP setup and
+- [#800](https://github.com/bbottema/simple-java-mail/issues/800): grouped advanced Java settings into seven Mailer configuration values and four Email configuration values, keeping common SMTP setup and
   message composition direct. Moved scalar methods and their companion methods are removed; edit reusable values with `toBuilder()`.
   Async queue admission is expressed as `rejectWhenFull()` or `waitForCapacity(Duration)`. Existing property keys and scalar CLI options remain available.
-  DKIM/S/MIME signing and encryption retain their direct typed configuration methods; the positional shortcuts are removed.
+  DKIM/S/MIME signing and encryption retain their direct typed configuration methods; the positional shortcuts are removed. Explicit ConnectionConfig clears remain authoritative over corresponding unlocked raw Session overlays.
 
 - Simplified the 10.0.0 API with per-send handler factories receiving a configurable UUID, grouped debug/telemetry configuration, `Duration`
   timeout settings, direct `to`/`cc`/`bcc` and Path attachment conveniences, and independent signing/encryption clears. Explicit worker settings
@@ -36,39 +56,25 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   captured template, `withoutEmailDefaults()` selects none, and validation methods now return `void`. Telemetry integration and activation are
   independent choices. These deliberate Java API breaks require migration and recompilation before 10.0.0.
 
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): expose structured delivery-status reports through the converted notification Email, with ordered recipient actions, strongly typed status codes, reported recipients/servers, diagnostics, correlation facts and parsing warnings. Internet-mailbox and SMTP-response views are available when interpretable. Existing MIME/protection conversion remains the gateway; reports are received claims, not final-delivery proof or automatic retry instructions.
-
-- [#762](https://github.com/bbottema/simple-java-mail/issues/762): added explicit optional OpenTelemetry integration for logical-send and provider-invocation spans, sampling-independent metrics and portable phase measurements. Applications supply and own their SDK; privacy-safe defaults exclude endpoints unless permitted, and telemetry stays independent of progress/result callbacks.
-
 - [#760](https://github.com/bbottema/simple-java-mail/issues/760): added optional live mail-send progress beside the terminal result observer, with bounded non-blocking reporting, logical-send observation IDs, retry-aware stages and managed Angus upload counts. Progress is best-effort; receipts and final results remain authoritative. Renamed the unreleased terminal callback to `MailSendResultObserver` to distinguish the two registrations.
-
-- [#756](https://github.com/bbottema/simple-java-mail/issues/756): added opt-in bounded retries of safely refused temporary SMTP submissions, with selected-Mailer schedules, immutable in-memory replay, cancellation-aware waits and one final completion/observer outcome. Ordinary async waits release their worker and connection; partial or uncertain acceptance is never replayed automatically.
-
-- [#755](https://github.com/bbottema/simple-java-mail/issues/755): added opt-in coordinated SMTP connection failover through paired Mailer/policy configuration, independent named definitions, scoped locks, primary rechecks and bounded connection history. Ordinary sync/async sends retain one deadline and observer; lazy batches can return to a recovered primary between emails. Failover does not replay after provider invocation; separately enabled safe retries stay on the selected destination. Ordinary capacity/rate waiting does not trigger failover.
-
-- [#740](https://github.com/bbottema/simple-java-mail/issues/740): added factory-scoped locked configuration through `simplejavamail.locked.<existing-property-tail>`. Reuses property types, source diagnostics, Spring metadata and CLI configuration; rejects conflicting customization while keeping required recipients in the actual envelope. Exact content is preserved and unsupported transport combinations fail explicitly. Locks prevent accidental changes within the adopting factory, not deliberate use of another configuration.
 
 - [#751](https://github.com/bbottema/simple-java-mail/issues/751): added optional message and recipient sending limits, configurable as counts over rolling periods. Named groups share allowance within a factory, optional spreading avoids bursts, and actual-send diagnostics distinguish rate waiting from connection acquisition. Limits apply to ordinary sends, simple batches, open connections and CustomMailer callbacks; no implicit rate is imposed.
   See the [sending-limit guide](https://www.simplejavamail.org/sending-and-execution.html#section-sending-limits) for Java, property, Spring and CLI examples.
 
-- [#733](https://github.com/bbottema/simple-java-mail/issues/733): added dedicated SMTP connection probes with immutable pre-/post-TLS capability snapshots, optional credential testing, TLS metadata where available, and safe partial failure reports. Available through the Java API and CLI `probe` command, with optional `--authenticate` and one-shot/daemon support. No email is sent or pooled transport borrowed. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
-- [#726](https://github.com/bbottema/simple-java-mail/issues/726): added `MailSend` completion handles with optional `requestCancellation()`, opt-in total send deadlines, protocol-aware Angus socket abort and fenced pooled-lease cleanup, plus application-executor observer dispatch. Inspect receipts after cancellation or timeout: a lost final reply can still mean duplicate risk. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#725](https://github.com/bbottema/simple-java-mail/issues/725): added opt-in bounded async queues, immediate rejection or bounded caller-side admission waits, content-free queue diagnostics, and graceful draining of accepted work before owned connection pools close. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
-- [#710](https://github.com/bbottema/simple-java-mail/issues/710): made submission outcomes transport-neutral with explicit accepted, partially accepted, rejected, and unknown states; immutable recipient groups; optional provider responses; and structured failures that retain the original Jakarta Mail exception across normal, pooled, and open-connection sends, including conservative unknown results when the final SMTP acceptance reply is lost.
 - [#723](https://github.com/bbottema/simple-java-mail/issues/723): added ordered per-recipient SMTP replies, enhanced status codes, and conservative retry guidance to submission receipts; normalized fully accepted Angus report-success exceptions into normal success. First phase of the SMTP robustness improvements tracked in [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#712](https://github.com/bbottema/simple-java-mail/issues/712): added `MailSendResultObserver` support, with immutable terminal outcomes covering Message-ID evolution, preparation, queue and execution timestamps, logging-only mode, exact submission receipts, and exact caller-facing failures across normal, pooled, batch, and open-connection sends. Configure shared or factory-created callbacks through `MailSendHandlers`.
 - [#714](https://github.com/bbottema/simple-java-mail/issues/714): added automatic, independently backing-off `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` beans for Spring Boot 2.7 and 3.x, plus a dependency-only `simple-java-mail-spring-boot-starter` and a permanent compatibility matrix.
-- [#713](https://github.com/bbottema/simple-java-mail/issues/713): added exact EML submission through the ordinary `Email` and `Mailer` APIs, preserving the complete caller-supplied wire representation while using explicit SMTP-envelope recipients, optional envelope sender and DSN options, receipts, observers, asynchronous execution, open connections, and pooled transports.
-
 ### Enhancements
 
+- [#734](https://github.com/bbottema/simple-java-mail/issues/734), following [#711](https://github.com/bbottema/simple-java-mail/issues/711): made execution explicit through cached `Mailer.sync()` / `Mailer.async()` views. Single-email sends return submission receipts; simple batches stay streaming and completion-only. Removed the builder async default and old flat/boolean send methods; integrations must migrate and recompile. CLI send/connect wait synchronously, and `--mailer:async` is rejected. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722). CLI help keeps its ordering before later retired execution options, and those spellings remain usable as literal message values.
+
+- [#783](https://github.com/bbottema/simple-java-mail/issues/783): completed passive stored-choice inspection and independent clear/reset support across public builders. Unfinished DSN, PKCS12, OpenPGP and retry settings remain inspectable without validation or module loading; completed values validate at build and retain detached choices. Retry-policy inspection preserves omissions and explicit clears while OperationalConfig exposes resolved settings.
+
 - [#927](https://github.com/bbottema/simple-java-mail/issues/927): recognize S/MIME attachments with parameterized Content-Types during requested decryption and signature inspection, retaining the complete attachment metadata and content ownership.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): display CLI help and version output before loading conventional mail configuration, so invalid mail settings do not hide the documentation needed to correct them.
 - [#929](https://github.com/bbottema/simple-java-mail/issues/929): `withHeaders(...)` accepts declared maps of lists or sets while retaining existing value conversion, order, duplicates and detached snapshots. Existing calls remain compatible.
 - [#930](https://github.com/bbottema/simple-java-mail/issues/930): `IRecipientsBuilder.buildRecipients()` returns `List<Recipient>`, expressing its ordered result and allowing direct use with Reply-To and delivery overrides. Recompile callers for the changed return descriptor; existing Collection assignments remain source-compatible, with ordering and snapshots unchanged.
 - [#926](https://github.com/bbottema/simple-java-mail/issues/926): failed DKIM, S/MIME and PKCS12 key-file replacements now keep the builder's previous material and related choices, including when closing the file fails after a successful read. Existing exception and stream-ownership contracts remain unchanged.
-
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): improve standalone CLI daemon shutdown with a 30-second accepted-work grace period inside one 60-second process deadline and independent cleanup of owned Mailers. Stop and restart remain bounded when work stalls; uncertain commands are never automatically replayed, and ordinary Java Mailer closure stays graceful.
 
 - [#845](https://github.com/bbottema/simple-java-mail/issues/845): added independent connect/read/write choices and inspection to `ConnectionConfig`,
   retaining `withSessionTimeout` as a convenience for all three. The last group setter affecting an operation wins; individual reset/inheritance
@@ -86,19 +92,14 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - Added independent recipient-group certificate/NOTIFY policy resets. Resetting preserves each original recipient's metadata; clearing still
   removes it from produced recipients and permits the Email fallback.
 
-- Completed clear/reset and inspection companions for exact/composed envelope settings, SMTP credentials, optional Mailer callbacks, retry
-  schedules and OpenPGP algorithms. Defaults remain centralized; clearing a retry schedule preserves its resource limits. Public value getters
-  are explicitly included in generated API documentation.
-
-- Completed stored-choice inspection for DSN, PKCS12 and OpenPGP configuration builders, with detached mutable data and independent optional-choice
-  clears. Incomplete builders remain inspectable without invoking validation or loading security modules.
-
 - Restricted Email construction to the documented builders and removed the obsolete defaults/overrides marker interface. Direct constructor
   callers must migrate to `buildEmail()` and recompile; the Email serialization format is retained. See the migration notes.
 
 - [#705](https://github.com/bbottema/simple-java-mail/issues/705): provide compact named single-recipient construction through `mail.recipientBuilder().to(name, address)`, `.cc(...)` and `.bcc(...)`, retaining the dedicated builders for richer recipient configuration.
 
-- Added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining existing static methods and factory snapshots. DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
+- [#778](https://github.com/bbottema/simple-java-mail/issues/778): added source-first fluent conversion through `mail.converter().fromEml(...).toEmail()` and the equivalent Email, MIME and Outlook routes, retaining static methods and factory snapshots. EML imports retain original protected bytes before MIME normalization across byte, string, stream, Path and File inputs, with lazy caller-owned streams.
+
+- DSN builders can clear their return option without an overloaded `null` call. Scoped `MailSender.sendMail(...)` now returns its receipt, and `Mailer.closeAsync()` replaces the misleading `shutdownConnectionPool()` name; see the migration notes for those released API changes.
 
 - OpenPGP signing and encryption participate in Email defaults/overrides with the same whole-policy replacement and suppression rules as S/MIME and DKIM. Result and progress observers can be cleared independently on the `MailSendHandlers` builder. SMTP enhanced status codes use the same typed value as received delivery reports, without restricting raw provider replies or unfamiliar numeric combinations.
 
@@ -116,63 +117,33 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#738](https://github.com/bbottema/simple-java-mail/issues/738): added recipient/group DSN NOTIFY preferences, with default/fixed/clear policies and Email fallback. Managed Angus adds ORCPT from actual envelope-recipient occurrences when supported, without changing exact or protected MIME bytes. Explicit recipient preferences fail before submission if unsupported; capability mismatches leave healthy pooled connections reusable.
 - [#736](https://github.com/bbottema/simple-java-mail/issues/736): added automatic per-send DSN envelope identifiers (ENVID), exposed on submission receipts for correlating later notifications. `fixingEnvelopeId(...)` supplies a fixed value through Java or CLI, for composed or exact emails. Automatic generation is best-effort; fixed identifiers require DSN support. MIME bytes remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#735](https://github.com/bbottema/simple-java-mail/issues/735): reject extra properties that disable mandatory STARTTLS for `SMTP_TLS` or `SMTP_OAUTH2` during Mailer construction, with actionable configuration errors. Owned custom Angus socket factories now default to no fallback and close connected sockets after a failed TLS handoff; deliberate fallback remains configurable. The opportunistic SMTP default, caller-owned Sessions and `CustomMailer` remain unchanged. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
-- [#734](https://github.com/bbottema/simple-java-mail/issues/734), following [#711](https://github.com/bbottema/simple-java-mail/issues/711): made execution explicit through cached `Mailer.sync()` / `Mailer.async()` views. Single-email sends return submission receipts; simple batches stay streaming and completion-only. Removed the builder async default and old flat/boolean send methods; integrations must migrate and recompile. CLI send/connect wait synchronously, and `--mailer:async` is rejected. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#709](https://github.com/bbottema/simple-java-mail/issues/709): added `Mailer.rehearse(...)` to return the governed `Email`, defensive EML bytes, encoded size, Message-ID, and transport envelope addresses without opening an SMTP connection; existing Mailer validation now delegates to the same preparation.
 - [#715](https://github.com/bbottema/simple-java-mail/issues/715): added grouped, safe-to-log configuration diagnostics that show each resolved value and its winning source, including per-property Spring and wildcard provenance, through the immutable `SimpleJavaMail` factory snapshot.
 - [#716](https://github.com/bbottema/simple-java-mail/issues/716): added focused Java 11 `Path` and `Instant` conveniences for configuration files, message bodies, EML and Outlook imports, exact EML, cryptographic material, and sent dates, while retaining the existing `File`, `InputStream`, and `Date` APIs.
 
-### Bug fixes
+### Other corrections
 
 - [#952](https://github.com/bbottema/simple-java-mail/issues/952): automatic image lookup interprets HTML character references once before resolving files, classpath resources or URLs. MIME/EML and MSG conversion use the same complete CID identity, retaining literal filenames, plus signs and case while decoding CID percent escapes once.
 
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles skip security-file reads for disabled ordinary Email defaults. Active defaults, ordered restoration, selected named routes and mandatory locked material retain their fingerprints and enforcement.
-
 - [#950](https://github.com/bbottema/simple-java-mail/issues/950): composed Email reply/reply-all starters quote represented readable content without applying outgoing protection first. Original and reply protection still apply through normal conversion and sending, with reply routing and referenced resources retained.
 
-- [#726](https://github.com/bbottema/simple-java-mail/issues/726): late cancellation or deadline expiry no longer hides an independent connection cleanup failure after SMTP acceptance. Original causes and accepted receipt facts remain available.
-
 - [#946](https://github.com/bbottema/simple-java-mail/issues/946): readable MSG attachments without a MIME type or usable filename retain their content with an `application/octet-stream` fallback instead of aborting the import.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): S/MIME retains selected body transfer encodings and finalized content headers for single-part messages, consistently with multipart content.
-- [#812](https://github.com/bbottema/simple-java-mail/issues/812): Outlook receipt destinations retain raw source order and duplicates across interleaved capitalization of repeated receipt headers.
-
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP receive inspection requires an actual encrypted layer before reporting successful decryption. An unencrypted packet inside an encrypted MIME wrapper retains failed-decryption facts and its original representation.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI filesystem images use the requesting command's directory for explicit relative bases and no-base sources, while configured bases retain their configuration directory.
-- [#755](https://github.com/bbottema/simple-java-mail/issues/755): failed and skipped connection history respects explicit provider-visible port values, including typed direct values above inherited defaults.
 - [#945](https://github.com/bbottema/simple-java-mail/issues/945): calendar imports through provider-returned streams honor their declared charset, retaining existing absent-charset defaults and stream ownership.
 - [#786](https://github.com/bbottema/simple-java-mail/issues/786): explicit builder changes after copying a merged S/MIME Email take precedence over retained signed-content history, without duplicating or resurrecting copied resources.
 
-- [#713](https://github.com/bbottema/simple-java-mail/issues/713): exact EML construction automatically fills existing S/MIME and OpenPGP inspection results with established facts or UNKNOWN. Missing optional modules do not by themselves prevent relay from the original EML; the original parsed content view and authoritative bytes remain unchanged.
-
-- [#726](https://github.com/bbottema/simple-java-mail/issues/726): simple batches observe known cancellation or deadline expiry before entering another lazy-source callback. Completed email outcomes remain intact; cancellation from the final email's observer still cancels the batch without probing for exhaustion.
-
-- [#755](https://github.com/bbottema/simple-java-mail/issues/755): managed Angus setup outages during SMTP authentication can use ordinary connection failover. Genuine credential rejection and certificate failures retain their independent permissions.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP and S/MIME EML import recognize the first supported header separator when outer headers use LF or mixed line endings, retaining the original protected content for verification and decryption.
 - [#941](https://github.com/bbottema/simple-java-mail/issues/941): older serialized DKIM configurations restore detached immutable header exclusions, preserving their choices without allowing a returned or retained collection to change a completed configuration.
-- [#733](https://github.com/bbottema/simple-java-mail/issues/733): connection probe reports honor Angus's valid hexadecimal SMTP port values instead of describing the protocol default.
-
 - [#938](https://github.com/bbottema/simple-java-mail/issues/938): sending, connection tests and authenticated probes honor fixed OAuth2 tokens inherited through a supplied Session's property defaults. The direct `simplejavamail.oauth2.token` entry and caller defaults remain intact; direct tokens and lazy token providers retain their behavior.
 
 - [#935](https://github.com/bbottema/simple-java-mail/issues/935): MIME and EML import preserve explicitly empty plain-text and HTML bodies as empty strings. Missing alternatives remain null, so ordinary defaults no longer replace a source's present-empty body.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): successful outer S/MIME decryption retains unknown signature verification when the revealed content is another unopened encrypted entity. The established outer decryption result remains available.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI Mailer profiles read named security files only along the selected failover route. Unused named destinations no longer make unrelated commands depend on their key files, while selected key changes, including DKIM `file:` paths, separate retained Mailers.
-
 - [#934](https://github.com/bbottema/simple-java-mail/issues/934): MIME and EML import keep repeated custom-header values in source order even when the header name uses different capitalization. The first display spelling is retained.
 
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): retained opaque S/MIME artifacts keep their complete Content-Type parameters, so signed-data remains identifiable when the attachment is saved or reused.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): retain the detached S/MIME signature alongside a different attachment with the same filename, without renaming either resource.
 - [#933](https://github.com/bbottema/simple-java-mail/issues/933): null DKIM signing-domain and selector replacements now fail before changing the builder's previous choices. Handle missing values explicitly; optional defaults and omitted-field build behavior are unchanged.
 
 - [#925](https://github.com/bbottema/simple-java-mail/issues/925): `OperationalConfig.getVerifyingServerIdentity()` replaces the primitive `isVerifyingServerIdentity()` getter with nullable captured configuration. Unspecified or unrecognized settings remain null without changing supplied Session properties or TLS behavior. Recompile callers and handle null explicitly; see the [migration guidance](https://www.simplejavamail.org/migration-notes-10.0.0.html#tls-identity-inspection).
 
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP signing and reading work from named Java modules through narrowly qualified loader access and resolution of the existing Kotlin runtime dependency.
-
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
-
 - [#921](https://github.com/bbottema/simple-java-mail/issues/921): authenticated SOCKS releases setup workers after an explicit forwarding handoff, allowing new connections while established pooled or retained tunnels stay open. Pending admission is bounded, ordinary overload refuses only the new setup, and idle setup workers retire without changing client timeout authority.
 
 - [#914](https://github.com/bbottema/simple-java-mail/issues/914): preserve whole imported address text after an address-grammar failure instead of discarding otherwise readable MIME/EML content. Existing successful parsing and outgoing validation retain their separate roles.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): keep daemon status and stop responsive during slow mail commands through separately bounded control and reply handling, retaining duplicate-request protection and accepted-work shutdown semantics.
-
 - [#908](https://github.com/bbottema/simple-java-mail/issues/908): typed delivery-recipient overrides now receive the selected Mailer's address validation and relevant injection checks. Raw custom recipient headers retain their advanced mailbox-validation escape, with general injection checks and mandatory locks.
 - [#909](https://github.com/bbottema/simple-java-mail/issues/909): pending authenticated SOCKS setup owns and closes its remote socket when its client disconnects, times out or is cancelled, while established pooled tunnels retain their lifetime.
 
@@ -183,56 +154,32 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#911](https://github.com/bbottema/simple-java-mail/issues/911): authenticated SOCKS preserves unresolved destination names for the remote proxy instead of resolving them again in the local bridge.
 - [#912](https://github.com/bbottema/simple-java-mail/issues/912): reject incomplete CONNECT replies and invalid protocol version, reserved or address-type fields before forwarding.
 - [#913](https://github.com/bbottema/simple-java-mail/issues/913): reject effective authenticated SOCKS usernames or passwords outside 1 through 255 UTF-8 octets at Mailer construction, with the same defensive bound before authentication serialization.
-- [#756](https://github.com/bbottema/simple-java-mail/issues/756): retire an earlier refusal's receipt when another provider invocation starts, so a later unchecked failure cannot publish stale rejection or safe-retry advice.
 - [#905](https://github.com/bbottema/simple-java-mail/issues/905): include opaque S/MIME signatures inside encrypted messages in the outer Email's verification facts for standard and legacy MIME spellings.
 - [#906](https://github.com/bbottema/simple-java-mail/issues/906): make shared S/MIME key loading atomic during concurrent signing and decryption while retaining parsed-key reuse.
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): leave delivery-report dates unavailable when numeric timezone hours fall outside 00 through 23, retaining source content and neighboring facts.
 - [#904](https://github.com/bbottema/simple-java-mail/issues/904): reject missing required calendar arguments before replacing either part of an existing calendar choice; explicit clearing remains available.
 
 - [#899](https://github.com/bbottema/simple-java-mail/issues/899): preserve literal angle brackets in imported attachment and embedded-image filenames, keeping Content-ID interpretation separate.
 - [#916](https://github.com/bbottema/simple-java-mail/issues/916): preserve a supplied `UnknownAttachment` filename instead of replacing it with the Content-ID; genuinely missing filenames retain their existing fallbacks.
 - [#920](https://github.com/bbottema/simple-java-mail/issues/920): keep imported inline images matched to HTML when received Content-ID headers contain valid external comments or folding whitespace, retaining literal filenames and complete case-sensitive IDs.
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): read delivery-report actions with valid comments, retaining unknown results for malformed or competing action tokens.
 - [#918](https://github.com/bbottema/simple-java-mail/issues/918): retain detached S/MIME signatures in decrypted Outlook message exports and signed-content views, so saved signed EML remains verifiable independently of content merging.
 - [#919](https://github.com/bbottema/simple-java-mail/issues/919): reject null String body fragments before appending or prepending, preserving the draft while retaining nullable replacement and empty-fragment behavior.
 
 - [#897](https://github.com/bbottema/simple-java-mail/issues/897): automatic embedded-image resolution selects the actual quoted `src` attribute, preserving source-like text and `>` characters in preceding quoted attributes instead of resolving a decoy location.
-- [#726](https://github.com/bbottema/simple-java-mail/issues/726): corrected the CLI deadline example to use `--mailer:withMailSendTimeout PT30S`, matching the existing separate option/value syntax.
-
 - [#895](https://github.com/bbottema/simple-java-mail/issues/895): required Mailer callback, token-provider, template and Session inputs reject null before replacing existing choices. Use the named clear/restoration methods for intentional removal; nullable SMTP components retain their existing behavior.
-
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI daemon selectors remain literal when consumed as subject, body or header values, preserving genuine routing selectors and their existing diagnostics.
 
 - [#894](https://github.com/bbottema/simple-java-mail/issues/894): reply starters generate a missing quoted body alternative from the original's available format, preserving existing dual-body content and later independent edits. Plain text is escaped into HTML; the plain fallback from HTML retains readable breaks, links and image alt text without fetching resources.
 
 - [#893](https://github.com/bbottema/simple-java-mail/issues/893): keep imported `srcset` CID images embedded when HTML uses character references, interpreting each URL separately from its descriptors while preserving source HTML and resource identities.
-
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): retain complete supported JVM configuration when starting a CLI daemon, including named failover Mailers, locks, nonblank source precedence and supported typed direct values. Running instances keep their startup defaults; restart captures the restarting invocation's configuration.
 
 - [#890](https://github.com/bbottema/simple-java-mail/issues/890): interpret supported S/MIME `smime-type` values regardless of capitalization, preserving signature/decryption selection and the reported protection mode.
 - [#891](https://github.com/bbottema/simple-java-mail/issues/891): retain every unreferenced inline resource with a repeated Content-ID, preserving filenames, bytes and attachment order during eager and lazy import.
 
 - [#884](https://github.com/bbottema/simple-java-mail/issues/884): recognize equivalent S/MIME media-type capitalization without losing signed or encrypted source facts.
 - [#885](https://github.com/bbottema/simple-java-mail/issues/885): interpret HTML attribute character references in CID URLs while preserving source HTML, resource identity and bytes. The main module now includes jsoup; custom module paths must include `org.jsoup`, with the Java 11 library baseline unchanged.
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): retain delivery-report timestamps with well-formed trailing comments, preserving strict calendar and timezone interpretation.
 - [#887](https://github.com/bbottema/simple-java-mail/issues/887): skip existing CID image references regardless of scheme capitalization during required automatic resolution.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): keep argument-file values separate from the next line's options around inline comments, including explicitly empty values.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): honor genuine CLI help before later malformed daemon selectors while retaining earlier diagnostics.
-
 - [#881](https://github.com/bbottema/simple-java-mail/issues/881): import a referenced image without a disposition inside `multipart/related` as one embedded image, without duplicating it in ordinary attachments. Explicit attachment behavior and intentional resource occurrences remain unchanged.
 - [#882](https://github.com/bbottema/simple-java-mail/issues/882): recognize percent-escaped CID references during MIME/EML import, retaining the original HTML, Content-ID and resource bytes. Literal plus signs and complete, case-sensitive content identities remain distinct.
 - [#883](https://github.com/bbottema/simple-java-mail/issues/883): reject unsupported calendar charsets before acquiring a content stream, retaining conversion failures and the existing ownership of parser-opened and caller-supplied streams.
-
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): incoming OpenPGP results retain every represented signature through combined signed/encrypted packets and nested MIME layers. Inspect the immutable `OpenPgpSignatureResult` list; the whole-message summary is valid only after complete inspection with every signature valid. Singular signer/algorithm shortcuts apply only to one represented result, and established decryption remains independent of signature failures. Older snapshots keep established selected facts without inventing complete inspection.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): incoming OpenPGP/MIME signature and ciphertext parts honor their MIME transfer encoding before verification or decryption. Signed content and original protected EML bytes retain their existing boundaries; receive configuration and outbound protection are unchanged.
-- [#488](https://github.com/bbottema/simple-java-mail/issues/488): CLI argument files expand once from the caller's directory. Escaped `@@values`
-  remain literal after routing, and missing caller files cannot be replaced by files in a daemon's directory. Existing UTF-8 and expansion limits remain in force.
-
-- [#734](https://github.com/bbottema/simple-java-mail/issues/734): CLI subjects, bodies and header values can contain retired execution-option
-  spellings such as `--mailer:async=false`. Actual retired options retain their migration error and existing help ordering.
-
-- [#734](https://github.com/bbottema/simple-java-mail/issues/734): genuine CLI help ignores removed execution-mode options supplied afterward.
-  Earlier or standalone removed options retain their migration error, without executing a mail command for help.
 
 - [#873](https://github.com/bbottema/simple-java-mail/issues/873): rejected recipient shortcuts and address/name helpers retain the earlier complete
   identity and metadata, rather than leaving a replacement name on the previous address or discarding an inferred name.
@@ -248,18 +195,12 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#861](https://github.com/bbottema/simple-java-mail/issues/861): retain undecodable optional generic root-header text when its encoded-word charset is
   unavailable, preserving readable input and the existing typed, required-content and outgoing validation boundaries.
-- [#740](https://github.com/bbottema/simple-java-mail/issues/740): apply and compare named From/bounce address locks using their interpreted singular
-  mailbox addresses, preserving separate display-name locks, address case rules and exact-message compatibility.
 - [#863](https://github.com/bbottema/simple-java-mail/issues/863): recognize Outlook receipt-header names case-insensitively across its shared import
   routes, retaining destination order, duplicates, names and existing unusual-value handling.
 - [#869](https://github.com/bbottema/simple-java-mail/issues/869): preserve Outlook embedded-image filenames separately from their Content-IDs during
   MSG import and EML export.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): collect and inspect unfinished non-null OpenPGP decryption keys consistently with
-  verification keys; completed receive-config construction rejects empty keys while earlier snapshots remain independent.
 - [#865](https://github.com/bbottema/simple-java-mail/issues/865): report local pre-provider MIME/envelope preparation failures as PREPARATION without
   receipts across retry modes and terminal observation, preserving genuine provider facts and narrow healthy-lease reuse.
-- [#800](https://github.com/bbottema/simple-java-mail/issues/800): retain explicit connection clear markers over corresponding unlocked raw Session
-  overlays, while preserving omitted/configured/reset choices, protocol mapping, caller-Session limitations and locks.
 - [#859](https://github.com/bbottema/simple-java-mail/issues/859): rejected retry and failover backoff replacements retain the previous multiplier,
   maximum duration and supplied choices when the required cap is null.
 - [#860](https://github.com/bbottema/simple-java-mail/issues/860): automatic classpath image MIME guessing and URL type fallback use locale-independent
@@ -277,9 +218,6 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#856](https://github.com/bbottema/simple-java-mail/issues/856): MIME/EML import accepts valid comments in body and resource transfer-encoding
   headers, such as `base64 (encoded for transport)`, without treating the comment as part of the encoding name. Conflicting declarations,
   unsupported encodings, required content-read failures and exact/protected source bytes retain their existing boundaries.
-
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): S/MIME signature status stays `UNKNOWN` while ciphertext is unopened,
-  alongside `KEY_MISSING` or `FAILED` decryption. Later signature-processing errors retain successful `DECRYPTED` results and readable content.
 
 - [#853](https://github.com/bbottema/simple-java-mail/issues/853): required S/MIME key-store and certificate setters reject null before
   changing an earlier builder choice. Algorithm preferences and completed configurations retain their existing behavior.
@@ -306,8 +244,6 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#844](https://github.com/bbottema/simple-java-mail/issues/844): DKIM accepts equivalent capitalization in sender and signing domains,
   preserving supplied addresses and signing-domain spelling while retaining its same-domain/subdomain and DNS key requirements.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): rejected OpenPGP recipient-key replacements retain the previous keys and cipher.
-  Additive and replacement setters consistently collect unfinished key bytes; complete configuration construction retains its validation.
 - [#842](https://github.com/bbottema/simple-java-mail/issues/842): attachment MIME conversion preserves valid Content-Type parameters,
   including character encodings and extension parameters, with equivalent eager/lazy metadata and SJM-selected filenames.
 - [#841](https://github.com/bbottema/simple-java-mail/issues/841): CLI subjects, bodies, headers and file values ending in `--help`
@@ -315,8 +251,6 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#840](https://github.com/bbottema/simple-java-mail/issues/840): imported MIME/EML message headers, bounce addresses and receipt destinations
   come from the effective root message. Misplaced child headers no longer change parent metadata; readable attachments retain their content and resource metadata.
 
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): OpenPGP inspection reports `UNKNOWN` when facts cannot be established, preserving
-  missing-key and actual-failure results while leaving signatures inside unreadable ciphertext unknown.
 - [#838](https://github.com/bbottema/simple-java-mail/issues/838): MIME/EML and Outlook import retain an unusable Return-Path as a source header,
   leave its interpreted bounce recipient absent, and continue reading the rest of the message.
 - [#835](https://github.com/bbottema/simple-java-mail/issues/835): required recipient and group S/MIME certificate setters reject null before
@@ -332,8 +266,6 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   MIME rendering without changing supplied Recipient values or From/Reply-To roles.
 - [#830](https://github.com/bbottema/simple-java-mail/issues/830): reject distinct pool-property aliases resolving to one UUID instead of silently
   discarding settings or locks. Keep each cluster's settings under one alias.
-- [#710](https://github.com/bbottema/simple-java-mail/issues/710), [#710](https://github.com/bbottema/simple-java-mail/issues/710): provider-result helpers
-  preserve unknown acceptance for non-negative replies and retain recipient facts through nested Jakarta Mail exception chains.
 - [#834](https://github.com/bbottema/simple-java-mail/issues/834): managed DKIM/S/MIME/PKCS12 content reads use `MailException/PREPARATION` for known
   I/O failures, retaining causes, suppressed close failures and supplied-stream ownership.
 - [#833](https://github.com/bbottema/simple-java-mail/issues/833): required S/MIME configuration setters reject null before changing an earlier
@@ -345,15 +277,10 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
   self-close before shutdown starts, avoiding an indefinite wait. Initiate shutdown without waiting there and close from the application owner;
   see the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#async-shutdown).
 
-- [#783](https://github.com/bbottema/simple-java-mail/issues/783): inspecting a Mailer builder's retry policy now returns supplied choices,
-  including omissions and explicit clears, without resolving or validating the effective policy. Built `OperationalConfig` retains resolved settings.
 - [#821](https://github.com/bbottema/simple-java-mail/issues/821): attachment convenience reads consistently report opening, reading and closing
   I/O failures as `MailException` with kind `PREPARATION`, preserving the original cause and suppressed close failures. Replace
   `getDataSourceInputStream()` with `openStream() throws IOException` for caller-owned streaming. Convenience readers no longer declare checked
   `IOException`; update affected catches and raw-stream calls using the [migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html#attachment-reader-ownership).
-
-- [#763](https://github.com/bbottema/simple-java-mail/issues/763): stopped carrying received delivery-status reports through defaults/overrides completion.
-  Completion resolves outgoing protection and notification settings; historical inspection results stay with the source Email. Ordinary copying and serialization retain their existing data.
 
 - Recipient String address setters now extract a single embedded display name and mailbox, honoring explicit names in either setter order.
   Malformed input, groups and address lists remain intact for send-time validation; explicit address-only helpers keep their name-preserving behavior.
@@ -370,26 +297,17 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#768](https://github.com/bbottema/simple-java-mail/issues/768): repeated Email completion adds only missing template recipients, attachments and images, while preserving all supplied occurrences. The selected Mailer's defaults and overrides still apply; suppression survives completion and copying, and locks remain binding. Resource matching avoids reading borrowed content and leaves uncertain sources separate. See the [migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#repeated-email-completion).
 - Email equality includes DKIM configuration and counts repeated attachment/image occurrences without reading their content.
 - Connection tests reject work after Mailer shutdown starts, including asynchronous checks still waiting on an application-owned executor.
-- Mailer and Session-property rendering redact recognized secrets. Operational settings and trusted-host inspection no longer share mutable
-  containers with builders or their inputs; reused builders cannot change an earlier Mailer's configuration snapshot.
+- Mailer and Session-property rendering redact recognized secrets.
 - Custom-header replacement and Email-template precedence treat differently capitalized names as the same header. Email equality accounts for
   duplicate recipient occurrences symmetrically while retaining its order-insensitive comparison.
-- Fluent EML-to-Email imports preserve original protected input bytes, including tolerated noncanonical header endings. EML export failures retain
-  their cause and identify the conversion operation instead of reporting an impossible internal state.
+- EML export failures retain their cause and identify the conversion operation instead of reporting an impossible internal state.
 - [#822](https://github.com/bbottema/simple-java-mail/issues/822): ordinary protected-mail imports without the S/MIME module report unknown inspection
   facts instead of claiming plain, unsigned or unencrypted content. Recognizable headers retain the outer protection mode and original protected
   EML bytes; clearly plain input keeps its existing results. Explicit decryption still requires the module. See the migration guide.
-- [#704](https://github.com/bbottema/simple-java-mail/issues/704): reject recipient-certificate S/MIME encryption combined with OpenPGP signing or
-  encryption during composed build and effective completion, before MIME protection. Errors identify the conflicting requests and explain explicit
-  clearing without changing source recipients. See the [protection guidance](https://www.simplejavamail.org/security.html#section-sending-openpgp).
 - [#824](https://github.com/bbottema/simple-java-mail/issues/824): share lenient mailbox-list interpretation across Email conveniences, plural
   recipient builders and composed CLI recipient input. Quoted names, legacy separators and RFC group members preserve their intended mailboxes,
   order and local duplicate occurrences. Singular extraction retains plural/group source for configured validation instead of selecting its first
   mailbox, while exact-envelope input keeps its separate strict contract.
-- [#783](https://github.com/bbottema/simple-java-mail/issues/783): grouped DSN builders collect and expose supplied choices without semantic
-  validation during inspection. Complete-request, NOTIFY-combination and ENVID checks run at `SmtpDeliveryOptions.build()`; component getters
-  return detached supplied state, and the full DSN getter remains on the completed value. Standalone DSN factories retain their own validation.
-- Configuration loading includes inherited Java Properties defaults with normal source precedence, type checks and locks.
 
 - Email copies retain delivery-recipient overrides, including recipient metadata and duplicate occurrences, without changing the visible headers.
 - Recipient interpretation retains comment-only or whitespace-only source strings for normal sending validation instead of throwing an array-index error.
@@ -421,7 +339,6 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#764](https://github.com/bbottema/simple-java-mail/issues/764): added problem-led Tactical/Strategic Patterns navigation and runnable examples for jobs, events, workflows, restartable batches, protected documents and received feedback. Additional Docker paths exercise RelayDesk, Polar Meridian and non-SMTP CustomMailer handoff; an optional AWS worker combines SJM with SES through Terraform or CloudFormation. Curated reference links lead directly to useful demonstrations. Applications own persistence and business decisions; SJM supplies mail construction, submission evidence and delivery-report interpretation.
 
-- [#726](https://github.com/bbottema/simple-java-mail/issues/726): shared write-timeout monitoring across connections from each managed Angus Session, with cleanup after its last connection closes. Application-supplied schedulers remain application-owned.
 - [#747](https://github.com/bbottema/simple-java-mail/issues/747): added a reproducible SMTP conformance runner with pinned Postfix/Exim fixtures, independent protected-content checks and sanitized CI evidence. Restored the embedded SMTP/SOCKS integration tests to ordinary verification. Part of [#722](https://github.com/bbottema/simple-java-mail/issues/722).
 - [#749](https://github.com/bbottema/simple-java-mail/issues/749): reduced content-inspection copying and per-byte stream overhead, cached mail-adapter discovery per application class loader, and removed redundant MIME-provider availability lookups. Content checks, SIZE preflight and per-operation adapter behavior remain enabled.
 - [#736](https://github.com/bbottema/simple-java-mail/issues/736): made the CLI's runtime Javadoc cache safe to repopulate from concurrent daemon requests after an API change invalidates generated metadata.
