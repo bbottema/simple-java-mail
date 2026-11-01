@@ -22,7 +22,7 @@ Make the input bytes the sole authority for MIME content. The parsed Email gette
 [ADR 0035](0035-tolerant-reading-and-strict-production.md) permits recovery in that inspection view without changing authoritative bytes.
 Tolerant reading does not relax this explicit submission mode's validation, content-preservation or transport-safety requirements.
 
-Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
+Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and outgoing DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 
 That copy also makes no promise that signatures already applied to the source remain valid; copying does not automatically strip or re-sign them.
 Use the original exact Email for unchanged resubmission. When constructing a different envelope, start the existing exact builder from the
@@ -38,6 +38,41 @@ requesting composition is distinct from sending, rehearsing or exporting the ori
 It is envelope metadata only: ordinary templates remain bypassed, compatible factory locks still apply, and authoritative bytes are unchanged.
 
 Require explicit envelope recipients; do not infer them from parsed To/Cc/Bcc. Each configured value is one mailbox, repeated calls append and duplicate occurrences remain. The optional explicit sender is an envelope choice, not a request to rewrite From. When omitted, the provider derives its default; omission is not a separate guarantee of an SMTP null reverse path.
+
+## Automatic incoming protection inspection (accepted 1 November 2026)
+
+Building an exact Email automatically populates its existing S/MIME and OpenPGP inspection getters. Reuse the feature-owned incoming
+inspection, retaining precise outcomes it establishes, including valid or invalid signatures, missing keys and actual failures. A recognizable
+outer declaration can establish a signed or encrypted mode, while unestablished verification or decryption remains UNKNOWN. Missing optional
+modules do not by themselves prevent exact relay; the existing header-only recognition supplies truthful unavailable results. The clarification
+targets unreleased 10.0.0 under [#713](https://github.com/bbottema/simple-java-mail/issues/713).
+
+A PKCS7 application envelope with a missing or unsupported `smime-type` does not establish its signed/encrypted kind. If available processing
+only applies a legacy header/default guess without opening or verifying its structure, exact inspection retains UNKNOWN mode, verification and
+decryption rather than promoting assumed signing or a missing decryption key into established facts. Keep the original parameters and bytes.
+
+No receive-key input, inspection switch or new public result is added. Exact construction supplies no incoming keys and must not borrow a
+factory's outgoing signing material. A self-contained S/MIME signature may be verifiable from its embedded certificate; this does not establish
+signer ownership or application trust. Callers use ordinary conversion to choose receive keys or obtain an editable, opened content view.
+
+Keep inspection separate from applying its readable-content output. Exact Email retains its existing raw parsed body, headers and attachments;
+the original EML remains its sole export, rehearsal and send authority. Do not apply ordinary conversion's attachment decryption, nested Email
+construction, automatic image resolution, templates or outgoing protection. Required MIME/content failures and unrelated programming failures
+retain their error boundaries. Clearly plain input is identified without loading optional protection handlers or making another full source copy.
+
+Inspection runs during build, rather than during the constructor's existing delivery-report parsing or later getter reads. Repeated builds
+produce their own snapshots; original-byte ownership, caller-stream ownership, canonical exact-input validation, copying and supported
+serialization retain their established contracts.
+Java graph restoration still requires the producer's result classes and modules; keep the original EML when relay must remain independent of
+optional inspection modules.
+
+When a signed exact envelope is uninspected because its optional module is absent, its inner encryption remains UNKNOWN rather than being
+declared absent. When available S/MIME inspection verifies an outer signature but exposes clearly declared, unopened inner PKCS7 ciphertext,
+the feature-owned exact-inspection hook reports SIGNED_ENCRYPTED and combines the inner UNKNOWN facts with established outer results using
+the existing conservative ordering. Thus an outer VALID result does not prove all represented signatures valid, while INVALID or ERROR remains
+more severe than UNKNOWN. Decryption remains UNKNOWN and the original outer bytes and signer metadata are retained. This adds no recursive
+decryption, key selection or broader ordinary-import processing; [ADR 0008](0008-minimal-mime-structures-and-protection-order.md) owns the
+protection interpretation and aggregation rules.
 
 ## Recorded rationale and evidence
 

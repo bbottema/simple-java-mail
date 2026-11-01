@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
+import org.simplejavamail.api.internal.protectionsupport.model.InboundProtectionResult;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
@@ -32,6 +33,11 @@ public interface SMIMEModule extends InboundProtectionHandler<Pkcs12Config, Orig
 	@Override
 	SmimePreprocessingResult processIncoming(@NotNull Session session, @NotNull MimeMessage originalMessage,
 			@Nullable Pkcs12Config pkcs12Config);
+
+	/** Inspects original-message facts without receive keys or a replacement content view. */
+	@NotNull
+	InboundProtectionResult<OriginalSmimeDetails> inspectIncomingMessage(@NotNull Session session,
+			@NotNull MimeMessage originalMessage);
 
 	/**
 	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.

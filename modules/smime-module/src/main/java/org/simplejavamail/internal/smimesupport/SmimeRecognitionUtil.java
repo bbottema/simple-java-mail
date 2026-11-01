@@ -45,7 +45,7 @@ public final class SmimeRecognitionUtil {
 						protocol.equalsIgnoreCase("application/pkcs7-signature") || protocol.equalsIgnoreCase("application/x-pkcs7-signature"));
 	}
 
-	private static boolean isSmimeApplicationType(@Nullable final String mime) {
+	static boolean isSmimeApplicationType(@Nullable final String mime) {
 		return "application/pkcs7-mime".equalsIgnoreCase(mime) || "application/x-pkcs7-mime".equalsIgnoreCase(mime);
 	}
 }

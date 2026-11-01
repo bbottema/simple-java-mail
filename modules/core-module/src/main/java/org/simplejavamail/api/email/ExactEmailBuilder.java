@@ -22,13 +22,19 @@ import java.util.List;
  * Reuse the original exact Email for unchanged resubmission, or start another exact builder from the authoritative finalized input when
  * supplying a new explicit envelope.
  * <p>
+ * Building also populates the existing S/MIME and OpenPGP inspection getters using available incoming-message support. This can verify a
+ * self-contained signature, but it does not select receive keys. Unestablished outcomes remain {@code UNKNOWN}; established missing-key and
+ * failure results retain their own statuses. Missing optional inspection modules do not by themselves prevent exact submission. These facts
+ * do not replace the raw parsed body, headers or attachments, and reading the getters performs no further inspection.
+ * <p>
  * Only SMTP-envelope recipients, an optional envelope sender, and optional delivery-status notification settings can be supplied here. Header recipients
  * such as {@code To}, {@code Cc}, and {@code Bcc} never determine the delivery envelope. Conversely, exact submission retains every supplied header,
  * including {@code Bcc}, {@code Resent-Bcc}, and {@code Content-Length}; callers must provide an already safe outbound representation.
  * <p>
- * Mailer defaults, overrides, content validation, embedded-image resolution, MIME rebuilding, and DKIM/S/MIME/OpenPGP processing are bypassed because
- * any such transformation would contradict exact submission. A transport adapter must explicitly support full-byte preservation; the bundled Angus Mail
- * adapter does.
+ * Mailer defaults, overrides, content validation, embedded-image resolution, MIME rebuilding, and outgoing DKIM/S/MIME/OpenPGP transformations are
+ * bypassed because they would contradict exact submission. Incoming protection inspection only supplies facts; it never replaces the authoritative
+ * source or decrypts unrelated attachments. Use ordinary conversion to select receive keys or obtain an editable, opened content view.
+ * A transport adapter must explicitly support full-byte preservation; the bundled Angus Mail adapter does.
  * <p>
  * Factory-scoped locked configuration is not an ordinary template and is not bypassed. Compatible envelope requirements, such as an archive recipient,
  * still apply. Matching original headers can satisfy readable-header locks, but duplicate Subject, From, or Reply-To fields prevent confirming a lock

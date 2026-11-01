@@ -235,6 +235,19 @@ remain outside this decision. [#704](https://github.com/bbottema/simple-java-mai
 implementation follows this distinction on the 10.0.0 development branch. This does not reopen the completed S/MIME repair or the original
 OpenPGP feature.
 
+## Exact EML incoming facts (accepted 1 November 2026)
+
+[ADR 0013](0013-exact-eml-submission.md#automatic-incoming-protection-inspection-accepted-1-november-2026) clarifies that exact construction
+automatically records available incoming protection facts without applying readable-content replacements or outgoing transformations. The
+feature implementation owns cryptographic interpretation; the exact builder keeps its raw parsed view and authoritative bytes. Missing
+modules produce recognized declarations with UNKNOWN unestablished outcomes, while actual missing-key and failure results remain distinct.
+
+For exact inspection, an uninspected signed envelope cannot establish the absence of inner encryption. The S/MIME facts-only hook also treats
+clearly declared ciphertext exposed by a verified outer signature as unopened: combine UNKNOWN with the outer results under the existing
+severity ordering, retain INVALID/ERROR when already established, and keep the outer original bytes and signer metadata. Do not recursively
+decrypt that content, inspect unrelated attachments or broaden ordinary conversion's existing processing. This clarification is accepted for
+unreleased 10.0.0 under [#713](https://github.com/bbottema/simple-java-mail/issues/713).
+
 ## MIME producer selection
 
 Protection facts describe the owning Email's represented layers, not an aggregate of unrelated attachments. Successful envelope decryption

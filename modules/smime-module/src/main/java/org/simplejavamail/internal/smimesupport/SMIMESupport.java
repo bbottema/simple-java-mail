@@ -109,6 +109,60 @@ public class SMIMESupport implements SMIMEModule {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
 	private static final ConcurrentMap<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new ConcurrentHashMap<>();
 
+	/** Read-only message facts keep unopened nested ciphertext uncertain without changing ordinary import behavior. */
+	@NotNull
+	@Override
+	public SmimePreprocessingResult inspectIncomingMessage(@NotNull final Session session, @NotNull final MimeMessage originalMessage) {
+		final SmimePreprocessingResult result = processIncoming(session, originalMessage, null);
+		OriginalSmimeDetails details = result.getDetails();
+		if (result.isRecognized() && result.getEffectiveMimeMessage() == originalMessage && hasAmbiguousApplicationKind(originalMessage)
+				&& details.getSmimeMode() == SmimeMode.SIGNED
+				&& details.getVerificationStatus() == OriginalSmimeDetails.VerificationStatus.UNKNOWN
+				&& details.getDecryptionStatus() == OriginalSmimeDetails.DecryptionStatus.KEY_MISSING) {
+			// The ordinary reader's legacy header/default guesses did not open or verify this envelope.
+			details = copyDetails(details).smimeMode(SmimeMode.UNKNOWN).smimeSignatureValid(null)
+					.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.UNKNOWN)
+					.failureReason("The S/MIME application envelope did not establish its signed or encrypted kind")
+					.build();
+		}
+		if (result.isRecognized() && result.getEffectiveMimeMessage() != originalMessage
+				&& declaresEncryptedContent(result.getEffectiveMimeMessage())) {
+			final OriginalSmimeDetailsImpl combined = copyDetails(details).build();
+			combined.completeWith(OriginalSmimeDetailsImpl.builder()
+					.smimeMode(SmimeMode.ENCRYPTED)
+					.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.UNKNOWN)
+					.failureReason(details.getFailureReason() == null ? "The inspected S/MIME signature encloses unopened ciphertext" : null)
+					.build());
+			combined.completeWithSmimeMode(SmimeMode.SIGNED_ENCRYPTED);
+			details = combined;
+		}
+		return SmimePreprocessingResultImpl.builder().recognized(result.isRecognized()).effectiveMimeMessage(originalMessage)
+				.details(details).protectedAttachments(Collections.emptyList()).decryptedArtifacts(Collections.emptyList()).build();
+	}
+
+	private static boolean hasAmbiguousApplicationKind(@NotNull final MimeMessage message) {
+		try {
+			final ContentType type = new ContentType(message.getContentType());
+			return SmimeRecognitionUtil.isSmimeApplicationType(type.getBaseType())
+					&& !"signed-data".equalsIgnoreCase(type.getParameter("smime-type"))
+					&& !"enveloped-data".equalsIgnoreCase(type.getParameter("smime-type"));
+		} catch (MessagingException invalidContentType) {
+			return false;
+		}
+	}
+
+	private static boolean declaresEncryptedContent(@NotNull final MimeMessage message) {
+		try {
+			final ContentType type = new ContentType(message.getContentType());
+			return SmimeRecognitionUtil.isSmimeApplicationType(type.getBaseType())
+					&& "enveloped-data".equalsIgnoreCase(type.getParameter("smime-type"));
+		} catch (MessagingException invalidContentType) {
+			return false;
+		}
+	}
+
 	/** Inspect and unwrap top-level S/MIME before the ordinary MIME parser traverses the entity. */
 	@NotNull
 	@Override

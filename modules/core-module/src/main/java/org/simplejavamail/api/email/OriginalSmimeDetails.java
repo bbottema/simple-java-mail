@@ -11,6 +11,9 @@ import java.io.Serializable;
  * Java serialization preserve them. Defaults/overrides completion resolves outgoing content and settings without copying these results;
  * use the original converted Email for inspection. Plain/unsigned details on a composed Email do not establish the input's protection or
  * a verification result for outgoing MIME. Outgoing signing/encryption configuration is separate and takes effect during MIME preparation.
+ * Exact EML construction also populates these facts automatically with available incoming inspection, without replacing its raw parsed content
+ * view or authoritative bytes. It supplies no receive keys; use ordinary conversion when explicit decryption keys or opened content are needed.
+ * Reading these getters does not perform further inspection.
  * <p>
  * Note: the difference between this and {@link org.simplejavamail.api.internal.smimesupport.model.SmimeDetails} is that
  * this class is intended for exposing S/MIME metadata to the end user, while the other class is for internal use

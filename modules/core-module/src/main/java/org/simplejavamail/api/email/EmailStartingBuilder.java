@@ -77,8 +77,12 @@ public interface EmailStartingBuilder {
 	 * non-empty, parseable by Jakarta Mail, use canonical CRLF line endings, and end in CRLF. SMTP-envelope recipients must be supplied separately on the
 	 * returned builder.
 	 * <p>
-	 * Use the ordinary EML conversion APIs instead when the message needs to be edited, completed with defaults, or cryptographically processed by Simple
-	 * Java Mail.
+	 * Building automatically populates S/MIME and OpenPGP inspection facts using available incoming-message support, without changing the source bytes.
+	 * It does not select receive keys. Unestablished outcomes remain UNKNOWN; established missing-key and failure results retain their own statuses.
+	 * Missing optional inspection modules do not by themselves prevent exact submission, and later getters are passive.
+	 * <p>
+	 * Use ordinary EML conversion when the message needs to be edited, completed with defaults, opened with explicitly supplied receive keys, or newly
+	 * signed or encrypted. Exact inspection does not replace the raw parsed body, headers or attachments with an opened content view.
 	 *
 	 * @param emlBytes Complete EML bytes to preserve exactly. In the CLI, this argument is the path of the EML file to read.
 	 * @return A constrained builder for the explicit SMTP envelope of the exact message.

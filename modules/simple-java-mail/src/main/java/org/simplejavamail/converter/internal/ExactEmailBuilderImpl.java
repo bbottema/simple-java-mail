@@ -19,6 +19,7 @@ import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.ExactEmlValidator;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.internal.util.DsnNotifyOptions;
 
@@ -81,7 +82,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	public ExactEmailBuilderImpl(@NotNull final SimpleJavaMailConfig config, final byte @NotNull [] emlBytes) {
 		this.config = requireNonNull(config, "config");
 		this.emlBytes = ExactEmlValidator.copyAndValidateEml(emlBytes);
-		deliveryStatusReport = parseEmlIntoEmailBuilder().getDeliveryStatusReport();
+		deliveryStatusReport = parseEmlIntoEmailBuilder(readExactMimeMessage()).getDeliveryStatusReport();
 	}
 
 	/**
@@ -294,8 +295,10 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	@Override
 	public Email buildEmail() {
 		checkNonEmptyArgument(envelopeRecipients, "envelopeRecipients");
-		final EmailPopulatingBuilder parsedEmailBuilder = parseEmlIntoEmailBuilder()
-				.withOverrideReceivers(envelopeRecipients);
+		final MimeMessage mimeMessage = readExactMimeMessage();
+		final EmailPopulatingBuilder parsedEmailBuilder = parseEmlIntoEmailBuilder(mimeMessage);
+		ConfiguredEmailConverterImpl.populateExactProtectionDetails((InternalEmailPopulatingBuilder) parsedEmailBuilder, mimeMessage);
+		parsedEmailBuilder.withOverrideReceivers(envelopeRecipients);
 		parsedEmailBuilder.clearBounceTo();
 		if (envelopeSender != null) {
 			parsedEmailBuilder.withBounceTo(envelopeSender);
@@ -312,13 +315,21 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	}
 
 	@NotNull
-	private EmailPopulatingBuilder parseEmlIntoEmailBuilder() {
+	private MimeMessage readExactMimeMessage() {
 		try {
-			final MimeMessage mimeMessage = FinalizedMimeMessage.fromExactMessageBytes(JakartaMailImplementation.createSession(new Properties()), emlBytes);
+			return FinalizedMimeMessage.fromExactMessageBytes(JakartaMailImplementation.createSession(new Properties()), emlBytes);
+		} catch (final MessagingException | RuntimeException invalidEml) {
+			throw new EmailConverterException("Unable to parse exact EML", invalidEml);
+		}
+	}
+
+	@NotNull
+	private EmailPopulatingBuilder parseEmlIntoEmailBuilder(@NotNull final MimeMessage mimeMessage) {
+		try {
 			return MimeMessageEmailMapper.populate(
 					new EmailStartingBuilderImpl(config).startingBlank(),
 					MimeMessageParser.parseMimeMessage(mimeMessage, true));
-		} catch (final MessagingException | RuntimeException invalidEml) {
+		} catch (final RuntimeException invalidEml) {
 			throw new EmailConverterException("Unable to parse exact EML", invalidEml);
 		}
 	}

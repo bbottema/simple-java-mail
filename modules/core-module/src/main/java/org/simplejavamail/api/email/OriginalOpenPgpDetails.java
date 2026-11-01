@@ -14,6 +14,10 @@ import java.util.List;
  * use the original converted Email for inspection. Plain/unsigned details on a composed Email do not establish the input's protection or
  * a verification result for outgoing MIME. Outgoing signing/encryption configuration is separate and takes effect during MIME preparation.</p>
  *
+ * <p>Exact EML construction also populates these facts automatically with available incoming inspection, without replacing its raw parsed content
+ * view or authoritative bytes. It supplies no receive keys; use ordinary conversion to select verification or decryption keys and obtain opened
+ * content. Reading these getters does not perform further inspection.</p>
+ *
  * <p>Signature validity reports content integrity against the supplied key. It does not establish that the key belongs
  * to the address in the message's {@code From} header. Key ownership and trust remain application concerns.</p>
  *

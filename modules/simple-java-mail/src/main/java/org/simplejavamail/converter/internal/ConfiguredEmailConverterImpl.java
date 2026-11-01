@@ -380,10 +380,36 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		return false;
 	}
 
+	/** Populate input facts without applying readable-content replacements or ordinary attachment processing to exact mail. */
+	static void populateExactProtectionDetails(@NotNull final InternalEmailPopulatingBuilder builder,
+			@NotNull final MimeMessage mimeMessage) {
+		final OriginalSmimeDetails declaration = UnavailableSmimeInspection.fromMessage(mimeMessage);
+		// Recognizable but ambiguous PKCS7 declarations can still be understood by the available feature implementation.
+		final InboundProtectionResult<OriginalSmimeDetails> smime = declaration.getSmimeMime() != null && ModuleLoader.smimeModuleAvailable()
+				? loadSmimeModule().inspectIncomingMessage(mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession(), mimeMessage)
+				: null;
+		builder.withOriginalSmimeDetails(smime != null && smime.isRecognized() ? smime.getDetails() : declaration);
+		builder.withOriginalOpenPgpDetails(preprocessOpenPgp(mimeMessage, null, true).getDetails());
+	}
+
 	@NotNull
 	private static InboundProtectionResult<OriginalOpenPgpDetails> preprocessOpenPgp(@NotNull final MimeMessage mimeMessage,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig) {
+		return preprocessOpenPgp(mimeMessage, openPgpReceiveConfig, false);
+	}
+
+	@NotNull
+	private static InboundProtectionResult<OriginalOpenPgpDetails> preprocessOpenPgp(@NotNull final MimeMessage mimeMessage,
+			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean recognizedEnvelopeOnly) {
 		try {
+			if (recognizedEnvelopeOnly) {
+				// Plain exact mail needs neither optional-module initialization nor another serialized copy of its source.
+				new ContentType(mimeMessage.getContentType());
+				if (!isOpenPgpMime(mimeMessage)) {
+					return UnprocessedOpenPgpMail.builder().recognized(false).effectiveMimeMessage(mimeMessage)
+							.details(OpenPgpDetailsImpl.plain()).build();
+				}
+			}
 			final Session session = mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession();
 			if (ModuleLoader.openPgpModuleAvailable() || openPgpReceiveConfig != null) {
 				return ModuleLoader.loadOpenPgpModule().processIncoming(
@@ -398,7 +424,8 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 					.details(OpenPgpDetailsImpl.builder()
 								.openPgpMode(signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED)
 								.signatureStatus(SignatureStatus.UNKNOWN)
-								.decryptionStatus(signed ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.UNKNOWN)
+								.decryptionStatus(signed && !recognizedEnvelopeOnly
+										? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.UNKNOWN)
 								.failureReason("OpenPGP/MIME message was preserved because openpgp-module is not available")
 								.originalProtectedMessage(mimeMessageToEMLByteArray(mimeMessage))
 								.build())
