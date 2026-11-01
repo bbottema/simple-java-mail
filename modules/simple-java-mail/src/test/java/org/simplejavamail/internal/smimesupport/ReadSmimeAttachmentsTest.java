@@ -3,6 +3,7 @@ package org.simplejavamail.internal.smimesupport;
 import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import jakarta.mail.internet.ContentType;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
@@ -15,6 +16,8 @@ import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 
 import java.io.File;
+import java.math.BigInteger;
+import java.security.MessageDigest;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
 
@@ -32,7 +35,7 @@ public class ReadSmimeAttachmentsTest {
 	private static final String RESOURCE_FOLDER = determineResourceFolder("simple-java-mail") + "/test/resources/test-messages";
 
 	@Test
-	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() {
+	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() throws Exception {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"));
 
 		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null, null));
@@ -88,8 +91,7 @@ public class ReadSmimeAttachmentsTest {
 
 		// EML conversion can retain the exact protected outer entity. Outlook MSG conversion starts from an attachment,
 		// so compare the common message content without requiring identical protection provenance.
-		EmailAssert.assertThat(emailParsedFromMsg)
-				.isEqualTo(withSmimeProvenanceFrom(emailExpectedFromEml, emailParsedFromMsg));
+		assertSameMessageWithSourceSpecificOpaqueMetadata(emailParsedFromMsg, emailExpectedFromEml);
 	}
 
 	@Test
@@ -106,7 +108,7 @@ public class ReadSmimeAttachmentsTest {
 	}
 
 	@Test
-	public void testSMIMEMessageFromOutlookMsgWithNonMergingBehavior() {
+	public void testSMIMEMessageFromOutlookMsgWithNonMergingBehavior() throws Exception {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmailBuilder(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"))
 				.notMergingSingleSMIMESignedAttachment()
 				.buildEmail();
@@ -185,8 +187,38 @@ public class ReadSmimeAttachmentsTest {
 				.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build())
 				.clearSMIMESignedAttachmentMergingBehavior()
 				.buildEmail();
-		EmailAssert.assertThat(emailWithDefaultMerginBehavior)
-				.isEqualTo(withSmimeProvenanceFrom(emailExpectedFromEml, emailWithDefaultMerginBehavior));
+		assertSameMessageWithSourceSpecificOpaqueMetadata(emailWithDefaultMerginBehavior, emailExpectedFromEml);
+	}
+
+	private void assertSameMessageWithSourceSpecificOpaqueMetadata(final Email fromMsg, final Email fromEml) throws Exception {
+		final AttachmentResource msgArtifact = opaqueArtifact(fromMsg);
+		final AttachmentResource emlArtifact = opaqueArtifact(fromEml);
+		assertThat(msgArtifact.getDataSource().getContentType()).isEqualTo("application/pkcs7-mime");
+		final ContentType emlType = new ContentType(emlArtifact.getDataSource().getContentType());
+		assertThat(emlType.getBaseType()).isEqualTo("application/pkcs7-mime");
+		assertThat(emlType.getParameter("smime-type")).isEqualTo("signed-data");
+		assertThat(emlType.getParameter("name")).isEqualTo("smime.p7m");
+		// Both independent fixtures contain the same CMS bytes; only the retained source MIME parameters differ.
+		for (AttachmentResource artifact : List.of(msgArtifact, emlArtifact)) {
+			final byte[] bytes = artifact.readAllBytes();
+			assertThat(bytes).hasSize(28116);
+			assertThat(String.format("%064x", new BigInteger(1, MessageDigest.getInstance("SHA-256").digest(bytes))))
+					.isEqualTo("e764a65910965b7035561d4a9d67eccec92c325d7acce364a9db171f2858fb08");
+		}
+		EmailAssert.assertThat(withoutOpaqueArtifact(fromMsg)).isEqualTo(withSmimeProvenanceFrom(withoutOpaqueArtifact(fromEml), fromMsg));
+	}
+
+	private AttachmentResource opaqueArtifact(final Email email) {
+		final List<AttachmentResource> artifacts = email.getAttachments().stream()
+				.filter(resource -> "smime.p7m".equals(resource.getName())).collect(toList());
+		assertThat(artifacts).hasSize(1);
+		return artifacts.get(0);
+	}
+
+	private Email withoutOpaqueArtifact(final Email email) {
+		return SimpleJavaMail.fromDefaults().emailBuilder().copying(email).clearAttachments()
+				.withAttachments(email.getAttachments().stream().filter(resource -> !"smime.p7m".equals(resource.getName())).collect(toList()))
+				.buildEmail();
 	}
 
 	private Email withSmimeProvenanceFrom(final Email email, final Email provenanceSource) {

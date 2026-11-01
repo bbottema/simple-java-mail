@@ -262,8 +262,11 @@ public interface EmailStartingBuilder {
 	 * Neither original byte identity nor the validity of already applied signatures is guaranteed. Copying does not automatically remove or
 	 * re-sign old signatures. Reuse the original exact Email for unchanged resubmission. To construct a new exact envelope, use
 	 * {@link #startingFromExactEml(byte[])} with the authoritative finalized input and supply explicit envelope recipients on the exact builder.
-	 * For a merged S/MIME message, the returned builder's resource getters expose the outer choices. Resources from its retained signed Email are
-	 * added during {@link EmailPopulatingBuilder#buildEmail()}; changing the merge choice controls whether those nested resources are included.
+	 * A merged S/MIME message supplies its complete visible bodies, headers and resource occurrences to the new builder. Later replacements,
+	 * clears, additions and encoding choices lead; retained signed-content history cannot undo them during {@link EmailPopulatingBuilder#buildEmail()}.
+	 * Disabling merging on this materialized copy does not strip visible content. For a previously unmerged copy,
+	 * {@link EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior()} explicitly integrates the retained inner view once at that call;
+	 * subsequent edits lead. Repeated copies or merge resets do not re-add resources already represented by the copied message.
 	 *
 	 * @see EmailPopulatingBuilder#clearOverrideReceivers()
 	 * @throws IllegalArgumentException If the Email was constructed directly or through an unsupported application subclass instead of the library's builder.

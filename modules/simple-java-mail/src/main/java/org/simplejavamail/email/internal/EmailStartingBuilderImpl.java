@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -234,8 +233,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@Override
 	public EmailPopulatingBuilder copying(@NotNull final Email email) {
 		final InternalEmail internalEmail = InternalEmail.requireInternalEmail(email);
-		final Email mergedSmimeEmail = internalEmail.wasMergedWithSmimeSignedMessage() ? email.getSmimeSignedEmail() : null;
-		EmailPopulatingBuilder builder = newPopulatingBuilder();
+		final EmailPopulatingBuilderImpl builder = newPopulatingBuilder();
 		((InternalEmailPopulatingBuilder) builder).ignoringDefaults(email.isIgnoreDefaults());
 		((InternalEmailPopulatingBuilder) builder).ignoringOverrides(email.isIgnoreOverrides());
 		if (email.getPropertiesNotToApplyDefaultValueFor() != null) {
@@ -277,10 +275,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (!email.getOverrideReceivers().isEmpty()) {
 			builder.withOverrideReceivers(email.getOverrideReceivers());
 		}
-		builder.withEmbeddedImages(withoutMergedResources(email.getEmbeddedImages(),
-				mergedSmimeEmail == null ? 0 : mergedSmimeEmail.getEmbeddedImages().size()));
-		builder.withAttachments(withoutMergedResources(email.getAttachments(),
-				mergedSmimeEmail == null ? 0 : mergedSmimeEmail.getAttachments().size()));
+		builder.withEmbeddedImages(email.getEmbeddedImages());
+		builder.withAttachments(email.getAttachments());
 		if (email.getContentTransferEncoding() != null) {
 			((InternalEmailPopulatingBuilder) builder).withContentTransferEncoding(email.getContentTransferEncoding());
 		}
@@ -293,7 +289,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getCalendarTextContentTransferEncoding() != null) {
 			((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
 		}
-		((InternalEmailPopulatingBuilder) builder).withHeaders(email.getHeaders(), true);
+		// A merged copy already represents the inner headers; preserve them now instead of restoring them during a later merge.
+		builder.withHeaders(email.getHeaders(), !internalEmail.wasMergedWithSmimeSignedMessage());
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}
@@ -320,8 +317,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getEmailToForward() != null) {
 			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
 		}
-		((InternalEmailPopulatingBuilder) builder).withDecryptedAttachments(withoutMergedResources(email.getDecryptedAttachments(),
-				mergedSmimeEmail == null ? 0 : mergedSmimeEmail.getDecryptedAttachments().size()));
+		builder.withDecryptedAttachments(email.getDecryptedAttachments());
 		if (email.getSmimeSignedEmail() != null) {
 			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
 		}
@@ -329,18 +325,8 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
 		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(email.getDeliveryStatusReport());
 
-		if (!internalEmail.wasMergedWithSmimeSignedMessage()) {
-			builder.notMergingSingleSMIMESignedAttachment();
-		}
+		builder.retainCopiedSmimeContent(internalEmail.wasMergedWithSmimeSignedMessage());
 		return builder;
-	}
-
-	/**
-	 * Email appends the nested S/MIME resources when merging. Reconstruct the outer prefix before the next build merges again,
-	 * preserving every explicit occurrence and resource identity without comparing or reading borrowed content.
-	 */
-	private static <T> List<T> withoutMergedResources(final List<T> resources, final int mergedCount) {
-		return resources.subList(0, resources.size() - mergedCount);
 	}
 
 	private static void copyDispositionNotification(final Email email, final EmailPopulatingBuilder builder) {

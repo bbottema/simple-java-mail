@@ -42,8 +42,16 @@ public class InternalEmail extends Email {
     }
 
     private InternalEmail(@NotNull final EmailPopulatingBuilder builder, @NotNull final EmailSource emailSource) {
-        super(builder);
+        super(builder, copiedContentState(builder));
         this.emailSource = emailSource;
+    }
+
+    private static SmimeContentState copiedContentState(final EmailPopulatingBuilder builder) {
+        if (builder instanceof EmailPopulatingBuilderImpl && ((EmailPopulatingBuilderImpl) builder).hasCopiedContent()) {
+            return ((EmailPopulatingBuilderImpl) builder).hasMergedCopiedSmimeContent()
+                    ? SmimeContentState.MATERIALIZED_MERGED : SmimeContentState.MATERIALIZED_SEPARATE;
+        }
+        return SmimeContentState.DEFERRED;
     }
 
     @NotNull
@@ -145,8 +153,8 @@ public class InternalEmail extends Email {
 
     /**
      * @deprecated Don't use this method. This method is used internally when using the builder API to copy an email that
-     * contains an S/MIME signed message. Without this method, we don't know if the copy should also be merged to match the
-     * copied email.
+     * contains an S/MIME signed message. It records whether the represented content already includes the retained inner view;
+     * copying materializes that content once instead of merging the history again after later builder edits.
      */
     public boolean wasMergedWithSmimeSignedMessage() {
         return wasMergedWithSmimeSignedMessage;

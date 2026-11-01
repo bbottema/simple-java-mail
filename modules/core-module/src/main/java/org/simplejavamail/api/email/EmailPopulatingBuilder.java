@@ -979,6 +979,8 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * Calling this method keeps the extracted attachment separate instead of merging it with the email. It does not change S/MIME
 	 * extraction: if a key is missing or the payload cannot be converted to an attachment, the inspection list retains the original protected resource.
+	 * A copied Email already supplies its visible content to the builder: disabling merging there does not remove copied bodies or resources.
+	 * Later builder edits remain authoritative over the retained signed-content history.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
@@ -1342,8 +1344,10 @@ public interface EmailPopulatingBuilder {
 	 * When reading and converting an email, this flag makes the behavior revert to the default merging
 	 * behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the root message.
 	 * <p>
-	 * This can be useful when copying an {@link Email} that was not merged, to merge its signed content into the replacement.
-	 * Use {@link #notMergingSingleSMIMESignedAttachment()} to keep the signed content separate instead.
+	 * When copying an {@link Email} that was not merged, this explicitly integrates its retained signed content once at this call.
+	 * Later body, header, resource and encoding edits remain authoritative. Repeating this call does not restore cleared copied content or
+	 * duplicate resources already represented by the copy. Use {@link #notMergingSingleSMIMESignedAttachment()} before opting in to keep
+	 * a separate copy separate; disabling the flag after materialization does not remove its visible content.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */
@@ -1525,6 +1529,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * This retained view and its merge bookkeeping are conversion history. Ordinary copying and supported Java serialization preserve
 	 * them; defaults/overrides completion does not. Content already merged into ordinary body, header and resource fields remains outgoing content.
+	 * Explicit edits on a copied builder change that outgoing content without rewriting the retained historical view or reapplying it over the edits.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */

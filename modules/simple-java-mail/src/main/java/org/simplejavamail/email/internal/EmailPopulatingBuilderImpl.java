@@ -30,6 +30,7 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
+import org.simplejavamail.internal.email.HeaderSettings;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
@@ -382,6 +383,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
 	 */
 	private boolean mergeSingleSMIMESignedAttachment = true;
+	private boolean copiedContent;
+	private boolean mergedCopiedSmimeContent;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
@@ -2304,7 +2307,41 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior() {
 		this.mergeSingleSMIMESignedAttachment = true;
+		materializeCopiedSmimeContent();
 		return this;
+	}
+
+	/** Copying supplies the complete visible starting value; retained signed content is history, not a later overlay. */
+	void retainCopiedSmimeContent(final boolean alreadyMerged) {
+		copiedContent = true;
+		mergedCopiedSmimeContent = alreadyMerged;
+		mergeSingleSMIMESignedAttachment = alreadyMerged;
+	}
+
+	boolean hasCopiedContent() {
+		return copiedContent;
+	}
+
+	boolean hasMergedCopiedSmimeContent() {
+		return mergedCopiedSmimeContent;
+	}
+
+	/** An explicit opt-in on a separate copy integrates the retained view once, before any subsequent builder edits. */
+	private void materializeCopiedSmimeContent() {
+		if (!copiedContent || mergedCopiedSmimeContent || smimeSignedEmail == null) {
+			return;
+		}
+		final Map<String, Collection<String>> mergedHeaders = HeaderSettings.mergeSignedContent(headers, smimeSignedEmail.getHeaders());
+		text = smimeSignedEmail.getPlainText();
+		textHTML = smimeSignedEmail.getHTMLText();
+		plainTextContentTransferEncoding = smimeSignedEmail.getPlainTextContentTransferEncoding();
+		htmlTextContentTransferEncoding = smimeSignedEmail.getHTMLTextContentTransferEncoding();
+		attachments.addAll(smimeSignedEmail.getAttachments());
+		embeddedImages.addAll(smimeSignedEmail.getEmbeddedImages());
+		decryptedAttachments.addAll(smimeSignedEmail.getDecryptedAttachments());
+		headers.clear();
+		headers.putAll(mergedHeaders);
+		mergedCopiedSmimeContent = true;
 	}
 
 	/**

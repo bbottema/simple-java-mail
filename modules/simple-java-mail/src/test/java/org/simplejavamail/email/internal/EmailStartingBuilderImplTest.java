@@ -67,8 +67,7 @@ public class EmailStartingBuilderImplTest {
 	public void testCopyingSmimeSignedOutlookMessage() {
 		final Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCES_TEST_MESSAGES + "/SMIME (signed and clear text).msg"));
 		final EmailPopulatingBuilder copyingEmailBuilder = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().copying(emailParsedFromMsg).withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build());
-		assertThat(copyingEmailBuilder.getHeaders()).isEmpty(); // when copying S/MIME generated message id should be ignored
-		copyingEmailBuilder.withHeaders(emailParsedFromMsg.getHeaders()); // but for the equals check, manually add them
+		assertThat(copyingEmailBuilder.getHeaders()).isEqualTo(emailParsedFromMsg.getHeaders());
 		EmailAssert.assertThat(copyingEmailBuilder.buildEmail()).isEqualTo(emailParsedFromMsg);
 	}
 

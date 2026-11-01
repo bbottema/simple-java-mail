@@ -323,6 +323,18 @@ public class Email implements Serializable {
 	 */
 	@ApiStatus.Internal
 	protected Email(@NotNull final EmailPopulatingBuilder builder) {
+		this(builder, SmimeContentState.DEFERRED);
+	}
+
+	/** Internal construction facts: copied visible content has already selected its relationship to retained S/MIME history. */
+	@ApiStatus.Internal
+	protected enum SmimeContentState {
+		DEFERRED, MATERIALIZED_MERGED, MATERIALIZED_SEPARATE
+	}
+
+	/** Initializes a represented copy without letting retained signed-content history replace its current builder values. */
+	@ApiStatus.Internal
+	protected Email(@NotNull final EmailPopulatingBuilder builder, @NotNull final SmimeContentState contentState) {
 		checkNonEmptyArgument(builder, "builder");
 		serializationFormatVersion = SERIALIZATION_FORMAT_VERSION;
 		final EmailTemplateOptions templateOptions = builder.getTemplateOptions();
@@ -337,9 +349,10 @@ public class Email implements Serializable {
 		restorePropertySelectors();
 		smimeSignedEmail = builder.getSmimeSignedEmail();
 
-		final boolean smimeMerge = builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
+		final boolean smimeMerge = contentState == SmimeContentState.DEFERRED
+				&& builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
 
-		wasMergedWithSmimeSignedMessage = smimeMerge;
+		wasMergedWithSmimeSignedMessage = contentState == SmimeContentState.MATERIALIZED_MERGED || smimeMerge;
 		recipients = builder.getRecipients();
 		embeddedImages = (smimeMerge)
 				? merge(builder.getEmbeddedImages(), smimeSignedEmail.getEmbeddedImages())
