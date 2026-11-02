@@ -92,27 +92,28 @@ public final class MimeMessageParser {
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
 			final boolean fetchAttachmentData, final boolean insideRelated) {
 		final String disposition = parseDisposition(currentPart);
+		// A child's disposition owns that resource; the effective root still supplies message content.
+		final boolean canSupplyBody = currentPart instanceof MimeMessage || !Part.ATTACHMENT.equalsIgnoreCase(disposition);
 
-		if (isMimeType(currentPart, "text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+		if (isMimeType(currentPart, "text/plain") && canSupplyBody) {
 			parsedComponents.plainContent.append((Object) parseContent(currentPart));
 			parsedComponents.plainContentPresent = true;
 			if (parsedComponents.plainTextContentTransferEncoding == null) {
 				parsedComponents.plainTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
-		} else if (isMimeType(currentPart, "text/html") && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+		} else if (isMimeType(currentPart, "text/html") && canSupplyBody) {
 			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
 			parsedComponents.htmlContentPresent = true;
 			if (parsedComponents.htmlTextContentTransferEncoding == null) {
 				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
-		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && !Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+		} else if (isMimeType(currentPart, "text/calendar") && parsedComponents.calendarContent == null && canSupplyBody) {
 			parsedComponents.calendarContent = parseCalendarContent(currentPart);
 			parsedComponents.calendarMethod = parseCalendarMethod(currentPart, parsedComponents.calendarContent);
 			if (parsedComponents.calendarTextContentTransferEncoding == null) {
 				parsedComponents.calendarTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
-		} else if (isMimeType(currentPart, "multipart/*")
-				&& (currentPart instanceof MimeMessage || !Part.ATTACHMENT.equalsIgnoreCase(disposition))) {
+		} else if (isMimeType(currentPart, "multipart/*") && canSupplyBody) {
 			// Interpret the effective root and ordinary body containers; an attached child multipart stays one resource.
 			final Multipart mp = parseContent(currentPart);
 			selectOuterDeliveryStatusPart(currentPart, mp, parsedComponents);
@@ -261,7 +262,7 @@ public final class MimeMessageParser {
 	@Nullable
 	private static String parseFileNameWithoutGenericFallback(@NotNull final Part currentPart) {
 		try {
-			final String fileName = currentPart.getFileName();
+			final String fileName = readFileNameWithDispositionRecovery(currentPart);
 			if (fileName != null) {
 				return decodeText(fileName);
 			} else {
@@ -274,6 +275,26 @@ public final class MimeMessageParser {
 			return null;
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_FILENAME, e);
+		}
+	}
+
+	@Nullable
+	private static String readFileNameWithDispositionRecovery(final Part currentPart) throws MessagingException {
+		try {
+			return currentPart.getFileName();
+		} catch (final ParseException malformedParameter) {
+			if (recoverMalformedDisposition(currentPart) == null) {
+				throw malformedParameter;
+			}
+			final String[] contentTypes = currentPart.getHeader("Content-Type");
+			if (contentTypes != null && contentTypes.length > 0) {
+				try {
+					return new ContentType(contentTypes[0]).getParameter("name");
+				} catch (final ParseException malformedType) {
+					// Unusable independent naming metadata keeps the established missing-name fallback.
+				}
+			}
+			return null;
 		}
 	}
 	
@@ -469,9 +490,43 @@ public final class MimeMessageParser {
 	@Nullable
 	public static String parseDisposition(@NotNull final MimePart currentPart) {
 		try {
-			return currentPart.getDisposition();
+			try {
+				return currentPart.getDisposition();
+			} catch (final ParseException malformedParameter) {
+				final String recovered = recoverMalformedDisposition(currentPart);
+				if (recovered == null) {
+					throw malformedParameter;
+				}
+				return recovered;
+			}
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_DISPOSITION, e);
+		}
+	}
+
+	@Nullable
+	private static String recoverMalformedDisposition(final Part currentPart) throws MessagingException {
+		final String[] headers = currentPart.getHeader("Content-Disposition");
+		if (headers == null || headers.length != 1) {
+			return null;
+		}
+		try {
+			new ContentDisposition(headers[0]);
+			return null;
+		} catch (final ParseException malformedParameters) {
+			try {
+				final HeaderTokenizer tokens = new HeaderTokenizer(headers[0], HeaderTokenizer.MIME);
+				final HeaderTokenizer.Token disposition = tokens.next();
+				final int next = tokens.next().getType();
+				if (disposition.getType() == HeaderTokenizer.Token.ATOM
+						&& (Part.ATTACHMENT.equalsIgnoreCase(disposition.getValue()) || Part.INLINE.equalsIgnoreCase(disposition.getValue()))
+						&& (next == ';' || next == HeaderTokenizer.Token.EOF)) {
+					return disposition.getValue();
+				}
+			} catch (final ParseException malformedPrefix) {
+				// An unreadable leading token cannot establish an attachment or inline role.
+			}
+			return null;
 		}
 	}
 
