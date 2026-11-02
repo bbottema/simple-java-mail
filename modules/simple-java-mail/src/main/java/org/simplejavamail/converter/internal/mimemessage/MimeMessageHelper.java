@@ -127,8 +127,10 @@ public class MimeMessageHelper {
 			final String preferred = source instanceof EncodingAware ? ((EncodingAware) source).getEncoding() : null;
 			encoding = ContentTransferEncoding.byEncoder(preferred != null ? preferred : MimeUtility.getEncoding(snapshot));
 		}
-		return AttachmentResource.builder().withName(resource.getName()).withDataSource(snapshot).withDescription(resource.getDescription())
-				.withContentId(resource.getContentId()).withContentTransferEncoding(encoding).build();
+		final AttachmentResource.Builder builder = AttachmentResource.builder().withName(resource.getName()).withDataSource(snapshot)
+				.withDescription(resource.getDescription()).withContentId(resource.getContentId());
+		return (resource.getPreEncodedContentTransferEncoding() != null
+				? builder.withPreEncodedContentTransferEncoding(encoding) : builder.withContentTransferEncoding(encoding)).build();
 	}
 
 	static void setSubject(@NotNull final Email email, final MimeMessage message) throws MessagingException {
