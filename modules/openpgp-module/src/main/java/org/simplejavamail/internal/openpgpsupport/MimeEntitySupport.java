@@ -119,7 +119,11 @@ final class MimeEntitySupport {
         final byte[] contentHeaders = Arrays.copyOfRange(effectiveContentEntity, 0, separator);
         final byte[] body = Arrays.copyOfRange(effectiveContentEntity, separator + separatorLength,
                 effectiveContentEntity.length);
-        return join(protectedParts.outerHeaders, CRLF, normalizeHeaderLines(contentHeaders), HEADER_SEPARATOR, body);
+        final byte[] normalizedContentHeaders = normalizeHeaderLines(contentHeaders);
+        final byte[] headers = normalizedContentHeaders.length == 0 ? protectedParts.outerHeaders
+                : protectedParts.outerHeaders.length == 0 ? normalizedContentHeaders
+                : join(protectedParts.outerHeaders, CRLF, normalizedContentHeaders);
+        return join(headers, headers.length == 0 ? CRLF : HEADER_SEPARATOR, body);
     }
 
     static List<byte[]> multipartParts(final byte[] rawMessage, final String boundary) {
@@ -242,6 +246,10 @@ final class MimeEntitySupport {
     }
 
     private static int findHeaderSeparator(final byte[] bytes) {
+        // One initial blank line ends an empty header area; any following blank lines are content.
+        if (lineEndingLength(bytes, 0) > 0) {
+            return 0;
+        }
         for (int i = 0; i < bytes.length; i++) {
             final int firstLineEnding = lineEndingLength(bytes, i);
             if (firstLineEnding > 0 && lineEndingLength(bytes, i + firstLineEnding) > 0) {
@@ -253,7 +261,7 @@ final class MimeEntitySupport {
 
     private static int separatorLength(final byte[] bytes, final int offset) {
         final int firstLineEnding = lineEndingLength(bytes, offset);
-        return firstLineEnding + lineEndingLength(bytes, offset + firstLineEnding);
+        return offset == 0 ? firstLineEnding : firstLineEnding + lineEndingLength(bytes, offset + firstLineEnding);
     }
 
     private static int lineEndingLength(final byte[] bytes, final int offset) {

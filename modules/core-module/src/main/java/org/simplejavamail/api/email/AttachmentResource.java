@@ -234,6 +234,7 @@ public class AttachmentResource implements Serializable {
 		/**
 		 * Forces the MIME transfer encoding applied to ordinary, unencoded content. Null (also the clear/reset value) permits the
 		 * established MIME encoding selection. Does not clear an already encoded choice; build rejects both being present.
+		 * Before S/MIME signing, raw binary content receives a safe transfer encoding when needed to preserve its decoded bytes.
 		 * @param contentTransferEncoding The encoding to apply while rendering.
 		 * @return This builder.
 		 */
@@ -246,6 +247,8 @@ public class AttachmentResource implements Serializable {
 		 * Declares that the supplied bytes or source already contain content encoded with this MIME transfer encoding. Rendering preserves
 		 * those encoded bytes instead of encoding them again. Null (also the clear/reset value) means ordinary, unencoded input.
 		 * Does not clear the normal encoding choice; build rejects both being present.
+		 * Before S/MIME signing, raw binary content may be safely reencoded without changing its decoded bytes; already protected child
+		 * representations remain intact.
 		 * @param preEncodedContentTransferEncoding The encoding already applied to the content.
 		 * @return This builder.
 		 */

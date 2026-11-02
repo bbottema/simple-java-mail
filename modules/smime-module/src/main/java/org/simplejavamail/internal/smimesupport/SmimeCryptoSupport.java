@@ -1,10 +1,13 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.activation.DataHandler;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimePart;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.cms.AttributeTable;
@@ -49,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -273,8 +277,75 @@ final class SmimeCryptoSupport {
 	@NotNull
 	private static MimeBodyPart canonicalize(@NotNull final MimeBodyPart mimeBodyPart)
 			throws MessagingException, IOException {
+		return canonicalizeOwned(snapshot(mimeBodyPart, false), true);
+	}
+
+	@NotNull
+	private static MimeBodyPart canonicalizeOwned(@NotNull final MimeBodyPart mimeBodyPart, final boolean root)
+			throws MessagingException, IOException {
+		// Protected entities, attached messages and attached multipart resources own their complete byte representation.
+		if (mimeBodyPart.isMimeType("multipart/signed") || mimeBodyPart.isMimeType("multipart/encrypted")
+				|| mimeBodyPart.isMimeType("message/*") || !root && mimeBodyPart.isMimeType("multipart/*")
+				&& Part.ATTACHMENT.equalsIgnoreCase(mimeBodyPart.getDisposition())) {
+			return mimeBodyPart;
+		}
+		if (mimeBodyPart.isMimeType("multipart/*")) {
+			final String contentType = mimeBodyPart.getContentType();
+			final String[] transferEncoding = mimeBodyPart.getHeader("Content-Transfer-Encoding");
+			final MimeMultipart multipart = (MimeMultipart) mimeBodyPart.getContent();
+			for (int index = 0; index < multipart.getCount(); index++) {
+				final MimeBodyPart child = (MimeBodyPart) multipart.getBodyPart(index);
+				final MimeBodyPart canonicalChild = canonicalizeOwned(child, false);
+				multipart.removeBodyPart(index);
+				multipart.addBodyPart(canonicalChild, index);
+			}
+			// Rebind the owned tree so writing the parent uses the prepared children rather than its cached original body.
+			mimeBodyPart.setContent(multipart);
+			mimeBodyPart.setHeader("Content-Type", contentType);
+			if (transferEncoding != null) {
+				for (final String value : transferEncoding) {
+					mimeBodyPart.addHeader("Content-Transfer-Encoding", value);
+				}
+			}
+			return mimeBodyPart;
+		}
+		encodeBinaryContent(mimeBodyPart);
+		return snapshot(mimeBodyPart, true);
+	}
+
+	private static void encodeBinaryContent(final MimeBodyPart mimeBodyPart) throws MessagingException, IOException {
+		final String encoding = mimeBodyPart.getEncoding();
+		final boolean binary = "binary".equalsIgnoreCase(encoding);
+		final boolean identityEncoded = encoding == null || binary || "7bit".equalsIgnoreCase(encoding) || "8bit".equalsIgnoreCase(encoding);
+		if (identityEncoded && (binary || !mimeBodyPart.isMimeType("text/*"))) {
+			final byte[] content;
+			try (InputStream input = mimeBodyPart.getInputStream()) {
+				content = input.readAllBytes();
+			}
+			if (binary || hasBareLineEnding(content)) {
+				final String contentType = mimeBodyPart.getContentType();
+				mimeBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(content, contentType)));
+				mimeBodyPart.setHeader("Content-Type", contentType);
+				mimeBodyPart.setHeader("Content-Transfer-Encoding", "base64");
+			}
+		}
+	}
+
+	private static boolean hasBareLineEnding(final byte[] content) {
+		for (int index = 0; index < content.length; index++) {
+			if (content[index] == '\r' && (index + 1 == content.length || content[index + 1] != '\n')
+					|| content[index] == '\n' && (index == 0 || content[index - 1] != '\r')) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@NotNull
+	private static MimeBodyPart snapshot(final MimeBodyPart mimeBodyPart, final boolean canonicalLineEndings)
+			throws MessagingException, IOException {
 		final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		final OutputStream output = new MimeCanonicalOutputStream(buffer);
+		final OutputStream output = canonicalLineEndings ? new MimeCanonicalOutputStream(buffer) : buffer;
 		mimeBodyPart.writeTo(output);
 		output.close();
 		return new MimeBodyPart(new ByteArrayInputStream(buffer.toByteArray()));

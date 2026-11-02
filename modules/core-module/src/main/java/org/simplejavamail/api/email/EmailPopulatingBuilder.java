@@ -740,6 +740,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * Adds already encoded image data to this email that can be referred to from the email HTML body.
+	 * Before S/MIME signing, raw binary content may receive a safe transfer encoding while retaining its decoded bytes.
 	 *
 	 * @param name                              The name of the image as being referred to from the message content body (e.g. 'src="cid:yourImageName"'). If not provided, the
 	 *                                          name of the given data source is used instead.
@@ -859,6 +860,7 @@ public interface EmailPopulatingBuilder {
 	 * <p>
 	 * Use this when the provided {@link DataSource} already returns data encoded using the given MIME {@code Content-Transfer-Encoding}; Simple Java Mail
 	 * will preserve the payload instead of encoding it again.
+	 * Before S/MIME signing, raw binary content may receive a safe transfer encoding without changing decoded attachment bytes.
 	 *
 	 * @param name                              Optional name of the attachment (e.g. 'filename.ext'). If omitted, the internal name of the datasource is used. If that too is empty, a name will be generated
 	 *                                          using {@link java.util.UUID}.
