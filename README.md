@@ -150,6 +150,8 @@ This leaves application code to describe each email while shared rules stay in o
 
 Email setters retain submitted choices. Ordinary `buildEmail()` creates the message without applying templates; use `buildEmailCompletedWithDefaultsAndOverrides(...)` for explicit completion, or let the selected Mailer apply its templates during preparation. Scalar values, recipient/resource additions and header lists keep their own documented precedence rules. Mailer construction captures its complete owned failover route and validates its configuration before allocating owned workers, proxy bridges or pools. See [when configuration is resolved](https://www.simplejavamail.org/understanding-configuration.html#configuration-resolution-timing).
 
+Automatic image settings are finalized at `buildEmail()`, before reading images. An ordinary inherited image-base URL is ignored when URL resolution is disabled, or when you replace or explicitly clear that base; a malformed selected base fails the build when URL resolution is enabled. Mandatory locks still apply. See [image configuration timing](https://www.simplejavamail.org/features.html#automatic-image-configuration-timing).
+
 Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:
 
 ```java

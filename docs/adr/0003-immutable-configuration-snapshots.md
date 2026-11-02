@@ -83,6 +83,21 @@ to inspect configuration, reject unused pool overrides, or move optional-feature
 in [ADR 0006](0006-optional-modules.md#feature-semantics-stay-with-the-feature-implementation) remain applicable; partial supplied configuration
 values do not become complete inherited rules merely because they share a configuration snapshot.
 
+### Email image-resolution validation (accepted 2 November 2026)
+
+The maintainer selected `buildEmail()` as the validation boundary for effective automatic image-resolution settings. Creating an Email
+builder or applying its image settings group must not parse an ordinary inherited image-base URL before the caller can disable URL
+resolution, replace the base or clear it. Select the final choices first. An inactive, replaced or explicitly removed ordinary base is not
+parsed; an active selected base must be valid before image resolution reads content. Configuration errors remain construction failures,
+before an Email is returned, rather than being deferred to sending.
+
+This aligns the inherited URL check with the existing build-time image-lock validation and image-resolution work. Mandatory locks remain
+enforced before content access, and getters continue to inspect supplied choices passively. It does not change the fail-fast boundary for
+other inherited feature rules or the existing argument and explicit URL-conversion checks on standalone configuration values.
+
+This clarification is accepted for unreleased 10.0.0; [#957](https://github.com/bbottema/simple-java-mail/issues/957) tracks implementation
+and delivery. The eager unused-base rejection also affects published 9.3.9; no maintenance backport is included here.
+
 ### Explicit inheritance and cohesive settings (accepted 19 October 2026)
 
 Use `useConfigured...` to restore a captured property choice, `reset...` to select the published library fallback, and `clear...` to remove a

@@ -382,6 +382,10 @@ inspection rule rather than introducing an exception to it.
 governs incoherent inherited rules at their declared construction boundary. A constructor rejecting invalid inherited configuration is
 different from a getter inspecting an unfinished Java builder; inspection must not trigger or repeat that validation.
 
+The [Email image-resolution clarification in ADR 0003](0003-immutable-configuration-snapshots.md#email-image-resolution-validation-accepted-2-november-2026),
+accepted 2 November 2026, places effective image-setting validation at `buildEmail()`, after final choices are collected and before image
+content is read. Passive inspection and standalone configuration-value invariants retain their existing contracts.
+
 Custom SSL-factory class and instance choices follow this same inspection convention. Expose the stored instance and named clears for both
 choices; retain the established rule that a supplied instance takes precedence over a class name. Clearing one choice leaves the other available.
 

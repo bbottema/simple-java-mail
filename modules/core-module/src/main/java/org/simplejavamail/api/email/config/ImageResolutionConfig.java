@@ -188,6 +188,8 @@ public class ImageResolutionConfig implements Serializable {
          * <p>
          * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
          * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.
+         * The Email builder checks effective settings at {@link EmailPopulatingBuilder#buildEmail()}, before reading images.
+         * With URL resolution disabled, an ordinary inherited base URL is unused and is not parsed; mandatory locks still apply.
          *
          * Unset choices inherit the captured configuration. {@link #clearEmbeddedImageAutoResolutionForURLs()} restores that inheritance;
          * {@link #resetEmbeddedImageAutoResolutionForURLs()} explicitly selects the published built-in fallback.
@@ -269,6 +271,8 @@ public class ImageResolutionConfig implements Serializable {
          *
          * Unset bases inherit the captured configuration. {@link #clearEmbeddedImageBaseUrl()} explicitly removes that captured base;
          * {@link #useConfiguredEmbeddedImageBaseUrl()} restores inheritance. Neither method reads image content or removes a mandatory lock.
+         * The Email builder interprets an ordinary inherited base URL at {@link EmailPopulatingBuilder#buildEmail()} only when URL resolution
+         * is enabled and the base has not been replaced or cleared. A mandatory base remains enforced even while resolution is disabled.
          *
          * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
          *

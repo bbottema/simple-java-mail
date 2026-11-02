@@ -39,6 +39,9 @@ class EmailSourcePropertyContractTest {
         final EmailContractTestSupport fixture = new EmailContractTestSupport(directory);
         final Map<String, Object> source = new LinkedHashMap<>();
         properties().forEach(candidate -> source.put(candidate.key(), sourceValue(candidate, property, fixture)));
+        if (property == Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL) {
+            source.put(Property.EMBEDDEDIMAGES_DYNAMICRESOLUTION_ENABLE_URL.key(), true);
+        }
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap(source).load());
         final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank();
         final Email result = builder.buildEmailCompletedWithDefaultsAndOverrides();

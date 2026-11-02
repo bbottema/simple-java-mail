@@ -82,6 +82,8 @@ public interface EmailPopulatingBuilder {
      * Replaces the complete supplied ImageResolutionConfig group; earlier choices from that group are discarded.
      * Unset fields inherit this factory's captured configuration. Explicit base clears remove a captured image base.
      * Mandatory configuration locks still apply. Configuration sources and borrowed content are not read by this call.
+     * Effective image settings are resolved and checked by {@link #buildEmail()}, before image content is read. An ordinary
+     * inherited base URL is not parsed when URL resolution is disabled or that base has been replaced or explicitly cleared.
      * @param config Immutable choices to apply.
      * @return This builder.
      */

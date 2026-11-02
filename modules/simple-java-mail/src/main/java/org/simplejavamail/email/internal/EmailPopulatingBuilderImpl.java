@@ -6,10 +6,7 @@ import org.simplejavamail.internal.html.HtmlAttributeValues.AttributeValue;
 import org.simplejavamail.config.ConfigKeys;
 import org.simplejavamail.config.ConfigKey;
 import org.simplejavamail.internal.configresolution.ConfigurationChoice;
-import org.simplejavamail.internal.configresolution.ConfigurationDeclaration;
-import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
 import org.simplejavamail.internal.configresolution.ConfigurationResolver;
-import org.simplejavamail.internal.configresolution.ConfigurationSetting;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 
@@ -398,7 +395,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
     @Override
     public EmailPopulatingBuilder withImageResolutionConfig(@NotNull final ImageResolutionConfig choices) {
         requireNonNull(choices, "config");
-        resolveImageChoices(choices);
         imageResolutionConfig = choices;
         return this;
     }
@@ -475,6 +471,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public Email buildEmail() {
+		resolveImageChoices(imageResolutionConfig);
 		validateLockedImageResolution();
 		validateProtectionFamilies();
 		resolveDynamicEmbeddedImageDataSources();
@@ -538,12 +535,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
     EmailPopulatingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
         this.config = requireNonNull(config, "config");
-        restoreCapturedImageResolution();
-        imageResolutionConfig = ImageResolutionConfig.builder().build();
-    }
-
-    private void restoreCapturedImageResolution() {
-        resolveImageChoices(ImageResolutionConfig.builder().build());
     }
 
     private void resolveImageChoices(final ImageResolutionConfig choices) {
@@ -579,21 +570,20 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 
     @Nullable
     private URL resolveImageBaseUrl(final ImageResolutionConfig choices) {
-        final String configuredText = config.get(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL);
-        final URL configured;
+        if (choices.isEmbeddedImageBaseUrlConfigured()) {
+            return choices.getEmbeddedImageBaseUrl();
+        }
+        // An inactive ordinary base is unused, but a mandatory base must still be valid and enforceable.
+        if (!embeddedImageAutoResolutionForURLs && !locksOf(config).contains(EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)) {
+            return null;
+        }
+        final String configuredText = imageChoice(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL,
+                ConfigurationChoice.inherit(), null);
         try {
-            configured = configuredText == null ? null : new URL(configuredText);
+            return configuredText == null ? null : new URL(configuredText);
         } catch (MalformedURLException invalidUrl) {
             throw new EmailException(format(ERROR_PARSING_URL, configuredText), invalidUrl);
         }
-        final ConfigurationChoice<URL> local = !choices.isEmbeddedImageBaseUrlConfigured() ? ConfigurationChoice.inherit()
-                : choices.getEmbeddedImageBaseUrl() == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(choices.getEmbeddedImageBaseUrl());
-        final ConfigurationSetting<URL> setting = ConfigurationSetting.of("configuration", ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key());
-        return ConfigurationResolver.resolve(setting, List.of(
-                ConfigurationDeclaration.javaChoice(setting, local, "withImageResolutionConfig"),
-                ConfigurationDeclaration.of(setting, ConfigurationChoice.ofNullable(configured), ConfigurationOrigin.of(ConfigurationOrigin.Kind.FACTORY,
-                        ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL.key(), config.getPropertySource(ConfigKeys.EMBEDDEDIMAGES_DYNAMICRESOLUTION_BASE_URL)))),
-                List.of(ConfigurationOrigin.Kind.JAVA, ConfigurationOrigin.Kind.FACTORY)).valueOrNull();
     }
 
 	/**

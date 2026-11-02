@@ -124,6 +124,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#957](https://github.com/bbottema/simple-java-mail/issues/957): validate inherited automatic-image URL settings at `buildEmail()` after final choices are collected. Disabled URL resolution and replaced or explicitly cleared ordinary bases no longer fail during Email builder creation; an active selected malformed base still fails before image reads, with mandatory locks enforced.
 - [#953](https://github.com/bbottema/simple-java-mail/issues/953): readable MIME/EML import recovers a recognized attachment or inline disposition when optional parameters are malformed, using independent naming metadata or the existing missing-name fallback.
 - [#954](https://github.com/bbottema/simple-java-mail/issues/954): single-part plain-text, HTML and calendar roots keep their body content when the root disposition says attachment; explicitly attached children retain their boundaries.
 - [#955](https://github.com/bbottema/simple-java-mail/issues/955): completed Mailer construction rejects invalid active SOCKS ports before resource allocation, and failed bridge setup closes partially prepared sockets after unchecked failures.

@@ -342,6 +342,10 @@ public interface CliEmailConfigurationBuilder {
 	 * <p>
 	 * This option is disabled by default. Enabling it lets HTML image references make network requests. When the HTML is not fully trusted, set
 	 * {@link #withEmbeddedImageBaseUrl(URL)} and leave {@link #allowingEmbeddedImageOutsideBaseUrl(boolean)} disabled.
+	 * <p>
+	 * Final image settings are checked when the Email is built, before image reads. An ordinary inherited base URL is not parsed when URL
+	 * resolution is disabled, or when that base is replaced or explicitly cleared. An active selected malformed base fails the build.
+	 * Mandatory locks remain enforced. Explicit String-to-URL conversion still checks the supplied text immediately.
 	 *
 	 * @param embeddedImageAutoResolutionForURLs Enables auto resolution of URL's for embedded images.
 	 *
@@ -379,6 +383,8 @@ public interface CliEmailConfigurationBuilder {
 
 	/**
 	 * Delegates to {@link #withEmbeddedImageBaseUrl(URL)}.
+	 * The supplied text is converted to a URL immediately. Ordinary inherited base URLs are selected and checked when the Email is built;
+	 * an inactive, replaced or explicitly cleared ordinary base is not parsed. Mandatory locks remain enforced.
 	 *
 	 * @param embeddedImageBaseUrl The base URL used when resolving images sources in HTML text.
 	 *
