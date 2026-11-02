@@ -15,6 +15,10 @@ import java.util.List;
  * those inputs. For an exact email, the supplied bytes are already authoritative and therefore remain identical across rehearsal and sending.
  * Callers that need only a success-or-exception preparation check can use {@link Mailer#validate(Email)} instead. A successful rehearsal has already
  * performed that validation, so calling {@code validate} before {@code rehearse} is redundant.
+ * <p>
+ * The rendered bytes and captured facts remain available after the Mailer closes. New rehearsal and validation calls also remain available
+ * through that Mailer's retained preparation settings. The effective Email keeps its ordinary borrowed-content ownership; it is not a deep
+ * copy of arbitrary attachment sources.
  *
  * @see Mailer#rehearse(Email)
  * @see Mailer#validate(Email)

@@ -142,6 +142,7 @@ public class MailerImpl implements Mailer {
 	@NotNull
 	private final MailSendObserverNotifier mailSendObserverNotifier;
 	private final MailSendOperations mailSendOperations;
+	private final RehearsalSessionContext rehearsalSessionContext;
 	private final MailSendRateLimiter sendingLimits;
 	private final FactoryMailerRuntime.Definition definition;
 	@Nullable private final MailerImpl failoverMailer;
@@ -249,6 +250,7 @@ public class MailerImpl implements Mailer {
 				? ValidatedConnectionPlan.validateApplication(factoryConfig, serverConfig, proxyConfig, session, operationalConfig, sessionSettings, ownsSession)
 				: preparedPlan;
 		this.session = session;
+		this.rehearsalSessionContext = new RehearsalSessionContext(session, SESSION_OWNER);
 		this.operationalConfig = operationalConfig;
 		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
 				supportsBackgroundConnectionSetup());
@@ -1005,12 +1007,15 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public MailRehearsal rehearse(@NotNull final Email email, final boolean processSecurityAndValidateSize) throws MailException {
-		val governedEmail = prepareEmailForSending(email);
+		val suppliedEmail = verifyNonnull(email);
+		val preparationSession = rehearsalSessionContext.capture();
+		val governedEmail = prepareEmailForSending(suppliedEmail);
 		// A rehearsal owns its effective snapshot and must never propagate a generated Message-ID to the caller's draft.
 		//noinspection deprecation
 		((InternalEmail) governedEmail).setUserProvidedEmail(null);
 		try {
-			val rehearsal = SessionBasedEmailToMimeMessageConverter.rehearseMimeMessage(session, governedEmail, processSecurityAndValidateSize);
+			val rehearsal = new SessionBasedEmailToMimeMessageConverter(preparationSession, operationalConfig, emailGovernance)
+					.rehearseMimeMessage(governedEmail, processSecurityAndValidateSize);
 			if (rehearsal.getEmailId() != null) {
 				// Keep the effective Email consistent with the EML while its detached source draft remains unchanged.
 				//noinspection deprecation
@@ -1046,8 +1051,20 @@ public class MailerImpl implements Mailer {
 	@Override
 	public synchronized CompletableFuture<Void> closeAsync() {
 		if (shutdownFuture == null) {
-			mailSendOperations.shutdown();
-			shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
+			Error captureFailure = null;
+			try {
+				rehearsalSessionContext.freezeForShutdown();
+			} catch (Error failure) {
+				captureFailure = failure;
+			}
+			try {
+				mailSendOperations.shutdown();
+				shutdownFuture = CompletableFuture.runAsync(this::drainExecutorAndCloseConnectionPools, MailerImpl::startShutdownThread);
+			} catch (RuntimeException | Error initiationFailure) {
+				if (captureFailure == null) { throw initiationFailure; }
+				if (initiationFailure != captureFailure) { captureFailure.addSuppressed(initiationFailure); }
+			}
+			if (captureFailure != null) { throw captureFailure; }
 		}
 		// Callers may compose, cancel or complete their view, but only the owned shutdown task can complete actual cleanup.
 		return shutdownFuture.copy();

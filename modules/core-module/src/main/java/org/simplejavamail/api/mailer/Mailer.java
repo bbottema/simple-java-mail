@@ -317,6 +317,12 @@ public interface Mailer extends AutoCloseable {
 	 * <p>
 	 * The supplied Email is not changed. A later send prepares a composed message again, so generated dates, MIME boundaries, Message-IDs and
 	 * cryptographic output can differ unless the caller fixes those inputs. Exact email is the exception: its authoritative bytes remain identical.
+	 * <p>
+	 * Rehearsal and validation remain available while this Mailer is closing and after it has closed. Each preparation retains this Mailer's
+	 * rules and a stable view of its MIME settings. Open calls observe effective Session settings; calls during or after shutdown use the view
+	 * retained when shutdown began. Reusing the sending Session with another Mailer cannot change these preparations.
+	 * Preparation itself does not delay sending-resource cleanup. Work explicitly run inside an accepted send or on this Mailer's owned executor
+	 * still follows that enclosing lifetime. Keep borrowed content available and stable until its preparation finishes.
 	 *
 	 * @param email The email to rehearse with this mailer's configuration.
 	 * @return The immutable result of this preparation.
@@ -338,6 +344,8 @@ public interface Mailer extends AutoCloseable {
 	 * Exact email is never transformed in either mode; the flag controls only validation of its supplied byte length against the configured maximum.
 	 * Neither mode invokes transport-mode logging or a custom mailer.
 	 * Both use this Mailer's configuration, without selecting or validating a future cluster/failover route.
+	 * Both remain available during and after sending-resource shutdown, with the lifetime and retained MIME settings described by
+	 * {@link #rehearse(Email)}.
 	 * <p>
 	 * Choose this result-returning overload instead of {@link #validate(Email, boolean)} when the caller needs the base or final EML, size, effective
 	 * Email, Message-ID or envelope facts. A successful call has already validated to the requested depth.
@@ -382,6 +390,7 @@ public interface Mailer extends AutoCloseable {
 	 * of being thrown, but MIME construction, security processing, encoded-size failures, and exact-mail invariants still fail this rehearsal.
 	 *
 	 * Returns normally after {@link #rehearse(Email)} succeeds; invalid preparation is reported by exception.
+	 * This preparation remains available during and after sending-resource shutdown under the same retained settings as rehearsal.
 	 *
 	 * @param email The email to validate with this mailer's configuration.
 	 * @throws MailException If validation, MIME construction or security processing fails.
@@ -405,6 +414,7 @@ public interface Mailer extends AutoCloseable {
 	 * {@link #rehearse(Email, boolean)} directly; validating first would prepare the message twice.
 	 *
 	 * Returns normally after {@link #rehearse(Email, boolean)} succeeds; invalid preparation is reported by exception.
+	 * Both modes remain available during and after sending-resource shutdown under the same retained settings as rehearsal.
 	 *
 	 * @param email The email to validate with this mailer's configuration.
 	 * @param processSecurityAndValidateSize Whether to run configured message security and validate the resulting encoded size.
@@ -423,6 +433,8 @@ public interface Mailer extends AutoCloseable {
 	 * a caller-owned executor, but not arbitrary work on that executor. Inspect individual completions for their results; a successful close does not
 	 * mean every email succeeded. Inline observers and observer handoffs are drained; offloaded callbacks are not. Graceful close is not cancellation.
 	 * Do not call this blocking method from a send operation or inline observer: it would wait for itself and is rejected.
+	 * Rehearsal and validation remain available during and after shutdown and do not add accepted send work. Application work explicitly placed
+	 * on the owned executor, or inside an accepted send, retains that enclosing lifetime and its existing self-wait guard.
 	 * <p>
 	 * An executor service provided through {@link org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned
 	 * and is not shut down.
@@ -442,6 +454,7 @@ public interface Mailer extends AutoCloseable {
 	 * connection-pool cleanup. It also waits for termination of the built-in executor. New sends are rejected as soon as shutdown begins; running
 	 * work is not cancelled. A supplied executor is never shut down. Offloaded observer callbacks and their downstream processing are not awaited.
 	 * It is safe to initiate cleanup from a Mailer worker, but do not wait for the returned future there: that would wait for the current task itself.
+	 * Rehearsal and validation remain available and do not delay this cleanup unless application code runs them inside work this Mailer already owns.
 	 * <p>
 	 * In a cluster, call this method or {@link #close()} on every Mailer so every pool registration is removed. An executor service provided through
 	 * {@link org.simplejavamail.api.mailer.config.AsyncExecutionConfig.Builder#withExecutorService(java.util.concurrent.ExecutorService)} remains caller-owned and is not shut down.

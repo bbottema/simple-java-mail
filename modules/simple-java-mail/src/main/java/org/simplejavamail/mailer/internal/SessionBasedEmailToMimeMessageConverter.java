@@ -37,6 +37,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
@@ -130,7 +131,11 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     public static void unprimeSession(@NotNull Session session) {
-        session.getProperties().remove(MIMEMESSAGE_CONVERTER_KEY);
+        removeSendingContext(session.getProperties());
+    }
+
+    static void removeSendingContext(final Properties properties) {
+        properties.remove(MIMEMESSAGE_CONVERTER_KEY);
     }
 
     @NotNull
@@ -147,15 +152,14 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    public static MailRehearsal rehearseMimeMessage(Session session, final Email email, final boolean processSecurityAndValidateSize)
+    MailRehearsal rehearseMimeMessage(final Email email, final boolean processSecurityAndValidateSize)
             throws MessagingException {
-        val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
         val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize);
         final byte[] emlBytes = serializeMimeMessage(mimeMessage);
         if (processSecurityAndValidateSize) {
-            mimeMessageConverter.validateMaximumEmailSize(emlBytes.length);
+            validateMaximumEmailSize(emlBytes.length);
         }
-        final PreparedMail preparedMail = mimeMessageConverter.prepareMail(email, mimeMessage);
+        final PreparedMail preparedMail = prepareMail(email, mimeMessage);
         return MailRehearsalImpl.builder()
             .effectiveEmail(email)
             .emlBytes(emlBytes)
