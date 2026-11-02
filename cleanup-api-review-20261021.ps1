@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-selected-20261102'
     '.local/image-validation-20261102'
     '.local/rehearsal-lifetime-20261102'
     '.local/review-approved-20261102'
@@ -131,6 +132,8 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/selected-review-20261102.md'
+    'docs/plans/958-reused-session-oauth2-20261102.md'
     'docs/plans/957-image-validation-20261102.md'
     'docs/plans/709-rehearsal-lifetime-20261102.md'
     'docs/plans/approved-review-20261102.md'
@@ -659,4 +662,18 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\image-valida
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\957-image-validation-20261102.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\957-image-validation-20261102.md', 'Remove retired image-validation plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\957-image-validation-20261102.md' -Force
+}
+
+# Selected startup, DKIM guidance and OAuth repairs (#488, #855, #958); keep these exact paths in the guarded allowlists.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-selected-20261102') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-selected-20261102', 'Remove completed selected-review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-selected-20261102' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\selected-review-20261102.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\selected-review-20261102.md', 'Remove retired selected-review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\selected-review-20261102.md' -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md', 'Remove retired reused-Session OAuth2 plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md' -Force
 }
