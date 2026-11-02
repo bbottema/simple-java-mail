@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-approved-20261102'
     '.local/review-rehearsal-wording-20261101'
     '.local/cli-metadata-workflow-20261101'
     '.local/review-html-boundaries-20261101'
@@ -128,6 +129,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/approved-review-20261102.md'
     'docs/plans/cli-metadata-build-cache-20261101.md'
     'docs/plans/952-html-resource-boundaries-20261101.md'
     'docs/plans/951-cli-unused-default-files-20261101.md'
@@ -623,4 +625,14 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\cli-meta
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101', 'Remove rehearsal recipient wording scratch recursively')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-rehearsal-wording-20261101' -Recurse -Force
+}
+
+# Completed 2 November review; these exact paths also remain in the guarded allowlists above.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-approved-20261102') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-approved-20261102', 'Remove completed review scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-approved-20261102' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\approved-review-20261102.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\approved-review-20261102.md', 'Remove retired review plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\approved-review-20261102.md' -Force
 }
