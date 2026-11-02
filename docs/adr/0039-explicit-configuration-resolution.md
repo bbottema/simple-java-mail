@@ -186,6 +186,20 @@ Do not render, replace or remove opaque entries, flatten caller defaults, or cha
 This correction adds no public API or setting. [#938](https://github.com/bbottema/simple-java-mail/issues/938) tracks the change for 10.0.0;
 it completes the String-versus-resource interpretation shared with [ADR 0038](0038-connection-configuration-conflicts.md).
 
+### OAuth2 eligibility on supplied Sessions (accepted 2 November 2026)
+
+OAuth2 provider validation uses the completed effective configuration at the same boundary as other connection requirements. An owned Session
+uses its selected OAuth preset. A supplied Session instead uses its current protocol and authentication mechanisms, including explicit
+additional-property choices, irrespective of a historical strategy marker retained from an earlier Mailer. Reusing a Session after successful
+completed shutdown does not restore the previous owner's authentication choice. An old OAuth marker likewise does not permit a provider when
+the effective mechanism is no longer OAuth2.
+
+Apply this distinction during preflight and Session application, including internal completed-facts construction. Preserve missing/conflicting
+credential errors, lazy provider invocation, ordinary connection conflicts and locks, Session ownership and rollback. Do not rewrite the marker,
+change authentication mechanisms or TLS policy, or add a public API or setting. This clarifies the supplied-Session baseline in
+[ADR 0015](0015-execution-views-and-transport-pooling.md) and effective choices in [ADR 0038](0038-connection-configuration-conflicts.md).
+[#958](https://github.com/bbottema/simple-java-mail/issues/958) tracks the correction of published 9.3.9 behavior for 10.0.0; #692 introduced providers.
+
 ### CLI fingerprints follow default selection (accepted 1 November 2026)
 
 The CLI's reuse identity must respect the same effective Email-default selection as Mailer construction. When an explicit replacement or

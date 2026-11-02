@@ -19,6 +19,7 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS_OAUTH
  */
 public final class OAuth2AccessTokenResolver {
 
+	/** Pass an SJM preset only for an owned Session; null selects the supplied Session's effective authentication mechanisms. */
 	@Nullable
 	static Supplier<String> validateConfiguration(@NotNull Session session,
 			@NotNull Properties additionalProperties,

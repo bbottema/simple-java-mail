@@ -38,6 +38,7 @@ class CallerSessionSettingsTest {
                     .withProperty("mail.smtp.host", "localhost")
                     .withProperty("mail.smtp.user", "user")
                     .withProperty("mail.smtp.auth.mechanisms", "XOAUTH2")
+                    .withProperty(TransportStrategy.OAUTH2_TOKEN_PROPERTY, "test-credential")
                     .withProperty("mail.smtp.starttls.enable", "true")
                     .withProperty("mail.smtp.starttls.required", "true")
                     .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(5))

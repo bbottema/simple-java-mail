@@ -446,7 +446,9 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * short-lived fixed token, the existing SMTP password configuration remains available.
 	 * A caller-supplied {@link jakarta.mail.Session} must declare {@code mail.smtp.auth.mechanisms=XOAUTH2}, or
 	 * {@code mail.smtps.auth.mechanisms=XOAUTH2} when its transport protocol is {@code smtps}. Its existing Session and
-	 * provider ownership remain unchanged. Configuring both a fixed token and a provider is rejected.
+	 * provider ownership remain unchanged. Eligibility follows its effective protocol and mechanisms, including explicit additional properties,
+	 * even when the Session is reused after its previous Mailer completes shutdown. A retained transport-strategy marker does not select authentication.
+	 * Configuring both a fixed token and a provider is rejected.
 	 * <p>
 	 * Calling this method again replaces the provider. {@link #clearOAuth2AccessTokenProvider()} removes it without closing an application object,
 	 * changing the transport strategy, or removing a separately configured SMTP password or token. Previously built Mailers remain unchanged.

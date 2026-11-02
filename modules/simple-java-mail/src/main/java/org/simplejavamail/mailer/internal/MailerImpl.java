@@ -377,8 +377,8 @@ public class MailerImpl implements Mailer {
 	private AnonymousSocks5Server configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
 			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final ValidatedConnectionPlan plan) {
 		final MailerSessionSettings sessionSettings = plan.settings();
-		// Inferring SMTP property names must not replace a caller Session's existing authentication-selection behavior.
-		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : TransportStrategy.findStrategyForSession(session);
+		// Only owned Sessions select authentication from an SJM preset; supplied Sessions use their current effective mechanisms.
+		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : null;
 		final Supplier<String> oauth2AccessTokenProvider = operationalConfig.getCustomMailer() == null ? OAuth2AccessTokenResolver.validateConfiguration(
 				Session.getInstance(sessionSettings.finalProperties(session, operationalConfig.getProperties())), new Properties(),
 				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()

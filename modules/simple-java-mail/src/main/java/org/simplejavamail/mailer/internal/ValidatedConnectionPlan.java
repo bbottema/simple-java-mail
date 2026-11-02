@@ -52,8 +52,7 @@ final class ValidatedConnectionPlan {
         }
         LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(inputs.getConfig()), settings.copyEffectiveProperties(), inputs.getStrategy());
         if (inputs.isSmtpActive()) {
-            final TransportStrategy authenticationStrategy = inputs.getSuppliedSession() == null ? inputs.getStrategy()
-                    : TransportStrategy.findStrategyForSession(inputs.getSuppliedSession());
+            final TransportStrategy authenticationStrategy = inputs.getSuppliedSession() == null ? inputs.getStrategy() : null;
             OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(settings.copyEffectiveProperties()), new Properties(),
                     authenticationStrategy, inputs.getTokenProvider());
             if (resolved.proxy.requiresProxy() && resolved.proxy.requiresAuthentication()) {
@@ -80,7 +79,7 @@ final class ValidatedConnectionPlan {
                 MailerImpl.validateImplicitTlsOAuth2Protocol(strategy, operational.getProperties());
             }
             OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(effective), new Properties(),
-                    ownsSession ? strategy : TransportStrategy.findStrategyForSession(baseline), operational.getOAuth2AccessTokenProvider());
+                    ownsSession ? strategy : null, operational.getOAuth2AccessTokenProvider());
             if (proxy.requiresProxy() && proxy.requiresAuthentication()) { ModuleLoader.loadAuthenticatedSocksModule(); }
         }
         return new ValidatedConnectionPlan(ownsSession ? null : baseline, operational.getProperties(), settings, server);
