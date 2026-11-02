@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-text-streams-20261102'
     '.local/review-selected-20261102'
     '.local/image-validation-20261102'
     '.local/rehearsal-lifetime-20261102'
@@ -132,6 +133,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/text-body-streams-20261102.md'
     'docs/plans/selected-review-20261102.md'
     'docs/plans/958-reused-session-oauth2-20261102.md'
     'docs/plans/957-image-validation-20261102.md'
@@ -676,4 +678,14 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\selected
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md', 'Remove retired reused-Session OAuth2 plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\958-reused-session-oauth2-20261102.md' -Force
+}
+
+# Streamed text-body import (#959); keep these exact paths in the guarded allowlists.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-text-streams-20261102') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-text-streams-20261102', 'Remove completed text-body import scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-text-streams-20261102' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md', 'Remove retired text-body import plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md' -Force
 }
