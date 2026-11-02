@@ -41,6 +41,17 @@ Bound connections, workers, queued requests, Mailer entries and retained result 
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Startup-log path safety (accepted 2 November 2026)
+
+Before clearing a detached daemon's startup log, refuse existing symbolic links and nonregular paths, including dangling links. Rejection must
+preserve the linked target's content and permissions rather than report a private-state failure after changing it. Open the log without following
+symbolic links, establish its private-file permissions, then truncate the acquired regular file before launching the child. Ordinary new and
+existing regular logs retain their startup behavior and privacy requirements.
+
+This applies the existing per-user private-state boundary before destructive file access; it does not make the daemon a multi-user service or
+promise protection against arbitrary path replacement by the same operating-system user. The correction completes unreleased 10.0.0 work under
+[#488](https://github.com/bbottema/simple-java-mail/issues/488).
+
 ### Selected named Mailer profiles (accepted 31 October 2026)
 
 A command's reuse profile includes the selected named failover route, using the same factory-wide definition registry as Mailer construction.

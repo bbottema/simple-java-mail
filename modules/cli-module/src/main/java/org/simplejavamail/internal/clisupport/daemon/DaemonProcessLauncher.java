@@ -4,7 +4,9 @@ import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
 
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
@@ -58,9 +60,15 @@ final class DaemonProcessLauncher {
 	}
 
 	private static void prepareStartupLog(final Path startupLog) throws IOException {
-		Files.write(startupLog, new byte[0], StandardOpenOption.CREATE,
-				StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-		DaemonStateSecurity.ensurePrivateFile(startupLog);
+		if (Files.exists(startupLog, LinkOption.NOFOLLOW_LINKS)
+				&& !Files.isRegularFile(startupLog, LinkOption.NOFOLLOW_LINKS)) {
+			throw new DaemonSecurityException("Daemon startup log must be a regular file, not a symbolic link or another file type");
+		}
+		try (SeekableByteChannel log = Files.newByteChannel(startupLog, StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
+			DaemonStateSecurity.ensurePrivateFile(startupLog);
+			log.truncate(0);
+		}
 	}
 
 	private static CliExecutionResult awaitAuthenticatedReadiness(final DaemonClient client, final Process child) {

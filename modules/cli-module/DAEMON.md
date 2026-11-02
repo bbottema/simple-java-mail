@@ -140,6 +140,9 @@ The instance directory is owner-only. Discovery state contains the endpoint, PID
 
 Daemon logs use bounded rolling files in the instance directory. Raw CLI arguments, converted option values, MIME messages, authentication material, and profile identities are not logged by the daemon configuration.
 
+`daemon-startup.log` must be a regular file. Startup refuses symbolic links, including dangling links, and other file types before changing their
+content or permissions. New and existing regular startup logs are made private before their previous content is cleared for the next child.
+
 ## Status and exit codes
 
 `daemon status` prints stable `key=value` lines for the instance, lifecycle state, PID, uptime, product/protocol versions, transport, active and queued requests, Mailer count, active leases, close failures, recent request identities, and retained result bytes. `activeReplies` and `queuedReplies` report execution-reply handling separately from `activeRequests` and `queuedRequests`, which describe application work.
