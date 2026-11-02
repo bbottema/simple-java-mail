@@ -310,6 +310,9 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 			executorService.execute(submission);
 		} catch (RuntimeException schedulingFailure) {
 			submission.cancel(new BatchTransportException(MailFailureKind.CAPACITY, "Unable to schedule batch transport work", schedulingFailure));
+		} catch (Error schedulingFailure) {
+			submission.cancel(schedulingFailure);
+			throw schedulingFailure;
 		}
 		return submission.future;
 	}
