@@ -90,7 +90,10 @@ public interface OriginalSmimeDetails extends Serializable {
 		return getSmimeSignatureValid() ? VerificationStatus.VALID : VerificationStatus.INVALID;
 	}
 
-	/** Returns the most severe decryption result represented by these details. */
+	/**
+	 * Returns the most severe decryption result represented by these details. Completed native decryption remains
+	 * {@code DECRYPTED} even when the existing content materializer retains the protected resource instead of exposing a readable view.
+	 */
 	default DecryptionStatus getDecryptionStatus() {
 		return DecryptionStatus.NOT_ENCRYPTED;
 	}

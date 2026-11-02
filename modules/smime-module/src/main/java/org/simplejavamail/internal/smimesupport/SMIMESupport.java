@@ -796,7 +796,16 @@ public class SMIMESupport implements SMIMEModule {
 			throws MessagingException, IOException {
 		if (pkcs12Config != null) {
 			final MimeBodyPart liberatedBodyPart = SmimeCryptoSupport.decrypt(mimeBodyPart, retrieveSmimeKeyFromPkcs12Keystore(pkcs12Config));
+			if (messageEnvelopeDetails != null) {
+				// Native success is a fact even when the legacy attachment view cannot represent the clear entity.
+				messageEnvelopeDetails.completeWith(OriginalSmimeDetailsImpl.builder()
+						.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.DECRYPTED).build());
+			}
 			final SmimeState nestedState = SmimeCryptoSupport.getStatus(liberatedBodyPart);
+			if (nestedState == SmimeState.ENCRYPTED && messageEnvelopeDetails != null) {
+				messageEnvelopeDetails.completeWith(OriginalSmimeDetailsImpl.builder()
+						.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN).build());
+			}
 			if (nestedState == SmimeState.SIGNED || nestedState == SmimeState.SIGNED_ENVELOPED || nestedState == SmimeState.PROBABLY_SIGNED) {
 				final OriginalSmimeDetails verification = verifyIncomingSignature(liberatedBodyPart);
 				if (messageEnvelopeDetails != null) {
