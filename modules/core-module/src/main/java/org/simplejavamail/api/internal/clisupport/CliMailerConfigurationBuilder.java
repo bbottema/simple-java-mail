@@ -188,6 +188,8 @@ public interface CliMailerConfigurationBuilder {
 	 * supplied Session settings follow {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
 	 * strict mode rejects conflicts; deliberate override mode gives supplied typed members precedence regardless of option order. Locks still apply.
 	 * Raw SOCKS host values can include a port; a separate raw port takes precedence over that embedded port.
+	 * Typed anonymous IPv6 hosts retain their complete address on owned managed Angus connections; supplied Sessions and custom factories
+	 * retain their provider's address handling. Active remote ports must be from {@code 1} through {@code 65535}, checked at Mailer construction.
 	 * <p>
 	 * The remote route is resolved before authenticated routing is derived. Authentication needs the optional
 	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}; Jakarta Mail then connects anonymously to a local loopback bridge,
@@ -257,7 +259,8 @@ public interface CliMailerConfigurationBuilder {
 	 * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
 	 * <p>
 	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
+	 * authenticated-proxy Mailers. Use a port from {@code 1} through {@code 65535} when an application needs a fixed local port. The effective
+	 * {@code 0} through {@code 65535} range is checked at Mailer construction; collecting choices remains passive. Anonymous proxy connections do
 	 * not use a bridge port.
 	 * <p>
 	 * Defaults to automatic allocation ({@value MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.

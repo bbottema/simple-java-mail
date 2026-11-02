@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -406,7 +407,12 @@ public class MailerImpl implements Mailer {
 		SessionBasedEmailToMimeMessageConverter.primeSession(session, operationalConfig, emailGovernance, lockedSmtpConfiguration);
 		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			try {
-				MailTransportLifecycleResolver.configureOwnedSession(session);
+				if (proxyConfig.requiresProxy() && !proxyConfig.requiresAuthentication()) {
+					MailTransportLifecycleResolver.configureOwnedSession(session, InetSocketAddress.createUnresolved(
+							verifyNonnull(proxyConfig.getRemoteProxyHost()), verifyNonnull(proxyConfig.getRemoteProxyPort())));
+				} else {
+					MailTransportLifecycleResolver.configureOwnedSession(session);
+				}
 				// Provider initialization must not silently replace a value supplied by a configuration lock.
 				lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
 			} catch (MessagingException failure) {

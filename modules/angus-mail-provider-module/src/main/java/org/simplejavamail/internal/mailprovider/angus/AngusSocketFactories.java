@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import java.security.GeneralSecurityException;
+import java.net.InetSocketAddress;
 import java.util.Properties;
 
 /** Sets owned-session defaults and adds failure cleanup without changing which application factory Angus selects. */
@@ -13,6 +14,10 @@ final class AngusSocketFactories {
     }
 
     static void configure(final Properties properties, final String prefix) {
+        configure(properties, prefix, null);
+    }
+
+    static void configure(final Properties properties, final String prefix, @Nullable final InetSocketAddress socksEndpoint) {
         if (hasCustomFactory(properties, prefix)) {
             if (!properties.containsKey(prefix + ".socketFactory.fallback") && properties.getProperty(prefix + ".socketFactory.fallback") == null) {
                 properties.setProperty(prefix + ".socketFactory.fallback", "false");
@@ -20,7 +25,7 @@ final class AngusSocketFactories {
             protectTlsFactory(properties, prefix + ".socketFactory");
             protectTlsFactory(properties, prefix + ".ssl.socketFactory");
         } else {
-            properties.put(prefix + ".socketFactory", new AngusSocketFactory(properties, prefix));
+            properties.put(prefix + ".socketFactory", new AngusSocketFactory(properties, prefix, socksEndpoint));
             // Cancellation must not make SocketFetcher replace our tracked socket with an untracked one.
             properties.setProperty(prefix + ".socketFactory.fallback", "false");
         }

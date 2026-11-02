@@ -34,7 +34,9 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	@Cli.ExcludeApi(reason = "API is a subset of a more detailed API")
 	T withProxy(@Nullable @Cli.Optional String proxyHost, @Nullable @Cli.Optional Integer proxyPort);
 	/**
-	 * Sets proxy server settings, by delegating to:
+	 * Sets proxy server settings. Active remote ports must be from {@code 1} through {@code 65535}, checked at Mailer construction.
+	 * Typed anonymous IPv6 hosts retain their complete address on owned managed Angus connections; supplied Sessions and custom factories
+	 * retain their provider's address handling. Delegates to:
 	 * <ol>
 	 * <li>{@link #withProxyHost(String)}</li>
 	 * <li>{@link #withProxyPort(Integer)}</li>
@@ -81,11 +83,12 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	/**
 	 * Relevant only when using username authentication with a proxy.
 	 * <p>
-	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
-	 * loopback address and owns this port while this Mailer has active proxy operations.
+	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to IPv4
+	 * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations.
 	 * <p>
 	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
+	 * authenticated-proxy Mailers. Use a port from {@code 1} through {@code 65535} when an application needs a fixed local port. The effective
+	 * {@code 0} through {@code 65535} range is checked at Mailer construction; collecting choices remains passive. Anonymous proxy connections do
 	 * not use a bridge port.
 	 * <p>
 	 * Defaults to automatic allocation ({@value DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.

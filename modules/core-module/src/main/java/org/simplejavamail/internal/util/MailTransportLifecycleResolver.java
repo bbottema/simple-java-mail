@@ -17,10 +17,12 @@ import org.slf4j.LoggerFactory;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.Optional;
+import java.net.InetSocketAddress;
 
 /** Selects optional setup observation and connection-abort integration for the Mailer and its pool. Never connects a transport. */
 public final class MailTransportLifecycleResolver {
     private static final Logger LOGGER = LoggerFactory.getLogger(MailTransportLifecycleResolver.class);
+    private static final ThreadLocal<OwnedSocksEndpoint> OWNED_SOCKS_ENDPOINT = new ThreadLocal<>();
 
     private MailTransportLifecycleResolver() {
     }
@@ -98,6 +100,39 @@ public final class MailTransportLifecycleResolver {
         }
         if (selected != null) {
             selected.configureOwnedSession(session, protocol);
+        }
+    }
+
+    /** Carries an already-resolved anonymous route only through this owned Session's synchronous adapter initialization. */
+    public static void configureOwnedSession(@NotNull final Session session, @NotNull final InetSocketAddress socksEndpoint)
+            throws MessagingException {
+        final OwnedSocksEndpoint previous = OWNED_SOCKS_ENDPOINT.get();
+        OWNED_SOCKS_ENDPOINT.set(new OwnedSocksEndpoint(session,
+                Optional.ofNullable(session.getProperty("mail.transport.protocol")).orElse("smtp"), socksEndpoint));
+        try {
+            configureOwnedSession(session);
+        } finally {
+            if (previous == null) { OWNED_SOCKS_ENDPOINT.remove(); }
+            else { OWNED_SOCKS_ENDPOINT.set(previous); }
+        }
+    }
+
+    /** Internal provider initialization lookup; no route or caller credentials are retained in Session properties. */
+    @Nullable
+    public static InetSocketAddress ownedSocksEndpoint(final Session session, final String protocol) {
+        final OwnedSocksEndpoint current = OWNED_SOCKS_ENDPOINT.get();
+        return current != null && current.session == session && current.protocol.equals(protocol) ? current.endpoint : null;
+    }
+
+    private static final class OwnedSocksEndpoint {
+        private final Session session;
+        private final String protocol;
+        private final InetSocketAddress endpoint;
+
+        private OwnedSocksEndpoint(final Session session, final String protocol, final InetSocketAddress endpoint) {
+            this.session = session;
+            this.protocol = protocol;
+            this.endpoint = endpoint;
         }
     }
 

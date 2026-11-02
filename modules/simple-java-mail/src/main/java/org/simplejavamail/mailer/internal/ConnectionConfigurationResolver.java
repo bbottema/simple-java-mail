@@ -607,6 +607,9 @@ final class ConnectionConfigurationResolver {
                 throw new IllegalArgumentException("A SOCKS proxy host is configured, but its port is missing. "
                         + "Set SocksProxyConfig.Builder.withPort(...), or clear the host to disable proxying.");
             }
+            if (resolved.getRemoteProxyPort() < 1 || resolved.getRemoteProxyPort() > 65535) {
+                throw new IllegalArgumentException("SOCKS proxy port must be between 1 and 65535.");
+            }
             if ("".equals(resolved.getUsername()) || "".equals(resolved.getPassword())) {
                 throw new IllegalArgumentException("SOCKS proxy credentials cannot be empty. "
                         + "Supply both username and password, or clear both credential choices for an anonymous proxy.");
@@ -623,6 +626,9 @@ final class ConnectionConfigurationResolver {
             if (resolved.requiresAuthentication() && resolved.getProxyBridgePort() == null) {
                 throw new IllegalArgumentException("Authenticated SOCKS proxying requires a local bridge port. "
                         + "Set SocksProxyConfig.Builder.withBridgePort(0) to choose an available port automatically, or supply a fixed local port.");
+            }
+            if (resolved.requiresAuthentication() && (resolved.getProxyBridgePort() < 0 || resolved.getProxyBridgePort() > 65535)) {
+                throw new IllegalArgumentException("Authenticated SOCKS bridge port must be between 0 and 65535.");
             }
         }
     }

@@ -65,8 +65,12 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			final ServerSocket preparedServerSocket;
 			try {
 				preparedServerSocket = prepareServerSocket();
-			} catch (final RuntimeException e) {
-				preparedThreadPool.shutdownNow();
+			} catch (final RuntimeException | Error e) {
+				try {
+					preparedThreadPool.shutdownNow();
+				} catch (final RuntimeException | Error cleanupFailure) {
+					if (cleanupFailure != e) { e.addSuppressed(cleanupFailure); }
+				}
 				throw e;
 			}
 
@@ -91,10 +95,11 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 			preparedServerSocket.bind(new InetSocketAddress(InetAddress.getByName(Socks5Bridge.LOOPBACK_HOST), proxyBridgePort));
 			return preparedServerSocket;
 		} catch (final IOException e) {
-			if (preparedServerSocket != null) {
-				closeAfterFailedStart(preparedServerSocket);
-			}
+			closeAfterFailedStart(preparedServerSocket, e);
 			throw new SocksException("error preparing socks5bridge server for authenticated proxy session", e);
+		} catch (final RuntimeException | Error e) {
+			closeAfterFailedStart(preparedServerSocket, e);
+			throw e;
 		}
 	}
 	
@@ -209,11 +214,12 @@ public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 		}
 	}
 
-	private static void closeAfterFailedStart(final ServerSocket preparedServerSocket) {
+	private static void closeAfterFailedStart(@Nullable final ServerSocket preparedServerSocket, final Throwable failure) {
+		if (preparedServerSocket == null) { return; }
 		try {
 			preparedServerSocket.close();
-		} catch (final IOException ignored) {
-			// Preserve the bind failure, which is the useful cause for the caller.
+		} catch (final IOException | RuntimeException | Error cleanupFailure) {
+			if (cleanupFailure != failure) { failure.addSuppressed(cleanupFailure); }
 		}
 	}
 

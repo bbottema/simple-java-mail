@@ -25,8 +25,9 @@ public final class AngusSmtpConnectionProbeAdapter implements SmtpConnectionProb
         final String protocol = session.getProperty("mail.transport.protocol") == null ? "smtp" : session.getProperty("mail.transport.protocol");
         // The send factory refers to its original Session. Rebind only our own factory to the probe's private properties,
         // including any ephemeral authenticated-proxy port; application factory configuration is retained.
-        if (session.getProperties().get("mail." + protocol + ".socketFactory") instanceof AngusSocketFactory) {
-            session.getProperties().put("mail." + protocol + ".socketFactory", new AngusSocketFactory(session.getProperties(), "mail." + protocol));
+        final Object sendFactory = session.getProperties().get("mail." + protocol + ".socketFactory");
+        if (sendFactory instanceof AngusSocketFactory) {
+            session.getProperties().put("mail." + protocol + ".socketFactory", ((AngusSocketFactory) sendFactory).rebind(session.getProperties()));
         }
         AngusWriteTimeoutScheduler.isolateProbe(session.getProperties(), "mail." + protocol);
         final AngusProbeTransport transport = new AngusProbeTransport(session, protocol, authenticate);

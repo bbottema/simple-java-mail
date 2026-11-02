@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 
 import java.util.Optional;
 import java.util.Properties;
@@ -32,7 +33,7 @@ public final class AngusMailTransportLifecycleAdapter implements MailTransportLi
         if (!properties.containsKey("mail.mime.allowutf8") && properties.getProperty("mail.mime.allowutf8") == null) {
             properties.setProperty("mail.mime.allowutf8", "true");
         }
-        AngusSocketFactories.configure(properties, prefix);
+        AngusSocketFactories.configure(properties, prefix, MailTransportLifecycleResolver.ownedSocksEndpoint(session, protocol));
         AngusWriteTimeoutScheduler.configure(properties, prefix);
         final Provider provider = new Provider(Provider.Type.TRANSPORT, protocol,
                 ManagedAngusTransport.class.getName(), "Simple Java Mail", null);

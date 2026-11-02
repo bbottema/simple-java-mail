@@ -10,6 +10,7 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.Properties;
+import java.util.Objects;
 import javax.net.SocketFactory;
 
 /**
@@ -20,11 +21,27 @@ final class AngusSocketFactory extends SocketFactory {
 
     private final Properties properties;
     private final String prefix;
+    @Nullable private final InetSocketAddress socksEndpoint;
+    @Nullable private final String configuredSocksHost;
+    private final int configuredSocksPort;
     private final ThreadLocal<SocketTracker> connectingTransport = new ThreadLocal<>();
 
     AngusSocketFactory(final Properties properties, final String prefix) {
+        this(properties, prefix, null);
+    }
+
+    AngusSocketFactory(final Properties properties, final String prefix, @Nullable final InetSocketAddress socksEndpoint) {
         this.properties = properties;
         this.prefix = prefix;
+        this.socksEndpoint = socksEndpoint;
+        this.configuredSocksHost = properties.getProperty(prefix + ".socks.host");
+        this.configuredSocksPort = configuredSocksHost == null ? 1080
+                : resolveSocksPort(properties, configuredSocksHost, configuredSocksHost.indexOf(':'));
+    }
+
+    /** A probe owns its property copy; a changed route resumes ordinary provider property interpretation. */
+    AngusSocketFactory rebind(final Properties probeProperties) {
+        return new AngusSocketFactory(probeProperties, prefix, matchesConfiguredProxy(probeProperties) ? socksEndpoint : null);
     }
 
     @Nullable
@@ -56,16 +73,26 @@ final class AngusSocketFactory extends SocketFactory {
         // A supplied SocketFactory bypasses Angus's SOCKS construction, so preserve its proxy choice here.
         final String socksHost = properties.getProperty(prefix + ".socks.host");
         if (socksHost != null && properties.getProperty(prefix + ".proxy.host") == null) {
+            if (socksEndpoint != null && matchesConfiguredProxy(properties)) {
+                return new Socket(new Proxy(Proxy.Type.SOCKS,
+                        new InetSocketAddress(socksEndpoint.getHostString(), socksEndpoint.getPort())));
+            }
             final int separator = socksHost.indexOf(':');
             final String host = separator < 0 ? socksHost : socksHost.substring(0, separator);
-            final int port = resolveSocksPort(socksHost, separator);
+            final int port = resolveSocksPort(properties, socksHost, separator);
             return new Socket(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(host, port)));
         }
         return PropUtil.getBooleanProperty(properties, prefix + ".usesocketchannels", false)
                 ? SocketChannel.open().socket() : new Socket();
     }
 
-    private int resolveSocksPort(final String socksHost, final int separator) {
+    private boolean matchesConfiguredProxy(final Properties selected) {
+        final String host = selected.getProperty(prefix + ".socks.host");
+        return Objects.equals(configuredSocksHost, host) && host != null
+                && configuredSocksPort == resolveSocksPort(selected, host, host.indexOf(':'));
+    }
+
+    private int resolveSocksPort(final Properties selected, final String socksHost, final int separator) {
         int defaultPort = 1080;
         if (separator >= 0) {
             try {
@@ -74,7 +101,7 @@ final class AngusSocketFactory extends SocketFactory {
                 // Keep Angus's existing default for a malformed inline port.
             }
         }
-        return PropUtil.getIntProperty(properties, prefix + ".socks.port", defaultPort);
+        return PropUtil.getIntProperty(selected, prefix + ".socks.port", defaultPort);
     }
 
     @Override

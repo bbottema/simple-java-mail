@@ -102,6 +102,8 @@ public class SocksProxyConfig {
          * Supplies the optional remote proxy host. A repeated call replaces the previous local choice.
          * Replacing or removing an imported host follows {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}:
          * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
+         * For anonymous proxying, library-owned stock Angus connections accept IPv6 literals with or without brackets.
+         * Supplied Sessions and custom socket factories retain their provider's address interpretation.
          * @param host Proxy host, or {@code null} to explicitly remove a captured host; an untouched member uses applicable raw or factory configuration.
          */
         @NotNull public Builder withHost(final String host) { this.host = host; hostCleared = host == null; return this; }
@@ -123,6 +125,8 @@ public class SocksProxyConfig {
          * strict mode rejects conflicts; override mode gives this typed member precedence over its raw SOCKS counterpart.
          * <p>
          * Defaults to {@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_PORT} when an active proxy route has no configured or raw port.
+         * An active proxy requires an effective port from {@code 1} through {@code 65535}. The Mailer validates the resolved value when it is built;
+         * collecting and inspecting supplied choices remains passive.
          * @param port Proxy port, or {@code null} to explicitly remove a captured port; an untouched member uses applicable raw or factory configuration.
          */
         @NotNull public Builder withPort(final Integer port) { this.port = port; portCleared = port == null; return this; }
@@ -198,8 +202,9 @@ public class SocksProxyConfig {
          * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
          * <p>
          * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-         * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
-         * not use a bridge port.
+         * authenticated-proxy Mailers. Use a port from {@code 1} through {@code 65535} when an application needs the bridge to bind to a fixed port.
+         * The Mailer validates the effective {@code 0} through {@code 65535} range when it is built for authenticated proxying; collecting or inspecting
+         * supplied choices remains passive. Anonymous proxy connections do not use a bridge port.
          * <p>
          * Defaults to automatic allocation ({@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
          * <p>
