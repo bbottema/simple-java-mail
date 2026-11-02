@@ -23,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.simplejavamail.mailer.internal.MailSendProgressDispatcherTest.take;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,14 +39,14 @@ class MailSendHandlerRoutingTest {
 		final MailSendTelemetryBridge.CapturedContext context = mock(MailSendTelemetryBridge.CapturedContext.class);
 		final MailSendTelemetryBridge.Attempt telemetry = mock(MailSendTelemetryBridge.Attempt.class);
 		when(runtime.captureContext()).thenReturn(context);
-		when(context.beginSend(id)).thenReturn(telemetry);
+		when(context.beginSend(eq(id), any())).thenReturn(telemetry);
 		final MailSendObserverNotifier factoryFails = MailSendObserverNotifier.builder().telemetry(runtime).idGenerator(() -> id)
 				.handlersFactory(observation -> { throw failure; }).build();
 		final MailSendObserverNotifier generatorFails = MailSendObserverNotifier.builder().telemetry(runtime)
 				.idGenerator(() -> { throw failure; }).build();
 		try {
 			assertThat(catchThrowable(() -> factoryFails.beginAttempt(mock(Email.class)))).isSameAs(failure);
-			verify(context).beginSend(id);
+			verify(context).beginSend(eq(id), any());
 			verify(telemetry).complete(argThat(report -> !report.isSuccessful() && report.getFailure() == failure && report.getSubmissionStatus() == null));
 			assertThat(catchThrowable(() -> generatorFails.beginAttempt(mock(Email.class)))).isSameAs(failure);
 			verify(runtime, times(1)).captureContext();

@@ -38,7 +38,7 @@ class MailSendTelemetryResolutionTest {
             final MailSendTelemetryBridge.Runtime runtime = runtime(telemetry.sdk);
             completeSubmission(runtime, Duration.ofMillis(80));
             completeSubmission(runtime, Duration.ofMillis(600));
-            runtime.captureContext().beginSend(UUID.randomUUID()).complete(MailSendTelemetryReport.builder()
+            runtime.captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now()).complete(MailSendTelemetryReport.builder()
                     .successful(true)
                     .elapsed(Duration.ofMinutes(3))
                     .retryWait(Duration.ofMinutes(3))
@@ -82,7 +82,7 @@ class MailSendTelemetryResolutionTest {
     @Test
     void logicalSpanAndPhaseMetricsShareDurationsWithoutAddingMetricLabels() {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
-            final MailSendTelemetryBridge.Attempt send = runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID());
+            final MailSendTelemetryBridge.Attempt send = runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now());
             send.beginSubmission(false).complete(true, MailSubmissionStatus.ACCEPTED, null, null, null);
             send.complete(MailSendTelemetryReport.builder()
                     .successful(true)
@@ -116,7 +116,7 @@ class MailSendTelemetryResolutionTest {
     @Test
     void unavailableTimingsAndUnmeasuredFailureLocationsRemainAbsent() {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
-            runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID()).complete(MailSendTelemetryReport.builder()
+            runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now()).complete(MailSendTelemetryReport.builder()
                     .successful(false)
                     .failure(new IllegalStateException("private provider detail"))
                     .elapsed(Duration.ofMillis(5))
@@ -135,7 +135,7 @@ class MailSendTelemetryResolutionTest {
     @Test
     void primaryFailureLocationBelongsOnlyToTheLogicalSpan() {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
-            final MailSendTelemetryBridge.Attempt send = runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID());
+            final MailSendTelemetryBridge.Attempt send = runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now());
             send.beginSubmission(false).complete(true, MailSubmissionStatus.ACCEPTED, null, null, null);
             send.complete(MailSendTelemetryReport.builder()
                     .successful(false)
@@ -155,7 +155,7 @@ class MailSendTelemetryResolutionTest {
     @Test
     void successfulCompletionNeverExportsAStaleFailureLocation() {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
-            runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID()).complete(MailSendTelemetryReport.builder()
+            runtime(telemetry.sdk).captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now()).complete(MailSendTelemetryReport.builder()
                     .successful(true)
                     .failurePhase("submission")
                     .elapsed(Duration.ZERO)
@@ -169,7 +169,7 @@ class MailSendTelemetryResolutionTest {
     }
 
     private static void completeSubmission(final MailSendTelemetryBridge.Runtime runtime, final Duration elapsed) {
-        final MailSendTelemetryBridge.Attempt send = runtime.captureContext().beginSend(UUID.randomUUID());
+        final MailSendTelemetryBridge.Attempt send = runtime.captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now());
         send.beginSubmission(false).complete(true, MailSubmissionStatus.ACCEPTED, null, null, null);
         send.complete(MailSendTelemetryReport.builder()
                 .successful(true)

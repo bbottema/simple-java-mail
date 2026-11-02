@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -45,7 +49,7 @@ class MailSendAttemptDiagnosticsTest {
 			pending.add(notification);
 		}, true);
 		try (MockedStatic<MailSendDiagnosticsRecorder> recorders = mockStatic(MailSendDiagnosticsRecorder.class, CALLS_REAL_METHODS)) {
-			recorders.when(() -> MailSendDiagnosticsRecorder.forObservers(true, null, null)).thenReturn(recorder);
+			recorders.when(() -> MailSendDiagnosticsRecorder.forObservers(eq(true), isNull(), isNull(), any(), anyLong())).thenReturn(recorder);
 			final MailSendAttempt attempt = notifier.beginAttempt(mock(Email.class));
 			attempt.readyForAdmission();
 			attempt.prepared(mock(Email.class));

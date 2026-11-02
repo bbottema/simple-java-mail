@@ -1,5 +1,6 @@
 package org.simplejavamail.mailer.internal;
 
+import lombok.Builder;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.spi.MailTransportProgress;
@@ -34,17 +35,19 @@ final class MailSendProgressRecorder implements MailTransportProgress {
 
     MailSendProgressRecorder(final MailSendProgressDispatcher dispatcher, final UUID observationId,
             @Nullable final String initialMessageId, final LongSupplier clock) {
-        this(dispatcher, observationId, initialMessageId, clock, null);
+        this(dispatcher, observationId, initialMessageId, clock, null, null);
     }
 
-    MailSendProgressRecorder(final MailSendProgressDispatcher dispatcher, final UUID observationId,
-            @Nullable final String initialMessageId, final LongSupplier clock, @Nullable final MailSendProgressDispatcher.Target[] targets) {
+    @Builder
+    private MailSendProgressRecorder(final MailSendProgressDispatcher dispatcher, final UUID observationId,
+            @Nullable final String initialMessageId, final LongSupplier clock, @Nullable final MailSendProgressDispatcher.Target[] targets,
+            @Nullable final Long requestedAtNanos) {
         this.dispatcher = dispatcher;
         this.targets = targets;
         this.observationId = observationId;
         this.initialMessageId = initialMessageId;
         this.clock = clock;
-        requestedAt = clock.getAsLong();
+        requestedAt = requestedAtNanos == null ? clock.getAsLong() : requestedAtNanos;
     }
 
     synchronized void stage(final MailSendProgressStage next) {

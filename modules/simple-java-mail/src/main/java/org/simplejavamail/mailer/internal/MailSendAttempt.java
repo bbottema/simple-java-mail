@@ -42,6 +42,7 @@ final class MailSendAttempt {
 			@Nullable final MailSendHandlers generatedHandlers,
 			@Nullable final String initialMessageId,
 			@Nullable final Instant requestedAt,
+			final long requestedAtNanos,
 			final boolean loggingOnly, @Nullable final MailSendControl control) {
 		this.notifier = notifier;
 		this.initialMessageId = initialMessageId;
@@ -51,10 +52,11 @@ final class MailSendAttempt {
 		this.observationId = observationId;
 		this.generatedHandlers = generatedHandlers;
 		this.observesResults = notifier != null && notifier.observesResults(generatedHandlers);
-		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId, generatedHandlers);
-		this.telemetry = notifier == null ? null : MailSendTelemetryRecorder.begin(notifier.captureTelemetryContext(), observationId);
+		this.progress = notifier == null ? null : notifier.progressRecorder(observationId, initialMessageId, generatedHandlers, requestedAtNanos);
+		this.telemetry = notifier == null ? null : MailSendTelemetryRecorder.begin(notifier.captureTelemetryContext(), observationId,
+				requireNonNull(requestedAt, "requestedAt"));
 		this.diagnostics = notifier == null ? MailSendDiagnosticsRecorder.unobserved()
-				: MailSendDiagnosticsRecorder.forObservers(observesResults, progress, telemetry);
+				: notifier.diagnosticsRecorder(observesResults, progress, telemetry, requestedAtNanos);
 		if (loggingOnly) {
 			diagnostics.useLoggingOnly();
 		}
@@ -65,13 +67,14 @@ final class MailSendAttempt {
 			@Nullable final MailSendHandlers generatedHandlers,
 			@Nullable final String initialMessageId,
 			@NotNull final Instant requestedAt,
+			final long requestedAtNanos,
 			final boolean loggingOnly, @Nullable final MailSendControl control) {
-		return new MailSendAttempt(notifier, observationId, generatedHandlers, initialMessageId, requestedAt, loggingOnly, control);
+		return new MailSendAttempt(notifier, observationId, generatedHandlers, initialMessageId, requestedAt, requestedAtNanos, loggingOnly, control);
 	}
 
 	@NotNull
 	static MailSendAttempt unobserved() {
-		return new MailSendAttempt(null, null, null, null, null, false, null);
+		return new MailSendAttempt(null, null, null, null, null, 0, false, null);
 	}
 
 	void prepared(@NotNull final Email email) {

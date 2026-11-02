@@ -10,6 +10,7 @@ import org.simplejavamail.internal.modules.OpenTelemetryModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /** Isolates optional SDK calls from the existing send lifecycle. No callbacks, locks, queues or SDK instances are owned here. */
@@ -53,12 +54,13 @@ final class MailSendTelemetryRecorder {
     }
 
     @Nullable
-    static MailSendTelemetryRecorder begin(@Nullable final MailSendTelemetryBridge.CapturedContext context, final UUID observationId) {
+    static MailSendTelemetryRecorder begin(@Nullable final MailSendTelemetryBridge.CapturedContext context, final UUID observationId,
+            final Instant requestedAt) {
         if (context == null) {
             return null;
         }
         try {
-            return new MailSendTelemetryRecorder(context.beginSend(observationId));
+            return new MailSendTelemetryRecorder(context.beginSend(observationId, requestedAt));
         } catch (RuntimeException unavailableTelemetry) {
             warn("starting the send observation");
             return null;

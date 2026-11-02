@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
@@ -29,6 +30,7 @@ final class MailSendObserverNotifier {
     private final boolean loggingOnly;
     private final MailSendProgressDispatcher progressDispatcher = new MailSendProgressDispatcher();
     @Nullable private final MailSendTelemetryBridge.Runtime telemetry;
+    private final LongSupplier clock;
 
     MailSendObserverNotifier(@Nullable final MailSendResultObserver observer, final boolean loggingOnly) {
         this(observer, null, loggingOnly);
@@ -36,18 +38,19 @@ final class MailSendObserverNotifier {
 
     MailSendObserverNotifier(@Nullable final MailSendResultObserver observer, @Nullable final Executor executor, final boolean loggingOnly) {
         this(observer == null ? null : executor == null ? MailSendHandlers.builder().withResultObserver(observer).build()
-                : MailSendHandlers.builder().withResultObserver(observer, executor).build(), null, null, loggingOnly, null);
+                : MailSendHandlers.builder().withResultObserver(observer, executor).build(), null, null, loggingOnly, null, null);
     }
 
     @Builder
     private MailSendObserverNotifier(@Nullable final MailSendHandlers handlers,
             @Nullable final Function<UUID, MailSendHandlers> handlersFactory, @Nullable final Supplier<UUID> idGenerator,
-            final boolean loggingOnly, @Nullable final MailSendTelemetryBridge.Runtime telemetry) {
+            final boolean loggingOnly, @Nullable final MailSendTelemetryBridge.Runtime telemetry, @Nullable final LongSupplier clock) {
         this.handlers = handlers;
         this.handlersFactory = handlersFactory;
         this.idGenerator = idGenerator == null ? UUID::randomUUID : idGenerator;
         this.loggingOnly = loggingOnly;
         this.telemetry = telemetry;
+        this.clock = clock == null ? System::nanoTime : clock;
     }
 
     @NotNull MailSendAttempt beginAttempt(@NotNull final Email email) { return beginAttempt(email, null); }
@@ -55,23 +58,24 @@ final class MailSendObserverNotifier {
     @NotNull MailSendAttempt beginAttempt(@NotNull final Email email, @Nullable final MailSendControl control) {
         final UUID id = requireNonNull(idGenerator.get(), "sendIdGenerator returned null");
         final Instant requestedAt = Instant.now();
+        final long requestedAtNanos = handlers != null || handlersFactory != null || telemetry != null ? clock.getAsLong() : 0;
         final MailSendHandlers generated;
         try {
             generated = handlersFactory == null ? null : requireNonNull(handlersFactory.apply(id), "sendHandlersFactory returned null");
         } catch (RuntimeException failure) {
-            final MailSendAttempt failed = newAttempt(email, control, id, requestedAt, null);
+            final MailSendAttempt failed = newAttempt(email, control, id, requestedAt, requestedAtNanos, null);
             failed.completeWithFailure(failure);
             throw failure;
         }
-        return newAttempt(email, control, id, requestedAt, generated);
+        return newAttempt(email, control, id, requestedAt, requestedAtNanos, generated);
     }
 
     private MailSendAttempt newAttempt(final Email email, @Nullable final MailSendControl control, final UUID id,
-            final Instant requestedAt, @Nullable final MailSendHandlers generated) {
+            final Instant requestedAt, final long requestedAtNanos, @Nullable final MailSendHandlers generated) {
         if (!observesResults(generated) && !observesProgress(handlers) && !observesProgress(generated) && telemetry == null) {
             return MailSendAttempt.unobserved();
         }
-        return MailSendAttempt.observed(this, id, generated, email.getId(), requestedAt, loggingOnly, control);
+        return MailSendAttempt.observed(this, id, generated, email.getId(), requestedAt, requestedAtNanos, loggingOnly, control);
     }
 
     @Nullable MailSendTelemetryBridge.CapturedContext captureTelemetryContext() { return MailSendTelemetryRecorder.capture(telemetry); }
@@ -89,10 +93,15 @@ final class MailSendObserverNotifier {
     }
 
     @Nullable MailSendProgressRecorder progressRecorder(final UUID id, @Nullable final String initialMessageId,
-            @Nullable final MailSendHandlers generated) {
+            @Nullable final MailSendHandlers generated, final long requestedAtNanos) {
         if (!observesProgress(handlers) && !observesProgress(generated)) { return null; }
-        return new MailSendProgressRecorder(progressDispatcher, id, initialMessageId, System::nanoTime,
-                MailSendProgressDispatcher.targets(handlers, generated));
+        return MailSendProgressRecorder.builder().dispatcher(progressDispatcher).observationId(id).initialMessageId(initialMessageId)
+                .clock(clock).targets(MailSendProgressDispatcher.targets(handlers, generated)).requestedAtNanos(requestedAtNanos).build();
+    }
+
+    MailSendDiagnosticsRecorder diagnosticsRecorder(final boolean observeResults, @Nullable final MailSendProgressRecorder progress,
+            @Nullable final MailSendTelemetryRecorder telemetry, final long requestedAtNanos) {
+        return MailSendDiagnosticsRecorder.forObservers(observeResults, progress, telemetry, clock, requestedAtNanos);
     }
 
     void closeProgress() { progressDispatcher.close(); }

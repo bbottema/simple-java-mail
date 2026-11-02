@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /** Runtime lifecycle contracts used by the loaded telemetry module, never implemented by application configuration objects. */
@@ -17,7 +18,8 @@ public interface MailSendTelemetryBridge {
 
     interface CapturedContext {
         @NotNull Scope makeCurrent();
-        @NotNull Attempt beginSend(@NotNull UUID observationId);
+        /** Uses the attempt's entry timestamp even when its handler factory completed later. */
+        @NotNull Attempt beginSend(@NotNull UUID observationId, @NotNull Instant requestedAt);
     }
 
     interface Attempt {

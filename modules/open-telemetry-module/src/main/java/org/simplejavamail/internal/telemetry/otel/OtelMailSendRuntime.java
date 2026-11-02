@@ -21,6 +21,7 @@ import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryReport;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -92,10 +93,11 @@ final class OtelMailSendRuntime implements MailSendTelemetryBridge.Runtime {
         }
 
         @Override
-        public MailSendTelemetryBridge.Attempt beginSend(final UUID observationId) {
+        public MailSendTelemetryBridge.Attempt beginSend(final UUID observationId, final Instant requestedAt) {
             final Span span = tracer.spanBuilder("mail.send")
                     .setSpanKind(SpanKind.INTERNAL)
                     .setParent(parent)
+                    .setStartTimestamp(requestedAt)
                     .setAttribute("simplejavamail.observation.id", observationId.toString())
                     .startSpan();
             try {

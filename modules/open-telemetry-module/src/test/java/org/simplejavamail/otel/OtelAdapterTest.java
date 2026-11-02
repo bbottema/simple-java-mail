@@ -43,7 +43,7 @@ class OtelAdapterTest {
     void acceptedInvocationRemainsAcceptedWhenTheLogicalSendFailsDuringCleanup() {
         try (TelemetryTestSdk sdk = new TelemetryTestSdk()) {
             final var runtime = ModuleLoader.loadOpenTelemetryModule().bind(OtelAdapter.wrap(sdk.sdk), true);
-            final var send = runtime.captureContext().beginSend(UUID.randomUUID());
+            final var send = runtime.captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now());
             final var child = send.beginSubmission(false);
             child.complete(true, MailSubmissionStatus.ACCEPTED, null, "relay\\n.example.test", 587);
             send.complete(MailSendTelemetryReport.builder()

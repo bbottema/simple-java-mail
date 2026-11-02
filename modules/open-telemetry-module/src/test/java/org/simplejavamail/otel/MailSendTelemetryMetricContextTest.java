@@ -47,7 +47,7 @@ class MailSendTelemetryMetricContextTest {
     void measurementsUseTheirStoredSpanRatherThanAnUnrelatedCurrentSpan() {
         try (TelemetryTestSdk telemetry = new TelemetryTestSdk()) {
             final MailSendTelemetryBridge.Runtime runtime = ModuleLoader.loadOpenTelemetryModule().bind(OtelAdapter.wrap(telemetry.sdk), false);
-            final MailSendTelemetryBridge.Attempt send = runtime.captureContext().beginSend(UUID.randomUUID());
+            final MailSendTelemetryBridge.Attempt send = runtime.captureContext().beginSend(UUID.randomUUID(), java.time.Instant.now());
             final Collection<MetricData> startedMetrics = telemetry.metrics.collectAllMetrics();
             final MailSendTelemetryBridge.Submission submission = send.beginSubmission(false);
             final Span unrelated = telemetry.sdk.getTracer("application").spanBuilder("unrelated work").startSpan();

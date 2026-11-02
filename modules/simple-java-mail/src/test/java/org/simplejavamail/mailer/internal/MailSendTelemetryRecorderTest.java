@@ -54,14 +54,14 @@ class MailSendTelemetryRecorderTest {
         final MailSendTelemetryBridge.Submission child = mock(MailSendTelemetryBridge.Submission.class);
         final MailSendTelemetryBridge.Scope parentScope = mock(MailSendTelemetryBridge.Scope.class);
         final MailSendTelemetryBridge.Scope childScope = mock(MailSendTelemetryBridge.Scope.class);
-        when(captured.beginSend(any())).thenReturn(parent);
+        when(captured.beginSend(any(), any())).thenReturn(parent);
         when(parent.makeCurrent()).thenReturn(parentScope);
         when(parent.beginSubmission(false)).thenReturn(child);
         when(child.makeCurrent()).thenReturn(childScope);
         doThrow(new IllegalStateException("private SDK text")).when(childScope).close();
         doThrow(new IllegalStateException("private SDK text")).when(parentScope).close();
         doThrow(new IllegalStateException("private SDK text")).when(parent).complete(any());
-        final MailSendTelemetryRecorder recorder = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID());
+        final MailSendTelemetryRecorder recorder = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID(), Instant.EPOCH);
         final MailSendTelemetryBridge.Scope work = recorder.attach();
         recorder.submissionInvoked(false);
         assertThatCode(() -> {
@@ -85,10 +85,10 @@ class MailSendTelemetryRecorderTest {
         final MailSendTelemetryBridge.CapturedContext captured = mock(MailSendTelemetryBridge.CapturedContext.class);
         final MailSendTelemetryBridge.Attempt parent = mock(MailSendTelemetryBridge.Attempt.class);
         final MailSendTelemetryBridge.Submission child = mock(MailSendTelemetryBridge.Submission.class);
-        when(captured.beginSend(any())).thenReturn(parent);
+        when(captured.beginSend(any(), any())).thenReturn(parent);
         when(parent.beginSubmission(true)).thenReturn(child);
         when(child.makeCurrent()).thenThrow(new IllegalStateException("private SDK text"));
-        final MailSendTelemetryRecorder recorder = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID());
+        final MailSendTelemetryRecorder recorder = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID(), Instant.EPOCH);
         assertThatCode(() -> recorder.submissionInvoked(true)).doesNotThrowAnyException();
         recorder.submissionCompleted(true, MailSubmissionStatus.ACCEPTED, null, null, null);
         recorder.complete(report(true, null));
@@ -105,7 +105,7 @@ class MailSendTelemetryRecorderTest {
         final MailSendTelemetryBridge.Attempt telemetry = mock(MailSendTelemetryBridge.Attempt.class);
         final MailSendTelemetryBridge.Submission submission = mock(MailSendTelemetryBridge.Submission.class);
         when(runtime.captureContext()).thenReturn(captured);
-        when(captured.beginSend(any())).thenReturn(telemetry);
+        when(captured.beginSend(any(), any())).thenReturn(telemetry);
         when(telemetry.beginSubmission(anyBoolean())).thenReturn(submission);
         when(submission.makeCurrent()).thenReturn(() -> { });
         final AtomicReference<MailSendOutcome> outcome = new AtomicReference<>();
@@ -142,7 +142,7 @@ class MailSendTelemetryRecorderTest {
         final MailSendTelemetryBridge.Attempt telemetry = mock(MailSendTelemetryBridge.Attempt.class);
         final MailSendTelemetryBridge.Submission submission = mock(MailSendTelemetryBridge.Submission.class);
         when(runtime.captureContext()).thenReturn(captured);
-        when(captured.beginSend(any())).thenReturn(telemetry);
+        when(captured.beginSend(any(), any())).thenReturn(telemetry);
         when(telemetry.beginSubmission(anyBoolean())).thenReturn(submission);
         when(submission.makeCurrent()).thenReturn(() -> { });
         final AtomicReference<MailSendOutcome> outcome = new AtomicReference<>();
@@ -189,8 +189,8 @@ class MailSendTelemetryRecorderTest {
     @Test
     void telemetryOnlyMeasurementsDoNotRetainPublicHistoriesOrProgress() throws Exception {
         final MailSendTelemetryBridge.CapturedContext captured = mock(MailSendTelemetryBridge.CapturedContext.class);
-        when(captured.beginSend(any())).thenReturn(mock(MailSendTelemetryBridge.Attempt.class));
-        final MailSendTelemetryRecorder telemetry = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID());
+        when(captured.beginSend(any(), any())).thenReturn(mock(MailSendTelemetryBridge.Attempt.class));
+        final MailSendTelemetryRecorder telemetry = MailSendTelemetryRecorder.begin(captured, UUID.randomUUID(), Instant.EPOCH);
         final MailSendDiagnosticsRecorder diagnostics = MailSendDiagnosticsRecorder.forObservers(false, null, telemetry);
         diagnostics.enableSubmissionHistory();
         diagnostics.beginConnectionStep("relay", "localhost", 25);

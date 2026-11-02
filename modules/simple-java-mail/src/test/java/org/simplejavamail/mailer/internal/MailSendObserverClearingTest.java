@@ -79,7 +79,7 @@ class MailSendObserverClearingTest {
         final MailSendObserverNotifier notifier = builder.buildObserverNotifier();
 
         assertThat(notifier.observesResults(null)).isFalse();
-        assertThat(notifier.progressRecorder(UUID.randomUUID(), null, null)).isNull();
+        assertThat(notifier.progressRecorder(UUID.randomUUID(), null, null, 0)).isNull();
         assertThat(notifier.beginAttempt(email()).diagnostics()).isSameAs(MailSendDiagnosticsRecorder.unobserved());
     }
 

@@ -9,6 +9,7 @@ import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge.Submission;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge.Scope;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryReport;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,7 +34,7 @@ public final class TestMailSendTelemetry implements MailSendTelemetry {
         }
 
         @Override
-        public Attempt beginSend(final UUID observationId) {
+        public Attempt beginSend(final UUID observationId, final Instant requestedAt) {
             sends.incrementAndGet();
             return new TestAttempt();
         }

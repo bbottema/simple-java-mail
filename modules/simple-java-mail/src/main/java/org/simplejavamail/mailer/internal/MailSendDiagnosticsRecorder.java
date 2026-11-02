@@ -78,17 +78,17 @@ public final class MailSendDiagnosticsRecorder {
 
 	/** Existing orchestration boundaries forward progress independently; a progress-only send collects no diagnostic histories or measurements. */
 	MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock, @Nullable final MailSendProgressRecorder progress) {
-		this(clock, progress, null, clock != null);
+		this(clock, progress, null, clock != null, null);
 	}
 
 	@Builder
 	private MailSendDiagnosticsRecorder(@Nullable final LongSupplier clock, @Nullable final MailSendProgressRecorder progress,
-			@Nullable final MailSendTelemetryRecorder telemetry, final boolean retainHistory) {
+			@Nullable final MailSendTelemetryRecorder telemetry, final boolean retainHistory, @Nullable final Long requestedAtNanos) {
 		this.clock = clock;
 		this.progress = progress;
 		this.telemetry = telemetry;
 		this.retainHistory = retainHistory;
-		requestedAt = clock == null ? 0 : clock.getAsLong();
+		requestedAt = clock == null ? 0 : requestedAtNanos == null ? clock.getAsLong() : requestedAtNanos;
 	}
 
 	@NotNull
@@ -99,11 +99,19 @@ public final class MailSendDiagnosticsRecorder {
 	@NotNull
 	static MailSendDiagnosticsRecorder forObservers(final boolean observeResults, @Nullable final MailSendProgressRecorder progress,
 			@Nullable final MailSendTelemetryRecorder telemetry) {
+		return forObservers(observeResults, progress, telemetry, System::nanoTime,
+				observeResults || telemetry != null ? System.nanoTime() : 0);
+	}
+
+	@NotNull
+	static MailSendDiagnosticsRecorder forObservers(final boolean observeResults, @Nullable final MailSendProgressRecorder progress,
+			@Nullable final MailSendTelemetryRecorder telemetry, @NotNull final LongSupplier clock, final long requestedAtNanos) {
 		if (!observeResults && progress == null && telemetry == null) {
 			return UNOBSERVED;
 		}
 		return MailSendDiagnosticsRecorder.builder()
-			.clock(observeResults || telemetry != null ? System::nanoTime : null)
+			.clock(observeResults || telemetry != null ? clock : null)
+			.requestedAtNanos(requestedAtNanos)
 			.progress(progress)
 			.telemetry(telemetry)
 			.retainHistory(observeResults)
