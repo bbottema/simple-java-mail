@@ -13,6 +13,10 @@ OpenPGP/MIME needs signatures over exact serialized MIME entities while retainin
 
 The archived [MIME pipeline plan](https://github.com/bbottema/simple-java-mail/blob/127b2128a38a592f166b6ca451ef33f283963185/MIME_PIPELINE_IMPROVEMENT_PLAN/README.md) explicitly calls for removing provider-specific SMTP behavior from MIME and cryptography, avoiding another matrix of message subclasses, and preventing post-signature `saveChanges()` or transfer-encoding rewrites. [#704](https://github.com/bbottema/simple-java-mail/issues/704) supplies the initiating OpenPGP use case.
 
+## Binary attachment safety before S/MIME signing (accepted 2 November 2026)
+
+S/MIME preparation preserves decoded binary attachment bytes. Apply a safe transfer encoding before signature creation where raw binary content would otherwise be changed by line canonicalization. This is a protection-owned exception to preserving the literal requested wire encoding: binary attachments remain supported, including ordinary/preencoded BINARY input. Preserve already safe encodings, caller content, protected child boundaries and stable subsequent writes. This completes unreleased #704; the issue tracks implementation and delivery.
+
 ## Decision
 
 Construct and protect MIME using Jakarta Mail APIs and provider-neutral Simple Java Mail contracts. Pass the resulting `MimeMessage`, transport recipients, a separate `DeliveryEnvelope`, and an explicit `ContentRequirement` through `PreparedMail` to a `MailTransportAdapter` discovered with `ServiceLoader`.

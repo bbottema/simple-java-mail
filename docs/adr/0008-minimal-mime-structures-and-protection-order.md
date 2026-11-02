@@ -9,6 +9,16 @@
 
 A universally nested `mixed` / `related` / `alternative` message can be valid but still confuse email clients when layers contain no corresponding feature. [#144](https://github.com/bbottema/simple-java-mail/issues/144) records Outlook 365 showing an attachment icon simply because `multipart/mixed` existed, even without attachments. Separately, callers expect Email getters to return their supplied values, and signatures require stable MIME bytes once encoding and structure have been determined.
 
+## Content preservation follow-ups (accepted 2 November 2026)
+
+Before S/MIME signing, safely encode binary content without changing decoded bytes; ADR 0007 owns this pre-signature exception (#704). Readable replies preserve explicitly preencoded selected resources in owned snapshots with matching bytes and preencoded markers, retaining metadata/ownership without reading unrelated content or applying outgoing protection (#950).
+
+An incoming signed/decrypted OpenPGP content entity may have no MIME headers. Its initial empty line terminates that area; later body blank lines cannot substitute for it. Preserve protected bytes, default content interpretation and distinct cryptographic facts (#704).
+
+The effective-root rule covers plain text, HTML, calendar and multipart roots even when their disposition says attachment. Explicitly attached children retain their resource boundary (#954).
+
+Completed native decryption of an Outlook message envelope establishes DECRYPTED independently of whether the legacy materializer can produce a readable attachment. Preserve the documented protected-resource fallback, existing body/merge/view behavior and actual signature facts. Wrong keys, passwords and content I/O failures retain their existing exceptions; independent encrypted attachments do not promote a plain parent's facts. Copying/serialization retain newly established status without inventing evidence for historical snapshots. This facts-only correction completes #704; it does not add single-part plaintext materialization or recursive decryption.
+
 ## Decision
 
 Keep the Email model separate from wire encoding. Choose the least complex MIME producer that exactly matches three content dimensions: attachments/forwarding require mixed content, embedded images require related content, and multiple plain/HTML/calendar bodies require alternatives. Eight producers cover their combinations. Security processing wraps the resulting MIME entity; it does not create a second set of body producers for each security combination.

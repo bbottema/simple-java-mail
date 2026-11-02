@@ -15,6 +15,10 @@ particularly when a cluster chooses another Session or reuses a connection.
 Applications need the measurements without another wrapper around every send API. They also need to distinguish successful SMTP acceptance
 from a later failure releasing that connection. Neither a new lifecycle-event stream nor a telemetry dependency is required for that explanation.
 
+## Handler-factory entry timing (accepted 2 November 2026)
+
+Carry the logical attempt's monotonic entry origin across handler-factory execution, including factory failure. Total elapsed diagnostics and live progress include that work; the logical telemetry span uses the corresponding entry instant under ADR 0034. Preserve preadmission factory placement, context/callback ownership and existing timeout/fatal-Error behavior. This completes unreleased #800 rather than redefining elapsed time to exclude setup.
+
 ## Decision
 
 Extend [the existing terminal outcome](0012-terminal-send-observation.md) with optional immutable `MailSendDiagnostics`.

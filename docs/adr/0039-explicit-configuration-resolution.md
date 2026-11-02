@@ -14,6 +14,10 @@ Connection settings exposed this problem through interacting raw properties, par
 
 The explicit internal ownership used for connection recovery provides a useful precedent: retain the states needed to enforce invariants at their boundaries. Configuration resolution needs a small deterministic value model and construction boundary, rather than an asynchronous state-machine framework.
 
+## Resolved proxy validation before effects (accepted 2 November 2026)
+
+Active proxy port bounds are feature constraints on the resolved completed Mailer, not eager setter validation. Remote ports require 1..65535; authenticated bridge ports permit 0..65535, retaining automatic zero. Preserve inactive/overridden value semantics and apply before owned allocation. ADRs 0010/0038 and #955 own the correction.
+
 ## Decision
 
 ### Share declaration mechanics, retain feature ownership

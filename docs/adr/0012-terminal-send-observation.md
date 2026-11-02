@@ -12,6 +12,10 @@ Applications need one place to measure send latency and record submission outcom
 
 The whole library attempt is also broader than SMTP submission. Governance, validation, executor admission or cancellation may fail before a transport is acquired. A receipt alone cannot explain those failures.
 
+## Handler factory time belongs to the attempt (accepted 2 November 2026)
+
+Factory placement before preparation/admission stays unchanged. Carry the existing entry instant and monotonic origin across factory execution, including failure, so diagnostics, live progress and logical spans describe the same attempt. ADRs 0026/0034 own reporting details; #800 tracks this unreleased follow-up.
+
 ## Decision
 
 [ADR 0032](0032-live-mail-send-progress.md) names this terminal API `MailSendResultObserver` and adds an independent, lossy live-progress observer.

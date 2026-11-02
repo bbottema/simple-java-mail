@@ -11,6 +11,10 @@ A send has two independent choices: where the operation executes, and which SMTP
 
 These concerns must remain separate. Selecting synchronous execution does not disable connection pooling, and using asynchronous execution must not require the optional batch module. A new public view must not become a second Mailer with a different executor, pool registration or shutdown obligation.
 
+## Standalone scheduling failure retirement (accepted 2 November 2026)
+
+Retire unstarted standalone work after an executor scheduling Error without changing borrowed-executor ownership or Error propagation. ADR 0016 defines the lifecycle accounting correction for released behavior under #956.
+
 ## Decision
 
 Require `mailer.sync()` or `mailer.async()` at the operation call. Both are cached immutable views of one owning `MailerImpl`. A single synchronous send returns its `MailSubmissionReceipt`; an asynchronous send returns `MailSend<MailSubmissionReceipt>`. A caller interested only in completion may ignore the receipt. Remove the Mailer-wide async default, boolean-mode overloads and separate receipt-specific families without deprecated forwarding aliases.

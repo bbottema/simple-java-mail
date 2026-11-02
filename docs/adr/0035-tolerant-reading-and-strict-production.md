@@ -33,6 +33,12 @@ Existing recipient parsing deliberately uses Jakarta Mail's non-strict header pa
 Reading and producing have different responsibilities. An imported value can be useful evidence without being suitable for a new outgoing message.
 Recovery must also distinguish a harmless formatting defect from conflicting evidence, unreadable content and failed cryptographic verification.
 
+## Optional disposition metadata and empty protected headers (accepted 2 November 2026)
+
+A malformed optional Content-Disposition parameter must not hide otherwise readable neighboring mail. Recover an unambiguously recognized attachment/inline token independently of malformed parameters, then use independently usable naming metadata or the existing missing-name fallback. Keep Jakarta Mail as grammar owner; preserve ambiguous facts, actual content/I/O failures, child attachment boundaries and exact/protected bytes. #953 tracks behavior present in released 9.3.9.
+
+Apply ADR 0008's effective-root rule to single-part text, HTML and calendar (#954). Recognize empty signed/decrypted OpenPGP content headers at the initial empty line, preserving protected bytes and truthful facts (#704).
+
 ## Decision
 
 Read external mail with leniency and produce standards-compliant mail. Preserve as much clearly interpretable source information as possible;

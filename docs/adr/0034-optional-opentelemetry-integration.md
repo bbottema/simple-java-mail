@@ -22,6 +22,10 @@ The priorities are explicit activation, trustworthy completion, portable measure
 existing SDK ownership and unchanged SMTP behavior. The [source research](../research/762-opentelemetry-integration-research.md)
 retains the inspected sources and the scope of those findings; this record states the architecture, not implementation progress.
 
+## Logical entry across handler factories (accepted 2 November 2026)
+
+A logical-send span begins at the existing attempt-entry instant even when the handler factory finishes later or fails. Carry the origin through the internal boundary while retaining context capture, ownership, failure isolation and terminal completion. ADR 0026 owns matching diagnostics/progress timing. This completes unreleased #800 with no public setting or timeout-policy change.
+
 ## Decision
 
 ### Typed adaptation of an existing instance (revised 2026-10-16)

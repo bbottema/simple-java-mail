@@ -10,6 +10,10 @@
 
 A worker limit controls concurrent work, not pending work. If an SMTP server stalls, an unbounded executor queue can retain prepared emails faster than workers send them. Connection-pool limits cannot bound that queue. Applications also need shutdown to finish work the Mailer has accepted before closing the resources it still needs, including synchronous sends and sends scheduled on application-owned executors.
 
+## Unstarted standalone work after scheduling Error (accepted 2 November 2026)
+
+Standalone batch scheduling retires unstarted work when executor admission throws an Error, then propagates the same Error. Graceful shutdown must not retain phantom accepted work. Ordinary rejection, already accepted operations and borrowed executor ownership retain their meaning. #956 tracks this released 9.3.9 defect; ADR 0015 owns the standalone orchestration boundary.
+
 ## Decision
 
 Offer an opt-in waiting-capacity policy on the Mailer's owned executor. Capacity `-1` retains the unbounded default, `0` uses direct handoff, and positive capacities provide a bounded FIFO queue. `REJECT` reports a typed rejection immediately. `WAIT_FOR_CAPACITY` waits on the submitting thread for a bounded admission interval; it does not run SMTP work on that thread as a fallback. A total send budget can further shorten the wait.

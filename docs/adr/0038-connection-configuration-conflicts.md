@@ -18,6 +18,10 @@ The historical contracts address different responsibilities. [#19](https://githu
 
 Callers need both early detection of unintended contradictions and deliberate use of convenience APIs to replace supplied setup. A first-assignment lock would make authority depend on initialization history and interfere with normal builder editing.
 
+## Active proxy port bounds (accepted 2 November 2026)
+
+After effective choices are resolved, validate active remote SOCKS ports in 1..65535 and authenticated bridge ports in 0..65535 before resource allocation. Preserve passive setters/getters, inactive choices, overridden declarations, automatic local port zero and existing conflict/lock precedence. ADR 0010 owns setup/cleanup; #955 tracks the released bridge path. The owned managed Angus factory also preserves complete anonymous IPv6 hosts while retaining raw inline-port and supplied-provider authority (#726).
+
 ## Decision
 
 ### One advanced construction policy

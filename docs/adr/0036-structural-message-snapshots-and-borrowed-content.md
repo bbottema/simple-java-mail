@@ -24,6 +24,10 @@ Attachment content has a different boundary. Reading application-owned DataSourc
 failure timing. Structural immutability must not imply that arbitrary external content has been frozen. Exact EML and retry preparation already
 provide stronger, deliberately separate byte-snapshot contracts.
 
+## Preencoded reply snapshots (accepted 2 November 2026)
+
+Readable reply preparation retains explicitly preencoded selected resources in owned snapshots with their matching bytes and preencoded markers. Ordinary resources retain ordinary snapshot/encoding semantics. This preserves decoded content without another output-encoding pass changing preencoded binary payloads. Close acquired streams, preserve source metadata/borrowed identities and leave unrelated resources unread. This completes unreleased #950. ADR 0007 separately owns safe pre-signature binary encoding without changing decoded bytes (#704); optional naming recovery remains metadata-only under ADR 0035 (#953).
+
 ## Decision
 
 ### Explicit edits after copying (accepted 1 November 2026)

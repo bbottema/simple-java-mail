@@ -11,6 +11,12 @@ JavaMail's SOCKS integration did not provide the authenticated proxy connection 
 
 Fixed local ports introduced a second problem: independent authenticated-proxy Mailers could collide even though their SMTP/proxy configurations were otherwise independent. The listener's lifetime also differs from accepted sockets that a pooled transport may continue using.
 
+## Managed endpoints and setup validation (accepted 2 November 2026)
+
+Library-owned managed Angus connections retain complete anonymous IPv6 SOCKS hosts. Preserve raw hostname:inline-port grammar, separate-port/HTTP precedence, authenticated routing and supplied Session/custom-factory authority. Carry the already resolved anonymous endpoint through the existing synchronous owned-Session adapter preparation, with Session-qualified bounded context restored on return. The managed factory captures only the inert endpoint and its corresponding property snapshot; later raw property changes use existing provider interpretation. Probe rebinding retains applicable endpoint identity without a new Session property, registry, configuration key or provider SPI. This completes unreleased managed connection work under #726.
+
+Validate effective active remote ports in 1..65535 and authenticated bridge ports in 0..65535 at completed Mailer construction before resource allocation. Zero retains automatic bridge allocation. Setters/getters remain passive; inactive/overridden choices retain resolution timing. Close partially prepared sockets on unchecked setup failures while retaining primary/suppressed causes. #955 tracks the bridge setup bug present in released 9.3.9; ADRs 0038/0039 own the resolved validation boundary.
+
 ## Decision
 
 Keep authenticated proxy support in its optional module. Configure the selected Session's SOCKS settings to connect to a loopback-only anonymous bridge, and let that bridge authenticate to the configured remote SOCKS proxy. Bind the generated local hop to IPv4 loopback `127.0.0.1`, as clarified by the 29 October protocol-boundary decision below; this listener is an internal adapter, not an externally reachable proxy service. Destination addresses and connections to the remote proxy can still use IPv6.
