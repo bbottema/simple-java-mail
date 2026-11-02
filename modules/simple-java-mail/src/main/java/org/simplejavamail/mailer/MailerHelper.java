@@ -294,6 +294,15 @@ public class MailerHelper {
 	}
 
 	/**
+	 * Finalizes and signs the supplied MIME message using the Email's DKIM configuration and From identity.
+	 * Signing completes during this call. The returned message retains the finalized signed bytes for repeated writes;
+	 * send or write that returned value, because the supplied message does not receive the DKIM signature.
+	 * The Email supplies already selected signing choices, without applying Mailer defaults or overrides.
+	 * The optional DKIM module must be available on the runtime classpath.
+	 *
+	 * @param messageToSign The MIME message to finalize and sign.
+	 * @param emailContainingSigningDetails The Email containing the DKIM configuration and From identity.
+	 * @return A new message retaining the finalized signed bytes.
 	 * @see org.simplejavamail.internal.modules.DKIMModule#signMessageWithDKIM(Email, MimeMessage, DkimConfig, Recipient)
 	 */
 	@SuppressWarnings("unused")

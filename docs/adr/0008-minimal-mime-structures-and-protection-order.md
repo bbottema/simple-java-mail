@@ -148,6 +148,15 @@ delivery are tracked in [SJM #855](https://github.com/bbottema/simple-java-mail/
 [upstream #28](https://github.com/simple-java-mail/java-utils-mail-dkim/issues/28). Concrete public API and execution details belong in the feature
 design and active plan, rather than this ownership decision.
 
+### Manual DKIM helper result (clarified 2 November 2026)
+
+`MailerHelper.signMessageWithDKIM(MimeMessage, Email)` returns a new message containing the signed representation; the supplied message does not
+receive that signature. Callers retain the returned value for application-owned sending or writing. In the unreleased 10.0.0 finalized-byte path,
+finalization and signing complete during the helper call, and repeated writes retain the signed bytes. The Email supplies already selected DKIM
+configuration and the From identity without completing Mailer templates. The optional-module boundary, signing engine and protection order remain
+unchanged. This clarifies the existing helper contract and its documentation under [#855](https://github.com/bbottema/simple-java-mail/issues/855);
+it introduces no runtime API or behavior change.
+
 ## Protecting an existing MIME message (accepted 22 October 2026)
 
 The supported `MailerHelper.signAndOrEncryptMessageWithSmime(Session, MimeMessage, Email)` utility protects the supplied MIME message,
