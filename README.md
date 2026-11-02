@@ -288,6 +288,7 @@ Choose message preflight by what your code needs back:
 Both full calls perform the same no-SMTP preparation. `validate` returns `void`: successful preparation returns normally, and invalid preparation throws. A successful `rehearse` call has therefore already validated the Email—do not call `validate` first. The [complete getting-started guide](https://www.simplejavamail.org/download.html) explains each step.
 
 Rehearsal uses the Mailer you call, not a future cluster or failover destination. A selected destination can apply different message rules.
+`rehearse(...)` and `validate(...)` remain usable during and after `close()`; sending shutdown retains that Mailer's preparation settings and does not wait for standalone previews. Keep borrowed content available while preparing it, even after sending has closed.
 Built Emails own their recipient/header metadata and copy supplied content arrays; later builder changes do not change an earlier Email.
 Application-owned attachment data sources and forwarded MIME messages remain borrowed, so keep them stable while an operation consumes them.
 For a file attachment, use `.withAttachment(Path.of("report.pdf"))` or `.withAttachment("Quarterly report.pdf", path)`. Each read opens a fresh read-only stream; building or copying an Email does not read the file. Keep its filesystem open until content consumption finishes.

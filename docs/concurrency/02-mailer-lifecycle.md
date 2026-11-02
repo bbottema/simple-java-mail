@@ -95,6 +95,10 @@ Accepted sends are drained, not cancelled. A queued/admitting operation has its 
 
 Session ownership is retained through that drain. Starting shutdown cannot let another Mailer replace a converter still needed by accepted work. After successful cleanup, `releaseSessionOwnership()` removes only the current Mailer's token and converter; another Mailer may then reuse the Session. Failed cleanup retains the guard. Repeating the old Mailer's already-completed shutdown cannot retire a newer owner's context. See [the Session ownership boundary](06-pool-claims-and-leases.md#session-ownership-before-registration).
 
+Rehearsal and validation have a separate preparation context under [ADR 0014](../adr/0014-send-time-rehearsal.md#preparation-outlives-sending-resources-accepted-2-november-2026). Each call pins MIME metadata before application/content callbacks; shutdown freezes a retained view for subsequent calls. Open calls observe effective Session settings, while a later sending Session owner cannot replace an older Mailer's preparation policy. The context copies property containers, borrows opaque values and excludes sending-owner/converter registrations.
+
+Preparation creates no accepted send and does not hold up resource cleanup or Session reuse. A caller-owned content source can therefore remain blocked while sending cleanup completes. Work deliberately run inside an accepted send or on the Mailer's owned executor still keeps that enclosing lifetime and blocking-close self-wait guard. Snapshot failure remains a preparation failure; the shutdown path still initiates its existing cleanup, including when a fatal metadata-capture Error propagates.
+
 ## Why `withinOperation` is a context marker
 
 ```mermaid

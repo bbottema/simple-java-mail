@@ -16,6 +16,12 @@ Standalone batch scheduling retires unstarted work when executor admission throw
 
 ## Decision
 
+### Independent offline preparation (accepted 2 November 2026)
+
+Rehearsal and validation retain their synchronous, no-SMTP behavior during and after closing. They are not accepted send operations and do not delay send draining or resource cleanup. ADR 0014 owns their independent preparation configuration; releasing the sending Session's converter and ownership token must not retire or replace the old Mailer's preview policy. Existing send, connection-check, callback and close self-wait rules retain their scope. #709 tracks the correction.
+
+This independence adds no rehearsal admission or drain. Work an application deliberately runs inside an accepted send or on the Mailer's owned executor keeps that enclosing lifetime, including the existing blocking-close self-wait guard. A standalone rehearsal on a caller/application thread can initiate or await sending cleanup without waiting for itself. Metadata-capture failure cannot skip initiating owned cleanup or silently reuse another Mailer's configuration.
+
 Offer an opt-in waiting-capacity policy on the Mailer's owned executor. Capacity `-1` retains the unbounded default, `0` uses direct handoff, and positive capacities provide a bounded FIFO queue. `REJECT` reports a typed rejection immediately. `WAIT_FOR_CAPACITY` waits on the submitting thread for a bounded admission interval; it does not run SMTP work on that thread as a fallback. A total send budget can further shorten the wait.
 
 Keep this queue policy independent of worker and SMTP connection counts. As refined for [#755](https://github.com/bbottema/simple-java-mail/issues/755), ordinary async destination selection, template application and validation follow admission, inside executor execution. Preparation errors complete the handle exceptionally; basic argument errors remain immediate. A simple batch occupies one executor operation and does not open its iterable during admission. The queue bounds pending operations, not retained bytes or the number of messages in a lazy batch. MIME conversion, attachment reads and protection are separate later work, not shallow governance checks.

@@ -14,6 +14,16 @@ Applications also need to inspect, preview or archive what this Mailer would pre
 
 ## Decision
 
+### Preparation outlives sending resources (accepted 2 November 2026)
+
+Closing a Mailer releases sending resources while rehearsal and validation remain available through that Mailer's own preparation rules. Full/base modes and exact EML share this lifetime. Neither existing nor new preparation is admitted as send work or delays send draining, resource cleanup or Session reuse.
+
+Give each preparation a stable receiver-owned context before invoking application content or security code. While open, preserve effective supplied Session authority. When shutdown starts, retain an independent preparation view for calls during/after closing; another owner of the sending Session cannot replace its size, governance or MIME configuration. Capture metadata only, without attachment/key reads or transport work. Public getSession() retains the sending Session's identity; borrowed content keeps its existing ownership and stability requirements.
+
+The preparation context owns its property containers and inherited String view while borrowing opaque delegates by identity. Its MIME-only Session carries no sending converter/owner registration and produces no Session-bootstrap debug output. Ordinary metadata-capture failure is retained as a preparation failure rather than selecting a later Session owner; initiating sending cleanup remains independent, including when a fatal capture Error propagates.
+
+Preserve current validation/failure, security/size, exact-byte and returned-snapshot contracts. This adds no public setting or send observations. #709 tracks implementation and delivery for unreleased 10.0.0.
+
 Make `Mailer.rehearse(email)` a no-SMTP execution of the Mailer's preparation rules and return an immutable `MailRehearsal` snapshot. For composed Email, apply this Mailer's defaults/overrides, validate the effective Email, run the normal security/MIME pipeline, serialize once and check the size of those encoded bytes. Return the effective Email, defensive EML bytes, encoded size, effective Message-ID and explicit transport-envelope facts.
 
 Detach the governed Email from the caller's draft before generated Message-ID propagation. Rehearsal may backfill the ID into its own effective Email, but must not change the caller's Email. The rendered EML is the authoritative output of this rehearsal; do not expose a mutable Jakarta Mail MimeMessage as the snapshot API.
@@ -73,7 +83,7 @@ Full validation becomes more expensive and can fail for missing requested securi
 
 ## Implementation limits and current boundaries
 
-Rehearsal uses the invoking Mailer's governance and Session. It does not select a cluster/failover destination, rehearse all routes, or promise
+Rehearsal uses the invoking Mailer's governance and pinned effective MIME settings. It does not select a cluster/failover destination, rehearse all routes, or promise
 the selected member's eventual templates. [ADR 0029](0029-smtp-submission-failover.md) assigns actual-send governance to the selected destination;
 an offline preview deliberately does not acquire that route. Snapshot ownership follows
 [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
