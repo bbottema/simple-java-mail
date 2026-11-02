@@ -4,6 +4,7 @@
 - Decision date: 2026-10-07.
 - Target: 10.0.0; connection-only initial scope accepted.
 - Implementation: **Implemented and accepted for unreleased 10.0.0** under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Current ownership, published pool dependencies and regression coverage live in the [architecture guide](../failover/architecture.md). Completing the issue does not release Simple Java Mail 10.0.0.
+- Follow-up: The 2026-11-02 SMTP/SOCKS authentication clarification below is **accepted; implementation pending** under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
 - Tracking: [#755](https://github.com/bbottema/simple-java-mail/issues/755).
 - Evidence: [SMTP failover research](../research/755-smtp-submission-failover.md).
 
@@ -206,6 +207,22 @@ Distinguish a known credential or verification rejection from an actual network 
 from an authentication/TLS exception category or its message; missing classification is not permission to continue to another relay.
 Any future cached-failure or cooldown handling must retain the failure category and honor the invoking policy's matching permission.
 Shared failure history must not make a strict policy silently skip authentication/certificate failures as though they were ordinary outages.
+
+### SMTP and SOCKS authentication share one permission (accepted 2026-11-02)
+
+The maintainer confirmed that `withFailoverOnAuthenticationFailure(...)` covers known credential rejection by either the SMTP server or
+the SOCKS proxy during connection setup. Its default remains `false`: either rejection stops failover. Setting it to `true` permits
+another explicitly configured, eligible route. There is no separate proxy-authentication flag. This gives callers one consistent choice
+when a route requires both proxy and SMTP logins, without making a rejected password look like an ordinary outage.
+
+The selected destination still uses its own credentials and TLS requirements, and applicable connection and message locks remain in
+force. The independent certificate-verification permission and the prohibition on failover after submission invocation are unchanged.
+Unknown failures do not acquire permission merely because authentication-failure failover is enabled.
+
+The authenticated bridge can lose the proxy's rejection cause across its local socket connection. Its direct-socket replacement under
+[#922](https://github.com/bbottema/simple-java-mail/issues/922) owns preserving per-connection authentication evidence for the failover
+classifier. This clarification records the accepted policy; it does not claim that the current bridge implements it. Preserve structured
+failure causes instead of inferring credential rejection from exception text or shared bridge failure state.
 
 ### Use case: the primary relay's certificate expires
 
