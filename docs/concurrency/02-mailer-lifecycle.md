@@ -148,6 +148,9 @@ Construction failure rolls back those owned resources, not supplied Mailers or e
 operation counter, executor and pool engine. It does not enter `MailSendOperations` or produce Email observations. Its shutdown contract follows
 the [standalone clarification in ADR 0016](../adr/0016-bounded-async-admission-and-shutdown.md#standalone-batch-shutdown-accepted-22-october-2026).
 
+If executor startup throws an `Error` before submitted work starts, retire that operation's admission accounting and propagate the same `Error`.
+Graceful shutdown does not wait for work that was never started. This does not close a supplied executor or retire another accepted operation.
+
 | Boundary | Owner and ordering |
 | --- | --- |
 | Admission | `lifecycleMonitor` protects OPEN/CLOSING/CLOSED, the accepted-operation count and forced-shutdown escalation. Closing stops new work. |

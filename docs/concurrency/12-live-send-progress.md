@@ -3,6 +3,9 @@
 Progress tells a dashboard what is happening without giving that dashboard control over sending. Read [ADR 0032](../adr/0032-live-mail-send-progress.md)
 for the public contract. The stage enum describes observations, not an engine state machine or a promise to deliver every transition.
 
+Elapsed progress uses the logical attempt's entry origin, including time spent creating its per-send handlers. Diagnostics and the logical
+telemetry span retain that same boundary; callback placement before preparation/admission and send-deadline accounting are unchanged.
+
 ## Ownership and state
 
 | Owner | State | Lifetime |

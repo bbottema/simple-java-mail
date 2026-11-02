@@ -19,6 +19,10 @@ The optional integration observes the existing operation. It does not add anothe
 | Submission child | Actual provider/CustomMailer invocation; ends on result capture or exceptional invocation exit. |
 | Thread-bound scope | Current execution turn, closed on that same thread before parking or observer work. |
 
+The logical span retains the attempt-entry instant across per-send handler-factory execution, including a factory failure. Its total duration
+therefore agrees with entry-based diagnostics and elapsed progress. Context capture and the factory's preadmission placement retain their existing
+ownership; carrying the origin does not add a timeout to application factory work.
+
 `MailSendOperation` attaches the logical context around execution and remaining terminal cleanup. A parked async retry retains its span/context,
 not an attached scope. Resumption attaches on whichever existing worker executes it. Caller-runs execution obeys the same rule.
 Submission scopes nest inside the work scope; exceptional work-turn retirement closes an unfinished child before closing its parent scope.
