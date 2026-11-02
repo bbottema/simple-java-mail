@@ -32,6 +32,11 @@ import java.nio.file.Path;
  * <p>
  * MIME/EML imports retain an optional generic root header's undecoded source text when its encoded-word charset is unavailable,
  * safely unfolding legal continuations. Required content, codec failures and other typed fields keep their existing failure boundaries.
+ * When a provider returns plain-text or HTML content as a stream, import decodes it like the ordinary text handler: use the declared MIME charset,
+ * or the {@code us-ascii} MIME label when absent, through Jakarta Mail's charset aliases. Current Jakarta Mail interprets that label as ISO-8859-1.
+ * Already-decoded String content keeps the provider's interpretation. Parser-acquired body streams are closed on success and failure, including
+ * charset, read and close failures; the original and suppressed causes remain available through the conversion exception family.
+ * This does not close the DataSource or an application-supplied top-level EML stream, or make lazy attachment content eager.
  * If existing address interpretation cannot parse a From, To/Cc/Bcc or Reply-To field, its complete source remains in the corresponding
  * tolerant {@link org.simplejavamail.api.email.Recipient}. Readable neighboring content remains available, while ordinary outgoing validation
  * still inspects that address. Successful parsing and missing-field fallbacks retain their existing behavior; an explicitly malformed Reply-To

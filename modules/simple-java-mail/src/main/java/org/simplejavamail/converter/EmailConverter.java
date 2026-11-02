@@ -100,6 +100,9 @@ public class EmailConverter {
 
 	/**
 	 * Eager attachment extraction closes the streams it opens, including on failure. Calendar interpretation has the same ownership rule.
+	 * Plain-text and HTML streams returned by a provider are decoded with the ordinary text handler's MIME charset interpretation, including
+	 * Jakarta Mail's charset aliases and its {@code us-ascii} MIME label when absent. Parser-acquired text streams are closed on success or
+	 * failure; charset, read and close failures retain their original and suppressed causes through the conversion exception family.
 	 * DataSources themselves retain their existing ownership; disabling extraction keeps attachment content lazy.
 	 * Message-level headers and interpreted destinations come only from the effective root selected after protection preprocessing;
 	 * child parts contribute their established resource metadata and content, not parent headers or destinations.

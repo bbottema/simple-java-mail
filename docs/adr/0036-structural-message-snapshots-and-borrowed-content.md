@@ -15,6 +15,17 @@ failures retain their existing stream ownership, original causes and suppressed 
 stream becomes parser-owned. This clarification was accepted on 28 October 2026 under
 [#883](https://github.com/bbottema/simple-java-mail/issues/883) for unreleased 10.0.0.
 
+### Parser-acquired text body streams (accepted 2 November 2026)
+
+Plain-text and HTML stream interpretation owns every body stream returned to the parser, just as calendar interpretation owns its acquired
+stream. Include charset resolution within that stream's cleanup scope, so an unsupported declaration cannot leak a stream already opened by
+the provider. Close on success and failure, preserve the original failure with suppressed close causes, and report a lone close failure after
+a successful read. Already-decoded Strings acquire no new charset validation.
+
+Neither the borrowed DataSource nor an application-supplied top-level EML stream becomes parser-owned. Attachment lazy/eager boundaries and
+exact/protected source-byte ownership remain unchanged. [ADR 0035](0035-tolerant-reading-and-strict-production.md#stream-valued-plain-text-and-html-bodies-accepted-2-november-2026)
+owns text interpretation; [#959](https://github.com/bbottema/simple-java-mail/issues/959) tracks this correction for 10.0.0.
+
 ## Context and decision drivers
 
 Applications reuse builders, Email templates and even the same Email for concurrent sends. Changing a builder must not change an already built

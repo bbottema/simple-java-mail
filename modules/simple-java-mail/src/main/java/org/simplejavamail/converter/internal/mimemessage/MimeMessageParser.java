@@ -96,13 +96,13 @@ public final class MimeMessageParser {
 		final boolean canSupplyBody = currentPart instanceof MimeMessage || !Part.ATTACHMENT.equalsIgnoreCase(disposition);
 
 		if (isMimeType(currentPart, "text/plain") && canSupplyBody) {
-			parsedComponents.plainContent.append((Object) parseContent(currentPart));
+			parsedComponents.plainContent.append(parseTextContent(currentPart));
 			parsedComponents.plainContentPresent = true;
 			if (parsedComponents.plainTextContentTransferEncoding == null) {
 				parsedComponents.plainTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
 			}
 		} else if (isMimeType(currentPart, "text/html") && canSupplyBody) {
-			parsedComponents.htmlContent.append((Object) parseContent(currentPart));
+			parsedComponents.htmlContent.append(parseTextContent(currentPart));
 			parsedComponents.htmlContentPresent = true;
 			if (parsedComponents.htmlTextContentTransferEncoding == null) {
 				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(currentPart, parsedComponents);
@@ -298,8 +298,32 @@ public final class MimeMessageParser {
 		}
 	}
 	
+    /** Reads provider-returned text streams without transferring ownership of their DataSource. */
+    private static String parseTextContent(final MimePart currentPart) {
+        final Object content = parseContent(currentPart);
+        if (!(content instanceof InputStream)) {
+            return String.valueOf(content);
+        }
+        try (InputStream input = (InputStream) content) {
+            final String declaredCharset = new ContentType(currentPart.getContentType()).getParameter("charset");
+            // Match the ordinary text handler, including Jakarta Mail's MIME-to-Java charset aliases.
+            final String mimeCharset = declaredCharset != null ? declaredCharset : "us-ascii";
+            final Charset encoding;
+            try {
+                encoding = Charset.forName(MimeUtility.javaCharset(mimeCharset));
+            } catch (IllegalArgumentException invalidCharset) {
+                final UnsupportedEncodingException unsupported = new UnsupportedEncodingException(mimeCharset);
+                unsupported.initCause(invalidCharset);
+                throw unsupported;
+            }
+            return MiscUtil.readInputStreamToString(input, encoding);
+        } catch (IOException | MessagingException failure) {
+            throw new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CONTENT, failure);
+        }
+    }
+
 	/**
-     * @return Returns the "content" part as String from the Calendar content type
+	 * @return Returns the "content" part as String from the Calendar content type
      */
 	@NotNull
     public static String parseCalendarContent(@NotNull MimePart currentPart) {

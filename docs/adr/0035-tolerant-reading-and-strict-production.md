@@ -21,6 +21,18 @@ retaining the established fallback for sources without it. Broader generic-heade
 This applies the Outlook receipt-parity decision below under [#812](https://github.com/bbottema/simple-java-mail/issues/812) for unreleased 10.0.0;
 the issue tracks delivery. Copying, serialization and resource ownership retain ADR 0036's contracts.
 
+### Stream-valued plain-text and HTML bodies (accepted 2 November 2026)
+
+A provider may return an InputStream for text/plain or text/html, including Jakarta Activation's fallback when a DataSource has no content
+handler. Read that stream rather than rendering its object identity. Match the ordinary text handler: use the declared MIME charset, or its
+`us-ascii` MIME label when absent, through `MimeUtility.javaCharset`. Current Jakarta Mail maps that label to ISO-8859-1; do not replace that
+provider interpretation with literal US-ASCII or guessed UTF-8. Already-decoded Strings and other non-stream provider values keep their existing
+interpretation. Preserve empty-body presence and existing body accumulation, MIME-part classification and exact/protected source bytes.
+
+Charset, read and close failures remain conversion failures with their causes intact. Stream cleanup follows [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
+This is a correction of published 9.3.9 behavior under [#959](https://github.com/bbottema/simple-java-mail/issues/959), without a new API or global
+content-handler setting.
+
 ## Context and decision drivers
 
 Applications import mail produced by other software, not only by Simple Java Mail. Outlook sources, archived EML and received headers can be
