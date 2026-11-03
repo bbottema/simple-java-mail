@@ -62,6 +62,7 @@ $registeredWorktrees = @(
 # Populate these exact allowlists for the next review, then clear them after cleanup.
 # Do not use wildcards or target the whole .local directory.
 $relativeTargets = @(
+    '.local/review-smime-id-contract-20261103'
     '.local/review-text-streams-20261102'
     '.local/review-selected-20261102'
     '.local/image-validation-20261102'
@@ -133,6 +134,7 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    'docs/plans/smime-helper-id-contract-20261103.md'
     'docs/plans/text-body-streams-20261102.md'
     'docs/plans/selected-review-20261102.md'
     'docs/plans/958-reused-session-oauth2-20261102.md'
@@ -688,4 +690,14 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-text-
 if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md') -and
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md', 'Remove retired text-body import plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\text-body-streams-20261102.md' -Force
+}
+
+# S/MIME helper ID contract; keep these exact paths in the guarded allowlists.
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\.local\review-smime-id-contract-20261103') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\.local\review-smime-id-contract-20261103', 'Remove completed S/MIME helper ID scratch recursively')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\review-smime-id-contract-20261103' -Recurse -Force
+}
+if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\smime-helper-id-contract-20261103.md') -and
+    $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\smime-helper-id-contract-20261103.md', 'Remove retired S/MIME helper ID plan')) {
+    Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\smime-helper-id-contract-20261103.md' -Force
 }
