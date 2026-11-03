@@ -1,5 +1,7 @@
 # ADR 0010: Adapt authenticated SOCKS through a Mailer-owned loopback bridge
 
+The accepted [ADR 0042](0042-direct-authenticated-socks-sockets.md) adds direct routing when the selected Angus provider supports an independent transport socket. This bridge and its port configuration remain the supported route for the released dependency baseline. Direct development integration is tracked separately under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
+
 - Status: Accepted (retrospective record of implemented design)
 - Decision recorded: 2026-09-16; this is not the original decision date
 - Applies to: Authenticated SOCKS sending, including automatic bridge ports in unreleased 10.0.0
@@ -101,3 +103,7 @@ Bound pending setup admission and any waiting queue. The internal executor permi
 Reserve and start the remote forwarding thread behind a gate before writing local CONNECT success. The complete response precedes the atomic forwarding/cleanup ownership transfer. A sticky transfer fact survives subsequent closure, so handler cleanup cannot reclaim an already transferred owner. The forwarding side flushes bounded early bytes in order before later client writes, pumps remote traffic, closes both exact peers and joins the original client reader. Pending EOF observation continues before transfer; closing releases handoff/readiness gates without acquiring the output-order lock. A failed start or late handoff retires that owner, and fatal forwarding errors still propagate after cleanup with their original identity and suppressed cleanup failures.
 
 Preserve client timeout authority, pooled/retained connection lifetimes and listener-generation isolation. This capacity correction does not broaden the established-write backpressure cancellation guarantee documented in [ADR 0017](0017-deadlines-and-physical-cancellation.md#alternatives-and-consequences). [#921](https://github.com/bbottema/simple-java-mail/issues/921) owns implementation and delivery for unreleased 10.0.0. The [bridge concurrency guide](../concurrency/14-authenticated-socks-bridge.md) maps these actors and transitions.
+
+## Direct physical disposal of an established tunnel (accepted 29 October 2026)
+
+The subsequent [ADR 0017 decision](0017-deadlines-and-physical-cancellation.md#established-authenticated-socks-physical-disposal-accepted-29-october-2026), tracked under [#922](https://github.com/bbottema/simple-java-mail/issues/922), associates a supported library-owned Angus physical connection with its exact tunnel owner. This lets physical disposal close both peers even while forwarding is blocked on remote output. It extends supported disposal rather than adding another reader or timer, changing setup admission, or promising immediate observation of arbitrary local peer EOF. Existing per-tunnel and listener-generation ownership remain authoritative. Implementation and delivery are pending separately from this accepted decision.

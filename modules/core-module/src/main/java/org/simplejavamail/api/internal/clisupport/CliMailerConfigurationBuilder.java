@@ -190,9 +190,10 @@ public interface CliMailerConfigurationBuilder {
 	 * Raw SOCKS host values can include a port; a separate raw port takes precedence over that embedded port.
 	 * <p>
 	 * The remote route is resolved before authenticated routing is derived. Authentication needs the optional
-	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}; Jakarta Mail then connects anonymously to a local loopback bridge,
-	 * which authenticates with the remote SOCKS proxy. The effective Session consequently reports the local bridge endpoint, while
-	 * {@link Mailer#getProxyConfig()} describes the remote proxy. Generated bridge addresses and ports are not competing user configuration.
+	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}. Angus providers with the independent transport hook use a direct
+	 * authenticated SOCKS socket. Other supported routes use a local loopback bridge that authenticates with the remote proxy.
+	 * The effective Session reports the remote endpoint on the direct route or the local endpoint while a bridge is used;
+	 * {@link Mailer#getProxyConfig()} describes the remote proxy in either case. Generated bridge addresses and ports are not competing user configuration.
 	 * For an active authenticated route, the effective username and password must each contain 1 through 255 UTF-8 octets. This is checked when
 	 * the Mailer is built, before connecting; collecting and inspecting supplied choices does not validate an incomplete configuration.
 	 *
@@ -225,11 +226,11 @@ public interface CliMailerConfigurationBuilder {
 	MailerGenericBuilder<?> withProxyPort(@Nullable @Cli.Optional Integer proxyPort);
 
 	/**
-	 * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
-	 * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
-	 * then will be:
+	 * Sets the optional username to authenticate with the proxy. The authenticated SOCKS module performs the proxy login.
+	 * On Angus providers with an independent transport hook, the connection goes directly through an authenticated SOCKS socket.
+	 * Other supported routes retain the local anonymous bridge:
 	 * <p>
-	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
+	 * {@code Simple Java Mail client -> Angus -> local anonymous bridge -> authenticated remote SOCKS proxy -> SMTP server}.
 	 * Replacing or removing an imported username follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
 	 * An effective active username requires 1 through 255 UTF-8 octets when the Mailer is built; supplied-choice inspection remains passive.
 	 * @param proxyUsername Proxy username, or {@code null} to request removal of a captured username.
@@ -259,6 +260,7 @@ public interface CliMailerConfigurationBuilder {
 	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
 	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
 	 * not use a bridge port.
+	 * The direct Angus route has no listener and does not use this setting; choosing a port does not force the bridge route.
 	 * <p>
 	 * Defaults to automatic allocation ({@value MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
 	 * A different explicitly configured bridge port follows
@@ -437,8 +439,9 @@ public interface CliMailerConfigurationBuilder {
 	 * an advanced setting and can cause conflicts if another connection already uses that port.
 	 * <p>
 	 * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
-	 * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
-	 * the proxy server's own outbound socket.
+	 * Mail's retained authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path,
+	 * not the proxy server's own outbound socket. With the direct Angus transport route, it binds the physical connection
+	 * to the remote proxy.
 	 * <p>
 	 * A caller-supplied Session keeps its local binding when these members are untouched. Replacement or removal follows
 	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:

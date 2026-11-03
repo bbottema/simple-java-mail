@@ -64,6 +64,7 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
  * Records the authentication/TLS contract, including the construction-time mandatory STARTTLS guard added for 10.0.0.
  * Ordinary sends talk only to a loopback peer with fake credentials; a successful probe is never used as a send preflight.
  * Some passing cases deliberately expose permissive behavior, not a recommendation that callers should use it.
+ * Failed post-TLS EHLO authentication behavior is characterized separately for released and explicitly pinned merged Angus sources.
  */
 @Timeout(30)
 class SmtpAuthenticationTlsCharacterizationTest {
@@ -472,12 +473,18 @@ class SmtpAuthenticationTlsCharacterizationTest {
     }
 
     @Test
-    void failedPostTlsEhloStillUsesThePreTlsAuthListButNotAPlaintextSocket() throws Exception {
+    void failedPostTlsEhloKeepsSubmissionEncryptedWithSourceSpecificAuthentication() throws Exception {
+        final boolean mergedSource = SmtpCapabilityProbeCharacterizationTest.isPinnedMergedAngusSource();
         try (Peer server = new Peer(peer -> {
             establishTls(peer, SMTP_TLS, "500 EHLO unavailable after TLS");
-            authenticate(peer, "LOGIN", PASSWORD);
+            // Released 2.0.5 reuses AUTH; the pinned merged source clears it and sends MAIL FROM without AUTH.
+            // Both branches read every remaining command and the message through the established TLS socket.
+            if (!mergedSource) {
+                authenticate(peer, "LOGIN", PASSWORD);
+            }
             acceptMessageAndQuit(peer);
         }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
+            assertThat(mailer.getSession().getProperty("mail.smtp.auth")).isEqualTo("true");
             assertAccepted(mailer);
         }
     }

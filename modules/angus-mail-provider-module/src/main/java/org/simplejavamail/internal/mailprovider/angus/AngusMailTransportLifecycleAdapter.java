@@ -8,18 +8,39 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.MailTransportProgress;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.AuthenticatedSocksSocketProvider;
+import org.simplejavamail.internal.util.AuthenticatedSocksSessionConfiguration;
 
 import java.util.Optional;
 import java.util.Properties;
 
 /** Installs owned Angus resources and protocol handling; application factories retain their TLS decisions. */
-public final class AngusMailTransportLifecycleAdapter implements MailTransportLifecycleAdapter {
+public final class AngusMailTransportLifecycleAdapter implements MailTransportLifecycleAdapter, AuthenticatedSocksSessionConfiguration {
 
     /** @see MailTransportLifecycleAdapter#supportsProvider(Provider) */
     @Override
     public boolean supportsProvider(@NotNull final Provider provider) {
         return provider.getClassName().equals("org.eclipse.angus.mail.smtp.SMTPTransport")
-                || provider.getClassName().equals("org.eclipse.angus.mail.smtp.SMTPSSLTransport");
+                || provider.getClassName().equals("org.eclipse.angus.mail.smtp.SMTPSSLTransport")
+                || provider.getClassName().equals(ManagedAngusTransport.class.getName());
+    }
+
+    @Override
+    public boolean supportsDirectAuthenticatedSocks(final Provider provider) {
+        final String protocol = provider.getProtocol();
+        final String className = provider.getClassName();
+        final boolean standardProtocol = protocol.equals("smtp") || protocol.equals("smtps");
+        return provider.getType() == Provider.Type.TRANSPORT && standardProtocol
+                && (className.equals(ManagedAngusTransport.class.getName())
+                || protocol.equals("smtp") && className.equals("org.eclipse.angus.mail.smtp.SMTPTransport")
+                || protocol.equals("smtps") && className.equals("org.eclipse.angus.mail.smtp.SMTPSSLTransport"))
+                && AngusTransportSocketSupport.isSupported();
+    }
+
+    @Override
+    public void configureAuthenticatedSocks(final Session session, final String protocol, final AuthenticatedSocksSocketProvider provider) {
+        final String prefix = "mail." + protocol;
+        AngusSocketFactories.configureAuthenticatedSocks(session.getProperties(), prefix, provider);
     }
 
     /** @see MailTransportLifecycleAdapter#configureOwnedSession(Session, String) */

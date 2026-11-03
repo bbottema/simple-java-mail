@@ -46,8 +46,7 @@ final class AngusProbeTransport extends SMTPTransport {
         phase = authenticate ? SmtpConnectionPhase.AUTHENTICATION : SmtpConnectionPhase.CONNECT;
         report = SmtpProbeReports.begin(session, authenticate).supported(true);
         tlsObserver = new AngusProbeTlsObserver(session, protocol);
-        final Object configuredFactory = session.getProperties().get("mail." + protocol + ".socketFactory");
-        socketFactory = configuredFactory instanceof AngusSocketFactory ? (AngusSocketFactory) configuredFactory : null;
+        socketFactory = AngusSocketFactory.find(session.getProperties(), "mail." + protocol);
         writeTimeoutScheduler = AngusWriteTimeoutScheduler.find(session.getProperties(), protocol);
     }
 

@@ -180,6 +180,39 @@
 
     <profiles>
         <profile>
+            <id>angus-merged-development</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>enforce-build</id>
+                                <configuration>
+                                    <rules>
+                                        <!-- Retain the root development lane's exceptions in the CLI-specific override. -->
+                                        <requireUpperBoundDeps>
+                                            <excludes>
+                                                <exclude>jakarta.mail:jakarta.mail-api</exclude>
+                                                <exclude>jakarta.activation:jakarta.activation-api</exclude>
+                                                <exclude>org.eclipse.angus:angus-activation</exclude>
+                                            </excludes>
+                                        </requireUpperBoundDeps>
+                                        <requireReleaseDeps>
+                                            <excludes>
+                                                <exclude>org.eclipse.angus:angus-mail</exclude>
+                                            </excludes>
+                                        </requireReleaseDeps>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>publish-cli</id>
             <build>
                 <plugins>

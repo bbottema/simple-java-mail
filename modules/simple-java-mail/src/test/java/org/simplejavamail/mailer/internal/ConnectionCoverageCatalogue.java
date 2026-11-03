@@ -22,11 +22,11 @@ final class ConnectionCoverageCatalogue {
     private static Map<String, Access> access() {
         final Map<String, Access> aliases = new LinkedHashMap<>();
         access(aliases, Access.SESSION_STRING, "host", "user", "socks.host", "localaddress", "localhost",
-                "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms", "ssl.trust");
+                "ssl.socketFactory.class", "socketFactory.class", "socketFactory.transport.class", "auth.mechanisms", "ssl.trust");
         access(aliases, Access.PROPERTY_INTEGER, "port", "socks.port", "localport", "connectiontimeout", "timeout", "writetimeout");
         access(aliases, Access.PROPERTY_BOOLEAN, "auth", "ssl.checkserveridentity", "starttls.enable", "starttls.required", "ssl.enable",
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
-        access(aliases, Access.DIRECT_RESOURCE, "ssl.socketFactory", "socketFactory");
+        access(aliases, Access.DIRECT_RESOURCE, "ssl.socketFactory", "socketFactory", "socketFactory.transport");
         aliases.put("mail.transport.protocol", Access.SESSION_STRING);
         aliases.put("simplejavamail.oauth2.token", Access.SESSION_STRING);
         aliases.put("simplejavamail.oauth2.token.provider", Access.DIRECT_RESOURCE);
@@ -47,8 +47,8 @@ final class ConnectionCoverageCatalogue {
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
         grammar(aliases, Grammar.SOCKS_ENDPOINT, "socks.host");
         grammar(aliases, Grammar.TRUST_HOSTS, "ssl.trust");
-        grammar(aliases, Grammar.FACTORY_CLASS, "ssl.socketFactory.class", "socketFactory.class");
-        grammar(aliases, Grammar.BORROWED_IDENTITY, "ssl.socketFactory", "socketFactory");
+        grammar(aliases, Grammar.FACTORY_CLASS, "ssl.socketFactory.class", "socketFactory.class", "socketFactory.transport.class");
+        grammar(aliases, Grammar.BORROWED_IDENTITY, "ssl.socketFactory", "socketFactory", "socketFactory.transport");
         aliases.put("mail.transport.protocol", Grammar.PROTOCOL);
         aliases.put("simplejavamail.oauth2.token", Grammar.TEXT);
         aliases.put("simplejavamail.oauth2.token.provider", Grammar.BORROWED_IDENTITY);
@@ -80,12 +80,12 @@ final class ConnectionCoverageCatalogue {
 
     private static Map<String, Kind> members() {
         final Map<String, Kind> result = new LinkedHashMap<>();
-        add(result, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms");
+        add(result, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class", "socketFactory.class", "socketFactory.transport.class", "auth.mechanisms");
         add(result, Kind.NUMBER, "port", "socks.port", "localport", "connectiontimeout", "timeout", "writetimeout");
         add(result, Kind.BOOLEAN, "auth", "ssl.checkserveridentity", "starttls.enable", "starttls.required", "ssl.enable",
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
         add(result, Kind.TRUST, "ssl.trust");
-        add(result, Kind.FACTORY, "ssl.socketFactory", "socketFactory");
+        add(result, Kind.FACTORY, "ssl.socketFactory", "socketFactory", "socketFactory.transport");
         return Collections.unmodifiableMap(result);
     }
 

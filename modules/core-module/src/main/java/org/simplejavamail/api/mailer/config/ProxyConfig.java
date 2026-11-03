@@ -27,7 +27,8 @@ public interface ProxyConfig {
 
 	/**
 	 * Returns the configured bridge port. A value of {@code 0} means the operating system selects the actual loopback port when the bridge starts.
-	 * The effective Jakarta Mail Session contains the selected port while an authenticated-proxy operation is running.
+	 * The effective Jakarta Mail Session contains that selected port while a bridge-backed operation is running.
+	 * Direct Angus routing has no local listener and leaves this compatibility setting unused; its Session contains the remote proxy port.
 	 *
 	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
 	 */

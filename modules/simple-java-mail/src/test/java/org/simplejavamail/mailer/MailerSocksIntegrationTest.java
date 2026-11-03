@@ -17,6 +17,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.subethamail.smtp.server.SMTPServer;
 import org.subethamail.wiser.Wiser;
 import testutil.ConfigLoaderTestHelper;
@@ -42,6 +43,7 @@ import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 /** Checks local proxy routing independently of the SMTP server's implementation. */
 @Timeout(30)
@@ -113,6 +115,7 @@ public class MailerSocksIntegrationTest {
 			mailer.sync().testConnection();
 
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
+			assertAuthenticatedSessionRoute(mailer.getSession(), null);
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		}
 	}
@@ -140,6 +143,7 @@ public class MailerSocksIntegrationTest {
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 			assertThat(smtpServer.getMessages()).hasSize(2);
+			assertAuthenticatedSessionRoute(mailer.getSession(), null);
 		}
 	}
 
@@ -157,6 +161,7 @@ public class MailerSocksIntegrationTest {
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				assertThat(Integer.parseInt(session.getProperty("mail.smtp.socks.port"))).isPositive();
+				assertAuthenticatedSessionRoute(session, null);
 			});
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		}
@@ -174,8 +179,8 @@ public class MailerSocksIntegrationTest {
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
 				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").withBridgePort(fixedBridgePort).build())
 				.buildMailer()) {
-			mailer.withOpenConnection(sender -> assertThat(mailer.getSession().getProperty("mail.smtp.socks.port"))
-					.isEqualTo(String.valueOf(fixedBridgePort)));
+			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isEqualTo(fixedBridgePort);
+			mailer.withOpenConnection(sender -> assertAuthenticatedSessionRoute(mailer.getSession(), fixedBridgePort));
 		}
 	}
 
@@ -202,7 +207,18 @@ public class MailerSocksIntegrationTest {
 				final int firstPort = Integer.parseInt(firstSession.getProperty("mail.smtp.socks.port"));
 				final int secondPort = Integer.parseInt(secondSession.getProperty("mail.smtp.socks.port"));
 				assertThat(firstPort).isPositive();
-				assertThat(secondPort).isPositive().isNotEqualTo(firstPort);
+				assertThat(secondPort).isPositive();
+				assertAuthenticatedSessionRoute(firstSession, null);
+				assertAuthenticatedSessionRoute(secondSession, null);
+				if (expectsDirectRoute()) {
+					assertThat(firstPort).isEqualTo(proxyServer.getPort());
+					assertThat(secondPort).isEqualTo(proxyServer.getPort());
+					assertThat(firstSession.getProperties().get("mail.smtp.socketFactory.transport"))
+							.as("each Mailer retains its own tracked physical factory while sharing the configured remote endpoint")
+							.isNotSameAs(secondSession.getProperties().get("mail.smtp.socketFactory.transport"));
+				} else {
+					assertThat(secondPort).isNotEqualTo(firstPort);
+				}
 			} finally {
 				releaseConnections.countDown();
 			}
@@ -285,8 +301,25 @@ public class MailerSocksIntegrationTest {
 			mailer.async().sendMail(originalEmail).getCompletion().get(20, TimeUnit.SECONDS);
 		}
 		assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
+		if (mailer.getProxyConfig().requiresAuthentication()) { assertAuthenticatedSessionRoute(mailer.getSession(), null); }
 		assertThat(smtpServer.getMessages()).hasSize(1);
 		assertThat(smtpServer.getMessages().remove(0).getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
+	}
+
+	private void assertAuthenticatedSessionRoute(final Session session, final Integer fixedBridgePort) {
+		final String prefix = "smtps".equals(session.getProperty("mail.transport.protocol")) ? "mail.smtps" : "mail.smtp";
+		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
+		assertThat(session.getProperty(prefix + ".socks.host")).isEqualTo(expectsDirectRoute() ? "localhost" : "127.0.0.1");
+		final int selectedPort = Integer.parseInt(session.getProperty(prefix + ".socks.port"));
+		assertThat(selectedPort).isPositive();
+		if (expectsDirectRoute()) {
+			assertThat(selectedPort).isEqualTo(proxyServer.getPort());
+			assertThat(session.getProperties().get(prefix + ".socketFactory.transport")).isNotNull();
+		} else {
+			assertThat(selectedPort).isNotEqualTo(proxyServer.getPort());
+			if (fixedBridgePort != null) { assertThat(selectedPort).isEqualTo(fixedBridgePort); }
+			assertThat(session.getProperties()).doesNotContainKey(prefix + ".socketFactory.transport");
+		}
 	}
 
 	private static SSLContext createServerSslContext() throws Exception {

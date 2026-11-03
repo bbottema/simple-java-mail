@@ -137,3 +137,5 @@ When changing one of these mechanisms:
 7. Render changed diagrams and check relative links. Rendering validates syntax/layout, not runtime concurrency behavior. Run the relevant Java tests separately when code changes.
 
 A new page should start with why the mechanism exists and its ownership boundary, then show states, transitions/threads, locks, a revealing race sequence, invariants, and source/test evidence. Add it to this index and the dependency map only where there is a real connection. Do not force independent fields into a giant enum merely to simplify the picture.
+
+The [direct authenticated SOCKS development decision](../adr/0042-direct-authenticated-socks-sockets.md) complements the retained bridge: [transport abort](07-angus-transport-abort.md#direct-authenticated-socks-in-the-development-lane) explains direct socket ownership, and [pool claims](06-pool-claims-and-leases.md) distinguishes route-specific background setup.

@@ -14,11 +14,6 @@ public class SSLSocks5 extends Socks5 {
 		this.configuration = configuration;
 	}
 
-	private SSLSocks5(final InetAddress address, final int port, final SSLConfiguration configuration) {
-		super(address, port);
-		this.configuration = configuration;
-	}
-
 	@Override
 	public Socket createProxySocket(final InetAddress address, final int port)
 			throws IOException {
@@ -37,9 +32,9 @@ public class SSLSocks5 extends Socks5 {
 	}
 
 	private Socks5 copyWithoutChainProxy() {
-		final SSLSocks5 socks5 = new SSLSocks5(getInetAddress(), getPort(), configuration);
+		final SSLSocks5 socks5 = new SSLSocks5(getProxyAddress(), configuration);
 		socks5.setAlwaysResolveAddressLocally(isAlwaysResolveAddressLocally()).setCredentials(getCredentials())
-				.setInetAddress(getInetAddress()).setPort(getPort()).setSocksAuthenticationHelper(getSocksAuthenticationHelper());
+				.setSocksAuthenticationHelper(getSocksAuthenticationHelper());
 		return socks5;
 	}
 

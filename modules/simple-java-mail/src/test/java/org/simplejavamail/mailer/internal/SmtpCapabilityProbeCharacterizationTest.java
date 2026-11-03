@@ -37,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Finds out which connection facts Angus actually exposes before the capability probe promises them publicly.
  * These tests use the project's existing TLS fixture and only talk to a scripted loopback peer; no mail is sent.
+ * Native extension-map behavior is characterized separately for released and explicitly pinned merged Angus sources.
  */
 @Timeout(30)
 class SmtpCapabilityProbeCharacterizationTest {
@@ -103,7 +104,8 @@ class SmtpCapabilityProbeCharacterizationTest {
     }
 
     @Test
-    void failedPostTlsEhloLeavesAngusPreTlsExtensionsBehind() throws Exception {
+    void failedPostTlsEhloKeepsTlsWithSourceSpecificExtensionState() throws Exception {
+        final boolean mergedSource = isPinnedMergedAngusSource();
         final Session session = session(true);
         session.getProperties().setProperty("mail.smtp.starttls.required", "true");
         withPeer(session, false, peer -> {
@@ -111,12 +113,23 @@ class SmtpCapabilityProbeCharacterizationTest {
             peer.quit();
         }, (transport, port) -> {
             transport.connect("localhost", port, null, null);
+            assertThat(transport.startTlsAttempted).isTrue();
             assertThat(transport.startTlsCompleted).isTrue();
+            assertThat(transport.isSSL()).isTrue();
             assertThat(transport.encryptedEhlo).containsExactly(false, true);
             assertThat(transport.ehloSucceeded).containsExactly(true, false);
-            // Characterization, not the desired probe behavior: never present this stale map as post-TLS facts.
-            assertThat(transport.getExtensionParameter("SIZE")).isEqualTo("1024");
-            assertThat(transport.supportsExtension("STARTTLS")).isTrue();
+            assertThat(transport.ehloReplies).containsExactly(
+                    PLAIN_EHLO.replace("\r\n", "\n") + "\n", "500 EHLO unavailable after TLS\n");
+            // The SJM probe rejects this failed EHLO; these assertions characterize only the native provider.
+            if (mergedSource) {
+                assertThat(transport.getExtensionParameter("SIZE")).isNull();
+                assertThat(transport.getExtensionParameter("AUTH")).isNull();
+                assertThat(transport.supportsExtension("STARTTLS")).isFalse();
+            } else {
+                assertThat(transport.getExtensionParameter("SIZE")).isEqualTo("1024");
+                assertThat(transport.getExtensionParameter("AUTH")).isEqualTo("LOGIN");
+                assertThat(transport.supportsExtension("STARTTLS")).isTrue();
+            }
         });
     }
 
@@ -266,6 +279,17 @@ class SmtpCapabilityProbeCharacterizationTest {
             transport.connect("localhost", port, "probe-user", "probe-secret");
             assertThat(transport.supportsExtension("AUTH")).isFalse();
         });
+    }
+
+    /** Surefire's test-only source marker selects the pinned development characterization; absence keeps the released baseline. */
+    static boolean isPinnedMergedAngusSource() {
+        final String revision = System.getProperty("sjm.test.angusMergedSource", "");
+        if (revision.isEmpty()) {
+            return false;
+        }
+        assertThat(revision).as("native SMTP characterization source")
+                .isEqualTo("74a8e1be20011123d5930ef1d112ad6d10490614");
+        return true;
     }
 
     static Session session(final boolean trustTestCertificate) throws Exception {

@@ -120,6 +120,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
 
 - [#921](https://github.com/bbottema/simple-java-mail/issues/921): authenticated SOCKS releases setup workers after an explicit forwarding handoff, allowing new connections while established pooled or retained tunnels stay open. Pending admission is bounded, ordinary overload refuses only the new setup, and idle setup workers retire without changing client timeout authority.
+- [#922](https://github.com/bbottema/simple-java-mail/issues/922): add an explicit development lane for directly authenticated SOCKS sockets using the merged Angus transport hook. Released-Angus builds retain the compatibility bridge and its port configuration.
 
 - [#914](https://github.com/bbottema/simple-java-mail/issues/914): preserve whole imported address text after an address-grammar failure instead of discarding otherwise readable MIME/EML content. Existing successful parsing and outgoing validation retain their separate roles.
 - [#915](https://github.com/bbottema/simple-java-mail/issues/915): keep daemon status and stop responsive during slow mail commands through separately bounded control and reply handling, retaining duplicate-request protection and accepted-work shutdown semantics.

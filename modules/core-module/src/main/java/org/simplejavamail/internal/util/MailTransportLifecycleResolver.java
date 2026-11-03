@@ -12,11 +12,14 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter;
 import org.simplejavamail.api.mailer.spi.MailTransportLifecycleAdapter.ConnectionProgressRegistration;
 import org.simplejavamail.api.mailer.spi.MailTransportProgress;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.AuthenticatedSocksSocketProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 
 import java.util.Optional;
+import java.util.Properties;
+import java.util.Objects;
 
 /** Selects optional setup observation and connection-abort integration for the Mailer and its pool. Never connects a transport. */
 public final class MailTransportLifecycleResolver {
@@ -99,6 +102,82 @@ public final class MailTransportLifecycleResolver {
         if (selected != null) {
             selected.configureOwnedSession(session, protocol);
         }
+    }
+
+    /** Selects the proxy capability using the same provider discovery as owned-Session configuration. Never connects. */
+    public static boolean supportsDirectAuthenticatedSocks(final Session session) {
+        return supportsDirectAuthenticatedSocks(session, session.getProperties());
+    }
+
+    /** Uses the caller's provider registry with final property declarations, without temporarily modifying that Session. */
+    public static boolean supportsDirectAuthenticatedSocks(final Session session, final Properties effectiveProperties) {
+        return authenticatedSocksConfiguration(session, effectiveProperties) != null;
+    }
+
+    /** The route was selected during preflight; losing its capability is an error, never permission to retry another route. */
+    public static void configureAuthenticatedSocks(final Session session, final AuthenticatedSocksSocketProvider provider) {
+        final AuthenticatedSocksSessionConfiguration capability = authenticatedSocksConfiguration(session, session.getProperties());
+        if (capability == null) {
+            throw new ConfigurationFailure("The selected SMTP provider no longer supports the authenticated SOCKS transport route. "
+                    + "Keep the Session's provider and Angus dependencies unchanged while building and using this Mailer.", null);
+        }
+        capability.configureAuthenticatedSocks(session, Optional.ofNullable(session.getProperty("mail.transport.protocol")).orElse("smtp"), provider);
+    }
+
+    @Nullable
+    private static AuthenticatedSocksSessionConfiguration authenticatedSocksConfiguration(final Session session, final Properties effective) {
+        final Provider provider = selectedProvider(session, effective);
+        if (provider == null) {
+            return null;
+        }
+        MailTransportLifecycleAdapter selected = null;
+        for (final MailTransportLifecycleAdapter candidate : MailProviderDiscovery.newProviders(MailTransportLifecycleAdapter.class)) {
+            if (candidate.supportsProvider(provider)) {
+                if (selected != null) {
+                    throw conflictingAdapters(provider.getClassName(), selected, candidate);
+                }
+                selected = candidate;
+            }
+        }
+        if (selected instanceof AuthenticatedSocksSessionConfiguration) {
+            final AuthenticatedSocksSessionConfiguration capability = (AuthenticatedSocksSessionConfiguration) selected;
+            return capability.supportsDirectAuthenticatedSocks(provider) ? capability : null;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Provider selectedProvider(final Session session, final Properties effective) {
+        final String protocol = Optional.ofNullable(effective.getProperty("mail.transport.protocol")).orElse("smtp");
+        if (!protocol.equals("smtp") && !protocol.equals("smtps")) {
+            return null;
+        }
+        final String classKey = "mail." + protocol + ".class";
+        final String className = effective.getProperty(classKey);
+        if (!Objects.equals(className, session.getProperty(classKey))) {
+            // An unknown class or removal could expose a different protocol-map entry hidden behind the current property.
+            // Conservatively retain legacy routing rather than reconstructing Session's private provider maps.
+            if (className == null) {
+                return null;
+            }
+            Provider declared = null;
+            for (final Provider candidate : session.getProviders()) {
+                if (candidate.getClassName().equals(className)) {
+                    if (candidate.getType() != Provider.Type.TRANSPORT || !candidate.getProtocol().equals(protocol)) {
+                        return null;
+                    }
+                    declared = candidate;
+                }
+            }
+            return declared;
+        }
+        final Provider provider;
+        try {
+            provider = session.getProvider(protocol);
+        } catch (NoSuchProviderException absentProvider) {
+            return null;
+        }
+        return provider.getType() == Provider.Type.TRANSPORT && provider.getProtocol().equals(protocol) ? provider : null;
     }
 
     /** Returns the selected transport's abort capability, without acquiring any network resources. */

@@ -45,6 +45,7 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -82,6 +83,7 @@ import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 @SuppressWarnings("unused")
 public class MailerTest {
@@ -269,8 +271,7 @@ public class MailerTest {
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
 			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
-			assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-			assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("8181");
+			assertAuthenticatedProxyRoute(mailer, "proxy.example.com", 1080, "8181");
 			assertThat(session.getProperty("mail.smtps.socks.host")).isNull();
 			assertThat(session.getProperty("caller.property")).isEqualTo("unchanged");
 			assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("proxy.example.com");
@@ -297,9 +298,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("999");
+		assertAuthenticatedProxyRoute(mailer, "proxy host", 1080, "999");
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
 		assertThat(session.getProperty("extra-properties-property1")).isNull();
@@ -324,9 +323,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
 		assertThat(session.getProperty("extra1")).isNull();
 		assertThat(session.getProperty("extra2")).isNull();
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
@@ -401,9 +398,7 @@ public class MailerTest {
 
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("override");
 	}
@@ -435,9 +430,7 @@ public class MailerTest {
 		
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
 	}
 	
 	@Test
@@ -455,9 +448,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("overridden username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		// the following two are because authentication is needed, otherwise proxy would be straightworward
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo("1081");
+		assertAuthenticatedProxyRoute(mailer, "overridden proxy host", 1080, "1081");
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
 	}
@@ -572,7 +563,7 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtp.ssl.socketFactory", mockFactory);
+		assertConfiguredTlsFactoryDelegatesTo(mailer, "mail.smtp.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
 	}
 
@@ -589,7 +580,7 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtps.ssl.socketFactory", mockFactory);
+		assertConfiguredTlsFactoryDelegatesTo(mailer, "mail.smtps.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtps.ssl.socketFactory.class");
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory");
 	}
@@ -605,13 +596,32 @@ public class MailerTest {
 
 		final Session session = mailer.getSession();
 
-		assertConfiguredTlsFactoryDelegatesTo(session, "mail.smtp.ssl.socketFactory", mockFactory);
+		assertConfiguredTlsFactoryDelegatesTo(mailer, "mail.smtp.ssl.socketFactory", mockFactory);
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
 	}
 
-	private static void assertConfiguredTlsFactoryDelegatesTo(final Session session, final String key, final SSLSocketFactory applicationFactory) {
+	private static void assertAuthenticatedProxyRoute(final Mailer mailer, final String remoteHost, final int remotePort, final String bridgePort) {
+		final Session session = mailer.getSession();
+		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
+		assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo(remoteHost);
+		assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(remotePort);
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? remoteHost : LOOPBACK_HOST);
+		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo(expectsDirectRoute() ? Integer.toString(remotePort) : bridgePort);
+		assertThat(session.getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
+	}
+
+	private static void assertConfiguredTlsFactoryDelegatesTo(final Mailer mailer, final String key, final SSLSocketFactory applicationFactory) {
+		final Session session = mailer.getSession();
 		final Object configured = session.getProperties().get(key);
-		assertThat(configured).isInstanceOf(SSLSocketFactory.class).isNotSameAs(applicationFactory);
+		final boolean direct = expectsDirectRoute() && mailer.getProxyConfig().requiresProxy() && mailer.getProxyConfig().requiresAuthentication();
+		assertThat(session.getProperties().get(key.replace(".ssl.socketFactory", ".socketFactory.transport")) != null).isEqualTo(direct);
+		assertThat(configured).isInstanceOf(SSLSocketFactory.class);
+		if (direct) {
+			assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
+			assertThat(configured).as("the native direct hook keeps the application's original TLS factory identity").isSameAs(applicationFactory);
+		} else {
+			assertThat(configured).isNotSameAs(applicationFactory);
+		}
 		final String[] ciphers = {"synthetic cipher selection"};
 		when(applicationFactory.getDefaultCipherSuites()).thenReturn(ciphers);
 		assertThat(((SSLSocketFactory) configured).getDefaultCipherSuites()).isSameAs(ciphers);

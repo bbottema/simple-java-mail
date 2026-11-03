@@ -1,361 +1,235 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
-import org.jetbrains.annotations.NotNull;
-import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.simplejavamail.api.internal.authenticatedsockssupport.common.AuthenticatedSocksSocketProvider;
+import org.simplejavamail.api.mailer.config.ProxyConfig;
 
+import javax.net.ssl.SSLSocket;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.SocketOption;
+import java.net.SocketTimeoutException;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 
-public class SocksSocket extends Socket {
+/** A logical destination socket over the supplied, directly connected SOCKS physical socket. */
+public final class SocksSocket extends Socket {
+    private final Socket physical;
+    private final InetSocketAddress proxyAddress;
+    private final ProxyCredentials credentials;
+    private final Object state = new Object();
+    private volatile InetSocketAddress destination;
+    private volatile boolean connected;
+    private volatile boolean connecting;
+    private volatile boolean closed;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(SocksSocket.class);
+    /** Captures immutable facts only; neither creating this capability nor wrapping resolves or connects a socket. */
+    public static AuthenticatedSocksSocketProvider providerFor(final ProxyConfig config) {
+        requireNonNull(config, "proxyConfig");
+        final String host = requireNonNull(config.getRemoteProxyHost(), "remoteProxyHost");
+        final int port = requireNonNull(config.getRemoteProxyPort(), "remoteProxyPort");
+        final String username = config.getUsername();
+        final String password = config.getPassword();
+        final InetSocketAddress proxyAddress = InetSocketAddress.createUnresolved(host, port);
+        SocksAuthenticationHelper.validateCredentials(username, password);
+        return raw -> new SocksSocket(raw, proxyAddress, new ProxyCredentials(username, password));
+    }
 
-	private final Socks5 proxy;
+    private SocksSocket(final Socket physical, final InetSocketAddress proxyAddress, final ProxyCredentials credentials)
+            throws SocketException {
+        this.physical = requireNonNull(physical, "unconnectedSocket");
+        if (physical.isConnected()) { throw new SocketException("Authenticated SOCKS requires an unconnected physical socket"); }
+        if (physical instanceof SSLSocket) { throw new SocketException("Authenticated SOCKS requires a plain physical socket before TLS layering"); }
+        this.proxyAddress = requireNonNull(proxyAddress, "proxyAddress");
+        this.credentials = credentials;
+    }
 
-	private String remoteServerHost;
+    // Internal construction retained alongside the bridge fallback.
+    public SocksSocket(final Socks5 proxy, final Socket physical) throws SocketException {
+        this(physical, requireNonNull(proxy, "proxy").getProxyAddress(), proxy.getCredentials());
+    }
 
-	private int remoteServerPort;
+    public SocksSocket(final Socks5 proxy, final Socket physical, final InetSocketAddress target) throws IOException {
+        this(proxy, physical);
+        connect(target);
+    }
 
-	private Socket proxySocket;
+    public SocksSocket(final Socks5 proxy) throws IOException { this(proxy, proxy.createProxySocket()); }
+    public SocksSocket(final Socks5 proxy, final InetSocketAddress target) throws IOException { this(proxy); connect(target); }
 
-	private SocksSocket(final Socks5 proxy, final String remoteServerHost, final int remoteServerPort)
-			throws IOException {
-        this.proxy = requireNonNull(proxy, "Argument [proxy] may not be null").copy();
-		this.proxy.setProxySocket(proxySocket);
-        this.remoteServerHost = requireNonNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
-		this.remoteServerPort = remoteServerPort;
-		this.proxy.buildConnection();
-		proxySocket = this.proxy.getProxySocket();
-		initProxyChain();
-		this.proxy.requestConnect(remoteServerHost, remoteServerPort);
-	}
+    @Override public void connect(final SocketAddress endpoint) throws IOException { connect(endpoint, 0); }
 
-	private SocksSocket(final Socks5 proxy, final InetAddress address, final int port)
-			throws IOException {
-		this(proxy, new InetSocketAddress(address, port));
-	}
+    @Override public void connect(final SocketAddress endpoint, final int timeout) throws IOException {
+        if (endpoint == null) { throw new IllegalArgumentException("connect: The address cannot be null"); }
+        if (timeout < 0) { throw new IllegalArgumentException("connect: timeout cannot be negative"); }
+        requireOpen();
+        synchronized (state) {
+            if (connected || connecting) { throw new SocketException("Socket is already connected or connecting"); }
+        }
+        if (!(endpoint instanceof InetSocketAddress)) { throw new IllegalArgumentException("Unsupported address type"); }
+        final InetSocketAddress target = (InetSocketAddress) endpoint;
+        checkDestinationPermission(target);
+        synchronized (state) {
+            if (closed) { throw new SocketException("Socket is closed"); }
+            if (connected || connecting) { throw new SocketException("Socket is already connected or connecting"); }
+            connecting = true;
+        }
+        try {
+            final ConnectBudget budget = new ConnectBudget(timeout);
+            final int ordinaryReadTimeout = physical.getSoTimeout();
+            final InetSocketAddress proxy = proxyAddress.isUnresolved()
+                    ? new InetSocketAddress(proxyAddress.getHostString(), proxyAddress.getPort()) : proxyAddress;
+            physical.connect(proxy, budget.remainingMillis());
+            final Socket negotiation = new NegotiationSocket(budget);
+            if (SocksAuthenticationHelper.shouldAuthenticate(negotiation)) {
+                SocksAuthenticationHelper.performUserPasswordAuthentication(negotiation, credentials);
+            }
+            SocksCommandSender.send(negotiation, target);
+            budget.remainingMillis();
+            physical.setSoTimeout(ordinaryReadTimeout);
+            requireOpen();
+            synchronized (state) {
+                if (closed) { throw new SocketException("Socket was closed during SOCKS setup"); }
+                destination = target;
+                connected = true;
+            }
+        } catch (IOException | RuntimeException | Error failure) {
+            closeAfterFailure(failure);
+            throw failure;
+        } finally {
+            connecting = false;
+        }
+    }
 
-	public SocksSocket(final Socks5 proxy, final InetSocketAddress socketAddress)
-			throws IOException {
-        requireNonNull(proxy, "Argument [proxy] may not be null");
-        requireNonNull(socketAddress, "Argument [socketAddress] may not be null");
-        this.proxy = proxy.copy();
-		this.remoteServerHost = socketAddress.getHostString();
-		this.remoteServerPort = socketAddress.getPort();
-		this.proxy.buildConnection();
-		proxySocket = this.proxy.getProxySocket();
-		initProxyChain();
-		this.proxy.requestConnect(socketAddress);
-	}
+    @SuppressWarnings("removal")
+    private static void checkDestinationPermission(final InetSocketAddress target) {
+        final SecurityManager security = System.getSecurityManager();
+        if (security != null) {
+            security.checkConnect(target.isUnresolved() ? target.getHostString() : target.getAddress().getHostAddress(), target.getPort());
+        }
+    }
 
-	@SuppressWarnings("WeakerAccess")
-	public SocksSocket(final Socks5 proxy)
-			throws IOException {
-		this(proxy, proxy.createProxySocket());
-	}
+    private void requireOpen() throws SocketException {
+        if (isClosed()) { throw new SocketException("Socket is closed"); }
+    }
 
-	public SocksSocket(final Socks5 proxy, final Socket proxySocket, final InetSocketAddress socketAddress)
-			throws IOException {
-		this(proxy, proxySocket);
-		connect(socketAddress);
-	}
+    private void requireConnected() throws SocketException {
+        requireOpen();
+        if (!connected) { throw new SocketException("Socket is not connected"); }
+    }
 
-	@SuppressWarnings("WeakerAccess")
-	public SocksSocket(final Socks5 proxy, final Socket proxySocket) {
-        requireNonNull(proxy, "Argument [proxy] may not be null");
-        requireNonNull(proxySocket, "Argument [proxySocket] may not be null");
-        if (proxySocket.isConnected()) {
-			throw new IllegalArgumentException("Proxy socket should be unconnected");
-		}
-		this.proxySocket = proxySocket;
-		this.proxy = proxy.copy();
-		this.proxy.setProxySocket(proxySocket);
-	}
+    private void closeAfterFailure(final Throwable failure) {
+        try {
+            close();
+        } catch (IOException | RuntimeException | Error cleanup) {
+            if (cleanup != failure) { failure.addSuppressed(cleanup); }
+        }
+    }
 
-	private void initProxyChain()
-			throws IOException {
-		final List<Socks5> proxyChain = new ArrayList<>();
-		Socks5 temp = proxy;
-		while (temp.getChainProxy() != null) {
-			temp.getChainProxy().setProxySocket(proxySocket);
-			proxyChain.add(temp.getChainProxy());
-			temp = temp.getChainProxy();
-		}
-		LOGGER.debug("Proxy chain has:{} proxy", proxyChain.size());
-		if (proxyChain.size() > 0) {
-			Socks5 pre = proxy;
-			for (final Socks5 chain : proxyChain) {
-				pre.requestConnect(chain.getInetAddress(), chain.getPort());
-				requireNonNull(proxy.getChainProxy(), "chainProxy").buildConnection();
-				pre = chain;
-			}
-		}
+    @Override public void close() throws IOException {
+        synchronized (state) {
+            if (closed) { return; }
+            closed = true;
+        }
+        // No state monitor is held across physical disposal or blocking protocol work.
+        if (!physical.isClosed()) { physical.close(); }
+    }
 
-	}
+    @Override public InputStream getInputStream() throws IOException { requireConnected(); return physical.getInputStream(); }
+    @Override public OutputStream getOutputStream() throws IOException { requireConnected(); return physical.getOutputStream(); }
+    @Override public void bind(final SocketAddress point) throws IOException { requireOpen(); physical.bind(point); }
+    @Override public InetAddress getInetAddress() { return connected ? destination.getAddress() : null; }
+    @Override public int getPort() { return connected ? destination.getPort() : 0; }
+    @Override public SocketAddress getRemoteSocketAddress() { return connected ? destination : null; }
+    @Override public InetAddress getLocalAddress() { return physical.getLocalAddress(); }
+    @Override public int getLocalPort() { return physical.getLocalPort(); }
+    @Override public SocketAddress getLocalSocketAddress() { return physical.getLocalSocketAddress(); }
+    @Override public SocketChannel getChannel() { return physical.getChannel(); }
+    @Override public boolean isConnected() { return connected; }
+    @Override public boolean isBound() { return physical.isBound(); }
+    @Override public boolean isClosed() { return closed || physical.isClosed(); }
+    @Override public boolean isInputShutdown() { return physical.isInputShutdown(); }
+    @Override public boolean isOutputShutdown() { return physical.isOutputShutdown(); }
+    @Override public void shutdownInput() throws IOException { requireConnected(); physical.shutdownInput(); }
+    @Override public void shutdownOutput() throws IOException { requireConnected(); physical.shutdownOutput(); }
+    @Override public void setTcpNoDelay(final boolean value) throws SocketException { requireOpen(); physical.setTcpNoDelay(value); }
+    @Override public boolean getTcpNoDelay() throws SocketException { requireOpen(); return physical.getTcpNoDelay(); }
+    @Override public void setSoLinger(final boolean enabled, final int value) throws SocketException { requireOpen(); physical.setSoLinger(enabled, value); }
+    @Override public int getSoLinger() throws SocketException { requireOpen(); return physical.getSoLinger(); }
+    @Override public void sendUrgentData(final int value) throws IOException { requireConnected(); physical.sendUrgentData(value); }
+    @Override public void setOOBInline(final boolean value) throws SocketException { requireOpen(); physical.setOOBInline(value); }
+    @Override public boolean getOOBInline() throws SocketException { requireOpen(); return physical.getOOBInline(); }
+    @Override public void setSoTimeout(final int value) throws SocketException { requireOpen(); physical.setSoTimeout(value); }
+    @Override public int getSoTimeout() throws SocketException { requireOpen(); return physical.getSoTimeout(); }
+    @Override public void setSendBufferSize(final int value) throws SocketException { requireOpen(); physical.setSendBufferSize(value); }
+    @Override public int getSendBufferSize() throws SocketException { requireOpen(); return physical.getSendBufferSize(); }
+    @Override public void setReceiveBufferSize(final int value) throws SocketException { requireOpen(); physical.setReceiveBufferSize(value); }
+    @Override public int getReceiveBufferSize() throws SocketException { requireOpen(); return physical.getReceiveBufferSize(); }
+    @Override public void setKeepAlive(final boolean value) throws SocketException { requireOpen(); physical.setKeepAlive(value); }
+    @Override public boolean getKeepAlive() throws SocketException { requireOpen(); return physical.getKeepAlive(); }
+    @Override public void setTrafficClass(final int value) throws SocketException { requireOpen(); physical.setTrafficClass(value); }
+    @Override public int getTrafficClass() throws SocketException { requireOpen(); return physical.getTrafficClass(); }
+    @Override public void setReuseAddress(final boolean value) throws SocketException { requireOpen(); physical.setReuseAddress(value); }
+    @Override public boolean getReuseAddress() throws SocketException { requireOpen(); return physical.getReuseAddress(); }
+    @Override public void setPerformancePreferences(final int connection, final int latency, final int bandwidth) {
+        physical.setPerformancePreferences(connection, latency, bandwidth);
+    }
+    @Override public <T> Socket setOption(final SocketOption<T> option, final T value) throws IOException {
+        requireOpen(); physical.setOption(option, value); return this;
+    }
+    @Override public <T> T getOption(final SocketOption<T> option) throws IOException { requireOpen(); return physical.getOption(option); }
+    @Override public Set<SocketOption<?>> supportedOptions() { return physical.supportedOptions(); }
+    @Override public String toString() { return connected ? "SocksSocket[remote=" + destination + "]" : "SocksSocket[unconnected]"; }
 
-	@Override
-	public void connect(final SocketAddress endpoint)
-			throws IOException {
-		connect(endpoint, 0);
-	}
+    private final class NegotiationSocket extends Socket {
+        private final ConnectBudget budget;
+        private NegotiationSocket(final ConnectBudget budget) { this.budget = budget; }
+        @Override public InputStream getInputStream() throws IOException {
+            return new FilterInputStream(physical.getInputStream()) {
+                @Override public int read() throws IOException {
+                    physical.setSoTimeout(budget.remainingMillis());
+                    return in.read();
+                }
+                @Override public int read(final byte[] bytes, final int offset, final int length) throws IOException {
+                    if (length == 0) { return 0; }
+                    physical.setSoTimeout(budget.remainingMillis());
+                    return in.read(bytes, offset, length);
+                }
+            };
+        }
+        @Override public OutputStream getOutputStream() throws IOException {
+            return new FilterOutputStream(physical.getOutputStream()) {
+                @Override public void write(final int value) throws IOException {
+                    budget.remainingMillis(); out.write(value); budget.remainingMillis();
+                }
+                @Override public void write(final byte[] bytes, final int offset, final int length) throws IOException {
+                    budget.remainingMillis(); out.write(bytes, offset, length); budget.remainingMillis();
+                }
+                @Override public void flush() throws IOException { budget.remainingMillis(); out.flush(); budget.remainingMillis(); }
+            };
+        }
+        @Override public void close() throws IOException { SocksSocket.this.close(); }
+    }
 
-	@Override
-	public void connect(final SocketAddress endpoint, final int timeout)
-			throws IOException {
-
-		if (!(endpoint instanceof InetSocketAddress)) {
-			throw new IllegalArgumentException("Unsupported address type");
-		}
-
-		remoteServerHost = ((InetSocketAddress) endpoint).getHostString();
-		remoteServerPort = ((InetSocketAddress) endpoint).getPort();
-
-		getProxySocket().setSoTimeout(timeout);
-		proxy.buildConnection();
-		initProxyChain();
-		proxy.requestConnect(endpoint);
-
-	}
-
-	@Override
-	public InputStream getInputStream()
-			throws IOException {
-		return getProxySocket().getInputStream();
-	}
-
-	@Override
-	public OutputStream getOutputStream()
-			throws IOException {
-		return getProxySocket().getOutputStream();
-	}
-
-	@Override
-	public void bind(final SocketAddress bindpoint)
-			throws IOException {
-		getProxySocket().bind(bindpoint);
-	}
-
-	@Override
-	public InetAddress getInetAddress() {
-		try {
-			return InetAddress.getByName(remoteServerHost);
-		} catch (final UnknownHostException e) {
-			throw new SocksException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public InetAddress getLocalAddress() {
-		return getProxySocket().getLocalAddress();
-	}
-
-	@SuppressWarnings("SuspiciousGetterSetter")
-	@Override
-	public int getPort() {
-		return remoteServerPort;
-	}
-
-	@Override
-	public int getLocalPort() {
-		return getProxySocket().getLocalPort();
-	}
-
-	@Override
-	public SocketAddress getRemoteSocketAddress() {
-		return getProxySocket().getRemoteSocketAddress();
-	}
-
-	@Override
-	public SocketAddress getLocalSocketAddress() {
-		return getProxySocket().getLocalSocketAddress();
-	}
-
-	@Override
-	public SocketChannel getChannel() {
-		return getProxySocket().getChannel();
-	}
-
-	@Override
-	public boolean getTcpNoDelay()
-			throws SocketException {
-		return getProxySocket().getTcpNoDelay();
-	}
-
-	@Override
-	public void setTcpNoDelay(final boolean on)
-			throws SocketException {
-		getProxySocket().setTcpNoDelay(on);
-	}
-
-	@Override
-	public void setSoLinger(final boolean on, final int linger)
-			throws SocketException {
-		getProxySocket().setSoLinger(on, linger);
-	}
-
-	@Override
-	public int getSoLinger()
-			throws SocketException {
-		return getProxySocket().getSoLinger();
-	}
-
-	@Override
-	public void sendUrgentData(final int data)
-			throws IOException {
-		getProxySocket().sendUrgentData(data);
-	}
-
-	@Override
-	public boolean getOOBInline()
-			throws SocketException {
-		return getProxySocket().getOOBInline();
-	}
-
-	@Override
-	public void setOOBInline(final boolean on)
-			throws SocketException {
-		getProxySocket().setOOBInline(on);
-	}
-
-	@Override
-	public synchronized int getSoTimeout()
-			throws SocketException {
-		return getProxySocket().getSoTimeout();
-	}
-
-	@Override
-	public synchronized void setSoTimeout(final int timeout)
-			throws SocketException {
-		getProxySocket().setSoTimeout(timeout);
-	}
-
-	@Override
-	public synchronized int getSendBufferSize()
-			throws SocketException {
-		return getProxySocket().getSendBufferSize();
-	}
-
-	@Override
-	public synchronized void setSendBufferSize(final int size)
-			throws SocketException {
-		getProxySocket().setSendBufferSize(size);
-	}
-
-	@Override
-	public synchronized int getReceiveBufferSize()
-			throws SocketException {
-		return getProxySocket().getReceiveBufferSize();
-	}
-
-	@Override
-	public synchronized void setReceiveBufferSize(final int size)
-			throws SocketException {
-		getProxySocket().setReceiveBufferSize(size);
-	}
-
-	@Override
-	public boolean getKeepAlive()
-			throws SocketException {
-		return getProxySocket().getKeepAlive();
-	}
-
-	@Override
-	public void setKeepAlive(final boolean on)
-			throws SocketException {
-		getProxySocket().setKeepAlive(on);
-	}
-
-	@Override
-	public int getTrafficClass()
-			throws SocketException {
-		return getProxySocket().getTrafficClass();
-	}
-
-	@Override
-	public void setTrafficClass(final int tc)
-			throws SocketException {
-		getProxySocket().setTrafficClass(tc);
-	}
-
-	@Override
-	public boolean getReuseAddress()
-			throws SocketException {
-		return getProxySocket().getReuseAddress();
-	}
-
-	@Override
-	public void setReuseAddress(final boolean on)
-			throws SocketException {
-		getProxySocket().setReuseAddress(on);
-	}
-
-	@Override
-	public synchronized void close()
-			throws IOException {
-		if (proxy.getProxySocket() != null) {
-			proxy.getProxySocket().close();
-			proxy.setProxySocket(null);
-		}
-	}
-
-	@Override
-	public void shutdownInput()
-			throws IOException {
-		getProxySocket().shutdownInput();
-	}
-
-	@Override
-	public void shutdownOutput()
-			throws IOException {
-		getProxySocket().shutdownOutput();
-	}
-
-	@Override
-	public boolean isConnected() {
-		return getProxySocket().isConnected();
-	}
-
-	@Override
-	public boolean isBound() {
-		return getProxySocket().isBound();
-	}
-
-	@Override
-	public boolean isClosed() {
-		return getProxySocket().isClosed();
-	}
-
-	@Override
-	public boolean isInputShutdown() {
-		return getProxySocket().isInputShutdown();
-	}
-
-	@Override
-	public boolean isOutputShutdown() {
-		return getProxySocket().isOutputShutdown();
-	}
-
-	@Override
-	public void setPerformancePreferences(final int connectionTime, final int latency, final int bandwidth) {
-		getProxySocket().setPerformancePreferences(connectionTime, latency, bandwidth);
-	}
-
-	@NotNull
-	private Socket getProxySocket() {
-		return requireNonNull(proxy.getProxySocket(), "proxySocket");
-	}
+    private static final class ConnectBudget {
+        private final int timeout;
+        private final long started = System.nanoTime();
+        private ConnectBudget(final int timeout) { this.timeout = timeout; }
+        private int remainingMillis() throws SocketTimeoutException {
+            if (timeout == 0) { return 0; }
+            final long remaining = TimeUnit.MILLISECONDS.toNanos(timeout) - (System.nanoTime() - started);
+            if (remaining <= 0) { throw new SocketTimeoutException("SOCKS connection setup timed out"); }
+            return (int) Math.min(Integer.MAX_VALUE, (remaining + 999999L) / 1000000L);
+        }
+    }
 }

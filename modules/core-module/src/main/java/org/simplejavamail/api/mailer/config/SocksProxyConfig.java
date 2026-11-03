@@ -144,11 +144,11 @@ public class SocksProxyConfig {
          */
         @NotNull public Builder useConfiguredPort() { port = null; portCleared = false; return this; }
         /**
-         * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
-         * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
-         * then will be:
+         * Sets the optional username to authenticate with the proxy. The authenticated SOCKS module performs the proxy login.
+         * On Angus providers with an independent transport hook, the connection goes directly through an authenticated SOCKS socket.
+         * Other supported routes retain the local anonymous bridge:
          * <p>
-         * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
+         * {@code Simple Java Mail client -> Angus -> local anonymous bridge -> authenticated remote SOCKS proxy -> SMTP server}.
          * <p>
          * For an active authenticated proxy, the effective username and password must each contain 1 through 255 UTF-8 bytes.
          * The Mailer validates these lengths when it is built; collecting or inspecting supplied choices remains passive.
@@ -200,6 +200,7 @@ public class SocksProxyConfig {
          * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
          * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
          * not use a bridge port.
+         * The direct Angus route has no listener and does not use this setting; choosing a port does not force the bridge route.
          * <p>
          * Defaults to automatic allocation ({@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
          * <p>

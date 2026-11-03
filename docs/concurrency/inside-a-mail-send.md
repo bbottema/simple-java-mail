@@ -162,3 +162,8 @@ The [local preparation boundary](01-send-operation.md#local-preparation-and-prov
 ## Authenticated SOCKS setup capacity, 2026-10-29
 
 The canonical artwork's five responsibility layers remain accurate for #921: the internal proxy setup executor and forwarding handoff are not pictured as application send workers or transport-pool leases. The [bridge guide](14-authenticated-socks-bridge.md) now maps those inner actors. Established tunnels release setup workers while retained/pooled transport ownership, send supervision, cancellation requests and terminal outcomes keep their existing layer relationships. The master, optimized website derivative and umbrella-issue embed require no image change.
+
+
+## Direct authenticated SOCKS development route
+
+The [direct transport route](../adr/0042-direct-authenticated-socks-sockets.md) stays within the overview's existing connection/provider ownership layers. It removes the local bridge actors for that selected connection and captures the upstream physical socket before SOCKS setup. The retained bridge remains the ordinary released-dependency route described in the bridge guide. No send owner, receipt transition or lease fence is replaced, so the overview artwork remains a layer summary rather than a diagram of either proxy implementation.

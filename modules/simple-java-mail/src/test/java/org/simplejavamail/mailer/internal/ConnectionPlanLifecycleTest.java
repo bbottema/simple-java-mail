@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.mailer.Mailer;
@@ -14,6 +15,8 @@ import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
+import org.simplejavamail.internal.util.SocketFactoryConfiguration;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.time.Duration;
@@ -23,6 +26,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.SocketFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,8 +38,11 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.requireDirectRoute;
 
 class ConnectionPlanLifecycleTest {
     enum InvalidExecutionInput { JAVA, CONFIGURATION, SUPPLIED_SESSION }
@@ -58,6 +65,7 @@ class ConnectionPlanLifecycleTest {
         final ExecutorService borrowed = Executors.newSingleThreadExecutor();
         final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
         when(module.createAnonymousSocks5Server(any())).thenThrow(new AssertionError("Named child allocated a proxy bridge"));
+        when(module.createSocketProvider(any())).thenThrow(new AssertionError("Named child allocated a proxy socket capability"));
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
              MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
             modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
@@ -168,7 +176,10 @@ class ConnectionPlanLifecycleTest {
         final Session session = Session.getInstance(properties);
         final var config = ConfigLoader.builder().load();
         final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
-        when(module.createAnonymousSocks5Server(any())).thenThrow(new IllegalStateException("bridge allocation failed"));
+        final IllegalStateException failure = new IllegalStateException("proxy capability allocation failed");
+        if (expectsDirectRoute()) { when(module.createSocketProvider(any())).thenThrow(failure); }
+        else { when(module.createAnonymousSocks5Server(any())).thenThrow(failure); }
+        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
             assertThatThrownBy(() -> new MailerFromSessionBuilderImpl(config).usingSession(session)
@@ -176,11 +187,88 @@ class ConnectionPlanLifecycleTest {
                     .withProperty("application.extra", "changed")
                     .withConnectionConfig(ConnectionConfig.builder().withReadTimeout(Duration.ofMillis(123)).build())
                     .withProxyConfig(SocksProxyConfig.builder().withUsername("user").withPassword("test-secret").build()).buildMailer())
-                    .isInstanceOf(IllegalStateException.class).hasMessage("bridge allocation failed");
+                    .isSameAs(failure);
+            if (expectsDirectRoute()) {
+                verify(module).createSocketProvider(any());
+                verify(module, never()).createAnonymousSocks5Server(any());
+            } else {
+                verify(module).createAnonymousSocks5Server(any());
+                verify(module, never()).createSocketProvider(any());
+            }
         }
         assertThat(properties).isEqualTo(before);
         try (Mailer ignored = new MailerFromSessionBuilderImpl(config).usingSession(session).buildMailer()) {
             // A failed construction must retire its ownership claim as well as its property changes.
+        }
+    }
+
+    @ParameterizedTest(name = "late direct decoration rollback, originalTransport={0}")
+    @ValueSource(booleans = {false, true})
+    void lateDirectDecorationFailureRestoresCallerTransportAndOwnership(final boolean originalTransport) throws Exception {
+        requireDirectRoute();
+        final FailingDecorationProperties properties = new FailingDecorationProperties();
+        properties.setProperty("mail.transport.protocol", "smtp");
+        properties.setProperty("mail.smtp.host", "smtp.example.org");
+        properties.setProperty("mail.smtp.timeout", "5000");
+        properties.setProperty("mail.smtp.socks.host", "proxy.example.org");
+        properties.setProperty("mail.smtp.socks.port", "2345");
+        properties.setProperty("application.extra", "original");
+        final SocketFactory applicationFactory = mock(SocketFactory.class);
+        if (originalTransport) { properties.put("mail.smtp.socketFactory.transport", applicationFactory); }
+        final Properties before = (Properties) properties.clone();
+        final Session session = Session.getInstance(properties);
+        final jakarta.mail.Provider provider = session.getProvider("smtp");
+        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
+        final boolean originalDebug = session.getDebug();
+        final java.io.PrintStream originalDebugOut = session.getDebugOut();
+        final var config = ConfigLoader.builder().load();
+        final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
+        when(module.createSocketProvider(any())).thenReturn(raw -> {
+            throw new AssertionError("Offline construction must not create or wrap a physical socket");
+        });
+        properties.failOnDecoration = true;
+        try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+            modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
+            modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+            assertThatThrownBy(() -> new MailerFromSessionBuilderImpl(config).usingSession(session)
+                    .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
+                    .withProperty("application.extra", "changed")
+                    .withConnectionConfig(ConnectionConfig.builder().withReadTimeout(Duration.ofMillis(123)).build())
+                    .withProxyConfig(SocksProxyConfig.builder().withUsername("user").withPassword("test-secret").build()).buildMailer())
+                    .isSameAs(properties.failure);
+            assertThat(properties.decorated).as("the direct factory was written before the injected late failure")
+                    .isInstanceOf(SocketFactoryConfiguration.class);
+            if (originalTransport) {
+                assertThat(((SocketFactoryConfiguration) properties.decorated).configuredInstance()).isSameAs(applicationFactory);
+            }
+            assertThat(properties).isEqualTo(before);
+            assertThat(session.getProvider("smtp")).isSameAs(provider);
+            assertThat(session.getDebug()).isEqualTo(originalDebug);
+            assertThat(session.getDebugOut()).isSameAs(originalDebugOut);
+            verifyNoInteractions(applicationFactory);
+            verify(module).createSocketProvider(any());
+            verify(module, never()).createAnonymousSocks5Server(any());
+            try (Mailer replacement = new MailerFromSessionBuilderImpl(config).usingSession(session).buildMailer()) {
+                assertThat(replacement.getSession()).as("failed direct construction retires its ownership claim").isSameAs(session);
+            }
+            assertThat(properties).isEqualTo(before);
+        }
+    }
+
+    private static final class FailingDecorationProperties extends Properties {
+        private static final long serialVersionUID = 1L;
+        private final IllegalStateException failure = new IllegalStateException("direct decoration failed after its Session write");
+        private boolean failOnDecoration;
+        private Object decorated;
+
+        @Override public synchronized Object put(final Object key, final Object value) {
+            final Object previous = super.put(key, value);
+            if (failOnDecoration && key.equals("mail.smtp.socketFactory.transport") && value instanceof SocketFactoryConfiguration) {
+                failOnDecoration = false;
+                decorated = value;
+                throw failure;
+            }
+            return previous;
         }
     }
 }

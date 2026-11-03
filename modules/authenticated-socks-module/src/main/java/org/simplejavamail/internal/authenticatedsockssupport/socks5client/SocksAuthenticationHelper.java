@@ -59,15 +59,18 @@ final class SocksAuthenticationHelper {
 	public static void performUserPasswordAuthentication(final Socks5 socksProxy)
 			throws IOException {
         requireNonNull(socksProxy, "Argument [socksProxy] may not be null");
-        final ProxyCredentials credentials = socksProxy.getCredentials();
+        performUserPasswordAuthentication(requireNonNull(socksProxy.getProxySocket(), "proxySocket"), socksProxy.getCredentials());
+    }
+
+    static void performUserPasswordAuthentication(final Socket socket, final ProxyCredentials credentials) throws IOException {
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
 		}
 
 		final byte[] bytesOfUsername = credentialBytes(credentials.getUsername(), "username");
 		final byte[] bytesOfPassword = credentialBytes(credentials.getPassword(), "password");
-		final InputStream inputStream = socksProxy.getInputStream();
-		final OutputStream outputStream = socksProxy.getOutputStream();
+		final InputStream inputStream = socket.getInputStream();
+		final OutputStream outputStream = socket.getOutputStream();
 
 		final int USERNAME_LENGTH = bytesOfUsername.length;
 		final int PASSWORD_LENGTH = bytesOfPassword.length;
@@ -93,7 +96,7 @@ final class SocksAuthenticationHelper {
 			}
 		} catch (IOException | SocksException failure) {
 			try {
-				socksProxy.getProxySocket().close();
+				socket.close();
 			} catch (IOException | RuntimeException | Error cleanupFailure) {
 				if (cleanupFailure != failure) {
 					failure.addSuppressed(cleanupFailure);
@@ -102,6 +105,11 @@ final class SocksAuthenticationHelper {
 			throw failure;
 		}
 	}
+
+    static void validateCredentials(final String username, final String password) {
+        credentialBytes(username, "username");
+        credentialBytes(password, "password");
+    }
 
 	private static byte[] credentialBytes(final String value, final String member) {
 		final byte[] bytes = value == null ? new byte[0] : value.getBytes(UTF_8);

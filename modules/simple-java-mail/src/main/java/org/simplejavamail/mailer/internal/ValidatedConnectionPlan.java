@@ -8,6 +8,7 @@ import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 
 import java.util.Properties;
 
@@ -19,13 +20,15 @@ final class ValidatedConnectionPlan {
     private final Properties additionalProperties;
     private final MailerSessionSettings settings;
     @Nullable private final ServerConfig serverConfig;
+    private final boolean directAuthenticatedSocks;
 
     private ValidatedConnectionPlan(@Nullable final Session targetSession, final Properties additionalProperties, final MailerSessionSettings settings,
-            @Nullable final ServerConfig serverConfig) {
+            @Nullable final ServerConfig serverConfig, final boolean directAuthenticatedSocks) {
         this.targetSession = targetSession;
         this.additionalProperties = SessionPropertyObservation.snapshot(additionalProperties);
         this.settings = settings;
         this.serverConfig = serverConfig;
+        this.directAuthenticatedSocks = directAuthenticatedSocks;
     }
 
     static ValidatedConnectionPlan validate(final ResolvedConnection resolved, final MailerSessionSettings settings,
@@ -43,8 +46,10 @@ final class ValidatedConnectionPlan {
     private static ValidatedConnectionPlan validateRequirements(final ResolvedConnection resolved, final MailerSessionSettings settings,
             @Nullable final ServerConfig serverConfig) {
         final CapturedConnectionInputs inputs = resolved.inputs;
+        final boolean direct = directAuthenticatedSocks(inputs.getTargetSession(), settings.copyEffectiveProperties(), resolved.proxy,
+                inputs.isSmtpActive());
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(
-                inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy());
+                inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy(), direct);
         requirements.verifyAdditionalProperties(inputs.copyAdditionalProperties());
         requirements.verifyExplicitConnectionChoices(resolved.explicitOverrides);
         if (inputs.getSuppliedSession() != null) {
@@ -60,7 +65,7 @@ final class ValidatedConnectionPlan {
                 ModuleLoader.loadAuthenticatedSocksModule();
             }
         }
-        return new ValidatedConnectionPlan(inputs.getTargetSession(), inputs.copyAdditionalProperties(), settings, serverConfig);
+        return new ValidatedConnectionPlan(inputs.getTargetSession(), inputs.copyAdditionalProperties(), settings, serverConfig, direct);
     }
 
     /** Internal injection constructors supply completed facts, without inventing a builder declaration history. */
@@ -68,8 +73,10 @@ final class ValidatedConnectionPlan {
             final ProxyConfig proxy, final Session baseline, final OperationalConfig operational,
             final MailerSessionSettings settings, final boolean ownsSession) {
         final TransportStrategy strategy = settings.getTransportStrategy();
+        final boolean direct = directAuthenticatedSocks(ownsSession ? null : baseline, settings.finalProperties(baseline, operational.getProperties()),
+                proxy, operational.getCustomMailer() == null);
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(config, proxy,
-                operational.isTrustAllSSLHost(), strategy);
+                operational.isTrustAllSSLHost(), strategy, direct);
         requirements.verifyAdditionalProperties(operational.getProperties());
         if (!ownsSession) { requirements.verifyCallerOwnedSession(baseline); }
         final Properties effective = settings.finalProperties(baseline, operational.getProperties());
@@ -83,11 +90,18 @@ final class ValidatedConnectionPlan {
                     ownsSession ? strategy : TransportStrategy.findStrategyForSession(baseline), operational.getOAuth2AccessTokenProvider());
             if (proxy.requiresProxy() && proxy.requiresAuthentication()) { ModuleLoader.loadAuthenticatedSocksModule(); }
         }
-        return new ValidatedConnectionPlan(ownsSession ? null : baseline, operational.getProperties(), settings, server);
+        return new ValidatedConnectionPlan(ownsSession ? null : baseline, operational.getProperties(), settings, server, direct);
+    }
+
+    private static boolean directAuthenticatedSocks(@Nullable final Session supplied, final Properties effective, final ProxyConfig proxy,
+            final boolean smtpActive) {
+        return smtpActive && proxy.requiresProxy() && proxy.requiresAuthentication()
+                && MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(supplied == null ? Session.getInstance(effective) : supplied, effective);
     }
 
     MailerSessionSettings settings() { return settings; }
     @Nullable Session targetSession() { return targetSession; }
     @Nullable ServerConfig serverConfig() { return serverConfig; }
+    boolean usesDirectAuthenticatedSocks() { return directAuthenticatedSocks; }
     Properties additionalProperties() { return SessionPropertyObservation.snapshot(additionalProperties); }
 }

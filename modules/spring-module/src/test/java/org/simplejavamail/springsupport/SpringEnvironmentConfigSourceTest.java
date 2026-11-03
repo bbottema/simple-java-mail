@@ -20,6 +20,7 @@ import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,6 +34,36 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+	@ParameterizedTest
+	@ValueSource(strings = {"simplejavamail.proxy.socks5bridge.port", "simplejavamail.locked.proxy.socks5bridge.port",
+			"simplejavamail.mailers.backup.proxy.socks5bridge.port", "simplejavamail.locked.mailers.backup.proxy.socks5bridge.port"})
+	void bridgePortInputsPreserveSpringPrecedencePlaceholdersAndProvenance(final String key) {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("bridge defaults", key, "1082"));
+		environment.getPropertySources().addFirst(new MapPropertySource("proxy deployment", Map.of(
+				key, "${bridge.listener.port}", "bridge.listener.port", "1081")));
+		assertBridgePort(loadConfig(environment), key, "proxy deployment");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"simple-java-mail.proxy.socks5bridge.port", "simple-java-mail.locked.proxy.socks5bridge.port"})
+	void relaxedBootInputsRetainTheBridgePort(final String key) {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("Boot proxy deployment", key, "1081"));
+		ConfigurationPropertySources.attach(environment);
+		assertBridgePort(loadConfig(environment), key.replace("simple-java-mail.", "simplejavamail."), "Boot proxy deployment");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"SIMPLEJAVAMAIL_PROXY_SOCKS5BRIDGE_PORT", "SIMPLEJAVAMAIL_LOCKED_PROXY_SOCKS5BRIDGE_PORT"})
+	void uppercaseSpringEnvironmentInputsRetainTheBridgePort(final String key) {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource("proxy environment", Map.of(key, "1081")));
+		final String canonicalKey = key.contains("_LOCKED_")
+				? "simplejavamail.locked.proxy.socks5bridge.port" : "simplejavamail.proxy.socks5bridge.port";
+		assertBridgePort(loadConfig(environment), canonicalKey, "proxy environment");
+	}
+
 	@Test
 	void resolvesConnectionConflictPolicyAfterSpringPrecedenceAndPlaceholderResolution() {
 		final StandardEnvironment environment = new StandardEnvironment();
@@ -338,6 +369,14 @@ class SpringEnvironmentConfigSourceTest {
 		assertThat(diagnostic.getSourceName()).isEqualTo("relaxed application config");
 		record("rule", "spring.relaxed-name");
 		record("case", "spring.relaxed-source");
+	}
+
+	private static void assertBridgePort(final SimpleJavaMailConfig config, final String key, final String sourceName) {
+		final SimpleJavaMailConfig selected = key.contains(".mailers.backup.") ? config.get(ConfigKeys.NAMED_MAILERS).get("backup") : config;
+		assertThat(selected.get(ConfigKeys.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
+		assertThat(selected.getPropertySource(ConfigKeys.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(sourceName);
+		assertThat(locksOf(selected).contains(ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(key.startsWith("simplejavamail.locked."));
+		assertThat(diagnostic(config.getDiagnostics(), key).getSourceName()).isEqualTo(sourceName);
 	}
 
 	private static ConfigDiagnostics load(final StandardEnvironment environment) {

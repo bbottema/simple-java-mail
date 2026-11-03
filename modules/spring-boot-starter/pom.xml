@@ -92,7 +92,7 @@
                             <rules>
                                 <requireUpperBoundDeps>
                                     <!-- Boot 2.7 deliberately selects its binary-compatible SLF4J 1.7 runtime. -->
-                                    <excludes>
+                                    <excludes combine.children="append">
                                         <exclude>org.slf4j:slf4j-api</exclude>
                                     </excludes>
                                 </requireUpperBoundDeps>

@@ -5,10 +5,12 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
 import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import testutil.ConfigLoaderTestHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 public class MailerBuilderProxyConfigTest {
 
@@ -20,7 +22,10 @@ public class MailerBuilderProxyConfigTest {
 				.buildMailer()) {
 			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isZero();
 			assertThat(mailer.getProxyConfig().toString()).contains("proxy bridge @ loopback:automatic");
-			assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("0");
+			assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isEqualTo(expectsDirectRoute());
+			assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? "proxy.example.com" : "127.0.0.1");
+			assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo(expectsDirectRoute() ? "1080" : "0");
+			assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
 		}
 	}
 

@@ -137,6 +137,7 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	private final ProxyConfig proxyConfig;
+	private final boolean directAuthenticatedSocks;
 
 	@NotNull
 	private final MailSendObserverNotifier mailSendObserverNotifier;
@@ -249,11 +250,12 @@ public class MailerImpl implements Mailer {
 				: preparedPlan;
 		this.session = session;
 		this.operationalConfig = operationalConfig;
+		this.directAuthenticatedSocks = applicationPlan.usesDirectAuthenticatedSocks();
 		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
 				supportsBackgroundConnectionSetup());
 		final TransportStrategy effectiveTransportStrategy = sessionSettings.getTransportStrategy();
 		final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
-				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
+				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties(), directAuthenticatedSocks);
 		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		final SessionConfigurationRollback callerRollback = ownsSession ? null
@@ -293,6 +295,10 @@ public class MailerImpl implements Mailer {
 				final TransportStrategy strategy = plan.settings().getTransportStrategy() == null ? SMTP : plan.settings().getTransportStrategy();
 				keys.add(strategy.propertyNameSocksHost());
 				keys.add(strategy.propertyNameSocksPort());
+				if (plan.usesDirectAuthenticatedSocks()) {
+					final String prefix = strategy.propertyNameSocksHost().replace(".socks.host", "");
+					keys.add(prefix + ".socketFactory.transport");
+				}
 			}
 			for (Object key : keys) {
 				if (session.getProperties().containsKey(key)) {
@@ -382,7 +388,7 @@ public class MailerImpl implements Mailer {
 		) : null;
 		initSession(session, operationalConfig, sessionSettings);
 		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session,
-				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null);
+				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null, directAuthenticatedSocks);
 		try {
 			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
 			return configuredProxy;
@@ -562,8 +568,8 @@ public class MailerImpl implements Mailer {
 	 * <p>
 	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. The resolved SMTP or SMTPS protocol selects the
 	 * property names, including for a caller-supplied Session without Simple Java Mail's transport-strategy marker.
-	 * Authenticated proxying sets the host to the JVM loopback address. The configured bridge port is used as the
-	 * initial port value; after the bridge starts, the actual bound port is written immediately before the transport connects.
+	 * Providers with the transport-creation hook retain the remote endpoint and receive a direct SOCKS factory. Older Angus uses
+	 * the loopback bridge; its actual bound port is written immediately before the transport connects.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
@@ -576,7 +582,7 @@ public class MailerImpl implements Mailer {
 			@NotNull final ProxyConfig proxyConfig,
 			@NotNull final OperationalConfig operationalConfig,
 			@NotNull final Session session,
-			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared) {
+			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared, final boolean directAuthenticatedSocks) {
 		if (operationalConfig.getCustomMailer() != null) {
 			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
 		} else if (!proxyConfig.requiresProxy()) {
@@ -589,6 +595,13 @@ public class MailerImpl implements Mailer {
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			}
 			if (proxyConfig.requiresAuthentication()) {
+				if (directAuthenticatedSocks) {
+					sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
+					sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
+					MailTransportLifecycleResolver.configureAuthenticatedSocks(session,
+							ModuleLoader.loadAuthenticatedSocksModule().createSocketProvider(proxyConfig));
+					return null;
+				}
 				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
@@ -878,7 +891,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private boolean supportsBackgroundConnectionSetup() {
-		// Authenticated SOCKS uses an operation-owned local bridge. Background allocation cannot keep that bridge alive or restart it safely.
+		// Both authenticated routes retain foreground-only setup so building or inspecting a Mailer cannot start proxy connections.
 		return usesSmtpConnection() && !(proxyConfig.requiresProxy() && proxyConfig.requiresAuthentication());
 	}
 

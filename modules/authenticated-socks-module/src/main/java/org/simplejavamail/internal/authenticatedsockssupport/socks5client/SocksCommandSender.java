@@ -90,10 +90,13 @@ final class SocksCommandSender {
 
 	public static void send(@NotNull final Socket socket, final String host, final int port)
 			throws IOException, SocksException {
-		final InputStream inputStream = socket.getInputStream();
-		final OutputStream outputStream = socket.getOutputStream();
 		final byte[] bytesOfHost = host.getBytes(UTF_8);
 		final int lengthOfHost = bytesOfHost.length;
+		if (lengthOfHost < 1 || lengthOfHost > 255) {
+			throw new SocksException("SOCKS destination host must contain between 1 and 255 UTF-8 bytes");
+		}
+		final InputStream inputStream = socket.getInputStream();
+		final OutputStream outputStream = socket.getOutputStream();
 		final byte[] bufferSent = new byte[7 + lengthOfHost];
 
 		bufferSent[0] = SOCKS_VERSION;

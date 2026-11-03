@@ -63,8 +63,7 @@ public final class ManagedAngusTransport extends SMTPTransport {
                 urlName != null && "smtps".equals(urlName.getProtocol()));
         propertyPrefix = "mail." + (urlName == null ? "smtp" : urlName.getProtocol());
         allowUtf8 = PropUtil.getBooleanProperty(session.getProperties(), "mail.mime.allowutf8", false);
-        final Object configuredFactory = session.getProperties().get(propertyPrefix + ".socketFactory");
-        socketFactory = configuredFactory instanceof AngusSocketFactory ? (AngusSocketFactory) configuredFactory : null;
+        socketFactory = AngusSocketFactory.find(session.getProperties(), propertyPrefix);
         writeTimeoutScheduler = AngusWriteTimeoutScheduler.find(session.getProperties(), urlName == null ? "smtp" : urlName.getProtocol());
     }
 
@@ -74,6 +73,9 @@ public final class ManagedAngusTransport extends SMTPTransport {
     }
 
     boolean hasTrackedSocketConfiguration() {
+        if (socketFactory != null && socketFactory.isDirectSocksFactory()) {
+            return session.getProperties().get(propertyPrefix + ".socketFactory.transport") == socketFactory && socketFactory.ownsPhysicalSocket();
+        }
         return socketFactory != null && session.getProperties().get(propertyPrefix + ".socketFactory") == socketFactory
                 && session.getProperties().get(propertyPrefix + ".ssl.socketFactory") == null
                 && session.getProperty(propertyPrefix + ".ssl.socketFactory.class") == null

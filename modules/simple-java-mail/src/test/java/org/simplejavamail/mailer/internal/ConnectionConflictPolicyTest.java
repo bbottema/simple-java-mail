@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.api.mailer.Mailer;
@@ -12,6 +14,7 @@ import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.SimpleJavaMailConfig;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.mockito.MockedStatic;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mockConstruction;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 class ConnectionConflictPolicyTest {
 
@@ -195,8 +199,10 @@ class ConnectionConflictPolicyTest {
                 assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("remote.example.org");
                 assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(2345);
                 assertThat(mailer.getProxyConfig().requiresAuthentication()).isTrue();
-                assertThat(mailer.getSession().getProperty(prefix + "socks.host")).isEqualTo("127.0.0.1");
-                assertThat(mailer.getSession().getProperty(prefix + "socks.port")).isEqualTo("0");
+                assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isEqualTo(expectsDirectRoute());
+                assertThat(mailer.getSession().getProperty(prefix + "socks.host")).isEqualTo(expectsDirectRoute() ? "remote.example.org" : "127.0.0.1");
+                assertThat(mailer.getSession().getProperty(prefix + "socks.port")).isEqualTo(expectsDirectRoute() ? "2345" : "0");
+                assertThat(mailer.getSession().getProperties().get(prefix + "socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
             }
         }
     }
@@ -252,15 +258,66 @@ class ConnectionConflictPolicyTest {
     @Test
     void authenticatedRouteCanSatisfyALiteralLockedLoopbackEndpoint() throws Exception {
         final String loopback = "127.0.0.1";
-        try (Mailer mailer = factory(Map.of("simplejavamail.locked.extraproperties.mail.smtp.socks.host", loopback,
+        final MailerRegularBuilder<?> builder = factory(Map.of("simplejavamail.locked.extraproperties.mail.smtp.socks.host", loopback,
                 "simplejavamail.locked.extraproperties.mail.smtp.socks.port", "1089"))
                 .mailerBuilder().withSMTPServer("smtp.example.org", 25)
                 .withProxyConfig(SocksProxyConfig.builder().withHost("remote.example.org").withPort(2345)
-                        .withUsername("user").withPassword("secret").withBridgePort(1089).build()).buildMailer()) {
+                        .withUsername("user").withPassword("secret").withBridgePort(1089).build());
+        if (expectsDirectRoute()) {
+            // A literal loopback lock describes a different physical route; it cannot become the remote proxy automatically.
+            assertThatThrownBy(builder::buildMailer).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("locked.extraproperties.mail.smtp.socks.");
+            return;
+        }
+        try (Mailer mailer = builder.buildMailer()) {
             assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("remote.example.org");
             assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(2345);
             assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo(loopback);
             assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("1089");
+        }
+    }
+
+    @Test
+    void aLiteralLockedRemoteEndpointFollowsTheSelectedPhysicalRoute() throws Exception {
+        final MailerRegularBuilder<?> builder = factory(Map.of("simplejavamail.locked.extraproperties.mail.smtp.socks.host", "remote.example.org",
+                "simplejavamail.locked.extraproperties.mail.smtp.socks.port", "2345"))
+                .mailerBuilder().withSMTPServer("smtp.example.org", 25)
+                .withProxyConfig(SocksProxyConfig.builder().withHost("remote.example.org").withPort(2345)
+                        .withUsername("user").withPassword("secret").build());
+        if (!expectsDirectRoute()) {
+            assertThatThrownBy(builder::buildMailer).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("locked.extraproperties.mail.smtp.socks.");
+            return;
+        }
+        try (Mailer mailer = builder.buildMailer()) {
+            assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isTrue();
+            assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("remote.example.org");
+            assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(2345);
+            assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo("remote.example.org");
+            assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("2345");
+            assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport")).isNotNull();
+        }
+    }
+
+    @ParameterizedTest(name = "literal physical proxy lock {0}, loopback={1}")
+    @CsvSource({"host,true", "host,false", "port,true", "port,false"})
+    void eachLiteralPhysicalProxyMemberIsCheckedIndependently(final String member, final boolean loopback) throws Exception {
+        final String key = "mail.smtp.socks." + member;
+        final String value = member.equals("host") ? (loopback ? "127.0.0.1" : "remote.example.org") : (loopback ? "1089" : "2345");
+        final MailerRegularBuilder<?> builder = factory(Map.of("simplejavamail.locked.extraproperties." + key, value))
+                .mailerBuilder().withSMTPServer("smtp.example.org", 25)
+                .withProxyConfig(SocksProxyConfig.builder().withHost("remote.example.org").withPort(2345)
+                        .withUsername("user").withPassword("secret").withBridgePort(1089).build());
+        if (expectsDirectRoute() == loopback) {
+            assertThatThrownBy(builder::buildMailer).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("locked.extraproperties." + key);
+        } else {
+            try (Mailer mailer = builder.buildMailer()) {
+                assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isEqualTo(expectsDirectRoute());
+                assertThat(mailer.getSession().getProperty(key)).isEqualTo(value);
+                assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("remote.example.org");
+                assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(2345);
+            }
         }
     }
 

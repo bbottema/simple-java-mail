@@ -71,6 +71,16 @@ published socket still closes immediately. An aborted instance is not reset for 
 
 The atomic handshake covers both orders: either abort finds the published socket, or publication sees the previously set abort flag. TLS normally wraps the tracked underlying socket; closing that underlying handle also breaks the TLS operation. The implementation preserves Angus's SOCKS-versus-HTTP-proxy choice, and Angus retains responsibility for connection timeouts, binding, TLS and SMTP negotiation.
 
+## Direct authenticated SOCKS in the development lane
+
+[ADR 0042](../adr/0042-direct-authenticated-socks-sockets.md) adds the direct route through the merged Angus transport hook. The ordinary released-Angus build retains its bridge. Route selection occurs before connection; a direct authentication, connection or TLS failure does not retry through a bridge or skip the proxy.
+
+The tracked factory occupies `socketFactory.transport` and captures the unconnected upstream socket before the SOCKS facade connects it. Angus still layers its write-timeout and TLS sockets and performs SMTP. Closing the captured handle releases supported blocked upstream I/O without waiting for a relay reader. Probes get a fresh factory/tracker and never borrow a send's registration.
+
+Only the recognized default/internal physical creator retains the managed abort/deadline capability. Application raw, transport or TLS factories remain opaque for that promise, even though direct connectivity can use them. Supplied Sessions keep their selected provider and existing support limits. Proxy-specific decoration is allowed only because authenticated proxying was explicitly requested; cancellation state remains outside Session properties.
+
+The bridge's established-write backpressure limitation remains distinct. Direct physical disposal does not establish that the legacy relay is repaired or that the remote peer has already observed EOF. SMTP acceptance and duplicate-risk interpretation are unchanged.
+
 ## Submission state is a separate machine
 
 Closing a connection says nothing by itself about whether the SMTP server accepted the message. The following are **derived interpretation phases**, not a new public enum and not an independent timer state machine.
@@ -127,8 +137,8 @@ The [shared infographic](inside-a-mail-send.md) therefore remains accurate; this
 | `AtomicBoolean aborted` | Permanent abort latch | Set before reading/closing the socket. Socket publication checks it after storing the socket. |
 | Per-`AngusSocketFactory` `ThreadLocal<SocketTracker>` | Which managed transport or dedicated probe owns socket creation on this thread | Set only around `protocolConnect()` and restored in `finally`; identifies ownership absent from `SocketFactory.createSocket()` arguments. It is not a per-email global map. |
 | Internal write-timeout controller monitor | Active scheduler generation, physical-connection references and permanent shutdown flag | Bookkeeping only. Scheduling, socket closure, shutdown and termination waits happen outside this monitor. See below. |
-| SSL guard's synchronized weak-key map | Original factory selected for each socket until Angus's post-handshake trust check | Only registration/removal is synchronized. Factory creation, handshake and original trust callbacks run outside the map monitor. A completed check removes the entry; failed-handshake sockets are weakly held. Missing entries reject trust rather than bypassing the check. |
-| Session properties | Pre-publication factory configuration | Do not mutate caller-owned Sessions or put cancellation state here. `hasTrackedSocketConfiguration()` verifies the expected factory identity, disabled fallback and lack of SSL factory override when advertising capability. |
+| Legacy custom-TLS cleanup guard's synchronized weak-key map | Original factory selected for each socket until Angus's post-handshake trust check | Only registration/removal is synchronized. Factory creation, handshake and original trust callbacks run outside the map monitor. A completed check removes the entry; failed-handshake sockets are weakly held. Missing entries reject trust rather than bypassing the check. |
+| Session properties | Pre-publication factory configuration | Caller-owned changes are limited to explicitly requested proxy-route decoration; never put cancellation state here. `hasTrackedSocketConfiguration()` verifies the route-specific factory identity and recognized physical ownership, excluding opaque application factories. |
 | Upstream lease CAS and SJM registration fence | Authority to invoke abort while this generation owns the transport | See [pool claims and leases](06-pool-claims-and-leases.md). Atomic socket access alone would not stop a stale callback from hurting a new borrower. |
 
 ### Blocking points and lock order

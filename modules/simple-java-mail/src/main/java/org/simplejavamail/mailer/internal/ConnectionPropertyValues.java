@@ -28,8 +28,8 @@ final class ConnectionPropertyValues {
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
         register(members, Kind.TRUST, "ssl.trust");
         register(members, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class",
-                "socketFactory.class", "auth.mechanisms");
-        register(members, Kind.OBJECT, "ssl.socketFactory", "socketFactory");
+                "socketFactory.class", "socketFactory.transport.class", "auth.mechanisms");
+        register(members, Kind.OBJECT, "ssl.socketFactory", "socketFactory", "socketFactory.transport");
         return Collections.unmodifiableMap(members);
     }
 

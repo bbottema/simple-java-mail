@@ -28,6 +28,10 @@ public final class AngusSmtpConnectionProbeAdapter implements SmtpConnectionProb
         if (session.getProperties().get("mail." + protocol + ".socketFactory") instanceof AngusSocketFactory) {
             session.getProperties().put("mail." + protocol + ".socketFactory", new AngusSocketFactory(session.getProperties(), "mail." + protocol));
         }
+        final Object transportFactory = session.getProperties().get("mail." + protocol + ".socketFactory.transport");
+        if (transportFactory instanceof AngusSocketFactory) {
+            session.getProperties().put("mail." + protocol + ".socketFactory.transport", ((AngusSocketFactory) transportFactory).forProbe(session.getProperties()));
+        }
         AngusWriteTimeoutScheduler.isolateProbe(session.getProperties(), "mail." + protocol);
         final AngusProbeTransport transport = new AngusProbeTransport(session, protocol, authenticate);
         try {

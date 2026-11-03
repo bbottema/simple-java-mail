@@ -42,8 +42,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
-/** Exercises setup capacity independently of the number of live retained forwarding tunnels. */
+/** Both supported routes can establish another connection while a hundred retained SMTP scopes remain usable. */
 @Timeout(90)
 class AuthenticatedSocksCapacityTest {
     private static final int RETAINED_CONNECTIONS = 100;
@@ -59,7 +60,7 @@ class AuthenticatedSocksCapacityTest {
         final CountDownLatch releaseRetained = new CountDownLatch(1);
         final CountDownLatch reused = new CountDownLatch(RETAINED_CONNECTIONS);
         final AtomicInteger liveCallbacks = new AtomicInteger();
-        final Set<Integer> bridgePorts = ConcurrentHashMap.newKeySet();
+        final Set<Integer> routePorts = ConcurrentHashMap.newKeySet();
         final List<CompletableFuture<Void>> retained = new ArrayList<>();
         try (ProxySmtpFixture fixture = new ProxySmtpFixture()) {
             final Mailer mailer = mailer(fixture);
@@ -74,7 +75,7 @@ class AuthenticatedSocksCapacityTest {
                             mailer.withOpenConnection(sender -> {
                                 assertThat(sender.sendMail(email(connection, "first")).getStatus()).isEqualTo(ACCEPTED);
                                 liveCallbacks.incrementAndGet();
-                                bridgePorts.add(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port")));
+                                routePorts.add(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port")));
                                 opened.complete(null);
                                 try {
                                     assertThat(reuseRetained.await(60, SECONDS)).as("retained scope receives its reuse signal").isTrue();
@@ -90,14 +91,14 @@ class AuthenticatedSocksCapacityTest {
                             throw new CompletionException(failure);
                         }
                     }, callers));
-                    // Establish scopes individually: pending-admission burst limits are a separate concern.
+                    // Establish scopes individually so the witness isolates retained connection capacity.
                     opened.get(Math.max(1, establishmentDeadline - System.nanoTime()), TimeUnit.NANOSECONDS);
                 }
 
                 assertThat(liveCallbacks).hasValue(RETAINED_CONNECTIONS);
                 assertThat(fixture.sjmConnections).hasValue(RETAINED_CONNECTIONS);
                 assertThat(fixture.sjmMessages).hasValue(RETAINED_CONNECTIONS);
-                assertThat(bridgePorts).as("one bridge listener generation remains held").hasSize(1);
+                assertRoute(mailer, fixture, routePorts);
                 fixture.assertHealthy();
                 System.out.println("SOCKS_CAPACITY retained-ready " + fixture.counts(liveCallbacks, reused));
 
@@ -112,7 +113,7 @@ class AuthenticatedSocksCapacityTest {
                 final CompletableFuture<Void> extra = CompletableFuture.runAsync(() -> {
                     try {
                         mailer.withOpenConnection(sender -> {
-                            bridgePorts.add(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port")));
+                            routePorts.add(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port")));
                             assertThat(sender.sendMail(email(RETAINED_CONNECTIONS, "extra")).getStatus()).isEqualTo(ACCEPTED);
                         });
                     } catch (Exception | Error failure) {
@@ -134,12 +135,12 @@ class AuthenticatedSocksCapacityTest {
                 assertThat(reused.await(15, SECONDS)).as("all original SMTP connections remain usable").isTrue();
                 assertThat(liveCallbacks).hasValue(RETAINED_CONNECTIONS);
                 assertThat(retained).allSatisfy(scope -> assertThat(scope.isDone()).isFalse());
-                assertThat(bridgePorts).as("the same listener generation serves the extra setup and retained reuse").hasSize(1);
+                assertRoute(mailer, fixture, routePorts);
                 fixture.assertHealthy();
                 System.out.println("SOCKS_CAPACITY retained-reused extraSucceeded=" + (extraFailure == null) + " "
                         + fixture.counts(liveCallbacks, reused));
                 if (extraFailure != null) {
-                    throw new AssertionError("The101st SJM setup failed while100 healthy retained SMTP scopes remained open; "
+                    throw new AssertionError("The 101st SJM setup failed while 100 healthy retained SMTP scopes remained open; "
                             + fixture.counts(liveCallbacks, reused), extraFailure);
                 }
                 assertThat(fixture.sjmConnections).hasValue(RETAINED_CONNECTIONS + 1);
@@ -155,6 +156,20 @@ class AuthenticatedSocksCapacityTest {
         } finally {
             callers.shutdownNow();
             assertThat(callers.awaitTermination(10, SECONDS)).as("application scope workers stop").isTrue();
+        }
+    }
+
+    private static void assertRoute(final Mailer mailer, final ProxySmtpFixture fixture, final Set<Integer> routePorts) {
+        if (expectsDirectRoute()) {
+            assertThat(routePorts).as("all retained connections use the configured remote endpoint").containsExactly(fixture.listener.getLocalPort());
+            assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport")).isNotNull();
+            assertThat(Thread.getAllStackTraces().keySet()).noneSatisfy(thread ->
+                    assertThat(thread.getName()).startsWith("simple-java-mail SOCKS5"));
+        } else {
+            assertThat(routePorts).as("one bridge listener generation serves every retained scope and the extra setup").hasSize(1)
+                    .doesNotContain(fixture.listener.getLocalPort());
+            assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo("127.0.0.1");
+            assertThat(mailer.getSession().getProperties()).doesNotContainKey("mail.smtp.socketFactory.transport");
         }
     }
 

@@ -24,6 +24,7 @@ public class Socks5 {
 	private ProxyCredentials credentials = new ProxyCredentials();
 
 	private InetAddress inetAddress;
+	private String proxyHost;
 
 	@SuppressWarnings("UnusedAssignment")
 	private int port = SOCKS_DEFAULT_PORT;
@@ -46,6 +47,7 @@ public class Socks5 {
 	@SuppressWarnings("SameParameterValue")
 	private Socks5(@Nullable final Socks5 chainProxy, final InetSocketAddress socketAddress) {
 		inetAddress = socketAddress.getAddress();
+		proxyHost = socketAddress.getHostString();
 		port = socketAddress.getPort();
 		this.setChainProxy(chainProxy);
 	}
@@ -93,6 +95,15 @@ public class Socks5 {
 		return port;
 	}
 
+    String getProxyHost() {
+        return proxyHost;
+    }
+
+	/** Retains unresolved hosts and already-known addresses without asking the resolver. */
+	InetSocketAddress getProxyAddress() {
+		return inetAddress == null ? InetSocketAddress.createUnresolved(proxyHost, port) : new InetSocketAddress(inetAddress, port);
+	}
+
 	Socks5 setPort(final int port) {
 		this.port = port;
 		return this;
@@ -136,7 +147,7 @@ public class Socks5 {
 	}
 
 	public Socks5 copy() {
-		final Socks5 socks5 = new Socks5(inetAddress, port);
+		final Socks5 socks5 = new Socks5(getProxyAddress());
 		socks5.setAlwaysResolveAddressLocally(alwaysResolveAddressLocally).setCredentials(credentials)
 				.setSocksAuthenticationHelper(socksAuthenticationHelper).setChainProxy(chainProxy);
 		return socks5;
@@ -158,13 +169,16 @@ public class Socks5 {
 
 	Socks5 setInetAddress(final InetAddress inetAddress) {
 		this.inetAddress = inetAddress;
+		if (inetAddress != null) {
+			proxyHost = new InetSocketAddress(inetAddress, port).getHostString();
+		}
 		return this;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder stringBuffer = new StringBuilder("[SOCKS5:");
-		stringBuffer.append(new InetSocketAddress(inetAddress, port)).append("]");
+		stringBuffer.append(getProxyAddress()).append("]");
 		if (getChainProxy() != null) {
 			return stringBuffer.append(" --> ").append(getChainProxy()).toString();
 		}

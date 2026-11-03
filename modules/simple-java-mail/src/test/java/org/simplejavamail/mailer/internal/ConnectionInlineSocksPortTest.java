@@ -15,6 +15,7 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.modules.AuthenticatedSocksModule;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 class ConnectionInlineSocksPortTest {
     @ParameterizedTest(name = "{0} {1} suffix={2} separate={3} credentials={4}")
@@ -69,6 +71,9 @@ class ConnectionInlineSocksPortTest {
         final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
         final AnonymousSocks5Server bridge = mock(AnonymousSocks5Server.class);
         when(module.createAnonymousSocks5Server(any())).thenReturn(bridge);
+        when(module.createSocketProvider(any())).thenReturn(rawSocket -> {
+            throw new AssertionError("Building an inline authenticated route must not wrap or connect a socket");
+        });
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
@@ -81,8 +86,28 @@ class ConnectionInlineSocksPortTest {
                 }
                 if (credentials) {
                     final ArgumentCaptor<ProxyConfig> endpoint = ArgumentCaptor.forClass(ProxyConfig.class);
-                    verify(module).createAnonymousSocks5Server(endpoint.capture());
+                    assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(built.getSession()))
+                            .as("the stock Angus provider must match the explicit test lane").isEqualTo(expectsDirectRoute());
+                    if (expectsDirectRoute()) {
+                        verify(module).createSocketProvider(endpoint.capture());
+                        verify(module, never()).createAnonymousSocks5Server(any());
+                        assertThat(built.getSession().getProperty(hostKey)).isEqualTo("proxy.example.org");
+                        assertThat(built.getSession().getProperty(portKey)).isEqualTo(Integer.toString(expectedPort));
+                        assertThat(built.getSession().getProperties().get((strategy == TransportStrategy.SMTP ? "mail.smtp" : "mail.smtps")
+                                + ".socketFactory.transport")).isNotNull();
+                    } else {
+                        verify(module).createAnonymousSocks5Server(endpoint.capture());
+                        verify(module, never()).createSocketProvider(any());
+                        assertThat(built.getSession().getProperty(hostKey)).isEqualTo("127.0.0.1");
+                        assertThat(built.getSession().getProperty(portKey)).isEqualTo("0");
+                    }
+                    assertThat(endpoint.getValue().getRemoteProxyHost()).isEqualTo("proxy.example.org");
                     assertThat(endpoint.getValue().getRemoteProxyPort()).isEqualTo(expectedPort);
+                    assertThat(endpoint.getValue().getUsername()).isEqualTo("test-user");
+                    assertThat(endpoint.getValue().getPassword()).isEqualTo("test-password");
+                } else {
+                    verify(module, never()).createAnonymousSocks5Server(any());
+                    verify(module, never()).createSocketProvider(any());
                 }
                 verify(bridge, never()).start();
             }

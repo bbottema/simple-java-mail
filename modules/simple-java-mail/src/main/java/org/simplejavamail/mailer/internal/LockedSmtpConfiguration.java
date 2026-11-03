@@ -44,13 +44,19 @@ final class LockedSmtpConfiguration {
 
     LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
             final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties) {
+        this(config, server, proxy, operational, strategy, resolvedProperties, false);
+    }
+
+    LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
+            final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties,
+            final boolean directAuthenticatedSocks) {
         this.locks = locksOf(config);
         this.server = server;
         this.proxy = proxy;
         this.operational = operational;
         this.suppliedSslFactoryInstance = server != null && server.getCustomSSLFactoryInstance() != null
                 || strategy != null && resolvedProperties.containsKey(strategy.propertyNameSSLSocketFactory());
-        this.connectionRequirements = new LockedSmtpConnectionRequirements(config, proxy, operational.isTrustAllSSLHost(), strategy);
+        this.connectionRequirements = new LockedSmtpConnectionRequirements(config, proxy, operational.isTrustAllSSLHost(), strategy, directAuthenticatedSocks);
     }
 
     boolean hasLocks() { return !locks.isEmpty(); }

@@ -34,6 +34,9 @@
         <opentelemetry.version>1.67.0</opentelemetry.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
         <configuration.contract.skip>false</configuration.contract.skip>
+        <angus-mail.version>2.0.5</angus-mail.version>
+        <angus.merged.source.revision></angus.merged.source.revision>
+        <sjm.test.authenticatedSocksRoute>bridge</sjm.test.authenticatedSocksRoute>
     </properties>
 
     <!-- to skip some steps: -DskipTests -Dmaven.javadoc.skip=true -->
@@ -252,7 +255,7 @@
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-mail</artifactId>
-                <version>2.0.5</version>
+                <version>${angus-mail.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -446,6 +449,8 @@
                         <sjm.configuration.contract.run>run-${session.request.startTime.time}</sjm.configuration.contract.run>
                         <sjm.configuration.contract.module>${project.basedir}/.</sjm.configuration.contract.module>
                         <sjm.configuration.contract.inventory>${maven.multiModuleProjectDirectory}/modules/simple-java-mail/src/test/resources/.</sjm.configuration.contract.inventory>
+                        <sjm.test.authenticatedSocksRoute>${sjm.test.authenticatedSocksRoute}</sjm.test.authenticatedSocksRoute>
+                        <sjm.test.angusMergedSource>${angus.merged.source.revision}</sjm.test.angusMergedSource>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -637,6 +642,58 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>angus-merged-development</id>
+            <properties>
+                <angus-mail.version>2.1.0-SNAPSHOT</angus-mail.version>
+                <angus.merged.source.revision>74a8e1be20011123d5930ef1d112ad6d10490614</angus.merged.source.revision>
+                <sjm.test.authenticatedSocksRoute>direct</sjm.test.authenticatedSocksRoute>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>enforce-build</id>
+                                <configuration>
+                                    <rules>
+                                        <!-- The private build deliberately retains the released API/Activation stack. -->
+                                        <requireUpperBoundDeps>
+                                            <excludes>
+                                                <exclude>jakarta.mail:jakarta.mail-api</exclude>
+                                                <exclude>jakarta.activation:jakarta.activation-api</exclude>
+                                                <exclude>org.eclipse.angus:angus-activation</exclude>
+                                            </excludes>
+                                        </requireUpperBoundDeps>
+                                        <requireReleaseDeps>
+                                            <excludes>
+                                                <exclude>org.eclipse.angus:angus-mail</exclude>
+                                            </excludes>
+                                        </requireReleaseDeps>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>require-private-merged-angus-build</id>
+                                <goals><goal>enforce</goal></goals>
+                                <configuration>
+                                    <rules>
+                                        <requireFilesExist>
+                                            <files>
+                                                <file>${settings.localRepository}/.sjm-merged-angus/${angus.merged.source.revision}.json</file>
+                                            </files>
+                                            <message>Build the pinned Angus sources into a private cache with scripts/Use-MergedAngus.ps1 before using this development profile.</message>
+                                        </requireFilesExist>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>configuration-contracts-tests-skipped</id>
             <activation><property><name>skipTests</name><value>true</value></property></activation>

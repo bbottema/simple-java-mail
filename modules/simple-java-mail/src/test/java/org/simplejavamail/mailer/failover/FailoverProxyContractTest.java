@@ -18,6 +18,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import testutil.smtp.RecordingSmtpServer;
 
 import javax.net.ServerSocketFactory;
@@ -30,8 +31,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
+import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
-/** Public sending plus real loopback SMTP/SOCKS; the remote proxy permits anonymous access but SJM's authenticated bridge is exercised. */
+/** Public sending plus real loopback SMTP/SOCKS through the authenticated route selected for the loaded Angus lane. */
 @Timeout(40)
 class FailoverProxyContractTest {
 
@@ -47,7 +49,12 @@ class FailoverProxyContractTest {
                      .withFailoverMailer(alternative, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             // Observe a quiet background interval, not a send-performance threshold. The gate itself has a deterministic companion test.
             assertThat(incidents.observed.await(300, MILLISECONDS)).as("no SMTP outage before a foreground proxy scope exists").isFalse();
-            assertThat(initiating.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("0");
+            assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(initiating.getSession())).isEqualTo(expectsDirectRoute());
+            assertThat(initiating.getSession().getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? "localhost" : "127.0.0.1");
+            assertThat(initiating.getSession().getProperty("mail.smtp.socks.port"))
+                    .isEqualTo(expectsDirectRoute() ? Integer.toString(proxy.getPort()) : "0");
+            assertThat(initiating.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
+            assertThat(primary.connectionCount()).as("authenticated core-pool setup waits for foreground work in both routes").isZero();
             for (int index = 0; index < 2; index++) {
                 final var receipt = send(initiating, email(), asynchronous);
                 assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
@@ -74,7 +81,8 @@ class FailoverProxyContractTest {
             peer.expectClosed();
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer alternative = builder(secondary.port()).buildMailer();
              Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(proxy.getPort()).withUsername("user").withPassword("password").build())
-                     .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build())).withFailoverMailer(alternative, policy())
+                     // Isolate one foreground setup attempt; the separate core-size-one test above covers background allocation.
+                     .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(0).withMaxSize(1).build())).withFailoverMailer(alternative, policy())
                      .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             final var receipt = initiating.sync().sendMail(email());
             assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);
