@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
@@ -314,8 +315,9 @@ public class MailerHelper {
 
 	/**
 	 * Depending on the Email configuration, signs and then encrypts message (both steps optional), using the S/MIME module.
-	 * The supplied {@code messageToProtect} remains the input, including any application changes to its content or headers;
-	 * it is not rebuilt from the Email. The Email supplies already selected S/MIME configuration, without applying Mailer
+	 * The supplied {@code messageToProtect} remains the content and applicable-header input, including application changes;
+	 * it is not rebuilt from the Email. Message-ID follows the Email's configured choice as described below.
+	 * The Email supplies already selected S/MIME configuration, without applying Mailer
 	 * defaults or overrides. This helper does not apply DKIM or OpenPGP choices.
 	 * <p>
 	 * Signing and encryption are independently optional. Recipient-level TO/CC/BCC certificates trigger encryption and take
@@ -323,8 +325,14 @@ public class MailerHelper {
 	 * Encryption algorithms come from the Email-level configuration when present, otherwise the S/MIME module's defaults apply.
 	 * Each transformed stage is finalized before further protection, retaining stable bytes for repeated writes.
 	 * <p>
+	 * For active protection, a nonempty {@link Email#getId()} supplies the result's fixed Message-ID; otherwise a new ID is generated.
+	 * An existing Message-ID on {@code messageToProtect} alone does not request reuse. To retain it deliberately, configure
+	 * {@link EmailPopulatingBuilder#fixingMessageId(String) fixingMessageId(messageToProtect.getMessageID())} on the Email builder.
+	 * Conversion and copying can already carry an ID onto an Email, so a configured value need not come from a direct setter call.
+	 * Use {@link EmailPopulatingBuilder#clearId()} on a copied builder when a new identity is intended. Repeated writes retain the finalized result's ID.
+	 * <p>
 	 * With no S/MIME signing or encryption request, returns the same message instance without reading or finalizing its content
-	 * or loading the optional module. Requested protection requires the S/MIME module on the runtime classpath.
+	 * or loading the optional module, including retaining its existing Message-ID. Requested protection requires the S/MIME module on the runtime classpath.
 	 *
 	 * @return The finalized protected message, or the supplied instance when no S/MIME operation was requested.
 	 * @throws MailException With kind {@link MailFailureKind#PREPARATION} if MIME finalization fails; the original cause is retained.

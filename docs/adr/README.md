@@ -14,6 +14,8 @@ The selected 2 November follow-ups preserve startup-log targets before refusing 
 
 The 2 November text-body follow-up under [#959](https://github.com/bbottema/simple-java-mail/issues/959) reads provider-returned plain-text and HTML streams with the ordinary handler's MIME charset aliases and default, while retaining acquired-stream cleanup and conversion causes. ADRs [0035](0035-tolerant-reading-and-strict-production.md) and [0036](0036-structural-message-snapshots-and-borrowed-content.md) own interpretation and resource lifetime; the issue tracks delivery.
 
+The 3 November clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#message-id-selection-for-existing-mime-protection-clarified-3-november-2026) makes the existing S/MIME helper Message-ID rule explicit: active protection follows the Email argument's configured ID or generates a new one, while a no-op retains the original message. Copy/import defaults and runtime behavior remain unchanged.
+
 | Record | Decision | Status | Implementation |
 | --- | --- | --- | --- |
 | [0001](0001-email-configuration-scopes-and-inheritance.md) | Put S/MIME, DKIM, and DSN settings at the message, transaction, or recipient scope where they make sense. | Accepted, 2026-09-16; unified lenient mailbox interpretation clarification accepted 2026-10-21 | Recipient-level DSN and automatic ORCPT accepted for unreleased 10.0.0. Address-list parsing consistency implemented under [#824](https://github.com/bbottema/simple-java-mail/issues/824) for unreleased 10.0.0. |

@@ -160,12 +160,12 @@ it introduces no runtime API or behavior change.
 ## Protecting an existing MIME message (accepted 22 October 2026)
 
 The supported `MailerHelper.signAndOrEncryptMessageWithSmime(Session, MimeMessage, Email)` utility protects the supplied MIME message,
-using only the Email's outgoing S/MIME choices. Signing and encryption are independently optional; when both are requested, sign first and
+using the Email's outgoing S/MIME choices and optional configured Message-ID. Signing and encryption are independently optional; when both are requested, sign first and
 finalize each transformed stage before the next. Apply the same recipient-certificate selection, Email-level fallback and configured algorithms
 as ordinary conversion. A request with no S/MIME operation returns the supplied message instance without reading or finalizing its content or
 loading the optional module. An active protection request retains the focused missing-module failure under [ADR 0006](0006-optional-modules.md).
 
-The supplied MIME content and headers remain the input, including application changes made after conversion. The Email supplies configuration;
+The supplied MIME content and applicable headers remain the input, including application changes made after conversion; Message-ID follows the configuration rule below. The Email supplies configuration;
 it does not replace the MIME input or cause Mailer templates to be completed. This utility does not apply unrelated DKIM or OpenPGP choices.
 Cryptographic implementation and configuration validation stay at their existing feature boundaries. Main-runtime orchestration is shared with
 ordinary conversion under [ADR 0031](0031-public-api-and-internal-construction.md), preserving that path's established ordering and finalization.
@@ -174,6 +174,19 @@ The public helper retains its existing signature. A MIME finalization failure is
 the converter keeps its existing conversion-failure mapping. Module-loading and cryptographic runtime failures retain their existing types.
 This corrects behavior already present in released 9.3.6 without introducing a configuration switch or changing ordinary conversion's selection.
 [#850](https://github.com/bbottema/simple-java-mail/issues/850) tracks implementation and delivery for unreleased 10.0.0.
+
+### Message-ID selection for existing MIME protection (clarified 3 November 2026)
+
+During active signing or encryption, a nonempty ID configured on the Email argument supplies the result's Message-ID. Without that value,
+generate a new ID instead of implicitly retaining a header observed on the supplied MIME message. The Email's choice wins when it differs
+from the MIME header. Repeated writes of the finalized result retain its selected identity. A no-op request keeps returning the supplied
+message unchanged, without finalization, content access or optional-module loading.
+
+Conversion and copying can already retain an ID on an Email, so a present configured value does not establish that the caller directly used
+`fixingMessageId`. Callers can use `clearId()` on a copied builder for a new outgoing identity or deliberately select
+`fixingMessageId(message.getMessageID())` when retaining an existing message's identity. This clarifies the helper's current behavior and the
+Message-ID exception to header preservation; it changes neither runtime selection nor ordinary copy/import defaults. No new API or setting
+is introduced.
 
 ## Root message and child header ownership (accepted 22 October 2026)
 

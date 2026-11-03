@@ -65,20 +65,118 @@ import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 class MailerHelperSmimeTest {
 
 	private static final String RAW_BODY = "Caller changed the MIME body: Gr\u00fc\u00dfe";
+	private static final String SOURCE_ID = "<existing-message@example.org>";
+	private static final String CONFIGURED_ID = "<configured-message@example.org>";
 	private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 	@Test
-	void noProtectionReturnsTheSameMessageWithoutReadingItOrLoadingTheModule() {
+	void noProtectionReturnsTheSameMessageWithoutReadingItOrLoadingTheModule() throws Exception {
 		final Session session = Session.getInstance(new Properties());
 		final MimeMessage unreadable = new MimeMessage(session) {
 			@Override public Object getContent() { throw new AssertionError("No-op must not read content"); }
+			@Override public void saveChanges() { throw new AssertionError("No-op must not finalize content"); }
 		};
+		unreadable.setHeader("Message-ID", SOURCE_ID);
 		final Email details = mail.emailBuilder().startingBlank().from("sender@example.org")
+				.fixingMessageId(CONFIGURED_ID)
 				.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData(new byte[] {1})
 						.dkimSigningDomain("example.org").dkimSelector("unused").build()).buildEmail();
 		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
 			assertThat(MailerHelper.signAndOrEncryptMessageWithSmime(session, unreadable, details)).isSameAs(unreadable);
+			assertThat(unreadable.getMessageID()).isEqualTo(SOURCE_ID);
 			modules.verifyNoInteractions();
 		}
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = Protection.class, names = {"SIGNING", "ENCRYPTION", "BOTH"})
+	void configuredIdWinsOverTheSuppliedMimeIdAndSurvivesRepeatedWrites(final Protection protection) throws Exception {
+		final Email details = protection.configure(mail.emailBuilder().startingBlank()
+				.fixingMessageId(CONFIGURED_ID)).buildEmail();
+		final MimeMessage raw = rawMessage();
+		raw.setHeader("Message-ID", SOURCE_ID);
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+
+		assertThat(result.getMessageID()).isEqualTo(CONFIGURED_ID);
+		assertProtectedContent(result, protection, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(CONFIGURED_ID);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = Protection.class, names = {"SIGNING", "ENCRYPTION", "BOTH"})
+	void aSuppliedMimeIdAloneDoesNotRequestReuse(final Protection protection) throws Exception {
+		final Email details = protection.configure(mail.emailBuilder().startingBlank()).buildEmail();
+		final MimeMessage raw = rawMessage();
+		raw.setHeader("Message-ID", SOURCE_ID);
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+		final String generatedId = result.getMessageID();
+
+		assertThat(generatedId).isNotBlank().isNotEqualTo(SOURCE_ID);
+		assertProtectedContent(result, protection, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(generatedId);
+		assertThat(details.getId()).isNull();
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = Protection.class, names = {"SIGNING", "ENCRYPTION", "BOTH"})
+	void missingConfiguredAndMimeIdsProduceAStableGeneratedId(final Protection protection) throws Exception {
+		final Email details = protection.configure(mail.emailBuilder().startingBlank()).buildEmail();
+		final MimeMessage raw = rawMessage();
+		raw.removeHeader("Message-ID");
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+		final String generatedId = result.getMessageID();
+
+		assertThat(generatedId).isNotBlank();
+		assertProtectedContent(result, protection, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(generatedId);
+	}
+
+	@Test
+	void anEmptyConfiguredIdAlsoRequestsGeneration() throws Exception {
+		final Email details = Protection.BOTH.configure(mail.emailBuilder().startingBlank()
+				.fixingMessageId("")).buildEmail();
+		final MimeMessage raw = rawMessage();
+		raw.setHeader("Message-ID", SOURCE_ID);
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+		final String generatedId = result.getMessageID();
+
+		assertThat(generatedId).isNotBlank().isNotEqualTo(SOURCE_ID);
+		assertProtectedContent(result, Protection.BOTH, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(generatedId);
+	}
+
+	@Test
+	void clearingACopiedConfiguredIdRequestsANewIdentity() throws Exception {
+		final Email original = Protection.BOTH.configure(mail.emailBuilder().startingBlank()
+				.fixingMessageId(CONFIGURED_ID)).buildEmail();
+		final Email details = mail.emailBuilder().copying(original).clearId().buildEmail();
+		final MimeMessage raw = rawMessage();
+		raw.setHeader("Message-ID", SOURCE_ID);
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+		final String generatedId = result.getMessageID();
+
+		assertThat(generatedId).isNotBlank().isNotEqualTo(CONFIGURED_ID).isNotEqualTo(SOURCE_ID);
+		assertProtectedContent(result, Protection.BOTH, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(generatedId);
+		assertThat(original.getId()).isEqualTo(CONFIGURED_ID);
+	}
+
+	@Test
+	void aCallerCanDeliberatelyFixTheSuppliedMimeId() throws Exception {
+		final MimeMessage raw = rawMessage();
+		raw.setHeader("Message-ID", SOURCE_ID);
+		final Email details = Protection.BOTH.configure(mail.emailBuilder().startingBlank()
+				.fixingMessageId(raw.getMessageID())).buildEmail();
+
+		final MimeMessage result = MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
+
+		assertThat(result.getMessageID()).isEqualTo(SOURCE_ID);
+		assertProtectedContent(result, Protection.BOTH, RAW_BODY);
+		assertThat(result.getMessageID()).isEqualTo(SOURCE_ID);
 	}
 
 	@ParameterizedTest
