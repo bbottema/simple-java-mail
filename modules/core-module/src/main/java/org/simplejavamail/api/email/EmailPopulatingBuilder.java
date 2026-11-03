@@ -977,14 +977,20 @@ public interface EmailPopulatingBuilder {
 	/**
 	 * When S/MIME processing extracts the content of a signed or encrypted attachment, the result is kept in a separate inspection list.
 	 * If this is the only attachment and its extracted content has MIME type {@code message/rfc822}, it is assumed to be the message
-	 * itself and by default is merged with the top level email. The inner message supplies the body, and attachments from both
-	 * messages are retained. Header names are compared case-insensitively: each inner header replaces the complete outer value list
+	 * itself and by default is merged with the top level email. The inner message supplies plain text and HTML, including absent
+	 * alternatives and their specific encodings. A present inner calendar supplies its method, text and specific encoding together;
+	 * an absent inner calendar leaves the outer calendar and encoding intact. An empty String is present, and an omitted inner
+	 * specific encoding clears that choice when its content is selected. Attachments from both messages are retained.
+	 * Outer identity, addressing and outgoing policy remain; inspection facts stay with their source view.
+	 * Header names are compared case-insensitively: each inner header replaces the complete outer value list
 	 * with that name, retaining the first display spelling. Defaults and overrides still apply later during ordinary completion.
 	 * <p>
 	 * Calling this method keeps the extracted attachment separate instead of merging it with the email. It does not change S/MIME
 	 * extraction: if a key is missing or the payload cannot be converted to an attachment, the inspection list retains the original protected resource.
 	 * A copied Email already supplies its visible content to the builder: disabling merging there does not remove copied bodies or resources.
 	 * Later builder edits remain authoritative over the retained signed-content history.
+	 * Initial import builders apply merging at build time; copy the built Email before editing content that must take precedence,
+	 * or keep the views separate before editing.
 	 * <p>
 	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
 	 */

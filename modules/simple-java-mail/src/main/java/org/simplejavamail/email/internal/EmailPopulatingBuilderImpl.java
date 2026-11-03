@@ -2341,6 +2341,11 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		textHTML = smimeSignedEmail.getHTMLText();
 		plainTextContentTransferEncoding = smimeSignedEmail.getPlainTextContentTransferEncoding();
 		htmlTextContentTransferEncoding = smimeSignedEmail.getHTMLTextContentTransferEncoding();
+		if (smimeSignedEmail.getCalendarText() != null) {
+			calendarMethod = smimeSignedEmail.getCalendarMethod();
+			textCalendar = smimeSignedEmail.getCalendarText();
+			calendarTextContentTransferEncoding = smimeSignedEmail.getCalendarTextContentTransferEncoding();
+		}
 		attachments.addAll(smimeSignedEmail.getAttachments());
 		embeddedImages.addAll(smimeSignedEmail.getEmbeddedImages());
 		decryptedAttachments.addAll(smimeSignedEmail.getDecryptedAttachments());

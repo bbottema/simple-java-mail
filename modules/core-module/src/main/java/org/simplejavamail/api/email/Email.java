@@ -351,6 +351,7 @@ public class Email implements Serializable {
 
 		final boolean smimeMerge = contentState == SmimeContentState.DEFERRED
 				&& builder.isMergeSingleSMIMESignedAttachment() && smimeSignedEmail != null;
+		final boolean smimeCalendarMerge = smimeMerge && smimeSignedEmail.getCalendarText() != null;
 
 		wasMergedWithSmimeSignedMessage = contentState == SmimeContentState.MATERIALIZED_MERGED || smimeMerge;
 		recipients = builder.getRecipients();
@@ -372,12 +373,12 @@ public class Email implements Serializable {
 		bounceToRecipient = builder.getBounceToRecipient();
 		text = smimeMerge ? smimeSignedEmail.getPlainText() : builder.getPlainText();
 		textHTML = smimeMerge ? smimeSignedEmail.getHTMLText() : builder.getHTMLText();
-		calendarMethod = builder.getCalendarMethod();
-		textCalendar = builder.getCalendarText();
+		calendarMethod = smimeCalendarMerge ? smimeSignedEmail.getCalendarMethod() : builder.getCalendarMethod();
+		textCalendar = smimeCalendarMerge ? smimeSignedEmail.getCalendarText() : builder.getCalendarText();
 		contentTransferEncoding = encodingConfig.getContentTransferEncoding();
 		plainTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getPlainTextContentTransferEncoding() : encodingConfig.getPlainTextContentTransferEncoding();
 		htmlTextContentTransferEncoding = smimeMerge ? smimeSignedEmail.getHTMLTextContentTransferEncoding() : encodingConfig.getHTMLTextContentTransferEncoding();
-		calendarTextContentTransferEncoding = encodingConfig.getCalendarTextContentTransferEncoding();
+		calendarTextContentTransferEncoding = smimeCalendarMerge ? smimeSignedEmail.getCalendarTextContentTransferEncoding() : encodingConfig.getCalendarTextContentTransferEncoding();
 		subject = builder.getSubject();
 		useDispositionNotificationTo = builder.getUseDispositionNotificationTo();
 		dispositionNotificationToRecipients = builder.getDispositionNotificationToRecipients();

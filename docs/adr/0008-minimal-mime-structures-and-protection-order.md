@@ -48,6 +48,8 @@ results into its composed output. Outgoing protection configurations are selecte
 Fresh plain/unsigned metadata on a completed Email does not establish whether its input was protected or its outgoing bytes were verified.
 Readable bodies, headers and ordinary resources already extracted or merged from input remain outgoing content under [ADR 0002](0002-email-defaults-and-overrides.md).
 
+[ADR 0040](0040-retained-protected-content-merging.md) owns the bounded retained-inner-content merge contract and carries forward this record's protection, effective-root, retained-signature and materialization boundaries.
+
 ## Disposition-free related images (accepted 28 October 2026)
 
 An image inside an interpreted `multipart/related` container does not need `Content-Disposition: inline` to be an embedded resource.

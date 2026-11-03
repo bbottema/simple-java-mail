@@ -124,6 +124,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#960](https://github.com/bbottema/simple-java-mail/issues/960): merging retained protected-message content includes a present inner calendar's text, method and specific transfer encoding, both on initial import and explicit merge reset of a copied separate view. An absent inner calendar retains the outer calendar; later copied edits and clears retain their precedence.
+
 - [#959](https://github.com/bbottema/simple-java-mail/issues/959): MIME import reads plain-text and HTML content returned as streams instead of storing an object identity as the body. Charset selection matches the ordinary text handler, including MIME aliases and its absent-charset default; parser-acquired streams close on success or failure with original and suppressed causes retained.
 
 - [#958](https://github.com/bbottema/simple-java-mail/issues/958): a reused supplied Session validates OAuth2 token providers against its effective authentication mechanisms, so an earlier Mailer's strategy marker no longer rejects a valid XOAUTH2 configuration or permits a provider for a non-OAuth mechanism. Owned transport presets and lazy token retrieval retain their existing behavior.

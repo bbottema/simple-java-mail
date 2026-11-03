@@ -69,6 +69,8 @@ template resolution retains the previous last-matching-entry fallback described 
 The merge does not establish signature validity or rewrite authoritative exact EML bytes. [#867](https://github.com/bbottema/simple-java-mail/issues/867)
 tracks this repair alongside shared configuration resolution.
 
+[ADR 0040](0040-retained-protected-content-merging.md) consolidates merge field ownership and import/copy transitions while retaining these snapshot, later-edit, header and resource-ownership rules.
+
 The accepted ADR 0039 extension makes this ordering structural: capture keyed outer/inner declarations, resolve each logical header name,
 then detach the selected lists into the message snapshot. Keep the source and eligibility facts until resolution; copying and serialization
 preserve the resulting value without inventing lost provenance in older flat snapshots.
