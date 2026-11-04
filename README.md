@@ -11,10 +11,9 @@ Simple Java Mail builds well-formed MIME through a streamlined Java API. That sa
 
 ## Send a first email
 
-**Current-branch examples:** the Java examples in this README target unreleased **10.0.0**, not the published **9.3.9** dependency below.
-For examples you can use with that published release, see the [9.3.9 README](https://github.com/bbottema/simple-java-mail/blob/9.3.9/README.md).
-Until 10.0.0 is released, trying these examples requires artifacts built and installed from this branch, using the version declared in its root POM.
-That development version can still be 9.3.9; Maven Central's published 9.3.9 binaries do not contain this branch's API.
+**Unreleased 10.0.0:** the dependency coordinates and examples in this README target **10.0.0**.
+Until 10.0.0 is published, these coordinates require locally built and installed 10.0.0 artifacts.
+For the published 9.x API and dependencies, see the [9.3.9 README](https://github.com/bbottema/simple-java-mail/blob/9.3.9/README.md).
 
 Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, the core dependency. Add a feature module only when you need it, using the same version as the core dependency. The 10.x libraries require Java 11 or newer; 9.x is the last line that runs on Java 8. After 10.0.0, 9.x is maintenance-only: new work goes to 10.x, while critical fixes may be backported when that can be done safely without dropping Java 8 support.
 
@@ -24,14 +23,14 @@ Simple Java Mail is published to Maven Central. Start with `simple-java-mail`, t
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.9</version>
+    <version>10.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.simplejavamail:simple-java-mail:9.3.9'
+implementation 'org.simplejavamail:simple-java-mail:10.0.0'
 ```
 
 ### Build, send, and close
@@ -488,9 +487,9 @@ Simple Java Mail handles the higher-level work involved in outbound email while 
 
 ## Current release
 
-The current release is **9.3.9**.
+This branch documents **10.0.0 (unreleased)**. Its artifacts are not yet published to Maven Central.
 
-[GitHub release](https://github.com/bbottema/simple-java-mail/releases/tag/9.3.9) · [Maven Central artifacts](https://repo1.maven.org/maven2/org/simplejavamail/simple-java-mail/9.3.9/) · [Migration guide](https://www.simplejavamail.org/migration-notes-9.2.0.html) · [Complete release history](RELEASE_HISTORY.md)
+[10.0 migration guide](https://www.simplejavamail.org/migration-notes-10.0.0.html) · [Complete release history](RELEASE_HISTORY.md)
 
 Read the migration guide before upgrading from an older release when source compatibility, defaults, security behavior, or configuration precedence matters to your application.
 

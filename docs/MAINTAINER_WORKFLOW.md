@@ -285,6 +285,7 @@ For release artifact checks, inspect the published source jars rather than commi
 For user-facing changes:
 
 - Update the current version, dependency examples, and versioned release links in `README.md`. Keep its landing-page copy stable unless the release changes the project's lasting developer story.
+- Documentation on every 10.0.0 branch targets **10.0.0 (unreleased)**. Use `10.0.0` in current dependency examples, download instructions and version headings, even when the root POM still carries an older development build number. Preserve accurate historical release facts and earlier-version migration examples.
 - Maintain the complete release history in `RELEASE_HISTORY.md`.
 - Update website source under `simplejavamail.org` for API/config documentation changes, but do not push the website unless explicitly approved.
 - Add migration notes on the website for behavior changes, removed API, changed defaults, or compatibility-impacting fixes. The website is the single source of migration guidance; link to its relevant page and anchor from repository documentation.
@@ -303,6 +304,7 @@ Release-note retention:
 
 - `RELEASE_HISTORY.md` is the only maintained release history and must stand alone. It starts with the latest release and continues through the archive. It is also included in the standalone CLI archives, so links must work outside the repository checkout.
 - The root `README.md` is the public project page, with contributor navigation delegated to [CONTRIBUTING.md](CONTRIBUTING.md). Keep its `Current release` section to the current version and direct links to the GitHub release, Maven Central artifacts, migration guide, and `RELEASE_HISTORY.md`; do not copy release bullets or retain previous release lines there.
+- For an unreleased branch version, mark that version as unreleased and link its migration guide and release history. Add GitHub release and Maven Central artifact links when that version is published.
 - Update the Maven example, Gradle example, `Current release` label, tag link, and Maven Central directory together. Review the migration link separately and keep it pointed at the guide that actually applies to the release line.
 - Major releases create the primary release-note story. A narrative section such as `The Short Version` is acceptable for a major release when it helps explain the release line.
 - Regular minor and patch releases should usually be concise bullets that speak for themselves and link to GitHub issues for details. Do not force the major-release narrative format onto ordinary releases.
