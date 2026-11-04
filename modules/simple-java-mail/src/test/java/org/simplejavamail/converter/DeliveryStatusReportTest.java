@@ -15,6 +15,8 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.DeliveryAction;
 import org.simplejavamail.api.email.DeliveryStatusReport;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.RecipientDeliveryReport;
 
 import java.io.ByteArrayInputStream;
@@ -525,10 +527,11 @@ class DeliveryStatusReportTest {
 	}
 
 	@Test
-	void optionalStatusReadingFailureKeepsTheEmailButEagerContentReadingStillFailsWithItsCause() throws Exception {
+	void optionalAndRequiredStatusReadingFailuresKeepInspectionAndReportTheUnavailableContent() throws Exception {
 		final IOException failure = new IOException("fixture read failure");
+		final AtomicInteger reads = new AtomicInteger();
 		final DataSource broken = new ByteArrayDataSource(new byte[0], "message/delivery-status") {
-			@Override public InputStream getInputStream() throws IOException { throw failure; }
+			@Override public InputStream getInputStream() throws IOException { reads.incrementAndGet(); throw failure; }
 		};
 		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
 		message.setDataHandler(new DataHandler(broken));
@@ -538,8 +541,32 @@ class DeliveryStatusReportTest {
 		assertThat(recovered.getDeliveryStatusReport().getRecipients()).isEmpty();
 		assertThat(recovered.getDeliveryStatusReport().getWarnings()).anyMatch(warning -> warning.contains("may be incomplete"));
 		assertThat(recovered.getDeliveryStatusReport().getWarnings()).allSatisfy(warning -> assertThat(warning).doesNotContain("fixture read failure"));
-		assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(true).toEmailBuilder())
-				.hasRootCause(failure);
+		final int optionalReads = reads.get();
+		recovered.getSourceData().getParts();
+		recovered.getProblems();
+		assertThat(reads).hasValue(optionalReads);
+
+		final Email eager = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).withFetchAttachmentData(true).toEmail();
+		assertThat(eager.getSubject()).isEqualTo("Still readable");
+		assertThat(eager.getAttachments()).isEmpty();
+		assertThat(eager.getDeliveryStatusReport()).as("Known delivery-status source remains inspectable as an unavailable projection").isNotNull();
+		assertThat(eager.getDeliveryStatusReport().getRecipients()).isEmpty();
+		assertThat(eager.getDeliveryStatusReport().getWarnings()).anyMatch(warning -> warning.contains("may be incomplete"));
+		assertThat(eager.getDeliveryStatusReport().getWarnings()).allSatisfy(warning -> assertThat(warning).doesNotContain(failure.getMessage()));
+		assertThat(eager.getProblems()).anySatisfy(problem -> {
+			assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+			assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+			assertThat(problem.getMessage()).contains(failure.getMessage());
+			assertThat(problem.getSources()).anySatisfy(element -> {
+				assertThat(element).isInstanceOf(EmailSourcePart.class);
+				assertThat(((EmailSourcePart) element).getContent()).isNull();
+			});
+		});
+		final int completedReads = reads.get();
+		eager.getDeliveryStatusReport();
+		eager.getSourceData().getParts();
+		eager.getProblems();
+		assertThat(reads).hasValue(completedReads);
 	}
 
 	@Test

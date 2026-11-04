@@ -13,6 +13,11 @@ class OutlookFileAttachmentProxy implements OutlookFileAttachment {
 	}
 
 	@Override
+	public String getContentId() {
+		return delegate.getContentId();
+	}
+
+	@Override
 	public String getExtension() {
 		return delegate.getExtension();
 	}

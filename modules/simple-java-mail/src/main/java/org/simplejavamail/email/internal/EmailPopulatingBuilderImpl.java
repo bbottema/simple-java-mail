@@ -1,5 +1,11 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.api.email.EmailSourceData;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.internal.email.EmailInspection;
+import java.util.Collections;
+
 import org.simplejavamail.internal.html.HtmlAttributeValues;
 import org.simplejavamail.internal.html.HtmlAttributeValues.AttributeValue;
 
@@ -65,6 +71,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -99,6 +106,28 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
+    private EmailSourceData sourceData = EmailInspection.empty();
+    private List<EmailProblem> problems = Collections.emptyList();
+    private String receivedHtml;
+    private List<EmailSourcePart> receivedHtmlParts = Collections.emptyList();
+
+    @Override public void retainReceivedHtml(final String value, final List<EmailSourcePart> originalParts) {
+        receivedHtml = value;
+        receivedHtmlParts = new ArrayList<>(originalParts);
+    }
+
+    private void clearReceivedHtml() {
+        receivedHtml = null;
+        receivedHtmlParts = Collections.emptyList();
+    }
+
+    @Override public EmailSourceData getSourceData() { return sourceData; }
+    @Override public List<EmailProblem> getProblems() { return problems; }
+    @Override public void retainInspection(EmailSourceData source,
+            List<EmailProblem> findings) {
+        sourceData = EmailInspection.copyOf(source);
+        problems = EmailInspection.problems(findings);
+    }
 	@NotNull
 	private final SimpleJavaMailConfig config;
 	@NotNull private ImageResolutionConfig imageResolutionConfig = ImageResolutionConfig.builder().build();
@@ -474,9 +503,15 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		resolveImageChoices(imageResolutionConfig);
 		validateLockedImageResolution();
 		validateProtectionFamilies();
+		final String beforeResolution = this.textHTML;
 		resolveDynamicEmbeddedImageDataSources();
+		if (Objects.equals(receivedHtml, beforeResolution) && !Objects.equals(beforeResolution, this.textHTML)) {
+			OriginalSourceRetention.retain(this, receivedHtmlParts);
+		}
 		//noinspection deprecation
-		return new InternalEmail(this);
+		final Email result = new InternalEmail(this);
+		clearReceivedHtml();
+		return result;
 	}
 
 	/** Check before resolution can read a file or URL; these locks govern this factory's resolver, not previously supplied attachments. */
@@ -1163,6 +1198,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withHTMLText(@Nullable final String textHTML) {
+		clearReceivedHtml();
 		this.textHTML = textHTML;
 		return this;
 	}
@@ -1195,6 +1231,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder prependHTMLText(@NotNull final String textHTML) {
 		requireNonNull(textHTML, "textHTML");
+		clearReceivedHtml();
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
 		return this;
 	}
@@ -1227,6 +1264,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder appendHTMLText(@NotNull final String textHTML) {
 		requireNonNull(textHTML, "textHTML");
+		clearReceivedHtml();
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
 		return this;
 	}
@@ -2081,6 +2119,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearHTMLText() {
+		clearReceivedHtml();
 		this.textHTML = null;
 		return this;
 	}

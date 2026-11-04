@@ -223,7 +223,47 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder forwarding(@NotNull final Email email) {
-		return forwarding(EmailConverter.emailToMimeMessage(email));
+		final org.simplejavamail.api.converter.EmailConversionResult<MimeMessage> converted = converter().fromEmail(email).toMimeMessageResult();
+		if (!converted.hasValue()) throw converted.getFailure();
+		final EmailPopulatingBuilder builder = forwarding(converted.getValue());
+		if (!converted.getProblems().isEmpty()) {
+			((InternalEmailPopulatingBuilder) builder).retainInspection(sourceForForward(converted), converted.getProblems());
+		}
+		return builder;
+	}
+
+	/** New conversion observations belong to this forward; the source Email's unrelated received history does not. */
+	private static org.simplejavamail.api.email.EmailSourceData sourceForForward(
+			final org.simplejavamail.api.converter.EmailConversionResult<MimeMessage> converted) {
+		final java.util.Set<java.util.UUID> origins = new java.util.HashSet<>();
+		for (org.simplejavamail.api.email.EmailProblem problem : converted.getProblems()) origins.add(problem.getOrigin().getReference());
+		final java.util.List<org.simplejavamail.api.email.EmailSourceHeader> headers = new java.util.ArrayList<>();
+		final java.util.List<org.simplejavamail.api.email.EmailSourceProperty> properties = new java.util.ArrayList<>();
+		final java.util.List<org.simplejavamail.api.email.EmailSourcePart> parts = new java.util.ArrayList<>();
+		final java.util.List<org.simplejavamail.api.email.EmailSourceData> derived = new java.util.ArrayList<>();
+		for (org.simplejavamail.api.email.EmailSourceData source : converted.getSources()) {
+			if (source.getOrigin() != null && origins.contains(source.getOrigin().getReference())) {
+				headers.addAll(source.getHeaders());
+				properties.addAll(source.getProperties());
+				parts.addAll(source.getParts());
+				derived.addAll(source.getDerivedSources());
+			}
+		}
+		// Preserve direct links even if an operation has a located observation without a containing source frame.
+		for (org.simplejavamail.api.email.EmailProblem problem : converted.getProblems()) {
+			for (org.simplejavamail.api.email.EmailSourceElement element : problem.getSources()) {
+				if (element instanceof org.simplejavamail.api.email.EmailSourcePart && !parts.contains(element)) {
+					parts.add((org.simplejavamail.api.email.EmailSourcePart) element);
+				} else if (element instanceof org.simplejavamail.api.email.EmailSourceHeader && !headers.contains(element)) {
+					headers.add((org.simplejavamail.api.email.EmailSourceHeader) element);
+				} else if (element instanceof org.simplejavamail.api.email.EmailSourceProperty && !properties.contains(element)) {
+					properties.add((org.simplejavamail.api.email.EmailSourceProperty) element);
+				}
+			}
+		}
+		return org.simplejavamail.internal.email.EmailInspection.source(converted.getProblems().get(0).getOrigin(),
+				org.simplejavamail.api.email.EmailSourceData.Format.MIME, org.simplejavamail.api.email.EmailSourceData.Representation.GENERATED,
+				headers, properties, parts, derived);
 	}
 	
 	/**
@@ -350,6 +390,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
 		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
 		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(email.getDeliveryStatusReport());
+        ((InternalEmailPopulatingBuilder) builder).retainInspection(email.getSourceData(), email.getProblems());
 
 		builder.retainCopiedSmimeContent(internalEmail.wasMergedWithSmimeSignedMessage());
 		return builder;

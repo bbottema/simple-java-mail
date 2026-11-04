@@ -3,15 +3,20 @@ package org.simplejavamail.openpgp;
 import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimeUtility;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceData;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.EmailSourceContent;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
@@ -27,9 +32,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 
@@ -104,7 +109,7 @@ class OpenPgpTransferEncodingTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"unsupported", "base64", "quoted-printable"})
-    void unsupportedOrUndecodablePayloadsKeepExistingProtectionFailures(final String encoding) throws Exception {
+    void unsupportedOrUndecodablePayloadsRetainProtectionFailuresAndSourceEvidence(final String encoding) throws Exception {
         for (String fixture : new String[] {"signed-mixed.eml", "encrypted-mixed.eml"}) {
             final byte[] source = resource(fixture);
             final ProtectionPart part = protectionPart(source);
@@ -112,27 +117,65 @@ class OpenPgpTransferEncodingTest {
                     ? part.message.substring(part.payloadStart, part.payloadEnd).getBytes(StandardCharsets.US_ASCII)
                     : (encoding.equals("base64") ? "AA=" : "=XX").getBytes(StandardCharsets.US_ASCII);
             final byte[] incoming = replacePayload(source, encoding, payload);
-            if (fixture.startsWith("encrypted") && !encoding.equals("quoted-printable")) {
-                assertThatThrownBy(() -> read(incoming, receiving(), ImportRoute.FLUENT_EML))
-                        .isInstanceOf(MailException.class).hasRootCauseInstanceOf(java.io.IOException.class);
+            final Email parsed = read(incoming, receiving(), ImportRoute.FLUENT_EML);
+            assertThat(parsed).isNotNull();
+            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+            assertThat(parsed.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.PROTECTION_FAILED));
+            if (fixture.startsWith("signed")) {
+                assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
+                assertReadableFixture(parsed);
+                assertThat(firstEntity(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage())).containsExactly(firstEntity(source));
+            } else {
+                assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
+                assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+                assertThat(parsed.getPlainText()).as("failed decryption must not fabricate a clear body").isNull();
+                if (!encoding.equals("quoted-printable")) {
+                    assertThat(parsed.getProblems()).anySatisfy(problem -> {
+                        assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+                        assertThat(problem.getSources()).anySatisfy(element -> {
+                            assertThat(element).isInstanceOf(EmailSourcePart.class);
+                            assertThat(((EmailSourcePart) element).getContent()).isNotNull();
+                        });
+                    });
+                    assertThat(allParts(parsed.getSourceData()).filter(p -> p.getContent() != null)
+                            .map(p -> new String(p.getContent().readAllBytes(), StandardCharsets.ISO_8859_1)))
+                            .anySatisfy(raw -> assertThat(raw).contains(new String(payload, StandardCharsets.ISO_8859_1)));
+                }
                 final Session session = Session.getInstance(new Properties());
                 final var inspected = new OpenPgpSupport().processIncoming(session,
                         new MimeMessage(session, new ByteArrayInputStream(incoming)), receiving());
                 assertThat(inspected.getDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
                 assertThat(inspected.getDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
                 assertThat(inspected.getDetails().getOriginalProtectedMessage()).containsExactly(incoming);
-                continue;
             }
-            final Email parsed = read(incoming, receiving(), ImportRoute.FLUENT_EML);
-            if (fixture.startsWith("signed")) {
-                assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-                assertReadableFixture(parsed);
-            } else {
-                assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-                assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-            }
-            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+            final SimpleJavaMail factory = SimpleJavaMail.fromDefaults();
+            final Email exact = factory.emailBuilder().startingFromExactEml(incoming).withEnvelopeRecipients("reader@example.org").buildEmail();
+            assertThat(factory.converter().fromEmail(exact).toEmlBytes()).containsExactly(incoming);
         }
+    }
+
+    @Test
+    void failedBase64DecodingDoesNotHideRawBytesStillAvailableOnTheSameCachedPart() throws Exception {
+        final byte[] incoming = replacePayload(resource("encrypted-mixed.eml"), "base64", "AA=".getBytes(StandardCharsets.US_ASCII));
+        final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(incoming));
+        final MimeBodyPart encrypted = (MimeBodyPart) ((MimeMultipart) source.getContent()).getBodyPart(1);
+        try (InputStream available = encrypted.getRawInputStream()) {
+            assertThat(new String(available.readAllBytes(), StandardCharsets.US_ASCII)).contains("AA=");
+        }
+
+        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(source)
+                .withOpenPgpReceiveConfig(receiving()).toEmail();
+
+        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
+        try (InputStream stillAvailable = encrypted.getRawInputStream()) {
+            assertThat(new String(stillAvailable.readAllBytes(), StandardCharsets.US_ASCII)).contains("AA=");
+        }
+        assertThat(allParts(parsed.getSourceData()).filter(part -> part.getContent() != null)).anySatisfy(part -> {
+            assertThat(part.getContent().getRepresentation()).isEqualTo(EmailSourceContent.Representation.SOURCE_BYTES);
+            assertThat(part.getContent().isFullyCaptured()).isTrue();
+            assertThat(new String(part.getContent().readAllBytes(), StandardCharsets.US_ASCII)).contains("AA=");
+        });
     }
 
     @ParameterizedTest
@@ -169,13 +212,18 @@ class OpenPgpTransferEncodingTest {
                 final byte[] incoming = valid ? withTransferEncoding(source, "base64")
                         : replacePayload(source, "unsupported", new byte[] {1, 2, 3});
                 try (TrackingInputStream caller = new TrackingInputStream(incoming)) {
-                    if (!valid && fixture.startsWith("encrypted")) {
-                        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromEml(caller)
-                                .withOpenPgpReceiveConfig(receiving()).toEmail()).isInstanceOf(MailException.class);
-                    } else {
-                        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(caller)
-                                .withOpenPgpReceiveConfig(receiving()).toEmail();
-                        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+                    final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(caller)
+                            .withOpenPgpReceiveConfig(receiving()).toEmail();
+                    assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+                    if (!valid) {
+                        assertThat(parsed.getProblems()).isNotEmpty();
+                        if (fixture.startsWith("encrypted")) {
+                            assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
+                            assertThat(parsed.getPlainText()).isNull();
+                        } else {
+                            assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
+                            assertReadableFixture(parsed);
+                        }
                     }
                     assertThat(caller.closed).isFalse();
                 }
@@ -228,6 +276,15 @@ class OpenPgpTransferEncodingTest {
         assertThat(parsed.getPlainText()).isEqualTo("Héllo from OpenPGP.js");
         assertThat(parsed.getAttachments()).singleElement().satisfies(attachment ->
                 assertThat(attachment.readAllData()).isEqualTo("independent fixture"));
+    }
+
+    private static Stream<EmailSourcePart> allParts(final EmailSourceData source) {
+        return Stream.concat(source.getParts().stream().flatMap(OpenPgpTransferEncodingTest::partAndChildren),
+                source.getDerivedSources().stream().flatMap(OpenPgpTransferEncodingTest::allParts));
+    }
+
+    private static Stream<EmailSourcePart> partAndChildren(final EmailSourcePart part) {
+        return Stream.concat(Stream.of(part), part.getChildren().stream().flatMap(OpenPgpTransferEncodingTest::partAndChildren));
     }
 
     private static Email read(final byte[] incoming, final OpenPgpReceiveConfig keys, final ImportRoute route) throws Exception {

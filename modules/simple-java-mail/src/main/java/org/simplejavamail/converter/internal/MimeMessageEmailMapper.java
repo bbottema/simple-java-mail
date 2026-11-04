@@ -37,6 +37,7 @@ class MimeMessageEmailMapper {
 	static EmailPopulatingBuilder populate(@NotNull final EmailPopulatingBuilder builder, @NotNull final ParsedMimeMessageComponents parsed) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(parsed, "parsedMimeMessageComponents");
+        ((InternalEmailPopulatingBuilder) builder).retainInspection(parsed.getSourceData(), parsed.getProblems());
 		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(parsed.getDeliveryStatusReport());
 		if (parsed.getSentDate() != null) {
 			builder.fixingSentDate(parsed.getSentDate());
@@ -87,6 +88,7 @@ class MimeMessageEmailMapper {
 			((InternalEmailPopulatingBuilder) builder).withPlainTextContentTransferEncoding(plainTextContentTransferEncoding);
 		}
 		builder.withHTMLText(parsed.getHtmlContent());
+		((InternalEmailPopulatingBuilder) builder).retainReceivedHtml(parsed.getHtmlContent(), parsed.getOriginalHtmlParts());
 		final ContentTransferEncoding htmlTextContentTransferEncoding = toContentTransferEncoding(parsed.getHtmlTextContentTransferEncoding());
 		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, htmlTextContentTransferEncoding)) {
 			((InternalEmailPopulatingBuilder) builder).withHTMLTextContentTransferEncoding(htmlTextContentTransferEncoding);

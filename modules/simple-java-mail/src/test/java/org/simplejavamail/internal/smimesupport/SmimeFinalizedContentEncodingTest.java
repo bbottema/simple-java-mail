@@ -14,10 +14,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.converter.EmailConversionResult;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -37,10 +40,10 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
 import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
@@ -171,10 +174,11 @@ class SmimeFinalizedContentEncodingTest {
 
     @ParameterizedTest
     @EnumSource(Protection.class)
-    void unreadableAttachmentRetainsItsFailureInsteadOfProducingProtectedTruncatedContent(final Protection protection) {
+    void unreadableAttachmentProducesValidProtectedRemainderWithDiagnosticEvidence(final Protection protection) throws Exception {
         final IOException unreadable = new IOException("attachment unavailable");
+        final AtomicInteger opened = new AtomicInteger();
         final DataSource attachment = new DataSource() {
-            @Override public InputStream getInputStream() throws IOException { throw unreadable; }
+            @Override public InputStream getInputStream() throws IOException { opened.incrementAndGet(); throw unreadable; }
             @Override public OutputStream getOutputStream() { throw new UnsupportedOperationException(); }
             @Override public String getContentType() { return "application/octet-stream"; }
             @Override public String getName() { return "unavailable.bin"; }
@@ -182,7 +186,27 @@ class SmimeFinalizedContentEncodingTest {
         final Email email = protection.apply(newEmailBuilder().withPlainText(PLAIN_TEXT)
                 .withAttachment("unavailable.bin", attachment)).buildEmail();
 
-        assertThatThrownBy(() -> MAIL.converter().fromEmail(email).toMimeMessage()).hasRootCause(unreadable);
+        final EmailConversionResult<MimeMessage> converted = MAIL.converter().fromEmail(email).toMimeMessageResult();
+
+        assertThat(converted.hasValue()).isTrue();
+        assertThat(converted.getFailure()).isNull();
+        assertThat(converted.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.CONVERSION);
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+            assertThat(problem.getMessage()).contains(unreadable.getMessage());
+            final EmailSourcePart evidence = (EmailSourcePart) problem.getSources().get(0);
+            assertThat(evidence.getProperties()).anySatisfy(property -> {
+                assertThat(property.getName()).isEqualTo("name");
+                assertThat(property.getValue()).isEqualTo("unavailable.bin");
+            });
+            assertThat(evidence.getContent()).as("opening failed before any source bytes were acquired").isNull();
+        });
+        final MimeBodyPart remainder = protectedContent(converted.getValue(), protection);
+        assertThat(remainder.isMimeType("text/plain")).isTrue();
+        assertThat(remainder.getContent()).isEqualTo(PLAIN_TEXT);
+        assertThat(remainder.getEncoding()).isEqualTo("quoted-printable");
+        assertThat(email.getAttachments()).hasSize(1);
+        assertThat(opened).hasValue(1);
     }
 
     private static EmailPopulatingBuilder newEmailBuilder() {

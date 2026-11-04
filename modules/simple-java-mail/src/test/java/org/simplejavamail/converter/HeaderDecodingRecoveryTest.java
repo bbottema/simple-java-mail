@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
@@ -119,15 +118,29 @@ class HeaderDecodingRecoveryTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"Subject", "Disposition-Notification-To", "Return-Receipt-To", "Return-Path", "Content-Description", "message-id"})
-	void typedHeaderDecodingRetainsItsExistingFailureContract(final String name) {
-		assertThatThrownBy(() -> MAIL.converter().fromEml(multipart(name + ": " + UNDECODABLE + "\r\n")).toEmail())
-				.isInstanceOf(MailException.class).hasRootCauseInstanceOf(UnsupportedEncodingException.class);
+	@ValueSource(strings = {"Content-Description"})
+	void unavailableTypedHeaderRemainsInspectableWithAProblem(final String name) {
+        final Email email = MAIL.converter().fromEml(multipart(name + ": " + UNDECODABLE + "\r\n")).toEmail();
+        assertThat(email.getPlainText()).isEqualTo("Readable body");
+        assertThat(email.getHeaders().get(name)).containsExactly(UNDECODABLE);
+        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(org.simplejavamail.api.email.EmailProblem.Code.VALUE_NOT_DECODED);
+            assertThat(problem.getSources()).isNotEmpty();
+        });
 	}
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Subject", "Disposition-Notification-To", "Return-Receipt-To", "Return-Path", "message-id"})
+    void sourceHeadersRemainInspectableWhenTheirCharsetIsUnavailable(final String name) {
+        Email email = MAIL.converter().fromEml(multipart(name + ": " + UNDECODABLE + "\r\n")).toEmail();
+        assertThat(email.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase(name))
+                .map(org.simplejavamail.api.email.EmailSourceHeader::getRawValue)).contains(UNDECODABLE);
+        assertThat(email.getPlainText()).isEqualTo("Readable body");
+    }
 
 	@ParameterizedTest
 	@ValueSource(strings = {"attachment-name", "attachment-description", "attachment-content", "body-content"})
-	void requiredResourceAndContentDecodingStillFails(final String field) {
+	void knownResourceAndContentDecodingFailuresLeaveInspectableEvidence(final String field) {
 		final String source;
 		switch (field) {
 			case "attachment-name":
@@ -142,15 +155,34 @@ class HeaderDecodingRecoveryTest {
 			default:
 				source = ROOT + "Content-Type: text/plain; charset=X-NO-SUCH-CHARSET\r\n\r\nReadable body\r\n";
 		}
-		assertThatThrownBy(() -> MAIL.converter().fromEml(source).withFetchAttachmentData(true).toEmail())
-				.isInstanceOf(MailException.class);
+		final Email email = MAIL.converter().fromEml(source).withFetchAttachmentData(true).toEmail();
+        assertThat(email.getProblems()).hasSize(1);
+        assertThat(email.getProblems().get(0).getSources()).isNotEmpty();
+        if (field.equals("attachment-name") || field.equals("attachment-description")) {
+            assertThat(email.getAttachments()).hasSize(1);
+            assertThat(email.getAttachments().get(0).readAllBytes()).isEqualTo("payload".getBytes(UTF_8));
+            assertThat(email.getProblems().get(0).getCode()).isEqualTo(org.simplejavamail.api.email.EmailProblem.Code.VALUE_NOT_DECODED);
+        } else {
+            assertThat(email.getProblems().get(0).getSources()).anySatisfy(affected -> {
+                assertThat(affected).isInstanceOf(org.simplejavamail.api.email.EmailSourcePart.class);
+                assertThat(((org.simplejavamail.api.email.EmailSourcePart) affected).getContent()).isNotNull();
+            });
+        }
+        if (field.equals("body-content")) assertThat(email.getPlainText()).isNull();
+        else assertThat(email.getPlainText()).isEqualTo("Readable body");
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"=?UTF-8?X?hello?=", UNDECODABLE + " =?UTF-8?X?hello?=", "=?UTF-8?X?hello?= " + UNDECODABLE})
-	void unsupportedEncodedWordTransferEncodingRetainsItsFailureContract(final String value) {
-		assertThatThrownBy(() -> MAIL.converter().fromEml(multipart("X-Legacy: " + value + "\r\n")).toEmail())
-				.isInstanceOf(MailException.class).hasRootCauseInstanceOf(UnsupportedEncodingException.class);
+	void unsupportedEncodedWordTransferEncodingRemainsInspectable(final String value) {
+        final Email email = MAIL.converter().fromEml(multipart("X-Legacy: " + value + "\r\n")).toEmail();
+        assertThat(email.getHeaders().get("X-Legacy")).containsExactly(value);
+        assertThat(email.getPlainText()).isEqualTo("Readable body");
+        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(org.simplejavamail.api.email.EmailProblem.Code.VALUE_NOT_DECODED);
+            assertThat(problem.getSourceValue()).isEqualTo(value);
+            assertThat(problem.getSources()).isNotEmpty();
+        });
 	}
 
 	@Test

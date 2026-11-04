@@ -107,6 +107,10 @@ as part of the supported result contract; it does not authorize a module-owned c
 when it conveys the needed facts. Current Outlook conversion follows that preference: `OutlookEmailConversionResult` and `OutlookMessageData`
 are core contracts, while their implementations and parser adaptation live in `outlook-module`.
 
+[ADR 0041](0041-email-source-inspection-and-problems.md) also exposes native source properties and parts through the converted Email's
+generic source view. Its immutable core snapshots remain usable without an Outlook parser or optional implementation object. The older
+specialized Outlook result stays supported. Portability of other fields in the whole Email's serialized graph is deferred to #965.
+
 ### Runtime loading and shared instances
 
 `ModuleLoader` lazily caches one instance per module interface using `ConcurrentHashMap.computeIfAbsent`. Optional feature implementations must therefore tolerate shared concurrent use. Class-availability checks let selected paths degrade deliberately: absent batch support means direct transports, while requesting an unavailable signing module raises a focused error. Module absence is not permission to silently omit requested protection.

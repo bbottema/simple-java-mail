@@ -8,7 +8,6 @@ import jakarta.activation.MailcapCommandMap;
 import jakarta.mail.internet.ContentType;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
@@ -45,21 +44,16 @@ final class CalendarDataContentHandler {
 		@Override
 		public Object getContent(final DataSource dataSource) throws IOException {
 			final String charset = charset(dataSource.getContentType());
+            final Charset encoding;
 			try {
-				// Resolve before opening content, since reader construction can reject the charset.
-				final Charset encoding = Charset.forName(charset);
-				try (InputStreamReader reader = new InputStreamReader(dataSource.getInputStream(), encoding)) {
-					final StringBuilder content = new StringBuilder();
-					final char[] buffer = new char[4096];
-					int read;
-					while ((read = reader.read(buffer)) != -1) {
-						content.append(buffer, 0, read);
-					}
-					return content.toString();
-				}
+				// Resolve before opening content, preserving the acquired-stream ownership boundary.
+				encoding = Charset.forName(charset);
 			} catch (IllegalArgumentException e) {
-				throw new UnsupportedEncodingException(charset);
+                final UnsupportedEncodingException failure = new UnsupportedEncodingException(charset);
+                failure.initCause(e);
+				throw failure;
 			}
+            return CapturedMimeContent.decode(CapturedMimeContent.read(dataSource.getInputStream()), encoding);
 		}
 
 		@Override

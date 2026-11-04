@@ -439,6 +439,22 @@ Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, o
 The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
 Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
 
+Inspect imperfect received mail through the same Email: usable content stays in the normal getters, while retained originals and processing
+problems explain what could not be interpreted or differs from the received content:
+
+```java
+Email received = mail.converter().fromEml(emlBytes).toEmail();
+received.getAttachments();              // successfully represented attachments
+received.getSourceData().getHeaders();  // received header occurrences, including outgoing exclusions
+received.getSourceData().getParts();    // source structure and selectively retained original content
+received.getProblems();                 // actual processing issues, with original input identity
+```
+
+Original RTF remains available when an Outlook body becomes HTML; an expected successful conversion does not itself create a Problem.
+Ordinary copies and later edits preserve captured sources and each problem's original Message-ID/reference. For EML bytes, text or
+MimeMessage outputs, optional result terminals such as `toEmlBytesResult()` return diagnostics alongside the artifact. Source content is
+not automatically included in outgoing mail. See [source inspection](https://www.simplejavamail.org/features.html#section-source-inspection).
+
 Choose [Tactical Patterns](https://www.simplejavamail.org/email-workload-field-guide.html) for a focused sending problem, or
 [Strategic Patterns](https://www.simplejavamail.org/strategic-patterns.html) for runnable applications integrating jobs, brokers, workflows,
 customer-specific mail routes, enterprise dispatch, non-SMTP handoff and optional AWS deployments.

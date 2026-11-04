@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -26,9 +25,9 @@ import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.internal.EmailConverterException;
 import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
-import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 
 import static java.lang.String.format;
@@ -471,11 +470,8 @@ public class EmailConverter {
 	@NotNull
 	public static EmailPopulatingBuilder emlToEmailBuilder(@NotNull final File emlFile,
 			@Nullable final Pkcs12Config pkcs12Config, @NotNull final Session session) {
-		try (final FileInputStream emlInputStream = new FileInputStream(checkNonEmptyArgument(emlFile, "emlFile"))) {
-			return emlToEmailBuilder(emlInputStream, pkcs12Config, session);
-		} catch (final IOException e) {
-			throw new EmailConverterException(format(EmailConverterException.PARSE_ERROR_EML_FROM_FILE, e.getMessage()), e);
-		}
+		return conventionalConverter().emlToEmailBuilder(checkNonEmptyArgument(emlFile, "emlFile").toPath(),
+				pkcs12Config, null, checkNonEmptyArgument(session, "session"));
 	}
 
 	/**
@@ -662,13 +658,9 @@ public class EmailConverter {
 	 * @throws org.simplejavamail.MailException If message content or settings prevent MIME conversion. The original cause is retained.
 	 */
 	public static MimeMessage emailToMimeMessage(@NotNull final Email email, @NotNull final Session session, @NotNull final EmailGovernance emailGovernance) {
-		try {
-			final InternalEmail internalEmail = InternalEmail.requireInternalEmail(email);
-			final Email effectiveEmail = internalEmail.prepareForConversion(emailGovernance);
-			return InternalEmail.requireInternalEmail(effectiveEmail).renderMimeMessage(checkNonEmptyArgument(session, "session"), true);
-		} catch (UnsupportedEncodingException | MessagingException e) {
-			throw new EmailConverterException(EmailConverterException.ERROR_CREATING_MIME_MESSAGE, e);
-		}
+		return artifactConverter().fromEmail(checkNonEmptyArgument(email, "email"))
+				.withSession(checkNonEmptyArgument(session, "session"))
+				.withEmailGovernance(checkNonEmptyArgument(emailGovernance, "emailGovernance")).toMimeMessage();
 	}
 
 	/**
@@ -775,7 +767,7 @@ public class EmailConverter {
 	 * @see #emailToMimeMessage(Email, Session)
 	 */
 	public static String emailToEML(@NotNull final Email email) {
-		return mimeMessageToEML(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
+		return artifactConverter().fromEmail(checkNonEmptyArgument(email, "email")).toEml();
 	}
 
 	/**
@@ -785,7 +777,7 @@ public class EmailConverter {
 	 */
 	@NotNull
 	public static byte[] emailToEMLByteArray(@NotNull final Email email) {
-		return mimeMessageToEMLByteArray(emailToMimeMessage(checkNonEmptyArgument(email, "email")));
+		return artifactConverter().fromEmail(checkNonEmptyArgument(email, "email")).toEmlBytes();
 	}
 
 	/**
@@ -847,6 +839,11 @@ public class EmailConverter {
 	private static ConfiguredEmailConverterImpl conventionalConverter() {
 		// Keep released static parsing/ownership semantics while the configured public surface remains the fluent from... API.
 		return new ConfiguredEmailConverterImpl(SimpleJavaMail.fromDefaults().getConfig());
+	}
+
+	private static ConfiguredEmailConverterImpl artifactConverter() {
+		// Static exports historically read no factory defaults; the private copy factory needs only an empty snapshot.
+		return new ConfiguredEmailConverterImpl(ConfigLoader.builder().load());
 	}
 
 	private static Session createDummySession() {

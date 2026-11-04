@@ -16,9 +16,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceContent;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
@@ -26,7 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -34,8 +35,6 @@ import java.util.stream.Stream;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.mailer.MailFailureKind.CONVERSION;
 
 class TextBodyStreamImportTest {
     private static final String BODY = "R\u00e9union au caf\u00e9";
@@ -98,15 +97,18 @@ class TextBodyStreamImportTest {
 
     @ParameterizedTest
     @MethodSource("invalidCharsets")
-    void invalidCharsetFailsAndClosesTheAlreadyAcquiredBodyStream(final String type, final String charset) throws Exception {
+    void invalidCharsetRetainsTheAlreadyAcquiredBodyAndClosesItsStream(final String type, final String charset) throws Exception {
         final BodySource source = new BodySource(BODY.getBytes(UTF_8), type, charset);
         try (MockedStatic<ModuleLoader> ignored = Mockito.mockStatic(ModuleLoader.class)) {
             final MimeMessage incoming = message(source, false);
-            assertThatThrownBy(() -> convert(incoming, true)).isInstanceOfSatisfying(MailException.class, failure -> {
-                assertThat(failure.getKind()).isEqualTo(CONVERSION);
-                assertThat(failure.getCause()).isInstanceOf(UnsupportedEncodingException.class);
-                assertThat(failure.getCause().getCause()).isInstanceOf(IllegalArgumentException.class);
+            final Email imported = convert(incoming, true);
+            assertThat(body(imported, type)).isNull();
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.VALUE_NOT_DECODED);
+                assertThat(problem.getMessage()).contains("UnsupportedEncodingException");
             });
+            assertThat(retainedContent(imported).readAllBytes()).isEqualTo(BODY.getBytes(UTF_8));
+            assertThat(retainedContent(imported).isFullyCaptured()).isTrue();
         }
         assertThat(source.opened).isEqualTo(1);
         assertThat(source.closed).isEqualTo(1);
@@ -125,11 +127,14 @@ class TextBodyStreamImportTest {
         source.closeFailure = new IOException("body close failed");
         try (MockedStatic<ModuleLoader> ignored = Mockito.mockStatic(ModuleLoader.class)) {
             final MimeMessage incoming = message(source, false);
-            assertThatThrownBy(() -> convert(incoming, false)).isInstanceOfSatisfying(MailException.class, failure -> {
-                assertThat(failure.getKind()).isEqualTo(CONVERSION);
-                assertThat(failure.getCause()).isSameAs(source.readFailure);
-                assertThat(failure.getCause().getSuppressed()).containsExactly(source.closeFailure);
+            final Email imported = convert(incoming, false);
+            assertThat(body(imported, type)).isNull();
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+                assertThat(problem.getMessage()).contains("body read failed", "body close failed");
             });
+            assertThat(source.readFailure.getSuppressed()).containsExactly(source.closeFailure);
+            assertThat(retainedContent(imported).isFullyCaptured()).isFalse();
         }
         assertThat(source.closed).isEqualTo(1);
     }
@@ -140,8 +145,13 @@ class TextBodyStreamImportTest {
         source.closeFailure = new IOException("cannot close body");
         try (MockedStatic<ModuleLoader> ignored = Mockito.mockStatic(ModuleLoader.class)) {
             final MimeMessage incoming = message(source, false);
-            assertThatThrownBy(() -> convert(incoming, true)).isInstanceOfSatisfying(MailException.class,
-                    failure -> assertThat(failure.getCause()).isSameAs(source.closeFailure));
+            final Email imported = convert(incoming, true);
+            assertThat(imported.getPlainText()).isEqualTo(BODY);
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.RESOURCE_CLOSE_FAILED);
+                assertThat(problem.getMessage()).contains("cannot close body");
+            });
+            assertThat(retainedContent(imported)).isNull();
         }
         assertThat(source.closed).isEqualTo(1);
     }
@@ -152,10 +162,13 @@ class TextBodyStreamImportTest {
         source.closeFailure = new IOException("cannot close rejected body");
         try (MockedStatic<ModuleLoader> ignored = Mockito.mockStatic(ModuleLoader.class)) {
             final MimeMessage incoming = message(source, false);
-            assertThatThrownBy(() -> convert(incoming, true)).isInstanceOfSatisfying(MailException.class, failure -> {
-                assertThat(failure.getCause()).isInstanceOf(UnsupportedEncodingException.class);
-                assertThat(failure.getCause().getSuppressed()).containsExactly(source.closeFailure);
+            final Email imported = convert(incoming, true);
+            assertThat(imported.getHTMLText()).isNull();
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.VALUE_NOT_DECODED);
+                assertThat(problem.getMessage()).contains("X-NO-SUCH-CHARSET", "cannot close rejected body");
             });
+            assertThat(retainedContent(imported).readAllBytes()).isEqualTo(BODY.getBytes(UTF_8));
         }
         assertThat(source.closed).isEqualTo(1);
     }
@@ -222,6 +235,10 @@ class TextBodyStreamImportTest {
 
     private static String body(final Email email, final String type) {
         return "text/html".equals(type) ? email.getHTMLText() : email.getPlainText();
+    }
+
+    private static EmailSourceContent retainedContent(final Email email) {
+        return ((EmailSourcePart) email.getProblems().get(0).getSources().get(0)).getContent();
     }
 
     private static MimeMessage message(final BodySource source, final boolean nested) throws Exception {

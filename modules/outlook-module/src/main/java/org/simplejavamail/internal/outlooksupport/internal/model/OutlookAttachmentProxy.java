@@ -12,4 +12,11 @@ class OutlookAttachmentProxy implements OutlookAttachment {
 	OutlookAttachmentProxy(final org.simplejavamail.outlookmessageparser.model.OutlookAttachment delegate) {
 		this.delegate = delegate;
 	}
+
+	@Override
+	public org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage getEmbeddedMessage() {
+		return delegate instanceof org.simplejavamail.outlookmessageparser.model.OutlookMsgAttachment
+				? new OutlookMessageProxy(((org.simplejavamail.outlookmessageparser.model.OutlookMsgAttachment) delegate).getOutlookMessage())
+				: null;
+	}
 }

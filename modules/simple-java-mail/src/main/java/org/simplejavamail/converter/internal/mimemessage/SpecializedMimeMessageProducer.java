@@ -40,7 +40,7 @@ public abstract class SpecializedMimeMessageProducer {
 	
 	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
 			throws MessagingException, UnsupportedEncodingException {
-		return applySecurity(email, session, populateBaseMimeMessage(email, session));
+		return MimeMessageProducerHelper.applyMessageProtection(email, session, populateBaseMimeMessage(email, session));
 	}
 
 	final MimeMessage populateBaseMimeMessage(@NotNull final Email email, @NotNull Session session)
@@ -64,7 +64,7 @@ public abstract class SpecializedMimeMessageProducer {
 		return message;
 	}
 
-	private MimeMessage applySecurity(@NotNull final Email email, @NotNull final Session session, MimeMessage message)
+	static MimeMessage applySecurity(@NotNull final Email email, @NotNull final Session session, MimeMessage message)
 			throws MessagingException {
 
 		/*

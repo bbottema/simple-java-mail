@@ -10,10 +10,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.Arguments;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
@@ -22,18 +23,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.mailer.MailFailureKind.CONVERSION;
 
 class CalendarStreamCharsetTest {
 
@@ -61,14 +58,16 @@ class CalendarStreamCharsetTest {
 
 	@ParameterizedTest
 	@MethodSource("invalidCharsets")
-	void rejectsUnsupportedAndIllegalDeclarationsBeforeOpeningContent(final ContentPath contentPath,
+	void reportsUnsupportedAndIllegalDeclarationsWithoutOpeningContent(final ContentPath contentPath,
 			final boolean fluent, final String charset) throws Exception {
 		final CalendarSource source = new CalendarSource(CALENDAR.getBytes(UTF_8), charset);
 		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
 			final MimeMessage incoming = message(source, contentPath);
-			assertThatThrownBy(() -> convert(incoming, fluent)).isInstanceOfSatisfying(MailException.class, failure -> {
-				assertThat(failure.getKind()).isEqualTo(CONVERSION);
-				assertThat(failure.getCause()).isInstanceOf(UnsupportedEncodingException.class).hasMessage(charset);
+			final Email imported = convert(incoming, fluent);
+            assertThat(imported.getCalendarText()).isNull();
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.VALUE_NOT_DECODED);
+                assertThat(problem.getMessage()).contains(charset);
 			});
 		}
 		assertThat(source.opened).as("invalid charset declarations must not acquire content streams").isZero();
@@ -88,12 +87,34 @@ class CalendarStreamCharsetTest {
 		final CalendarSource source = new CalendarSource(bytes, null);
 		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
 			final Email imported = convert(message(source, contentPath), true);
-			assertThat(imported.getCalendarText()).isEqualTo(new String(bytes,
-					contentPath == ContentPath.PROVIDER_STREAM ? UTF_8 : US_ASCII));
+            if (contentPath == ContentPath.PROVIDER_STREAM) {
+                assertThat(imported.getCalendarText()).isEqualTo(CALENDAR);
+                assertThat(imported.getProblems()).isEmpty();
+            } else {
+                // The handler's US-ASCII default is unchanged; malformed input is no longer silently replaced.
+                assertThat(imported.getCalendarText()).isNull();
+                assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                    assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.VALUE_NOT_DECODED);
+                    assertThat(((EmailSourcePart) problem.getSources().get(0)).getContent().readAllBytes()).isEqualTo(bytes);
+                });
+            }
 		}
 		assertThat(source.opened).isEqualTo(1);
 		assertThat(source.closed).isEqualTo(1);
 	}
+
+    @ParameterizedTest @EnumSource(ContentPath.class)
+    void asciiCalendarContentRemainsReadableUnderEitherAbsentCharsetDefault(final ContentPath contentPath) throws Exception {
+        final String ascii = "BEGIN:VCALENDAR\r\nMETHOD:REQUEST\r\nEND:VCALENDAR\r\n";
+        final CalendarSource source = new CalendarSource(ascii.getBytes(UTF_8), null);
+        try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
+            final Email imported = convert(message(source, contentPath), true);
+            assertThat(imported.getCalendarText()).isEqualTo(ascii);
+            assertThat(imported.getProblems()).isEmpty();
+        }
+        assertThat(source.opened).isEqualTo(1);
+        assertThat(source.closed).isEqualTo(1);
+    }
 
 	private Email convert(final MimeMessage incoming, final boolean fluent) {
 		return fluent ? mail.converter().fromMimeMessage(incoming).toEmail() : EmailConverter.mimeMessageToEmail(incoming);

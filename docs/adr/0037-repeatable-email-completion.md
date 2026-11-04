@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Decision date: 2026-10-21
+- Source/problem history: [ADR 0041](0041-email-source-inspection-and-problems.md) keeps captured evidence and inherited observations unchanged through copying and later setters; completed outgoing Email starts its own history. Historical Problems are not a send gate.
 - Target: 10.0.0
 - Implementation: Implemented and reviewed locally for unreleased 10.0.0; [#768](https://github.com/bbottema/simple-java-mail/issues/768) tracks delivery and verification.
 - Supersedes: Unconditional additive collection concatenation in [ADR 0002](0002-email-defaults-and-overrides.md). Other value-shape, ownership and lock rules remain applicable.

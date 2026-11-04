@@ -22,6 +22,10 @@ Make the input bytes the sole authority for MIME content. The parsed Email gette
 [ADR 0035](0035-tolerant-reading-and-strict-production.md) permits recovery in that inspection view without changing authoritative bytes.
 Tolerant reading does not relax this explicit submission mode's validation, content-preservation or transport-safety requirements.
 
+[ADR 0041](0041-email-source-inspection-and-problems.md) adds enumerable source evidence, selectively retained original content and root
+processing observations to that inspection view. Their getters/copying do not alter authoritative EML bytes, trigger another interpretation
+or retroactively replace a problem's original input identity. The optional non-Email artifact-result API does not relax exact-byte ownership.
+
 Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and outgoing DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 
 That copy also makes no promise that signatures already applied to the source remain valid; copying does not automatically strip or re-sign them.

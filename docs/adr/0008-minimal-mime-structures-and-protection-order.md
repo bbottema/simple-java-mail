@@ -344,6 +344,10 @@ Security and conversion must preserve Message-ID and exact protected bytes acros
 
 ## Interpreted mail facts remain part of Email (accepted 2026-10-16)
 
+[ADR 0041](0041-email-source-inspection-and-problems.md) extends discoverable received evidence and root problem reporting on Email.
+Received, extracted and generated source views and immutable problem origins preserve ownership independently of merged readable content
+and output ID changes. Retained originals can exist without Problems, and source access does not repeat protection work or alter protected bytes.
+
 This addendum is implemented under [#763](https://github.com/bbottema/simple-java-mail/issues/763), verified and accepted in production review on 2026-10-18;
 the earlier MIME/protection decisions remain implemented. The independent integration programme is [#764](https://github.com/bbottema/simple-java-mail/issues/764).
 

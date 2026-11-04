@@ -2,6 +2,7 @@ package org.simplejavamail.converter.internal;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import java.io.IOException;
 import java.util.Properties;
 import java.util.List;
 import java.util.function.Function;
@@ -12,6 +13,7 @@ import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmlConversion;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.IncomingConversion;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.MimeMessageConversion;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.OutlookConversion;
+import org.simplejavamail.api.converter.EmailConversionResult;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -19,7 +21,6 @@ import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 import org.simplejavamail.internal.configresolution.ConfigurationChoice;
@@ -134,7 +135,18 @@ class FluentEmailConversions {
 			beginConversion();
 			final boolean fetchData = selectOptionOrCreateFallback(attachmentDataConfigured ? fetchAttachmentData : null,
 					() -> EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, "withFetchAttachmentData");
-			return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchData);
+			try {
+				try {
+					return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchData);
+				} catch (final SourceCloseException failure) {
+					final EmailPopulatingBuilder builder = converter.mimeMessageToEmailBuilder(failure.getMimeMessage(),
+							pkcs12Config, openPgpReceiveConfig, fetchData);
+					ConfiguredEmailConverterImpl.noteInputCloseFailure(builder, (IOException) failure.getCause());
+					return builder;
+				}
+			} catch (final SourceReadException failure) {
+				return converter.sourceFailureBuilder(failure);
+			}
 		}
 
 		/** @see IncomingConversion#toEmail() */
@@ -190,9 +202,26 @@ class FluentEmailConversions {
 		/** @see EmlConversion#toMimeMessage() */
 		@Override
 		public MimeMessage toMimeMessage() {
+			return ArtifactConversions.value(toMimeMessageResult());
+		}
+
+		/** @see EmlConversion#toMimeMessageResult() */
+		@Override
+		public EmailConversionResult<MimeMessage> toMimeMessageResult() {
 			checkDirectExportOptions();
 			beginConversion();
-			return sourceMessage();
+			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(null);
+			return operation.execute(() -> {
+				try {
+					final MimeMessage message = sourceMessage();
+					operation.includeMime(message);
+					return message;
+				} catch (final SourceCloseException failure) {
+					operation.includeMime(failure.getMimeMessage());
+					operation.noteInputCloseFailure((IOException) failure.getCause());
+					return failure.getMimeMessage();
+				}
+			});
 		}
 	}
 
@@ -217,23 +246,43 @@ class FluentEmailConversions {
 		/** @see MimeMessageConversion#toEml() */
 		@Override
 		public String toEml() {
+			return ArtifactConversions.value(toEmlResult());
+		}
+
+		/** @see MimeMessageConversion#toEmlResult() */
+		@Override
+		public EmailConversionResult<String> toEmlResult() {
 			checkDirectExportOptions();
 			beginConversion();
-			return EmailConverter.mimeMessageToEML(source);
+			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(null);
+			// Raw passthrough does not request header/field acquisition merely to populate diagnostics.
+			return operation.execute(() -> operation.writeText(source));
 		}
 
 		/** @see MimeMessageConversion#toEmlBytes() */
 		@Override
 		public byte[] toEmlBytes() {
+			return ArtifactConversions.value(toEmlBytesResult());
+		}
+
+		/** @see MimeMessageConversion#toEmlBytesResult() */
+		@Override
+		public EmailConversionResult<byte[]> toEmlBytesResult() {
 			checkDirectExportOptions();
 			beginConversion();
-			return EmailConverter.mimeMessageToEMLByteArray(source);
+			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(null);
+			return operation.execute(() -> operation.write(source));
 		}
 	}
 
 	private static class ExportOptions extends SingleConversion {
+		final ConfiguredEmailConverterImpl converter;
 		private Session session;
 		private EmailGovernance governance;
+
+		ExportOptions(final ConfiguredEmailConverterImpl converter) {
+			this.converter = converter;
+		}
 
 		final void selectSession(final Session value) {
 			checkAvailable();
@@ -245,11 +294,12 @@ class FluentEmailConversions {
 			governance = value;
 		}
 
-		final MimeMessage exportEmail(final Email email) {
+		final MimeMessage exportEmail(final ArtifactConversions.Operation operation, final Email email, final boolean writingContent) {
 			// Export preserves the existing no-template default; factory configuration belongs to imported builders, not implicit outgoing policy.
-			return EmailConverter.emailToMimeMessage(email,
+			return operation.render(email,
 					selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"),
-					selectOptionOrCreateFallback(governance, EmailGovernanceImpl::NO_GOVERNANCE, "withEmailGovernance"));
+					selectOptionOrCreateFallback(governance, EmailGovernanceImpl::NO_GOVERNANCE, "withEmailGovernance"),
+					converter::copyForOutput, writingContent);
 		}
 
 		final void checkImportOptions() {
@@ -264,7 +314,8 @@ class FluentEmailConversions {
 	static final class FromEmail extends ExportOptions implements EmailConversion {
 		private final Email source;
 
-		FromEmail(final Email source) {
+		FromEmail(final ConfiguredEmailConverterImpl converter, final Email source) {
+			super(converter);
 			this.source = source;
 		}
 
@@ -299,20 +350,49 @@ class FluentEmailConversions {
 		/** @see EmailConversion#toMimeMessage() */
 		@Override
 		public MimeMessage toMimeMessage() {
-			beginConversion();
-			return exportEmail(source);
+			return ArtifactConversions.value(toMimeMessageResult());
+		}
+
+		/** @see EmailConversion#toMimeMessageResult() */
+		@Override
+		public EmailConversionResult<MimeMessage> toMimeMessageResult() {
+			return convert(false, Function.identity());
 		}
 
 		/** @see EmailConversion#toEml() */
 		@Override
 		public String toEml() {
-			return EmailConverter.mimeMessageToEML(toMimeMessage());
+			return ArtifactConversions.value(toEmlResult());
+		}
+
+		/** @see EmailConversion#toEmlResult() */
+		@Override
+		public EmailConversionResult<String> toEmlResult() {
+			return convert(true, (operation, message) -> operation.writeText(message));
 		}
 
 		/** @see EmailConversion#toEmlBytes() */
 		@Override
 		public byte[] toEmlBytes() {
-			return EmailConverter.mimeMessageToEMLByteArray(toMimeMessage());
+			return ArtifactConversions.value(toEmlBytesResult());
+		}
+
+		/** @see EmailConversion#toEmlBytesResult() */
+		@Override
+		public EmailConversionResult<byte[]> toEmlBytesResult() {
+			return convert(true, (operation, message) -> operation.write(message));
+		}
+
+		private <T> EmailConversionResult<T> convert(final boolean writingContent, final Function<MimeMessage, T> target) {
+			return convert(writingContent, (operation, message) -> target.apply(message));
+		}
+
+		private <T> EmailConversionResult<T> convert(final boolean writingContent,
+				final java.util.function.BiFunction<ArtifactConversions.Operation, MimeMessage, T> target) {
+			beginConversion();
+			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(source.getId());
+			operation.includeEmail(source, false);
+			return operation.execute(() -> target.apply(operation, exportEmail(operation, source, writingContent)));
 		}
 	}
 
@@ -320,7 +400,8 @@ class FluentEmailConversions {
 		private final Function<Pkcs12Config, OutlookEmailConversionResult> source;
 		private Pkcs12Config pkcs12Config;
 
-		FromOutlook(final Function<Pkcs12Config, OutlookEmailConversionResult> source) {
+		FromOutlook(final ConfiguredEmailConverterImpl converter, final Function<Pkcs12Config, OutlookEmailConversionResult> source) {
+			super(converter);
 			this.source = source;
 		}
 
@@ -395,19 +476,50 @@ class FluentEmailConversions {
 		/** @see OutlookConversion#toMimeMessage() */
 		@Override
 		public MimeMessage toMimeMessage() {
-			return exportEmail(readSource().buildEmail());
+			return ArtifactConversions.value(toMimeMessageResult());
+		}
+
+		/** @see OutlookConversion#toMimeMessageResult() */
+		@Override
+		public EmailConversionResult<MimeMessage> toMimeMessageResult() {
+			return convert(false, (operation, message) -> message);
 		}
 
 		/** @see OutlookConversion#toEml() */
 		@Override
 		public String toEml() {
-			return EmailConverter.mimeMessageToEML(toMimeMessage());
+			return ArtifactConversions.value(toEmlResult());
+		}
+
+		/** @see OutlookConversion#toEmlResult() */
+		@Override
+		public EmailConversionResult<String> toEmlResult() {
+			return convert(true, (operation, message) -> operation.writeText(message));
 		}
 
 		/** @see OutlookConversion#toEmlBytes() */
 		@Override
 		public byte[] toEmlBytes() {
-			return EmailConverter.mimeMessageToEMLByteArray(toMimeMessage());
+			return ArtifactConversions.value(toEmlBytesResult());
+		}
+
+		/** @see OutlookConversion#toEmlBytesResult() */
+		@Override
+		public EmailConversionResult<byte[]> toEmlBytesResult() {
+			return convert(true, (operation, message) -> operation.write(message));
+		}
+
+		private <T> EmailConversionResult<T> convert(final boolean writingContent,
+				final java.util.function.BiFunction<ArtifactConversions.Operation, MimeMessage, T> target) {
+			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(null);
+			return operation.execute(() -> {
+				final OutlookEmailConversionResult imported = readSource();
+				final SourceReadException acquisitionFailure = ConfiguredEmailConverterImpl.acquisitionFailure(imported);
+				if (acquisitionFailure != null) throw acquisitionFailure;
+				final Email email = imported.buildEmail();
+				operation.includeEmail(email, true);
+				return target.apply(operation, exportEmail(operation, email, writingContent));
+			});
 		}
 	}
 

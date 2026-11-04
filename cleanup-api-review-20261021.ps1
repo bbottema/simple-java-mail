@@ -64,6 +64,7 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    '.local/email-source-inspection-20261103'
     '.local/decrypted-merge-contract-20261103'
     '.local/review-smime-id-contract-20261103'
     '.local/review-text-streams-20261102'
@@ -137,6 +138,11 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # Retire these #961 specifications after delivery; keep email-inspection-roadmap-20261104.md durable.
+    'docs/plans/email-source-inspection-20261103.md'
+    'docs/plans/email-source-content-contract-20261104.md'
+    'docs/plans/email-conversion-outcomes-20261104.md'
+    'docs/plans/email-omissions-and-retention-20261104.md'
     # Retire the active merge-contract review plan before running cleanup.
     'docs/plans/decrypted-merge-contract-20261103.md'
     'docs/plans/smime-helper-id-contract-20261103.md'

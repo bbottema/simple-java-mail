@@ -3,6 +3,7 @@ package org.simplejavamail.converter.internal.mimemessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.email.internal.InternalEmail;
 
@@ -42,6 +43,13 @@ public final class MimeMessageProducerHelper {
 	@SuppressWarnings("deprecation")
 	public static MimeMessage produceBaseMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
 		return produceMimeMessage(email, session, false);
+	}
+
+	/** Applies the existing protection pipeline to an already prepared base message without repeating metadata/content preparation. */
+	@org.jetbrains.annotations.ApiStatus.Internal
+	public static MimeMessage applyMessageProtection(@NotNull final Email email, @NotNull final Session session,
+			@NotNull final MimeMessage message) throws MessagingException {
+		return SpecializedMimeMessageProducer.applySecurity(email, session, message);
 	}
 
 	@SuppressWarnings("deprecation")

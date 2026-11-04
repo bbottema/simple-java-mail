@@ -191,6 +191,7 @@ public class SMIMESupport implements SMIMEModule {
 			}
 			return unrecognized(originalMessage);
 		} catch (Exception e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			LOGGER.debug("Unable to process S/MIME message before MIME parsing", e);
 			final boolean encrypted = isEncrypted(originalMessage);
 			final OriginalSmimeDetailsImpl failed = OriginalSmimeDetailsImpl.builder()
@@ -267,11 +268,13 @@ public class SMIMESupport implements SMIMEModule {
 				.decryptedArtifacts(decryptedArtifacts)
 				.build();
 		} catch (Exception e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			LOGGER.debug("Unable to process decrypted S/MIME content", e);
 			if (effective == originalMessage) {
 				try {
 					effective = effectiveMessage(session, originalMessage, decryptedPart);
 				} catch (MessagingException | IOException contentFailure) {
+					org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(contentFailure);
 					LOGGER.debug("Unable to expose decrypted S/MIME content", contentFailure);
 				}
 			}
@@ -356,6 +359,7 @@ public class SMIMESupport implements SMIMEModule {
 			return result.verificationStatus(valid ? OriginalSmimeDetails.VerificationStatus.VALID : OriginalSmimeDetails.VerificationStatus.INVALID)
 					.failureReason(valid ? null : "S/MIME signature does not match the signed MIME entity").build();
 		} catch (SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME pre-parse signature verification failure: {}", e.getMessage());
 			if (e.getCause() instanceof CMSSignerDigestMismatchException) {
@@ -371,6 +375,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return !determineSMIMESigned(mimePart).getSignerInfos().getSigners().isEmpty();
 		} catch (SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return false;
 		}
 	}
@@ -472,6 +477,7 @@ public class SMIMESupport implements SMIMEModule {
 			dataSource.setName(name);
 			return new ArrayList<>(Collections.singletonList(AttachmentResource.builder().withName(name).withDataSource(dataSource).build()));
 		} catch (Exception e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return new ArrayList<>();
 		}
 	}
@@ -490,6 +496,7 @@ public class SMIMESupport implements SMIMEModule {
 			final String name = ofNullable(signature.getFileName()).orElse("smime.p7s");
 			return new ArrayList<>(Collections.singletonList(AttachmentResource.builder().withName(name).withDataSource(new ByteArrayDataSource(readAll(signature.getInputStream()), signature.getContentType())).build()));
 		} catch (Exception e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return new ArrayList<>();
 		}
 	}
@@ -558,6 +565,7 @@ public class SMIMESupport implements SMIMEModule {
 					|| "application/x-pkcs7-mime".equalsIgnoreCase(type.getBaseType()))
 					&& !"signed-data".equalsIgnoreCase(type.getParameter("smime-type"));
 		} catch (MessagingException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return false;
 		}
 	}
@@ -613,6 +621,7 @@ public class SMIMESupport implements SMIMEModule {
 				}
 			}
 		} catch (MessagingException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(ERROR_READING_SMIME_CONTENT_TYPE, e);
 		}
 	}
@@ -636,6 +645,7 @@ public class SMIMESupport implements SMIMEModule {
 			try {
 				validSignature = verifyValidSignature(mimeMessage, messageSmimeDetails);
 			} catch (org.simplejavamail.utils.mail.smime.SmimeException e) {
+				org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 				LOGGER.warn("Message contains invalid S/MIME signature! Assume this email has been tampered with. Reason: {}", e.getMessage());
 				LOGGER.debug("S/MIME signature verification failure: {}", e.getMessage());
 				return false;
@@ -736,6 +746,7 @@ public class SMIMESupport implements SMIMEModule {
 					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails,
 							smimeDetailsToUpdate, signedMessageDetails, ownsMessageEnvelope));
 				} catch (Exception e) {
+					org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 					throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 				}
 			} else {
@@ -758,6 +769,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return SmimeRecognitionUtil.isSmimeContentType(new ContentType(contentType));
 		} catch (ParseException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return false;
 		}
 	}
@@ -786,6 +798,7 @@ public class SMIMESupport implements SMIMEModule {
 
 			return liberatedContent != null ? liberatedContent : new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment);
 		} catch (MessagingException | IOException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 		}
 	}
@@ -863,6 +876,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return getSignedContent(mimeBodyPart, smimeDetailsToUpdate);
 		} catch (MessagingException | IOException | SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			// ignore, apparently not S/MIME after all
 		}
 		LOGGER.warn("Content classified as signed, but apparently not using S/MIME; skipping S/MIME interpreter...");
@@ -873,6 +887,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return hasSignerInformation(mimeBodyPart) && SmimeCryptoSupport.checkSignature(mimeBodyPart);
 		} catch (SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
 			LOGGER.debug("S/MIME attachment signature verification failure: {}", e.getMessage());
 			return false;
@@ -946,6 +961,7 @@ public class SMIMESupport implements SMIMEModule {
 			internetHeaders.addHeader("Content-Type", smimeAttachment.getDataSource().getContentType());
 			return getSignedByAddress(new MimeBodyPart(internetHeaders, readAll(smimeAttachment.openStream())));
 		} catch (MessagingException | IOException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(format(ERROR_EXTRACTING_SIGNEDBY_FROM_SMIME_SIGNED_ATTACHMENT, smimeAttachment), e);
 		}
 	}
@@ -960,6 +976,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return getSignedByAddress(determineSMIMESigned(mimePart));
 		} catch (SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			// not the right scenario to find signed-by, skip attempt
 			return null;
 		}
@@ -977,6 +994,7 @@ public class SMIMESupport implements SMIMEModule {
 		try {
 			return !determineSMIMESigned(mimePart).getSignerInfos().getSigners().isEmpty();
 		} catch (SmimeException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			return false;
 		}
 	}
@@ -992,6 +1010,7 @@ public class SMIMESupport implements SMIMEModule {
 				throw new SmimeException(format(MIMEPART_ASSUMED_SIGNED_ACTUALLY_NOT_SIGNED, mimePart));
 			}
 		} catch (MessagingException | CMSException | SMIMEException | IOException e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(ERROR_DETERMINING_SMIME_SIGNER, e);
 		}
 	}
@@ -1013,6 +1032,7 @@ public class SMIMESupport implements SMIMEModule {
 			RDN cn = x500name.getRDNs(BCStyle.CN)[0];
 			return IETFUtils.valueToString(cn.getFirst().getValue());
 		} catch (Exception e) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(ERROR_EXTRACTING_SUBJECT_FROM_CERTIFICATE, e);
 		}
 	}

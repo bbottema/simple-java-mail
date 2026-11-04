@@ -45,10 +45,6 @@ public final class ProtectedCalendarFixture {
     }
 
     public static byte[] encryptedEml(Path resources) throws Exception {
-        Pkcs12Config keys = keys(resources);
-        KeyStore store = KeyStore.getInstance("PKCS12");
-        store.load(new ByteArrayInputStream(keys.getPkcs12StoreData()), keys.getStorePassword());
-        X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
         Email clear = MAIL.emailBuilder().startingBlank()
                 .from("payload-sender@example.org").to("payload-recipient@example.org")
                 .withSubject("Protected calendar fixture").withPlainText(TEXT).withHTMLText(HTML)
@@ -57,12 +53,20 @@ public final class ProtectedCalendarFixture {
                         .withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE)
                         .withHTMLTextContentTransferEncoding(ContentTransferEncoding.BASE_64)
                         .withCalendarTextContentTransferEncoding(ContentTransferEncoding.BASE_64).build()).buildEmail();
+        return encryptedMessage(resources, MAIL.converter().fromEmail(clear).toMimeMessage());
+    }
+
+    public static byte[] encryptedMessage(Path resources, MimeMessage clear) throws Exception {
+        Pkcs12Config keys = keys(resources);
+        KeyStore store = KeyStore.getInstance("PKCS12");
+        store.load(new ByteArrayInputStream(keys.getPkcs12StoreData()), keys.getStorePassword());
+        X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
         Email protection = MAIL.emailBuilder().startingBlank()
                 .fixingMessageId("<protected-calendar-fixture@example.org>")
                 .signWithSmime(SmimeSigningConfig.builder().pkcs12Config(keys).build())
                 .encryptWithSmime(SmimeEncryptionConfig.builder().x509Certificate(certificate).build()).buildEmail();
         MimeMessage protectedMessage = MailerHelper.signAndOrEncryptMessageWithSmime(
-                Session.getInstance(new Properties()), MAIL.converter().fromEmail(clear).toMimeMessage(), protection);
+                Session.getInstance(new Properties()), clear, protection);
         return MAIL.converter().fromMimeMessage(protectedMessage).toEmlBytes();
     }
 

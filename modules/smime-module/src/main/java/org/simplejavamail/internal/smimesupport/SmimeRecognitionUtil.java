@@ -15,7 +15,7 @@ public final class SmimeRecognitionUtil {
 	/**
 	 * Used internally to recognize when we should ignore message ID header when starting a new email as a copy.
 	 */
-	static final String SMIME_ATTACHMENT_MESSAGE_ID = "<generated-for-smime-signed-attachment@simple-java-mail>";
+	static final String SMIME_ATTACHMENT_MESSAGE_ID = org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult.GENERATED_MESSAGE_ID;
 
 	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted.

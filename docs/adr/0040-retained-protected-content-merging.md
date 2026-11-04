@@ -50,6 +50,11 @@ Calendar parsing and the Email calendar fields already existed in that implement
 
 ## Decision
 
+[ADR 0041](0041-email-source-inspection-and-problems.md) supplies enumerable source evidence, selectively retained originals and processing
+observations. Source entries remain owned by their received/extracted/generated views. Qualified inner findings enter the represented root
+once while preserving their immutable origins; copying or resetting a materialized view does not reaggregate them. Retained source content
+need not have a Problem, and captured-source getters do not repeat parsing, reads or protection work.
+
 Keep the existing caller-facing merged/separate views. Make their field ownership explicit and verify both initial import construction and explicit copied-view promotion against the same rules. Preserve the compatibility choices below instead of broadening the redesign during a field-completeness repair.
 
 ### Eligibility and separate views

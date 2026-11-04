@@ -419,8 +419,8 @@ public class OutlookEmailConverter implements OutlookModule {
 	private static OutlookMessage parseOutlookMsg(@NotNull final File msgFile) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFile);
-		} catch (final IOException e) {
-			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
+		} catch (final IOException | org.apache.poi.UnsupportedFileFormatException | org.apache.poi.EmptyFileException e) {
+			throw new org.simplejavamail.api.internal.outlooksupport.model.OutlookInputException(e);
 		}
 	}
 	
@@ -428,8 +428,8 @@ public class OutlookEmailConverter implements OutlookModule {
 	private static OutlookMessage parseOutlookMsg(@NotNull final InputStream msgInputStream) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgInputStream);
-		} catch (final IOException e) {
-			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
+		} catch (final IOException | org.apache.poi.UnsupportedFileFormatException | org.apache.poi.EmptyFileException e) {
+			throw new org.simplejavamail.api.internal.outlooksupport.model.OutlookInputException(e);
 		}
 	}
 	
@@ -437,8 +437,8 @@ public class OutlookEmailConverter implements OutlookModule {
 	private static OutlookMessage parseOutlookMsg(@NotNull final String msgFileName) {
 		try {
 			return new org.simplejavamail.outlookmessageparser.OutlookMessageParser().parseMsg(msgFileName);
-		} catch (final IOException e) {
-			throw new OutlookMessageException(OutlookMessageException.ERROR_PARSING_OUTLOOK_MSG, e);
+		} catch (final IOException | org.apache.poi.UnsupportedFileFormatException | org.apache.poi.EmptyFileException e) {
+			throw new org.simplejavamail.api.internal.outlooksupport.model.OutlookInputException(e);
 		}
 	}
 }

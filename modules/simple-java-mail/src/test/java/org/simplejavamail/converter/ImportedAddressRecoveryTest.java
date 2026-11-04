@@ -17,9 +17,11 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceHeader;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.ValidationConfig;
@@ -259,7 +261,7 @@ class ImportedAddressRecoveryTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"From", "Reply-To"})
-    void unrelatedGetterAddressExceptionsAreNotRecoveredFromValidSourceHeaders(final String field) throws Exception {
+    void checkedGetterAddressExceptionsRetainTheWholeFieldWithItsProblem(final String field) throws Exception {
         final AddressException failure = new AddressException("application supplied getter failure");
         final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(message(FROM, REPLY).getBytes(UTF_8))) {
             @Override public Address[] getFrom() throws MessagingException {
@@ -272,14 +274,16 @@ class ImportedAddressRecoveryTest {
             }
         };
         try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
-            assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).toEmail())
-                    .isInstanceOf(MailException.class).hasRootCause(failure);
+            final Email imported = MAIL.converter().fromMimeMessage(source).toEmail();
+            assertThat(address(imported, field)).isEqualTo(field.equals("From") ? FROM : REPLY);
+            assertReadableContent(imported);
+            assertCheckedFieldProblem(imported, field, failure);
         }
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"From", "Reply-To"})
-    void genericAddressGetterFailuresKeepTheirExistingFailureBoundary(final String field) throws Exception {
+    void checkedAddressGetterFailuresPreserveNeighborsAndReportTheirSource(final String field) throws Exception {
         final MessagingException failure = new MessagingException("source address field unavailable");
         final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(message(FROM, REPLY).getBytes(UTF_8))) {
             @Override public Address[] getFrom() throws MessagingException {
@@ -292,24 +296,90 @@ class ImportedAddressRecoveryTest {
             }
         };
         try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
-            assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).toEmail())
-                    .isInstanceOf(MailException.class).hasRootCause(failure);
+            final Email imported = MAIL.converter().fromMimeMessage(source).toEmail();
+            assertThat(address(imported, field)).isEqualTo(field.equals("From") ? FROM : REPLY);
+            assertReadableContent(imported);
+            assertCheckedFieldProblem(imported, field, failure);
         }
     }
 
     @Test
-    void requiredContentAndCodecFailuresAreNotHiddenByAddressRecovery() throws Exception {
-        final String undecodableName = message(FROM, "broken <address").replace("filename=payload.bin", "filename=\"=?X-NO-SUCH-CHARSET?Q?payload.bin?=\"");
-        assertThatThrownBy(() -> MAIL.converter().fromEml(undecodableName).toEmail())
-                .isInstanceOf(MailException.class).hasRootCauseInstanceOf(UnsupportedEncodingException.class);
+    void namingCodecAndRequiredContentIssuesRemainInspectableAlongsideAddressRecovery() throws Exception {
+        final String encodedName = "=?X-NO-SUCH-CHARSET?Q?payload.bin?=";
+        final String undecodableName = message(FROM, "broken <address").replace("filename=payload.bin", "filename=\"" + encodedName + "\"");
+        final Email named = MAIL.converter().fromEml(undecodableName).toEmail();
+        assertThat(named.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("broken <address");
+        assertThat(named.getPlainText()).isEqualTo("Readable body");
+        assertThat(named.getAttachments()).singleElement().satisfies(attachment -> {
+            assertThat(attachment.getName()).isEqualTo(encodedName);
+            assertThat(attachment.readAllBytes()).isEqualTo("Attachment bytes".getBytes(UTF_8));
+        });
+        assertThat(named.getProblems()).anySatisfy(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.VALUE_NOT_DECODED);
+            assertThat(problem.getSources()).anySatisfy(element -> {
+                assertThat(element).isInstanceOf(EmailSourceHeader.class);
+                assertThat(((EmailSourceHeader) element).getName()).isEqualTo("Content-Disposition");
+                assertThat(((EmailSourceHeader) element).getRawValue()).contains(encodedName);
+            });
+        });
+
         final IOException failure = new IOException("required message content unavailable");
         final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(message(FROM, "broken <address").getBytes(UTF_8))) {
             @Override public Object getContent() throws IOException { throw failure; }
         };
         try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
-            assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).toEmail())
-                    .isInstanceOf(MailException.class).hasRootCause(failure);
+            final Email imported = MAIL.converter().fromMimeMessage(source).toEmail();
+            assertThat(imported.getSubject()).isEqualTo("Readable mail");
+            assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("broken <address");
+            assertThat(imported.getPlainText()).isNull();
+            assertThat(imported.getAttachments()).isEmpty();
+            assertThat(imported.getProblems()).anySatisfy(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+                assertThat(problem.getMessage()).contains(failure.getMessage());
+                assertThat(problem.getSources()).anySatisfy(element -> {
+                    assertThat(element).isInstanceOf(EmailSourcePart.class);
+                    final EmailSourcePart part = (EmailSourcePart) element;
+                    assertThat(part.getContent()).isNotNull();
+                    assertThat(part.getContent().isFullyCaptured()).isTrue();
+                    assertThat(new String(part.getContent().readAllBytes(), UTF_8)).contains("Readable body", "Attachment bytes");
+                });
+            });
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"From", "Reply-To"})
+    void applicationRuntimeFailuresAreNotReclassifiedByTheirCheckedCauses(final String field) throws Exception {
+        for (Exception cause : Arrays.asList(new AddressException("application grammar failure"),
+                new MessagingException("application reader failure"), new UnsupportedEncodingException("application codec"))) {
+            final IllegalStateException failure = new IllegalStateException("application address getter failure", cause);
+            final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(message(FROM, REPLY).getBytes(UTF_8))) {
+                @Override public Address[] getFrom() throws MessagingException {
+                    if (field.equals("From")) throw failure;
+                    return super.getFrom();
+                }
+                @Override public Address[] getReplyTo() throws MessagingException {
+                    if (field.equals("Reply-To")) throw failure;
+                    return super.getReplyTo();
+                }
+            };
+            try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class)) {
+                assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).toEmail()).isSameAs(failure);
+            }
+        }
+    }
+
+    private static void assertCheckedFieldProblem(final Email email, final String field, final MessagingException failure) {
+        final EmailSourceHeader captured = email.getSourceData().getHeaders().stream()
+                .filter(header -> header.getName().equalsIgnoreCase(field)).findFirst().orElseThrow(AssertionError::new);
+        assertThat(captured.getRawValue()).isEqualTo(field.equals("From") ? FROM : REPLY);
+        assertThat(email.getProblems()).anySatisfy(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+            assertThat(problem.getLocation()).isEqualTo(field);
+            assertThat(problem.getMessage()).contains(failure.getMessage());
+            assertThat(problem.getSources()).contains(captured);
+        });
     }
 
     private static String message(final String from, final String replyTo) {

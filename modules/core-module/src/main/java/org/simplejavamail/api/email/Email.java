@@ -1,5 +1,9 @@
 package org.simplejavamail.api.email;
 
+import org.simplejavamail.internal.email.EmailInspection;
+import org.simplejavamail.internal.email.EmailInspectionBuilder;
+import java.util.Collections;
+
 import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.simplejavamail.api.email.config.ContentEncodingConfig;
@@ -82,6 +86,32 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  */
 @SuppressWarnings("SameParameterValue")
 public class Email implements Serializable {
+
+    private EmailSourceData sourceData = EmailInspection.empty();
+    private List<EmailProblem> problems = Collections.emptyList();
+
+    /**
+     * Received source structure, metadata and selectively retained originals, independent of composed outgoing headers. The immutable result is never null; fresh composition and
+     * older serialized values without captured evidence return an empty snapshot. Ordinary copies retain the original snapshot even
+     * when their represented fields or Message-ID are edited. Outgoing completion starts its own source history.
+     * Expected transformations can retain originals without a processing problem, such as RTF converted to HTML. Canonical-equivalent
+     * decoding does not require a second payload. This getter performs no external content reads or protection processing.
+     */
+    @NotNull
+    public EmailSourceData getSourceData() {
+        return sourceData != null ? sourceData : EmailInspection.empty();
+    }
+
+    /**
+     * Immutable historical processing observations recorded while producing this Email. The list is never null; an empty list is not a
+     * validity certificate. Each entry retains its original input identity and operation through copying and serialization. Later edits
+     * do not rewrite those origins or imply that the edited content still has the original defect. Locations qualify findings from
+     * represented inner content. This is not live validation, an attachment-read log or a send result; outgoing validation remains separate.
+     */
+    @NotNull
+    public List<EmailProblem> getProblems() {
+        return problems != null ? problems : Collections.emptyList();
+    }
 
 	private static final long serialVersionUID = 1234567L;
 	private static final int SERIALIZATION_FORMAT_VERSION = 1;
@@ -400,6 +430,11 @@ public class Email implements Serializable {
 		openPgpSigningConfig = builder.getOpenPgpSigningConfig();
 		openPgpEncryptionConfig = builder.getOpenPgpEncryptionConfig();
 		dkimConfig = builder.getDkimConfig();
+        if (builder instanceof EmailInspectionBuilder) {
+            EmailInspectionBuilder inspection = (EmailInspectionBuilder) builder;
+            sourceData = inspection.getSourceData();
+            problems = inspection.getProblems();
+        }
 		detachMessageMetadata();
 	}
 
@@ -411,6 +446,8 @@ public class Email implements Serializable {
 
 	/** Copy metadata, not borrowed content sources. The same boundary repairs shared collections in older serialized Emails. */
 	private void detachMessageMetadata() {
+        sourceData = EmailInspection.copyOf(sourceData);
+        problems = EmailInspection.problems(problems);
 		returnReceiptToRecipients = notificationSnapshot(returnReceiptToRecipients, returnReceiptTo);
 		dispositionNotificationToRecipients = notificationSnapshot(dispositionNotificationToRecipients, dispositionNotificationTo);
 		recipients = visibleRecipientSnapshot(recipients);
@@ -426,7 +463,7 @@ public class Email implements Serializable {
 	@NotNull
 	private static List<Recipient> notificationSnapshot(@Nullable final List<Recipient> values, @Nullable final Recipient legacy) {
 		return immutableListSnapshot(values != null ? values : legacy == null
-				? java.util.Collections.emptyList() : java.util.Collections.singletonList(legacy));
+				? Collections.emptyList() : java.util.Collections.singletonList(legacy));
 	}
 
 	@NotNull

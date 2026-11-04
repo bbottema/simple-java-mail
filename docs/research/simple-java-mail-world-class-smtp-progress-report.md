@@ -1,6 +1,7 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
 - Assessment date: 2026-10-18.
+- Source-inspection refresh: 2026-11-04. The source/content/result overhaul is implemented for unreleased 10.0.0; [#961](https://github.com/bbottema/simple-java-mail/issues/961) tracks review and delivery. Calendar merge correction #960 is delivered on the 10.0.0 development branches. This scoped update preserves earlier competitor baselines and rankings.
 - Configuration and documentation refresh: 2026-10-27, recording the completed #867 work for unreleased 10.0.0. This is a scoped SJM product assessment; the competitor baseline and comparative rankings below have not been refreshed. Implementation [e73c5432d](https://github.com/bbottema/simple-java-mail/commit/e73c5432daa2ef740142a2e9c54a1fc4a42bbd2a) and validation guidance [68d3af98c](https://github.com/bbottema/simple-java-mail/commit/68d3af98cf6844ccb4f8ac7a55a325da02aad5ef) are recorded in local commits; publication remains pending.
 - Implementation refresh: 2026-10-15, adding accepted live progress under [#760](https://github.com/bbottema/simple-java-mail/issues/760), detailed connection/SMTP stages under [#761](https://github.com/bbottema/simple-java-mail/issues/761), retention corrections and a repeatable memory-pressure workbench. Safe retries under #756, connection failover under #755, selected-Mailer ownership corrections under #757 and earlier recipient-rejection/managed-transport updates remain part of the assessment.
 - Optional OpenTelemetry [#762](https://github.com/bbottema/simple-java-mail/issues/762) is implemented and accepted after production-only and holistic review on 2026-10-16. This is development-branch work for 10.0.0, not a released capability.
@@ -53,6 +54,7 @@ The PDF described a broad and approachable library with important operational an
 These capabilities work together. An application can configure and rehearse mail, submit it through managed resources, inspect what SMTP accepted, and decide what to do after a failure without treating every exception as proof that nothing was sent.
 
 An advertised extension in a probe is not evidence that Simple Java Mail implements that sending mode. In particular, PIPELINING and CHUNKING must not be counted as delivered capabilities merely because a server advertises them.
+| Received source inspection and conversion diagnostics (major feature) | Email exposes normal usable content, selectively retained originals and actual Problems. Generic source nodes, honest partial capture and optional artifact results preserve inspectable evidence without wrapping Email or inventing Problems for successful expected transformations. Whole-Email optional-module restoration remains deferred. | [#961](https://github.com/bbottema/simple-java-mail/issues/961), [ADR 0041](../adr/0041-email-source-inspection-and-problems.md), deferred [#965](https://github.com/bbottema/simple-java-mail/issues/965) |
 
 ## What the recent additions contribute
 
@@ -160,6 +162,45 @@ tolerant recovery of imperfect notifications. DSN parsing itself is not unique t
 content/security boundaries, without requiring applications to assemble a separate parsing pipeline. No competitor research or cross-library
 measurements were repeated for this addition; PIPELINING/CHUNKING remains a separate protocol track.
 
+### Source inspection and recoverable conversion
+
+The unreleased 10.0.0 feature under [#961](https://github.com/bbottema/simple-java-mail/issues/961) strengthens message inspection: Email
+provides convenient interpreted values together with received evidence that explains imperfect input. Generic diagnostic processing
+can enumerate headers, native properties, source parts and actually materialized derived views. Normal bodies, attachments and embedded
+images remain usable content rather than recovery-state containers.
+
+Available originals are retained when the root Email no longer exposes the received content, except for different representations of
+the same canonical value. Original reader-provided RTF remains alongside generated HTML; successful Base64 decoding needs no duplicate
+payload. Retaining an original does not require a Problem. Actual interpretation, read and protection issues have observations with stable
+input identities and affected-source links, while expected successful transformations can leave the Problems list empty.
+[ADR 0041's source-content decision](../adr/0041-email-source-inspection-and-problems.md#generic-source-structure-and-selective-original-content)
+records that distinction, and [EmailSourceData](../../modules/core-module/src/main/java/org/simplejavamail/api/email/EmailSourceData.java)
+defines the public enumerable view.
+
+Captured source bytes, reader-supplied content and partial captures remain distinguishable. Diagnostic getters read captured data without
+reopening resources, retrying interpretation or running crypto. Copies and later setters preserve the received snapshot and historical
+observations. Memory assessment must account for retained backing storage and selected large-input paths; an older outbound soak does
+not establish the cost of this graph, and no exact N-KB heap equivalence is claimed. Raw evidence must not flow automatically into ordinary
+logs, protocol transcripts, telemetry or default summaries.
+
+Email itself remains the direct non-null inspection result, including source-only/problem-only cases. Optional diagnostic envelopes belong
+to compatible non-Email artifacts such as EML bytes/text and MimeMessage. They expose newly observed Problems and available sources without
+mutating the input or changing the best-effort conversion behavior. Ordinary copies do not invent new processing failures. The permanent
+[artifact-result decision](../adr/0041-email-source-inspection-and-problems.md#diagnostic-results-for-non-email-artifacts) and
+[EmailConversionResult](../../modules/core-module/src/main/java/org/simplejavamail/api/converter/EmailConversionResult.java) define that surface.
+An unfinished output buffer is not a usable artifact, and retained sources are not automatically rendered into outgoing content.
+
+The Calendar merge correction remains separately delivered under [#960](https://github.com/bbottema/simple-java-mail/issues/960) and
+[ADR 0040](../adr/0040-retained-protected-content-merging.md). The source/content/result overhaul is implemented for unreleased 10.0.0;
+[#961](https://github.com/bbottema/simple-java-mail/issues/961) records review and delivery state. Core-owned source snapshots do not remove
+existing optional producer classes elsewhere in a whole Email's Java serialized graph. That portability work is deferred to child
+[#965](https://github.com/bbottema/simple-java-mail/issues/965), outside this feature's completion. Historical Problems are not a current send-validity verdict.
+
+This contributes to interoperability, understandable conversion failures and API coherence. It complements the original PDF's integrity,
+diagnostic and evidence agenda while extending beyond its principal outbound SMTP focus. It adds no SMTP extension, delivery guarantee
+or competitive-performance result. Claims remain bounded by the formats, providers and failure paths actually covered; this assessment
+refreshes no competitor sources, black-box comparison or cross-library benchmark. The original PDF and recorded comparison dates remain the baseline.
+
 ### Per-email recipient rejection handling
 
 Applications can now choose what a recipient rejection means for that email without finding a provider-specific property. If Alice and Bob are
@@ -235,6 +276,8 @@ Failover extends the same approach to outages. Routing, primary recovery, cancel
 4. **Providers determine the available facts and controls.** Public outcomes are provider-neutral, but the bundled managed Angus integration supplies the richest protocol observations and physical-abort support. Caller-owned Sessions, custom socket factories, CustomMailer and third-party adapters retain explicit boundaries. Missing information is not filled with invented facts.
 5. **Evidence does not establish universal superiority.** Interoperability and fault-injection results support the tested configurations. They do not establish that SJM is faster than competitors, compatible with every server, free from all scheduling races, or guaranteed to preserve downstream delivery. Cancellation is not SMTP rollback, and a total deadline cannot impose a hard completion bound on arbitrary non-cooperative application code.
 6. **Local retries are not durable or general delivery recovery.** Provider invocation ends automatic routing. Opaque setup failures and unmet message/security requirements also stop routing; failover is neither capacity spillover nor a durable job queue. The separately configured retry policy under [#756](https://github.com/bbottema/simple-java-mail/issues/756) handles safely refused temporary whole-envelope submissions, not partial/uncertain acceptance, recipient-subset retries or durable delivery jobs.
+
+7. **Source inspection has bounded capture and compatibility contracts.** The unreleased #961 feature provides source evidence, best-effort recovery and non-Email diagnostic results; it does not promise recovery of every damaged input or reconstruct bytes the reader could not obtain. Broader whole-Email Java graph portability is deferred under #965. These limits concern message handling and diagnostic consistency, rather than negotiated SMTP breadth.
 
 ## Safe mail-send retries and their evidence
 

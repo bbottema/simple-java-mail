@@ -31,7 +31,9 @@ import java.nio.file.Path;
  * become Email headers or replace the root message's facts.
  * <p>
  * MIME/EML imports retain an optional generic root header's undecoded source text when its encoded-word charset is unavailable,
- * safely unfolding legal continuations. Required content, codec failures and other typed fields keep their existing failure boundaries.
+ * safely unfolding legal continuations. Known component interpretation/read failures retain usable neighbors, available original evidence
+ * and processing problems on the returned Email. Source evidence can also retain an original representation, such as RTF converted to HTML,
+ * without a Problem merely because an expected conversion occurred. Ordinary canonical-equivalent decoding needs no duplicate payload.
  * When a provider returns plain-text or HTML content as a stream, import decodes it like the ordinary text handler: use the declared MIME charset,
  * or the {@code us-ascii} MIME label when absent, through Jakarta Mail's charset aliases. Current Jakarta Mail interprets that label as ISO-8859-1.
  * Already-decoded String content keeps the provider's interpretation. Parser-acquired body streams are closed on success and failure, including
@@ -40,7 +42,7 @@ import java.nio.file.Path;
  * If existing address interpretation cannot parse a From, To/Cc/Bcc or Reply-To field, its complete source remains in the corresponding
  * tolerant {@link org.simplejavamail.api.email.Recipient}. Readable neighboring content remains available, while ordinary outgoing validation
  * still inspects that address. Successful parsing and missing-field fallbacks retain their existing behavior; an explicitly malformed Reply-To
- * does not become the From address. This recovery does not hide codec, content, protection or I/O failures, and does not change Return-Path's
+ * does not become the From address. Recovery reports actual interpretation/content issues and does not change Return-Path's
  * separate source-header recovery or the strict explicit envelope of an exact Email.
  * Importing an Email does not promise sendability; outgoing validation and MIME preparation still apply. Outlook receipt-field names
  * use the same case-insensitive recognition as MIME/EML, without normalizing unrelated generic headers.
@@ -50,9 +52,12 @@ import java.nio.file.Path;
  * Exporting an Email does not apply factory templates unless an explicit
  * {@link EmailConversion#withEmailGovernance(EmailGovernance) governance} is supplied.
  * <p>
- * EML imports retain the original protected representation, including tolerated header line endings. When required message content cannot be read
- * or written, conversion fails with a {@link org.simplejavamail.MailException} that retains the original cause. Keep borrowed attachment sources
- * available until conversion finishes.
+ * EML imports retain the original protected representation, including tolerated header line endings. An Email is itself the non-null inspection
+ * result. Artifact targets additionally offer Result-suffixed terminals carrying new observations and available evidence without mutating the input.
+ * Direct and diagnostic terminals use the same best-effort conversion. If no usable artifact can be produced, a diagnostic terminal retains the
+ * conversion failure, while its direct counterpart throws it. Invalid arguments and unrelated application failures still throw.
+ * Keep borrowed attachment sources available until conversion finishes. A MIME target can retain borrowed sources for later writing;
+ * observations made by a later caller-initiated write do not mutate an already returned conversion result.
  *
  * @see EmailPopulatingBuilder
  */
@@ -139,6 +144,9 @@ public interface ConfiguredEmailConverter {
 
 		/** Parses the original message directly. Receive-side decryption and attachment options must be cleared before choosing this target. */
 		@NotNull MimeMessage toMimeMessage();
+
+		/** Parses the original message directly and returns available source evidence or a recognized conversion failure alongside it. */
+		@NotNull EmailConversionResult<MimeMessage> toMimeMessageResult();
 	}
 
 	/** Converts a MIME message into Email, or writes its EML representation directly. */
@@ -149,6 +157,12 @@ public interface ConfiguredEmailConverter {
 
 		/** Writes the supplied MIME message to EML bytes. Receive-side options must be cleared before choosing this direct-export target. */
 		@NotNull byte[] toEmlBytes();
+
+		/** Writes UTF-8 EML text with observations made by this direct export. Receive-side options must first be cleared. */
+		@NotNull EmailConversionResult<String> toEmlResult();
+
+		/** Writes EML bytes with observations made by this direct export. Receive-side options must first be cleared. */
+		@NotNull EmailConversionResult<byte[]> toEmlBytesResult();
 	}
 
 	/** Converts Email to MIME or EML. Exact/protected-message rules continue to apply. */
@@ -177,6 +191,15 @@ public interface ConfiguredEmailConverter {
 
 		/** Produces EML bytes. Exact EML retains its authoritative bytes. */
 		@NotNull byte[] toEmlBytes();
+
+		/** Produces MIME with new conversion observations and available sources; it does not replay input Email history as new problems. */
+		@NotNull EmailConversionResult<MimeMessage> toMimeMessageResult();
+
+		/** Produces UTF-8 EML text with new conversion observations and available sources. */
+		@NotNull EmailConversionResult<String> toEmlResult();
+
+		/** Produces complete EML bytes with new conversion observations and available sources. */
+		@NotNull EmailConversionResult<byte[]> toEmlBytesResult();
 	}
 
 	/**
@@ -225,6 +248,15 @@ public interface ConfiguredEmailConverter {
 
 		/** Converts the Outlook source to Email, then produces EML bytes. */
 		@NotNull byte[] toEmlBytes();
+
+		/** Produces MIME with new observations from the delegated Outlook import and output stages, plus available sources. */
+		@NotNull EmailConversionResult<MimeMessage> toMimeMessageResult();
+
+		/** Produces UTF-8 EML text with new import/output observations and available sources. */
+		@NotNull EmailConversionResult<String> toEmlResult();
+
+		/** Produces complete EML bytes with new import/output observations and available sources. */
+		@NotNull EmailConversionResult<byte[]> toEmlBytesResult();
 	}
 
 }

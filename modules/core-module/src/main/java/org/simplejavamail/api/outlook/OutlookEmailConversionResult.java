@@ -9,7 +9,8 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
  * <p>
  * The converted email builder intentionally contains only the headers that are safe and meaningful on a
  * Simple Java Mail {@link Email}. Headers that are structural to the source message, such as recipients,
- * dates and transport hops, are available through {@link #getOutlookMessageData()} instead.
+ * dates and transport hops, are available through {@link #getOutlookMessageData()} and the built
+ * {@link Email#getSourceData()} instead. Both retain the same captured native metadata; source headers are not automatically replayed.
  *
  * @see OutlookMessageData
  */

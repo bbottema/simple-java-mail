@@ -51,6 +51,7 @@ class RetainedContentMergeContractTest {
     void everyStoredFieldHasAnExplicitContractRole() {
         Map<String, String> roles = new LinkedHashMap<>();
         role(roles, "serialization", "serializationFormatVersion");
+        role(roles, "outer input source and captured operation observations", "sourceData", "problems");
         role(roles, "derived or legacy alias", "defaultSuppression", "overrideSuppression", "dispositionNotificationTo",
                 "returnReceiptTo", "wasMergedWithSmimeSignedMessage");
         role(roles, "outer metadata/policy/history", "ignoreDefaults", "ignoreOverrides", "propertiesNotToApplyDefaultValueFor",

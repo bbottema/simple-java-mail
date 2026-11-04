@@ -16,6 +16,7 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.internal.EmailConverterException;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConverterExportFailureTest {
@@ -24,20 +25,18 @@ class ConverterExportFailureTest {
 
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
-	void explainsAttachmentReadFailureDuringEmailExport(final boolean textOutput) {
+	void retainsReadableBodyAfterAttachmentReadFailureDuringEmailExport(final boolean textOutput) {
 		final IOException failure = new IOException("attachment storage is offline");
 		final Email email = mail.emailBuilder().startingBlank().from("sender@example.org")
 				.withRecipients(mail.recipientBuilder().to(null, "reader@example.org")).withPlainText("body")
 				.withAttachment("invoice.pdf", unavailableAttachment(failure)).buildEmail();
 
-		assertThatThrownBy(() -> {
-			if (textOutput) {
-				mail.converter().fromEmail(email).toEml();
-			} else {
-				mail.converter().fromEmail(email).toEmlBytes();
-			}
-		}).isInstanceOf(EmailConverterException.class).hasMessageContaining("EML")
-				.hasMessageContaining("content").hasRootCause(failure);
+		final Email restored = textOutput
+				? mail.converter().fromEml(mail.converter().fromEmail(email).toEml()).toEmail()
+				: mail.converter().fromEml(mail.converter().fromEmail(email).toEmlBytes()).toEmail();
+		assertThat(restored.getPlainText()).contains("body");
+		assertThat(restored.getAttachments()).isEmpty();
+		assertThat(email.getAttachments()).hasSize(1);
 	}
 
 	@Test

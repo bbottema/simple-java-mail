@@ -36,7 +36,7 @@ public class DecodedHeader {
         }
     }
 
-    private static boolean canDecodeWithAvailableCharsets(final String original) {
+    static boolean canDecodeWithAvailableCharsets(final String original) {
         final Matcher charsets = ENCODED_WORD_CHARSET.matcher(original);
         if (!charsets.find()) {
             return false;

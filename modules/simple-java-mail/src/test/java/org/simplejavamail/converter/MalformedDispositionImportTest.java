@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceHeader;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.ParsedMimeMessageComponents;
@@ -23,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -98,16 +101,17 @@ class MalformedDispositionImportTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"attachment inline; filename=\"broken", "attachment, inline; filename=\"broken", "unknown; filename=\"broken"})
 	void doesNotGuessACompetingOrUnknownDisposition(final String disposition) {
-		assertThatThrownBy(() -> mail.converter().fromEml(message(disposition,
-				"application/octet-stream; name=report.bin", "AAECAw==", null)).toEmail())
-				.isInstanceOf(MailException.class);
+		final Email imported = mail.converter().fromEml(message(disposition,
+				"application/octet-stream; name=report.bin", "AAECAw==", null)).toEmail();
+		assertUnclassifiedSource(imported, List.of(disposition));
 	}
 
-	@Test
-	void doesNotRecoverCompetingDispositionHeaderOccurrences() {
-		final String source = message(BROKEN_ATTACHMENT + "\r\nContent-Disposition: inline",
+	@ParameterizedTest
+	@ValueSource(strings = {BROKEN_ATTACHMENT, "attachment; filename=report.bin"})
+	void doesNotRecoverCompetingDispositionHeaderOccurrences(final String first) {
+		final String source = message(first + "\r\nContent-Disposition: inline",
 				"application/octet-stream; name=report.bin", "AAECAw==", null);
-		assertThatThrownBy(() -> mail.converter().fromEml(source).toEmail()).isInstanceOf(MailException.class);
+		assertUnclassifiedSource(mail.converter().fromEml(source).toEmail(), List.of(first, "inline"));
 	}
 
 	@Test
@@ -125,7 +129,7 @@ class MalformedDispositionImportTest {
 
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
-	void retainsParserReadTimingAndPropagatesRealContentFailures(final boolean eager) throws Exception {
+	void retainsParserReadTimingAndReportsEagerContentFailures(final boolean eager) throws Exception {
 		final AtomicInteger opened = new AtomicInteger();
 		final AtomicInteger closed = new AtomicInteger();
 		final MimeBodyPart attachment = new MimeBodyPart();
@@ -144,15 +148,31 @@ class MalformedDispositionImportTest {
 		attachment.setHeader("Content-Type", "application/octet-stream; name=report.bin");
 		attachment.setHeader("Content-Disposition", BROKEN_ATTACHMENT);
 		final MimeMultipart parts = new MimeMultipart();
+		final MimeBodyPart neighbor = new MimeBodyPart();
+		neighbor.setText("Readable neighbor", "UTF-8");
+		parts.addBodyPart(neighbor);
 		parts.addBodyPart(attachment);
 		final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()));
 		source.setContent(parts);
 		if (eager) {
-			assertThatThrownBy(() -> MimeMessageParser.parseMimeMessage(source, true))
-					.isInstanceOf(MailException.class).hasRootCauseMessage("Attachment read failed");
+			final ParsedMimeMessageComponents imported = MimeMessageParser.parseMimeMessage(source, true);
+			assertThat(imported.getPlainContent()).isEqualTo("Readable neighbor");
+			assertThat(imported.getAttachmentList()).isEmpty();
+			assertThat(imported.getProblems()).anySatisfy(problem -> {
+				assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+				assertThat(problem.getMessage()).contains("Attachment read failed");
+				assertThat(problem.getSources()).anySatisfy(element -> {
+					assertThat(element).isInstanceOf(EmailSourcePart.class);
+					final EmailSourcePart part = (EmailSourcePart) element;
+					assertThat(part.getContent()).isNotNull();
+					assertThat(part.getContent().isFullyCaptured()).isFalse();
+				});
+			});
 			assertThat(closed).hasValue(1);
 		} else {
 			final ParsedMimeMessageComponents imported = MimeMessageParser.parseMimeMessage(source, false);
+			final List<EmailProblem.Code> prior = imported.getProblems().stream().map(EmailProblem::getCode)
+					.collect(java.util.stream.Collectors.toList());
 			assertThat(opened).hasValue(0);
 			assertThatThrownBy(() -> {
 				try (InputStream content = imported.getAttachmentList().iterator().next().getDataSource().getInputStream()) {
@@ -160,8 +180,28 @@ class MalformedDispositionImportTest {
 				}
 			}).isInstanceOf(IOException.class).hasMessage("Attachment read failed");
 			assertThat(closed).hasValue(1);
+			assertThat(imported.getProblems()).extracting(EmailProblem::getCode).containsExactlyElementsOf(prior);
 		}
 		assertThat(opened).hasValue(1);
+	}
+
+	private static void assertUnclassifiedSource(final Email imported, final List<String> dispositions) {
+		assertThat(imported.getPlainText()).isEqualTo("Readable body");
+		assertThat(imported.getAttachments()).isEmpty();
+		assertThat(imported.getEmbeddedImages()).isEmpty();
+		assertThat(imported.getProblems()).anySatisfy(problem -> {
+			assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_NOT_REPRESENTED);
+			assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+			assertThat(problem.getSources()).anySatisfy(element -> {
+				assertThat(element).isInstanceOf(EmailSourcePart.class);
+				final EmailSourcePart part = (EmailSourcePart) element;
+				assertThat(part.getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("Content-Disposition"))
+						.map(EmailSourceHeader::getRawValue).collect(java.util.stream.Collectors.toList())).containsExactlyElementsOf(dispositions);
+				assertThat(part.getContent()).isNotNull();
+				assertThat(part.getContent().isFullyCaptured()).isTrue();
+				assertThat(new String(part.getContent().readAllBytes(), UTF_8)).contains("AAECAw==");
+			});
+		});
 	}
 
 	private Email convert(final ImportRoute route, final String source) throws Exception {

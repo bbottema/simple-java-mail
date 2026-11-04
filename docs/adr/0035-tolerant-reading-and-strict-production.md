@@ -53,15 +53,67 @@ Apply ADR 0008's effective-root rule to single-part text, HTML and calendar (#95
 
 ## Decision
 
-Read external mail with leniency and produce standards-compliant mail. Preserve as much clearly interpretable source information as possible;
-isolate malformed fields or optional interpretation failures instead of discarding an otherwise readable Email.
+Read external mail with leniency and produce standards-compliant mail. Preserve available source information and expose clearly interpretable
+facts through convenient getters. Isolate field interpretation failures so usable neighboring information remains inspectable.
+
+### Email as an inspection model
+
+This restates established decisions; 3 November 2026 is the date of this cross-reference, not a new architectural decision date.
+[ADR 0013](0013-exact-eml-submission.md), recorded on 16 September 2026, already calls the Email getters an inspection view.
+[ADR 0008's source-facts decision](0008-minimal-mime-structures-and-protection-order.md#interpreted-mail-facts-remain-part-of-email-accepted-2026-10-16),
+accepted on 16 October 2026, keeps interpreted facts on the common Email read model and separates received metadata from outgoing configuration.
+The [original version of this record](https://github.com/bbottema/simple-java-mail/blob/17847b4e9665bd1d02e392453178e2cb001491c7/docs/adr/0035-tolerant-reading-and-strict-production.md)
+explicitly records the maintainer's established import philosophy, with [#227](https://github.com/bbottema/simple-java-mail/issues/227) from
+2019 and [#321](https://github.com/bbottema/simple-java-mail/issues/321) from 2021 as earlier applications.
+
+Email is as much a model for inspecting received mail as a vehicle for sending through a Mailer. Its conveniences should accelerate access
+to received information. Their ability to interpret a field, or its suitability for a new outgoing message, must not determine whether the
+application can inspect the available source information.
+
+Preserve available received headers and metadata, including information that is unfamiliar, obsolete, malformed or unsuitable for sending.
+A field omitted from outgoing composition still has inspection value. In particular, an outgoing header exclusion is not a reason to discard
+that header from the received inspection view. Preserve its source owner and repeated occurrences instead of inventing a single decoded value.
+
+Parsed getters provide convenient interpretations over that evidence. When interpretation is unavailable, keep the available source and make
+the limitation observable while retaining usable neighboring information. Do not guess decoded characters, valid addresses, dates, enum values
+or cryptographic success merely to populate a convenience getter. An interpretation failure and an inability to obtain source content are
+different facts; neither should be hidden behind a fabricated successful result.
+
+Preparing and submitting outgoing content retains its own validation, resource and transport requirements. Inspecting received headers does
+not automatically select every source header for a newly composed message. Exact/protected source ownership and the existing borrowed-content
+read boundaries remain governed by ADRs 0013 and 0036; this principle does not require an eager read of every attachment.
+
+There is also an existing source-header access decision. [#609](https://github.com/bbottema/simple-java-mail/issues/609) reported inaccessible
+Outlook headers; [#614](https://github.com/bbottema/simple-java-mail/issues/614) retained their inspection through `OutlookEmailConversionResult`
+and `OutlookMessageData`, while deliberately keeping `Email.getHeaders()` focused on normalized outgoing headers. [ADR 0006](0006-optional-modules.md#feature-specific-results-are-a-separate-exception)
+records those core read contracts. Reconcile that existing API before proposing another source-header surface or changing its ownership.
+
+The current review concerns conformance to the established inspection principle and the consistency of existing access paths. Any extension
+of source access, recovery outcomes or earlier field-specific failure contracts still requires concrete design and compatibility review. This
+restatement does not claim that current imports already preserve every field or tolerate every damaged input.
+
+[ADR 0041](0041-email-source-inspection-and-problems.md), accepted 3 November and clarified 4 November 2026, makes the source/content and
+root problem contracts explicit across conversion and copying, including immutable original-message identity. Under #961, known component
+interpretation/read failures preserve usable neighbors and available source evidence; captured-only source reads retain existing ownership.
+Email itself is the non-null inspection result, while optional result terminals provide diagnostics for non-Email artifact outputs.
+
+Source retention is independent of problem reporting. Keep an available original that the normal Email no longer exposes as received,
+such as RTF converted to HTML, without inventing a Problem for a successful expected transformation. Canonical-equivalent decoding, such
+as Base64 into the same attachment content, needs no extra raw payload. Do not turn ordinary conversion differences into a problem ledger.
+
+The older field-specific failure rules below still determine decoding, stream ownership and original causes at their local boundaries.
+The shared #961 recovery boundary can record a recognized component failure and continue with neighboring content instead of propagating
+it as whole-import failure. Invalid use and unrelated application/programming failures remain exceptions; no broad catch or source-based
+send gate follows from this recovery model. An unfinished output artifact is never a successful conversion value.
+
+### Interpretation and recovery boundaries
 
 - Accept safely recoverable formatting differences when their meaning is unambiguous. Recovery changes the inspection view, not the source bytes.
 - Retain usable neighboring fields and completed blocks when another field or optional interpretation fails. Use the relevant existing warning or
   result metadata to explain recovery, ambiguity or incomplete extraction. Do not make getters perform another read.
 - Preserve original data through the existing source/attachment mechanisms where available. Unrecognized formats need not disappear merely because
   a typed convenience view cannot be constructed.
-- Leave genuinely ambiguous facts unavailable. Conflicting delivery actions, multiple competing reports or an unknown timezone do not justify choosing
+- Leave genuinely ambiguous typed facts unavailable while retaining their source evidence. Conflicting delivery actions, multiple competing reports or an unknown timezone do not justify choosing
   an arbitrary result. An impossible date must not roll into another day just to produce a timestamp.
 - Keep typed-value invariants: construct a typed view only after establishing its meaning. Tolerant source interpretation does not require invalid
   enums, out-of-range numeric components or misleading convenience objects.
@@ -331,7 +383,11 @@ The ordinary Email recipient, Reply-To and notification String conveniences pars
 
 When an optional generic root-header value cannot be decoded because its encoded-word charset is unavailable, retain the original undecoded value and safely unfold legal header continuations. Continue interpreting neighboring fields and readable message content without inventing decoded characters. This is a narrow value-recovery boundary, not permission to suppress arbitrary parser or application failures.
 
-Typed receipt/Return-Path interpretation, required body and resource decoding, filename/description decoding and outgoing injection validation retain their existing contracts. Ordinary rendering still encodes and folds supported header values safely; recovered source text must not create a new delayed validation failure for otherwise safe input. Successful import remains distinct from successful sending. Exact and protected representations keep their authoritative bytes. No new warning API or recovery setting is introduced. [#861](https://github.com/bbottema/simple-java-mail/issues/861) tracks implementation and delivery.
+For the original #861 repair, typed receipt/Return-Path interpretation, required body and resource decoding, filename/description decoding and outgoing injection validation retained their existing contracts. Ordinary rendering still encodes and folds supported header values safely; recovered source text must not create a new delayed validation failure for otherwise safe input. Successful import remains distinct from successful sending. Exact and protected representations keep their authoritative bytes. That narrow repair introduced no warning API or recovery setting. [#861](https://github.com/bbottema/simple-java-mail/issues/861) tracks its implementation and delivery.
+
+[ADR 0041](0041-email-source-inspection-and-problems.md) subsequently adds root processing observations and extends the accepted header
+recovery cases under #961. Successful provider interpretations remain authoritative; source retention does not overwrite them merely because
+the library's own decoder lacks the declared charset. Content/resource failures and outgoing validation retain their separate boundaries.
 
 ## Outlook receipt route parity (accepted 23 October 2026)
 

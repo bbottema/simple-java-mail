@@ -9,6 +9,8 @@ import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionRe
 import java.util.List;
 
 public interface SmimeParseResult {
+    /** Synthetic identity of the legacy generated inspection wrapper, not a received message identity. */
+    String GENERATED_MESSAGE_ID = "<generated-for-smime-signed-attachment@simple-java-mail>";
 	@NotNull OriginalSmimeDetails getOriginalSmimeDetails();
 	@Nullable AttachmentResource getSmimeSignedOrEncryptedEmail();
 	@NotNull List<AttachmentDecryptionResult> getDecryptedAttachmentResults();

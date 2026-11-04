@@ -187,11 +187,19 @@ class ExactEmailProtectionInspectionTest {
     }
 
     @Test
-    void requiredRawContentFailureIsNotSwallowedAsUnavailableInspection() {
+    void exactLeafInterpretationFailureRetainsBytesAndInspectionEvidence() {
         final byte[] source = ("Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: unsupported-exact-encoding\r\n"
                 + "Content-Disposition: attachment; filename=required.bin\r\n\r\nRequired content\r\n").getBytes(US_ASCII);
 
-        assertThatThrownBy(() -> exact(source)).hasMessageContaining("Unable to parse exact EML");
+        final Email inspected = exact(source);
+        assertThat(inspected.getAttachments()).isEmpty();
+        assertThat(inspected.getProblems()).isNotEmpty();
+        assertThat(inspected.getSourceData().getParts()).singleElement().satisfies(part -> {
+            assertThat(part.getContent()).isNotNull();
+            assertThat(part.getContent().isFullyCaptured()).isTrue();
+            assertThat(new String(part.getContent().readAllBytes(), US_ASCII)).contains("Required content");
+        });
+        assertThat(EmailConverter.emailToEMLByteArray(inspected)).containsExactly(source);
     }
 
     @Test

@@ -73,6 +73,11 @@ public interface OutlookMessage {
 	Set<String> getPropertiesAsHex();
 	
 	Set<Integer> getPropertyCodes();
+
+	/** Returns the already-read native property value when the adapter exposes it. */
+	default Object getPropertyValue(final int propertyCode) {
+		return null;
+	}
 	
 	String getPropertyListing();
 	

@@ -15,6 +15,8 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import testutil.ConfigLoaderTestHelper;
 
@@ -129,33 +131,43 @@ class MimeTransferEncodingCommentTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"7bit 8bit", "7bit, base64", "7bit; base64", "(comment only)", "\"7bit\"", "7bit (unfinished"})
 	void doesNotTurnAmbiguousOrMalformedDeclarationsIntoAKnownEncoding(final String encoding) {
-		assertThatThrownBy(() -> MAIL.converter().fromEml(body(encoding, "Hello!")).toEmail())
-				.isInstanceOf(RuntimeException.class);
+        assertUnrepresentedBody(MAIL.converter().fromEml(body(encoding, "Hello!")).toEmail(), "Hello!");
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"7bit\r\nContent-Transfer-Encoding: base64", "7bit (first)\r\nContent-Transfer-Encoding: 8bit (second)",
 			"7bit\r\nContent-Transfer-Encoding: 7bit"})
 	void doesNotChooseAmongRepeatedEncodingDeclarations(final String encoding) {
-		assertThatThrownBy(() -> MAIL.converter().fromEml(body(encoding, "Hello!")).toEmail())
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("unknown content transfer encoder");
+        assertUnrepresentedBody(MAIL.converter().fromEml(body(encoding, "Hello!")).toEmail(), "Hello!");
 	}
 
 	@Test
-	void unknownEncodingStillFailsInsteadOfBecomingAnUnencodedBody() {
-		assertThatThrownBy(() -> MAIL.converter().fromEml(body("x-unknown (transport)", "Hello!")).toEmail())
-				.isInstanceOf(MailException.class).hasRootCauseInstanceOf(IOException.class);
+	void unknownEncodingRetainsTheOriginalInsteadOfBecomingAnUnencodedBody() {
+        assertUnrepresentedBody(MAIL.converter().fromEml(body("x-unknown (transport)", "Hello!")).toEmail(), "Hello!");
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"x-unknown", "x-unknown (transport)"})
-	void unknownResourceEncodingsStillFailForBothExtractionModes(final String encoding) {
+	void aUniqueUnknownResourceCodecIsAttemptedOnlyWhenContentIsSelected(final String encoding) {
 		final String source = "From: sender@example.org\r\nTo: reader@example.net\r\nMIME-Version: 1.0\r\n"
 				+ "Content-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=payload.bin\r\n"
 				+ "Content-Transfer-Encoding: " + encoding + "\r\n\r\nHello!";
 		for (final boolean eager : new boolean[] {false, true}) {
-			assertThatThrownBy(() -> MAIL.converter().fromEml(source).withFetchAttachmentData(eager).toEmail())
-					.isInstanceOf(RuntimeException.class);
+            final Email email = MAIL.converter().fromEml(source).withFetchAttachmentData(eager).toEmail();
+            if (eager) {
+                assertThat(email.getAttachments()).isEmpty();
+                assertThat(email.getProblems()).isNotEmpty();
+                assertThat(email.getProblems()).anySatisfy(problem -> assertThat(problem.getSources()).anySatisfy(affected -> {
+                    assertThat(affected).isInstanceOf(EmailSourcePart.class);
+                    assertThat(((EmailSourcePart) affected).getContent().readAllBytes()).isEqualTo("Hello!".getBytes(UTF_8));
+                }));
+            } else {
+                assertThat(email.getAttachments()).hasSize(1);
+                assertThat(email.getAttachments().get(0).getContentTransferEncoding()).isNull();
+                assertThat(email.getProblems()).isEmpty();
+                assertThatThrownBy(() -> email.getAttachments().get(0).readAllBytes()).isInstanceOf(RuntimeException.class);
+                assertThat(email.getProblems()).isEmpty();
+            }
 		}
 	}
 
@@ -179,8 +191,15 @@ class MimeTransferEncodingCommentTest {
 		resource.setHeader("Content-Type", "application/octet-stream");
 		resource.setHeader("Content-Transfer-Encoding", "7bit (transport)");
 		resource.setDisposition(Part.ATTACHMENT);
-		assertThatThrownBy(() -> MimeMessageParser.parseMimeMessage(container(resource), true))
-				.isInstanceOf(MailException.class).hasCause(unreadable);
+        final MimeMessageParser.ParsedMimeMessageComponents parsed = MimeMessageParser.parseMimeMessage(container(resource), true);
+        assertThat(parsed.getAttachmentList()).isEmpty();
+        assertThat(parsed.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+            assertThat(problem.getMessage()).contains(unreadable.getMessage());
+            assertThat(problem.getSources()).isNotEmpty();
+        });
+        assertThatThrownBy(() -> MimeMessageParser.retrieveInputStream(resource.getDataHandler().getDataSource()))
+                .isInstanceOf(MailException.class).hasCause(unreadable);
 	}
 
 	@ParameterizedTest
@@ -233,6 +252,17 @@ class MimeTransferEncodingCommentTest {
 		return "From: sender@example.org\r\nTo: reader@example.net\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n"
 				+ "Content-Transfer-Encoding: " + encoding + "\r\n\r\n" + content;
 	}
+
+    private static void assertUnrepresentedBody(final Email email, final String original) {
+        assertThat(email.getPlainText()).isNull();
+        assertThat(email.getContentTransferEncoding()).isNull();
+        assertThat(email.getProblems()).isNotEmpty();
+        assertThat(email.getProblems()).anySatisfy(problem -> assertThat(problem.getSources()).anySatisfy(affected -> {
+            assertThat(affected).isInstanceOf(EmailSourcePart.class);
+            assertThat(((EmailSourcePart) affected).getContent()).isNotNull();
+            assertThat(((EmailSourcePart) affected).getContent().readAllBytes()).isEqualTo(original.getBytes(UTF_8));
+        }));
+    }
 
 	private static MimeMessage mimeMessage(final String source) throws Exception {
 		return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(source.getBytes(UTF_8)));

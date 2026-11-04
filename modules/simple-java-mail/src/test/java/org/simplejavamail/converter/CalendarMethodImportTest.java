@@ -9,6 +9,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourcePart;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -17,7 +19,6 @@ import java.util.Properties;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CalendarMethodImportTest {
 
@@ -126,22 +127,24 @@ class CalendarMethodImportTest {
 	}
 
 	@Test
-	void missingMethodsKeepTheirExistingFailure() {
-		assertThatThrownBy(() -> mail.converter().fromEml(message("text/calendar; charset=UTF-8", calendar(null))).toEmail())
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Calendar METHOD not found");
+	void missingMethodsKeepTheOriginalCalendarInspectable() {
+        final String original = calendar(null);
+        final String type = "text/calendar; charset=UTF-8";
+        assertUnrepresentedCalendar(mail.converter().fromEml(message(type, original)).toEmail(), type, original);
 	}
 
 	@Test
 	void unsupportedHeaderMethodsDoNotFallBackToARecognizedBodyMethod() {
-		assertThatThrownBy(() -> mail.converter().fromEml(message("text/calendar; charset=UTF-8; method=XUNKNOWN",
-				calendar("METHOD:REQUEST"))).toEmail()).isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("CalendarMethod.XUNKNOWN");
+        final String original = calendar("METHOD:REQUEST");
+        final String type = "text/calendar; charset=UTF-8; method=XUNKNOWN";
+        assertUnrepresentedCalendar(mail.converter().fromEml(message(type, original)).toEmail(), type, original);
 	}
 
 	@Test
-	void unsupportedBodyMethodsKeepTheirExistingFailure() {
-		assertThatThrownBy(() -> mail.converter().fromEml(message("text/calendar; charset=UTF-8", calendar("METHOD:XUNKNOWN"))).toEmail())
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("CalendarMethod.XUNKNOWN");
+	void unsupportedBodyMethodsKeepTheOriginalCalendarInspectable() {
+        final String original = calendar("METHOD:XUNKNOWN");
+        final String type = "text/calendar; charset=UTF-8";
+        assertUnrepresentedCalendar(mail.converter().fromEml(message(type, original)).toEmail(), type, original);
 	}
 
 	@ParameterizedTest
@@ -162,10 +165,30 @@ class CalendarMethodImportTest {
 
 	@Test
 	void repeatedMethodParametersDoNotHideAnUnsupportedFirstMethod() {
-		assertThatThrownBy(() -> mail.converter().fromEml(message("text/calendar; charset=UTF-8; method=XUNKNOWN; method=REQUEST",
-				calendar("METHOD:REQUEST"))).toEmail()).isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("CalendarMethod.XUNKNOWN");
+        final String original = calendar("METHOD:REQUEST");
+        final String type = "text/calendar; charset=UTF-8; method=XUNKNOWN; method=REQUEST";
+        assertUnrepresentedCalendar(mail.converter().fromEml(message(type, original)).toEmail(), type, original);
 	}
+
+    private static void assertUnrepresentedCalendar(final Email email, final String type, final String original) {
+        assertThat(email.getCalendarMethod()).isNull();
+        assertThat(email.getCalendarText()).isNull();
+        assertThat(email.getAttachments()).isEmpty();
+        assertThat(email.getSourceData().getHeaders()).anySatisfy(header -> {
+            assertThat(header.getName()).isEqualToIgnoringCase("Content-Type");
+            assertThat(header.getRawValue()).isEqualTo(type);
+        });
+        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_NOT_REPRESENTED);
+            assertThat(problem.getSources()).singleElement().satisfies(source -> {
+                assertThat(source).isInstanceOf(EmailSourcePart.class);
+                final EmailSourcePart part = (EmailSourcePart) source;
+                final String content = part.getText() != null ? part.getText() : new String(part.getContent().readAllBytes(), UTF_8);
+                assertThat(content).isEqualTo(original);
+            });
+        });
+    }
 
 	private static void assertCalendar(final Email email, final CalendarMethod method, final String calendar) {
 		assertThat(email.getCalendarMethod()).isEqualTo(method);

@@ -20,7 +20,9 @@ import java.util.Map;
  * This interface is only there to improve readability there where internal builder API is used.
  */
 @SuppressWarnings("UnusedReturnValue")
-public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, CliEmailRecipientBuilder, org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder {
+public interface InternalEmailPopulatingBuilder extends EmailPopulatingBuilder, CliEmailRecipientBuilder, org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder, org.simplejavamail.internal.email.EmailInspectionBuilder {
+	/** Keeps available received HTML only until the first build can determine whether configured resolution actually changes it. */
+	void retainReceivedHtml(String value, List<org.simplejavamail.api.email.EmailSourcePart> originalParts);
 
 	@Override
 	@NotNull InternalEmailPopulatingBuilder withRecipients(@Nullable String name, boolean fixedName,

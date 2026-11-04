@@ -55,7 +55,9 @@ public class OutlookMessageProxy implements OutlookMessage {
 	public List<OutlookAttachment> getOutlookAttachments() {
 		final List<OutlookAttachment> wrappedAttachments = new ArrayList<>();
 		for (org.simplejavamail.outlookmessageparser.model.OutlookAttachment attachment : delegate.getOutlookAttachments()) {
-			wrappedAttachments.add(new OutlookAttachmentProxy(attachment));
+			wrappedAttachments.add(attachment instanceof org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment
+					? new OutlookFileAttachmentProxy((org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment) attachment)
+					: new OutlookAttachmentProxy(attachment));
 		}
 		return wrappedAttachments;
 	}
@@ -178,6 +180,11 @@ public class OutlookMessageProxy implements OutlookMessage {
 	@Override
 	public Set<Integer> getPropertyCodes() {
 		return delegate.getPropertyCodes();
+	}
+
+	@Override
+	public Object getPropertyValue(final int propertyCode) {
+		return delegate.getPropertyValue(propertyCode);
 	}
 
 	@Override

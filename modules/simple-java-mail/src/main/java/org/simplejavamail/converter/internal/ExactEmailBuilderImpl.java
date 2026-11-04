@@ -82,7 +82,14 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	public ExactEmailBuilderImpl(@NotNull final SimpleJavaMailConfig config, final byte @NotNull [] emlBytes) {
 		this.config = requireNonNull(config, "config");
 		this.emlBytes = ExactEmlValidator.copyAndValidateEml(emlBytes);
-		deliveryStatusReport = parseEmlIntoEmailBuilder(readExactMimeMessage()).getDeliveryStatusReport();
+		final MimeMessage received = readExactMimeMessage();
+		try {
+			ExactEmlValidator.validateMimeStructure(received);
+		} catch (MessagingException | java.io.IOException invalidStructure) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(invalidStructure);
+			throw new EmailConverterException("Unable to parse exact EML", invalidStructure);
+		}
+		deliveryStatusReport = parseEmlIntoEmailBuilder(received).getDeliveryStatusReport();
 	}
 
 	/**
@@ -298,6 +305,8 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 		final MimeMessage mimeMessage = readExactMimeMessage();
 		final EmailPopulatingBuilder parsedEmailBuilder = parseEmlIntoEmailBuilder(mimeMessage);
 		ConfiguredEmailConverterImpl.populateExactProtectionDetails((InternalEmailPopulatingBuilder) parsedEmailBuilder, mimeMessage);
+        final InternalEmailPopulatingBuilder inspection = (InternalEmailPopulatingBuilder) parsedEmailBuilder;
+        InspectionAssembly.protection(inspection, () -> inspection.getSourceData().getOrigin());
 		parsedEmailBuilder.withOverrideReceivers(envelopeRecipients);
 		parsedEmailBuilder.clearBounceTo();
 		if (envelopeSender != null) {

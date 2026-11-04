@@ -28,12 +28,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmlConversion;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
 import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
@@ -56,7 +56,6 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.simplejavamail.api.mailer.MailFailureKind.CONVERSION;
 
 class FluentEmailConversionTest {
 
@@ -111,7 +110,12 @@ class FluentEmailConversionTest {
 			}
 		};
 		final EmlConversion failed = converter.fromEml(broken);
-		assertThatThrownBy(failed::toEmail).hasRootCauseMessage("broken source");
+		final Email inspected = failed.toEmail();
+		assertThat(inspected.getProblems()).singleElement().satisfies(problem -> {
+			assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+			assertThat(problem.getMessage()).contains("broken source");
+			assertThat(problem.getSources()).isNotEmpty();
+		});
 		assertThatThrownBy(failed::toEmail).hasMessageContaining("already been used");
 	}
 
@@ -268,14 +272,15 @@ class FluentEmailConversionTest {
 	@ParameterizedTest
 	@CsvSource({"false, OPEN", "true, OPEN", "false, READ", "true, READ", "false, CLOSE", "true, CLOSE",
 			"false, READ_AND_CLOSE", "true, READ_AND_CLOSE"})
-	void nestedAttachmentIoFailuresRetainTheConversionBoundary(final boolean preprocessing, final AttachmentFailure failurePoint) {
+	void nestedAttachmentIoFailuresRetainEvidenceAndReadableNeighbors(final boolean preprocessing, final AttachmentFailure failurePoint) throws Exception {
 		final NestedAttachmentSource source = new NestedAttachmentSource(failurePoint);
-		assertThatThrownBy(() -> convertNestedAttachment(source, preprocessing)).isInstanceOfSatisfying(MailException.class, failure -> {
-			assertThat(failure.getKind()).isEqualTo(CONVERSION);
-			assertThat(failure.getCause()).isSameAs(source.primaryFailure);
-			if (failurePoint == AttachmentFailure.READ_AND_CLOSE) {
-				assertThat(failure.getSuppressed()).containsExactly(source.closeFailure);
-			}
+		final Email inspected = convertNestedAttachment(source, preprocessing);
+		assertThat(inspected.getPlainText()).contains("Hello");
+		assertThat(inspected.getProblems()).anySatisfy(problem -> {
+			assertThat(problem.getCode()).isEqualTo(failurePoint == AttachmentFailure.CLOSE
+					? EmailProblem.Code.RESOURCE_CLOSE_FAILED : EmailProblem.Code.CONTENT_READ_FAILED);
+			assertThat(problem.getMessage()).contains(source.primaryFailure.getMessage());
+			assertThat(problem.getSources()).isNotEmpty();
 		});
 		assertThat(source.opened).isEqualTo(1);
 		assertThat(source.closed).isEqualTo(failurePoint == AttachmentFailure.OPEN ? 0 : 1);

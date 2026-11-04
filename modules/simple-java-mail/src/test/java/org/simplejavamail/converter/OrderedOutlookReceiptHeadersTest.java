@@ -87,6 +87,10 @@ class OrderedOutlookReceiptHeadersTest {
                         .containsExactly("third@example.org", "first@example.org");
                 assertThat(imported.getDispositionNotificationToRecipients()).extracting(Recipient::getAddress)
                         .containsExactlyInAnyOrder("first@example.org", "second@example.org", "third@example.org", "first@example.org");
+                assertThat(imported.getSourceData().getHeaders().stream()
+                        .filter(header -> header.getName().equalsIgnoreCase("Disposition-Notification-To"))
+                        .map(org.simplejavamail.api.email.EmailSourceHeader::getRawValue))
+                        .containsExactlyInAnyOrder(FIRST, SECOND, THIRD + ",\r\n\t" + FIRST);
             }
         }
     }

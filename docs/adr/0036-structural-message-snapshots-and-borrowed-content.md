@@ -93,6 +93,12 @@ Defaults/overrides completion instead resolves outgoing content and configuratio
 It is not a history-preserving copy operation. Content already represented in ordinary body, header and resource fields remains outgoing
 content, and this boundary does not change equality, import interpretation, byte ownership or the supported serialized form.
 
+[ADR 0041](0041-email-source-inspection-and-problems.md) applies the same boundary to source metadata and root processing observations.
+Ordinary copies/serialization keep immutable origins and original header occurrences without another read, reclassification or accumulation.
+They share selectively retained original content too; a source element does not borrow a live DataSource/parser callback or an ancestral Email.
+Changing a copy's Message-ID or supplying replacement normal content never rewrites captured sources or Problems. Source getters only read
+captured data, while whole-Email serialization keeps its separate normal-resource capture rule. Output completion starts its own history.
+
 For an Outlook MSG containing a decrypted detached S/MIME signature, the retained generated EML owns the signed MIME entity and its signature material under
 [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#retained-detached-signed-content-after-decryption-accepted-29-october-2026).
 Ordinary copying and serialization retain those bytes independently of the readable-content merge choice. A generated MSG-derived EML

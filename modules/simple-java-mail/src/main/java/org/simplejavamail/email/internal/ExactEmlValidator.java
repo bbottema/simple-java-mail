@@ -2,9 +2,17 @@ package org.simplejavamail.email.internal;
 
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
+import jakarta.mail.internet.MimePartDataSource;
+import jakarta.mail.internet.MimeMultipart;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import java.io.IOException;
+import java.util.Locale;
 
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 
@@ -17,6 +25,29 @@ public final class ExactEmlValidator {
 		final byte[] copiedBytes = checkNonEmptyArgument(emlBytes, "emlBytes").clone();
 		validateCanonicalLineEndings(copiedBytes);
 		return copiedBytes;
+	}
+
+	/** Validates only owned exact-source MIME container framing; leaf interpretation remains diagnostic and best effort. */
+	public static void validateMimeStructure(final MimeMessage ownedSource) throws MessagingException, IOException {
+		validateContainer(ownedSource, true);
+	}
+
+	private static void validateContainer(final MimePart part, final boolean root) throws MessagingException, IOException {
+		final String contentType = part.getContentType();
+		final int parameters = contentType.indexOf(';');
+		final String base = (parameters < 0 ? contentType : contentType.substring(0, parameters)).trim().toLowerCase(Locale.ROOT);
+		if (!base.startsWith("multipart/")) return;
+		if (!root) {
+			try {
+				if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) return;
+			} catch (jakarta.mail.internet.ParseException ignoredDisposition) {
+				// Invalid optional disposition metadata does not determine whether the raw container framing is valid.
+			}
+		}
+		final MimeMultipart multipart = new MimeMultipart(new MimePartDataSource(part));
+		for (int index = 0, count = multipart.getCount(); index < count; index++) {
+			validateContainer((MimePart) multipart.getBodyPart(index), false);
+		}
 	}
 
 	static void validateEnvelope(@NotNull final Email email) {

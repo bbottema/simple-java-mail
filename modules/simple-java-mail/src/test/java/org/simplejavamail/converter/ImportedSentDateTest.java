@@ -8,9 +8,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -98,7 +98,7 @@ class ImportedSentDateTest {
 	}
 
 	@Test
-	void anUnreadableDateHeaderRemainsAnImportFailure() throws Exception {
+	void anUnreadableOptionalDateHeaderKeepsAReadableDiagnosticEmail() throws Exception {
 		final MessagingException failure = new MessagingException("unreadable source header");
 		final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()),
 				new ByteArrayInputStream(source(null).getBytes(UTF_8))) {
@@ -110,9 +110,46 @@ class ImportedSentDateTest {
 				return super.getHeader(name, delimiter);
 			}
 		};
-		assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).toEmail())
-				.isInstanceOf(MailException.class).hasCause(failure);
+        final Email imported = MAIL.converter().fromMimeMessage(source).toEmail();
+
+        assertThat(imported.getSentDate()).isNull();
+        assertThat(imported.getSentDateAsInstant()).isNull();
+        assertThat(imported.getSubject()).isEqualTo("Archive");
+        assertThat(imported.getPlainText()).isEqualTo("Readable body");
+        assertThat(imported.getFromRecipient().getAddress()).isEqualTo("sender@example.org");
+        assertThat(imported.getRecipients()).extracting("address").containsExactly("reader@example.org");
+        assertThat(imported.getAttachments()).hasSize(1);
+        assertThat(imported.getAttachments().get(0).readAllBytes()).isEqualTo("payload".getBytes(UTF_8));
+        assertThat(imported.getSourceData().getHeaders()).noneMatch(header -> header.getName().equalsIgnoreCase("Date"));
+        assertThat(imported.getSourceData().getHeaders()).anySatisfy(header -> {
+            assertThat(header.getName()).isEqualTo("Subject");
+            assertThat(header.getRawValue()).isEqualTo("Archive");
+        });
+        assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
+            assertThat(problem.getLocation()).isEqualTo("Date");
+            assertThat(problem.getSourceValue()).isNull();
+            assertThat(problem.getSources()).isEmpty();
+            assertThat(problem.getMessage()).contains(failure.getMessage());
+            assertThat(problem.getOrigin().getMessageId()).isNull();
+            assertThat(problem.getOrigin().getReference()).isNotNull();
+        });
 	}
+
+    @Test
+    void anApplicationRuntimeFailureInTheDateGetterStillPropagates() throws Exception {
+        final IllegalStateException failure = new IllegalStateException("application Date getter failure", new MessagingException("nested cause"));
+        final MimeMessage input = new MimeMessage(Session.getInstance(new Properties()),
+                new ByteArrayInputStream(source(null).getBytes(UTF_8))) {
+            @Override public String getHeader(final String name, final String delimiter) throws MessagingException {
+                if ("Date".equalsIgnoreCase(name)) throw failure;
+                return super.getHeader(name, delimiter);
+            }
+        };
+
+        assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(input).toEmail()).isSameAs(failure);
+    }
 
 	private static Email convert(final ImportRoute route, final String source) throws Exception {
 		switch (route) {
