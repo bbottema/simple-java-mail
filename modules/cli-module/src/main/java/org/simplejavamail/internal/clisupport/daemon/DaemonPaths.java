@@ -1,5 +1,7 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -22,22 +24,23 @@ final class DaemonPaths {
 	private final Path instanceDirectory;
 	private final Path socketDirectory;
 	private final Path socketPath;
+	@Nullable private final Path socketTemporaryDirectory;
 
-	private DaemonPaths(final String instance, final Path instanceDirectory, final Path socketDirectory,
-			final Path socketPath) {
+	private DaemonPaths(final String instance, final Path instanceDirectory, final SocketLocation socket) {
 		this.instance = instance;
 		this.instanceDirectory = instanceDirectory;
-		this.socketDirectory = socketDirectory;
-		this.socketPath = socketPath;
+		this.socketDirectory = socket.directory();
+		this.socketPath = socket.path();
+		this.socketTemporaryDirectory = socket.temporaryDirectory();
 	}
 
 	static DaemonPaths forInstance(final String instance) {
 		DaemonBootstrapRequest.validateInstance(instance);
-		final Path root = configuredRoot();
+		final Path root = configuredRoot().toAbsolutePath().normalize();
 		final Path instanceDirectory = root.resolve("v" + DaemonVersion.PRODUCT_MAJOR).resolve(instance)
 				.toAbsolutePath().normalize();
 		final SocketLocation socket = deriveSocketLocation(root, instanceDirectory, instance);
-		return new DaemonPaths(instance, instanceDirectory, socket.directory(), socket.path());
+		return new DaemonPaths(instance, instanceDirectory, socket);
 	}
 
 	private static SocketLocation deriveSocketLocation(final Path root, final Path instanceDirectory,
@@ -46,12 +49,12 @@ final class DaemonPaths {
 				+ DaemonVersion.PRODUCT_MAJOR + '\0' + instance);
 		final Path preferredSocket = instanceDirectory.resolve("sjm-" + userAndInstanceHash + ".sock");
 		if (preferredSocket.toString().getBytes(StandardCharsets.UTF_8).length <= MAX_UNIX_SOCKET_PATH_BYTES) {
-			return new SocketLocation(instanceDirectory, preferredSocket.toAbsolutePath().normalize());
+			return new SocketLocation(instanceDirectory, preferredSocket.toAbsolutePath().normalize(), null);
 		}
-		final Path shortDirectory = Path.of(System.getProperty("java.io.tmpdir"),
-				"sjm-" + shortHash(root.toString()).substring(0, 8));
+		final Path temporaryDirectory = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
+		final Path shortDirectory = temporaryDirectory.resolve("sjm-" + shortHash(root.toString()).substring(0, 8));
 		return new SocketLocation(shortDirectory,
-				shortDirectory.resolve("sjm-" + userAndInstanceHash + ".sock").toAbsolutePath().normalize());
+				shortDirectory.resolve("sjm-" + userAndInstanceHash + ".sock").toAbsolutePath().normalize(), temporaryDirectory);
 	}
 
 	private static Path configuredRoot() {
@@ -118,6 +121,11 @@ final class DaemonPaths {
 		return socketPath;
 	}
 
+	/** The selected temporary root only when the Unix-socket path needs shortening. */
+	@Nullable Path socketTemporaryDirectory() {
+		return socketTemporaryDirectory;
+	}
+
 	boolean isDerivedSocket(final Path path) {
 		return socketPath.equals(path.toAbsolutePath().normalize());
 	}
@@ -139,7 +147,7 @@ final class DaemonPaths {
 		return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
 	}
 
-	/** Keeps the directory and fully normalized socket path coupled after path-length fallback. */
-	private record SocketLocation(Path directory, Path path) {
+	/** Keeps the socket location and the selected fallback input coupled across detached launch. */
+	private record SocketLocation(Path directory, Path path, @Nullable Path temporaryDirectory) {
 	}
 }

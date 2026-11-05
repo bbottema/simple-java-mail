@@ -116,6 +116,10 @@ final class DaemonProcessLauncher {
 		final List<String> command = new ArrayList<>();
 		command.add(javaExecutable());
 		command.add("-D" + DaemonPaths.STATE_DIRECTORY_PROPERTY + "=" + paths.stateRoot());
+		final Path socketTemporaryDirectory = paths.socketTemporaryDirectory();
+		if (socketTemporaryDirectory != null) {
+			command.add("-Djava.io.tmpdir=" + socketTemporaryDirectory);
+		}
 		copyProperty(command, DaemonPaths.FORCE_TCP_PROPERTY);
 		copyProperty(command, "simplejavamail.cli.version");
 		copyProperty(command, "simplejavamail.cli.daemon.max-mailers");
