@@ -222,6 +222,8 @@ public final class OpenPgpReceiveConfig {
          * Returning {@code null} for a key retains the passphrase supplied with that key ring.
          * Use {@link #clearPassphraseProvider()} to return to the passphrases supplied with the decryption key rings.
          * The callback is retained for later use; configuring or inspecting it never invokes it.
+         * Runtime exceptions thrown by the application callback propagate from message reading with their original cause;
+         * they are not reported as cryptographic decryption failures. Native cryptographic failures retain their status results.
          */
         public OpenPgpReceiveConfigBuilder passphraseProvider(final PassphraseProvider passphraseProvider) {
             this.passphraseProvider = requireNonNull(passphraseProvider, "passphraseProvider");

@@ -66,6 +66,19 @@ Retain metadata, bytes, ordering and eager/lazy ownership under [ADR 0035](0035-
 keep their existing boundaries. The maintainer accepted this narrow clarification and authorized full workflow delivery under
 [#881](https://github.com/bbottema/simple-java-mail/issues/881) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## Application passphrase-provider failures (accepted 5 November 2026)
+
+An incoming OpenPGP passphrase provider is application code, invoked only when the selected read actually needs a secret-key
+passphrase. Its runtime exceptions retain their original exception object and cause at the public reading boundary, including
+native wrappers and nested protected messages. Preserve suppressed cleanup failures without exposing an internal recovery marker.
+An unavailable key vault must not become an ordinary cryptographic FAILED result with a generic explanation.
+
+Keep genuine native cryptographic failures, wrong passphrases, missing keys and signature outcomes under their existing status
+contracts. Returning null still uses that key ring's configured fallback; accepting or inspecting the provider remains lazy and
+passphrase arrays retain their existing ownership. This is a narrow correction to the unreleased OpenPGP feature under
+[#704](https://github.com/bbottema/simple-java-mail/issues/704), consistent with the application-failure boundaries in
+[ADR 0035](0035-tolerant-reading-and-strict-production.md) and [ADR 0041](0041-email-source-inspection-and-problems.md).
+
 ## Complete incoming OpenPGP signature results (accepted 28 October 2026)
 
 Retain individual signature results from both combined OpenPGP packets and MIME-nested signing. Use supplied verification keys during

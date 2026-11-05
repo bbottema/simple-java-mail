@@ -154,6 +154,7 @@ final class PgpainlessOpenPgpAdapter {
             }
             return readEncryptedMessage(encryptedContent, decryptionOptions, verificationKeys, recipientKeyIds);
         } catch (MissingDecryptionMethodException e) {
+            PassphraseProviderFailure.rethrowIfPresent(e);
             return DecryptionResult.keyMissing(recipientKeyIds);
         } finally {
             clearPassphrases(passphrasesToClear);
@@ -185,6 +186,7 @@ final class PgpainlessOpenPgpAdapter {
                     .encryptionAlgorithm(symmetricAlgorithmName(metadata.getEncryptionMechanism())).recipientKeyIds(recipientKeyIds).build();
             return DecryptionResult.decrypted(clearContent, details);
         } catch (IOException | PGPException | RuntimeException failure) {
+            PassphraseProviderFailure.rethrowIfPresent(failure);
             final OpenPgpDetailsImpl interrupted = signatureProcessingFailure(failure, recipientKeyIds);
             if (interrupted != null) return new DecryptionResult(null, interrupted);
             throw failure;
@@ -289,7 +291,7 @@ final class PgpainlessOpenPgpAdapter {
             public Passphrase getPassphraseFor(final KeyIdentifier keyIdentifier) {
                 final OpenPgpReceiveConfig.PassphraseProvider passphraseProvider = receiveConfig.getPassphraseProvider();
                 final char[] providedPassphrase = passphraseProvider == null ? null
-                        : passphraseProvider.passphraseFor(keyIdentifier.getKeyId());
+                        : passphraseFor(passphraseProvider, keyIdentifier.getKeyId());
                 final Passphrase passphrase = toPgpainlessPassphrase(
                         providedPassphrase == null ? configuredRing.getPassphrase() : providedPassphrase.clone());
                 passphrasesToClear.add(passphrase);
@@ -301,6 +303,59 @@ final class PgpainlessOpenPgpAdapter {
                 return true;
             }
         });
+    }
+
+    private static char[] passphraseFor(final OpenPgpReceiveConfig.PassphraseProvider provider, final long keyId) {
+        try {
+            return provider.passphraseFor(keyId);
+        } catch (RuntimeException failure) {
+            throw new PassphraseProviderFailure(failure);
+        }
+    }
+
+    /** Carries an application failure through native and nested-message recovery without classifying it as bad mail. */
+    static final class PassphraseProviderFailure extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        PassphraseProviderFailure(final RuntimeException failure) {
+            super("Application OpenPGP passphrase provider failed", failure);
+        }
+
+        static void rethrowIfPresent(final Throwable failure) {
+            final PassphraseProviderFailure providerFailure = findFailure(failure, PassphraseProviderFailure.class);
+            if (providerFailure != null) {
+                providerFailure.retainSuppressedFailures(failure);
+                throw providerFailure;
+            }
+        }
+
+        RuntimeException originalFailure() {
+            retainSuppressedFailures(this);
+            return (RuntimeException) getCause();
+        }
+
+        private void retainSuppressedFailures(final Throwable failure) {
+            final Throwable original = getCause();
+            final Set<Throwable> retained = Collections.newSetFromMap(new IdentityHashMap<>());
+            Collections.addAll(retained, original.getSuppressed());
+            final Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+            visited.add(original);
+            final ArrayDeque<Throwable> pending = new ArrayDeque<>();
+            pending.add(failure);
+            while (!pending.isEmpty()) {
+                final Throwable current = pending.removeFirst();
+                if (!visited.add(current)) continue;
+                if (current.getCause() != null) pending.addLast(current.getCause());
+                for (Throwable suppressed : current.getSuppressed()) {
+                    // Native wrappers carrying this marker must not become another public route to the internal marker.
+                    if (findFailure(suppressed, PassphraseProviderFailure.class) != null) {
+                        pending.addLast(suppressed);
+                    } else if (suppressed != original && retained.add(suppressed)) {
+                        original.addSuppressed(suppressed);
+                    }
+                }
+            }
+        }
     }
 
     private static void consumeForVerification(final InputStream input) throws IOException {

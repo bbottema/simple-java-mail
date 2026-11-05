@@ -23,6 +23,7 @@ import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.internal.openpgpsupport.model.OpenPgpParseResult;
 import org.simplejavamail.internal.modules.OpenPgpModule;
 import org.simplejavamail.internal.openpgpsupport.PgpainlessOpenPgpAdapter.DecryptionResult;
+import org.simplejavamail.internal.openpgpsupport.PgpainlessOpenPgpAdapter.PassphraseProviderFailure;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
 import java.io.IOException;
@@ -89,6 +90,8 @@ public final class OpenPgpSupport implements OpenPgpModule {
         try {
             return inspectProtection(session, originalMessage, MimeEntitySupport.serialize(originalMessage),
                     receiveConfig, 0);
+        } catch (PassphraseProviderFailure failure) {
+            throw failure.originalFailure();
         } catch (MessagingException e) {
             org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
             return failure(originalMessage, OpenPgpMode.UNKNOWN, SignatureStatus.UNKNOWN,
@@ -149,6 +152,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
                 .details(established)
                 .build();
         } catch (Exception e) {
+            PassphraseProviderFailure.rethrowIfPresent(e);
             org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
             return signatureFailure(session, originalMessage, readableMessageBytes, protectedMessage, established);
         }
@@ -187,6 +191,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
             decryptionResult = pgpainlessAdapter.decrypt(
                     MimeEntitySupport.decodedPartBody(mimeParts.get(1)), receiveConfig);
         } catch (Exception e) {
+            PassphraseProviderFailure.rethrowIfPresent(e);
             org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
             return failure(originalMessage, OpenPgpMode.ENCRYPTED, SignatureStatus.UNKNOWN,
                     DecryptionStatus.FAILED, "Unable to decrypt OpenPGP/MIME message", protectedMessage);
@@ -198,6 +203,7 @@ public final class OpenPgpSupport implements OpenPgpModule {
         try {
             return inspectDecryptedMessage(session, protectedMessage, receiveConfig, depth, decryptionResult);
         } catch (Exception processingFailure) {
+            PassphraseProviderFailure.rethrowIfPresent(processingFailure);
             org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(processingFailure);
             // Successful native close already established decryption; a later MIME/signature problem cannot erase that fact.
             return OpenPgpParseResultImpl.builder().recognized(true).effectiveMimeMessage(originalMessage)

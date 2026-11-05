@@ -30,6 +30,8 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.pgpainless.PGPainless;
 import org.pgpainless.algorithm.KeyFlag;
@@ -81,6 +83,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -519,6 +522,139 @@ class OpenPgpMimeTest {
 		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
 		assertThat(requestedKeyId).hasValue(firstKey.keyId);
 		assertThat(providedPassphrase).containsExactly(PASSPHRASE);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"static-mime", "static-eml", "fluent-mime", "fluent-eml"})
+	void passphraseProviderFailureEscapesPublicImportTargets(final String target) throws Exception {
+		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
+				basicEmail("provider exception").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+		final byte[] encryptedEml = EmailConverter.mimeMessageToEMLByteArray(protectedMessage);
+		final IllegalStateException vaultFailure = new IllegalStateException("vault unavailable");
+		final AtomicLong requestedKeyId = new AtomicLong();
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> {
+					requestedKeyId.set(keyId);
+					throw vaultFailure;
+				})
+				.build();
+
+		assertThatThrownBy(() -> {
+			switch (target) {
+				case "static-mime":
+					EmailConverter.mimeMessageToEmail(protectedMessage, null, receiveConfig);
+					break;
+				case "static-eml":
+					EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(encryptedEml), receiveConfig);
+					break;
+				case "fluent-mime":
+					SimpleJavaMail.fromDefaults().converter().fromMimeMessage(protectedMessage)
+							.withOpenPgpReceiveConfig(receiveConfig).toEmail();
+					break;
+				case "fluent-eml":
+					SimpleJavaMail.fromDefaults().converter().fromEml(encryptedEml)
+							.withOpenPgpReceiveConfig(receiveConfig).toEmail();
+					break;
+				default:
+					throw new AssertionError("Unknown import target: " + target);
+			}
+		}).isSameAs(vaultFailure);
+		assertThat(requestedKeyId).hasValue(firstKey.keyId);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"mime", "eml"})
+	void receiveOptionsRejectDirectArtifactTargetsBeforeCallingProvider(final String source) throws Exception {
+		final MimeMessage encrypted = EmailConverter.emailToMimeMessage(
+				basicEmail("unchanged original artifact").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+		final AtomicLong requests = new AtomicLong();
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> {
+					requests.incrementAndGet();
+					throw new IllegalStateException("unused provider");
+				}).build();
+		final byte[] encryptedEml = EmailConverter.mimeMessageToEMLByteArray(encrypted);
+
+		assertThatThrownBy(() -> {
+			if ("mime".equals(source)) {
+				SimpleJavaMail.fromDefaults().converter().fromMimeMessage(encrypted)
+						.withOpenPgpReceiveConfig(receiveConfig).toEmlResult();
+			} else {
+				SimpleJavaMail.fromDefaults().converter().fromEml(encryptedEml)
+						.withOpenPgpReceiveConfig(receiveConfig).toMimeMessageResult();
+			}
+		}).isInstanceOf(IllegalStateException.class).hasMessageContaining("Receive-side options apply to");
+		assertThat(requests).hasValue(0);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"signed", "encrypted"})
+	void passphraseProviderFailureEscapesOuterProtectionRecovery(final String outerProtection) throws Exception {
+		final Email source = basicEmail("nested provider exception").encryptWithOpenPgp(encryption(firstKey)).buildEmail();
+		final MimeMessage encrypted = EmailConverter.emailToMimeMessage(source);
+		final OpenPgpSupport openPgp = new OpenPgpSupport();
+		final MimeMessage outer = "signed".equals(outerProtection)
+				? openPgp.signMessage(encrypted.getSession(), source, encrypted, signing(secondKey))
+				: openPgp.encryptMessage(encrypted.getSession(), source, encrypted, encryption(secondKey));
+		final IllegalStateException vaultFailure = new IllegalStateException("inner vault unavailable");
+		final AtomicLong failedKeyId = new AtomicLong();
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addVerificationKeyRing(secondKey.publicRing)
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.addDecryptionKeyRing(secondKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> {
+					if (keyId == firstKey.keyId) {
+						failedKeyId.set(keyId);
+						throw vaultFailure;
+					}
+					return PASSPHRASE.clone();
+				})
+				.build();
+
+		assertThatThrownBy(() -> EmailConverter.mimeMessageToEmail(outer, null, receiveConfig)).isSameAs(vaultFailure);
+		assertThat(failedKeyId).hasValue(firstKey.keyId);
+	}
+
+	@Test
+	void passphraseProviderNullUsesFallbackAndRemainsLazyUntilDecryption() throws Exception {
+		final AtomicLong requests = new AtomicLong();
+		final OpenPgpReceiveConfig receiveConfig = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> {
+					requests.incrementAndGet();
+					return null;
+				})
+				.build();
+		assertThat(receiveConfig.getPassphraseProvider()).isNotNull();
+		assertThat(receiveConfig.getDecryptionKeyRings()).hasSize(1);
+		assertThat(requests).hasValue(0);
+		final MimeMessage encrypted = EmailConverter.emailToMimeMessage(
+				basicEmail("fallback secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+
+		final Email parsed = EmailConverter.mimeMessageToEmail(encrypted, null, receiveConfig);
+
+		assertThat(parsed.getPlainText()).isEqualTo("fallback secret");
+		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(requests.get()).isGreaterThan(0);
+	}
+
+	@Test
+	void passphraseProviderCancellationAndErrorsRetainTheirIdentity() throws Exception {
+		final MimeMessage encrypted = EmailConverter.emailToMimeMessage(
+				basicEmail("stopped provider").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
+		final CancellationException cancellation = new CancellationException("lookup cancelled");
+		final OpenPgpReceiveConfig cancelled = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> { throw cancellation; }).build();
+		final AssertionError error = new AssertionError("lookup error");
+		final OpenPgpReceiveConfig failed = OpenPgpReceiveConfig.builder()
+				.addDecryptionKeyRing(firstKey.secretRing, PASSPHRASE)
+				.passphraseProvider(keyId -> { throw error; }).build();
+
+		assertThatThrownBy(() -> EmailConverter.mimeMessageToEmail(encrypted, null, cancelled)).isSameAs(cancellation);
+		assertThatThrownBy(() -> EmailConverter.mimeMessageToEmail(encrypted, null, failed)).isSameAs(error);
 	}
 
 	@Test
