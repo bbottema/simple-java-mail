@@ -64,6 +64,8 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    # Retained review artifacts can be removed after maintainer inspection.
+    '.local/api-review-20261105-evidence'
     '.local/email-source-inspection-20261103'
     '.local/decrypted-merge-contract-20261103'
     '.local/review-smime-id-contract-20261103'
