@@ -111,10 +111,12 @@ class AuthenticatedSocksPendingSetupTest {
     @ParameterizedTest
     @EnumSource(value = Phase.class, names = {"METHOD", "AUTHENTICATION", "CONNECT"})
     void theEffectiveRawSessionConnectBudgetBoundsRemoteSetup(final Phase phase) throws Exception {
+        // Allow the preceding exchanges to finish before the withheld reply exhausts this setup budget.
+        final String setupTimeoutMillis = "2000";
         try (ProxyFixture proxy = new ProxyFixture(ignored -> phase);
              Mailer mailer = builder(proxy, null, Duration.ZERO)
-                     .withProperty("mail.smtp.connectiontimeout", "300").buildMailer()) {
-            assertThat(mailer.getSession().getProperty("mail.smtp.connectiontimeout")).isEqualTo("300");
+                     .withProperty("mail.smtp.connectiontimeout", setupTimeoutMillis).buildMailer()) {
+            assertThat(mailer.getSession().getProperty("mail.smtp.connectiontimeout")).isEqualTo(setupTimeoutMillis);
             final MailSend<MailSubmissionReceipt> send = mailer.async().sendMail(email("connect-budget"));
             try {
                 assertThat(proxy.blocked.await(5, SECONDS)).as("remote proxy reached %s", phase).isTrue();
