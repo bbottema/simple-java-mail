@@ -132,6 +132,7 @@ class MailFailureContractTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    @Timeout(45) // Leave room for mock setup and Mailer teardown around the separately bounded completion checks.
     void asyncConnectionChecksNormalizeOnlyExecutorRejection(final boolean probe) throws Exception {
         final RejectedExecutionException rejection = new RejectedExecutionException("external capacity exhausted");
         final IllegalStateException applicationFailure = new IllegalStateException("application executor failure");

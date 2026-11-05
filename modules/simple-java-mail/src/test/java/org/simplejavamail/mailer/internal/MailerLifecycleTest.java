@@ -102,6 +102,7 @@ class MailerLifecycleTest {
     }
 
     @Test
+    @Timeout(45) // Include cold Mockito setup and teardown; completion waits retain their own five-second bounds.
     void cleanupFailureKeepsItsIdentityAcrossViewsAndBlockingClose() throws Exception {
         final OperationalConfig supplied = EmailHelper.createDummyOperationalConfig(Collections.emptyList(), false, true);
         final ExecutorService originalExecutor = supplied.getExecutorService();

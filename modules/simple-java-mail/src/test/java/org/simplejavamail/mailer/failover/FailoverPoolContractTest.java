@@ -6,6 +6,12 @@ import jakarta.mail.Message.RecipientType;
 
 import org.simplejavamail.api.SimpleJavaMail;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -163,19 +169,22 @@ class FailoverPoolContractTest {
         final CountDownLatch initialStarted = new CountDownLatch(1);
         final CountDownLatch releaseInitial = new CountDownLatch(1);
         final CountDownLatch failedConnectionClosed = new CountDownLatch(1);
-        try (RecordingSmtpServer primary = new RecordingSmtpServer((peer, connection) -> {
+        try (PublishedIncident incident = new PublishedIncident();
+             RecordingSmtpServer primary = new RecordingSmtpServer((peer, connection) -> {
             initialStarted.countDown();
             await(releaseInitial);
             peer.reply("421 unavailable");
             peer.expectClosed();
             failedConnectionClosed.countDown();
         }); RecordingSmtpServer secondary = new RecordingSmtpServer(); Mailer selected = builder(secondary.port()).buildMailer();
-             Mailer initiating = updateMailer(builder(primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build()))
+             Mailer initiating = updateMailer(builder(primary.port()).withSMTPServer("127.0.0.1", primary.port()), fixture -> fixture.withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).build()))
                      .withFailoverMailer(selected, FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofHours(1)).build()).buildMailer()) {
             try {
                 await(initialStarted);
                 releaseInitial.countDown();
                 await(failedConnectionClosed);
+                // Peer EOF precedes failure publication; backoff begins only once the library records the incident.
+                await(incident.recorded);
                 for (int attempt = 0; attempt < 3; attempt++) {
                     initiating.sync().sendMail(email());
                 }
@@ -184,6 +193,30 @@ class FailoverPoolContractTest {
             } finally {
                 releaseInitial.countDown();
             }
+        }
+    }
+
+    private static final class PublishedIncident extends AbstractAppender implements AutoCloseable {
+        private final Logger logger = (Logger) LogManager.getLogger("org.simplejavamail.mailer.internal.DestinationConnectionObserver");
+        private final CountDownLatch recorded = new CountDownLatch(1);
+
+        private PublishedIncident() {
+            super("pool-backoff-publication-" + UUID.randomUUID(), null, null, true, Property.EMPTY_ARRAY);
+            start();
+            logger.addAppender(this);
+        }
+
+        @Override public void append(final LogEvent event) {
+            final Object[] parameters = event.getMessage().getParameters();
+            if (event.getLevel() == Level.ERROR && event.getMessage().getFormat().startsWith("SMTP connection incident for ")
+                    && parameters != null && parameters.length > 0 && "127.0.0.1".equals(parameters[0])) {
+                recorded.countDown();
+            }
+        }
+
+        @Override public void close() {
+            logger.removeAppender(this);
+            stop();
         }
     }
 
