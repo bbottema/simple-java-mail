@@ -33,6 +33,7 @@ org.simplejavamail.api.email.EmailPopulatingBuilder#clearBounceTo():org.simpleja
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearCalendarText():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_CALENDAR
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearDispositionNotificationTo():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_DELIVERY
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearDkim():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_ATOMIC_POLICY
+org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmailToForward():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmbeddedImages():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_RESOURCE_COLLECTION
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearFromRecipient():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearHTMLText():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE

@@ -55,6 +55,19 @@ class ForwardedTemplateGovernanceTest {
 	}
 
 	@Test
+	void localForwardClearHasTheScalarTemplateOwnerAndPermitsDefaultFallback() throws Exception {
+		assertThat(ConfigurationAdoptionCatalogue.API_OWNERS).containsEntry(
+				"org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmailToForward():org.simplejavamail.api.email.EmailPopulatingBuilder",
+				ConfigurationAdoptionCatalogue.Owner.EMAIL_TEMPLATE);
+		final MimeMessage defaultSource = source("Default source");
+		final Email cleared = forward(source("Supplied source")).clearEmailToForward().buildEmail();
+
+		try (Mailer mailer = mailer(forward(defaultSource).buildEmail(), blank().buildEmail())) {
+			assertThat(govern(mailer, cleared).getEmailToForward()).isSameAs(defaultSource);
+		}
+	}
+
+	@Test
 	void overrideForwardWinsOverSuppliedAndDefaultSources() throws Exception {
 		final MimeMessage overridden = source("Override source");
 		try (Mailer mailer = mailer(forward(source("Default source")).buildEmail(), forward(overridden).buildEmail())) {
