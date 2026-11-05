@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -24,6 +26,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import static jakarta.mail.Message.RecipientType.TO;
@@ -45,6 +48,7 @@ class EmailPublicRouteContractTest {
         final String name = method.getName();
         if (name.contains("PlainText") || name.contains("HTMLText")) { body(method, fixture); }
         else if (name.equals("withSubject") || name.equals("clearSubject")) { scalar(method, fixture, "getSubject", "email.SUBJECT", "old", TEXT); }
+        else if (name.equals("clearEmailToForward")) { forward(method, fixture); }
         else if (name.equals("fixingMessageId") || name.equals("clearId")) { scalar(method, fixture, "getId", "email.ID", "<old@example.org>", "<new@example.org>"); }
         else if (name.contains("SentDate")) { date(method, fixture); }
         else if (name.equals("from") || name.equals("clearFromRecipient") || name.contains("BounceTo")) { address(method, fixture); }
@@ -68,6 +72,25 @@ class EmailPublicRouteContractTest {
         assertThat(invoke(builder, method, method.getParameterCount() == 0 ? new Object[0] : new Object[] {supplied})).isSameAs(builder);
         assertThat(value(builder.buildEmail(), getter)).isEqualTo(method.getName().startsWith("clear") ? null : supplied);
         record("field", field);
+    }
+
+    private static void forward(final Method method, final EmailContractTestSupport fixture) throws Exception {
+        final MimeMessage original = new MimeMessage(Session.getInstance(new Properties()));
+        original.setSubject("Forwarded source");
+        original.setText("Original body");
+        final EmailPopulatingBuilder builder = fixture.mail.emailBuilder().forwarding(original)
+                .withPlainText("Cover note").withAttachment(fixture.resource);
+        final Email before = builder.buildEmail();
+        assertThat(before.getEmailToForward()).isSameAs(original);
+
+        assertThat(invoke(builder, method)).isSameAs(builder);
+        final Email cleared = builder.buildEmail();
+        assertThat(cleared.getEmailToForward()).isNull();
+        assertThat(before.getEmailToForward()).isSameAs(original);
+        assertThat(cleared.getSubject()).isEqualTo(before.getSubject());
+        assertThat(cleared.getPlainText()).isEqualTo("Cover note");
+        assertThat(cleared.getAttachments()).containsExactly(fixture.resource);
+        record("field", "email.MAIL_TO_FORWARD");
     }
 
     private static void body(final Method method, final EmailContractTestSupport fixture) throws Exception {
