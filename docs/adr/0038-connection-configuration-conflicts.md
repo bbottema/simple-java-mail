@@ -24,6 +24,23 @@ After effective choices are resolved, validate active remote SOCKS ports in 1..6
 
 ## Decision
 
+### Protocol-owned OAuth usernames (accepted 5 November 2026)
+
+An OAuth connection uses the selected Jakarta Mail provider's ordinary username resolution. SMTP, including STARTTLS, uses
+`mail.smtp.user`; SMTPS uses `mail.smtps.user`. A supplied Session may retain settings for an inactive protocol without those
+values becoming competing active declarations or selecting another account when pooling is present. Preserve provider URL,
+protocol-specific and mail-wide username fallbacks, without copying the active username into another protocol's property.
+
+The pool supplies the current token at physical connection or reconnection while leaving username selection to the selected
+provider. Connected transport reuse does not obtain another token. Existing credential validation, locks, callback failure
+contracts, TLS choices and Session/lease ownership retain their meaning. This adds no public API or setting.
+
+[SMTP Connection Pool 4.4.1](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.1), under
+[#38](https://github.com/simple-java-mail/smtp-connection-pool/issues/38), supplies the compatible dependency correction.
+[SJM #966](https://github.com/bbottema/simple-java-mail/issues/966) tracks adoption for unreleased 10.0.0. Released SJM 9.3.9 can
+reach the same underlying selection error through its fixed-token supplied-Session
+path. This decision does not change credential-alias ownership after Session reuse, which is a separate finding.
+
 ### One advanced construction policy
 
 Introduce the core-owned `ConnectionConflictPolicy` enum with `REJECT_CONFLICTS` and `ALLOW_EXPLICIT_OVERRIDES`. The default for 10.0.0 is `REJECT_CONFLICTS`.

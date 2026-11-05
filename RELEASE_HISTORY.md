@@ -126,6 +126,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#966](https://github.com/bbottema/simple-java-mail/issues/966): pooled OAuth connections use the selected provider's username resolution, so an inactive SMTP username cannot override the SMTPS account. Fixed tokens and providers keep ordinary URL, protocol-specific and mail-wide fallbacks without rewriting supplied Session properties.
+
 - [#960](https://github.com/bbottema/simple-java-mail/issues/960): merging retained protected-message content includes a present inner calendar's text, method and specific transfer encoding, both on initial import and explicit merge reset of a copied separate view. An absent inner calendar retains the outer calendar; later copied edits and clears retain their precedence.
 
 - [#959](https://github.com/bbottema/simple-java-mail/issues/959): MIME import reads plain-text and HTML content returned as streams instead of storing an object identity as the body. Charset selection matches the ordinary text handler, including MIME aliases and its absent-charset default; parser-acquired streams close on success or failure with original and suppressed causes retained.
@@ -344,7 +346,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Supporting Libraries
 
-- Updated [SMTP Connection Pool to 4.4.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.0), [Clustered Object Pool to 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool to 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), retaining failed-lease waiter recovery and connection creation-age retirement. Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751). Finite candidate traversal, claim-scoped connection observations and deferred background top-up support coordinated connection failover under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Fully retired cluster metadata can now be released after disposal, avoiding retention across repeated Mailer creation and closure.
+- Updated [SMTP Connection Pool to 4.4.1](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.4.1), [Clustered Object Pool to 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool to 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), retaining failed-lease waiter recovery and connection creation-age retirement. The SMTP pool preserves selected-provider OAuth username resolution under [#966](https://github.com/bbottema/simple-java-mail/issues/966). Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751). Finite candidate traversal, claim-scoped connection observations and deferred background top-up support coordinated connection failover under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Fully retired cluster metadata can now be released after disposal, avoiding retention across repeated Mailer creation and closure.
 
 ### Maintenance
 
