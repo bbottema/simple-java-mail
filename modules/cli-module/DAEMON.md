@@ -136,6 +136,19 @@ Default state roots are:
 - macOS: `~/Library/Application Support/SimpleJavaMail/daemon`
 - other Unix-like sessions: `~/.local/state/simple-java-mail/daemon`
 
+The existing `SJM_DAEMON_STATE_DIR` environment variable or `simplejavamail.cli.daemon.state-dir` JVM property can select another root.
+A relative root resolves from the starting command's working directory. The client and detached child use the same normalized absolute root;
+the directory need not exist before startup creates it through the normal private-state checks. When a long state path needs a shorter Unix
+socket location, detached startup also preserves the selected temporary directory. Later clients must select the same resulting locations;
+an absolute root is convenient when commands run from different working directories.
+
+```sh
+export SJM_DAEMON_STATE_DIR=./sjm-state
+sjm daemon start
+sjm daemon status
+sjm daemon stop
+```
+
 The instance directory is owner-only. Discovery state contains the endpoint, PID/start identity, versions, random session ID, and authentication secret. It contains no Email, message body, queued mail, SMTP password, or Mailer configuration. Do not copy, publish, or edit it. Startup fails if private permissions cannot be established.
 
 Daemon logs use bounded rolling files in the instance directory. Raw CLI arguments, converted option values, MIME messages, authentication material, and profile identities are not logged by the daemon configuration.

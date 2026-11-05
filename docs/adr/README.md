@@ -9,6 +9,10 @@ and [current credential selection](0039-explicit-configuration-resolution.md#cur
 under [#967](https://github.com/bbottema/simple-java-mail/issues/967) replace copied pool OAuth aliases with an explicit supplier or
 ordinary Session authentication on the selected registration. Existing application APIs and legacy direct-pool entry points retain their contracts.
 
+The 5 November [daemon path clarification](0019-local-cli-daemon.md#consistent-state-and-socket-paths-accepted-5-november-2026)
+under [#488](https://github.com/bbottema/simple-java-mail/issues/488) keeps relative state roots supported while deriving client and child
+runtime paths from the same normalized inputs. Endpoint and private-state validation retain their existing authority.
+
 The 5 November [protocol-owned OAuth username clarification](0038-connection-configuration-conflicts.md#protocol-owned-oauth-usernames-accepted-5-november-2026)
 under [#966](https://github.com/bbottema/simple-java-mail/issues/966) preserves the selected provider's normal username resolution for pooled
 connections. Inactive protocol settings remain intact, and the compatible correction belongs to SMTP Connection Pool #38.

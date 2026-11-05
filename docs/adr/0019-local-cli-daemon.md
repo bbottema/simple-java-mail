@@ -22,6 +22,18 @@ help/version selection, discovery and lifecycle operations retain their thin boo
 
 Use bounded, authenticated local IPC, preferring Unix-domain sockets and allowing an explicit `127.0.0.1` fallback only for approved capability/path failures. Both transports use the same HMAC-authenticated framing, session/request identities, freshness checks and limits. Discovery state contains protected process/endpoint metadata and a random secret, not queued messages or SMTP configuration. Insecure state or authentication failure must not trigger a weaker transport fallback.
 
+### Consistent state and socket paths (accepted 5 November 2026)
+
+Keep relative daemon state roots supported. Resolve the selected root once to a lexically normalized absolute path before deriving
+instance, discovery and socket locations. An equivalent relative, absolute or dot-segment spelling selects the same location without
+requiring the directory to exist or resolving filesystem links. The detached child receives that selected root and the same normalized
+temporary-directory input used for a shortened Unix-socket path.
+
+Path shortening must not make the client and child derive different endpoints for the same selected instance. Retain the existing path-length
+threshold, private-state checks, authenticated readiness, process and endpoint verification, and approved Unix/TCP capability fallback.
+An unexpected discovery endpoint remains a refusal rather than permission to connect elsewhere or choose a weaker route. This completes
+the unreleased daemon feature under [#488](https://github.com/bbottema/simple-java-mail/issues/488) without adding a setting or public API.
+
 Run both one-shot and daemon commands through the same request-scoped `CliSupport.execute(...)`. Each request gets fresh Picocli state, explicit working-directory context, a UUID and bounded output. Do not mutate process-wide `user.dir`, `System.out` or `System.err` to emulate an individual command's environment. Commands use synchronous Mailer operations; daemon-owned workers supply request concurrency.
 
 Clarification accepted 1 November 2026 under [#488](https://github.com/bbottema/simple-java-mail/issues/488): filesystem image bases supplied
