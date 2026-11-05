@@ -66,6 +66,15 @@ public class GenerateCliHelpTest {
 	}
 
 	@Test
+	public void clearForwardedMessageHelpExplainsLocalRemovalAndTemplateFallback() {
+		CliSupport.runCLI(new String[] {"send", "--email:clearEmailToForward--help"});
+		assertThat(new String(outContent.toByteArray(), UTF_8))
+				.contains("Clears only the message being forwarded")
+				.contains("defaults or overrides")
+				.contains("MAIL_TO_FORWARD");
+	}
+
+	@Test
 	public void testListHelpForClearProxyWithoutError() {
 		CliSupport.runCLI(new String[] {"send", "--mailer:clearProxy--help",});
 	}

@@ -1,6 +1,8 @@
 package org.simplejavamail.internal.clisupport;
 
 import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
@@ -21,11 +23,14 @@ import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
+import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateFactory;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,6 +71,10 @@ final class CliEmailInputFixture {
             email.withSmtpDeliveryOptions(email.getSmtpDeliveryOptions().toBuilder().withTlsRequiredForOnwardDelivery().build());
         }
         if (option.equals("--email:clearSMIMESignedAttachmentMergingBehavior")) { email.notMergingSingleSMIMESignedAttachment(); }
+        if (option.equals("--email:clearEmailToForward")) {
+            ((InternalEmailPopulatingBuilder) email).withForward(new MimeMessage(Session.getInstance(new Properties()),
+                    new ByteArrayInputStream(CliConfigurationInputContractTest.EML)));
+        }
         if (option.equals("--email:withDispositionNotificationToEnabled")) { email.clearDispositionNotificationTo(); }
         if (option.equals("--email:withReturnReceiptToEnabled")) { email.clearReturnReceiptTo(); }
         if (option.contains("Dkim")) { email.signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("opaque").dkimSigningDomain("example.test").dkimSelector("cli").build()); }
@@ -145,6 +154,7 @@ final class CliEmailInputFixture {
                 assertResource(email.getAttachments().get(email.getAttachments().size() - 1), arguments); return;
             case "withEmbeddedImage": assertResource(email.getEmbeddedImages().get(email.getEmbeddedImages().size() - 1), arguments); return;
             case "clearAttachments": assertThat(email.getAttachments()).isEmpty(); return;
+            case "clearEmailToForward": assertThat(email.getEmailToForward()).isNull(); assertThat(email.getSubject()).isEqualTo("before"); return;
             case "clearEmbeddedImages": assertThat(email.getEmbeddedImages()).isEmpty(); return;
             case "clearOverrideReceivers": assertThat(email.getOverrideReceivers()).isEmpty(); return;
             case "withContentTransferEncoding": assertThat(email.getContentEncodingConfig().getContentTransferEncoding()).isEqualTo(arguments.get(0)); return;

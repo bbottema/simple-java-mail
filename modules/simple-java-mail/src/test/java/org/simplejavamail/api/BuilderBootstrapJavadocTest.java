@@ -45,6 +45,14 @@ class BuilderBootstrapJavadocTest {
 				+ "MailerFromSessionBuilder<?> supplied = mail.mailerBuilder(session);");
 	}
 
+	@Test
+	void copiedForwardCanBeClearedThroughThePublicFluentApi() throws IOException {
+		assertCompiles("SimpleJavaMail mail = SimpleJavaMail.withConfig(config);"
+				+ "Email forwardedEmail = mail.emailBuilder().startingBlank().buildEmail();"
+				+ "Email edited = mail.emailBuilder().copying(forwardedEmail)"
+				+ ".clearEmailToForward().withSubject(\"Updated note\").buildEmail();");
+	}
+
 	private Path coreApiSource() {
 		final Path workingDirectory = Path.of("").toAbsolutePath();
 		final Path coreModule = Files.isDirectory(workingDirectory.resolve("modules/core-module"))

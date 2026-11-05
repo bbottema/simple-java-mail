@@ -2241,6 +2241,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		this.attachments.clear();
 		return this;
 	}
+
+	/**
+	 * @see EmailPopulatingBuilder#clearEmailToForward()
+	 */
+	@Override
+	@NotNull
+	public EmailPopulatingBuilder clearEmailToForward() {
+		this.emailToForward = null;
+		return this;
+	}
 	
 	/**
 	 * @see EmailPopulatingBuilder#clearHeaders()

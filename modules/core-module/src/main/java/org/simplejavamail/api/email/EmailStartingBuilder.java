@@ -229,6 +229,7 @@ public interface EmailStartingBuilder {
 	 * @see <a href="https://blogs.technet.microsoft.com/exchange/2011/04/21/mixed-ing-it-up-multipartmixed-messages-and-you/">More reading
 	 * material</a>
 	 * @see #forwarding(Email)
+	 * @see EmailPopulatingBuilder#clearEmailToForward()
 	 */
 	EmailPopulatingBuilder forwarding(@NotNull MimeMessage message);
 	

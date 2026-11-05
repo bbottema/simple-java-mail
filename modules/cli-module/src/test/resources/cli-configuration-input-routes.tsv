@@ -17,6 +17,7 @@
 --email:clearDeliveryStatusNotification	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearDeliveryStatusNotification():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearDispositionNotificationTo	org.simplejavamail.api.email.EmailPopulatingBuilder#clearDispositionNotificationTo():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearDkim	org.simplejavamail.api.email.EmailPopulatingBuilder#clearDkim():org.simplejavamail.api.email.EmailPopulatingBuilder
+--email:clearEmailToForward	org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmailToForward():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearEmbeddedImageBaseClassPath	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseClassPath():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearEmbeddedImageBaseDir	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseDir():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearEmbeddedImageBaseUrl	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseUrl():org.simplejavamail.api.email.EmailPopulatingBuilder

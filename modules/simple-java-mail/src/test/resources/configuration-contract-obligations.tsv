@@ -364,6 +364,7 @@ cli	--email:clearDefaultValueSuppressions|org.simplejavamail.api.internal.clisup
 cli	--email:clearDeliveryStatusNotification|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearDeliveryStatusNotification():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearDispositionNotificationTo|org.simplejavamail.api.email.EmailPopulatingBuilder#clearDispositionNotificationTo():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearDkim|org.simplejavamail.api.email.EmailPopulatingBuilder#clearDkim():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
+cli	--email:clearEmailToForward|org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmailToForward():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearEmbeddedImageBaseClassPath|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseClassPath():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearEmbeddedImageBaseDir|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseDir():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearEmbeddedImageBaseUrl|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#clearEmbeddedImageBaseUrl():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full

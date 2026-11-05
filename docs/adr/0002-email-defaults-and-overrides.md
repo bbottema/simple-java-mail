@@ -101,6 +101,18 @@ The message being forwarded follows single-value precedence too: override, submi
 corresponding template contribution without removing the submitted source; subject and other fields resolve independently. Retain the selected
 MimeMessage as a borrowed reference rather than reading, serializing or copying its body during governance, as defined by [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md).
 
+### Explicitly clearing a forwarded message (accepted 5 November 2026)
+
+Copying a forward preserves its forwarded source as outgoing content. `EmailPopulatingBuilder.clearEmailToForward()` provides an explicit local
+edit: remove that reference without reading or changing the borrowed message, rewriting the subject, clearing ordinary resources or changing
+other configuration and historical inspection data. Previously built values and the source Email remain unchanged. This applies the named-clear
+convention in [ADR 0031](0031-public-api-and-internal-construction.md) and the borrowed-content boundary in ADR 0036.
+
+Absence permits ordinary template fallback. `MAIL_TO_FORWARD` exclusions independently suppress default and override contributions, while
+mandatory configuration remains binding. The operation does not disable forwarding globally or introduce a replacement-source setter.
+[#968](https://github.com/bbottema/simple-java-mail/issues/968) tracks this additive editing capability for unreleased 10.0.0; existing callers
+retain their behavior and need no migration.
+
 Header identity is case-insensitive: `X-Route` and `x-route` name the same header during composition and template resolution. Explicit replacement
 removes the earlier value collection even when its spelling differs. Retain a useful display spelling rather than requiring callers to normalize
 header names themselves. This concerns composed metadata; exact EML retains its authoritative bytes.

@@ -151,6 +151,27 @@ class CliConfigurationInputContractTest {
         record("cli", routeId(copying));
     }
 
+    @Test
+    void clearForwardedMessageHasASeededGeneratedRouteReadback() throws Exception {
+        eachGeneratedOptionParsesConvertsAndBindsItsActualBuilderChoice(
+                "--email:clearEmailToForward|org.simplejavamail.api.email.EmailPopulatingBuilder#clearEmailToForward():org.simplejavamail.api.email.EmailPopulatingBuilder");
+    }
+
+    @Test
+    void clearingAfterTheForwardingStarterKeepsTheSubjectAndRemovesTheForwardedSource() throws Exception {
+        final FilesFixture files = files();
+        final CommandLine parser = CliCommandLineProducer.configurePicoCli(OPTIONS, 120);
+        final CliReceivedCommand command = CliCommandLineConsumer.consumeCommandLineInput(
+                parser.parseArgs("send", "--email:forwarding", files.eml.toString(), "--email:clearEmailToForward"), OPTIONS);
+        final Object bound = bind(command.getReceivedOptions(), CliBuilderApiType.EMAIL,
+                SimpleJavaMail.withConfig(ConfigLoader.builder().load()).emailBuilder());
+        final org.simplejavamail.api.email.EmailPopulatingBuilder email =
+                (org.simplejavamail.api.email.EmailPopulatingBuilder) bound;
+
+        assertThat(email.getEmailToForward()).isNull();
+        assertThat(email.getSubject()).isEqualTo("Fwd: CLI source");
+    }
+
     private static Object bind(final List<CliReceivedOptionData> options, final CliBuilderApiType kind, final Object builder) throws Exception {
         final Method apply = CliCommandLineConsumerResultHandler.class.getDeclaredMethod("applyBuilderOptions", List.class, CliBuilderApiType.class, Object.class);
         apply.setAccessible(true);

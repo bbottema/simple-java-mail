@@ -1255,6 +1255,24 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearAttachments();
 
 	/**
+	 * Clears only the message being forwarded from this builder, without reading or changing the borrowed message.
+	 * The subject, body, ordinary attachments, other settings and inspection history remain unchanged, as do the source Email
+	 * and any previously built values. Copying continues to preserve the forwarded message unless it is explicitly cleared.
+	 * <p>
+	 * Removing the local choice permits ordinary defaults or overrides to supply another forwarded message. To exclude those
+	 * contributions too, use {@link EmailTemplateOptions.Builder#dontApplyDefaultValueFor(EmailProperty...)} and
+	 * {@link EmailTemplateOptions.Builder#dontApplyOverrideValueFor(EmailProperty...)} with {@link EmailProperty#MAIL_TO_FORWARD}.
+	 * Mandatory configuration remains binding.
+	 *
+	 * @return This builder.
+	 * @see EmailStartingBuilder#forwarding(MimeMessage)
+	 * @see #getEmailToForward()
+	 * @since 10.0.0
+	 */
+	@NotNull
+	EmailPopulatingBuilder clearEmailToForward();
+
+	/**
 	 * Resets <em>headers</em> to empty.
 	 */
 	@SuppressWarnings("unused")
@@ -1502,6 +1520,7 @@ public interface EmailPopulatingBuilder {
 
 	/**
 	 * @see EmailStartingBuilder#forwarding(MimeMessage)
+	 * @see #clearEmailToForward()
 	 */
 	@Nullable
 	MimeMessage getEmailToForward();
