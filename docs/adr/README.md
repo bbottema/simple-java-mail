@@ -20,6 +20,13 @@ The accepted [ADR 0040](0040-retained-protected-content-merging.md) consolidates
 
 The 3 November [inspection cross-reference](0035-tolerant-reading-and-strict-production.md#email-as-an-inspection-model) in ADR 0035 restates existing decisions in ADRs 0013/0008 and the original tolerant-reading record, including #609/#614's Outlook metadata. [ADR 0041](0041-email-source-inspection-and-problems.md), clarified on 4 November, records the source-content, root Problem and non-Email artifact-result contracts under [#961](https://github.com/bbottema/simple-java-mail/issues/961). Retained originals do not require a Problem; whole-Email optional-module restoration remains separate under #965.
 
+The 5 November review accepts preserving import failures in combined static MSG artifact conversion and readable neighbors around malformed
+independent signed attachments under [#961](https://github.com/bbottema/simple-java-mail/issues/961), application passphrase-provider exceptions
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704), and regular-file checks before daemon state-file permission changes under
+[#488](https://github.com/bbottema/simple-java-mail/issues/488). ADRs [0041](0041-email-source-inspection-and-problems.md),
+[0008](0008-minimal-mime-structures-and-protection-order.md) and [0019](0019-local-cli-daemon.md) own the decisions; the existing feature issues
+track implementation and delivery for unreleased 10.0.0.
+
 | Record | Decision | Status | Implementation |
 | --- | --- | --- | --- |
 | [0001](0001-email-configuration-scopes-and-inheritance.md) | Put S/MIME, DKIM, and DSN settings at the message, transaction, or recipient scope where they make sense. | Accepted, 2026-09-16; unified lenient mailbox interpretation clarification accepted 2026-10-21 | Recipient-level DSN and automatic ORCPT accepted for unreleased 10.0.0. Address-list parsing consistency implemented under [#824](https://github.com/bbottema/simple-java-mail/issues/824) for unreleased 10.0.0. |
