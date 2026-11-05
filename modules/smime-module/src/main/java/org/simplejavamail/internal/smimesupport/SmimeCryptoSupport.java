@@ -162,6 +162,8 @@ final class SmimeCryptoSupport {
 	static MimeBodyPart getSignedContent(@NotNull final MimePart mimePart) {
 		try {
 			return signed(mimePart).getContent();
+		} catch (org.bouncycastle.cms.CMSException | org.bouncycastle.mail.smime.SMIMEException malformedContent) {
+			throw new MalformedSignedContentException(malformedContent);
 		} catch (Exception e) {
 			throw handledException("Error reading signed S/MIME content", e);
 		}

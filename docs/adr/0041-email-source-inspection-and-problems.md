@@ -139,6 +139,22 @@ Include observations newly made by delegated stages, such as MSG import followed
 input Email Problems as new conversion events, mutate the input, or fabricate diagnostic MIME headers. Original source data can be
 retained with no newly observed Problem. Result selection enables neither additional source reads nor a different recovery policy.
 
+### Combined MSG outputs and independent signed attachments (accepted 5 November 2026)
+
+A combined MSG-to-MIME or MSG-to-EML operation retains the selected import's recognized acquisition/format failure through its artifact
+boundary, including the existing static conversion methods. It must not discard that failure by exporting the source-only inspection
+Email. Ordinary MSG-to-Email remains non-null inspection; an application can explicitly choose to export that Email later. This is an
+operation-local distinction, not a historical Problems gate. Static and fluent stream ownership retain their existing differences.
+
+Automatic interpretation of a malformed independent signed-CMS attachment on an otherwise plain input preserves the readable parent,
+the original attachment and its available source evidence. Record the recognized signed-content interpretation failure against the
+actual child occurrence and continue neighboring components. Stage optional child facts so a failed child does not establish message-level
+signature/decryption facts. Source links follow the occurrence captured during import, including duplicate names and native MSG attachments;
+no filename matching, extra diagnostic reads or live reader retention is introduced.
+
+This clarification retains the explicit wrong-key/password and low-level helper failure rules in ADR 0008. It does not authorize recovery
+from arbitrary runtime/application failures, explicit decryption failures, cancellation or Errors. The correction completes unreleased #961.
+
 ### Copies, serialization and completion
 
 Ordinary copies and supported serialization preserve captured sources, Problems, source links and original identities without reinspection

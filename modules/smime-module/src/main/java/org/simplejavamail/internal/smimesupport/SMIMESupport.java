@@ -662,7 +662,7 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final Pkcs12Config pkcs12Config) {
 		LOGGER.debug("checking for S/MIME signed / encrypted attachments...");
 		List<AttachmentDecryptionResult> decryptedAttachments = decryptAttachments(attachments, pkcs12Config, smimeBuilder.getOriginalSmimeDetails(),
-				smimeBuilder.getOriginalSmimeDetails());
+				smimeBuilder.getOriginalSmimeDetails(), pkcs12Config == null && smimeBuilder.getOriginalSmimeDetails().getSmimeMode() == SmimeMode.PLAIN);
 		smimeBuilder.addDecryptedAttachments(decryptedAttachments);
 		completeMessageDecryptionStatus(smimeBuilder, pkcs12Config);
 
@@ -724,7 +724,7 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@NotNull final OriginalSmimeDetails messageSmimeDetails) {
-		return decryptAttachments(attachments, pkcs12Config, messageSmimeDetails, null);
+		return decryptAttachments(attachments, pkcs12Config, messageSmimeDetails, null, false);
 	}
 
 	@NotNull
@@ -732,7 +732,8 @@ public class SMIMESupport implements SMIMEModule {
 			@NotNull final List<AttachmentResource> attachments,
 			@Nullable final Pkcs12Config pkcs12Config,
 			@NotNull final OriginalSmimeDetails messageSmimeDetails,
-			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate) {
+			@Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate,
+			final boolean recoverMalformedSignedContent) {
 		final List<AttachmentDecryptionResult> decryptedAttachments = new ArrayList<>();
 		// Only the existing sole-attachment boundary identifies a complete Outlook message envelope.
 		final boolean ownsMessageEnvelope = attachments.size() == 1 && isEncryptedMode(messageSmimeDetails.getSmimeMode());
@@ -741,16 +742,28 @@ public class SMIMESupport implements SMIMEModule {
 				? smimeDetailsToUpdate : null;
 		for (final AttachmentResource attachment : attachments) {
 			if (isSmimeAttachment(attachment)) {
+				final OriginalSmimeDetailsImpl selectedSignedDetails = recoverMalformedSignedContent && signedMessageDetails != null
+						? copyDetails(signedMessageDetails).build() : signedMessageDetails;
 				try {
 					LOGGER.debug("decrypting S/MIME signed attachment '{}'...", attachment.getName());
 					decryptedAttachments.add(decryptAndUnsignAttachment(attachment, pkcs12Config, messageSmimeDetails,
-							smimeDetailsToUpdate, signedMessageDetails, ownsMessageEnvelope));
+							smimeDetailsToUpdate, selectedSignedDetails, ownsMessageEnvelope));
+					if (selectedSignedDetails != signedMessageDetails) {
+						signedMessageDetails.completeWith(selectedSignedDetails);
+					}
+				} catch (MalformedSignedContentException malformedContent) {
+					org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(malformedContent);
+					if (!recoverMalformedSignedContent) {
+						throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), malformedContent);
+					}
+					decryptedAttachments.add(AttachmentDecryptionResultImpl.builder().smimeMode(SmimeMode.PLAIN)
+							.attachmentResource(attachment).failureReason(malformedContent.getMessage()).build());
 				} catch (Exception e) {
 					org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 					throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
 				}
 			} else {
-				decryptedAttachments.add(new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment));
+				decryptedAttachments.add(AttachmentDecryptionResultImpl.builder().smimeMode(SmimeMode.PLAIN).attachmentResource(attachment).build());
 			}
 		}
 
@@ -796,7 +809,8 @@ public class SMIMESupport implements SMIMEModule {
 				liberatedContent = tryGetSignedContent(mimeBodyPart, signedMessageDetails);
 			}
 
-			return liberatedContent != null ? liberatedContent : new AttachmentDecryptionResultImpl(SmimeMode.PLAIN, attachment);
+			return liberatedContent != null ? liberatedContent
+					: AttachmentDecryptionResultImpl.builder().smimeMode(SmimeMode.PLAIN).attachmentResource(attachment).build();
 		} catch (MessagingException | IOException e) {
 			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(format(ERROR_DECRYPTING_SMIME_SIGNED_ATTACHMENT, attachment), e);
@@ -847,7 +861,7 @@ public class SMIMESupport implements SMIMEModule {
 		signedPart.writeTo(bytes);
 		final AttachmentResource retained = AttachmentResource.builder().withName("signed-email.eml")
 				.withDataSource(new ByteArrayDataSource(bytes.toByteArray(), "message/rfc822")).build();
-		return new AttachmentDecryptionResultImpl(SmimeMode.SIGNED_ENCRYPTED, retained);
+		return AttachmentDecryptionResultImpl.builder().smimeMode(SmimeMode.SIGNED_ENCRYPTED).attachmentResource(retained).build();
 	}
 
 	@Nullable
@@ -896,7 +910,8 @@ public class SMIMESupport implements SMIMEModule {
 
 	@Nullable
 	private AttachmentDecryptionResult toAttachmentDecryptionResult(final SmimeMode smimeMode, @Nullable final AttachmentResource attachmentResource) {
-		return attachmentResource != null ? new AttachmentDecryptionResultImpl(smimeMode, attachmentResource) : null;
+		return attachmentResource != null
+				? AttachmentDecryptionResultImpl.builder().smimeMode(smimeMode).attachmentResource(attachmentResource).build() : null;
 	}
 
 	private String restoreSmimeContentType(@NotNull final AttachmentResource attachment, final OriginalSmimeDetails originalSmimeDetails) {

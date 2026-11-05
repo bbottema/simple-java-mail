@@ -44,6 +44,9 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
  * Successful parsing, missing fields, content/codec failures and exact-message envelope rules retain their separate contracts.
  * <br>
  * For Outlook conversion, add <em>org.simplejavamail:outlook-module</em> using the same version as Simple Java Mail.
+ * A combined MSG-to-MIME or MSG-to-EML operation throws a recognized input acquisition/format failure instead of exporting a blank inspection Email.
+ * MSG-to-Email remains best-effort inspection; an application may inspect that value and explicitly choose to export it later.
+ * Static MSG stream overloads close their supplied input, including on failure; fluent stream conversion keeps its borrowed-input contract.
  */
 @SuppressWarnings("WeakerAccess")
 @UtilityClass
@@ -593,7 +596,7 @@ public class EmailConverter {
 	@NotNull
 	public static MimeMessage outlookMsgToMimeMessage(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFileName, "msgFileName");
-		return emailToMimeMessage(outlookMsgToEmail(msgFileName, pkcs12Config));
+		return emailToMimeMessage(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(msgFileName, pkcs12Config)));
 	}
 
 	/**
@@ -610,7 +613,7 @@ public class EmailConverter {
 	@NotNull
 	public static MimeMessage outlookMsgToMimeMessage(@NotNull final File outlookMsgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
-		return emailToMimeMessage(outlookMsgToEmail(outlookMsgFile, pkcs12Config));
+		return emailToMimeMessage(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(outlookMsgFile, pkcs12Config)));
 	}
 
 	/**
@@ -627,7 +630,7 @@ public class EmailConverter {
 	@NotNull
 	public static MimeMessage outlookMsgToMimeMessage(@NotNull final InputStream outlookMsgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(outlookMsgInputStream, "outlookMsgInputStream");
-		return emailToMimeMessage(outlookMsgToEmail(outlookMsgInputStream, pkcs12Config));
+		return emailToMimeMessage(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(outlookMsgInputStream, pkcs12Config)));
 	}
 
 	/**
@@ -799,7 +802,7 @@ public class EmailConverter {
 	@NotNull
 	public static String outlookMsgToEML(@NotNull final String msgFileName, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(msgFileName, "msgFileName");
-		return emailToEML(outlookMsgToEmail(msgFileName, pkcs12Config));
+		return emailToEML(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(msgFileName, pkcs12Config)));
 	}
 
 	/**
@@ -816,7 +819,7 @@ public class EmailConverter {
 	@NotNull
 	public static String outlookMsgToEML(@NotNull final File outlookMsgFile, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(outlookMsgFile, "outlookMsgFile");
-		return emailToEML(outlookMsgToEmail(outlookMsgFile, pkcs12Config));
+		return emailToEML(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(outlookMsgFile, pkcs12Config)));
 	}
 
 	/**
@@ -833,7 +836,7 @@ public class EmailConverter {
 	@NotNull
 	public static String outlookMsgToEML(@NotNull final InputStream outlookMsgInputStream, @Nullable final Pkcs12Config pkcs12Config) {
 		checkNonEmptyArgument(outlookMsgInputStream, "outlookMsgInputStream");
-		return emailToEML(outlookMsgToEmail(outlookMsgInputStream, pkcs12Config));
+		return emailToEML(ConfiguredEmailConverterImpl.buildOutlookArtifactInput(outlookMsgToEmailBuilderWithOutlookData(outlookMsgInputStream, pkcs12Config)));
 	}
 
 	private static ConfiguredEmailConverterImpl conventionalConverter() {

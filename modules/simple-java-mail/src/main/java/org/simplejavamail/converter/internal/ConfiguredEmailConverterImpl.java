@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import lombok.val;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +32,10 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourceData;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
+import jakarta.activation.DataSource;
+import java.util.function.Function;
 import org.simplejavamail.api.email.config.EmailTemplateOptions;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookInputException;
 import org.simplejavamail.internal.email.EmailInspection;
@@ -287,7 +293,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
             InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
             return emailBuilder;
 		}
-        decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config);
+        decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config, parsed::getAttachmentSource);
         InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
         return emailBuilder;
 	}
@@ -428,6 +434,16 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	static SourceReadException acquisitionFailure(final OutlookEmailConversionResult result) {
 		return result instanceof FailedOutlookInput ? ((FailedOutlookInput) result).failure : null;
+	}
+
+	/** Keeps the selected MSG import's recognized failure at a combined artifact boundary, without gating historical Email Problems. */
+	@NotNull
+	public static Email buildOutlookArtifactInput(@NotNull final OutlookEmailConversionResult imported) {
+		final SourceReadException failure = acquisitionFailure(imported);
+		if (failure != null) {
+			throw failure;
+		}
+		return imported.buildEmail();
 	}
 
 	private static final class FailedOutlookInput implements OutlookEmailConversionResult {
@@ -654,10 +670,11 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
         inspection.noteAddressRecovery();
         inspection.noteUninterpretedDate(builder.getSentDate());
         builder.retainInspection(inspection.getSourceData(), inspection.getProblems());
-		decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
+		final SmimeParseResult attachmentInspection = decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
         InspectionAssembly.protection(builder, inspection::getOrigin);
         final List<EmailProblem> capturedProblems = new ArrayList<>(builder.getProblems());
-        builder.retainInspection(OutlookSourceCapture.capture(builder.getSourceData(), result.getOutlookMessage(), builder, capturedProblems),
+        builder.retainInspection(OutlookSourceCapture.capture(builder.getSourceData(), result.getOutlookMessage(), builder, capturedProblems,
+                        outlookAttachmentFailures(attachmentInspection, result.getAttachmentSourceIndices())),
                 capturedProblems);
         if (Objects.equals(builder.getHTMLText(), result.getOutlookMessage().getBodyHTML())) {
             builder.retainReceivedHtml(builder.getHTMLText(), OutlookSourceCapture.originalHtmlParts(builder.getSourceData(), result.getOutlookMessage()));
@@ -670,26 +687,45 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
         };
 	}
 
-	private EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder,
+	private SmimeParseResult decryptAttachments(final EmailPopulatingBuilder emailBuilder,
 			final OutlookMessage outlookMessage,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
+			return smimeParseResult;
 		} else {
 			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromOutlook(outlookMessage));
 		}
-		return emailBuilder;
+		return null;
+	}
+
+	private static Map<Integer, String> outlookAttachmentFailures(final SmimeParseResult inspection,
+			final Map<DataSource, Integer> sourceIndices) {
+		final Map<Integer, String> failures = new LinkedHashMap<>();
+		if (inspection != null) {
+			for (final AttachmentDecryptionResult attachment : inspection.getDecryptedAttachmentResults()) {
+				if (attachment.getFailureReason() != null) {
+					final Integer index = sourceIndices.get(attachment.getAttachmentResource().getDataSource());
+					if (index != null) {
+						failures.put(index, attachment.getFailureReason());
+					}
+				}
+			}
+		}
+		return failures;
 	}
 
 	@NotNull
 	private EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder,
 			final MimeMessage mimeMessage,
-			@Nullable final Pkcs12Config pkcs12Config) {
+			@Nullable final Pkcs12Config pkcs12Config,
+			final Function<AttachmentResource, EmailSourcePart> sourceOf) {
 		if (ModuleLoader.smimeModuleAvailable()) {
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			InspectionAssembly.attachmentProtection((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, sourceOf);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 		} else {
 			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromMessage(mimeMessage));

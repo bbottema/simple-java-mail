@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -42,6 +43,11 @@ final class OutlookSourceCapture {
 
 	static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
 			final List<EmailProblem> problems) {
+		return capture(metadata, message, represented, problems, java.util.Collections.emptyMap());
+	}
+
+	static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
+			final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures) {
 		final EmailSourceIdentity origin = metadata.getOrigin();
 		final List<EmailSourcePart> parts = new ArrayList<>();
 		final Email merged = represented != null && represented.isMergeSingleSMIMESignedAttachment() ? represented.getSmimeSignedEmail() : null;
@@ -49,7 +55,9 @@ final class OutlookSourceCapture {
 		body(parts, origin, "html", message.getBodyHTML(), merged != null ? merged.getHTMLText() : represented != null ? represented.getHTMLText() : null);
 		// RTF is not exposed by a normal Email body getter. Its original reader text survives a successful HTML conversion.
 		body(parts, origin, "rtf", message.getBodyRTF(), null);
-		for (OutlookAttachment attachment : message.getOutlookAttachments()) {
+		final List<OutlookAttachment> nativeAttachments = message.getOutlookAttachments();
+		for (int attachmentIndex = 0; attachmentIndex < nativeAttachments.size(); attachmentIndex++) {
+			final OutlookAttachment attachment = nativeAttachments.get(attachmentIndex);
 			final String location = "source/parts[" + parts.size() + "]";
 			final List<EmailSourceProperty> properties = new ArrayList<>();
 			List<EmailSourcePart> children = emptyList();
@@ -79,7 +87,12 @@ final class OutlookSourceCapture {
 			} else {
 				property(properties, origin, location, "kind", "String", "reader-resource");
 			}
-			parts.add(EmailInspection.part(origin, location, emptyList(), properties, children, null, null));
+			final EmailSourcePart source = EmailInspection.part(origin, location, emptyList(), properties, children, null, null);
+			parts.add(source);
+			if (attachmentFailures.containsKey(attachmentIndex)) {
+				problems.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.PROTECTION_FAILED,
+						location, null, attachmentFailures.get(attachmentIndex), singletonList(source)));
+			}
 		}
 		final List<EmailSourceProperty> properties = new ArrayList<>(metadata.getProperties());
 		for (Integer code : message.getPropertyCodes()) {

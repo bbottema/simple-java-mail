@@ -1244,6 +1244,15 @@ public final class MimeMessageParser {
         public EmailSourceData getSourceData() { return inspection.getSourceData(); }
         public List<EmailProblem> getProblems() { return inspection.getProblems(); }
         public List<org.simplejavamail.api.email.EmailSourcePart> getOriginalHtmlParts() { return inspection.originalHtmlParts(); }
+        /** Exact parsed occurrence identity; no resource reads or filename matching. */
+        public org.simplejavamail.api.email.EmailSourcePart getAttachmentSource(final org.simplejavamail.api.email.AttachmentResource attachment) {
+            for (final Map.Entry<MimeDataSource, MimePartCapture> entry : resourceSources.entrySet()) {
+                if (entry.getKey().getDataSource() == attachment.getDataSource()) {
+                    return entry.getValue().snapshot();
+                }
+            }
+            return null;
+        }
         @Getter(AccessLevel.NONE) private final List<MimePartCapture> plainSources = new ArrayList<>();
         @Getter(AccessLevel.NONE) private final List<MimePartCapture> htmlSources = new ArrayList<>();
         @Getter(AccessLevel.NONE) private final Map<MimeDataSource, MimePartCapture> resourceSources = new IdentityHashMap<>();

@@ -4,6 +4,8 @@ import org.jetbrains.annotations.ApiStatus;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.api.outlook.OutlookMessageData;
+import jakarta.activation.DataSource;
+import java.util.Map;
 
 /**
  * Wrapper class that can hold both the resulting Email (builder) and the source OutlookMessage.
@@ -20,6 +22,8 @@ public interface EmailFromOutlookMessage {
 	OutlookMessage getOutlookMessage();
 
 	OutlookMessageData getOutlookMessageData();
+	/** Transient resource identity to actual native attachment occurrence, consumed during source capture. */
+	Map<DataSource, Integer> getAttachmentSourceIndices();
 
 	OutlookEmailConversionResult toOutlookEmailConversionResult();
 }

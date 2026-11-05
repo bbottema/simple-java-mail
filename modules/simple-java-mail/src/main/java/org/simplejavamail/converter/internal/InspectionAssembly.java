@@ -3,6 +3,8 @@ package org.simplejavamail.converter.internal;
 import org.simplejavamail.api.email.*;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.email.EmailInspection;
+import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,21 @@ final class InspectionAssembly {
         final List<EmailSourceData> derived = new ArrayList<>(parent.getDerivedSources());
         derived.add(child);
         return EmailInspection.withDerivedSources(parent, derived);
+    }
+
+    static void attachmentProtection(final InternalEmailPopulatingBuilder builder, final SmimeParseResult result,
+            final java.util.function.Function<AttachmentResource, EmailSourcePart> sourceOf) {
+        final List<EmailProblem> findings = new ArrayList<>(builder.getProblems());
+        for (final AttachmentDecryptionResult attachment : result.getDecryptedAttachmentResults()) {
+            if (attachment.getFailureReason() != null) {
+                final EmailSourcePart source = sourceOf.apply(attachment.getAttachmentResource());
+                final EmailSourceIdentity origin = source == null ? builder.getSourceData().getOrigin() : source.getOrigin();
+                findings.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.PROTECTION_FAILED,
+                        source == null ? "S/MIME/attachment" : source.getLocation(), null, attachment.getFailureReason(),
+                        source == null ? java.util.Collections.emptyList() : java.util.Collections.singletonList(source)));
+            }
+        }
+        builder.retainInspection(builder.getSourceData(), findings);
     }
 
     static void protection(InternalEmailPopulatingBuilder builder, java.util.function.Supplier<EmailSourceIdentity> origin) {

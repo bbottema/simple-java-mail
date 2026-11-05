@@ -7,6 +7,10 @@ import org.simplejavamail.api.internal.outlooksupport.model.EmailFromOutlookMess
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.api.outlook.OutlookMessageData;
+import jakarta.activation.DataSource;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /**
  * Wrapper class that can hold both the resulting Email (builder) and the source OutlookMessage.
@@ -20,12 +24,16 @@ public final class EmailFromOutlookMessageImpl implements EmailFromOutlookMessag
 	private final EmailPopulatingBuilder emailBuilder;
 	private final OutlookMessage outlookMessage;
 	private final OutlookMessageData outlookMessageData;
+	private final Map<DataSource, Integer> attachmentSourceIndices;
 
 	@Builder
-	private EmailFromOutlookMessageImpl(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage, final OutlookMessageData outlookMessageData) {
+	private EmailFromOutlookMessageImpl(final EmailPopulatingBuilder emailBuilder, final OutlookMessage outlookMessage,
+			final OutlookMessageData outlookMessageData, final Map<DataSource, Integer> attachmentSourceIndices) {
 		this.emailBuilder = emailBuilder;
 		this.outlookMessage = outlookMessage;
 		this.outlookMessageData = outlookMessageData;
+		this.attachmentSourceIndices = Collections.unmodifiableMap(attachmentSourceIndices == null
+				? new IdentityHashMap<>() : new IdentityHashMap<>(attachmentSourceIndices));
 	}
 
 	/** @see EmailFromOutlookMessage#getEmailBuilder() */
@@ -44,6 +52,11 @@ public final class EmailFromOutlookMessageImpl implements EmailFromOutlookMessag
 	@Override
 	public OutlookMessageData getOutlookMessageData() {
 		return outlookMessageData;
+	}
+
+	@Override
+	public Map<DataSource, Integer> getAttachmentSourceIndices() {
+		return attachmentSourceIndices;
 	}
 
 	/** @see EmailFromOutlookMessage#toOutlookEmailConversionResult() */

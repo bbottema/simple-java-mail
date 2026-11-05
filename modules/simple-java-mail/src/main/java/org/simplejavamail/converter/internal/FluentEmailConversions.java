@@ -514,9 +514,7 @@ class FluentEmailConversions {
 			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(null);
 			return operation.execute(() -> {
 				final OutlookEmailConversionResult imported = readSource();
-				final SourceReadException acquisitionFailure = ConfiguredEmailConverterImpl.acquisitionFailure(imported);
-				if (acquisitionFailure != null) throw acquisitionFailure;
-				final Email email = imported.buildEmail();
+				final Email email = ConfiguredEmailConverterImpl.buildOutlookArtifactInput(imported);
 				operation.includeEmail(email, true);
 				return target.apply(operation, exportEmail(operation, email, writingContent));
 			});

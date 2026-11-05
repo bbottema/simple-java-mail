@@ -49,6 +49,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.IdentityHashMap;
+import jakarta.activation.DataSource;
 
 import static jakarta.mail.Message.RecipientType.BCC;
 import static jakarta.mail.Message.RecipientType.CC;
@@ -112,6 +114,11 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final InternalEmailConverter internalEmailConverter) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
+		final Map<OutlookAttachment, Integer> nativeAttachmentIndices = new IdentityHashMap<>();
+		for (int index = 0; index < outlookMessage.getOutlookAttachments().size(); index++) {
+			nativeAttachmentIndices.put(outlookMessage.getOutlookAttachments().get(index), index);
+		}
+		final Map<DataSource, Integer> attachmentSourceIndices = new IdentityHashMap<>();
 		outlookMessage.getHeadersMap().entrySet().stream()
 				.filter(e -> !valueNullOrEmpty(e.getKey()))
 				.filter(e -> !e.getKey().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName()))
@@ -153,7 +160,10 @@ public class OutlookEmailConverter implements OutlookModule {
 		}
 		for (final OutlookFileAttachment attachment : ordinaryAttachments(outlookMessage, cidMap)) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
-			builder.withAttachment(attachmentName, attachment.getData(), attachmentMimeType(attachment));
+			final AttachmentResource resource = AttachmentResource.builder().withName(attachmentName)
+					.withData(attachment.getData(), attachmentMimeType(attachment)).build();
+			builder.withAttachment(resource);
+			attachmentSourceIndices.put(resource.getDataSource(), nativeAttachmentIndices.get(attachment));
 		}
 		for (int i = 0; i < outlookMessage.getOutlookAttachments().size(); i++) {
 			final OutlookAttachment attachment = outlookMessage.getOutlookAttachments().get(i);
@@ -183,6 +193,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			.emailBuilder(builder)
 			.outlookMessage(new OutlookMessageProxy(outlookMessage))
 			.outlookMessageData(extractOutlookMessageData(outlookMessage))
+			.attachmentSourceIndices(attachmentSourceIndices)
 			.build();
 	}
 
