@@ -728,3 +728,39 @@ if ((Test-Path -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\smime-he
     $PSCmdlet.ShouldProcess('C:\workstation\simple-java-mail\docs\plans\smime-helper-id-contract-20261103.md', 'Remove retired S/MIME helper ID plan')) {
     Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\smime-helper-id-contract-20261103.md' -Force
 }
+
+#region ReviewDeliveryCustody20261105
+<#
+Ownership and retention record for the delegated registration, signed-attachment,
+daemon-path and forwarded-source changes (#488, #704, #967, #968; pool #39).
+
+Task-owned linked checkouts retired with normal git worktree removal:
+C:\workstation\sjm-oauth-registration-20261105\pool
+C:\workstation\sjm-oauth-registration-20261105\sjm
+C:\workstation\sjm-oauth-registration-20261105\website
+C:\workstation\sjm-smime-signed-attachments-20261105\sjm
+C:\workstation\sjm-smime-signed-attachments-20261105\website
+C:\workstation\sjm-smime-signed-attachments-20261105\baseline
+C:\workstation\sjm-daemon-paths-20261105\sjm
+C:\workstation\sjm-daemon-paths-20261105\website
+C:\workstation\sjm-clear-forward-20261105\sjm
+C:\workstation\sjm-clear-forward-20261105\website
+C:\workstation\sjm-clear-forward-20261105\closure-check
+
+The evidence directories in all four task parents and in
+C:\workstation\sjm-review-combined-20261105 remain retained. Original staged
+drafts, indexes and baseline/closure fixtures are archived there. Branch refs
+remain available. Task-local cache, tool and runtime leaves also remain retained.
+
+Registered checkouts retained at the earlier automatic-removal boundary:
+C:\workstation\sjm-review-combined-20261105\sjm
+C:\workstation\sjm-review-combined-20261105\website
+The context Junctions at tools\integration-patterns and simplejavamail.org in
+that task parent remain intact, together with their targets. Do not retry their
+refused removal, delete their targets indirectly, or remove the task parent.
+
+Active Session-integration #969 and logging-only receipt #723 work, their plans,
+the separate SOCKS/Angus worktrees, and older .local/manual residues retain their
+own ownership. This custody record does not add an executable cleanup block.
+#>
+#endregion ReviewDeliveryCustody20261105
