@@ -1,6 +1,6 @@
 # Authenticated SOCKS setup and forwarding
 
-This page describes the retained compatibility bridge used with released Angus. The [merged-Angus development route](../adr/0042-direct-authenticated-socks-sockets.md) connects authenticated sockets directly and has no listener, setup admission or forwarding handoff. See [transport abort](07-angus-transport-abort.md#direct-authenticated-socks-in-the-development-lane) for its physical ownership. Bridge-port configuration remains supported.
+This page describes the retained compatibility bridge used with released Angus. The [Angus snapshot development route](../adr/0042-direct-authenticated-socks-sockets.md) connects authenticated sockets directly and has no listener, setup admission or forwarding handoff. See [transport abort](07-angus-transport-abort.md#direct-authenticated-socks-in-the-development-lane) for its physical ownership. Bridge-port configuration remains supported.
 
 The optional authenticated SOCKS module adapts the provider's anonymous local hop to a remote authenticated proxy. [ADR 0010](../adr/0010-authenticated-socks-bridge.md) owns its protocol and socket lifetimes; [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) keeps its setup capacity distinct from application workers and transport leases.
 

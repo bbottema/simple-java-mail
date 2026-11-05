@@ -1,6 +1,6 @@
 # ADR 0042: Use Angus transport sockets for authenticated SOCKS
 
-- Status: Accepted, 2026-10-30; retained-bridge and development-lane clarification, 2026-11-03
+- Status: Accepted, 2026-10-30; retained-bridge clarification, 2026-11-03; published snapshot development input, 2026-11-05
 - Target: Unreleased 10.0.0
 - Tracking: [#922](https://github.com/bbottema/simple-java-mail/issues/922)
 - Implementation status: In development on the dedicated branch; released dependency integration remains pending.
@@ -28,7 +28,7 @@ The Angus lifecycle adapter exposes this behavior through a core-internal config
 
 Resolve typed/raw declarations and locks under [ADR 0038](0038-connection-configuration-conflicts.md). Preserve original delegate identity when a managed decorator is compared with an application factory lock. Direct routing exposes the remote proxy endpoint; bridge routing retains its generated local endpoint. A dedicated probe receives fresh factory and socket state and does not inherit a send's cancellation ownership.
 
-Provide an explicit development lane that builds the exact accepted Angus source into a private Maven repository. The normal dependency remains the released baseline. Development build settings and their Mail/Activation API choices must be visible and reproducible; do not present local overrides or snapshots as supported production dependencies. A compatible released Angus artifact must be checked before replacing this development input or delivering the release-dependent feature.
+Provide an explicit development lane that resolves a pinned, timestamped Angus snapshot from its public Maven repository. The normal dependency remains the released baseline. Development build settings and their Mail/Activation API choices must be visible and reproducible; do not present snapshots as supported production dependencies. Local Angus source builds and their provenance markers are no longer required. A compatible released Angus artifact must be checked before replacing this development input or delivering the release-dependent feature.
 
 ## Consequences
 

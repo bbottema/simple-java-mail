@@ -643,12 +643,43 @@
 
     <profiles>
         <profile>
-            <id>angus-merged-development</id>
+            <id>angus-snapshot-development</id>
             <properties>
-                <angus-mail.version>2.1.0-SNAPSHOT</angus-mail.version>
+                <angus-mail.version>2.1.0-20261105.105723-1</angus-mail.version>
                 <angus.merged.source.revision>74a8e1be20011123d5930ef1d112ad6d10490614</angus.merged.source.revision>
                 <sjm.test.authenticatedSocksRoute>direct</sjm.test.authenticatedSocksRoute>
             </properties>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>jakarta.mail</groupId>
+                        <artifactId>jakarta.mail-api</artifactId>
+                        <version>2.2.0-M1</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>jakarta.activation</groupId>
+                        <artifactId>jakarta.activation-api</artifactId>
+                        <version>2.2.0-M1</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.eclipse.angus</groupId>
+                        <artifactId>angus-activation</artifactId>
+                        <version>2.1.0-M1</version>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <repositories>
+                <repository>
+                    <id>angus-development-snapshots</id>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                    <releases><enabled>false</enabled></releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>fail</checksumPolicy>
+                    </snapshots>
+                </repository>
+            </repositories>
             <build>
                 <plugins>
                     <plugin>
@@ -659,33 +690,14 @@
                                 <id>enforce-build</id>
                                 <configuration>
                                     <rules>
-                                        <!-- The private build deliberately retains the released API/Activation stack. -->
                                         <requireUpperBoundDeps>
-                                            <excludes>
-                                                <exclude>jakarta.mail:jakarta.mail-api</exclude>
-                                                <exclude>jakarta.activation:jakarta.activation-api</exclude>
-                                                <exclude>org.eclipse.angus:angus-activation</exclude>
-                                            </excludes>
+                                            <uniqueVersions>true</uniqueVersions>
                                         </requireUpperBoundDeps>
                                         <requireReleaseDeps>
                                             <excludes>
                                                 <exclude>org.eclipse.angus:angus-mail</exclude>
                                             </excludes>
                                         </requireReleaseDeps>
-                                    </rules>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>require-private-merged-angus-build</id>
-                                <goals><goal>enforce</goal></goals>
-                                <configuration>
-                                    <rules>
-                                        <requireFilesExist>
-                                            <files>
-                                                <file>${settings.localRepository}/.sjm-merged-angus/${angus.merged.source.revision}.json</file>
-                                            </files>
-                                            <message>Build the pinned Angus sources into a private cache with scripts/Use-MergedAngus.ps1 before using this development profile.</message>
-                                        </requireFilesExist>
                                     </rules>
                                 </configuration>
                             </execution>

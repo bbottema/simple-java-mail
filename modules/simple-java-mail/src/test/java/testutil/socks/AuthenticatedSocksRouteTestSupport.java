@@ -14,7 +14,7 @@ public final class AuthenticatedSocksRouteTestSupport {
     }
 
     public static void requireDirectRoute() {
-        assumeTrue(expectsDirectRoute(), "Direct-only witness requires the angus-merged-development profile");
+        assumeTrue(expectsDirectRoute(), "Direct-only witness requires the angus-snapshot-development profile");
     }
 
     public static void requireReleasedBridge() {

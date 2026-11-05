@@ -180,7 +180,7 @@
 
     <profiles>
         <profile>
-            <id>angus-merged-development</id>
+            <id>angus-snapshot-development</id>
             <build>
                 <plugins>
                     <plugin>
@@ -191,13 +191,9 @@
                                 <id>enforce-build</id>
                                 <configuration>
                                     <rules>
-                                        <!-- Retain the root development lane's exceptions in the CLI-specific override. -->
+                                        <!-- Compare the pinned snapshot consistently with the root development profile. -->
                                         <requireUpperBoundDeps>
-                                            <excludes>
-                                                <exclude>jakarta.mail:jakarta.mail-api</exclude>
-                                                <exclude>jakarta.activation:jakarta.activation-api</exclude>
-                                                <exclude>org.eclipse.angus:angus-activation</exclude>
-                                            </excludes>
+                                            <uniqueVersions>true</uniqueVersions>
                                         </requireUpperBoundDeps>
                                         <requireReleaseDeps>
                                             <excludes>

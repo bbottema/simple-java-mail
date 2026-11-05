@@ -66,78 +66,53 @@ The Java 11 lane also excludes the coverage aggregator because it depends on the
 
 When changing builder signatures or CLI help, also follow [Generated CLI Metadata](#generated-cli-metadata).
 
-### Merged Angus development lane
+### Angus snapshot development lane
 
 Normal builds use released Angus Mail 2.0.5, Jakarta Mail API 2.1.5, Jakarta Activation API 2.1.4 and Angus Activation 2.0.3.
-The explicit `angus-merged-development` profile uses a private source build of Angus merge
-[`74a8e1be20011123d5930ef1d112ad6d10490614`](https://github.com/eclipse-ee4j/angus-mail/commit/74a8e1be20011123d5930ef1d112ad6d10490614),
-which adds `mail.<protocol>.socketFactory.transport` and `.transport.class`. This is an experimental integration lane until a compatible
-final Angus release is selected. It does not add a public snapshot repository or change the ordinary dependency defaults.
+The explicit `angus-snapshot-development` profile resolves the published Angus Mail snapshot
+`2.1.0-20261105.105723-1` from [Sonatype's snapshot repository](https://central.sonatype.com/repository/maven-snapshots/).
+This timestamped build contains the accepted [transport/TLS composition change](https://github.com/eclipse-ee4j/angus-mail/pull/228),
+which adds `mail.<protocol>.socketFactory.transport` and `.transport.class`. The timestamp pins the Angus binary instead of following later snapshot builds.
+The repository is enabled only in this profile; normal builds retain their released dependency defaults.
 
-[Use-MergedAngus.ps1](../scripts/Use-MergedAngus.ps1) fetches the exact commit into a private Git object database, exports unchanged sources,
-and installs the fresh relevant reactor into a private Maven cache. `-AngusGitRepository` can reuse an existing local object database;
-its checkout is never switched or edited. `-SourceDirectory`, `-WorkDirectory`, `-RepositoryPath`, `-JavaHome` and `-MavenCommand`
-are configurable. The default work directory is `.local/socks-direct-922-20261103/merged-angus` with its own `m2` subdirectory.
-Use a short task-owned work directory on Windows to avoid source and Javadoc path limits:
+Maven downloads the published artifacts directly. No local Angus checkout, source build, private-cache marker or preparation script is needed.
+Run focused SJM integration tests with:
 
 ```powershell
-$angusLane = @{
-    WorkDirectory = 'C:\temp\sjm-angus-922'
-    RepositoryPath = 'C:\temp\sjm-angus-922\m2'
-    JavaHome = $env:JAVA_HOME
-}
-.\scripts\Use-MergedAngus.ps1 @angusLane
+mvn -Pangus-snapshot-development -pl modules/simple-java-mail -am test `
+    "-Dtest=AuthenticatedSocksDirectRoutingTest,AuthenticatedSocksEstablishedAbortTest,AuthenticatedSocksCapacityTest" `
+    "-Dsurefire.failIfNoSpecifiedTests=false"
 ```
 
-The unchanged upstream coordinates remain `org.eclipse.angus:angus-mail:2.1.0-SNAPSHOT`. Upstream's POM defaults are Mail API 2.2.0-M1,
-Activation API 2.2.0-M1 and Angus Activation 2.1.0-M1. The private build explicitly overrides `mail-api.version=2.1.5`,
-`activation-api.version=2.1.4`, `angus.activation.version=2.0.3` and `mail.spec.version=2.1`, retaining SJM's released API/Activation stack.
-These are local build overrides, not upstream release compatibility promises. The merged source also contains other Angus changes, including clearing stale server extensions before EHLO and after STARTTLS. Source-specific characterization keeps those semantics separate from the released baseline. The runner performs the equivalent of:
+Run the full reactor on JDK 17 or newer with:
 
 ```powershell
-mvn "-Dmaven.repo.local=<private cache>" -pl providers/angus-mail -am clean install `
-    "-Dmail-api.version=2.1.5" "-Dactivation-api.version=2.1.4" `
-    "-Dangus.activation.version=2.0.3" "-Dmail.spec.version=2.1" `
-    "-DskipTests=true" "-Dmaven.javadoc.skip=true"
+mvn -Pangus-snapshot-development,publish-cli clean verify
 ```
 
-This upstream packaging step compiles test sources but skips executing upstream tests and generating upstream Javadocs. It does not establish
-SJM behavior. The aggregate Angus provider extracts dependency source JARs, so always rebuild with `-am clean install`; a provider-only build
-can silently incorporate stale core sources. The runner rejects edits or added source files in a reused export, records exact provenance and
-artifact hashes under the private cache's `.sjm-merged-angus` directory, and checks those hashes on `-ReuseBuild`.
+For the JDK 11 library gate, use the library command from [Build](#build) with `-Pangus-snapshot-development`.
+Surefire receives `sjm.test.authenticatedSocksRoute=direct` in this profile and `bridge` in the ordinary lane, so an unexpected route fails
+explicitly. Run released-Angus controls without this profile. Keep narrow checks at the `test` phase, or explicitly skip configuration-contract
+aggregation for a deliberately partial `verify` run as described below. Do not run concurrent writers against a shared cache or reactor output directory.
 
-Run focused SJM tests against that cache without rebuilding Angus each time:
-
-```powershell
-.\scripts\Use-MergedAngus.ps1 @angusLane -ReuseBuild -MavenArguments @(
-    '-pl', 'modules/simple-java-mail', '-am', 'test',
-    '-Dtest=AuthenticatedSocksDirectRoutingTest,AuthenticatedSocksEstablishedAbortTest,AuthenticatedSocksCapacityTest',
-    '-Dsurefire.failIfNoSpecifiedTests=false'
-)
-```
-
-The runner enables the development profile and `license.skip=true`, and retains command output in the work directory. Its default invocation
-only prepares Angus. It rejects the normal user Maven cache and publishing commands. The profile requires the pinned build's private-cache
-provenance marker; prefer the runner so artifact hashes are checked too. Because upstream POM metadata retains its prerelease defaults,
-the profile explicitly exempts only the three intentionally pinned API/Activation dependencies from upper-bound enforcement and only the
-Angus Mail dependency from the release-dependency rule. Other convergence and dependency checks remain enabled.
-
-Surefire receives `sjm.test.authenticatedSocksRoute=direct` in this profile and `bridge` in the ordinary lane, allowing route regressions to
-fail explicitly. Run the ordinary released-Angus controls with the same private cache and without this profile. Keep narrow checks at the
-`test` phase, or explicitly skip configuration-contract aggregation for a deliberately partial `verify` run as described below.
-For the required JDK 11 library and JDK 17 full-reactor gates, pass the corresponding commands from [Build](#build) through `-MavenArguments`
-and select that JDK with `-JavaHome`. Do not run concurrent writers against a shared cache or reactor output directory.
+The development profile selects Mail API 2.2.0-M1, Activation API 2.2.0-M1 and Angus Activation 2.1.0-M1, matching the published snapshot's
+dependency declarations and OSGi package requirements. These choices apply only to this profile. Upper-bound and convergence checks remain
+enabled, with timestamped versions compared consistently; only Angus Mail is exempt from the release-dependency rule. This is an experimental
+integration lane, not a production compatibility promise for prerelease dependencies. The snapshot also contains other Angus changes,
+including clearing stale server extensions before EHLO and after STARTTLS. The development characterization retains those semantics separately
+from the released baseline.
 
 The independent transport factory must return an open, unconnected, non-SSL socket. Keep TLS in an `SSLSocketFactory` slot so Angus can
 retain its TLS selection and trust callbacks. Legacy factory class settings may require an additional lazy `getDefault()` lookup to select
 physical creation separately from native TLS. A class getter that changes its factory or configuration on each call is therefore better
 expressed through an explicit transport factory. On the module path, application factory packages resolved by this adapter must export their
 public factory methods to `org.simplejavamail.mailprovider.angus`; native Angus reflection can additionally require `org.eclipse.angus.mail`.
-Custom factories and supplied Sessions retain their existing total-deadline and physical-abort support boundaries. Authenticated destinations also retain foreground-only connection setup, including when a core pool size is configured.
+Custom factories and supplied Sessions retain their existing total-deadline and physical-abort support boundaries. Authenticated destinations
+also retain foreground-only connection setup, including when a core pool size is configured.
 
 When a compatible final Angus version is available, select it through `angus-mail.version`, update the ordinary lane's expected route to
 `direct`, and run the applicable acceptance gates with the ordinary dependency checks. The transport integration remains the same;
-this source-build profile is a temporary development lane.
+this snapshot profile is a temporary development lane.
 
 ### Coverage
 

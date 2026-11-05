@@ -47,7 +47,7 @@ The upstream links pin published SMTP Connection Pool **4.4.0**, Clustered Objec
 
 The compatibility path for authenticated SOCKS uses an operation-owned local bridge. Background replenishment is therefore disabled for that destination, even while some operation has the bridge running: that operation could finish before the allocator has connected. Foreground acquisition starts the bridge before claiming, and healthy pooled connections remain reusable. Anonymous SOCKS and direct SMTP keep normal background allocation, subject to recovery backoff. Logging-only and CustomMailer modes start no background SMTP connections.
 
-The [merged-Angus development route](../adr/0042-direct-authenticated-socks-sockets.md) owns an upstream socket directly and needs no bridge lifetime. It still retains foreground-only setup for authenticated destinations, so adopting the transport hook does not add pre-send network allocation to Mailer construction. Existing custom-factory, supplied-Session, shutdown and recovery boundaries still apply.
+The [Angus snapshot development route](../adr/0042-direct-authenticated-socks-sockets.md) owns an upstream socket directly and needs no bridge lifetime. It still retains foreground-only setup for authenticated destinations, so adopting the transport hook does not add pre-send network allocation to Mailer construction. Existing custom-factory, supplied-Session, shutdown and recovery boundaries still apply.
 
 ## Session ownership before registration
 
