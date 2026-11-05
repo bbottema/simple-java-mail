@@ -16,6 +16,7 @@ import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 /**
  * Gives the Mailer access to the optional batch module's connection pools without depending on its implementation classes.
@@ -56,6 +57,16 @@ public interface BatchModule {
 	 */
 	void registerToCluster(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey, @NotNull Session session,
 			@NotNull SendingAllowance sendingAllowance, @NotNull PoolConnectionObserver observer);
+
+	/**
+	 * Registers the Mailer's completed authentication choice with this Session's pool. A null provider selects ordinary
+	 * Jakarta Mail authentication; legacy pool credential properties cannot replace that choice. A supplied provider is
+	 * borrowed and invoked only when a physical connection needs an OAuth2 token, including reconnection or eager allocation.
+	 * Registration does not copy the choice into Session properties or close an application-owned provider.
+	 */
+	void registerToCluster(@NotNull OperationalConfig operationalConfig, @NotNull UUID clusterKey, @NotNull Session session,
+			@NotNull SendingAllowance sendingAllowance, @NotNull PoolConnectionObserver observer,
+			@Nullable Supplier<String> oauth2AccessTokenProvider);
 
 	/**
 	 * @param stickySession Indicates whether transport should be from this specific Session, or any session instance from the cluster.

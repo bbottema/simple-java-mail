@@ -225,7 +225,7 @@ class MailerSessionOwnershipTest {
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			final BatchModule batch = mock(BatchModule.class);
 			modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
-			doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any());
+			doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
 			when(batch.shutdownConnectionPools(session)).thenReturn(CompletableFuture.completedFuture(null));
 			assertThatThrownBy(() -> builder(session, "failed").buildMailer()).isSameAs(failure);
 		}
@@ -242,7 +242,7 @@ class MailerSessionOwnershipTest {
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			final BatchModule batch = mock(BatchModule.class);
 			modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
-			doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any());
+			doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
 			when(batch.shutdownConnectionPools(session)).thenReturn(CompletableFuture.failedFuture(cleanup));
 			assertThatThrownBy(() -> builder(session, "failed").buildMailer()).isSameAs(failure);
 			assertThat(failure.getSuppressed()).hasSize(1);

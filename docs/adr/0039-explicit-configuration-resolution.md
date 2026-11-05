@@ -200,6 +200,25 @@ change authentication mechanisms or TLS policy, or add a public API or setting. 
 [ADR 0015](0015-execution-views-and-transport-pooling.md) and effective choices in [ADR 0038](0038-connection-configuration-conflicts.md).
 [#958](https://github.com/bbottema/simple-java-mail/issues/958) tracks the correction of published 9.3.9 behavior for 10.0.0; #692 introduced providers.
 
+### Current OAuth credentials on a pool registration (accepted 5 November 2026)
+
+A successfully closed Mailer does not leave another credential authority for its replacement. Select the current fixed token,
+callback or ordinary authentication using the same completed configuration, String/default visibility, direct-object lookup,
+validation and locks as the direct connection path. Pass the lazy choice through the core-owned optional-module boundary;
+the batch adapter supplies it explicitly to the selected pool registration under ADR 0015. Core/main do not depend on optional
+pool implementation types.
+
+Do not copy credentials into legacy pool OAuth properties. Preserve application-owned entries, opaque values and property
+defaults without deleting or normalizing them. A new explicit registration uses only its selected supplier or ordinary Session
+authentication, so a stale alias from an older registration cannot revive a removed callback or override a fixed token. This
+supersedes the bridge-copy mechanism described by #938 above, while preserving its String visibility and ownership decisions.
+
+Fixed tokens may use a constant supplier. Preserve callback laziness at physical connection/reconnection, conflict and missing
+credential errors, original causes and no fallback after supplier failure. Standalone batch integration retains its documented
+inputs through the same controlled handoff. No application-facing SJM method, configuration key or CLI option is added.
+[#967](https://github.com/bbottema/simple-java-mail/issues/967) tracks the correction of published 9.3.9 behavior for unreleased
+10.0.0; the compatible supporting registration API belongs to [SMTP Connection Pool #39](https://github.com/simple-java-mail/smtp-connection-pool/issues/39).
+
 ### CLI fingerprints follow default selection (accepted 1 November 2026)
 
 The CLI's reuse identity must respect the same effective Email-default selection as Mailer construction. When an explicit replacement or

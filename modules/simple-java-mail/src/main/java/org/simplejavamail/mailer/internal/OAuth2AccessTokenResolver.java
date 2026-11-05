@@ -52,21 +52,31 @@ public final class OAuth2AccessTokenResolver {
 
 	@Nullable
 	public static String resolveAccessToken(@NotNull Session session) {
+		final Supplier<String> provider = captureAccessTokenProvider(session);
+		return provider == null ? null : provider.get();
+	}
+
+	/** Captures the current credential source without obtaining a token or changing caller-owned property storage. */
+	@Nullable
+	static Supplier<String> captureAccessTokenProvider(@NotNull Session session) {
 		final Object provider = session.getProperties().get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final String fixedToken = session.getProperties().getProperty(OAUTH2_TOKEN_PROPERTY);
 		if (provider != null && fixedToken != null) {
 			throw new MailerException(MailerException.CONFLICTING_OAUTH2_CREDENTIALS);
 		}
 		if (provider == null) {
-			return fixedToken;
+			return fixedToken == null ? null : () -> fixedToken;
 		}
 		if (!(provider instanceof Supplier)) {
 			throw new MailerException(MailerException.INVALID_OAUTH2_TOKEN_PROVIDER);
 		}
+		return () -> resolveProvidedToken((Supplier<?>) provider);
+	}
 
+	private static String resolveProvidedToken(final Supplier<?> provider) {
 		final Object providedToken;
 		try {
-			providedToken = ((Supplier<?>) provider).get();
+			providedToken = provider.get();
 		} catch (RuntimeException e) {
 			throw new MailerException(MailerException.OAUTH2_TOKEN_PROVIDER_FAILED, e);
 		}

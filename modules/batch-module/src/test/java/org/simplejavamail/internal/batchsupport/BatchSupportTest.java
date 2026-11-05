@@ -7,6 +7,7 @@ import org.bbottema.clusteredobjectpool.core.ClusterConfig;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
+import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -155,7 +156,7 @@ class BatchSupportTest {
 	}
 
 	@Test
-	void acquireTransportShouldBridgeAndResolveOAuth2TokenProvider() throws Exception {
+	void acquireTransportRetainsItsOAuth2TokenProviderWithoutCopyingAnAlias() throws Exception {
 		BatchSupport batchSupport = new BatchSupport();
 		UUID cluster = UUID.randomUUID();
 		Session session = mock(Session.class);
@@ -172,12 +173,41 @@ class BatchSupportTest {
 			batchSupport.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN), cluster, session, mock(SendingAllowance.class));
 			LifecycleDelegatingTransport pooledTransport = batchSupport.acquireTransport(cluster, session, true, null);
 
-			assertThat(properties.get(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
+			assertThat(properties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
+			assertThat(properties).doesNotContainKey(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY);
 			assertThat(calls).hasValue(1);
 			verify(transport).connect(null, "token-1");
 			pooledTransport.signalTransportUsed();
 		} finally {
 			batchSupport.shutdownConnectionPools(session).get();
+		}
+	}
+
+	@Test
+	void explicitOrdinaryAuthenticationDoesNotReadCanonicalOrLegacyTokenProperties() throws Exception {
+		final BatchSupport batch = new BatchSupport();
+		final UUID cluster = UUID.randomUUID();
+		final Session session = mock(Session.class);
+		final Transport transport = mock(Transport.class);
+		final Properties properties = new Properties();
+		final AtomicInteger calls = new AtomicInteger();
+		final Supplier<String> stale = () -> { calls.incrementAndGet(); throw new IllegalStateException("Retired callback"); };
+		properties.put(OAUTH2_TOKEN_PROVIDER_PROPERTY, stale);
+		properties.put(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY, stale);
+		properties.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY, "unused-legacy-token");
+		when(session.getProperties()).thenReturn(properties);
+		when(session.getTransport()).thenReturn(transport);
+		final Map<Object, Object> original = new HashMap<>(properties);
+		try {
+			batch.registerToCluster(operationalConfig(0, 1, 1000, 5000, LoadBalancingStrategy.ROUND_ROBIN),
+					cluster, session, mock(SendingAllowance.class), PoolConnectionObserver.NONE, null);
+			final LifecycleDelegatingTransport borrowed = batch.acquireTransport(cluster, session, true, null);
+			verify(transport).connect();
+			borrowed.signalTransportUsed();
+			assertThat(calls).hasValue(0);
+			assertThat(properties).containsAllEntriesOf(original);
+		} finally {
+			batch.shutdownConnectionPools(session).get();
 		}
 	}
 

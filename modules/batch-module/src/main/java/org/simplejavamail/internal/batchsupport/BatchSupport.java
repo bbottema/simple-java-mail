@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
@@ -63,10 +64,19 @@ public class BatchSupport implements BatchModule {
 	@Override
 	public synchronized void registerToCluster(final OperationalConfig operationalConfig, final UUID clusterKey, final Session session,
 			final SendingAllowance sendingAllowance, final PoolConnectionObserver observer) {
+		registerToCluster(operationalConfig, clusterKey, session, sendingAllowance, observer,
+				StandaloneOAuth2TokenSource.capture(session));
+	}
+
+	/** @see BatchModule#registerToCluster(OperationalConfig, UUID, Session, SendingAllowance, PoolConnectionObserver, Supplier) */
+	@Override
+	public synchronized void registerToCluster(final OperationalConfig operationalConfig, final UUID clusterKey, final Session session,
+			final SendingAllowance sendingAllowance, final PoolConnectionObserver observer,
+			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
 		requireCompatibleAllowance(clusterKey, session, sendingAllowance);
 		final PoolSettings settings = PoolSettings.from(operationalConfig, clusterKey);
 		ensureEngineInitialized(settings);
-		if (requireNonNull(batchTransportEngine).register(clusterKey, session, settings, observer)) {
+		if (requireNonNull(batchTransportEngine).register(clusterKey, session, settings, observer, oauth2AccessTokenProvider)) {
 			LOGGER.warn("SMTP Connection pool cluster {} is already configured with pool defaults from the first Mailer instance in that cluster; "
 					+ "ignoring later pool settings",
 					clusterKey);

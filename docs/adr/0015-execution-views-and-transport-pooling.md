@@ -23,6 +23,33 @@ Keep simple batches lazy, sequential and first-failure-stopping. Their return va
 
 Route SMTP transport acquisition through the optional batch module when it is present; otherwise use a directly owned Session transport. The batch bridge owns pool registration, acquisition and shutdown, while the Mailer owns asynchronous scheduling. Reusable transports are exclusive leases, released after success and invalidated after failure. A batch or open-connection callback can keep one transport for its own scope; it does not expose a transport for unrestricted concurrent use.
 
+### Authentication belongs to a pool registration (accepted 5 November 2026)
+
+The SMTP pool manager's existing `registerResourcePool` API accepts an explicit nullable OAuth token supplier alongside a
+registration's ordinary defaults or explicit expiration/core/max choices. A supplier selects OAuth; a null supplier selects
+ordinary Jakarta Mail Session authentication. These explicit overloads do not consult legacy pool OAuth alias properties.
+Existing registration overloads and implicit claims retain their property-based compatibility behavior, so ordinary callers
+need no new authentication object or registration step. The constructors still receive pool settings rather than a first Session.
+
+Bind the choice to the exact `(clusterKey, Session)` pool registration and its allocator lifetime. Preserve the Session's
+properties, ordinary duplicate-registration rules and independent bindings for separate clusters. A failed registration must
+not change an existing pool's credentials, and a retiring allocator cannot read a replacement registration's supplier.
+Actual resource retirement releases manager-owned registration/callback state without closing an application-owned callback.
+A caller deliberately retaining an old selection, lease or resource can retain the old registration and its callback by ordinary
+reachability; retirement prevents further pool claims through stale selections and does not promise heap erasure through retained handles. Register the choice
+before the first claim; this adds no live account rotation or reauthentication of connected transports.
+
+Resolve tokens at physical connection establishment or reconnection, including configured eager allocation, while connected
+reuse retains the same authentication. Supplier failure and null/blank results fail preparation without credential fallback.
+Keep provider-owned username/TLS resolution, original failure causes, cancellation and lease/disposal ownership. Do not invoke
+application callbacks under pool bookkeeping locks or expose tokens in diagnostics.
+
+SJM passes its current optional token source through its core-owned batch boundary and uses the explicit overload even for
+ordinary authentication. It no longer copies credentials into extra Session properties. Its application-facing APIs and
+standalone batch ownership stay unchanged; ADR 0039 owns current credential selection. [SMTP Connection Pool #39](https://github.com/simple-java-mail/smtp-connection-pool/issues/39)
+owns the additive supporting API, and [SJM #967](https://github.com/bbottema/simple-java-mail/issues/967) tracks integration for
+unreleased 10.0.0. Acceptance records the contract; delivery is tracked separately in those issues.
+
 Ordinary simple batches and `withOpenConnection` callbacks retain their dedicated, non-pooled connection behavior. Opting into [connection failover](0029-smtp-submission-failover.md) changes acquisition for those scopes: they follow the selected route and retain a lease when the batch module is available, or a direct connection otherwise. That lease occupies pool capacity until the scope releases it; release need not close the socket. A simple batch can replace its retained connection between untouched emails, while an open-connection callback stays pinned and runs once. Application work and sending-limit waits inside these scopes therefore keep the selected lease occupied. Waiting for another send that needs the same exhausted pool cannot make progress until that lease is released.
 
 The standalone [BatchTransportExecutor](../../modules/batch-module/src/main/java/org/simplejavamail/batch/BatchTransportExecutor.java), delivered in [#698](https://github.com/bbottema/simple-java-mail/issues/698), exposes the same lease-engine implementation to applications using Jakarta Mail directly. Each facade owns its engine; it does not add another physical pool around the upstream SMTP pool. It registers caller-owned Sessions, lends one connected Transport only for the callback, releases it on a normal return, and invalidates it on an escaping exception or error. The raw lease stays private. The facade closes its own executor, while caller-supplied executors remain caller-owned and must keep making progress while graceful shutdown drains accepted work. Forced shutdown cannot forcibly stop arbitrary callback code. This ownership model avoids making standalone users depend on Mailer-specific configuration or observers.

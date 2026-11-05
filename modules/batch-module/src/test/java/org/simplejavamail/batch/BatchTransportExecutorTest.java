@@ -9,11 +9,15 @@ import jakarta.mail.URLName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.TransportHandlingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -39,6 +43,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BatchTransportExecutorTest {
+
+	private enum AuthenticationSource {
+		SESSION(null), CANONICAL_FIXED("canonical-fixed"), CANONICAL_CALLBACK("canonical-callback"),
+		LEGACY_FIXED("legacy-fixed"), LEGACY_CALLBACK("legacy-callback"),
+		CANONICAL_FIXED_WITH_LEGACY_CALLBACK("legacy-callback"),
+		CANONICAL_CALLBACK_WITH_LEGACY_CALLBACK("canonical-callback");
+
+		private final String expectedToken;
+		AuthenticationSource(final String expectedToken) { this.expectedToken = expectedToken; }
+	}
 
 	@Test
 	void reusesConnectionAndExposesActuallySelectedSession() throws Exception {
@@ -235,7 +249,7 @@ class BatchTransportExecutorTest {
 	}
 
 	@Test
-	void bridgesFixedOAuth2TokenAtRegistration() throws Exception {
+	void bindsFixedOAuth2TokenAtRegistration() throws Exception {
 		TestSession testSession = testSession();
 		testSession.properties.setProperty(BatchTransportExecutor.OAUTH2_TOKEN_PROPERTY, "fixed-token");
 		testSession.properties.setProperty("mail.smtp.user", "fixed@example.com");
@@ -248,6 +262,45 @@ class BatchTransportExecutorTest {
 		} finally {
 			executor.close();
 		}
+	}
+
+	@ParameterizedTest
+	@EnumSource(AuthenticationSource.class)
+	void credentialSelectionKeepsCanonicalAndLegacyPrecedenceWithoutPropertyWrites(final AuthenticationSource source) throws Exception {
+		final TestSession testSession = testSession();
+		final AtomicInteger canonicalCalls = new AtomicInteger();
+		final AtomicInteger legacyCalls = new AtomicInteger();
+		final Supplier<String> canonical = () -> { canonicalCalls.incrementAndGet(); return "canonical-callback"; };
+		final Supplier<String> legacy = () -> { legacyCalls.incrementAndGet(); return "legacy-callback"; };
+		if (source == AuthenticationSource.CANONICAL_FIXED || source == AuthenticationSource.CANONICAL_FIXED_WITH_LEGACY_CALLBACK) {
+			testSession.properties.setProperty(BatchTransportExecutor.OAUTH2_TOKEN_PROPERTY, "canonical-fixed");
+		}
+		if (source == AuthenticationSource.CANONICAL_CALLBACK || source == AuthenticationSource.CANONICAL_CALLBACK_WITH_LEGACY_CALLBACK) {
+			testSession.properties.put(BatchTransportExecutor.OAUTH2_TOKEN_PROVIDER_PROPERTY, canonical);
+		}
+		if (source == AuthenticationSource.LEGACY_FIXED) {
+			testSession.properties.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY, "legacy-fixed");
+		}
+		if (source == AuthenticationSource.LEGACY_CALLBACK || source == AuthenticationSource.CANONICAL_FIXED_WITH_LEGACY_CALLBACK
+				|| source == AuthenticationSource.CANONICAL_CALLBACK_WITH_LEGACY_CALLBACK) {
+			testSession.properties.put(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY, legacy);
+		}
+		final Map<Object, Object> original = new LinkedHashMap<>(testSession.properties);
+		try (BatchTransportExecutor<String> executor = executorBuilder().build()) {
+			executor.registerSession("cluster", testSession.session);
+			assertThat(canonicalCalls).hasValue(0);
+			assertThat(legacyCalls).hasValue(0);
+			assertThat(testSession.properties).containsExactlyInAnyOrderEntriesOf(original);
+			executor.execute("cluster", (session, transport) -> null);
+			if (source.expectedToken == null) {
+				verify(testSession.allocatedTransports.get(0)).connect();
+			} else {
+				verify(testSession.allocatedTransports.get(0)).connect(null, source.expectedToken);
+			}
+			assertThat(canonicalCalls).hasValue("canonical-callback".equals(source.expectedToken) ? 1 : 0);
+			assertThat(legacyCalls).hasValue("legacy-callback".equals(source.expectedToken) ? 1 : 0);
+		}
+		assertThat(testSession.properties).containsExactlyInAnyOrderEntriesOf(original);
 	}
 
 	@Test

@@ -19,7 +19,6 @@ import org.simplejavamail.api.internal.batchsupport.PoolConnectionSetupException
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionException;
-import org.simplejavamail.smtpconnectionpool.SmtpConnectionPool;
 import org.simplejavamail.smtpconnectionpool.SmtpConnectionPoolClustered;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportLease;
 import org.simplejavamail.smtpconnectionpool.SmtpTransportSelection;
@@ -37,10 +36,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
-import static org.simplejavamail.batch.BatchTransportExecutor.OAUTH2_TOKEN_PROPERTY;
-import static org.simplejavamail.batch.BatchTransportExecutor.OAUTH2_TOKEN_PROVIDER_PROPERTY;
 
 /** Shared transport-lease engine for the public facade and the reflection-loaded Mailer adapter. */
 public final class BatchTransportEngine<K> {
@@ -72,7 +70,8 @@ public final class BatchTransportEngine<K> {
 	public boolean register(final K clusterKey, final Session session,
 			final BatchTransportPoolConfiguration configuration) {
 		rejectProviderOwnedPool(requireNonNull(session, "session"));
-		return registerValidated(clusterKey, session, PoolSettings.from(requireNonNull(configuration, "configuration")));
+		return registerValidated(clusterKey, session, PoolSettings.from(requireNonNull(configuration, "configuration")),
+				StandaloneOAuth2TokenSource.capture(session));
 	}
 
 	/** @return true when an earlier registration fixed different settings for this cluster */
@@ -81,15 +80,20 @@ public final class BatchTransportEngine<K> {
 	}
 
 	boolean register(final K clusterKey, final Session session, final PoolSettings settings, final PoolConnectionObserver observer) {
-		rejectDeclaredProviderOwnedPool(requireNonNull(session, "session"));
-		connectionObserverBySession.putIfAbsent(session, requireNonNull(observer, "observer"));
-		return registerValidated(clusterKey, session, settings);
+		return register(clusterKey, session, settings, observer, StandaloneOAuth2TokenSource.capture(session));
 	}
 
-	private boolean registerValidated(final K clusterKey, final Session session, final PoolSettings settings) {
+	boolean register(final K clusterKey, final Session session, final PoolSettings settings, final PoolConnectionObserver observer,
+			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
+		rejectDeclaredProviderOwnedPool(requireNonNull(session, "session"));
+		connectionObserverBySession.putIfAbsent(session, requireNonNull(observer, "observer"));
+		return registerValidated(clusterKey, session, settings, oauth2AccessTokenProvider);
+	}
+
+	private boolean registerValidated(final K clusterKey, final Session session, final PoolSettings settings,
+			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
 		requireNonNull(clusterKey, "clusterKey");
 		requireNonNull(settings, "settings");
-		bridgeOAuth2Properties(session);
 
 		synchronized (lifecycleMonitor) {
 			ensureClaimsOpen("register a Session");
@@ -109,7 +113,7 @@ public final class BatchTransportEngine<K> {
 			}
 			final ResourceClusterAndPoolKey<K, Session> resourceKey = new ResourceClusterAndPoolKey<>(clusterKey, session);
 			if (!smtpConnectionPool.isPoolRegistered(resourceKey)) {
-				smtpConnectionPool.registerResourcePool(resourceKey);
+				smtpConnectionPool.registerResourcePool(resourceKey, oauth2AccessTokenProvider);
 			}
 			sessions.add(session);
 			return existingSettings != null && !existingSettings.equals(settings);
@@ -410,16 +414,6 @@ public final class BatchTransportEngine<K> {
 	private void ensureClaimsOpen(final String operation) {
 		if (!claimsOpen) {
 			throw new BatchTransportException("Cannot " + operation + " after shutdown has begun");
-		}
-	}
-
-	private static void bridgeOAuth2Properties(final Session session) {
-		final Properties properties = session.getProperties();
-		if (properties.getProperty(OAUTH2_TOKEN_PROPERTY) != null) {
-			properties.setProperty(SmtpConnectionPool.OAUTH2_TOKEN_PROPERTY, properties.getProperty(OAUTH2_TOKEN_PROPERTY));
-		}
-		if (properties.containsKey(OAUTH2_TOKEN_PROVIDER_PROPERTY)) {
-			properties.put(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY, properties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY));
 		}
 	}
 

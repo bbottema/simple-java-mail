@@ -10,6 +10,13 @@ An ordinary send follows `MailConnectionRoute` → `RoutedConnectionScope.acquir
 
 The [BatchModule contract](../../modules/core-module/src/main/java/org/simplejavamail/internal/modules/BatchModule.java) handles registration, acquisition, and pool closure; it does not schedule async work. [BatchSupport.registerToCluster](../../modules/batch-module/src/main/java/org/simplejavamail/internal/batchsupport/BatchSupport.java) registers the Session with `SmtpConnectionPoolClustered`, overlaying the matching immutable `simplejavamail.defaults.connectionpool.clusters.*` defaults on the general pool settings. Without the optional module, `AcquiredMailTransport.acquireDirect()` owns the `Session.getTransport()` connection. [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) explains that separation and the first-configuration boundary for a shared cluster key.
 
+The Mailer also passes its completed optional OAuth token source through that core-owned boundary. Batch registers the supplier, or explicit
+ordinary Session authentication, on the exact selected pool registration rather than copying credentials into Session properties. The allocator
+captures that generation's choice: fresh connections/reconnections resolve its supplier, connected reuse does not, and an old selection cannot
+borrow a replacement registration or invoke its credentials. Supplier failure remains outside physical connection-failure evidence. Preserve
+the Session's property entries/defaults and callback ownership. The standalone facade retains its existing canonical/legacy input precedence;
+[ADR 0039](../adr/0039-explicit-configuration-resolution.md#current-oauth-credentials-on-a-pool-registration-accepted-5-november-2026) records the distinction.
+
 After the last Session leaves a cluster, its shutdown future also waits for disposal before the bridge forgets the empty cluster and its settings.
 The removal check shares the engine's registration monitor: a new participant arriving during disposal keeps the existing cluster alive. Upstream
 removal additionally fences a registration that had already captured the retired cluster, so it cannot initialize an orphan pool. Captured selections

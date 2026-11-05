@@ -4,6 +4,11 @@ For project setup and contributor or maintainer workflows, start with [Developin
 
 These records explain API and architecture decisions that should survive individual features and refactors. Read the relevant accepted decision before changing the public API. Each record links its implementation and evidence; the [topic index below](#find-documentation-by-topic) connects architectural decisions with their supporting guides and concurrency details.
 
+The accepted 5 November [registration-owned authentication decision](0015-execution-views-and-transport-pooling.md#authentication-belongs-to-a-pool-registration-accepted-5-november-2026)
+and [current credential selection](0039-explicit-configuration-resolution.md#current-oauth-credentials-on-a-pool-registration-accepted-5-november-2026)
+under [#967](https://github.com/bbottema/simple-java-mail/issues/967) replace copied pool OAuth aliases with an explicit supplier or
+ordinary Session authentication on the selected registration. Existing application APIs and legacy direct-pool entry points retain their contracts.
+
 The 5 November [protocol-owned OAuth username clarification](0038-connection-configuration-conflicts.md#protocol-owned-oauth-usernames-accepted-5-november-2026)
 under [#966](https://github.com/bbottema/simple-java-mail/issues/966) preserves the selected provider's normal username resolution for pooled
 connections. Inactive protocol settings remain intact, and the compatible correction belongs to SMTP Connection Pool #38.

@@ -91,8 +91,13 @@ public final class BatchTransportExecutor<K> implements AutoCloseable {
 	 * Registers a Session under a cluster key. Registration is idempotent for the same key and Session identity.
 	 * <p>
 	 * The Session remains caller-owned. Its effective default transport must not be {@code smtppool}, because the batch
-	 * facade itself already owns the one physical pool. OAuth2 token properties are bridged at registration so whichever
-	 * Session the cluster later selects also supplies the credentials used to connect.
+	 * facade itself already owns the one physical pool. Registration captures the effective OAuth2 source without writing
+	 * credential aliases into this Session. The selected registration supplies its token when opening or reconnecting.
+	 * <p>
+	 * The existing property selection is retained: a canonical callback replaces a legacy pool callback; an otherwise
+	 * present legacy callback still takes precedence over a fixed token. Without a callback, a canonical fixed String token
+	 * precedes the legacy pool token. Ordinary Session authentication applies when neither source is present. The caller
+	 * keeps ownership of the Session, its property storage and any callback; configuration should remain stable while registered.
 	 *
 	 * @param clusterKey cluster to register with
 	 * @param session caller-owned Jakarta Mail Session
