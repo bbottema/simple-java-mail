@@ -140,6 +140,8 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # #966: retire the completed pooled OAuth work packet; retained evidence stays outside these targets.
+    'docs/plans/pooled-oauth-protocol-20261105.md'
     # Retire these #961 specifications after delivery; keep email-inspection-roadmap-20261104.md durable.
     'docs/plans/email-source-inspection-20261103.md'
     'docs/plans/email-source-content-contract-20261104.md'
@@ -212,6 +214,27 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # #966: retire registered worktrees normally first. Never target the parent or its retained evidence.
+    @{
+        Path = 'C:\workstation\sjm-oauth-protocol-20261105\pool'
+        Parent = 'C:\workstation\sjm-oauth-protocol-20261105'
+    }
+    @{
+        Path = 'C:\workstation\sjm-oauth-protocol-20261105\sjm'
+        Parent = 'C:\workstation\sjm-oauth-protocol-20261105'
+    }
+    @{
+        Path = 'C:\workstation\sjm-oauth-protocol-20261105\website'
+        Parent = 'C:\workstation\sjm-oauth-protocol-20261105'
+    }
+    @{
+        Path = 'C:\workstation\sjm-oauth-protocol-20261105\rehearsal-repository'
+        Parent = 'C:\workstation\sjm-oauth-protocol-20261105'
+    }
+    @{
+        Path = 'C:\workstation\sjm-oauth-protocol-20261105\tools'
+        Parent = 'C:\workstation\sjm-oauth-protocol-20261105'
+    }
     @{
         Path = 'C:\workstation\sjm-socks-final-20261029'
         Parent = 'C:\workstation'
