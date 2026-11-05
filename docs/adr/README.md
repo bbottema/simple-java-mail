@@ -17,6 +17,10 @@ The 5 November [independent-attachment clarification](0008-minimal-mime-structur
 under [#704](https://github.com/bbottema/simple-java-mail/issues/704) keeps supported child processing available after a detached S/MIME signature is opened.
 Original resources, parent signature facts and source evidence retain their owners; ADRs 0035 and 0040 keep attachment interpretation separate from content promotion.
 
+The 5 November [explicit forward-removal clarification](0002-email-defaults-and-overrides.md#explicitly-clearing-a-forwarded-message-accepted-5-november-2026)
+under [#968](https://github.com/bbottema/simple-java-mail/issues/968) keeps copied forwards intact by default and adds a local clear operation.
+Borrowed content, other message choices and ordinary template fallback retain their existing ownership.
+
 The 5 November [protocol-owned OAuth username clarification](0038-connection-configuration-conflicts.md#protocol-owned-oauth-usernames-accepted-5-november-2026)
 under [#966](https://github.com/bbottema/simple-java-mail/issues/966) preserves the selected provider's normal username resolution for pooled
 connections. Inactive protocol settings remain intact, and the compatible correction belongs to SMTP Connection Pool #38.
