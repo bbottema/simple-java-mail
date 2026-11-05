@@ -46,7 +46,8 @@ import static org.simplejavamail.mailer.internal.EmailGovernanceImpl.NO_GOVERNAN
  * For Outlook conversion, add <em>org.simplejavamail:outlook-module</em> using the same version as Simple Java Mail.
  * A combined MSG-to-MIME or MSG-to-EML operation throws a recognized input acquisition/format failure instead of exporting a blank inspection Email.
  * MSG-to-Email remains best-effort inspection; an application may inspect that value and explicitly choose to export it later.
- * Static MSG stream overloads close their supplied input, including on failure; fluent stream conversion keeps its borrowed-input contract.
+ * Static MSG parsing closes its supplied input once it takes ownership, including acquisition/format failure;
+ * fluent stream conversion keeps its borrowed-input contract.
  */
 @SuppressWarnings("WeakerAccess")
 @UtilityClass
