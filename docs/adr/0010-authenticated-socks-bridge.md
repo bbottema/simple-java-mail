@@ -1,6 +1,6 @@
 # ADR 0010: Adapt authenticated SOCKS through a Mailer-owned loopback bridge
 
-The accepted [ADR 0042](0042-direct-authenticated-socks-sockets.md) adds direct routing when the selected Angus provider supports an independent transport socket. This bridge and its port configuration remain the supported route for the released dependency baseline. Direct development integration is tracked separately under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
+The accepted [ADR 0042](0042-direct-authenticated-socks-sockets.md) adds direct routing when the selected Angus provider supports an independent transport socket. This bridge and its port configuration remain the supported route for the interim released dependency baseline. The maintainer accepted their retirement together with adoption of the compatible final Angus baseline on 2026-11-05. Direct development integration and that release checkpoint are tracked under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
 
 - Status: Accepted (retrospective record of implemented design)
 - Decision recorded: 2026-09-16; this is not the original decision date

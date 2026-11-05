@@ -247,7 +247,8 @@ public class FailoverPolicy implements Serializable {
         }
 
         /**
-         * Allows a separately configured destination to take over when the primary rejects its credentials.
+         * Allows a separately configured destination to take over when the SMTP server or a direct SOCKS proxy rejects its credentials.
+         * A known proxy rejection requires this permission just like SMTP authentication; malformed replies do not grant it.
          * Defaults to {@link MailerGenericBuilder#DEFAULT_FAILOVER_ON_AUTHENTICATION_FAILURE disabled}.
          */
         @NotNull

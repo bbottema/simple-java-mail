@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
+import jakarta.mail.AuthenticationFailedException;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
@@ -92,7 +93,8 @@ final class SocksAuthenticationHelper {
 				throw new SocksException("Unsupported SOCKS username/password authentication version: " + (authenticationResult[0] & 0xff));
 			}
 			if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
-				throw new SocksException("Username or password error");
+				throw new SocksException("Username or password error",
+                        new AuthenticationFailedException("SOCKS proxy rejected username/password authentication"));
 			}
 		} catch (IOException | SocksException failure) {
 			try {

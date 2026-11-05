@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.authenticatedsockssupport.socks5client;
 
+import jakarta.mail.AuthenticationFailedException;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 
@@ -41,7 +42,7 @@ class SocksAuthenticationReplyTest {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 1}, true);
 
         assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
-                .isInstanceOf(SocksException.class);
+                .isInstanceOf(SocksException.class).hasCauseInstanceOf(AuthenticationFailedException.class);
         assertThat(socket.closed).isTrue();
     }
 
@@ -50,7 +51,7 @@ class SocksAuthenticationReplyTest {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 1}, false);
 
         assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
-                .isInstanceOf(SocksException.class);
+                .isInstanceOf(SocksException.class).hasCauseInstanceOf(AuthenticationFailedException.class);
         assertThat(socket.closed).isTrue();
     }
 
@@ -59,7 +60,7 @@ class SocksAuthenticationReplyTest {
         final ReplySocket socket = new ReplySocket(new byte[] {5, 0}, false);
 
         assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
-                .isInstanceOf(SocksException.class);
+                .isInstanceOf(SocksException.class).hasNoCause();
         assertThat(socket.closed).isTrue();
     }
 
@@ -89,6 +90,7 @@ class SocksAuthenticationReplyTest {
         assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
                 .isInstanceOf(SocksException.class)
                 .hasMessage("Username or password error")
+                .hasCauseInstanceOf(AuthenticationFailedException.class)
                 .satisfies(failure -> assertThat(failure.getSuppressed()).containsExactly(cleanupFailure));
         assertThat(socket.closed).isTrue();
     }

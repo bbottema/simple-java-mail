@@ -139,6 +139,8 @@ Connection configuration is checked during `buildMailer()`. The default `Connect
 
 A [development lane using a published Angus snapshot](docs/DEVELOPMENT.md#angus-snapshot-development-lane) exercises direct authenticated SOCKS sockets while retaining the bridge on the released Angus baseline. The bridge-port configuration remains available; selecting a compatible final Angus dependency is a separate release step.
 
+On the direct route, a SOCKS proxy's credential rejection uses the same authentication-failure failover permission as an SMTP login rejection. It stops failover by default; explicitly enabling `withFailoverOnAuthenticationFailure(true)` permits another configured, eligible destination. Certificate-verification permission stays independent.
+
 Trusted-host lists with the same exact names are compatible even when ordered differently or repeated. Factory objects are compared by identity, and an untouched supplied Session keeps its omitted settings. Raw SOCKS host values can include a port; a separate raw port takes precedence over the embedded one.
 
 Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.

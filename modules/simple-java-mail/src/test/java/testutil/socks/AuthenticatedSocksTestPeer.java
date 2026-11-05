@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,6 +56,8 @@ public final class AuthenticatedSocksTestPeer implements AutoCloseable {
     private final SSLContext serverContext;
     private final boolean acceptCredentials;
     private final int connectReply;
+    private final int authenticationReplyVersion;
+    private final CyclicBarrier authenticationBarrier;
     private volatile boolean stopping;
 
     public AuthenticatedSocksTestPeer(final Protocol protocol) throws Exception {
@@ -66,9 +69,16 @@ public final class AuthenticatedSocksTestPeer implements AutoCloseable {
     }
 
     public AuthenticatedSocksTestPeer(final Protocol protocol, final boolean acceptCredentials, final int connectReply) throws Exception {
+        this(protocol, acceptCredentials, connectReply, 1, null);
+    }
+
+    public AuthenticatedSocksTestPeer(final Protocol protocol, final boolean acceptCredentials, final int connectReply,
+            final int authenticationReplyVersion, final CyclicBarrier authenticationBarrier) throws Exception {
         this.protocol = protocol;
         this.acceptCredentials = acceptCredentials;
         this.connectReply = connectReply;
+        this.authenticationReplyVersion = authenticationReplyVersion;
+        this.authenticationBarrier = authenticationBarrier;
         serverContext = context(true);
         listener = new ServerSocket(0, 256, InetAddress.getByName("127.0.0.1"));
         port = listener.getLocalPort();
@@ -151,8 +161,9 @@ public final class AuthenticatedSocksTestPeer implements AutoCloseable {
             assertThat(new String(input.readNBytes(input.readUnsignedByte()), UTF_8)).isEqualTo("proxy-user");
             assertThat(new String(input.readNBytes(input.readUnsignedByte()), UTF_8)).isEqualTo("proxy-secret");
             authenticationAttempts.incrementAndGet();
+            if (authenticationBarrier != null) { authenticationBarrier.await(10, SECONDS); }
             if (!acceptCredentials) {
-                output.write(new byte[] {1, 1}); output.flush();
+                output.write(new byte[] {(byte) authenticationReplyVersion, 1}); output.flush();
                 return;
             }
             authenticated.incrementAndGet();

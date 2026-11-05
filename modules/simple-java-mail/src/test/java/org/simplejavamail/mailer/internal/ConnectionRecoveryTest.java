@@ -1,18 +1,66 @@
 package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.AuthenticationFailedException;
+import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
+import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 
+import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.*;
 
 class ConnectionRecoveryTest {
+
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void proxyAuthenticationEvidenceSurvivesProviderWrappingAndEachCachedPolicy(final boolean nextException,
+            final boolean cleanupFailed) throws Exception {
+        final SocksException rejection = new SocksException("proxy rejected credentials",
+                new AuthenticationFailedException("SOCKS proxy rejected username/password authentication"));
+        if (cleanupFailed) { rejection.addSuppressed(new IOException("physical socket cleanup failed")); }
+        final SocketException socketFailure = new SocketException("outer connection symptom");
+        socketFailure.initCause(rejection);
+        final Exception providerFailure;
+        if (nextException) {
+            final MessagingException mailFailure = new MessagingException("provider could not connect");
+            mailFailure.setNextException(socketFailure);
+            providerFailure = mailFailure;
+        } else { providerFailure = new IOException("provider could not connect", socketFailure); }
+        final ConnectionSetupFailure classified = new ConnectionSetupFailure(providerFailure);
+
+        for (final boolean authentication : new boolean[] {false, true}) {
+            for (final boolean certificate : new boolean[] {false, true}) {
+                final FailoverPolicy policy = FailoverPolicy.builder().withFailoverOnAuthenticationFailure(authentication)
+                        .withFailoverOnCertificateVerificationFailure(certificate).build();
+                assertThat(classified.allowsFailover(policy)).as("auth=%s, certificate=%s, cleanupFailed=%s",
+                        authentication, certificate, cleanupFailed).isEqualTo(authentication && !cleanupFailed);
+            }
+        }
+
+        final ConnectionRecovery recovery = new ConnectionRecovery(() -> 0);
+        recovery.observeConnection().recordFailedConnection(classified);
+        final FailoverPolicy permitted = FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofHours(1))
+                .withFailoverOnAuthenticationFailure(true).build();
+        if (cleanupFailed) {
+            assertThatThrownBy(() -> recovery.openVisit(permitted)).isInstanceOf(MailerException.class);
+        } else {
+            try (ConnectionRecovery.ConnectionRecoveryVisit cached = recovery.openVisit(permitted)) {
+                assertThat(cached.shouldAttemptConnection).isFalse();
+                assertThat(cached.cachedFailure).isSameAs(classified);
+            }
+        }
+        final FailoverPolicy strict = FailoverPolicy.builder().withPrimaryRecheckInterval(Duration.ofHours(1))
+                .withFailoverOnCertificateVerificationFailure(true).build();
+        assertThatThrownBy(() -> recovery.openVisit(strict)).isInstanceOf(MailerException.class);
+    }
+
 	@ParameterizedTest
 	@CsvSource({"false,false", "false,true", "true,false", "true,true"})
 	void concurrentSuccessWinsOverFailureInEitherCompletionAndStartOrder(final boolean successFinishesFirst, final boolean successStartsFirst) {

@@ -193,6 +193,11 @@ use after a certificate-verification failure. Both are disabled by default. Enab
 `withFailoverOnAuthenticationFailure` and `withFailoverOnCertificateVerificationFailure`, with corresponding
 `simplejavamail.failover.onauthenticationfailure` and `simplejavamail.failover.oncertificateverificationfailure` properties.
 
+The maintainer accepted the same authentication permission for known SOCKS proxy credential rejection on 2026-11-02. The direct SOCKS
+connection preserves that rejection as typed authentication evidence through provider and pool wrappers. The existing setting remains
+disabled by default; permitting certificate-verification failover does not permit a proxy login rejection. Preserve this distinction in
+cached failures and apply each invoking policy independently. Invalid protocol replies are not evidence of rejected credentials.
+
 No permission means no fallback for that failure category, and permission to use a failover must never mean disabling its checks.
 
 The reason is operational predictability, not a claim that every authorized failover is insecure: switching relays can change latency,

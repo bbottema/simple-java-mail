@@ -1,6 +1,6 @@
 # ADR 0042: Use Angus transport sockets for authenticated SOCKS
 
-- Status: Accepted, 2026-10-30; retained-bridge clarification, 2026-11-03; published snapshot development input, 2026-11-05
+- Status: Accepted, 2026-10-30; retained-bridge clarification, 2026-11-03; published snapshot input and final-baseline bridge retirement, 2026-11-05
 - Target: Unreleased 10.0.0
 - Tracking: [#922](https://github.com/bbottema/simple-java-mail/issues/922)
 - Implementation status: In development on the dedicated branch; released dependency integration remains pending.
@@ -28,14 +28,19 @@ The Angus lifecycle adapter exposes this behavior through a core-internal config
 
 Resolve typed/raw declarations and locks under [ADR 0038](0038-connection-configuration-conflicts.md). Preserve original delegate identity when a managed decorator is compared with an application factory lock. Direct routing exposes the remote proxy endpoint; bridge routing retains its generated local endpoint. A dedicated probe receives fresh factory and socket state and does not inherit a send's cancellation ownership.
 
+Preserve an explicit SOCKS username/password rejection as authentication evidence on that exact direct connection. Apply the existing
+authentication-failure permission from [ADR 0029](0029-smtp-submission-failover.md), including when provider/pool wrappers or cached failures
+carry the evidence. Malformed replies do not acquire that permission, certificate permission remains independent, and failed cleanup still
+prevents another destination from starting. Do not infer authentication rejection from an exception message or shared bridge failure state.
+
 Provide an explicit development lane that resolves a pinned, timestamped Angus snapshot from its public Maven repository. The normal dependency remains the released baseline. Development build settings and their Mail/Activation API choices must be visible and reproducible; do not present snapshots as supported production dependencies. Local Angus source builds and their provenance markers are no longer required. A compatible released Angus artifact must be checked before replacing this development input or delivering the release-dependent feature.
 
 ## Consequences
 
 Direct connections need no local listener, second SOCKS exchange or forwarding worker. Supported cancellation and deadlines can reach the captured upstream connection directly. Pooled and retained transports keep ordinary physical ownership; stale stop requests cannot affect later borrowers.
 
-The bridge remains available for the released dependency baseline. Its existing established-write backpressure limitation remains distinct from direct socket disposal; selecting the new route does not repair that old relay path. The proposed connection-to-tunnel association in ADR 0017 is superseded for the direct path by ownership of the upstream socket itself.
+The bridge remains available for the released dependency baseline. Its existing established-write backpressure and proxy-rejection classification limitations remain distinct from the direct connection; selecting the new route does not repair that old relay path. The proposed connection-to-tunnel association in ADR 0017 is superseded for the direct path by ownership of the upstream socket itself.
 
-Keeping both paths costs additional implementation and coverage work. Removing the bridge or retiring its settings is a separate future decision. Local physical disposal, the remote peer's later EOF observation and SMTP acceptance remain different events.
+Keeping both paths costs additional implementation and coverage work. The maintainer accepted retiring the bridge and its port settings together with adoption of the compatible final Angus baseline on 2026-11-05. It remains only for the interim released-Angus lane. Local physical disposal, the remote peer's later EOF observation and SMTP acceptance remain different events.
 
 The independent transport creator requires a plain unconnected socket. Legacy factory class settings can require a separate lazy lookup for physical creation while native Angus retains TLS selection. A getter that returns a different factory on each call cannot provide a precise single-result association between those roles; an explicit transport factory makes that choice unambiguous. Module-path factory access must also be granted to the component resolving the class.

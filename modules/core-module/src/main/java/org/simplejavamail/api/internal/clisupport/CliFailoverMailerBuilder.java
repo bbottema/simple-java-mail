@@ -54,7 +54,7 @@ public interface CliFailoverMailerBuilder {
 	MailerGenericBuilder<?> withFailoverPrimaryRecheckBackoff(int multiplier, @NotNull Duration maximumInterval);
 
 	/**
-	 * Allows another configured destination if the primary rejects its credentials. Disabled by default.
+	 * Allows another configured destination if the SMTP server or a direct SOCKS proxy rejects its credentials. Disabled by default.
 	 *
 	 * @param enabled Whether to permit failover on authentication rejection.
 	 */
