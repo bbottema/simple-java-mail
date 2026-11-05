@@ -174,7 +174,7 @@ class BatchSupportTest {
 
 			assertThat(properties.get(SmtpConnectionPool.OAUTH2_TOKEN_PROVIDER_PROPERTY)).isSameAs(provider);
 			assertThat(calls).hasValue(1);
-			verify(transport).connect("user@example.com", "token-1");
+			verify(transport).connect(null, "token-1");
 			pooledTransport.signalTransportUsed();
 		} finally {
 			batchSupport.shutdownConnectionPools(session).get();

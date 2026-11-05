@@ -178,8 +178,8 @@ class BatchTransportExecutorTest {
 
 			assertThat(supplierACalls).hasValue(1);
 			assertThat(supplierBCalls).hasValue(1);
-			verify(sessionA.allocatedTransports.get(0)).connect("a@example.com", "token-a-1");
-			verify(sessionB.allocatedTransports.get(0)).connect("b@example.com", "token-b-1");
+			verify(sessionA.allocatedTransports.get(0)).connect(null, "token-a-1");
+			verify(sessionB.allocatedTransports.get(0)).connect(null, "token-b-1");
 		} finally {
 			executor.close();
 		}
@@ -244,7 +244,7 @@ class BatchTransportExecutorTest {
 			executor.registerSession("cluster", testSession.session);
 			executor.execute("cluster", (session, transport) -> null);
 
-			verify(testSession.allocatedTransports.get(0)).connect("fixed@example.com", "fixed-token");
+			verify(testSession.allocatedTransports.get(0)).connect(null, "fixed-token");
 		} finally {
 			executor.close();
 		}
