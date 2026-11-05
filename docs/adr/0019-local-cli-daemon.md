@@ -52,6 +52,16 @@ This applies the existing per-user private-state boundary before destructive fil
 promise protection against arbitrary path replacement by the same operating-system user. The correction completes unreleased 10.0.0 work under
 [#488](https://github.com/bbottema/simple-java-mail/issues/488).
 
+### Ordinary log and shared state-file path safety (accepted 5 November 2026)
+
+The regular-file requirement also applies to the ordinary `daemon.log` and the shared private-state file boundary. Refuse
+nonregular files before changing permissions; an existing directory must retain its permissions and contents. The ordinary log's
+existence check must recognize a dangling link without following it, and refuse it without creating its target. Ordinary newly created
+and existing regular state files retain owner-only permission setup. Only the detached startup log is cleared as part of starting a child.
+
+This completes the same unreleased #488 private-state contract. It preserves the existing lock, atomic discovery and startup-log
+lifetimes and adds no guarantee against arbitrary path replacement by the same operating-system user.
+
 ### Selected named Mailer profiles (accepted 31 October 2026)
 
 A command's reuse profile includes the selected named failover route, using the same factory-wide definition registry as Mailer construction.

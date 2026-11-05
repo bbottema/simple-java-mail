@@ -8,6 +8,7 @@ import org.simplejavamail.internal.clisupport.CliSupport;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -152,7 +153,7 @@ final class DaemonServer {
 	}
 
 	private void configureDaemonLogging() throws IOException {
-		if (!Files.exists(paths.logFile())) {
+		if (!Files.exists(paths.logFile(), LinkOption.NOFOLLOW_LINKS)) {
 			Files.write(paths.logFile(), new byte[0], StandardOpenOption.CREATE_NEW);
 		}
 		DaemonStateSecurity.ensurePrivateFile(paths.logFile());

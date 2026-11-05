@@ -140,8 +140,9 @@ The instance directory is owner-only. Discovery state contains the endpoint, PID
 
 Daemon logs use bounded rolling files in the instance directory. Raw CLI arguments, converted option values, MIME messages, authentication material, and profile identities are not logged by the daemon configuration.
 
-`daemon-startup.log` must be a regular file. Startup refuses symbolic links, including dangling links, and other file types before changing their
-content or permissions. New and existing regular startup logs are made private before their previous content is cleared for the next child.
+`daemon.log` and `daemon-startup.log` must be regular files. Startup refuses symbolic links, including dangling links, and other file types
+before changing their content or permissions. A directory at either log path keeps its existing permissions and contents, and a dangling
+link does not create its target. New and existing regular logs receive owner-only permissions; only the startup log is cleared for the next child.
 
 ## Status and exit codes
 

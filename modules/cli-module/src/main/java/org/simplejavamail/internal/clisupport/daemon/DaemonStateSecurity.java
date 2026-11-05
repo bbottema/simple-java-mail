@@ -51,6 +51,9 @@ final class DaemonStateSecurity {
 			if (Files.isSymbolicLink(file)) {
 				throw new DaemonSecurityException("Daemon state file may not be a symbolic link");
 			}
+			if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+				throw new DaemonSecurityException("Daemon state file must be a regular file");
+			}
 			enforceAndVerifyPrivatePermissions(file, StatePathType.FILE);
 		} catch (DaemonSecurityException e) {
 			throw e;
