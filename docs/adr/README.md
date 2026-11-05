@@ -13,6 +13,10 @@ The 5 November [daemon path clarification](0019-local-cli-daemon.md#consistent-s
 under [#488](https://github.com/bbottema/simple-java-mail/issues/488) keeps relative state roots supported while deriving client and child
 runtime paths from the same normalized inputs. Endpoint and private-state validation retain their existing authority.
 
+The 5 November [independent-attachment clarification](0008-minimal-mime-structures-and-protection-order.md#independent-attachments-after-detached-signature-unwrapping-accepted-5-november-2026)
+under [#704](https://github.com/bbottema/simple-java-mail/issues/704) keeps supported child processing available after a detached S/MIME signature is opened.
+Original resources, parent signature facts and source evidence retain their owners; ADRs 0035 and 0040 keep attachment interpretation separate from content promotion.
+
 The 5 November [protocol-owned OAuth username clarification](0038-connection-configuration-conflicts.md#protocol-owned-oauth-usernames-accepted-5-november-2026)
 under [#966](https://github.com/bbottema/simple-java-mail/issues/966) preserves the selected provider's normal username resolution for pooled
 connections. Inactive protocol settings remain intact, and the compatible correction belongs to SMTP Connection Pool #38.
