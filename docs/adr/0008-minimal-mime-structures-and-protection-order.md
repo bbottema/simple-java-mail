@@ -41,6 +41,22 @@ deliberately remove the unwanted choice or strip certificates from copied recipi
 
 On input, recognize protection and verify/decrypt the original representation before passing effective clear content to the general MIME parser. Preserve original protected bytes and expose result metadata independently of readable content. Cryptographic signature validity is not an application trust decision; key discovery and trust remain application-owned. Do not interpret an OpenPGP `multipart/signed` as S/MIME merely because its container is signed.
 
+### Independent attachments after detached-signature unwrapping (accepted 5 November 2026)
+
+Opening a detached S/MIME signature does not finish processing the clear entity's independent attachments. Apply the same supported
+attachment interpretation and explicitly requested decryption as for an unsigned parent. Keep the original protected resources and parent
+signature occurrences, and expose supported opened child representations through the existing processed-attachment view.
+
+The child scan does not inspect the parent's detached signature as another attachment, replace its original protected bytes or overwrite its
+signature verdict and message-level protection facts. An independently encrypted file does not make its signed parent encrypted. Preserve
+the clear parent's body, headers, calendar and embedded resources; a sole independent attachment does not become a replacement message body.
+
+Existing missing-key, explicit decryption failure, optional interpretation, required content-read and unsupported-materialization boundaries
+retain their meaning. An invalid but extractable parent signature keeps its honest verdict without becoming a new gate to reading its
+content. This adds no public API, trust policy or automatic traversal of further encrypted envelope layers. [ADR 0035](0035-tolerant-reading-and-strict-production.md)
+owns interpretation, and [ADR 0040](0040-retained-protected-content-merging.md) keeps child processing separate from retained-content promotion.
+The correction completes the unreleased protection-preprocessing work under [#704](https://github.com/bbottema/simple-java-mail/issues/704).
+
 The clarification accepted on 21 October 2026 distinguishes retained input inspection from defaults/overrides completion. Original
 cryptographic results and protected bytes, decrypted-attachment inspection lists and retained S/MIME signed-content views are input history.
 Ordinary copying and supported serialization preserve them; completion resolves outgoing content and settings without carrying those

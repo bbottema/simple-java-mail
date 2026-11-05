@@ -50,6 +50,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeMultipartSigned;
 import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
+import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
 import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -725,6 +726,14 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final Pkcs12Config pkcs12Config,
 			@NotNull final OriginalSmimeDetails messageSmimeDetails) {
 		return decryptAttachments(attachments, pkcs12Config, messageSmimeDetails, null, false);
+	}
+
+	@NotNull
+	@Override
+	public List<AttachmentDecryptionResult> processIndependentAttachments(
+			@NotNull final List<AttachmentResource> attachments, @Nullable final Pkcs12Config pkcs12Config) {
+		return decryptAttachments(attachments, pkcs12Config,
+				new PlainSmimeDetails(), null, pkcs12Config == null);
 	}
 
 	@NotNull

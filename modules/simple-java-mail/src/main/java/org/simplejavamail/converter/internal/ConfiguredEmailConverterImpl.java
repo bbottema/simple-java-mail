@@ -289,7 +289,12 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		if (smimeResult != null && smimeResult.isRecognized()) {
 			final boolean detachedSignatureUnwrapped = effectiveMessage != openPgpResult.getEffectiveMimeMessage()
 					&& "multipart/signed".equalsIgnoreCase(smimeResult.getDetails().getSmimeMime());
+            final List<AttachmentResource> clearAttachments = emailBuilder.getAttachments();
             applySmimePreprocessingResult(emailBuilder, smimeResult, detachedSignatureUnwrapped);
+            if (detachedSignatureUnwrapped && !parsed.isRootRepresentedAsResource()) {
+                processIndependentSmimeAttachments(inspectionBuilder, clearAttachments, smimeResult.getDecryptedArtifacts(),
+                        pkcs12Config, parsed::getAttachmentSource);
+            }
             InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
             return emailBuilder;
 		}
@@ -297,6 +302,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
         InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
         return emailBuilder;
 	}
+
+    private static void processIndependentSmimeAttachments(final InternalEmailPopulatingBuilder builder,
+            final List<AttachmentResource> attachments, final List<AttachmentResource> parentArtifacts,
+            @Nullable final Pkcs12Config pkcs12Config, final Function<AttachmentResource, EmailSourcePart> sourceOf) {
+        final List<AttachmentDecryptionResult> results = loadSmimeModule().processIndependentAttachments(attachments, pkcs12Config);
+        final List<AttachmentResource> processed = new ArrayList<>(parentArtifacts);
+        for (final AttachmentDecryptionResult result : results) {
+            processed.add(result.getAttachmentResource());
+        }
+        builder.clearDecryptedAttachments().withDecryptedAttachments(processed);
+        InspectionAssembly.attachmentProtection(builder, results, sourceOf);
+    }
 
 	/** Internal EML import retaining the static API's existing input handling. */
 	@NotNull

@@ -33,8 +33,13 @@ final class InspectionAssembly {
 
     static void attachmentProtection(final InternalEmailPopulatingBuilder builder, final SmimeParseResult result,
             final java.util.function.Function<AttachmentResource, EmailSourcePart> sourceOf) {
+        attachmentProtection(builder, result.getDecryptedAttachmentResults(), sourceOf);
+    }
+
+    static void attachmentProtection(final InternalEmailPopulatingBuilder builder, final List<AttachmentDecryptionResult> results,
+            final java.util.function.Function<AttachmentResource, EmailSourcePart> sourceOf) {
         final List<EmailProblem> findings = new ArrayList<>(builder.getProblems());
-        for (final AttachmentDecryptionResult attachment : result.getDecryptedAttachmentResults()) {
+        for (final AttachmentDecryptionResult attachment : results) {
             if (attachment.getFailureReason() != null) {
                 final EmailSourcePart source = sourceOf.apply(attachment.getAttachmentResource());
                 final EmailSourceIdentity origin = source == null ? builder.getSourceData().getOrigin() : source.getOrigin();

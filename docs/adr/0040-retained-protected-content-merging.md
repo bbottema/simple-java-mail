@@ -63,6 +63,12 @@ Apply promotion only when the existing importer has supplied a retained inner me
 
 `notMergingSingleSMIMESignedAttachment()` keeps the outer and inner views separate during import. It does not prevent supported inspection/decryption or remove retained artifacts. Unsupported materialization, missing keys/modules and actual content failures keep their existing boundaries.
 
+The [independent-attachment clarification accepted on 5 November in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#independent-attachments-after-detached-signature-unwrapping-accepted-5-november-2026)
+keeps processing separate from promotion after a detached signature is opened. Scan the clear parent's independent attachments while retaining
+the parent's signature resources and facts. Do not use the sole-attachment heuristic to replace that already opened parent's body, create an
+inner content view or combine an unrelated child's encryption with the parent mode. The existing merged/separate selection does not suppress
+this supported child processing. [#704](https://github.com/bbottema/simple-java-mail/issues/704) tracks this unreleased correction.
+
 If no readable inner Email was produced, enabling merging does not synthesize one or erase the outer body. That fallback is distinct from choosing between body alternatives of an available inner Email.
 
 ### Field ownership

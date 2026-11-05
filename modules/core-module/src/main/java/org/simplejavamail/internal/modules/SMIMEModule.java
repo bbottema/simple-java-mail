@@ -56,6 +56,14 @@ public interface SMIMEModule extends InboundProtectionHandler<Pkcs12Config, Orig
 	List<AttachmentDecryptionResult> decryptAttachments(@NotNull List<AttachmentResource> attachments, @Nullable Pkcs12Config pkcs12Config, @NotNull OriginalSmimeDetails messageSmimeDetails);
 
 	/**
+	 * Opens independent signed/encrypted resources without interpreting one as the owning message's envelope or updating parent facts.
+	 * Optional malformed signed-child interpretation keeps its original resource; explicitly requested decryption keeps its failure boundary.
+	 */
+	@NotNull
+	List<AttachmentDecryptionResult> processIndependentAttachments(@NotNull List<AttachmentResource> attachments,
+			@Nullable Pkcs12Config pkcs12Config);
+
+	/**
 	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isSmimeAttachment(..)}.
 	 */
 	boolean isSmimeAttachment(@NotNull AttachmentResource attachment);

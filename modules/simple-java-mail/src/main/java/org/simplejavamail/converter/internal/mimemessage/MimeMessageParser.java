@@ -292,6 +292,8 @@ public final class MimeMessageParser {
 
 		// Preserve every traversal slot independently from CID lookup, which can replace an earlier resource with the same ID.
 		parsedComponents.attachmentList.add(mimeDataSource);
+        // A non-body effective root can be retained as one resource; it is not an independently attached child.
+        if (currentPart instanceof MimeMessage) parsedComponents.rootRepresentedAsResource = true;
         parsedComponents.resourceSources.put(mimeDataSource, capture);
         capture.deferRepresentation();
 		if (isInline && contentID != null) {
@@ -1260,6 +1262,7 @@ public final class MimeMessageParser {
         @Getter(AccessLevel.NONE) private String completedPlainContent;
         @Getter(AccessLevel.NONE) private String completedHtmlContent;
 		final Set<MimeDataSource> attachmentList = new LinkedHashSet<>();
+        private boolean rootRepresentedAsResource;
 		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
 		@Getter(AccessLevel.NONE)
 		private final Set<MimeDataSource> explicitInlineResources = Collections.newSetFromMap(new IdentityHashMap<>());

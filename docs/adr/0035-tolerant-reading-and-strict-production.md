@@ -497,6 +497,11 @@ policy remain unchanged. This applies the existing tolerant-import decision unde
 
 ## Parameterized S/MIME attachments (accepted 31 October 2026)
 
+The [5 November detached-parent clarification in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#independent-attachments-after-detached-signature-unwrapping-accepted-5-november-2026)
+applies the same independent-attachment boundary after a detached-signed parent exposes its clear entity. A parent signature must not skip
+requested child decryption. Original resources and source-linked observations remain available; child outcomes do not replace parent
+protection facts or add new exception recovery. [#704](https://github.com/bbottema/simple-java-mail/issues/704) owns the unreleased follow-up.
+
 Recognize an attachment's S/MIME media type independently of its Content-Type parameters. Valid parameters such as `smime-type`
 and `name` must not prevent requested decryption or signature inspection. Parse metadata at the S/MIME recognition boundary rather
 than stripping parameters from imported resources. Preserve the complete metadata, source bytes, content ownership and existing
