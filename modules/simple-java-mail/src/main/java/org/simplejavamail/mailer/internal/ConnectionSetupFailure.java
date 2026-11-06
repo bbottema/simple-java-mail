@@ -1,6 +1,8 @@
 package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.jetbrains.annotations.Nullable;
 
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
@@ -35,6 +37,18 @@ public final class ConnectionSetupFailure extends MailException {
 		super(MailFailureKind.CONNECTION,
 				"Couldn't obtain a usable SMTP connection; no message was submitted to this destination.", cause, null);
 		connectionKind = classify(cause);
+	}
+
+	private ConnectionSetupFailure(final ConnectionSetupFailure failure, final MailSubmissionReceipt receipt) {
+		super(failure.getKind(), failure.getMessage(), failure.getCause(), receipt);
+		connectionKind = failure.connectionKind;
+		setStackTrace(failure.getStackTrace());
+		for (final Throwable suppressed : failure.getSuppressed()) { addSuppressed(suppressed); }
+	}
+
+	/** Retry acquisition can fail after an earlier submission without changing this connection's own failure evidence. */
+	ConnectionSetupFailure withSubmissionReceipt(@Nullable final MailSubmissionReceipt receipt) {
+		return receipt != null && getSubmissionReceipt().isEmpty() ? new ConnectionSetupFailure(this, receipt) : this;
 	}
 
 	boolean allowsFailover(final FailoverPolicy policy) {

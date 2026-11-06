@@ -902,6 +902,10 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
+	RuntimeException retainProxyFailureReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) {
+		return proxyServer == null ? failure : proxyServer.retainSubmissionReceipt(failure, receipt);
+	}
+
 	@Nullable
 	MailerImpl failoverMailer() {
 		return failoverMailer;

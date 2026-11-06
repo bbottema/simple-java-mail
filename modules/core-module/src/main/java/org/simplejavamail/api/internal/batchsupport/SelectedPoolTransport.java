@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 
 /**
  * Lets the Mailer apply the selected SMTP configuration's sending limits before borrowing a pooled connection.
@@ -22,4 +23,7 @@ public interface SelectedPoolTransport {
 
 	/** Associates physical setup with this caller's observation without changing the selected registration. */
 	@NotNull LifecycleDelegatingTransport acquireTransport(@Nullable MailSendControl control, @NotNull PoolConnectionObserver observer);
+
+	/** Retains known logical-send facts on module-owned acquisition failures; unrelated failures remain unchanged. */
+	@NotNull RuntimeException retainSubmissionReceipt(@NotNull RuntimeException failure, @NotNull MailSubmissionReceipt receipt);
 }

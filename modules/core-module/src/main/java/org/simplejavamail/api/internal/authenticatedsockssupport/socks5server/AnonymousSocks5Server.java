@@ -1,5 +1,7 @@
 package org.simplejavamail.api.internal.authenticatedsockssupport.socks5server;
 
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+
 /**
  * SOCKS server that accepts anonymous connections from JavaMail.
  * <p>
@@ -25,4 +27,7 @@ public interface AnonymousSocks5Server extends Runnable {
 	 *          -1 if the server is not started yet.
 	 */
 	int getLocalPort();
+
+	/** Retains known logical-send facts on this module's startup failures; unrelated failures remain unchanged. */
+	default RuntimeException retainSubmissionReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) { return failure; }
 }

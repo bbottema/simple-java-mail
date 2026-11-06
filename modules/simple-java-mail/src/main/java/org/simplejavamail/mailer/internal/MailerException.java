@@ -2,6 +2,8 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This exception is used to communicate errors during the sending of email.
@@ -34,5 +36,17 @@ public class MailerException extends MailException {
 	/** Internal operational producer; the specified kind describes the failure, never its retry safety. */
 	public MailerException(final MailFailureKind kind, final String message, final Throwable cause) {
 		super(kind, message, cause, cause instanceof MailException ? ((MailException) cause).getSubmissionReceipt().orElse(null) : null);
+	}
+
+	private MailerException(final MailerException failure, final MailSubmissionReceipt receipt) {
+		super(failure.getKind(), failure.getMessage(), failure.getCause(), receipt);
+		setStackTrace(failure.getStackTrace());
+		for (final Throwable suppressed : failure.getSuppressed()) { addSuppressed(suppressed); }
+	}
+
+	/** Retains authoritative facts on library-owned failures without changing arbitrary application exceptions or existing receipts. */
+	static RuntimeException withSubmissionReceipt(final RuntimeException failure, @Nullable final MailSubmissionReceipt receipt) {
+		return failure instanceof MailerException && receipt != null && ((MailerException) failure).getSubmissionReceipt().isEmpty()
+				? new MailerException((MailerException) failure, receipt) : failure;
 	}
 }

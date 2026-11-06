@@ -7,6 +7,8 @@ import org.simplejavamail.api.internal.batchsupport.LifecycleDelegatingTransport
 import org.simplejavamail.api.internal.batchsupport.PoolConnectionObserver;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.batch.BatchTransportException;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolClusterConfig;
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
@@ -234,6 +236,21 @@ public class BatchSupport implements BatchModule {
 		@NotNull
 		public LifecycleDelegatingTransport acquireTransport(@Nullable final MailSendControl control, @NotNull final PoolConnectionObserver observer) {
 			return new LifecycleDelegatingTransportImpl(engine, engine.claimSelected(clusterKey, selection, control, observer), control);
+		}
+
+		@Override
+		public RuntimeException retainSubmissionReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) {
+			return failure instanceof BatchTransportException && ((BatchTransportException) failure).getSubmissionReceipt().isEmpty()
+					? new BatchFailureWithReceipt((BatchTransportException) failure, receipt) : failure;
+		}
+	}
+
+	/** Keeps the supported batch failure type while its optional producer owns receipt-aware construction. */
+	private static final class BatchFailureWithReceipt extends BatchTransportException {
+		private static final long serialVersionUID = 1L;
+
+		private BatchFailureWithReceipt(final BatchTransportException failure, final MailSubmissionReceipt receipt) {
+			super(failure, receipt);
 		}
 	}
 }

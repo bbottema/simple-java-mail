@@ -103,6 +103,10 @@ failure. Do not recursively call a public send method, readmit the operation, cr
 operation's failure at the first retryable refusal. Final failure and secondary cleanup failures retain their established ordering
 and genuine receipt/exception identity.
 
+Before another provider invocation, a library-owned retry-wait or connection-acquisition failure retains the last truthful refusal on
+the caller's common `MailException`, as well as the terminal outcome. Its current failure kind and cause remain intact; an interrupted
+wait preserves the thread's interruption. Another invocation retires those prior facts, following ADR 0011's receipt-authority boundary.
+
 Synchronous sends wait on the caller's thread. Intentional simple-batch and open-connection scopes retain their connection ownership
 and execution thread during retry waiting; document the server idle-timeout risk. Preserve one lazy batch iterator and stop at its
 first terminal failure. Keep the destination pinned and invoke an application open-connection callback exactly once.

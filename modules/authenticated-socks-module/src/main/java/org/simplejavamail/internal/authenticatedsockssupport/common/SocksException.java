@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.authenticatedsockssupport.common;
 
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 
 @SuppressWarnings("serial")
 public class SocksException extends org.simplejavamail.MailException {
@@ -19,6 +20,17 @@ public class SocksException extends org.simplejavamail.MailException {
 
 	public SocksException(final MailFailureKind kind, final String msg, final Exception e) {
 		super(kind, msg, e, null);
+	}
+
+	private SocksException(final SocksException failure, final MailSubmissionReceipt receipt) {
+		super(failure.getKind(), failure.getMessage(), failure.getCause(), receipt);
+		setStackTrace(failure.getStackTrace());
+		for (final Throwable suppressed : failure.getSuppressed()) { addSuppressed(suppressed); }
+	}
+
+	/** Internal receipt-aware construction stays with the authenticated-proxy producer. */
+	public SocksException withSubmissionReceipt(final MailSubmissionReceipt receipt) {
+		return getSubmissionReceipt().isEmpty() ? new SocksException(this, receipt) : this;
 	}
 
 	public static SocksException serverReplyException(final byte reply) {

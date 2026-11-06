@@ -54,6 +54,7 @@ final class MailSendOperation<T> implements Runnable {
     interface RetryingWork<T> extends AutoCloseable {
         RetryResult<T> execute();
         @Nullable RuntimeException lastFailure();
+        default RuntimeException retainSubmissionReceipt(final RuntimeException failure) { return failure; }
         void waiting();
         void resumed();
         default void retryScheduled(final Duration delay) { }
@@ -207,7 +208,7 @@ final class MailSendOperation<T> implements Runnable {
             retryingWork.retryScheduled(delay);
             MailSendRetryWait.await(delay, control);
         } catch (RuntimeException failure) {
-            throw control.isStopRequested() ? control.stoppedFailure(retryingWork.lastFailure()) : failure;
+            throw control.isStopRequested() ? control.stoppedFailure(retryingWork.lastFailure()) : retryingWork.retainSubmissionReceipt(failure);
         }
         retryingWork.resumed();
     }

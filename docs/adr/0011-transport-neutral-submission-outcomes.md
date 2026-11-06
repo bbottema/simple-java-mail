@@ -183,4 +183,9 @@ Preserve genuine provider compatibility-result normalization after entering the 
 
 A captured refusal remains truthful while waiting for a retry or failing to acquire its next connection. Another actual provider invocation retires that receipt's authority over the logical send's final acceptance. If that invocation exits with an unchecked failure and produces no receipt, terminal observation and telemetry retain unavailable acceptance rather than reuse an earlier `REJECTED` or `SAFE_TO_RETRY_ALL` result. Intermediate refusals remain in bounded submission history.
 
+Clarification accepted 6 November 2026 under #756: the caller's common `MailException` retains the same still-authoritative refusal as
+terminal observation when retry waiting is interrupted or the next connection cannot be acquired. Preserve the library-owned terminal
+failure kind and original cause; known submission facts do not turn a connection or capacity failure into another SMTP refusal.
+Caller, asynchronous completion and observer receive the same terminal exception. This adds no wrapping of arbitrary application failures.
+
 Preserve the original application/provider exception or error, existing replay eligibility and the current invocation's facts through later cleanup. This clarifies the attempt-specific evidence rule for [ADR 0012](0012-terminal-send-observation.md)'s final outcome and [ADR 0030](0030-safe-bounded-mail-send-retries.md)'s retry orchestration. [#756](https://github.com/bbottema/simple-java-mail/issues/756) tracks implementation and delivery for unreleased 10.0.0; it introduces no new public API or released-signature migration.

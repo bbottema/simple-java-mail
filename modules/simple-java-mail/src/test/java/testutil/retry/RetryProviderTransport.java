@@ -30,6 +30,7 @@ public final class RetryProviderTransport extends Transport {
         public boolean failCleanup;
         public Throwable laterInvocationFailure;
         public MessagingException laterConnectionFailure;
+        public Runnable laterInvocationAction;
     }
 
     public RetryProviderTransport(final Session session, final URLName url) {

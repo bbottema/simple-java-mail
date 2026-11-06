@@ -2,6 +2,7 @@ package org.simplejavamail.batch;
 
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 
 /**
  * Reports configuration, transport acquisition, scheduling, or shutdown failures from the batch facade.
@@ -36,5 +37,16 @@ public class BatchTransportException extends MailException {
 	/** Creates a classified batch failure while retaining its original cause and any captured submission facts. */
 	public BatchTransportException(final MailFailureKind kind, final String message, final Throwable cause) {
 		super(kind, message, cause, cause instanceof MailException ? ((MailException) cause).getSubmissionReceipt().orElse(null) : null);
+	}
+
+	/**
+	 * Internal exception assembly for an acquisition failure after an earlier submission.
+	 * @hidden
+	 */
+	@org.jetbrains.annotations.ApiStatus.Internal
+	protected BatchTransportException(final BatchTransportException failure, final MailSubmissionReceipt receipt) {
+		super(failure.getKind(), failure.getMessage(), failure.getCause(), receipt);
+		setStackTrace(failure.getStackTrace());
+		for (final Throwable suppressed : failure.getSuppressed()) { addSuppressed(suppressed); }
 	}
 }

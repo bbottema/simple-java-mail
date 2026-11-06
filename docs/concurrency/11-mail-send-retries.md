@@ -71,7 +71,9 @@ Non-retryable failures freeze their control classification before cleanup; suppr
 
 Every invoked attempt consumes selected sending allowance. Failed capture or acquisition consumes no invocation. Cleanup failure ends retrying.
 An accepted receipt is retained if later cleanup fails. Reacquisition stays pinned, supplies connection history rather than a fake submission entry,
-and does not restart failover. Cancellation/deadline waits retain the prior genuine refusal receipt.
+and does not restart failover. Cancellation/deadline waits retain the prior genuine refusal receipt. A failed next acquisition or an
+interrupted retry wait also retains it on the caller's common `MailException` until another provider invocation begins. The connection
+or capacity failure keeps its own kind and cause, and the observer receives that same exception instance.
 
 Another actual provider invocation retires that prior receipt's authority over the final outcome. If an unchecked provider failure then
 prevents a new receipt, terminal observation and telemetry leave acceptance unavailable; they cannot reuse the earlier refusal as evidence

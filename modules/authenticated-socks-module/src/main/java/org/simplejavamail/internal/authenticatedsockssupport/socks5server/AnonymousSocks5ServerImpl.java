@@ -20,6 +20,7 @@ import org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Br
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,11 @@ import org.slf4j.LoggerFactory;
 public class AnonymousSocks5ServerImpl implements AnonymousSocks5Server {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnonymousSocks5Server.class);
+
+	@Override
+	public RuntimeException retainSubmissionReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) {
+		return failure instanceof SocksException ? ((SocksException) failure).withSubmissionReceipt(receipt) : failure;
+	}
 	
 	private final Socks5Bridge socks5Bridge;
 	private final int proxyBridgePort;

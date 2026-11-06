@@ -109,6 +109,9 @@ final class ReadyMailSend extends RoutedConnectionScope {
 				catch (MessagingException failure) { throw new MailerException(MailFailureKind.CAPACITY, "Couldn't reserve sending allowance for this email's retry.", failure); }
 				acquireConnection(selected, control, selectedDestination.connectionObserver());
 			}
+			@Override public RuntimeException retainSubmissionReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) {
+				return selected == null ? failure : selected.retainSubmissionReceipt(failure, receipt);
+			}
 			@Override public void releaseAttempt() throws MessagingException { closeAttemptResources(); }
 			@Override public void close() throws MessagingException { ReadyMailSend.this.close(); }
 		});

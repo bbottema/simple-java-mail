@@ -7,12 +7,14 @@ import jakarta.mail.Message.RecipientType;
 
 import jakarta.mail.Session;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Provider;
 import org.simplejavamail.MailException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.Mailer;
@@ -20,9 +22,16 @@ import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionException;
 import org.simplejavamail.api.mailer.MailRetryDisposition;
 import org.simplejavamail.api.mailer.MailSubmissionStatus;
+import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.api.mailer.MailSendProgressStage;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
+import org.simplejavamail.api.mailer.config.SocksProxyConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.mailer.internal.MailerException;
+import org.simplejavamail.mailer.internal.ConnectionSetupFailure;
+import org.simplejavamail.batch.BatchTransportException;
+import org.simplejavamail.internal.authenticatedsockssupport.common.SocksException;
 import org.simplejavamail.recipient.internal.RecipientBuilderImpl;
 import testutil.retry.RetryProviderTransport;
 
@@ -32,8 +41,15 @@ import java.util.Arrays;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.net.ServerSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.BindException;
 import java.util.regex.Pattern;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -112,22 +128,178 @@ class RetryProviderBoundaryContractTest {
     private static Stream<Arguments> uncheckedRetryFailures() {
         return Stream.of("sync", "async", "batch", "open connection").flatMap(scope -> Stream.of(
                 Arguments.of(scope, new IllegalStateException("provider failed during its second invocation")),
+                Arguments.of(scope, new MailerException(MailFailureKind.SUBMISSION, "provider failed without a second receipt", null)),
                 Arguments.of(scope, new AssertionError("provider failed during its second invocation"))));
     }
 
-    @Test
-    void failedReacquisitionKeepsTheLastRefusalWithoutInventingAnotherSubmission() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = { "sync", "async" })
+    void failedReacquisitionKeepsTheLastRefusalWithoutInventingAnotherSubmission(final String scope) throws Exception {
         final RetryProviderTransport.State state = new RetryProviderTransport.State();
         state.laterConnectionFailure = new MessagingException("fixture reconnect failed");
         final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
         try (Mailer mailer = mailer(state, outcomes)) {
-            assertThat(catchThrowable(() -> mailer.sync().sendMail(email()))).isInstanceOf(MailException.class);
+            final Throwable failure = scope.equals("async")
+                    ? mailer.async().sendMail(email()).getCompletion().handle((value, cause) -> cause).get(10, SECONDS)
+                    : catchThrowable(() -> mailer.sync().sendMail(email()));
+            assertThat(failure).isInstanceOf(ConnectionSetupFailure.class).hasRootCause(state.laterConnectionFailure);
+            assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CONNECTION);
             assertThat(state.invocations).hasValue(1);
             assertThat(outcomes).hasSize(1);
             final var receipt = outcomes.get(0).getSubmissionReceipt().orElseThrow();
             assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
             assertThat(receipt.getRetryDisposition()).isEqualTo(MailRetryDisposition.SAFE_TO_RETRY_ALL);
+            assertThat(((MailException) failure).getSubmissionReceipt()).containsSame(receipt);
+            assertThat(outcomes.get(0).getFailure()).containsSame(failure);
             assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory()).hasSize(1);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "sync", "batch", "open connection" })
+    void interruptedRetryWaitKeepsTheLastRefusalAndTheInterruption(final String scope) throws Exception {
+        final RetryProviderTransport.State state = new RetryProviderTransport.State();
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        final CountDownLatch retryWaiting = new CountDownLatch(1);
+        final AtomicReference<Throwable> callerFailure = new AtomicReference<>();
+        final AtomicBoolean callerInterrupted = new AtomicBoolean();
+        try (Mailer mailer = mail.mailerBuilder(RetryProviderTransport.session(state))
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build())
+                .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2)
+                        .withRetryDelay(Duration.ofHours(1)).build())
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add)
+                        .withProgressObserver(progress -> {
+                            if (progress.getStage() == MailSendProgressStage.WAITING_TO_RETRY) { retryWaiting.countDown(); }
+                        }).build()).buildMailer()) {
+            final Thread sender = new Thread(() -> {
+                try {
+                    callerFailure.set(catchThrowable(() -> {
+                        switch (scope) {
+                            case "batch": mailer.sync().sendMailsInSimpleBatch(List.of(email(), email())); break;
+                            case "open connection": mailer.withOpenConnection(connection -> connection.sendMail(email())); break;
+                            default: mailer.sync().sendMail(email());
+                        }
+                    }));
+                    callerInterrupted.set(Thread.currentThread().isInterrupted());
+                } finally {
+                    Thread.interrupted();
+                }
+            }, "interrupted-retry-" + scope);
+            sender.start();
+            try {
+                assertThat(retryWaiting.await(10, SECONDS)).as("the first refusal entered retry waiting").isTrue();
+                sender.interrupt();
+                sender.join(10000);
+                assertThat(sender.isAlive()).isFalse();
+            } finally {
+                if (sender.isAlive()) { sender.interrupt(); sender.join(10000); }
+            }
+            final Throwable failure = callerFailure.get();
+            assertThat(failure).isInstanceOf(MailException.class).hasCauseInstanceOf(InterruptedException.class);
+            assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CAPACITY);
+            assertThat(callerInterrupted).isTrue();
+            assertThat(state.invocations).hasValue(1);
+            assertThat(outcomes).hasSize(1);
+            final var receipt = outcomes.get(0).getSubmissionReceipt().orElseThrow();
+            assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+            assertThat(((MailException) failure).getSubmissionReceipt()).containsSame(receipt);
+            assertThat(outcomes.get(0).getFailure()).containsSame(failure);
+            assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory()).hasSize(1);
+        }
+    }
+
+    @Test
+    @Timeout(45)
+    void failedPooledReacquisitionKeepsTheRefusalOnThePoolFailure() throws Exception {
+        final RetryProviderTransport.State state = new RetryProviderTransport.State();
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        final CountDownLatch retryWaiting = new CountDownLatch(1);
+        final CountDownLatch connectionHeld = new CountDownLatch(1);
+        final CountDownLatch releaseConnection = new CountDownLatch(1);
+        state.laterInvocationAction = () -> {
+            connectionHeld.countDown();
+            try {
+                if (!releaseConnection.await(20, SECONDS)) { throw new AssertionError("The competing connection was not released"); }
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(interrupted);
+            }
+        };
+        try (Mailer mailer = mail.mailerBuilder(RetryProviderTransport.session(state))
+                .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1)
+                        .withClaimTimeout(Duration.ofSeconds(5)).build())
+                .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(2).build())
+                .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2)
+                        .withRetryDelay(Duration.ofSeconds(8)).build())
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add)
+                        .withProgressObserver(progress -> {
+                            if (progress.getStage() == MailSendProgressStage.WAITING_TO_RETRY) { retryWaiting.countDown(); }
+                        }).build()).buildMailer()) {
+            final var send = mailer.async().sendMail(email());
+            assertThat(retryWaiting.await(10, SECONDS))
+                    .as("first send reached backoff; terminal failure: %s", send.getCompletion().handle((value, failure) -> failure).getNow(null)).isTrue();
+            final var competingSend = mailer.async().sendMail(email());
+            try {
+                assertThat(connectionHeld.await(5, SECONDS)).as("the competing provider invocation owns the only pooled connection").isTrue();
+                assertThat(competingSend.getCompletion()).isNotDone();
+                final Throwable failure = send.getCompletion().handle((value, cause) -> cause).get(15, SECONDS);
+                assertThat(failure).isInstanceOf(BatchTransportException.class).hasMessageContaining("claim");
+                assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CAPACITY);
+                assertThat(state.invocations).hasValue(2);
+                assertThat(outcomes).hasSize(1);
+                final var receipt = outcomes.get(0).getSubmissionReceipt().orElseThrow();
+                assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+                assertThat(((MailException) failure).getSubmissionReceipt()).containsSame(receipt);
+                assertThat(outcomes.get(0).getFailure()).containsSame(failure);
+                assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory()).hasSize(1);
+            } finally {
+                releaseConnection.countDown();
+                assertThat(competingSend.getCompletion().get(10, SECONDS).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
+            }
+            assertThat(state.invocations).hasValue(2);
+            assertThat(outcomes).hasSize(2);
+        }
+    }
+
+    @Test
+    void failedBridgeRestartKeepsTheRefusalOnTheProxyFailure() throws Exception {
+        final RetryProviderTransport.State state = new RetryProviderTransport.State();
+        final List<MailSendOutcome> outcomes = new CopyOnWriteArrayList<>();
+        final CountDownLatch retryWaiting = new CountDownLatch(1);
+        final InetAddress loopback = InetAddress.getByName("127.0.0.1");
+        final int bridgePort;
+        try (ServerSocket available = new ServerSocket(0, 1, loopback)) { bridgePort = available.getLocalPort(); }
+        final Session session = RetryProviderTransport.session(state);
+        session.getProperties().setProperty("mail.transport.protocol", "smtp");
+        session.getProperties().setProperty("mail.smtp.host", "localhost");
+        session.setProvider(new Provider(Provider.Type.TRANSPORT, "smtp", RetryProviderTransport.class.getName(), "fixture", "1"));
+        // The independent provider does not dial the remote proxy; this case exercises actual local bridge startup and binding.
+        try (Mailer mailer = mail.mailerBuilder(session)
+                .withProxyConfig(SocksProxyConfig.builder().withHost("127.0.0.1").withPort(1080)
+                        .withUsername("fixture-user").withPassword("fixture-password").withBridgePort(bridgePort).build())
+                .withMailSendRetryPolicy(MailSendRetryPolicy.builder().withMaximumAttempts(2)
+                        .withRetryDelay(Duration.ofSeconds(3)).build())
+                .withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add)
+                        .withProgressObserver(progress -> {
+                            if (progress.getStage() == MailSendProgressStage.WAITING_TO_RETRY) { retryWaiting.countDown(); }
+                        }).build()).buildMailer()) {
+            final var send = mailer.async().sendMail(email());
+            assertThat(retryWaiting.await(10, SECONDS))
+                    .as("first send reached backoff; terminal failure: %s", send.getCompletion().handle((value, failure) -> failure).getNow(null)).isTrue();
+            assertThat(state.invocations).hasValue(1);
+            try (ServerSocket blocker = new ServerSocket()) {
+                blocker.bind(new InetSocketAddress(loopback, bridgePort));
+                final Throwable failure = send.getCompletion().handle((value, cause) -> cause).get(10, SECONDS);
+                assertThat(failure).isInstanceOf(SocksException.class).hasCauseInstanceOf(BindException.class);
+                assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.CONNECTION);
+                assertThat(state.invocations).hasValue(1);
+                assertThat(outcomes).hasSize(1);
+                final var receipt = outcomes.get(0).getSubmissionReceipt().orElseThrow();
+                assertThat(receipt.getStatus()).isEqualTo(MailSubmissionStatus.REJECTED);
+                assertThat(((MailException) failure).getSubmissionReceipt()).containsSame(receipt);
+                assertThat(outcomes.get(0).getFailure()).containsSame(failure);
+                assertThat(outcomes.get(0).getDiagnostics().orElseThrow().getSubmissionHistory()).hasSize(1);
+            }
         }
     }
     @Test

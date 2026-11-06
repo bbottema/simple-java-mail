@@ -34,6 +34,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		SendingAllowance.Reservation reserve(Address[] recipients) throws MessagingException;
 		void reacquire(Address[] recipients);
 		default boolean canRetryAfter(final MailSubmissionReceipt receipt) { return true; }
+		default RuntimeException retainSubmissionReceipt(final RuntimeException failure, final MailSubmissionReceipt receipt) { return failure; }
 		void releaseAttempt() throws MessagingException;
 		@Override void close() throws MessagingException;
 	}
@@ -103,7 +104,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		final SendingAllowance.Reservation reservation = connection.reserve(prepared.getRecipients());
 		final int beforeInvocation = invocations;
 		final SubmissionAttempt attempt = invokeProvider(prepared, reservation);
-		latestReceipt = submissionReceipt(attempt.result, attempt.refusal);
+		if (invocations != beforeInvocation) { latestReceipt = submissionReceipt(attempt.result, attempt.refusal); }
 		recordInvokedSubmission(attempt, beforeInvocation);
 		final AttemptCleanup cleanup = retireAttempt(reservation, attempt.refusal);
 		checkForNewCleanupFailure(attempt, cleanup);
@@ -115,7 +116,11 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		Throwable refusal = null;
 		Duration nextDelay = null;
 		try {
-			result = connection.current().sendPrepared(prepared, messageId, subject, control, diagnostics, reservation, () -> invocations++);
+			result = connection.current().sendPrepared(prepared, messageId, subject, control, diagnostics, reservation, () -> {
+				invocations++;
+				// Acquiring a connection or passing local checks does not retire the earlier refusal; provider entry does.
+				latestReceipt = null;
+			});
 		} catch (MessagingException failure) {
 			refusal = control.translateFailure(new MailerException(MailFailureKind.SUBMISSION, "The provider could not finish this submission. "
 					+ "Check the cause; no automatic replay was started.", failure));
@@ -235,7 +240,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		if (hasStoppedAfterRefusal(failure)) {
 			return control.stoppedFailure(lastFailure);
 		}
-		return control.translateFailure(failure);
+		return control.translateFailure(retainSubmissionReceipt(failure));
 	}
 
 	private boolean hasStoppedAfterRefusal(final RuntimeException failure) {
@@ -252,6 +257,12 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 	}
 
 	@Override @Nullable public RuntimeException lastFailure() { return lastFailure; }
+	@Override public RuntimeException retainSubmissionReceipt(final RuntimeException failure) {
+		if (latestReceipt == null) { return failure; }
+		if (failure instanceof ConnectionSetupFailure) { return ((ConnectionSetupFailure) failure).withSubmissionReceipt(latestReceipt); }
+		if (failure instanceof MailerException) { return MailerException.withSubmissionReceipt(failure, latestReceipt); }
+		return destination.retainProxyFailureReceipt(connection.retainSubmissionReceipt(failure, latestReceipt), latestReceipt);
+	}
 
 	/** Retained scopes intentionally wait on their existing thread; ordinary asynchronous sends use the operation's parking boundary instead. */
 	MailSubmissionReceipt completeOnCurrentThread() {
@@ -267,7 +278,7 @@ final class MailSendRetryingSubmission implements MailSendOperation.RetryingWork
 		waiting();
 		retryScheduled(delay);
 		try { MailSendRetryWait.await(delay, control); }
-		catch (RuntimeException failure) { throw control.isStopRequested() ? control.stoppedFailure(lastFailure) : failure; }
+		catch (RuntimeException failure) { throw control.isStopRequested() ? control.stoppedFailure(lastFailure) : retainSubmissionReceipt(failure); }
 		resumed();
 	}
 	@Override public void waiting() { diagnostics.startRetryWait(); }

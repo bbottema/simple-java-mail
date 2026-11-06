@@ -40,6 +40,7 @@ public final class RetryProviderAdapter implements MailTransportAdapter {
         final RetryProviderTransport.State state = ((RetryProviderTransport) transport).state;
         final int invocation = state.invocations.incrementAndGet();
         recordSubmittedBytes(state, prepared.getMimeMessage());
+        if (invocation > 1 && state.laterInvocationAction != null) { state.laterInvocationAction.run(); }
         if (invocation > 1 && state.laterInvocationFailure != null) {
             if (state.laterInvocationFailure instanceof RuntimeException) {
                 throw (RuntimeException) state.laterInvocationFailure;

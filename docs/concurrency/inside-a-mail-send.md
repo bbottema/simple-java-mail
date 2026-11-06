@@ -159,6 +159,10 @@ See [telemetry concurrency](13-mail-send-telemetry.md) for scope retirement, ret
 
 The [local preparation boundary](01-send-operation.md#local-preparation-and-provider-entry) remains inside the existing Mailer/execution/transport resource layers. A connected socket alone supplies no submission facts; a local MIME/envelope mismatch completes as PREPARATION with no receipt. The shared responsibility overview and artwork keep the same owners and layer relationships. Use the operation guide and ADR 0011 for classification and narrow lease-health provenance under [#865](https://github.com/bbottema/simple-java-mail/issues/865); no new resource owner or graphical layer follows.
 
+The retry owner also retains a previous refusal on library-owned failures while waiting or acquiring the next connection, until another
+provider invocation begins. [Retry receipt propagation](11-mail-send-retries.md#intermediate-versus-terminal-failure) stays within the
+pictured operation, cleanup and observation responsibilities; the master image, website copy and umbrella embed need no graphical change.
+
 ## Authenticated SOCKS setup capacity, 2026-10-29
 
 The canonical artwork's five responsibility layers remain accurate for #921: the internal proxy setup executor and forwarding handoff are not pictured as application send workers or transport-pool leases. The [bridge guide](14-authenticated-socks-bridge.md) now maps those inner actors. Established tunnels release setup workers while retained/pooled transport ownership, send supervision, cancellation requests and terminal outcomes keep their existing layer relationships. The master, optimized website derivative and umbrella-issue embed require no image change.
