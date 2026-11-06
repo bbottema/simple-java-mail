@@ -299,10 +299,13 @@ public final class InputInspection {
         }
     }
 
-    public void noteReportWarnings(final DeliveryStatusReport report) {
+    void noteReportWarnings(final DeliveryStatusReport report, final List<MimePartCapture> affectedParts) {
         if (report != null) {
+            final List<EmailSourcePart> affected = new ArrayList<>();
+            for (final MimePartCapture part : affectedParts) affected.add(part.snapshot());
             for (int i = 0; i < report.getWarnings().size(); i++) {
-                record(EmailProblem.Code.INTERPRETATION_WARNING, "delivery-status[" + i + "]", null, report.getWarnings().get(i));
+                problems.add(new PendingProblem(EmailProblem.Code.INTERPRETATION_WARNING, "delivery-status[" + i + "]",
+                        null, report.getWarnings().get(i), affected, null));
             }
         }
     }

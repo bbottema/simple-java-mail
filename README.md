@@ -463,6 +463,8 @@ received.getProblems();                 // actual processing issues, with origin
 ```
 
 Original RTF remains available when an Outlook body becomes HTML; an expected successful conversion does not itself create a Problem.
+Delivery-report interpretation warnings link to the affected source part through `problem.getSources()`; an ambiguous report can identify
+multiple conflicting parts. Reading those references does not fetch the report content again.
 If the selected delivery-report read fails after consuming a prefix, that prefix remains in source inspection with incomplete capture and
 a Problem linked to the affected part. Completed report facts can still be inspected; cancellation retains its exception behavior.
 Ordinary copies and later edits preserve captured sources and each problem's original Message-ID/reference. For EML bytes, text or

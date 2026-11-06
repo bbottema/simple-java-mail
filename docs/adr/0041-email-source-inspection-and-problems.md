@@ -100,6 +100,11 @@ EmailProblem contains an operation, stable category, qualified location, availab
 identity and direct references to affected source elements. More than one source can explain a conflict; an operation-level problem can
 have no particular element. Locations are diagnostic labels, not strings applications must parse to find the source.
 
+Clarification accepted 6 November 2026 under [#961](https://github.com/bbottema/simple-java-mail/issues/961): a delivery-report
+interpretation warning references its already captured status part. An ambiguous report references the known conflicting parts, while
+a report with no readable status part can reference its known container. Keep the report's existing interpretation and warning text;
+attaching these immutable references requires neither another content read nor a duplicate payload archive.
+
 Every actual source context has an EmailSourceIdentity, even with no Problems. It contains a stable UUID diagnostic reference and the
 observed input Message-ID when available. Capture that identity before selecting, generating or backfilling output identity. Missing
 Message-IDs remain absent, reused IDs do not conflate independent inputs, and a library-generated inspection-wrapper ID is not a purported

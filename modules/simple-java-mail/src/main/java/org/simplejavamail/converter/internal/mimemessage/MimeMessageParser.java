@@ -107,18 +107,23 @@ public final class MimeMessageParser {
             }, () -> null);
 		}
         inspection.noteAddressRecovery();
-		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData, false, inspection.beginRootPart());
+        final MimePartCapture root = inspection.beginRootPart();
+		parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData, false, root);
 		if (parsedComponents.deliveryStatusReport == null && (parsedComponents.reportContainer || parsedComponents.deliveryStatusPart != null)) {
 			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport(parsedComponents.deliveryStatusPart != null
                     ? "The delivery-status content may be incomplete because it could not be read."
                     : "The notification has no readable delivery-status part.");
 		}
-        inspection.noteReportWarnings(parsedComponents.deliveryStatusReport);
 		parsedComponents.deliveryStatusPart = null;
 		parsedComponents.deliveryStatusWarning = null;
+        parsedComponents.deliveryStatusCandidates.clear();
 		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
 		removeReferencedImplicitImageAttachments(parsedComponents);
         finishSourceRetention(parsedComponents);
+        // Freeze references only after healthy represented payloads have been released from diagnostic capture.
+        inspection.noteReportWarnings(parsedComponents.deliveryStatusReport, parsedComponents.deliveryStatusSources.isEmpty()
+                ? Collections.singletonList(root) : parsedComponents.deliveryStatusSources);
+        parsedComponents.deliveryStatusSources.clear();
 		return parsedComponents;
 	}
 
@@ -142,6 +147,9 @@ public final class MimeMessageParser {
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
 			final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture) {
+        if (parsedComponents.deliveryStatusCandidates.contains(currentPart)) {
+            parsedComponents.deliveryStatusSources.add(capture);
+        }
         try {
             interpretMimePart(currentPart, parsedComponents, fetchAttachmentData, insideRelated, capture);
             capture.represented();
@@ -159,6 +167,7 @@ public final class MimeMessageParser {
             parsedComponents.reportContainer = DeliveryStatusReportParser.isReportContainer(currentPart);
             if (DeliveryStatusReportParser.isStatusPart(currentPart)) {
                 parsedComponents.deliveryStatusPart = currentPart;
+                parsedComponents.deliveryStatusSources.add(capture);
             }
         }
 		final String disposition = parseDisposition(currentPart, capture);
@@ -253,7 +262,9 @@ public final class MimeMessageParser {
 		}
 		int selectedIndex = -1;
 		for (int index = 0, count = countBodyParts(parts); index < count; index++) {
-			if (DeliveryStatusReportParser.isStatusPart(getBodyPartAtIndex(parts, index))) {
+            final MimePart candidate = getBodyPartAtIndex(parts, index);
+			if (DeliveryStatusReportParser.isStatusPart(candidate)) {
+                parsedComponents.deliveryStatusCandidates.add(candidate);
 				if (selectedIndex != -1) {
 					parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport(
 							"The notification contains multiple delivery-status parts; their results were left unavailable because there is no single report to use.");
@@ -1295,6 +1306,10 @@ public final class MimeMessageParser {
 		@Nullable private DeliveryStatusReport deliveryStatusReport;
 		@Nullable private MimePart deliveryStatusPart;
 		@Nullable private String deliveryStatusWarning;
+        @Getter(AccessLevel.NONE)
+        private final Set<MimePart> deliveryStatusCandidates = Collections.newSetFromMap(new IdentityHashMap<>());
+        @Getter(AccessLevel.NONE)
+        private final List<MimePartCapture> deliveryStatusSources = new ArrayList<>();
         @Getter(AccessLevel.NONE)
         private boolean reportContainer;
 

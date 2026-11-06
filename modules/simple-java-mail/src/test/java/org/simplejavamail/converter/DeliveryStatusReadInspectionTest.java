@@ -49,6 +49,127 @@ class DeliveryStatusReadInspectionTest {
             + "Final-Recipient: rfc822; reader@example.test\r\nAction: failed\r\nStatus: 5.1.1\r\n\r\n";
     private static final String PREFIX = COMPLETE + "Final-Recipient: rfc822; second@example.test\r\nAction: fail";
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void emlReportWarningReferencesItsReceivedStatusPart(final boolean eager) {
+        final String eml = "Content-Type: message/delivery-status\r\n\r\n" + COMPLETE.replace("Action: failed", "Action: sideways");
+        final Email email = MAIL.converter().fromEml(eml).withFetchAttachmentData(eager).toEmail();
+
+        assertSemanticWarningSources(email, email.getSourceData().getParts().get(0));
+        assertThat(email.getDeliveryStatusReport().getRecipients()).singleElement()
+                .satisfies(recipient -> assertThat(recipient.getAction()).isEqualTo(DeliveryAction.UNKNOWN));
+    }
+
+    @ParameterizedTest(name = "{0}, root={1}, eager={2}")
+    @MethodSource("reportWarningInputs")
+    void semanticWarningSourcesSurviveCopiesAndSerializationWithoutAnotherRead(final String type,
+            final boolean root, final boolean eager) throws Exception {
+        final ReportSource status = new ReportSource(type, COMPLETE.replace("Action: failed", "Action: sideways"), null, null);
+        final ReportSource unrelated = new ReportSource("application/octet-stream", "ordinary attachment", null, null);
+        final MimeMessage input;
+        if (root) {
+            input = message(status);
+        } else {
+            final MimeBodyPart text = new MimeBodyPart();
+            text.setText("Readable explanation");
+            final MimeMultipart multipart = new MimeMultipart("report; report-type=" + type.substring("message/".length()));
+            multipart.addBodyPart(text);
+            multipart.addBodyPart(part(status));
+            multipart.addBodyPart(part(unrelated));
+            input = new MimeMessage(Session.getInstance(new Properties()));
+            input.setContent(multipart);
+            input.setHeader("Content-Type", multipart.getContentType());
+        }
+        final Email email = convert(input, eager);
+        final EmailSourcePart statusPart = reportPart(email, root);
+
+        assertSemanticWarningSources(email, statusPart);
+        assertThat(statusPart.getContent()).isNull();
+        assertThat(email.getDeliveryStatusReport().getRecipients()).singleElement()
+                .satisfies(recipient -> assertThat(recipient.getAction()).isEqualTo(DeliveryAction.UNKNOWN));
+        assertThat(status.opens).hasValue(1);
+        assertThat(status.closes).hasValue(1);
+        assertThat(unrelated.opens).hasValue(!root && eager ? 1 : 0);
+
+        final Email copy = MAIL.emailBuilder().copying(email).clearAttachments().withSubject("Edited").buildEmail();
+        assertThat(reportPart(copy, root)).isSameAs(statusPart);
+        assertSemanticWarningSources(copy, statusPart);
+        final Email restored = roundTrip(copy);
+        assertSemanticWarningSources(restored, reportPart(restored, root));
+        assertThat(reportPart(restored, root).getContent()).isNull();
+        assertThat(status.opens).hasValue(1);
+        assertThat(unrelated.opens).hasValue(!root && eager ? 1 : 0);
+    }
+
+    static Stream<Arguments> reportWarningInputs() {
+        return Stream.of("message/delivery-status", "message/global-delivery-status").flatMap(type ->
+                Stream.of(false, true).flatMap(root -> Stream.of(false, true).map(eager -> Arguments.of(type, root, eager))));
+    }
+
+    @Test
+    void ambiguousReportWarningReferencesItsKnownConflictingStatusParts() throws Exception {
+        final ReportSource first = new ReportSource("message/delivery-status", COMPLETE, null, null);
+        final ReportSource second = new ReportSource("message/delivery-status", COMPLETE, null, null);
+        final MimeMultipart multipart = new MimeMultipart("report; report-type=delivery-status");
+        multipart.addBodyPart(part(first));
+        multipart.addBodyPart(part(second));
+        final MimeMessage input = new MimeMessage(Session.getInstance(new Properties()));
+        input.setContent(multipart);
+        input.setHeader("Content-Type", multipart.getContentType());
+        final Email email = convert(input);
+        final EmailSourcePart container = email.getSourceData().getParts().get(0);
+
+        assertThat(email.getDeliveryStatusReport().getRecipients()).isEmpty();
+        assertSemanticWarningSources(email, container.getChildren().get(0), container.getChildren().get(1));
+        assertThat(first.opens).hasValue(0);
+        assertThat(second.opens).hasValue(0);
+    }
+
+    @Test
+    void missingStatusPartWarningReferencesItsKnownReportContainer() throws Exception {
+        final MimeBodyPart text = new MimeBodyPart();
+        text.setText("Readable explanation");
+        final MimeMultipart multipart = new MimeMultipart("report; report-type=delivery-status");
+        multipart.addBodyPart(text);
+        final MimeMessage input = new MimeMessage(Session.getInstance(new Properties()));
+        input.setContent(multipart);
+        input.setHeader("Content-Type", multipart.getContentType());
+        final Email email = convert(input);
+
+        assertThat(email.getPlainText()).isEqualTo("Readable explanation");
+        assertSemanticWarningSources(email, email.getSourceData().getParts().get(0));
+    }
+
+    @Test
+    void outOfOrderReportWarningReferencesTheRecoveredStatusPart() throws Exception {
+        final ReportSource status = new ReportSource("message/delivery-status", COMPLETE, null, null);
+        final MimeMultipart multipart = new MimeMultipart("report; report-type=delivery-status");
+        multipart.addBodyPart(part(status));
+        final MimeMessage input = new MimeMessage(Session.getInstance(new Properties()));
+        input.setContent(multipart);
+        input.setHeader("Content-Type", multipart.getContentType());
+        final Email email = convert(input);
+
+        assertThat(email.getDeliveryStatusReport().getRecipients()).hasSize(1);
+        assertSemanticWarningSources(email, email.getSourceData().getParts().get(0).getChildren().get(0));
+        assertThat(status.opens).hasValue(1);
+    }
+
+    private static EmailSourcePart reportPart(final Email email, final boolean root) {
+        final EmailSourcePart part = email.getSourceData().getParts().get(0);
+        return root ? part : part.getChildren().get(1);
+    }
+
+    private static void assertSemanticWarningSources(final Email email, final EmailSourcePart... parts) {
+        assertThat(email.getProblems()).filteredOn(problem -> problem.getCode() == EmailProblem.Code.INTERPRETATION_WARNING)
+                .singleElement().satisfies(problem -> {
+                    assertThat(problem.getLocation()).isEqualTo("delivery-status[0]");
+                    assertThat(problem.getSources()).containsExactly(parts);
+                    for (int i = 0; i < parts.length; i++) assertThat(problem.getSources().get(i)).isSameAs(parts[i]);
+                    assertThat(problem.getOrigin()).isSameAs(parts[0].getOrigin());
+                });
+    }
+
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("interruptedStages")
     void typedInterruptionDoesNotBecomeSuccessfulOptionalInspection(final Stage stage, final Interrupt kind) throws Exception {
