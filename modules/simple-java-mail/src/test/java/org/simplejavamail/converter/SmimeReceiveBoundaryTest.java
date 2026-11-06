@@ -101,6 +101,18 @@ class SmimeReceiveBoundaryTest {
 		}));
 	}
 
+	@TestFactory
+	Stream<DynamicTest> malformedRootDeclarationsRemainUnknownWithoutTheModule() {
+		return Stream.of("not-a-content-type", "application/pkcs7-mime; =broken")
+				.map(type -> DynamicTest.dynamicTest(type, () -> {
+					final byte[] source = ("From: sender@example.org\r\nContent-Type: " + type
+							+ "\r\n\r\nOrdinary content").getBytes(UTF_8);
+					try (WithoutSmime runtime = runtime()) {
+						assertUnknown(runtime, details(runtime, importProtectedEml(runtime, source)), "UNKNOWN");
+					}
+				}));
+	}
+
 	@Test
 	void protectedInputFactsSurviveCopyAndSerializationButNotOutgoingCompletion() throws Exception {
 		final byte[] source = Files.readAllBytes(protectedFixture("encrypted.eml"));

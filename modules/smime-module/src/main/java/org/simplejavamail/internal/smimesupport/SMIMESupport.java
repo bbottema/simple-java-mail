@@ -174,7 +174,14 @@ public class SMIMESupport implements SMIMEModule {
 			@Nullable final Pkcs12Config pkcs12Config) {
 		byte[] originalBytes = null;
 		try {
-			final ContentType contentType = new ContentType(originalMessage.getContentType());
+			final ContentType contentType;
+			try {
+				contentType = new ContentType(originalMessage.getContentType());
+			} catch (ParseException invalidDeclaration) {
+				org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(invalidDeclaration);
+				// The ordinary MIME parser retains this interpretation problem; no protection has been recognized.
+				return unrecognized(originalMessage);
+			}
 			if (!SmimeRecognitionUtil.isSmimeContentType(contentType)) {
 				return unrecognized(originalMessage);
 			}
@@ -621,6 +628,14 @@ public class SMIMESupport implements SMIMEModule {
 									.build());
 				}
 			}
+		} catch (ParseException invalidDeclaration) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(invalidDeclaration);
+			// A malformed root declaration establishes neither plaintext nor a cryptographic failure.
+			smimeBuilder.getOriginalSmimeDetails().completeWith(OriginalSmimeDetailsImpl.builder()
+					.smimeMode(SmimeMode.UNKNOWN)
+					.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
+					.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.UNKNOWN)
+					.build());
 		} catch (MessagingException e) {
 			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
 			throw new SmimeException(ERROR_READING_SMIME_CONTENT_TYPE, e);
@@ -630,7 +645,7 @@ public class SMIMESupport implements SMIMEModule {
 	private void finalizeSmimeMetadata(final SmimeParseResultBuilder smimeBuilder, @NotNull final MimeMessage mimeMessage) {
 		final OriginalSmimeDetailsImpl originalSmimeDetails = smimeBuilder.getOriginalSmimeDetails();
 
-		if (originalSmimeDetails.getSmimeMode() != SmimeMode.PLAIN) {
+		if (originalSmimeDetails.getSmimeMode() != SmimeMode.PLAIN && originalSmimeDetails.getSmimeMode() != SmimeMode.UNKNOWN) {
 			LOGGER.debug("checking who signed this message...");
 			originalSmimeDetails.completeWithSmimeSignedBy(getSignedByAddress(mimeMessage));
 			if (originalSmimeDetails.getSmimeMode() == SmimeMode.SIGNED) {

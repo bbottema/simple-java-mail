@@ -268,6 +268,12 @@ or all-decrypted claim. This clarification concerns S/MIME; the separate OpenPGP
 
 This clarification is implemented under [#822](https://github.com/bbottema/simple-java-mail/issues/822) for unreleased 10.0.0.
 
+Clarification accepted 6 November 2026 under [#704](https://github.com/bbottema/simple-java-mail/issues/704): a malformed root MIME declaration
+does not establish S/MIME merely because its optional implementation is installed. Preserve unknown mode, verification and decryption facts
+and the ordinary MIME interpretation observation. Failure to recognize the declaration is distinct from failure while processing recognized
+signed or encrypted content; only the latter establishes a cryptographic processing failure. This applies to preprocessing and the later
+root metadata read without changing source/resource ownership, interruption or explicit decryption behavior.
+
 ### Unopened S/MIME ciphertext (accepted 23 October 2026)
 
 The same distinction applies when the S/MIME implementation is available but encrypted content cannot be inspected. Retain `KEY_MISSING`
