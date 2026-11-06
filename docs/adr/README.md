@@ -4,6 +4,14 @@ For project setup and contributor or maintainer workflows, start with [Developin
 
 These records explain API and architecture decisions that should survive individual features and refactors. Read the relevant accepted decision before changing the public API. Each record links its implementation and evidence; the [topic index below](#find-documentation-by-topic) connects architectural decisions with their supporting guides and concurrency details.
 
+The 6 November review accepts refusing invalid lock-file paths before acquisition under [#488](https://github.com/bbottema/simple-java-mail/issues/488),
+preserving typed interruption during optional delivery-report processing under [#763](https://github.com/bbottema/simple-java-mail/issues/763), and
+retaining acquired report prefixes with source-linked observations under [#961](https://github.com/bbottema/simple-java-mail/issues/961).
+ADRs [0019](0019-local-cli-daemon.md#lock-file-acquisition-safety-accepted-6-november-2026),
+[0035](0035-tolerant-reading-and-strict-production.md#failure-and-security-boundaries) and
+[0041](0041-email-source-inspection-and-problems.md#captured-content-and-read-ownership) own these existing unreleased feature boundaries.
+The issues track implementation and delivery; acceptance alone does not claim completion.
+
 The accepted 5 November [registration-owned authentication decision](0015-execution-views-and-transport-pooling.md#authentication-belongs-to-a-pool-registration-accepted-5-november-2026)
 and [current credential selection](0039-explicit-configuration-resolution.md#current-oauth-credentials-on-a-pool-registration-accepted-5-november-2026)
 under [#967](https://github.com/bbottema/simple-java-mail/issues/967) replace copied pool OAuth aliases with an explicit supplier or

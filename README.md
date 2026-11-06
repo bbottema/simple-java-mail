@@ -453,6 +453,8 @@ received.getProblems();                 // actual processing issues, with origin
 ```
 
 Original RTF remains available when an Outlook body becomes HTML; an expected successful conversion does not itself create a Problem.
+If the selected delivery-report read fails after consuming a prefix, that prefix remains in source inspection with incomplete capture and
+a Problem linked to the affected part. Completed report facts can still be inspected; cancellation retains its exception behavior.
 Ordinary copies and later edits preserve captured sources and each problem's original Message-ID/reference. For EML bytes, text or
 MimeMessage outputs, optional result terminals such as `toEmlBytesResult()` return diagnostics alongside the artifact. Source content is
 not automatically included in outgoing mail. See [source inspection](https://www.simplejavamail.org/features.html#section-source-inspection).
