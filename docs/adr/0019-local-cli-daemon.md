@@ -74,6 +74,15 @@ and existing regular state files retain owner-only permission setup. Only the de
 This completes the same unreleased #488 private-state contract. It preserves the existing lock, atomic discovery and startup-log
 lifetimes and adds no guarantee against arbitrary path replacement by the same operating-system user.
 
+### Lock-file acquisition safety (accepted 6 November 2026)
+
+Apply the same private-state boundary before acquiring `instance.lock`. Refuse existing symbolic links and nonregular paths before
+opening them, and acquire the lock without following links. In particular, a dangling link must not create its target before startup
+refuses it. Preserve ordinary private regular-file creation, exclusive instance ownership and the existing lock lifetime.
+
+This completes the unreleased daemon feature under [#488](https://github.com/bbottema/simple-java-mail/issues/488). It covers an existing
+invalid path without adding a guarantee against arbitrary concurrent path replacement by the same operating-system user.
+
 ### Selected named Mailer profiles (accepted 31 October 2026)
 
 A command's reuse profile includes the selected named failover route, using the same factory-wide definition registry as Mailer construction.

@@ -82,6 +82,12 @@ retained bytes, which may be only a prefix. These methods and source getters per
 Acquired stream ownership, original causes and suppressed close failures follow ADR 0036. A later ordinary borrowed-resource read keeps
 its own behavior and does not mutate an existing Email's historical Problems.
 
+Clarification accepted 6 November 2026 under [#961](https://github.com/bbottema/simple-java-mail/issues/961): the selected optional
+delivery-report read participates in this capture boundary even when ordinary attachment extraction is deferred. Retain the bytes already
+acquired after a failed read, mark incomplete capture and link the observation to the affected source part. A close failure preserves
+fully acquired content and its own observation. Keep completed report facts and readable neighbors without another source read, eager
+unrelated attachment access or replacement of the borrowed resource. Successful represented content needs no duplicate archive.
+
 Share immutable retained storage across copies. Do not keep a complete large backing allocation for one small exceptional region when
 that region can be detached. Do not hide body payloads in unbounded base64/hex/text metadata to evade the selective-retention rule.
 This avoids a second full raw archive; it does not promise exactly equal heap size for successful and failed inputs. Encodings, retained

@@ -280,6 +280,11 @@ extraction can preserve completed report blocks and warn after a read failure. A
 original cause; returning a silently truncated attachment would falsely claim that its content was obtained. Structural corruption that prevents a
 meaningful Email, cancellation, missing required inputs and programming failures remain errors. Never catch arbitrary runtime failures as malformed mail.
 
+Clarification accepted 6 November 2026 under [#763](https://github.com/bbottema/simple-java-mail/issues/763): optional delivery-report
+acquisition, reading and stream cleanup use the same typed interruption rules as other conversion paths. Cancellation does not require
+the thread interrupt flag to remain set. Preserve the caller's thread state and original failure context, including interrupted causes
+and suppressed failures. Ordinary socket timeouts and other recoverable I/O failures retain completed-block recovery and warnings.
+
 Leniency is not proof of authenticity or permission to retry. Continue verifying signatures over the original bytes, reporting inaccessible ciphertext
 honestly, and preserving exact/protected representations. Do not normalize signed bytes to manufacture a successful verification result.
 The unavailable S/MIME inspection clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#unavailable-smime-inspection-accepted-2026-10-21)
