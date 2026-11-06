@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
@@ -77,9 +78,9 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 			throws MessagingException {
 		diagnostics.useLoggingOnly();
 		diagnostics.startMimePreparation();
-		SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(selectedDestination.getSession(), prepared);
+		final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(selectedDestination.getSession(), prepared);
 		control.checkStopped();
-		final MailSubmissionReceipt result = TransportRunner.buildReceipt(prepared, null);
+		final MailSubmissionReceipt result = TransportRunner.buildPreparedReceipt(prepared, TransportRunner.capturePreparedRecipients(prepared, message));
 		diagnostics.receiptProduced(result);
 		return result;
 	}
@@ -135,10 +136,11 @@ final class RoutedMailConnection extends RoutedConnectionScope {
 		final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(selectedDestination.getSession(), prepared);
 		diagnostics.effectiveMessageId(prepared.getId());
 		control.checkStopped();
+		final MailTransportResult recipients = TransportRunner.capturePreparedRecipients(prepared, message);
 		diagnostics.startSubmission();
 		reservation.commit(control);
 		TransportRunner.invokeCustomMailer(selectedDestination.getOperationalConfig(), selectedDestination.getSession(), prepared, message, diagnostics);
-		final MailSubmissionReceipt result = TransportRunner.buildReceipt(prepared, null);
+		final MailSubmissionReceipt result = TransportRunner.buildPreparedReceipt(prepared, recipients);
 		diagnostics.receiptProduced(result);
 		return result;
 	}

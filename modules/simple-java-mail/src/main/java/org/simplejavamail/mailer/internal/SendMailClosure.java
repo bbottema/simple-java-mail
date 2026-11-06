@@ -11,6 +11,7 @@ import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
 import org.simplejavamail.mailer.internal.util.AcquiredMailTransport;
@@ -62,20 +63,21 @@ class SendMailClosure implements Runnable {
 			control.checkStopped();
 			if (transportModeLoggingOnly) {
 				diagnostics.startMimePreparation();
-				SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				control.checkStopped();
 				LOGGER.info("TRANSPORT_MODE_LOGGING_ONLY: skipping actual sending...");
-				receipt = TransportRunner.buildReceipt(email, null);
+				receipt = TransportRunner.buildPreparedReceipt(email, TransportRunner.capturePreparedRecipients(email, message));
 				diagnostics.receiptProduced(receipt);
 			} else if (operationalConfig.getCustomMailer() != null) {
 				diagnostics.startMimePreparation();
 				val message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				diagnostics.effectiveMessageId(email.getId());
 				control.checkStopped();
+				final MailTransportResult recipients = TransportRunner.capturePreparedRecipients(email, message);
 				diagnostics.startSubmission();
 				requireNonNull(allowance, "allowance").commit(control);
 				TransportRunner.invokeCustomMailer(operationalConfig, session, email, message, diagnostics);
-				receipt = TransportRunner.buildReceipt(email, null);
+				receipt = TransportRunner.buildPreparedReceipt(email, recipients);
 				diagnostics.receiptProduced(receipt);
 			} else {
 				receipt = requireNonNull(connection, "connection").send(email, diagnostics, requireNonNull(allowance, "allowance"), control);

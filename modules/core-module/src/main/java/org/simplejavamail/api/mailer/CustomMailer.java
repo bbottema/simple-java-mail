@@ -35,6 +35,11 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
  * {@code null} leaves your existing behavior unchanged. Simple Java Mail cannot inspect recipient acceptance inside this callback.
  * Factory locks on this transport choice are incompatible with CustomMailer because their application cannot be checked.
  *
+ * The returned submission receipt keeps a best-effort snapshot of the recipient intent Simple Java Mail prepared before invoking this callback.
+ * Changing the supplied MIME message does not report an observed external envelope or replace that captured intent. If a raw recipient header
+ * cannot be parsed, the existing typed/override view is retained without adding a pre-callback validation step. Acceptance and SMTP replies
+ * remain unknown; the receipt timestamp is captured after this callback returns successfully.
+ *
  * @see MailerGenericBuilder#withCustomMailer(CustomMailer)
  * @see <a href="https://simplejavamail.org/features.html#section-custom-mailer">Plug your own sending logic with a Custom Mailer</a>
  */

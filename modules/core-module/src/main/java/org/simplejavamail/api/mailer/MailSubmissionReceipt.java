@@ -28,6 +28,12 @@ public interface MailSubmissionReceipt extends Serializable {
 
 	/**
 	 * @return Immutable results in envelope order.
+	 * <p>
+	 * Logging-only sends describe the locally prepared recipient intent, including raw recipient headers and explicit delivery overrides.
+	 * Duplicate occurrences remain distinct; a named group retained in a raw header can remain one entry before a transport expands it.
+	 * A CustomMailer receipt captures that prepared intent before invoking the callback, whose external delivery mapping is not observed.
+	 * If a raw address header cannot be interpreted, these paths retain the existing typed/override recipient view instead of adding a new
+	 * validation gate. These entries supply no SMTP acceptance or RCPT evidence.
 	 */
 	@NotNull
 	List<MailRecipientResult> getRecipientResults();

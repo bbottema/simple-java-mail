@@ -252,8 +252,9 @@ public class SessionBasedEmailToMimeMessageConverter {
         return deliveryRecipients;
     }
 
+    /** Selects only the prepared recipient view, without binding SMTP options or reading content again. */
     @NotNull
-    private static Address[] resolveEnvelopeRecipients(@NotNull final Email email, @NotNull final MimeMessage mimeMessage)
+    public static Address[] resolveEnvelopeRecipients(@NotNull final Email email, @NotNull final MimeMessage mimeMessage)
             throws MessagingException {
         return email.getOverrideReceivers().isEmpty()
                 ? recipientsOrEmpty(mimeMessage)

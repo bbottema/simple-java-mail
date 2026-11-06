@@ -60,6 +60,11 @@ Document this existing behavior without adding group expansion to the getter or 
 preparation before the transport handles those addresses. Explicit support for preserving named RFC groups remains separate research under
 [#727](https://github.com/bbottema/simple-java-mail/issues/727). This clarification applies to both rehearsal modes in unreleased 10.0.0.
 
+Accepted 5 November 2026: logging-only receipts use this same prepared recipient boundary rather than reconstructing a different list from
+typed Email recipients alone. Include raw recipient headers, preserve occurrence order and apply delivery overrides without another MIME
+render. This does not change rehearsal or imply SMTP acceptance. [ADR 0011](0011-transport-neutral-submission-outcomes.md#prepared-recipient-intent-without-transport-evidence-accepted-5-november-2026)
+and [#723](https://github.com/bbottema/simple-java-mail/issues/723) own the recipient-result correction.
+
 ## Recorded rationale and evidence
 
 - [#451](https://github.com/bbottema/simple-java-mail/issues/451), 2023, moved defaults and overrides to Mailer governance to support different server policies and avoid repeated expensive preparation at ordinary Email construction. This explains why validation of the raw draft is insufficient; it is not a historical claim that rehearsal already existed then.

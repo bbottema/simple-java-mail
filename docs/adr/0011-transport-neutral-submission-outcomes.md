@@ -52,6 +52,24 @@ Provider observations belong to one attempt. Copy mutable provider data before r
 It preserves this result contract: partial acceptance still produces failed completion with the existing receipt and retry guidance,
 even when the application permits submission to accepted recipients. It does not equate a positive RCPT reply with final content acceptance.
 
+## Prepared recipient intent without transport evidence (accepted 5 November 2026)
+
+For logging-only sends, derive recipient results from the already prepared MIME recipient view, or the explicit delivery overrides, in their
+prepared order. Raw To/Cc/Bcc headers and duplicate occurrences belong to that view. Preserve the rehearsal boundary in ADR 0014: a named
+group retained in a raw header can remain one planned entry before the transport expands it. Recipient inspection does not acquire a
+transport, repeat MIME/security preparation or read content again.
+
+A CustomMailer receipt can describe the recipient intent SJM prepared before invoking the callback. The callback owns its external mapping
+and may choose a different envelope; its mutations are not observations of delivery. Capture the prepared intent before invoking it and
+retain the receipt timestamp after the attempt returns. Preserve the callback's invocation, exception and borrowed-content contracts.
+
+These local intentions do not establish SMTP acceptance or RCPT replies. Retain `UNKNOWN`, `CALLER_POLICY_REQUIRED` and absent provider
+facts. Recipient inspection must not become a new validation gate for logging-only or opaque custom sends: if native raw-address parsing
+cannot produce that view, retain the existing typed/override recipient fallback and its original failure timing. Do not convert arbitrary
+application/runtime failures into absent metadata. This is a best-effort planned view, not proof of a complete external envelope.
+The existing issue [#723](https://github.com/bbottema/simple-java-mail/issues/723) owns this completion of unreleased 10.0.0 recipient
+results; the accepted behavior does not add a released 9.x migration or application API.
+
 ## Recorded rationale and evidence
 
 - In [#336's working workaround](https://github.com/bbottema/simple-java-mail/issues/336#issuecomment-920992474), the application captured Jakarta Mail debug output to obtain server feedback. This establishes the historical need; it does not establish a portable server queue-ID format.

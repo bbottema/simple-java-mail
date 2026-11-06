@@ -13,6 +13,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -223,6 +224,29 @@ public class TransportRunner {
 		});
 	}
 
+	/**
+	 * Freezes prepared recipient intent without repeating rendering or provider-envelope validation. A raw address-parse failure leaves the
+	 * legacy typed view available; inspection alone must not add a validation gate to logging-only or opaque CustomMailer processing.
+	 */
+	@Nullable
+	public static MailTransportResult capturePreparedRecipients(@NotNull final Email email, @NotNull final MimeMessage message)
+			throws MessagingException {
+		try {
+			return MailTransportResult.unknown(null).withEnvelopeRecipients(
+					SessionBasedEmailToMimeMessageConverter.resolveEnvelopeRecipients(email, message));
+		} catch (AddressException uninterpretableRecipientHeader) {
+			return null;
+		}
+	}
+
+	/** Builds after the attempt returns, retaining captured intent rather than later mutations of a borrowed MIME message. */
+	@NotNull
+	public static MailSubmissionReceipt buildPreparedReceipt(@NotNull final Email email, @Nullable final MailTransportResult preparedRecipients) {
+		return preparedRecipients == null
+				? buildReceipt(email, (SmtpServerResponse) null)
+				: buildReceiptFromResult(email.getId(), preparedRecipients);
+	}
+
 	@NotNull
 	public static MailSubmissionReceipt buildReceipt(@NotNull final Email email, @Nullable final SmtpServerResponse smtpServerResponse) {
 		if (smtpServerResponse != null) {
@@ -247,10 +271,13 @@ public class TransportRunner {
 	}
 
 	private static MailSubmissionReceipt buildReceipt(@Nullable final String messageId, final Address[] envelope, final MailTransportResult transportResult) {
-		final MailTransportResult completeResult = transportResult.withEnvelopeRecipients(envelope);
+		return buildReceiptFromResult(messageId, transportResult.withEnvelopeRecipients(envelope));
+	}
+
+	private static MailSubmissionReceipt buildReceiptFromResult(@Nullable final String messageId, final MailTransportResult completeResult) {
 		return MailSubmissionReceiptImpl.builder()
 			.emailId(messageId)
-			.smtpResponse(transportResult.getSmtpResponse().orElse(null))
+			.smtpResponse(completeResult.getSmtpResponse().orElse(null))
 			.submittedAt(Instant.now())
 			.status(completeResult.getStatus())
 			.recipientResults(completeResult.getRecipientResults())

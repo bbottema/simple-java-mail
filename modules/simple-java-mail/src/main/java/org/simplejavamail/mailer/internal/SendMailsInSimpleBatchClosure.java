@@ -12,6 +12,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
+import org.simplejavamail.api.mailer.spi.MailTransportResult;
 import org.simplejavamail.api.mailer.MailSendCleanupException;
 import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -99,9 +100,9 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			final Email email = prepareNextEmail(emailIterator);
 			control.checkStopped();
 			currentDiagnostics().startMimePreparation();
-			SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
+			final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 			control.checkStopped();
-			completeCurrentSendSuccessfully(TransportRunner.buildReceipt(email, null));
+			completeCurrentSendSuccessfully(TransportRunner.buildPreparedReceipt(email, TransportRunner.capturePreparedRecipients(email, message)));
 		}
 		checkedFailureKind = MailFailureKind.CLEANUP;
 	}
@@ -117,10 +118,11 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 				final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, email);
 				currentDiagnostics().effectiveMessageId(email.getId());
 				control.checkStopped();
+				final MailTransportResult recipients = TransportRunner.capturePreparedRecipients(email, message);
 				currentDiagnostics().startSubmission();
 				allowance.commit(control);
 				TransportRunner.invokeCustomMailer(operationalConfig, session, email, message, currentDiagnostics());
-				receipt = TransportRunner.buildReceipt(email, null);
+				receipt = TransportRunner.buildPreparedReceipt(email, recipients);
 				currentDiagnostics().receiptProduced(receipt);
 			} catch (RuntimeException failure) {
 				if (receipt != null) { throw new MailSendCleanupException("Individual send cleanup failed in the simple batch", failure, receipt); }

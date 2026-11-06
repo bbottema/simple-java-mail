@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.Transport;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -194,8 +195,8 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	@NotNull
 	private MailSubmissionReceipt convertAndLogPreparedEmail(@NotNull final Email preparedEmail)
 			throws MessagingException {
-		SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, preparedEmail);
-		return TransportRunner.buildReceipt(preparedEmail, null);
+		final MimeMessage message = SessionBasedEmailToMimeMessageConverter.convertAndLogMimeMessage(session, preparedEmail);
+		return TransportRunner.buildPreparedReceipt(preparedEmail, TransportRunner.capturePreparedRecipients(preparedEmail, message));
 	}
 
 	private void openSmtpTransport()
