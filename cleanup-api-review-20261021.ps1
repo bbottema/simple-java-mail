@@ -215,6 +215,14 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # Matching tracked website Java examples exported for relative source-context links.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\combined\simplejavamail.org' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\combined\simplejavamail.org'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\combined' }
+
+    # Matching tracked example sources exported for the website's optional source-context check.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\combined\tools' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\combined\tools'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\combined' }
+
     # 6 November contract repairs (#488, #704, #756, #961): retire exact registered worktrees through Git first.
     # Retain task evidence until maintainer inspection; never delete the shared task parent.
     # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\smime\sjm'
