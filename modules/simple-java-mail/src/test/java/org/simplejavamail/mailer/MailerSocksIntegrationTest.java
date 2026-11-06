@@ -43,7 +43,6 @@ import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
-import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 /** Checks local proxy routing independently of the SMTP server's implementation. */
 @Timeout(30)
@@ -97,7 +96,7 @@ public class MailerSocksIntegrationTest {
 	}
 
 	@Test
-	public void testAutomaticBridgePortWithoutBatchModule() throws Exception {
+	public void testDirectAuthenticatedProxyWithoutBatchModule() throws Exception {
 		startPlainSmtpServer();
 		try (MockedStatic<ModuleLoader> moduleLoader = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
 			moduleLoader.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
@@ -109,19 +108,19 @@ public class MailerSocksIntegrationTest {
 	}
 
 	@Test
-	public void testAutomaticBridgePortWithConnectionTest() throws Exception {
+	public void testDirectAuthenticatedProxyWithConnectionTest() throws Exception {
 		startPlainSmtpServer();
 		try (Mailer mailer = newAuthenticatedMailer()) {
 			mailer.sync().testConnection();
 
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
-			assertAuthenticatedSessionRoute(mailer.getSession(), null);
+			assertAuthenticatedSessionRoute(mailer.getSession());
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		}
 	}
 
 	@Test
-	public void testAutomaticBridgePortWithConnectionPool() throws Exception {
+	public void testDirectAuthenticatedProxyWithConnectionPool() throws Exception {
 		startPlainSmtpServer();
 		try (Mailer mailer = newAuthenticatedMailer()) {
 			assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
@@ -132,7 +131,7 @@ public class MailerSocksIntegrationTest {
 	}
 
 	@Test
-	public void testAutomaticBridgePortWithSimpleBatch() throws Exception {
+	public void testDirectAuthenticatedProxyWithSimpleBatch() throws Exception {
 		startPlainSmtpServer();
 		try (Mailer mailer = newAuthenticatedMailer()) {
 			final Email first = EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false).buildEmail();
@@ -143,12 +142,12 @@ public class MailerSocksIntegrationTest {
 			assertThat(Integer.parseInt(mailer.getSession().getProperty("mail.smtp.socks.port"))).isPositive();
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 			assertThat(smtpServer.getMessages()).hasSize(2);
-			assertAuthenticatedSessionRoute(mailer.getSession(), null);
+			assertAuthenticatedSessionRoute(mailer.getSession());
 		}
 	}
 
 	@Test
-	public void testAutomaticBridgePortWithCustomSession() throws Exception {
+	public void testDirectAuthenticatedProxyWithCustomSession() throws Exception {
 		startPlainSmtpServer();
 		final Properties properties = new Properties();
 		properties.setProperty("mail.transport.protocol", "smtp");
@@ -161,31 +160,14 @@ public class MailerSocksIntegrationTest {
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> {
 				assertThat(Integer.parseInt(session.getProperty("mail.smtp.socks.port"))).isPositive();
-				assertAuthenticatedSessionRoute(session, null);
+				assertAuthenticatedSessionRoute(session);
 			});
 			assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
 		}
 	}
 
 	@Test
-	public void testExplicitBridgePortRemainsFixed() throws Exception {
-		startPlainSmtpServer();
-		final int fixedBridgePort;
-		try (ServerSocket availablePort = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
-			fixedBridgePort = availablePort.getLocalPort();
-		}
-
-		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
-				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
-				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").withBridgePort(fixedBridgePort).build())
-				.buildMailer()) {
-			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isEqualTo(fixedBridgePort);
-			mailer.withOpenConnection(sender -> assertAuthenticatedSessionRoute(mailer.getSession(), fixedBridgePort));
-		}
-	}
-
-	@Test
-	public void testSeparateMailersUseDifferentAutomaticBridgePortsConcurrently() throws Exception {
+	public void testSeparateMailersKeepIndependentFactoriesForTheSameRemoteProxyConcurrently() throws Exception {
 		startPlainSmtpServer();
 		final CountDownLatch bothConnectionsOpen = new CountDownLatch(2);
 		final CountDownLatch releaseConnections = new CountDownLatch(1);
@@ -208,17 +190,13 @@ public class MailerSocksIntegrationTest {
 				final int secondPort = Integer.parseInt(secondSession.getProperty("mail.smtp.socks.port"));
 				assertThat(firstPort).isPositive();
 				assertThat(secondPort).isPositive();
-				assertAuthenticatedSessionRoute(firstSession, null);
-				assertAuthenticatedSessionRoute(secondSession, null);
-				if (expectsDirectRoute()) {
-					assertThat(firstPort).isEqualTo(proxyServer.getPort());
-					assertThat(secondPort).isEqualTo(proxyServer.getPort());
-					assertThat(firstSession.getProperties().get("mail.smtp.socketFactory.transport"))
-							.as("each Mailer retains its own tracked physical factory while sharing the configured remote endpoint")
-							.isNotSameAs(secondSession.getProperties().get("mail.smtp.socketFactory.transport"));
-				} else {
-					assertThat(secondPort).isNotEqualTo(firstPort);
-				}
+				assertAuthenticatedSessionRoute(firstSession);
+				assertAuthenticatedSessionRoute(secondSession);
+				assertThat(firstPort).isEqualTo(proxyServer.getPort());
+				assertThat(secondPort).isEqualTo(proxyServer.getPort());
+				assertThat(firstSession.getProperties().get("mail.smtp.socketFactory.transport"))
+						.as("each Mailer retains its own tracked physical factory while sharing the configured remote endpoint")
+						.isNotSameAs(secondSession.getProperties().get("mail.smtp.socketFactory.transport"));
 			} finally {
 				releaseConnections.countDown();
 			}
@@ -238,7 +216,7 @@ public class MailerSocksIntegrationTest {
 	}
 
 	@Test
-	// The embedded remote proxy does not challenge credentials. This still exercises the authenticated-proxy bridge and verifies that SMTPS traverses it.
+	// The embedded remote proxy does not challenge credentials. This still exercises the direct authenticated-proxy path and verifies that SMTPS traverses it.
 	public void testSOCKSPassthrough_SMTPS_Authenticating() throws Exception {
 		assertSmtpsPassthrough(true);
 	}
@@ -287,7 +265,7 @@ public class MailerSocksIntegrationTest {
 			throws InterruptedException {
 		bothConnectionsOpen.countDown();
 		if (!releaseConnections.await(10, TimeUnit.SECONDS)) {
-			throw new AssertionError("Timed out while keeping both authenticated proxy bridges active");
+			throw new AssertionError("Timed out while keeping both authenticated proxy connections active");
 		}
 	}
 
@@ -301,25 +279,17 @@ public class MailerSocksIntegrationTest {
 			mailer.async().sendMail(originalEmail).getCompletion().get(20, TimeUnit.SECONDS);
 		}
 		assertThat(acceptedProxyConnections).hasValueGreaterThan(0);
-		if (mailer.getProxyConfig().requiresAuthentication()) { assertAuthenticatedSessionRoute(mailer.getSession(), null); }
+		if (mailer.getProxyConfig().requiresAuthentication()) { assertAuthenticatedSessionRoute(mailer.getSession()); }
 		assertThat(smtpServer.getMessages()).hasSize(1);
 		assertThat(smtpServer.getMessages().remove(0).getMimeMessage().getMessageID()).isEqualTo(originalEmail.getId());
 	}
 
-	private void assertAuthenticatedSessionRoute(final Session session, final Integer fixedBridgePort) {
+	private void assertAuthenticatedSessionRoute(final Session session) {
 		final String prefix = "smtps".equals(session.getProperty("mail.transport.protocol")) ? "mail.smtps" : "mail.smtp";
-		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
-		assertThat(session.getProperty(prefix + ".socks.host")).isEqualTo(expectsDirectRoute() ? "localhost" : "127.0.0.1");
-		final int selectedPort = Integer.parseInt(session.getProperty(prefix + ".socks.port"));
-		assertThat(selectedPort).isPositive();
-		if (expectsDirectRoute()) {
-			assertThat(selectedPort).isEqualTo(proxyServer.getPort());
-			assertThat(session.getProperties().get(prefix + ".socketFactory.transport")).isNotNull();
-		} else {
-			assertThat(selectedPort).isNotEqualTo(proxyServer.getPort());
-			if (fixedBridgePort != null) { assertThat(selectedPort).isEqualTo(fixedBridgePort); }
-			assertThat(session.getProperties()).doesNotContainKey(prefix + ".socketFactory.transport");
-		}
+		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
+		assertThat(session.getProperty(prefix + ".socks.host")).isEqualTo("localhost");
+		assertThat(session.getProperty(prefix + ".socks.port")).isEqualTo(Integer.toString(proxyServer.getPort()));
+		assertThat(session.getProperties().get(prefix + ".socketFactory.transport")).isNotNull();
 	}
 
 	private static SSLContext createServerSslContext() throws Exception {

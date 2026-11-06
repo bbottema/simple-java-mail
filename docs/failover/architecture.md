@@ -162,7 +162,6 @@ Routing, recovery and resource ownership live in `modules/simple-java-mail`. `co
 | `AllocationContext` claim identity and batch observer association | One started upstream claim, through settlement | Preserve one opaque identity and remaining budget through narrowed contexts; bind foreground setup to its explicit observer and remove the association in `finally`. Background work retains an independent lifetime. |
 | `SmtpServiceUnavailableException` | Internal provider evidence | Represent setup-time SMTP `421` without teaching the router Angus-specific reply parsing. |
 | `AcquiredMailTransport` | One acquired transport/lease | Own send access, abort registration, release/invalidation or physical close, and cleanup failure handling. Execution-confined. |
-| `SmtpProxyScope` | Connection/proxy-use scope | Reference-count the selected destination's authenticated proxy use through ordinary and retained paths. |
 | `RoutedConnectionScope` | Execution-confined resource scope | Final acquisition boundary and common cleanup for transport, proxy and delegated lifetimes; cannot submit. |
 | `ReadyMailSend` | One ordinary send | Governs from the original Email and reserves allowance before acquisition; submits only after routing returns. |
 | `RoutedMailConnection` | Retained batch/open-connection scope | Uses the common resource scope, with separate per-email governance and allowance. |
@@ -297,7 +296,7 @@ These are separate state machines with separate owners: route traversal decides 
 
 There is no new health executor. Once coordinated failover applies, recorded failure blocks background creation until an operation obtains usable-connection evidence. Expiry of the recheck interval alone does not let pool maintenance probe the destination. Existing healthy leases remain usable, and a successful borrowed lease can also clear the failure observation. An allocation already underway is not synchronously revoked by the gate.
 
-Background setup also needs independent resource ownership. Authenticated SOCKS uses an operation-owned local bridge; the destination's immutable gate therefore disables background allocation, even while a foreground operation has the bridge running. A transient `isRunning()` check would race that operation's teardown. Foreground acquisition starts the bridge normally and can reuse healthy leases. Anonymous proxies/direct SMTP retain normal background behavior subject to recovery eligibility; logging-only and CustomMailer start no background SMTP work. The gate defers without reserving capacity or publishing a false server incident. This restriction is independent of whether failover is configured.
+Authenticated SOCKS retains foreground-only setup after removal of the local bridge. The destination's immutable gate disables background allocation so Mailer construction does not begin proxy authentication or invoke application factories. Foreground acquisition owns its direct socket and can reuse healthy leases. Anonymous proxies/direct SMTP retain normal background behavior subject to recovery eligibility; logging-only and CustomMailer start no background SMTP work. The gate defers without reserving capacity or publishing a false server incident. This restriction is independent of whether failover is configured.
 
 Source anchors: [ConnectionRecovery](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/ConnectionRecovery.java), [DestinationConnectionObserver](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/DestinationConnectionObserver.java).
 
@@ -377,7 +376,6 @@ classDiagram
         close()
     }
     class AcquiredMailTransport
-    class SmtpProxyScope
     class SendingReservation {
         <<SendingAllowance.Reservation>>
     }
@@ -392,7 +390,6 @@ classDiagram
     ReadyMailSend --|> RoutedConnectionScope
     RoutedMailConnection --|> RoutedConnectionScope
     RoutedConnectionScope *-- "0..1" AcquiredMailTransport : transport or lease
-    RoutedConnectionScope *-- "0..1" SmtpProxyScope : proxy use
     RoutedConnectionScope *-- "0..*" ParticipantScope : delegated lifetimes
     ReadyMailSend *-- "0..1" SendingReservation : one email
     RoutedMailConnection ..> SendingReservation : reserves for each email
@@ -455,7 +452,7 @@ The coverage map below is a maintenance guide, not a claim that a suite was reru
 | No replay, strict failure classification, capacity waits, disposal, locks and delegated lifecycle | `ConnectionFailoverTest`, public `FailoverProviderContractTest`, `FailoverSmtpContractTest`, `FailoverTlsContractTest`, `FailoverPoolContractTest` |
 | Generations, one due recheck, visit backoff, policy isolation and independent observation ownership | `ConnectionRecoveryTest`, `ConnectionRecoveryOwnershipTest`, public `FailoverRecoveryContractTest` and pool-free direct recovery scenarios |
 | Pooled usable handoff, healthy reuse, abandonment and claim observer association retirement | `AcquiredConnectionObservationTest`, batch `ClaimObservationOwnershipTest`, upstream claim-context/observation tests |
-| Authenticated-proxy prerequisites and background setup | `FailoverProxyContractTest` uses real loopback SMTP/SOCKS for nonzero-core sync/async sends, healthy lease reuse and a genuine setup outage. `DestinationConnectionObserverTest` pins the gate, including a currently running bridge and non-SMTP modes. |
+| Authenticated-proxy prerequisites and background setup | `FailoverProxyContractTest` uses real loopback SMTP/SOCKS for nonzero-core sync/async sends, healthy lease reuse and a genuine setup outage. `DestinationConnectionObserverTest` pins the foreground-only gate and non-SMTP modes. |
 | Cancellation while failed setup cleanup is still running | `FailoverProviderContractTest.cancellationDuringFailedSetupCleanupRetainsItsEvidenceWithoutUsingFailover` uses a supported fault provider and the public handle, with/without observation or a cleanup error. The same suite also runs without pool artifacts. |
 | Greeting EOF, setup `421` and required-STARTTLS stopping on real loopback sockets | `SmtpConnectionFailoverWireTest` |
 | Bounded history, accumulated preparation and terminal outcome/exception identity | Diagnostics/attempt tests and public provider contracts, including observation-disabled scenarios |

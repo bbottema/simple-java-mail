@@ -154,6 +154,11 @@ public final class CliSupport {
 		} catch (CommandLine.UnmatchedArgumentException e) {
 			// Picocli has already distinguished consumed values from unmatched options.
 			for (final String arg : e.getUnmatched()) {
+				if (arg.equals("--mailer:withProxyBridgePort") || arg.startsWith("--mailer:withProxyBridgePort=")
+						|| arg.equals("--mailer:withProxyBridgePort--help")) {
+					throw new IllegalArgumentException("--mailer:withProxyBridgePort was removed. Remove this option; authenticated SOCKS "
+							+ "connects directly to the remote proxy and no longer needs a local listener port.", e);
+				}
 				if (arg.equals("--mailer:async") || arg.startsWith("--mailer:async=") || arg.equals("--mailer:async--help")) {
 					throw new IllegalArgumentException("--mailer:async was removed in 10.0.0. Remove this option: send and connect already wait for completion. "
 							+ "The daemon still runs separate requests concurrently.", e);

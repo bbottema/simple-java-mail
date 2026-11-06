@@ -12,7 +12,7 @@ adds logical setting identities and a whole-Mailer construction plan. Supported 
 applicability. Connection conflict checks run before server representation construction, and the completed connection plan becomes part of
 the full owned graph's validated construction input. This preserves the policy and interpretation contract below.
 
-A configured Mailer can describe one SOCKS proxy while its Session uses another: proxy configuration is applied before additional Jakarta Mail properties. With authenticated proxying, replacing the loopback host while subsequently publishing an allocated bridge port can also create an incoherent route. Values injected through files, Spring, environment variables or deployment systems make such contradictions difficult to discover.
+The original defect let a configured Mailer describe one SOCKS proxy while its Session used another: proxy configuration was applied before additional Jakarta Mail properties. With the former authentication bridge, replacing the loopback host while later publishing an allocated port could also create an incoherent route. Values injected through files, Spring, environment variables or deployment systems made such contradictions difficult to discover. The conflict policy below also applies after ADR 0042 removes that bridge.
 
 The historical contracts address different responsibilities. [#19](https://github.com/bbottema/simple-java-mail/issues/19) introduced low-level Session customization. [#38](https://github.com/bbottema/simple-java-mail/issues/38) introduced SJM's authenticated proxy bridge, and [#686](https://github.com/bbottema/simple-java-mail/issues/686) reaffirmed configured proxy routing on caller-supplied Sessions. [#785](https://github.com/bbottema/simple-java-mail/issues/785) preserves supplied connection settings; [#845](https://github.com/bbottema/simple-java-mail/issues/845) distinguishes explicit timeout choices from inherited defaults. These decisions do not establish one universal precedence rule for all configuration.
 
@@ -55,13 +55,13 @@ For supplied Sessions, ordinary factory connection defaults do not automatically
 
 This clarifies and supersedes conflicting precedence wording in ADRs 0003 and 0015. It does not change Session ownership or authorize installation of an owned provider on a caller's Session.
 
-### Compose the remote proxy before bridge routing
+### Compose the remote proxy before transport decoration
 
 Recognized `mail.smtp.socks.host`/`port` and `mail.smtps.socks.host`/`port` values contribute to logical remote proxy resolution for the selected protocol. Compatible raw endpoints can combine with SJM credentials from factory or Java configuration. This extends the previous SJM-only endpoint inheritance.
 
-Resolve one remote destination and authentication configuration before deriving Session routing. Authenticated proxying uses the optional authentication module and a loopback bridge; an allocated local port is a generated runtime fact, not another user declaration. Keep the requested remote endpoint distinct from the local endpoint reported by the effective Session. Raw-only anonymous proxying remains supported.
+Resolve one remote destination and authentication configuration before deriving Session routing. Authenticated proxying uses the optional authentication module's direct client through the Angus transport hook. Effective Session inspection and connection requirements name the actual remote endpoint. Raw-only anonymous proxying remains supported.
 
-[ADR 0010](0010-authenticated-socks-bridge.md) continues to own loopback binding, listener lifetime, pooled sockets and port refresh on restart. This decision does not turn raw HTTP proxy settings or arbitrary socket factories into an SJM routing guarantee.
+[ADR 0042](0042-direct-authenticated-socks-sockets.md) owns authenticated socket composition and supersedes ADR 0010's local bridge and generated port. This decision does not turn raw HTTP proxy settings or arbitrary socket factories into an SJM routing guarantee.
 
 ### Requirements remain mandatory
 
@@ -78,7 +78,7 @@ Construction errors identify the logical setting, originating property/setter na
 ## Alternatives and precedent
 
 - **Always prefer convenience APIs:** simple to compose, but can conceal deployment configuration. It remains an explicit opt-in policy.
-- **Always prefer raw properties:** preserves historical escape-hatch behavior but can defeat the selected proxy and its authentication bridge.
+- **Always prefer raw properties:** preserves historical escape-hatch behavior but can defeat the selected proxy and its authentication requirement.
 - **First-write locking on every builder:** makes defaults, copies and resets depend on assignment history. Existing value-specific locks remain the way to express requirements.
 - **Reject every repeated setter:** disrupts ordinary draft editing and does not distinguish conflicting configuration mechanisms.
 - **A public resolution report:** useful as a separate future feature; source-aware construction errors are sufficient for this decision.
@@ -102,7 +102,7 @@ TLS flags and host exceptions resolve together while retaining ownership-specifi
 Raw trusted-host text follows the provider's whitespace tokenization without trimming nonseparator control characters out of hostnames.
 Shared comparison and inspection retain that membership interpretation while leaving the selected raw text unchanged.
 
-Raw SOCKS endpoint syntax, including an embedded port and the provider's separate-port precedence, contributes to the remote route before bridge derivation. A supplied Session's omitted proxy port remains omitted unless deliberately customized or required by a lock; provider-default inspection does not authorize inserting an ordinary factory port. Preserve the existing behavior of explicit bounded hosts replacing a supplied Session's wildcard trust, while omitted captured TLS members on owned Sessions retain their inheritance.
+Raw SOCKS endpoint syntax, including an embedded port and the provider's separate-port precedence, contributes to the remote route before socket decoration. A supplied Session's omitted proxy port remains omitted unless deliberately customized or required by a lock; provider-default inspection does not authorize inserting an ordinary factory port. Preserve the existing behavior of explicit bounded hosts replacing a supplied Session's wildcard trust, while omitted captured TLS members on owned Sessions retain their inheritance.
 
 Inline SOCKS port suffixes use the provider's decimal grammar; without a separate port, malformed suffixes retain the provider default. The separate numeric port
 property keeps its own accepted forms, including hexadecimal. Adding SJM credentials must preserve the same interpreted remote endpoint.

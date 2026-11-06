@@ -87,7 +87,6 @@ final class ConnectionPropertyValues {
                 || key.equals("simplejavamail.proxy.password")) {
             return Kind.TEXT;
         }
-        if (key.equals("simplejavamail.proxy.socks5bridge.port")) { return Kind.INTEGER; }
         if (key.equals(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY)) { return Kind.OBJECT; }
         final String prefix = key.startsWith("mail.smtp.") ? "mail.smtp." : key.startsWith("mail.smtps.") ? "mail.smtps." : null;
         return prefix == null ? Kind.UNKNOWN : MEMBERS.getOrDefault(key.substring(prefix.length()), Kind.UNKNOWN);

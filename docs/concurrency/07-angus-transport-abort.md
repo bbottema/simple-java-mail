@@ -73,13 +73,13 @@ The atomic handshake covers both orders: either abort finds the published socket
 
 ## Direct authenticated SOCKS in the development lane
 
-[ADR 0042](../adr/0042-direct-authenticated-socks-sockets.md) adds the direct route through the merged Angus transport hook. The ordinary released-Angus build retains its bridge. Route selection occurs before connection; a direct authentication, connection or TLS failure does not retry through a bridge or skip the proxy.
+[ADR 0042](../adr/0042-direct-authenticated-socks-sockets.md) uses direct authenticated sockets through the Angus transport hook and removes the old bridge. Provider capability is checked before connection; an unsupported authenticated combination fails without network effects. Authentication, connection or TLS failure cannot skip the selected proxy.
 
 The tracked factory occupies `socketFactory.transport` and captures the unconnected upstream socket before the SOCKS facade connects it. Angus still layers its write-timeout and TLS sockets and performs SMTP. Closing the captured handle releases supported blocked upstream I/O without waiting for a relay reader. Probes get a fresh factory/tracker and never borrow a send's registration.
 
 Only the recognized default/internal physical creator retains the managed abort/deadline capability. Application raw, transport or TLS factories remain opaque for that promise, even though direct connectivity can use them. Supplied Sessions keep their selected provider and existing support limits. Proxy-specific decoration is allowed only because authenticated proxying was explicitly requested; cancellation state remains outside Session properties.
 
-The bridge's established-write backpressure limitation remains distinct. Direct physical disposal does not establish that the legacy relay is repaired or that the remote peer has already observed EOF. SMTP acceptance and duplicate-risk interpretation are unchanged.
+There is no relay reader whose blocked write delays local disposal. Closing the physical socket does not establish that the remote peer has already observed EOF. SMTP acceptance and duplicate-risk interpretation are unchanged.
 
 ## Submission state is a separate machine
 

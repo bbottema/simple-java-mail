@@ -61,11 +61,8 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	T withProxyPort(@Nullable @Cli.Optional Integer proxyPort);
 	/**
-	 * Sets the optional username to authenticate with the proxy. If set, Simple Java Mail will use its built in proxy bridge to
-	 * perform the SOCKS authentication, as the underlying JavaMail framework doesn't support this directly. The execution path
-	 * then will be:
-	 * <p>
-	 * {@code Simple Java Mail client -> JavaMail -> anonymous authentication with local proxy bridge -> full authentication with remote SOCKS proxy -> SMTP server}.
+	 * Sets the optional username for a direct authenticated SOCKS connection.
+	 * The optional SOCKS module performs authentication before Angus starts SMTP, preserving the selected TLS settings.
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	T withProxyUsername(@Nullable @Cli.Optional String proxyUsername);
@@ -78,25 +75,6 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	 */
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	T withProxyPassword(@Nullable @Cli.Optional String proxyPassword);
-	/**
-	 * Relevant only when using username authentication with a proxy.
-	 * <p>
-	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to the JVM's
-	 * loopback address and owns this port while this Mailer has active proxy operations.
-	 * <p>
-	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
-	 * not use a bridge port.
-	 * <p>
-	 * Defaults to automatic allocation ({@value DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
-	 *
-	 * @param proxyBridgePort The loopback port to use, or {@code 0} to allocate an available port automatically.
-	 *
-	 * @see #withProxyUsername(String)
-	 */
-	T withProxyBridgePort(@NotNull Integer proxyBridgePort);
 	/**
 	 * Controls whether client-side validation findings block sending or are reported as warnings.
 	 * <p>
@@ -243,8 +221,7 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	 * an advanced setting and can cause conflicts if another connection already uses that port.
 	 * <p>
 	 * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
-	 * Mail's authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path, not
-	 * the proxy server's own outbound socket.
+	 * Mail's authenticated SOCKS socket, this setting binds the client connection to the remote proxy, not the proxy server's own outbound socket.
 	 * <p>
 	 * A caller-supplied Session keeps its local binding unless you use this setter. A null argument removes that direct Session property;
 	 * an inherited Properties default cannot be removed this way. See {@link MailerFromSessionBuilder#usingSession(jakarta.mail.Session)}.
@@ -758,11 +735,6 @@ public interface InternalMailerBuilder<T extends MailerGenericBuilder<?>> extend
 	 */
 	@Nullable
 	String getProxyPassword();
-	/**
-	 * @see #withProxyBridgePort(Integer)
-	 */
-	@Nullable
-	Integer getProxyBridgePort();
 	/**
 	 * @see #disablingAllClientValidation(Boolean)
 	 */

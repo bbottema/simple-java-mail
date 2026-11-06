@@ -401,9 +401,7 @@ public class ConnectionConfig {
          * an advanced setting and can cause conflicts if another connection already uses that port.
          * <p>
          * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
-         * Mail's retained authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path,
-         * not the proxy server's own outbound socket. With the direct Angus transport route, it binds the physical connection
-         * to the remote proxy.
+         * Mail's authenticated SOCKS socket, it binds the client connection to the remote proxy rather than the proxy server's own outbound socket.
          * <p>
          * A caller-supplied Session keeps its local binding when these members are untouched. Replacement or removal follows
          * {@link MailerGenericBuilder#withConnectionConflictPolicy(ConnectionConflictPolicy)}: strict mode rejects conflicts with imported values.

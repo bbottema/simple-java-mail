@@ -48,7 +48,7 @@ final class CliMailerInputFixture {
                 .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(9))
                         .withLocalBindAddress("127.0.0.2", 99).withSmtpClientHostname("before-client").build())
                 .withProxyConfig(SocksProxyConfig.builder().withHost("before-proxy").withPort(1099)
-                        .withUsername("before-proxy-user").withPassword("before-proxy-password").withBridgePort(1090).build())
+                        .withUsername("before-proxy-user").withPassword("before-proxy-password").build())
                 .withTlsConfig(TlsConfig.builder().trustingSSLHosts("before-trust").trustingAllHosts(option.equals("resetTrustingAllHosts"))
                         .verifyingServerIdentity(false).withOpportunisticTLS(false).withCustomSSLFactoryClass("before-class").build())
                 .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(7).withKeepAliveTime(Duration.ofSeconds(2))
@@ -123,10 +123,9 @@ final class CliMailerInputFixture {
                 final Object proxy = read(session, "getProxyConfig");
                 equal(proxy, "getRemoteProxyHost", convertedArgs.get(0)); equal(proxy, "getRemoteProxyPort", convertedArgs.get(1));
                 equal(proxy, "getUsername", convertedArgs.get(2)); equal(proxy, "getPassword", convertedArgs.get(3)); return;
-            case "withProxyBridgePort": equal(read(session, "getProxyConfig"), "getProxyBridgePort", first); return;
             case "clearProxy":
                 final Object clearedProxy = read(session, "getProxyConfig"); equal(clearedProxy, "getRemoteProxyHost", null);
-                equal(clearedProxy, "getUsername", null); equal(clearedProxy, "getPassword", null); equal(clearedProxy, "getProxyBridgePort", 0); return;
+                equal(clearedProxy, "getUsername", null); equal(clearedProxy, "getPassword", null); return;
             case "trustingSSLHosts": assertThat(read(session, "getSslHostsToTrust")).isEqualTo(Arrays.asList((String[]) first)); return;
             case "clearTrustedSSLHosts": assertThat(read(session, "getSslHostsToTrust")).isEqualTo(List.of()); return;
             case "trustingAllHosts": equal(session, "isTrustAllSSLHost", first); return;

@@ -1,46 +1,56 @@
-# Authenticated SOCKS setup and forwarding
+# Authenticated SOCKS socket ownership
 
-This page describes the retained compatibility bridge used with released Angus. The [Angus snapshot development route](../adr/0042-direct-authenticated-socks-sockets.md) connects authenticated sockets directly and has no listener, setup admission or forwarding handoff. See [transport abort](07-angus-transport-abort.md#direct-authenticated-socks-in-the-development-lane) for its physical ownership. Bridge-port configuration remains supported.
-
-The optional authenticated SOCKS module adapts the provider's anonymous local hop to a remote authenticated proxy. [ADR 0010](../adr/0010-authenticated-socks-bridge.md) owns its protocol and socket lifetimes; [ADR 0015](../adr/0015-execution-views-and-transport-pooling.md) keeps its setup capacity distinct from application workers and transport leases.
+Authenticated SOCKS uses the optional client module through Angus's independent transport-socket hook. The client logs in and opens the remote SMTP tunnel before Angus starts SMTP or TLS. There is no local listener, anonymous relay connection, setup executor or forwarding thread. [ADR 0042](../adr/0042-direct-authenticated-socks-sockets.md) owns this architecture; [ADR 0010](../adr/0010-authenticated-socks-bridge.md) preserves the former bridge design as history.
 
 ## Actors and ownership
 
 | Actor | Responsibility |
 | --- | --- |
-| Listener generation | Bind IPv4 loopback, register each accepted owner, admit bounded setup work and retire only that generation. |
-| Setup worker | Parse the local command, start its client reader, negotiate the owned remote socket and reserve forwarding before acknowledging success. Return after ownership transfers. |
-| Original client reader | Observe pending peer EOF and buffer at most 8 KiB of early application bytes. Continue as the only local-input reader after handoff, preserving byte order. |
-| Reserved reverse forwarder | Wait behind a gate until success and ownership transfer. Flush early bytes before later client writes, pump remote-to-local traffic, close the exact owner and join its client reader. |
+| Angus transport factory decorator | Retain the selected application factory, create an unconnected plain socket and capture its physical handle before proxy setup. |
+| `SocksSocket` | Wrap that physical socket, retain per-connection proxy credentials, authenticate and issue CONNECT using one cumulative connection budget. |
+| Angus transport | Apply native read/write timeout handling, TLS and SMTP to the resulting destination socket. |
+| Managed connection or probe tracker | Close its exact physical handle for supported abort and failed setup; a dedicated probe has fresh state. |
+| Pool lease or retained scope | Keep the physical transport alive until release or disposal, using the existing registration and lease fences. |
 
-The internal setup executor has zero core workers, at most 100 active workers, direct handoff without a waiting queue and a 30-second idle keep-alive. These are private resource choices, not public settings or an established-tunnel limit. A refused submission closes only its new registered peer; the listener continues and healthy tunnels remain usable. Setup workers may disappear while established connections remain open.
+Authenticated destinations keep foreground-only acquisition. Building a Mailer, inspecting choices or constructing a socket provider does not resolve names, connect, invoke application socket factories or start networking workers. Healthy pooled transports remain reusable. Removing the bridge does not enable background authenticated connection creation.
 
-## Handoff order
-
-The adapter selects anonymous method 00 only from a complete version-5 greeting that offers it. A complete greeting without that method receives 05 FF and retires only that peer; wrong versions and truncated framing close without selecting a method. A subsequent CONNECT requires version 5, reserved byte zero and complete mandatory framing before starting the client reader or remote setup. Valid supported Mailer traffic keeps its existing path; these checks add no authentication method, private preface or transport association.
+## Setup and closure
 
 ```mermaid
 sequenceDiagram
-    participant Setup as Setup worker
-    participant Peer as Local SOCKS client
-    participant Forward as Reserved reverse forwarder
-    Setup->>Forward: Start thread behind gate
-    Setup-->>Peer: Write complete CONNECT success
-    Setup->>Forward: Commit forwarding and cleanup ownership
-    Note over Setup: Return to bounded setup executor
-    Forward->>Forward: Activate ordered early-byte flush
-    Note over Peer,Forward: One input reader per direction
-    Forward->>Forward: Pump, close exact peers, join client reader
+    participant Angus as Angus connect worker
+    participant Factory as Transport factory
+    participant Owner as Physical owner
+    participant Proxy as Remote SOCKS proxy
+    Angus->>Factory: Create plain unconnected socket
+    Factory->>Owner: Publish exact physical handle
+    Factory-->>Angus: Return SOCKS socket facade
+    Angus->>Proxy: TCP connect, select method, authenticate, CONNECT
+    Note over Angus,Proxy: One remaining connect budget across setup
+    Angus->>Angus: Restore ordinary read timeout, apply TLS and SMTP
+    Owner->>Proxy: Close captured physical socket on supported stop
 ```
 
-`SocksTunnel` retains `PENDING`, `FORWARDING` and `CLOSED` under its lifecycle monitor. The complete local response precedes the atomic transfer to `FORWARDING`. A sticky transfer fact survives later closure, so a returning setup handler cannot reclaim forwarding cleanup. A failed thread start publishes no success; failed or late handoff closes that owner and releases its reserved thread.
+The socket facade's state monitor protects connection admission, destination publication and the closed flag. It never spans blocking network I/O or physical close. A racing close marks the facade closed before disposing its physical socket; a late successful handshake cannot publish a usable destination after closure. An original setup failure remains primary and cleanup failures are suppressed onto it.
 
-Network operations and joins stay outside the lifecycle monitor. The output-order lock serializes the pending-byte flush with subsequent client writes. During committed activation, the client reader waits outside both locks until that flush is ready; direct closure releases the readiness and reservation gates without taking the output-order lock. The forwarding side owns the potentially blocking early-byte flush, so it cannot retain a setup worker.
+The destination remains the original SMTP endpoint, including its address family or unresolved name. The physical connection goes to the configured proxy. Socket binding, options and passive endpoint inspection preserve that distinction. TLS stays with Angus, retaining the original SMTP hostname, SNI, client certificates and trust policy.
 
-The first non-null operational failure remains primary, including one reported after EOF retired the sockets. Close failures are suppressed, handles retain a single closer and fatal forwarding errors propagate after cleanup. [SocksSetupHandoffTest](../../modules/authenticated-socks-module/src/test/java/org/simplejavamail/internal/authenticatedsockssupport/socks5server/SocksSetupHandoffTest.java) covers worker release, publication order, thread-start failure, late client closure, ordered early data and fatal-error identity.
+Zero connect timeout remains unlimited. A finite timeout is not restarted for authentication or CONNECT. Setup restores the ordinary read timeout before TLS and SMTP. No separate proxy read, idle or write timer is introduced.
 
-## Retirement and limits
+## Failure isolation and supported abort
 
-Normal listener stop closes pending owners while established pooled or retained tunnels continue. Restart receives a separate owner registry. An unexpected listener failure closes its generation before interrupting its setup workers; old cleanup cannot retire a newer generation. [SocksSetupAdmissionTest](../../modules/authenticated-socks-module/src/test/java/org/simplejavamail/internal/authenticatedsockssupport/socks5server/SocksSetupAdmissionTest.java) covers actual bounded refusal, recovery, idle-worker retirement, established reuse and crash/restart isolation. [AuthenticatedSocksCapacityTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/AuthenticatedSocksCapacityTest.java) exercises another real Mailer connection while a hundred established scopes remain held, with independent remote-fixture headroom.
+A complete RFC 1929 rejection carries typed authentication evidence from that connection. The invoking failover policy applies to fresh and cached facts; its authentication permission is disabled by default. A malformed reply remains an unknown failure, and certificate permission is independent. Concurrent sockets do not share credentials, probe state, failure facts or abort ownership.
 
-No independent bridge read, idle or write timer is introduced. The SMTP client remains the timeout authority. Established forwarding retains its blocking model: if the local reader is writing to the remote peer, or waiting behind the ordered early-byte flush, a later client EOF may wait until that operation returns. Direct owner closure does not acquire the ordering lock, but this capacity correction adds no cancellation correlation or extra EOF observer. [ADR 0017](../adr/0017-deadlines-and-physical-cancellation.md#alternatives-and-consequences) records that unchanged limitation.
+For the supported managed route, stop closes the captured upstream socket without waiting for the SMTP monitor or a relay reader. Publication after stop still closes the late handle. The existing exclusive-lease fence prevents a retired callback from touching the next borrower. See [transport abort](07-angus-transport-abort.md#direct-authenticated-socks-in-the-development-lane) and [pool claims](06-pool-claims-and-leases.md).
+
+Supplied Sessions and opaque factories retain their existing physical-abort and total-deadline limits. Authenticated connectivity alone grants neither capability. An unsupported provider is rejected before network effects; the connection cannot fall back to anonymous proxying. Local socket disposal, the remote peer's later EOF observation and SMTP acceptance remain different events.
+
+## Source and regression anchors
+
+- [SocksSocket](../../modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/socks5client/SocksSocket.java): passive provider construction, setup budget, state monitor and physical ownership.
+- [Socks socket controls](../../modules/authenticated-socks-module/src/test/java/org/simplejavamail/internal/authenticatedsockssupport/socks5client/SocksSocketProviderTest.java): endpoint/options, protocol boundaries and cleanup.
+- [Direct routing](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/AuthenticatedSocksDirectRoutingTest.java), [pending setup](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/AuthenticatedSocksPendingSetupTest.java) and [established abort](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/AuthenticatedSocksEstablishedAbortTest.java): real provider-path ownership and cancellation boundaries.
+- [Authentication failover](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/failover/SocksProxyAuthenticationFailoverTest.java): explicit permissions, cached failures and concurrent route isolation.
+- [Unsupported provider](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/AuthenticatedSocksUnsupportedProviderTest.java): useful rejection before transport/factory/network effects or Session mutation.
+
+These controls describe specific contracts and interleavings. They do not promise bounded completion for arbitrary native DNS, application callbacks or opaque custom socket code.

@@ -32,6 +32,7 @@ import static org.simplejavamail.internal.config.ConfigurationPropertyNames.CONN
 import static org.simplejavamail.internal.config.ConfigurationPropertyNames.EXTRA_PROPERTY_PATTERN;
 import static org.simplejavamail.internal.config.ConfigurationPropertyNames.NAMED_MAILER_PROPERTY_PATTERN;
 import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isRecognizedKey;
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isRetiredSocksBridgeProperty;
 import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isWildcardKey;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.StringUtil.escapeControlCharacters;
@@ -107,7 +108,6 @@ public final class ConfigLoader {
 		PROXY_PORT("simplejavamail.proxy.port"),
 		PROXY_USERNAME("simplejavamail.proxy.username"),
 		PROXY_PASSWORD("simplejavamail.proxy.password"),
-		PROXY_SOCKS5BRIDGE_PORT("simplejavamail.proxy.socks5bridge.port"),
 		DEFAULT_SUBJECT("simplejavamail.defaults.subject"),
 		DEFAULT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.content.transfer.encoding"),
 		DEFAULT_PLAIN_TEXT_CONTENT_TRANSFER_ENCODING("simplejavamail.defaults.body.text.content.transfer.encoding"),
@@ -346,7 +346,7 @@ public final class ConfigLoader {
 					}
 				}
 				for (Map.Entry<String, String> entry : environment.entrySet()) {
-					if (isWildcardKey(ConfigurationLocks.ordinaryName(entry.getKey()))) {
+					if (isWildcardKey(ConfigurationLocks.ordinaryName(entry.getKey())) || isRetiredSocksBridgeProperty(entry.getKey())) {
 						normalized.put(entry.getKey(), entry.getValue());
 					}
 				}
@@ -399,6 +399,11 @@ public final class ConfigLoader {
 			}
 			for (Map.Entry<String, ?> entry : new LinkedHashMap<>(sourceProperties).entrySet()) {
 				final String key = entry.getKey();
+				if (isRetiredSocksBridgeProperty(key)) {
+					throw new IllegalArgumentException("The authenticated SOCKS bridge has been removed. Remove property "
+							+ escapeControlCharacters(key) + " from source " + escapeControlCharacters(requireSourceName(source.getPropertySourceName(key)))
+							+ "; authenticated SOCKS connects directly to the remote proxy and no longer uses a local bridge port.");
+				}
 				if (!isRecognizedKey(key)) {
 					if (source.isStrict()) {
 						throw new IllegalStateException("Unknown Simple Java Mail property " + escapeControlCharacters(key)

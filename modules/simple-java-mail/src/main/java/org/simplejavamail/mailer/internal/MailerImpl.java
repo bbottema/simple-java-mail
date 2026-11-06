@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SelectedPoolTransport;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.AsyncQueueRejectionReason;
@@ -66,11 +65,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
-import static org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge.LOOPBACK_HOST;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
@@ -102,19 +99,6 @@ public class MailerImpl implements Mailer {
 	private final OperationalConfig operationalConfig;
 
 	/**
-	 * Intermediary SOCKS5 relay server that acts as bridge between JavaMail and remote proxy (since JavaMail only supports anonymous SOCKS proxies).
-	 * Only set when {@link ProxyConfig} is provided with authentication details.
-	 */
-	@Nullable
-	private final AnonymousSocks5Server proxyServer;
-
-	/**
-	 * Used to keep track of running SMTP requests, so that we know when to close down the proxy bridging server (if used).
-	 */
-	@NotNull
-	private final AtomicInteger smtpConnectionCounter = new AtomicInteger();
-	
-	/**
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withEmailValidator(EmailValidator)
 	 */
 	@NotNull
@@ -137,7 +121,6 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	private final ProxyConfig proxyConfig;
-	private final boolean directAuthenticatedSocks;
 
 	@NotNull
 	private final MailSendObserverNotifier mailSendObserverNotifier;
@@ -250,12 +233,11 @@ public class MailerImpl implements Mailer {
 				: preparedPlan;
 		this.session = session;
 		this.operationalConfig = operationalConfig;
-		this.directAuthenticatedSocks = applicationPlan.usesDirectAuthenticatedSocks();
 		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
 				supportsBackgroundConnectionSetup());
 		final TransportStrategy effectiveTransportStrategy = sessionSettings.getTransportStrategy();
 		final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
-				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties(), directAuthenticatedSocks);
+				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
 		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
 		final SessionConfigurationRollback callerRollback = ownsSession ? null
@@ -265,7 +247,7 @@ public class MailerImpl implements Mailer {
 		try {
 			claimSessionOwnership();
 			configurationStarted = true;
-			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, applicationPlan);
+			configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, applicationPlan);
 			poolRegistrationBegun = true;
 			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
 		} catch (RuntimeException | Error failure) {
@@ -375,9 +357,8 @@ public class MailerImpl implements Mailer {
 				limiter -> initCluster(session, operationalConfig, limiter));
 	}
 
-	/** Configuration may allocate a proxy bridge, but does not start it or connect to SMTP. */
-	@Nullable
-	private AnonymousSocks5Server configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
+	/** Installs connection configuration without opening a socket or starting network workers. */
+	private void configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
 			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final ValidatedConnectionPlan plan) {
 		final MailerSessionSettings sessionSettings = plan.settings();
 		// Inferring SMTP property names must not replace a caller Session's existing authentication-selection behavior.
@@ -387,21 +368,9 @@ public class MailerImpl implements Mailer {
 				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		) : null;
 		initSession(session, operationalConfig, sessionSettings);
-		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session,
-				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null, directAuthenticatedSocks);
-		try {
-			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
-			return configuredProxy;
-		} catch (RuntimeException | Error failure) {
-			if (configuredProxy != null) {
-				try {
-					configuredProxy.stop();
-				} catch (RuntimeException | Error cleanupFailure) {
-					failure.addSuppressed(cleanupFailure);
-				}
-			}
-			throw failure;
-		}
+		configureSessionWithProxy(proxyConfig, operationalConfig, session,
+				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null);
+		finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
 	}
 
 	private void finishSendingSessionConfiguration(final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession,
@@ -568,21 +537,18 @@ public class MailerImpl implements Mailer {
 	 * <p>
 	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. The resolved SMTP or SMTPS protocol selects the
 	 * property names, including for a caller-supplied Session without Simple Java Mail's transport-strategy marker.
-	 * Providers with the transport-creation hook retain the remote endpoint and receive a direct SOCKS factory. Older Angus uses
-	 * the loopback bridge; its actual bound port is written immediately before the transport connects.
+	 * Authenticated proxies retain the remote endpoint and receive a direct SOCKS factory after provider capability validation.
 	 *
 	 * @param proxyConfig       Proxy server details, optionally with username / password.
 	 * @param session           The session with properties to add the new configuration to.
 	 * @param transportStrategy Resolved protocol used for property names. Internal callers can omit it to use <em>"mail.smtp.socks.*"</em> names.
 	 * @param routePrepared Whether the application plan already installed the anonymous route without filling caller-Session gaps.
-	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
 	 */
-	@Nullable
-	private static AnonymousSocks5Server configureSessionWithProxy(
+	private static void configureSessionWithProxy(
 			@NotNull final ProxyConfig proxyConfig,
 			@NotNull final OperationalConfig operationalConfig,
 			@NotNull final Session session,
-			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared, final boolean directAuthenticatedSocks) {
+			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared) {
 		if (operationalConfig.getCustomMailer() != null) {
 			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
 		} else if (!proxyConfig.requiresProxy()) {
@@ -595,20 +561,12 @@ public class MailerImpl implements Mailer {
 				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
 			}
 			if (proxyConfig.requiresAuthentication()) {
-				if (directAuthenticatedSocks) {
-					sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
-					sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
-					MailTransportLifecycleResolver.configureAuthenticatedSocks(session,
-							ModuleLoader.loadAuthenticatedSocksModule().createSocketProvider(proxyConfig));
-					return null;
-				}
-				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
-				return ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxyConfig);
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
+				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
+				MailTransportLifecycleResolver.configureAuthenticatedSocks(session,
+						ModuleLoader.loadAuthenticatedSocksModule().createSocketProvider(proxyConfig));
 			}
 		}
-		return null;
 	}
 
 	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, final SendingAllowance allowance) {
@@ -635,7 +593,7 @@ public class MailerImpl implements Mailer {
 	private synchronized void testConnectionSynchronously() {
 		ensureConnectionTestAllowed();
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
-		new TestConnectionClosure(operationalConfig, session, proxyServer, smtpConnectionCounter).run();
+		new TestConnectionClosure(operationalConfig, session).run();
 	}
 
 	/** @see Mailer.Async#testConnection() */
@@ -657,12 +615,12 @@ public class MailerImpl implements Mailer {
 
 	/** @see Mailer.Sync#probeConnection(boolean) */
 	private synchronized SmtpConnectionReport probeConnectionSynchronously(final boolean authenticate) {
-		// Lock the owning Mailer, not its view, so shutdown cannot close the shared proxy during this connection.
+		// Lock the owning Mailer so shutdown cannot retire its resources while a probe is running.
 		if (shutdownFuture != null) {
 			throw new IllegalStateException("This Mailer is shutting down. Build a new Mailer before probing another connection.");
 		}
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
-		return SmtpConnectionProbe.probe(session, operationalConfig, authenticate, proxyServer, smtpConnectionCounter);
+		return SmtpConnectionProbe.probe(session, operationalConfig, authenticate);
 	}
 
 	/** @see Mailer.Async#probeConnection(boolean) */
@@ -866,20 +824,6 @@ public class MailerImpl implements Mailer {
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 	}
 
-	SmtpProxyScope openProxy() {
-		final SmtpProxyScope scope = new SmtpProxyScope(smtpConnectionCounter, proxyServer, session);
-		try {
-			scope.start();
-			return scope;
-		} catch (RuntimeException | Error failure) {
-			try {
-				scope.close();
-			} catch (RuntimeException | Error cleanupFailure) {
-				failure.addSuppressed(cleanupFailure);
-			}
-			throw failure;
-		}
-	}
 
 	@Nullable
 	MailerImpl failoverMailer() {
@@ -891,7 +835,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private boolean supportsBackgroundConnectionSetup() {
-		// Both authenticated routes retain foreground-only setup so building or inspecting a Mailer cannot start proxy connections.
+		// Authenticated setup remains foreground-only so building or inspecting a Mailer cannot start proxy connections.
 		return usesSmtpConnection() && !(proxyConfig.requiresProxy() && proxyConfig.requiresAuthentication());
 	}
 
@@ -947,7 +891,7 @@ public class MailerImpl implements Mailer {
 			}
 			SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 			new SendMailsWithOpenConnectionClosure<>(operationalConfig, session, checkedOpenConnectionCallback, this::prepareEmailForSending,
-					mailSendObserverNotifier, proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, mailSendOperations, sendingLimits)
+					mailSendObserverNotifier, operationalConfig.isTransportModeLoggingOnly(), mailSendOperations, sendingLimits)
 					.runOpenConnectionCallback();
 		}
 	}
@@ -990,7 +934,7 @@ public class MailerImpl implements Mailer {
 		validateDeadlineSupport();
 		SessionBasedEmailToMimeMessageConverter.verifySelectedSession(session, session);
 		new SendMailsInSimpleBatchClosure(operationalConfig, session, emails, this::prepareEmailForSending, mailSendObserverNotifier,
-				proxyServer, operationalConfig.isTransportModeLoggingOnly(), smtpConnectionCounter, control, sendingLimits)
+				operationalConfig.isTransportModeLoggingOnly(), control, sendingLimits)
 				.run();
 	}
 

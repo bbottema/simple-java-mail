@@ -46,7 +46,9 @@
                             <rules>
                                 <banDuplicatePomDependencyVersions/>
                                 <dependencyConvergence/>
-                                <requireUpperBoundDeps/>
+                                <requireUpperBoundDeps>
+                                    <uniqueVersions>true</uniqueVersions>
+                                </requireUpperBoundDeps>
                                 <requireJavaVersion>
                                     <version>[${cli.java.release},)</version>
                                 </requireJavaVersion>
@@ -56,6 +58,9 @@
                                 </requireProperty>
                                 <requireReleaseDeps>
                                     <onlyWhenRelease>true</onlyWhenRelease>
+                                    <excludes>
+                                        <exclude>org.eclipse.angus:angus-mail</exclude>
+                                    </excludes>
                                 </requireReleaseDeps>
                             </rules>
                         </configuration>
@@ -179,35 +184,6 @@
     </dependencies>
 
     <profiles>
-        <profile>
-            <id>angus-snapshot-development</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-enforcer-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>enforce-build</id>
-                                <configuration>
-                                    <rules>
-                                        <!-- Compare the pinned snapshot consistently with the root development profile. -->
-                                        <requireUpperBoundDeps>
-                                            <uniqueVersions>true</uniqueVersions>
-                                        </requireUpperBoundDeps>
-                                        <requireReleaseDeps>
-                                            <excludes>
-                                                <exclude>org.eclipse.angus:angus-mail</exclude>
-                                            </excludes>
-                                        </requireReleaseDeps>
-                                    </rules>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>publish-cli</id>
             <build>

@@ -114,7 +114,7 @@ class MailerLifecycleTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
             final Mailer mailer = new MailerImpl(null, SMTP, EmailGovernanceImpl.NO_GOVERNANCE(),
-                    new ProxyConfigImpl(null, null, null, null, null), Session.getInstance(new java.util.Properties()), configuration);
+                    new ProxyConfigImpl(null, null, null, null), Session.getInstance(new java.util.Properties()), configuration);
             final CompletableFuture<Void> first = mailer.closeAsync();
             assertThatThrownBy(() -> first.get(5, SECONDS)).isInstanceOf(ExecutionException.class).hasCauseReference(failure);
             assertThatThrownBy(() -> mailer.closeAsync().get(5, SECONDS)).isInstanceOf(ExecutionException.class).hasCauseReference(failure);

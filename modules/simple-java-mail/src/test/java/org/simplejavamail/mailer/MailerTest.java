@@ -83,7 +83,6 @@ import static org.mockito.Mockito.when;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTPS;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
-import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 @SuppressWarnings("unused")
 public class MailerTest {
@@ -92,7 +91,6 @@ public class MailerTest {
 
 	private static final String RESOURCES_PKCS = determineResourceFolder("simple-java-mail") + "/test/resources/pkcs12";
 	private static final String COUNTING_TRANSPORT_STATE_KEY = MailerTest.class.getName() + ".countingTransportState";
-	private static final String LOOPBACK_HOST = "127.0.0.1";
 
 	@BeforeEach
 	public void configureMailerDefaults() {
@@ -109,7 +107,6 @@ public class MailerTest {
 				+ "simplejavamail.proxy.port=1080\n"
 				+ "simplejavamail.proxy.username=username proxy\n"
 				+ "simplejavamail.proxy.password=password proxy\n"
-				+ "simplejavamail.proxy.socks5bridge.port=1081\n"
 				+ "simplejavamail.defaults.trustedhosts=192.168.1.122;mymailserver.com;ix55432y\n"
 				+ "simplejavamail.extraproperties.extra-properties-property1=value1\n"
 				+ "simplejavamail.extraproperties.extra-properties-property2=value2";
@@ -256,7 +253,7 @@ public class MailerTest {
 	}
 
 	@Test
-	public void usingSession_AuthenticatedProxy_RoutesThroughLocalBridge() throws Exception {
+	public void usingSession_AuthenticatedProxy_UsesTheDirectRemoteRoute() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Properties properties = new Properties();
 		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
@@ -267,11 +264,11 @@ public class MailerTest {
 
 		try (Mailer mailer = simpleJavaMail.mailerBuilder(session)
 				.withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES)
-				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").withBridgePort(8181).build())
+				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").build())
 				.buildMailer()) {
 			assertThat(mailer.getSession()).isSameAs(session);
 			assertThat(session.getProperty("mail.smtp.host")).isEqualTo("caller-smtp.example.com");
-			assertAuthenticatedProxyRoute(mailer, "proxy.example.com", 1080, "8181");
+			assertAuthenticatedProxyRoute(mailer, "proxy.example.com", 1080);
 			assertThat(session.getProperty("mail.smtps.socks.host")).isNull();
 			assertThat(session.getProperty("caller.property")).isEqualTo("unchanged");
 			assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo("proxy.example.com");
@@ -298,7 +295,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertAuthenticatedProxyRoute(mailer, "proxy host", 1080, "999");
+		assertAuthenticatedProxyRoute(mailer, "proxy host", 1080);
 		assertThat(session.getProperty("extra1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("value2");
 		assertThat(session.getProperty("extra-properties-property1")).isNull();
@@ -323,7 +320,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080);
 		assertThat(session.getProperty("extra1")).isNull();
 		assertThat(session.getProperty("extra2")).isNull();
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
@@ -398,7 +395,7 @@ public class MailerTest {
 
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080);
 		assertThat(session.getProperty("extra-properties-property1")).isEqualTo("value1");
 		assertThat(session.getProperty("extra-properties-property2")).isEqualTo("override");
 	}
@@ -430,7 +427,7 @@ public class MailerTest {
 		
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080, "1081");
+		assertAuthenticatedProxyRoute(mailer, "proxy.default.com", 1080);
 	}
 	
 	@Test
@@ -448,7 +445,7 @@ public class MailerTest {
 		assertThat(session.getProperty("mail.smtp.ssl.checkserveridentity")).isEqualTo("true");
 		assertThat(session.getProperty("mail.smtp.user")).isEqualTo("overridden username smtp");
 		assertThat(session.getProperty("mail.smtp.auth")).isEqualTo("true");
-		assertAuthenticatedProxyRoute(mailer, "overridden proxy host", 1080, "1081");
+		assertAuthenticatedProxyRoute(mailer, "overridden proxy host", 1080);
 		assertThat(session.getProperty("extra1")).isEqualTo("overridden value1");
 		assertThat(session.getProperty("extra2")).isEqualTo("overridden value2");
 	}
@@ -600,20 +597,20 @@ public class MailerTest {
 		assertThat(session.getProperties()).doesNotContainKey("mail.smtp.ssl.socketFactory.class");
 	}
 
-	private static void assertAuthenticatedProxyRoute(final Mailer mailer, final String remoteHost, final int remotePort, final String bridgePort) {
+	private static void assertAuthenticatedProxyRoute(final Mailer mailer, final String remoteHost, final int remotePort) {
 		final Session session = mailer.getSession();
-		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
+		assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
 		assertThat(mailer.getProxyConfig().getRemoteProxyHost()).isEqualTo(remoteHost);
 		assertThat(mailer.getProxyConfig().getRemoteProxyPort()).isEqualTo(remotePort);
-		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? remoteHost : LOOPBACK_HOST);
-		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo(expectsDirectRoute() ? Integer.toString(remotePort) : bridgePort);
-		assertThat(session.getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
+		assertThat(session.getProperty("mail.smtp.socks.host")).isEqualTo(remoteHost);
+		assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo(Integer.toString(remotePort));
+		assertThat(session.getProperties().get("mail.smtp.socketFactory.transport") != null).isTrue();
 	}
 
 	private static void assertConfiguredTlsFactoryDelegatesTo(final Mailer mailer, final String key, final SSLSocketFactory applicationFactory) {
 		final Session session = mailer.getSession();
 		final Object configured = session.getProperties().get(key);
-		final boolean direct = expectsDirectRoute() && mailer.getProxyConfig().requiresProxy() && mailer.getProxyConfig().requiresAuthentication();
+		final boolean direct = mailer.getProxyConfig().requiresProxy() && mailer.getProxyConfig().requiresAuthentication();
 		assertThat(session.getProperties().get(key.replace(".ssl.socketFactory", ".socketFactory.transport")) != null).isEqualTo(direct);
 		assertThat(configured).isInstanceOf(SSLSocketFactory.class);
 		if (direct) {
@@ -1267,7 +1264,7 @@ public class MailerTest {
 		if (transportStrategy == SMTP_TLS) {
 			if (authenticateProxy) {
 				mailerBuilder
-						.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().withHost(prefix + "proxy host").withPort(1080).withUsername(prefix + "username proxy").withPassword(prefix + "password proxy").withBridgePort(999).build());
+						.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().withHost(prefix + "proxy host").withPort(1080).withUsername(prefix + "username proxy").withPassword(prefix + "password proxy").build());
 			} else {
 				mailerBuilder.withProxyConfig(mailerBuilder.getProxyConfig().toBuilder().withHost(prefix + "proxy host").withPort(1080).build());
 			}

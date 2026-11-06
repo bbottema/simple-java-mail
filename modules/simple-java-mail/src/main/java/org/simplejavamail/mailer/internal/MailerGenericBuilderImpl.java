@@ -146,12 +146,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	private String proxyPassword;
 
-	/**
-	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
-	 */
-	@NotNull
-	private Integer proxyBridgePort;
-
 	@NotNull private SessionDebugConfig debugConfig = SessionDebugConfig.builder().build();
 
 	/**
@@ -382,8 +376,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				: UUID.randomUUID();
 
 		this.proxyPort =  							verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PORT, null, DEFAULT_PROXY_PORT));
-		this.proxyBridgePort = 						verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT,
-				null, DEFAULT_PROXY_BRIDGE_PORT));
 		this.clientValidationWarningsOnly = 			verifyNonnullOrEmpty(MailerConfigurationResolver.resolve(config, ConfigKeys.DISABLE_ALL_CLIENTVALIDATION,
 				null, DEFAULT_DISABLE_ALL_CLIENTVALIDATION));
 		this.connectTimeout = configuredSocketTimeout(ConfigKeys.CONNECT_TIMEOUT);
@@ -446,7 +438,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return definition;
 	}
 
-	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
+	/** Validate the whole captured graph before constructing privately owned executors or pools. */
 	final MailerImpl buildConfiguredMailer() {
 		final CapturedMailerInputs captured = captureMailerInputs();
 		final ResolvedMailerConfiguration resolved = ResolvedMailerConfiguration.resolve(captured);
@@ -549,7 +541,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		choices.put(Property.PROXY_PORT, proxyPort);
 		choices.put(Property.PROXY_USERNAME, proxyUsername);
 		choices.put(Property.PROXY_PASSWORD, proxyPassword);
-		choices.put(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
 		choices.put(Property.JAVAXMAIL_DEBUG, MailerConfigurationResolver.resolve(config, ConfigKeys.JAVAXMAIL_DEBUG,
 				debugConfig.getEnabled(), DEFAULT_JAVAXMAIL_DEBUG));
 		choices.put(Property.JAVAXMAIL_DEBUG_OUTPUT, debugConfig.getPrinter() == null
@@ -717,7 +708,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 				.rawChoices(explicitRawSessionSettings).typedChoices(explicitSessionSettings)
 				.defaults(connectionDefaults(suppliedSession, strategy, connectionChoices)).physicalChoices(regularPhysicalChoices(strategy))
 				.requiredOverrides(required)
-				.proxyFallback(new ProxyConfigImpl(proxyHost, proxyPort, proxyUsername, proxyPassword, proxyBridgePort))
+				.proxyFallback(new ProxyConfigImpl(proxyHost, proxyPort, proxyUsername, proxyPassword))
 				.proxyCustomized(proxyCustomized()).customMailer(customMailer).tokenProvider(oauth2AccessTokenProvider).build();
 	}
 
@@ -779,7 +770,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	private boolean proxyCustomized() {
 		return proxyConfig.getHost() != null || proxyConfig.isHostCleared() || proxyConfig.getPort() != null || proxyConfig.isPortCleared()
 				|| proxyConfig.getUsername() != null || proxyConfig.isUsernameCleared() || proxyConfig.getPassword() != null
-				|| proxyConfig.isPasswordCleared() || proxyConfig.getBridgePort() != null
+				|| proxyConfig.isPasswordCleared()
 				|| explicitSessionSettings.keySet().stream().anyMatch(property -> property.name().startsWith("PROXY_"));
 	}
 
@@ -795,9 +786,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		}
 		if (proxyConfig.getPassword() != null || proxyConfig.isPasswordCleared()) {
 			declarations.put(Property.PROXY_PASSWORD, proxyPassword);
-		}
-		if (proxyConfig.getBridgePort() != null) {
-			declarations.put(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
 		}
 	}
 
@@ -1138,15 +1126,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return (T) this;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#withProxyBridgePort(Integer)
-	 */
-	@Override
-	public T withProxyBridgePort(@NotNull final Integer proxyBridgePort) {
-		this.proxyBridgePort = proxyBridgePort;
-		customizedSessionSetting(Property.PROXY_SOCKS5BRIDGE_PORT, proxyBridgePort);
-		return (T) this;
-	}
 
 	/** Internal CLI scalar adaptation; it preserves earlier choices in the same invocation. */
 	@Override public T withDebugLogging(final Boolean enabled) {
@@ -1820,8 +1799,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	 */
 	@Override
 	public T clearProxy() {
-		return (T) withProxy(null, null, null, null)
-				.withProxyBridgePort(DEFAULT_PROXY_BRIDGE_PORT);
+		return (T) withProxy(null, null, null, null);
 	}
 
 	/**
@@ -1937,14 +1915,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		return proxyPassword;
 	}
 
-	/**
-	 * @see MailerGenericBuilder#getProxyBridgePort()
-	 */
-	@Override
-	@NotNull
-	public Integer getProxyBridgePort() {
-		return proxyBridgePort;
-	}
 
 
 
@@ -2255,8 +2225,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
     /** @see MailerGenericBuilder#withProxyConfig(SocksProxyConfig) */
     @Override public T withProxyConfig(@NotNull final SocksProxyConfig choices) {
         requireNonNull(choices, "proxyConfig");
-        for (Property property : List.of(Property.PROXY_HOST, Property.PROXY_PORT, Property.PROXY_USERNAME, Property.PROXY_PASSWORD,
-                Property.PROXY_SOCKS5BRIDGE_PORT)) { explicitSessionSettings.remove(property); }
+        for (Property property : List.of(Property.PROXY_HOST, Property.PROXY_PORT, Property.PROXY_USERNAME, Property.PROXY_PASSWORD)) { explicitSessionSettings.remove(property); }
         proxyHost = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_HOST,
                 MailerConfigurationResolver.choice(choices.getHost(), choices.isHostCleared()), null, "SocksProxyConfig.withHost/clearHost");
         proxyPort = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PORT,
@@ -2265,8 +2234,6 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
                 MailerConfigurationResolver.choice(choices.getUsername(), choices.isUsernameCleared()), null, "SocksProxyConfig.withUsername/clearUsername");
         proxyPassword = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_PASSWORD,
                 MailerConfigurationResolver.choice(choices.getPassword(), choices.isPasswordCleared()), null, "SocksProxyConfig.withPassword/clearPassword");
-        proxyBridgePort = MailerConfigurationResolver.resolve(config, ConfigKeys.PROXY_SOCKS5BRIDGE_PORT,
-                choices.getBridgePort(), DEFAULT_PROXY_BRIDGE_PORT);
         proxyConfig = choices;
         addProxyDeclarations(explicitSessionSettings);
         return (T) this;

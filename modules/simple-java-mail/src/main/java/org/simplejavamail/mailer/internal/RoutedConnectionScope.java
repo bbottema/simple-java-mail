@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Owns the selected connection, proxy and participating Mailer lifetimes. Routing may acquire this scope, but cannot submit through it.
+ * Owns the selected connection and participating Mailer lifetimes. Routing may acquire this scope, but cannot submit through it.
  * Ordinary sends add a prepared email and reservation; retained scopes add their per-email work later. Execution confines this owner to one thread.
  */
 abstract class RoutedConnectionScope implements AutoCloseable {
@@ -28,7 +28,6 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 	private final MailSendDiagnosticsRecorder diagnostics;
 	private final List<MailSendOperations.Scope> delegatedScopes = new ArrayList<>();
 	private final List<MailerImpl> executionOwners = new ArrayList<>();
-	@Nullable private SmtpProxyScope proxyScope;
 	@Nullable private AcquiredMailTransport acquiredTransport;
 	private boolean scopeClosed;
 
@@ -68,7 +67,6 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 				if (diagnostics.retainsConnectionHistory()) {
 					diagnostics.beginConnectionStep(selectedDestination.definition().name, selectedDestination.logicalHost(), selectedDestination.logicalPort());
 				}
-				proxyScope = selectedDestination.openProxy();
 				acquiredTransport = AcquiredMailTransport.acquire(selectedDestination.getSession(), selected, control, observer, diagnostics);
 			}
 		} catch (MessagingException | RuntimeException | Error failure) {
@@ -129,12 +127,12 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 		}
 	}
 
-	/** Retry waits keep participating Mailers alive, but own no ordinary lease, proxy or sending reservation. */
+	/** Retry waits keep participating Mailers alive, but own no ordinary lease or sending reservation. */
 	final void closeAttemptResources() throws MessagingException {
 		diagnostics.startCleanup();
 		Throwable primaryFailure = null;
 		try {
-			primaryFailure = executeWithinOwners(this::closeConnectionAndProxy);
+			primaryFailure = executeWithinOwners(this::closeConnection);
 		} catch (RuntimeException | Error failure) {
 			primaryFailure = failure;
 		}
@@ -158,33 +156,18 @@ abstract class RoutedConnectionScope implements AutoCloseable {
 	}
 
 	@Nullable
-	private Throwable closeConnectionAndProxy() {
+	private Throwable closeConnection() {
 		final AcquiredMailTransport connection = acquiredTransport;
-		final SmtpProxyScope proxy = proxyScope;
-		// Detach these attempt resources before cleanup: a thrown close must not make terminal cleanup try to dispose them a second time.
+		// Detach before cleanup: a thrown close must not make terminal cleanup dispose the connection a second time.
 		acquiredTransport = null;
-		proxyScope = null;
-		Throwable primaryFailure = null;
 		try {
 			if (connection != null) {
 				connection.close();
 			}
+			return null;
 		} catch (MessagingException | RuntimeException | Error failure) {
-			primaryFailure = failure;
-		} finally {
-			try {
-				if (proxy != null) {
-					proxy.close();
-				}
-			} catch (RuntimeException | Error failure) {
-				if (primaryFailure == null) {
-					primaryFailure = failure;
-				} else if (primaryFailure != failure) {
-					primaryFailure.addSuppressed(failure);
-				}
-			}
+			return failure;
 		}
-		return primaryFailure;
 	}
 
 	/** Ordinary sending owns one reservation; retained connections reserve and release separately for each email. */

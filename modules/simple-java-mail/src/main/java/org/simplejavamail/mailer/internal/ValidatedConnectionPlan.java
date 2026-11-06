@@ -49,7 +49,7 @@ final class ValidatedConnectionPlan {
         final boolean direct = directAuthenticatedSocks(inputs.getTargetSession(), settings.copyEffectiveProperties(), resolved.proxy,
                 inputs.isSmtpActive());
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(
-                inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy(), direct);
+                inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy());
         requirements.verifyAdditionalProperties(inputs.copyAdditionalProperties());
         requirements.verifyExplicitConnectionChoices(resolved.explicitOverrides);
         if (inputs.getSuppliedSession() != null) {
@@ -76,7 +76,7 @@ final class ValidatedConnectionPlan {
         final boolean direct = directAuthenticatedSocks(ownsSession ? null : baseline, settings.finalProperties(baseline, operational.getProperties()),
                 proxy, operational.getCustomMailer() == null);
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(config, proxy,
-                operational.isTrustAllSSLHost(), strategy, direct);
+                operational.isTrustAllSSLHost(), strategy);
         requirements.verifyAdditionalProperties(operational.getProperties());
         if (!ownsSession) { requirements.verifyCallerOwnedSession(baseline); }
         final Properties effective = settings.finalProperties(baseline, operational.getProperties());
@@ -95,8 +95,14 @@ final class ValidatedConnectionPlan {
 
     private static boolean directAuthenticatedSocks(@Nullable final Session supplied, final Properties effective, final ProxyConfig proxy,
             final boolean smtpActive) {
-        return smtpActive && proxy.requiresProxy() && proxy.requiresAuthentication()
-                && MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(supplied == null ? Session.getInstance(effective) : supplied, effective);
+        if (!smtpActive || !proxy.requiresProxy() || !proxy.requiresAuthentication()) {
+            return false;
+        }
+        if (!MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(supplied == null ? Session.getInstance(effective) : supplied, effective)) {
+            throw new IllegalArgumentException("Authenticated SOCKS requires an Angus mail provider with transport socket support. "
+                    + "Use a compatible Angus version and its lifecycle adapter; this provider cannot authenticate the configured SOCKS proxy.");
+        }
+        return true;
     }
 
     MailerSessionSettings settings() { return settings; }

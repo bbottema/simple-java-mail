@@ -68,18 +68,18 @@ When changing builder signatures or CLI help, also follow [Generated CLI Metadat
 
 ### Angus snapshot development lane
 
-Normal builds use released Angus Mail 2.0.5, Jakarta Mail API 2.1.5, Jakarta Activation API 2.1.4 and Angus Activation 2.0.3.
-The explicit `angus-snapshot-development` profile resolves the published Angus Mail snapshot
+This dedicated development branch resolves the published Angus Mail snapshot
 `2.1.0-20261105.105723-1` from [Sonatype's snapshot repository](https://central.sonatype.com/repository/maven-snapshots/).
 This timestamped build contains the accepted [transport/TLS composition change](https://github.com/eclipse-ee4j/angus-mail/pull/228),
 which adds `mail.<protocol>.socketFactory.transport` and `.transport.class`. The timestamp pins the Angus binary instead of following later snapshot builds.
-The repository is enabled only in this profile; normal builds retain their released dependency defaults.
+It is the branch's default dependency because authenticated SOCKS now requires the transport hook. No bridge fallback remains.
+These prerelease inputs do not constitute a production release.
 
 Maven downloads the published artifacts directly. No local Angus checkout, source build, private-cache marker or preparation script is needed.
 Run focused SJM integration tests with:
 
 ```powershell
-mvn -Pangus-snapshot-development -pl modules/simple-java-mail -am test `
+mvn -pl modules/simple-java-mail -am test `
     "-Dtest=AuthenticatedSocksDirectRoutingTest,AuthenticatedSocksEstablishedAbortTest,AuthenticatedSocksCapacityTest" `
     "-Dsurefire.failIfNoSpecifiedTests=false"
 ```
@@ -87,20 +87,19 @@ mvn -Pangus-snapshot-development -pl modules/simple-java-mail -am test `
 Run the full reactor on JDK 17 or newer with:
 
 ```powershell
-mvn -Pangus-snapshot-development,publish-cli clean verify
+mvn -Ppublish-cli clean verify
 ```
 
-For the JDK 11 library gate, use the library command from [Build](#build) with `-Pangus-snapshot-development`.
-Surefire receives `sjm.test.authenticatedSocksRoute=direct` in this profile and `bridge` in the ordinary lane, so an unexpected route fails
-explicitly. Run released-Angus controls without this profile. Keep narrow checks at the `test` phase, or explicitly skip configuration-contract
+For the JDK 11 library gate, use the library command from [Build](#build).
+Surefire expects `sjm.test.authenticatedSocksRoute=direct`; authenticated proxying with an older or unsupported provider must fail before network effects.
+The former `angus-snapshot-development` profile has been folded into this branch's defaults. Keep narrow checks at the `test` phase, or explicitly skip configuration-contract
 aggregation for a deliberately partial `verify` run as described below. Do not run concurrent writers against a shared cache or reactor output directory.
 
-The development profile selects Mail API 2.2.0-M1, Activation API 2.2.0-M1 and Angus Activation 2.1.0-M1, matching the published snapshot's
-dependency declarations and OSGi package requirements. These choices apply only to this profile. Upper-bound and convergence checks remain
+The branch selects Mail API 2.2.0-M1, Activation API 2.2.0-M1 and Angus Activation 2.1.0-M1, matching the published snapshot's
+dependency declarations and OSGi package requirements. Upper-bound and convergence checks remain
 enabled, with timestamped versions compared consistently; only Angus Mail is exempt from the release-dependency rule. This is an experimental
-integration lane, not a production compatibility promise for prerelease dependencies. The snapshot also contains other Angus changes,
-including clearing stale server extensions before EHLO and after STARTTLS. The development characterization retains those semantics separately
-from the released baseline.
+development baseline, not a production compatibility promise for prerelease dependencies. The snapshot also contains other Angus changes,
+including clearing stale server extensions before EHLO and after STARTTLS. Keep those provider semantics explicit in compatibility checks.
 
 The independent transport factory must return an open, unconnected, non-SSL socket. Keep TLS in an `SSLSocketFactory` slot so Angus can
 retain its TLS selection and trust callbacks. Legacy factory class settings may require an additional lazy `getDefault()` lookup to select
@@ -110,9 +109,9 @@ public factory methods to `org.simplejavamail.mailprovider.angus`; native Angus 
 Custom factories and supplied Sessions retain their existing total-deadline and physical-abort support boundaries. Authenticated destinations
 also retain foreground-only connection setup, including when a core pool size is configured.
 
-When a compatible final Angus version is available, select it through `angus-mail.version`, update the ordinary lane's expected route to
-`direct`, and run the applicable acceptance gates with the ordinary dependency checks. The transport integration remains the same;
-this snapshot profile is a temporary development lane.
+When a compatible final Angus version is available, replace `angus-mail.version` and align the Mail/Activation baseline with its published
+requirements. Remove the Angus snapshot repository and its narrow release-dependency exemption, then run the applicable acceptance gates.
+The direct transport integration and removed bridge API remain the same; #922 tracks this final dependency checkpoint.
 
 ### Coverage
 

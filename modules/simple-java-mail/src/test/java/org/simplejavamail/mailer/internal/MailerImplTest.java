@@ -309,6 +309,6 @@ public class MailerImplTest {
 
 	@NotNull
 	private ProxyConfig createEmptyProxyConfig() {
-		return new ProxyConfigImpl(null, null, null, null, null);
+		return new ProxyConfigImpl(null, null, null, null);
 	}
 }

@@ -8,8 +8,7 @@ import org.jetbrains.annotations.Nullable;
  * In case a proxy is required, the properties <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em> will be set.
  * <p>
  * The underlying Jakarta Mail implementation handles anonymous SOCKS proxy connections directly. For authenticated SOCKS5 proxies, Simple Java Mail
- * starts an intermediary anonymous proxy server which relays the connection through the authenticated remote proxy server. Both routes work with
- * SMTP, STARTTLS and SMTPS transports.
+ * uses a direct socket that authenticates with the remote proxy before Angus starts SMTP. Both routes work with SMTP, STARTTLS and SMTPS.
  */
 public interface ProxyConfig {
 	/**
@@ -25,15 +24,6 @@ public interface ProxyConfig {
 	@Override
 	String toString();
 
-	/**
-	 * Returns the configured bridge port. A value of {@code 0} means the operating system selects the actual loopback port when the bridge starts.
-	 * The effective Jakarta Mail Session contains that selected port while a bridge-backed operation is running.
-	 * Direct Angus routing has no local listener and leaves this compatibility setting unused; its Session contains the remote proxy port.
-	 *
-	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
-	 */
-	@Nullable
-	Integer getProxyBridgePort();
 
 	/**
 	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withHost(String)

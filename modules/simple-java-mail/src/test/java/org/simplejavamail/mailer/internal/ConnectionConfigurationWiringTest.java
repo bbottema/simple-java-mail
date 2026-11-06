@@ -85,7 +85,7 @@ class ConnectionConfigurationWiringTest {
 
     private static void proxyValue(final Method method) throws Exception {
         final SocksProxyConfig.Builder draft = SocksProxyConfig.builder().withHost("seed-host").withPort(1088)
-                .withUsername("seed-user").withPassword("seed-password").withBridgePort(1090);
+                .withUsername("seed-user").withPassword("seed-password");
         final String name = method.getName();
         final Object[] args = arguments(method, null);
         ConfigurationContractCoverage.invoke(draft, method, args);
@@ -95,18 +95,17 @@ class ConnectionConfigurationWiringTest {
             assertThat(value.getPort()).isNull(); assertThat(value.isPortCleared()).isTrue();
             assertThat(value.getUsername()).isNull(); assertThat(value.isUsernameCleared()).isTrue();
             assertThat(value.getPassword()).isNull(); assertThat(value.isPasswordCleared()).isTrue();
-            assertThat(value.getBridgePort()).isZero();
-            fields("proxyHost", "proxyPort", "proxyUsername", "proxyPassword", "proxyBridgePort");
+            fields("proxyHost", "proxyPort", "proxyUsername", "proxyPassword");
             return;
         }
         final String field = name.replaceFirst("^(with|clear|reset|useConfigured)", "");
-        if (!List.of("Host", "Port", "Username", "Password", "BridgePort").contains(field)) {
+        if (!List.of("Host", "Port", "Username", "Password").contains(field)) {
             throw new AssertionError("Unspecified proxy route " + method);
         }
         final Object expected = name.startsWith("with") ? args[0] : name.startsWith("reset")
-                ? Integer.valueOf(field.equals("BridgePort") ? 0 : 1080) : null;
+                ? Integer.valueOf(1080) : null;
         assertGetter(value, "get" + field, expected);
-        if (!field.equals("BridgePort")) { assertGetter(value, "is" + field + "Cleared", name.startsWith("clear")); }
+        assertGetter(value, "is" + field + "Cleared", name.startsWith("clear"));
         fields("proxy" + field);
     }
 

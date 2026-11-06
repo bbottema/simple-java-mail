@@ -40,18 +40,15 @@ final class ConnectionConfigurationResolver {
     private static final String PASSWORD = "simplejavamail.smtp.password";
     private static final String PROXY_USERNAME = "simplejavamail.proxy.username";
     private static final String PROXY_PASSWORD = "simplejavamail.proxy.password";
-    private static final String PROXY_BRIDGE_PORT = "simplejavamail.proxy.socks5bridge.port";
 
     private final SimpleJavaMailConfig config;
     @Nullable private final TransportStrategy strategy;
-    private final boolean authenticatedProxy;
     private final Map<ConfigurationSetting<Object>, List<ConfigurationDeclaration<Object>>> declarations = new LinkedHashMap<>();
     private final Map<String, String> sourceNames = new LinkedHashMap<>();
 
-    private ConnectionConfigurationResolver(final SimpleJavaMailConfig config, @Nullable final TransportStrategy strategy, final boolean authenticatedProxy) {
+    private ConnectionConfigurationResolver(final SimpleJavaMailConfig config, @Nullable final TransportStrategy strategy) {
         this.config = config;
         this.strategy = strategy;
-        this.authenticatedProxy = authenticatedProxy;
         for (ConfigDiagnosticGroup group : config.getDiagnostics().getGroups()) {
             for (ConfigPropertyDiagnostic diagnostic : config.getDiagnostics().getProperties(group)) {
                 sourceNames.put(diagnostic.getPropertyName(), diagnostic.getSourceName());
@@ -72,7 +69,7 @@ final class ConnectionConfigurationResolver {
         final ProxyConfig proxyFallback = inputs.getProxyFallback();
         final boolean proxyCustomized = inputs.isProxyCustomized();
         final boolean smtpActive = inputs.isSmtpActive();
-        final ConnectionConfigurationResolver resolver = new ConnectionConfigurationResolver(config, strategy, proxyFallback.requiresAuthentication());
+        final ConnectionConfigurationResolver resolver = new ConnectionConfigurationResolver(config, strategy);
         final Map<String, Object> baseline = resolver.captureConnectionBaseline(suppliedSession, additionalProperties);
         final Map<Property, Object> applicableTypedChoices = smtpActive ? typedChoices : inactiveRouteChoices(typedChoices);
         final Map<String, Object> typed = resolver.projectTypedChoices(applicableTypedChoices, baseline, physicalChoices, smtpActive, suppliedSession == null);
@@ -122,8 +119,7 @@ final class ConnectionConfigurationResolver {
     static void validateDeclarations(final ResolvedConnection resolved) {
         final CapturedConnectionInputs inputs = resolved.inputs;
         if (inputs.isSmtpActive() && inputs.getStrategy() != null) {
-            final ConnectionConfigurationResolver validator = new ConnectionConfigurationResolver(inputs.getConfig(), inputs.getStrategy(),
-                    inputs.getProxyFallback().requiresAuthentication());
+            final ConnectionConfigurationResolver validator = new ConnectionConfigurationResolver(inputs.getConfig(), inputs.getStrategy());
             validator.declarations.putAll(resolved.declarations);
             validator.verifyCompatibleLocks();
             if (inputs.getPolicy() == ConnectionConflictPolicy.REJECT_CONFLICTS) {
@@ -137,7 +133,6 @@ final class ConnectionConfigurationResolver {
         properties.putAll(additionalProperties);
         final Map<String, Object> baseline = visibleProperties(properties);
         normalizeRawProxyEndpoint(baseline);
-        baseline.entrySet().removeIf(entry -> isMatchingPhysicalProxyLock(entry.getKey(), entry.getValue()));
         return baseline;
     }
 
@@ -279,11 +274,6 @@ final class ConnectionConfigurationResolver {
     private Map<String, Object> collectExplicitPhysicalChoices(final Map<String, Object> typed, final Map<String, Object> effective, final ProxyConfig proxy) {
         final Map<String, Object> explicitOverrides = new LinkedHashMap<>(typed);
         explicitOverrides.replaceAll((key, value) -> value == TrustAllDisabled.INSTANCE ? effective.get(key) : value);
-        if (strategy != null && proxy.requiresProxy() && proxy.requiresAuthentication()) {
-            // The selected remote route is checked separately from literal locks on the derived local bridge endpoint.
-            explicitOverrides.remove(strategy.propertyNameSocksHost());
-            explicitOverrides.remove(strategy.propertyNameSocksPort());
-        }
         return explicitOverrides;
     }
 
@@ -291,7 +281,7 @@ final class ConnectionConfigurationResolver {
         final Map<Property, Object> applicable = new LinkedHashMap<>(choices);
         for (Property property : List.of(Property.SMTP_HOST, Property.SMTP_PORT, Property.SMTP_USERNAME, Property.SMTP_PASSWORD,
                 Property.TRANSPORT_STRATEGY, Property.PROXY_HOST, Property.PROXY_PORT, Property.PROXY_USERNAME, Property.PROXY_PASSWORD,
-                Property.PROXY_SOCKS5BRIDGE_PORT, Property.CUSTOM_SSLFACTORY_CLASS, Property.OPPORTUNISTIC_TLS)) {
+                Property.CUSTOM_SSLFACTORY_CLASS, Property.OPPORTUNISTIC_TLS)) {
             applicable.remove(property);
         }
         return applicable;
@@ -335,7 +325,6 @@ final class ConnectionConfigurationResolver {
 
     private void collectRawSource(final Map<String, ?> source, final Function<String, ConfigurationOrigin> origin) {
         final Map<String, Object> normalized = new LinkedHashMap<>(source);
-        normalized.entrySet().removeIf(entry -> isMatchingPhysicalProxyLock(entry.getKey(), entry.getValue()));
         normalizeRawProxyEndpoint(normalized);
         normalized.forEach((key, value) -> {
             final String originalKey = strategy != null && key.equals(strategy.propertyNameSocksPort()) && !source.containsKey(key)
@@ -344,11 +333,6 @@ final class ConnectionConfigurationResolver {
         });
     }
 
-    private boolean isMatchingPhysicalProxyLock(final String key, @Nullable final Object value) {
-        return authenticatedProxy && strategy != null && (key.equals(strategy.propertyNameSocksHost()) || key.equals(strategy.propertyNameSocksPort()))
-                && locksOf(config).getValues().containsKey(EXTRA_PREFIX + key)
-                && sameValue(key, value, locksOf(config).getValues().get(EXTRA_PREFIX + key));
-    }
 
     private ConfigurationOrigin factoryOrigin(final String property, final ConfigurationOrigin.Kind kind) {
         final String source = sourceNames.get(property);
@@ -356,7 +340,7 @@ final class ConnectionConfigurationResolver {
     }
 
     private void declare(final String key, @Nullable final Object value, final ConfigurationOrigin origin) {
-        if (isSupported(key) || key.equals(PASSWORD) || key.equals(PROXY_USERNAME) || key.equals(PROXY_PASSWORD) || key.equals(PROXY_BRIDGE_PORT)) {
+        if (isSupported(key) || key.equals(PASSWORD) || key.equals(PROXY_USERNAME) || key.equals(PROXY_PASSWORD)) {
             final ConfigurationSetting<Object> setting = ConnectionSettings.projectedProperty(key);
             declarations.computeIfAbsent(setting, ignored -> new ArrayList<>()).add(ConfigurationDeclaration.of(setting,
                     value == null ? ConfigurationChoice.remove() : ConfigurationChoice.set(value), origin));
@@ -401,7 +385,7 @@ final class ConnectionConfigurationResolver {
         locksOf(config).getValues().forEach((key, value) -> {
             if (key.startsWith(EXTRA_PREFIX)) {
                 final String sessionKey = key.substring(EXTRA_PREFIX.length());
-                if (projected.containsKey(sessionKey) && !isMatchingPhysicalProxyLock(sessionKey, value)
+                if (projected.containsKey(sessionKey)
                         && !sameValue(sessionKey, value, projected.get(sessionKey))) {
                     final Property typedProperty = propertyForKey(sessionKey, typedLocks);
                     throw locksOf(config).conflict(key, "This locked Jakarta Mail property and "
@@ -487,8 +471,7 @@ final class ConnectionConfigurationResolver {
             case PROXY_PORT: return List.of(strategy.propertyNameSocksPort());
             case PROXY_USERNAME: return List.of(PROXY_USERNAME);
             case PROXY_PASSWORD: return List.of(PROXY_PASSWORD);
-            case PROXY_SOCKS5BRIDGE_PORT: return List.of(PROXY_BRIDGE_PORT);
-            case SMTP_LOCAL_ADDRESS: return List.of(strategy.propertyNameLocalAddress());
+                        case SMTP_LOCAL_ADDRESS: return List.of(strategy.propertyNameLocalAddress());
             case SMTP_LOCAL_PORT: return List.of(strategy.propertyNameLocalPort());
             case SMTP_CLIENT_HOSTNAME: return List.of(strategy.propertyNameLocalHost());
             case DEFAULT_SESSION_TIMEOUT_MILLIS:
@@ -556,7 +539,7 @@ final class ConnectionConfigurationResolver {
             case SMTP_PORT: return "withSMTPServerPort/withSMTPServer";
             case SMTP_USERNAME: return "withSMTPServerUsername/withSMTPServer";
             case SMTP_PASSWORD: return "withSMTPServerPassword/withSMTPServer";
-            case PROXY_HOST: case PROXY_PORT: case PROXY_USERNAME: case PROXY_PASSWORD: case PROXY_SOCKS5BRIDGE_PORT:
+            case PROXY_HOST: case PROXY_PORT: case PROXY_USERNAME: case PROXY_PASSWORD:
                 return "withProxyConfig";
             case DEFAULT_CONNECT_TIMEOUT_MILLIS: return "withConnectionConfig/withConnectTimeout/withSessionTimeout";
             case DEFAULT_READ_TIMEOUT_MILLIS: return "withConnectionConfig/withReadTimeout/withSessionTimeout";
@@ -582,7 +565,7 @@ final class ConnectionConfigurationResolver {
                 applyCapturedProxy || portLocked ? fallback.getRemoteProxyPort()
                         : host != null ? org.simplejavamail.api.mailer.MailerGenericBuilder.DEFAULT_PROXY_PORT : null);
         final Integer port = integer(portChoice, portKey);
-        final ProxyConfig resolved = new ProxyConfigImpl(host, port, fallback.getUsername(), fallback.getPassword(), fallback.getProxyBridgePort());
+        final ProxyConfig resolved = new ProxyConfigImpl(host, port, fallback.getUsername(), fallback.getPassword());
         locksOf(config).verify(Property.PROXY_HOST, host);
         locksOf(config).verify(Property.PROXY_PORT, port);
         validateActiveProxy(resolved);
@@ -619,10 +602,6 @@ final class ConnectionConfigurationResolver {
             if (resolved.requiresAuthentication()) {
                 validateSocksCredentialLength(resolved.getUsername(), "username");
                 validateSocksCredentialLength(resolved.getPassword(), "password");
-            }
-            if (resolved.requiresAuthentication() && resolved.getProxyBridgePort() == null) {
-                throw new IllegalArgumentException("Authenticated SOCKS proxying requires a local bridge port. "
-                        + "Set SocksProxyConfig.Builder.withBridgePort(0) to choose an available port automatically, or supply a fixed local port.");
             }
         }
     }

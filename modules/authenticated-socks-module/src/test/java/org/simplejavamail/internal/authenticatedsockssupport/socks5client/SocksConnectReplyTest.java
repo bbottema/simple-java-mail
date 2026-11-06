@@ -166,10 +166,10 @@ class SocksConnectReplyTest {
                 return null;
             });
 
-            final Socks5 proxy = new Socks5(new InetSocketAddress(listener.getInetAddress(), listener.getLocalPort()));
-            proxy.setCredentials(new ProxyCredentials("proxy-user", "proxy-secret"));
-            try (Socket rawSocket = new Socket()) {
-                assertThrows(EOFException.class, () -> new SocksSocket(proxy, rawSocket,
+            try (Socket rawSocket = new Socket();
+                 Socket socket = new SocksSocket(rawSocket, new InetSocketAddress(listener.getInetAddress(), listener.getLocalPort()),
+                         new ProxyCredentials("proxy-user", "proxy-secret"))) {
+                assertThrows(EOFException.class, () -> socket.connect(
                         new InetSocketAddress(InetAddress.getByAddress(new byte[] {127, 0, 0, 1}), 25)));
             }
             exchange.get(5, TimeUnit.SECONDS);

@@ -4,6 +4,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader.Property;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +20,18 @@ public final class ConfigurationPropertyNames {
 			"^simplejavamail\\.defaults\\.connectionpool\\.clusters\\.(?<clusterAlias>[^.]+)\\.(?<clusterProperty>"
 					+ "clusterkey\\.uuid|coresize|maxsize|claimtimeout\\.millis|expireafter\\.millis|expireaftercreation\\.millis|loadbalancing\\.strategy)$");
 	public static final Pattern NAMED_MAILER_PROPERTY_PATTERN = compile("^simplejavamail\\.mailers\\.(?<name>[A-Za-z0-9_-]+)\\.(?<tail>.+)$");
+
+	/** Recognizes the removed bridge setting at source boundaries, including environment and Spring relaxed spellings. */
+	public static boolean isRetiredSocksBridgeProperty(@Nullable final String key) {
+		if (key == null) {
+			return false;
+		}
+		String normalized = key.toLowerCase(Locale.ROOT).replace("-", "");
+		if (normalized.startsWith("simplejavamail_")) {
+			return normalized.matches("simplejavamail_(?:locked_)?(?:mailers_[a-z0-9_]+_)?proxy_socks5bridge_port");
+		}
+		return normalized.matches("simplejavamail\\.(?:locked\\.)?(?:mailers\\.[^.]+\\.)?proxy\\.socks5bridge\\.port");
+	}
 
 	private ConfigurationPropertyNames() {
 	}

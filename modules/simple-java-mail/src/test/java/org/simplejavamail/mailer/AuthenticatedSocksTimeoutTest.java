@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 
-/** Actual Angus client timeout behavior through the library-owned authenticated-proxy bridge. */
+/** Actual Angus client timeout behavior through the library-owned direct authenticated-proxy socket. */
 @Timeout(45)
 class AuthenticatedSocksTimeoutTest {
 

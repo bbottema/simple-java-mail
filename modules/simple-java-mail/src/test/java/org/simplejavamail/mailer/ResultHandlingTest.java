@@ -25,7 +25,6 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.util.concurrent.NamedRunnable;
-import org.simplejavamail.mailer.internal.AbstractProxyServerSyncingClosure;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
@@ -331,7 +330,7 @@ public class ResultHandlingTest {
 
 	@Test
 	public void asyncTestConnectionFailureShouldCompleteFutureWithoutFrameworkErrorLog() throws Exception {
-		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger(AbstractProxyServerSyncingClosure.class.getName());
+		try (ErrorLogCaptor errorLogCaptor = ErrorLogCaptor.forLogger("org.simplejavamail.mailer.internal.TestConnectionClosure");
 			 Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 					 .withSMTPServer("localhost", 0)
 					 .withCustomMailer(new FailingConnectionTestMailer())

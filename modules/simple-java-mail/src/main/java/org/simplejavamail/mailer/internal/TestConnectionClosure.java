@@ -5,30 +5,30 @@ import org.simplejavamail.api.mailer.MailFailureKind;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Extra closure for the actual connection test, so this can be called regularly as well as from async thread.
  */
-class TestConnectionClosure extends AbstractProxyServerSyncingClosure {
+class TestConnectionClosure implements Runnable {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestConnectionClosure.class);
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
 
-	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @Nullable final AnonymousSocks5Server proxyServer, @NotNull AtomicInteger smtpConnectionCounter) {
-		super(smtpConnectionCounter, proxyServer, session);
+	TestConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session) {
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 	}
 
 	@Override
-	public void executeClosure() {
+	public void run() {
 		LOGGER.debug("testing connection...");
 		try {
 			SessionLogger.logSession(session, "connection test");

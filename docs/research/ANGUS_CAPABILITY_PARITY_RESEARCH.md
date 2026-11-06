@@ -5,6 +5,8 @@
 **Provider baseline:** Jakarta Mail API 2.1.5 and Eclipse Angus Mail 2.0.5  
 **Scope:** outbound SMTP submission and the Jakarta Mail/MIME/session behavior that directly affects it. POP3, IMAP, hosted delivery services, mailbox processing, and direct-to-MX delivery are out of scope.
 
+This dated research describes the provider baseline above. Its local authenticated-SOCKS bridge has since been superseded by [ADR 0042](../adr/0042-direct-authenticated-socks-sockets.md): the dedicated development branch uses direct authenticated sockets and removes bridge-port settings. See [the development guide](../DEVELOPMENT.md#angus-snapshot-development-lane) for the current dependency input.
+
 ## Executive conclusion
 
 Simple Java Mail should not pursue Angus *property parity*. That would turn a coherent mailing library into a second, less complete spelling of the provider's configuration table.
@@ -822,4 +824,4 @@ If 10.0 gets those boundaries right, later Angus capabilities can be added witho
 
 [^42]: Authentication identity, authorization identity, and the per-message `AUTH` MAIL parameter are distinct in [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html).
 
-The related Simple Java Mail robustness work is tracked by [#722](https://github.com/bbottema/simple-java-mail/issues/722), with current decisions in the [architecture topic index](../adr/README.md#find-documentation-by-topic) and ongoing [SMTP conformance work](../plans/smtp-conformance.md). PIPELINING and CHUNKING remain separate under [#699](https://github.com/bbottema/simple-java-mail/issues/699).
+The related Simple Java Mail robustness work is tracked by [#722](https://github.com/bbottema/simple-java-mail/issues/722), with current decisions in the [architecture topic index](../adr/README.md#find-documentation-by-topic) and ongoing [SMTP conformance work](../DEVELOPMENT.md#smtp-integration-and-conformance). PIPELINING and CHUNKING remain separate under [#699](https://github.com/bbottema/simple-java-mail/issues/699).

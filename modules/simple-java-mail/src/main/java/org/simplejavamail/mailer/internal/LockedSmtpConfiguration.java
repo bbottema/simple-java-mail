@@ -16,7 +16,6 @@ import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PASSWORD;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_USERNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LEGACY_CONTENT_SUPPORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_MESSAGE_RATE_LIMIT;
@@ -42,21 +41,16 @@ final class LockedSmtpConfiguration {
     private final OperationalConfig operational;
     private final boolean suppliedSslFactoryInstance;
 
-    LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
-            final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties) {
-        this(config, server, proxy, operational, strategy, resolvedProperties, false);
-    }
 
     LockedSmtpConfiguration(final SimpleJavaMailConfig config, @Nullable final ServerConfig server, final ProxyConfig proxy,
-            final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties,
-            final boolean directAuthenticatedSocks) {
+            final OperationalConfig operational, @Nullable final TransportStrategy strategy, final Properties resolvedProperties) {
         this.locks = locksOf(config);
         this.server = server;
         this.proxy = proxy;
         this.operational = operational;
         this.suppliedSslFactoryInstance = server != null && server.getCustomSSLFactoryInstance() != null
                 || strategy != null && resolvedProperties.containsKey(strategy.propertyNameSSLSocketFactory());
-        this.connectionRequirements = new LockedSmtpConnectionRequirements(config, proxy, operational.isTrustAllSSLHost(), strategy, directAuthenticatedSocks);
+        this.connectionRequirements = new LockedSmtpConnectionRequirements(config, proxy, operational.isTrustAllSSLHost(), strategy);
     }
 
     boolean hasLocks() { return !locks.isEmpty(); }
@@ -84,7 +78,6 @@ final class LockedSmtpConfiguration {
         verifySelectedValue(PROXY_PORT, selected.proxy.getRemoteProxyPort());
         verifySelectedValue(PROXY_USERNAME, selected.proxy.getUsername());
         verifySelectedValue(PROXY_PASSWORD, selected.proxy.getPassword());
-        verifySelectedValue(PROXY_SOCKS5BRIDGE_PORT, selected.proxy.getProxyBridgePort());
         verifySelectedValue(SMTP_LEGACY_CONTENT_SUPPORT, selected.operational.isLegacySmtpContentSupportEnabled());
         verifySelectedSendingLimits(selected.operational);
     }

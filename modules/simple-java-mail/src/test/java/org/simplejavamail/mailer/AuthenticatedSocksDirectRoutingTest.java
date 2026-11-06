@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -27,7 +28,6 @@ import testutil.ConfigLoaderTestHelper;
 import testutil.socks.AuthenticatedSocksTestPeer;
 import testutil.socks.AuthenticatedSocksFactories;
 
-import java.lang.reflect.Field;
 import javax.net.ssl.HostnameVerifier;
 import java.time.Duration;
 import java.util.Properties;
@@ -38,11 +38,11 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 import static testutil.socks.AuthenticatedSocksRouteTestSupport.requireDirectRoute;
 
-/** Real public-API witnesses for automatic direct routing in the explicit merged-Angus development lane. */
+/** Real public-API witnesses for automatic direct routing in the direct Angus dependency baseline. */
 @Timeout(30)
 class AuthenticatedSocksDirectRoutingTest {
     @BeforeEach
-    void directWitnessRequiresTheExplicitMergedAngusLane() {
+    void directWitnessRequiresTheTransportSocketBaseline() {
         requireDirectRoute();
     }
 
@@ -73,6 +73,38 @@ class AuthenticatedSocksDirectRoutingTest {
             mailer.getSession();
             assertThat(proxy.accepted()).isZero();
             assertDirectRoute(mailer, proxy, AuthenticatedSocksTestPeer.Protocol.SMTP);
+        }
+    }
+
+    enum OfflineSend { LOGGING_ONLY_SINGLE, LOGGING_ONLY_BATCH, LOGGING_ONLY_CALLBACK, EMPTY_BATCH }
+
+    @ParameterizedTest
+    @EnumSource(OfflineSend.class)
+    void loggingOnlyAndEmptyBatchesDoNotOpenAnUnusedProxyConnection(final OfflineSend operation) throws Exception {
+        try (AuthenticatedSocksTestPeer proxy = new AuthenticatedSocksTestPeer(AuthenticatedSocksTestPeer.Protocol.SMTP);
+             Mailer mailer = builder(proxy, AuthenticatedSocksTestPeer.Protocol.SMTP, false)
+                     .withTransportModeLoggingOnly(operation != OfflineSend.EMPTY_BATCH).buildMailer()) {
+            switch (operation) {
+                case LOGGING_ONLY_SINGLE:
+                    mailer.sync().sendMail(email());
+                    break;
+                case LOGGING_ONLY_BATCH:
+                    mailer.sync().sendMailsInSimpleBatch(java.util.List.of(email(), email()));
+                    break;
+                case LOGGING_ONLY_CALLBACK:
+                    mailer.withOpenConnection(sender -> sender.sendMail(email()));
+                    break;
+                case EMPTY_BATCH:
+                    mailer.sync().sendMailsInSimpleBatch(java.util.List.of());
+                    break;
+                default:
+                    throw new AssertionError(operation);
+            }
+            assertThat(proxy.accepted()).isZero();
+            assertThat(proxy.authenticated()).isZero();
+            assertThat(proxy.messages()).isZero();
+            assertDirectRoute(mailer, proxy, AuthenticatedSocksTestPeer.Protocol.SMTP);
+            proxy.assertHealthy();
         }
     }
 
@@ -671,7 +703,7 @@ class AuthenticatedSocksDirectRoutingTest {
     private static void assertDirectRoute(final Mailer mailer, final AuthenticatedSocksTestPeer proxy,
             final AuthenticatedSocksTestPeer.Protocol protocol) throws Exception {
         assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession()))
-                .as("the merged-source lane must recognize the actual Angus transport capability").isTrue();
+                .as("the selected Angus provider must expose its actual transport capability").isTrue();
         final String prefix = protocol == AuthenticatedSocksTestPeer.Protocol.SMTPS ? "mail.smtps" : "mail.smtp";
         assertThat(mailer.getSession().getProperty(prefix + ".socks.host")).as("the Session exposes the real remote proxy").isEqualTo("127.0.0.1");
         assertThat(mailer.getSession().getProperty(prefix + ".socks.port")).as("no generated local port replaces the remote endpoint")
@@ -679,13 +711,6 @@ class AuthenticatedSocksDirectRoutingTest {
         assertThat(mailer.getSession().getProperties().get(prefix + ".socketFactory.transport"))
                 .as("the merged Angus transport slot contains the tracked direct factory").isNotNull()
                 .extracting(factory -> factory.getClass().getName()).isEqualTo("org.simplejavamail.internal.mailprovider.angus.AngusSocketFactory");
-        try {
-            final Field legacy = mailer.getClass().getDeclaredField("proxyServer");
-            legacy.setAccessible(true);
-            assertThat(legacy.get(mailer)).as("no anonymous loopback bridge object").isNull();
-        } catch (NoSuchFieldException retired) {
-            // The Session route and native hook assertions also cover implementations without this bookkeeping field.
-        }
         assertThat(Thread.getAllStackTraces().keySet()).noneSatisfy(thread ->
                 assertThat(thread.getName()).startsWith("simple-java-mail SOCKS5"));
     }

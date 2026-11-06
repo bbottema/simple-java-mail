@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import static org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge.LOOPBACK_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.CUSTOM_SSLFACTORY_CLASS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_SESSION_TIMEOUT_MILLIS;
 import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_TRUST_ALL_HOSTS;
@@ -25,7 +24,6 @@ import static org.simplejavamail.config.ConfigLoader.Property.DEFAULT_VERIFY_SER
 import static org.simplejavamail.config.ConfigLoader.Property.OPPORTUNISTIC_TLS;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.PROXY_PORT;
-import static org.simplejavamail.config.ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_CLIENT_HOSTNAME;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_LOCAL_ADDRESS;
@@ -46,20 +44,14 @@ final class LockedSmtpConnectionRequirements {
 	private final Map<String, Object> lockedExtraProperties = new LinkedHashMap<>();
 	private final ProxyConfig proxy;
 	private final boolean trustAllSSLHost;
-	private final boolean directAuthenticatedSocks;
 	@Nullable private final String trustProperty;
+
 
 	LockedSmtpConnectionRequirements(final SimpleJavaMailConfig config, final ProxyConfig proxy,
 			final boolean trustAllSSLHost, @Nullable final TransportStrategy strategy) {
-		this(config, proxy, trustAllSSLHost, strategy, false);
-	}
-
-	LockedSmtpConnectionRequirements(final SimpleJavaMailConfig config, final ProxyConfig proxy,
-			final boolean trustAllSSLHost, @Nullable final TransportStrategy strategy, final boolean directAuthenticatedSocks) {
 		this.locks = locksOf(config);
 		this.proxy = proxy;
 		this.trustAllSSLHost = trustAllSSLHost;
-		this.directAuthenticatedSocks = directAuthenticatedSocks;
 		this.trustProperty = strategy == null ? null : strategy.propertyNameSSLTrust();
 		if (strategy != null && !locks.isEmpty()) {
 			mapSessionProperties(config, strategy);
@@ -73,7 +65,7 @@ final class LockedSmtpConnectionRequirements {
 							+ "Make the two locked values agree, or remove one of these locks from the configuration source.");
 				}
 				requiredSessionValues.put(key, entry.getValue());
-				// A literal raw lock owns this physical requirement, including values derived from an authenticated bridge.
+				// A literal raw lock owns this physical requirement.
 				sessionProperties.remove(key);
 				lockedExtraProperties.put(key, entry.getValue());
 			}
@@ -199,21 +191,10 @@ final class LockedSmtpConnectionRequirements {
 		final String hostKey = strategy.propertyNameSocksHost();
 		final String portKey = strategy.propertyNameSocksPort();
 		if (locks.contains(PROXY_HOST) || locks.getValues().containsKey("simplejavamail.extraproperties." + hostKey)) {
-			put(PROXY_HOST, strategy.propertyNameSocksHost(), proxy.requiresAuthentication() && !directAuthenticatedSocks
-					? LOOPBACK_HOST : proxy.getRemoteProxyHost());
+			put(PROXY_HOST, hostKey, proxy.getRemoteProxyHost());
 		}
-		// An authenticated bridge may bind an ephemeral local port. Its fixed logical destination is checked against the registration instead.
-		if ((locks.contains(PROXY_PORT) || locks.getValues().containsKey("simplejavamail.extraproperties." + portKey))
-				&& (!proxy.requiresAuthentication() || directAuthenticatedSocks)) {
-			put(PROXY_PORT, strategy.propertyNameSocksPort(), proxy.getRemoteProxyPort());
-		}
-		if (proxy.requiresAuthentication() && !directAuthenticatedSocks && locks.getValues().containsKey("simplejavamail.extraproperties." + portKey)) {
-			if (proxy.getProxyBridgePort() == null || proxy.getProxyBridgePort() == 0) {
-				throw locks.conflict("simplejavamail.extraproperties." + portKey,
-						"This literal Session port is locked, but the authenticated proxy bridge chooses its port when it starts. "
-								+ "Configure a compatible fixed bridge port, or lock the remote proxy port through simplejavamail.locked.proxy.port instead.");
-			}
-			put(PROXY_SOCKS5BRIDGE_PORT, portKey, proxy.getProxyBridgePort());
+		if (locks.contains(PROXY_PORT) || locks.getValues().containsKey("simplejavamail.extraproperties." + portKey)) {
+			put(PROXY_PORT, portKey, proxy.getRemoteProxyPort());
 		}
 	}
 

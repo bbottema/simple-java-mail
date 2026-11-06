@@ -32,7 +32,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class AngusAuthenticatedSocksConfigurationTest {
     @Test
@@ -358,7 +357,6 @@ class AngusAuthenticatedSocksConfigurationTest {
 
     @Test
     void aStrictNullRawClassRetainsTheOriginalPortAndUsesTheDefaultPhysicalSocket() throws Exception {
-        assumeTrue("direct".equals(System.getProperty("sjm.test.authenticatedSocksRoute", "bridge")), "the deliberate merged-Angus lane");
         final Properties properties = new Properties();
         final AtomicInteger connectedPort = new AtomicInteger();
         properties.setProperty("mail.smtp.socketFactory.class", NullFactory.class.getName());

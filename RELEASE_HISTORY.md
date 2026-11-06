@@ -119,8 +119,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#763](https://github.com/bbottema/simple-java-mail/issues/763): preserve received delivery-report envelope identifiers, including trailing spaces, so correlation and repeated-field checks retain their reported spelling.
 
-- [#921](https://github.com/bbottema/simple-java-mail/issues/921): authenticated SOCKS releases setup workers after an explicit forwarding handoff, allowing new connections while established pooled or retained tunnels stay open. Pending admission is bounded, ordinary overload refuses only the new setup, and idle setup workers retire without changing client timeout authority.
-- [#922](https://github.com/bbottema/simple-java-mail/issues/922): add an explicit development lane for directly authenticated SOCKS sockets using the merged Angus transport hook. Known proxy credential rejection on that route honors the existing authentication-failure failover permission, disabled by default. Released-Angus builds retain the compatibility bridge and its port configuration until adoption of the compatible final Angus baseline.
+- [#922](https://github.com/bbottema/simple-java-mail/issues/922): replace the authenticated SOCKS bridge with direct sockets through the Angus transport hook. Remove the local listener, forwarding workers and bridge-port Java, property, Spring and CLI settings. Known proxy credential rejection honors the existing authentication-failure failover permission, disabled by default. This development branch uses a pinned published Angus snapshot pending a compatible final dependency.
 
 - [#914](https://github.com/bbottema/simple-java-mail/issues/914): preserve whole imported address text after an address-grammar failure instead of discarding otherwise readable MIME/EML content. Existing successful parsing and outgoing validation retain their separate roles.
 - [#915](https://github.com/bbottema/simple-java-mail/issues/915): keep daemon status and stop responsive during slow mail commands through separately bounded control and reply handling, retaining duplicate-request protection and accepted-work shutdown semantics.
@@ -130,9 +129,9 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 - [#901](https://github.com/bbottema/simple-java-mail/issues/901): authenticated SOCKS trace output no longer includes the username/password packet.
 - [#902](https://github.com/bbottema/simple-java-mail/issues/902): read complete SOCKS authentication replies and reject invalid versions or truncated responses.
-- [#907](https://github.com/bbottema/simple-java-mail/issues/907): established authenticated SOCKS tunnels no longer impose a separate bridge read or idle timeout; the SMTP client's configured timeouts govern its waits.
-- [#910](https://github.com/bbottema/simple-java-mail/issues/910): authenticated SOCKS carries IPv6 destinations and complete IPv6 bound-address replies. The generated local bridge uses IPv4 loopback so its route remains compatible with Angus when the JVM prefers IPv6; remote-proxy and destination connections can still use IPv6.
-- [#911](https://github.com/bbottema/simple-java-mail/issues/911): authenticated SOCKS preserves unresolved destination names for the remote proxy instead of resolving them again in the local bridge.
+- [#907](https://github.com/bbottema/simple-java-mail/issues/907): authenticated SOCKS uses the SMTP client's configured timeouts without an independent proxy read or idle timer.
+- [#910](https://github.com/bbottema/simple-java-mail/issues/910): authenticated SOCKS carries IPv6 destinations and complete IPv6 bound-address replies. Remote-proxy and destination connections can use IPv6.
+- [#911](https://github.com/bbottema/simple-java-mail/issues/911): authenticated SOCKS preserves unresolved destination names for resolution by the remote proxy.
 - [#912](https://github.com/bbottema/simple-java-mail/issues/912): reject incomplete CONNECT replies and invalid protocol version, reserved or address-type fields before forwarding.
 - [#913](https://github.com/bbottema/simple-java-mail/issues/913): reject effective authenticated SOCKS usernames or passwords outside 1 through 255 UTF-8 octets at Mailer construction, with the same defensive bound before authentication serialization.
 - [#900](https://github.com/bbottema/simple-java-mail/issues/900): retire an earlier refusal's receipt when another provider invocation starts, so a later unchecked failure cannot publish stale rejection or safe-retry advice.

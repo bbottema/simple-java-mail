@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** A real RFC1929 challenge observes the bytes sent through the Mailer's authentication bridge. */
+/** A real RFC1929 challenge observes the bytes sent through the Mailer's authenticated direct socket. */
 @Timeout(20)
 class AuthenticatedSocksCredentialBoundaryTest {
 

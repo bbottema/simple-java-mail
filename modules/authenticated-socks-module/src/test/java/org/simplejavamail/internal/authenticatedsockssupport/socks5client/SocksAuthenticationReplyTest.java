@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,7 +20,7 @@ class SocksAuthenticationReplyTest {
     void consumesBothFragmentedSuccessBytesWithoutReadingTheNextExchange() throws Exception {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 0, 5}, true);
 
-        SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket));
+        SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret"));
 
         assertThat(socket.reply.read()).isEqualTo(5);
         assertThat(socket.closed).isFalse();
@@ -31,7 +30,7 @@ class SocksAuthenticationReplyTest {
     void consumesAnOrdinarySuccessReplyWithoutReadingTheNextExchange() throws Exception {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 0, 5}, false);
 
-        SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket));
+        SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret"));
 
         assertThat(socket.reply.read()).isEqualTo(5);
         assertThat(socket.closed).isFalse();
@@ -41,7 +40,7 @@ class SocksAuthenticationReplyTest {
     void rejectsFragmentedAuthenticationFailureAndClosesItsSocket() {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 1}, true);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(SocksException.class).hasCauseInstanceOf(AuthenticationFailedException.class);
         assertThat(socket.closed).isTrue();
     }
@@ -50,7 +49,7 @@ class SocksAuthenticationReplyTest {
     void retainsOrdinaryAuthenticationRejection() {
         final ReplySocket socket = new ReplySocket(new byte[] {1, 1}, false);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(SocksException.class).hasCauseInstanceOf(AuthenticationFailedException.class);
         assertThat(socket.closed).isTrue();
     }
@@ -59,7 +58,7 @@ class SocksAuthenticationReplyTest {
     void rejectsAReplyUsingTheSocksVersionInsteadOfTheAuthenticationVersion() {
         final ReplySocket socket = new ReplySocket(new byte[] {5, 0}, false);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(SocksException.class).hasNoCause();
         assertThat(socket.closed).isTrue();
     }
@@ -68,7 +67,7 @@ class SocksAuthenticationReplyTest {
     void failsWhenTheReplyEndsBeforeItsFirstByte() {
         final ReplySocket socket = new ReplySocket(new byte[0], false);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(IOException.class);
         assertThat(socket.closed).isTrue();
     }
@@ -77,7 +76,7 @@ class SocksAuthenticationReplyTest {
     void failsWhenTheReplyEndsBeforeItsStatusByte() {
         final ReplySocket socket = new ReplySocket(new byte[] {1}, false);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(IOException.class);
         assertThat(socket.closed).isTrue();
     }
@@ -87,7 +86,7 @@ class SocksAuthenticationReplyTest {
         final IOException cleanupFailure = new IOException("socket close failed");
         final ReplySocket socket = new ReplySocket(new byte[] {1, 1}, false, cleanupFailure);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(SocksException.class)
                 .hasMessage("Username or password error")
                 .hasCauseInstanceOf(AuthenticationFailedException.class)
@@ -100,18 +99,11 @@ class SocksAuthenticationReplyTest {
         final IOException cleanupFailure = new IOException("socket close failed");
         final ReplySocket socket = new ReplySocket(new byte[] {1}, false, cleanupFailure);
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials("proxy-user", "proxy-secret")))
                 .isInstanceOf(IOException.class)
                 .hasMessage("End of stream")
                 .satisfies(failure -> assertThat(failure.getSuppressed()).containsExactly(cleanupFailure));
         assertThat(socket.closed).isTrue();
-    }
-
-    private static Socks5 proxy(final ReplySocket socket) {
-        final Socks5 proxy = new Socks5(new InetSocketAddress("localhost", 1080));
-        proxy.setCredentials(new ProxyCredentials("proxy-user", "proxy-secret"));
-        proxy.setProxySocket(socket);
-        return proxy;
     }
 
     private static final class ReplySocket extends Socket {

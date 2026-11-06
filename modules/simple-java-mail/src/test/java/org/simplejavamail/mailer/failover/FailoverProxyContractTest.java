@@ -31,7 +31,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 import static org.simplejavamail.mailer.failover.FailoverContractSupport.*;
-import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 /** Public sending plus real loopback SMTP/SOCKS through the authenticated route selected for the loaded Angus lane. */
 @Timeout(40)
@@ -48,13 +47,13 @@ class FailoverProxyContractTest {
                      .withConnectionPoolConfig(fixture.getConnectionPoolConfig().toBuilder().withCoreSize(1).withMaxSize(1).withExpireAfter(Duration.ofMillis(60000)).build()))
                      .withFailoverMailer(alternative, policy()).withSendHandlers(MailSendHandlers.builder().withResultObserver(outcomes::add).build()).buildMailer()) {
             // Observe a quiet background interval, not a send-performance threshold. The gate itself has a deterministic companion test.
-            assertThat(incidents.observed.await(300, MILLISECONDS)).as("no SMTP outage before a foreground proxy scope exists").isFalse();
-            assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(initiating.getSession())).isEqualTo(expectsDirectRoute());
-            assertThat(initiating.getSession().getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? "localhost" : "127.0.0.1");
+            assertThat(incidents.observed.await(300, MILLISECONDS)).as("no SMTP outage before a foreground connection begins").isFalse();
+            assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(initiating.getSession())).isTrue();
+            assertThat(initiating.getSession().getProperty("mail.smtp.socks.host")).isEqualTo("localhost");
             assertThat(initiating.getSession().getProperty("mail.smtp.socks.port"))
-                    .isEqualTo(expectsDirectRoute() ? Integer.toString(proxy.getPort()) : "0");
-            assertThat(initiating.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
-            assertThat(primary.connectionCount()).as("authenticated core-pool setup waits for foreground work in both routes").isZero();
+                    .isEqualTo(Integer.toString(proxy.getPort()));
+            assertThat(initiating.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isTrue();
+            assertThat(primary.connectionCount()).as("authenticated core-pool setup waits for foreground work ").isZero();
             for (int index = 0; index < 2; index++) {
                 final var receipt = send(initiating, email(), asynchronous);
                 assertThat(receipt.getStatus()).isEqualTo(ACCEPTED);

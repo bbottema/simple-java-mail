@@ -441,7 +441,6 @@ class SocksSocketProviderTest {
         private MutableConfig(final String host, final int port) { this.host = host; this.port = port; }
         @Override public boolean requiresProxy() { throw new AssertionError("Factory must capture the effective facts only"); }
         @Override public boolean requiresAuthentication() { throw new AssertionError("Factory must capture the effective facts only"); }
-        public Integer getProxyBridgePort() { throw new AssertionError("Direct sockets have no bridge port"); }
         @Override public String getRemoteProxyHost() { factReads++; return host; }
         @Override public Integer getRemoteProxyPort() { factReads++; return port; }
         @Override public String getUsername() { factReads++; return username; }

@@ -19,7 +19,7 @@ Socket tracking therefore cannot honestly separate all those phases. SJM delegat
 
 | Detail | Supported observation | Boundary |
 | --- | --- | --- |
-| DNS / TCP / proxy | Inclusive acquisition | Precise independent phases need supported upstream hooks; bridge startup is not remote proxy negotiation. |
+| DNS / TCP / proxy | Inclusive acquisition | Precise independent phases need supported upstream hooks; authenticated SOCKS negotiation occurs inside the direct socket connection. |
 | Greeting | First physical-setup response read | No historical replay for a later borrower. |
 | EHLO / HELO | Existing protected methods | Categories only, without response text. |
 | STARTTLS | Existing upgrade, handshake and verification | Implicit TLS remains in acquisition where no isolated hook exists. |

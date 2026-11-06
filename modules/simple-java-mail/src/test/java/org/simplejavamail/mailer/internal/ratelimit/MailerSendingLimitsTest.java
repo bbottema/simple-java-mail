@@ -37,8 +37,11 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.mailer.internal.MailerFromSessionBuilderImpl;
+import testutil.ConfigLoaderTestHelper;
 import testutil.retry.RetryProviderTransport;
+import testutil.socks.AuthenticatedSocksTestPeer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -410,22 +413,40 @@ class MailerSendingLimitsTest {
 				.withCustomMailer(countingCustomMailer(new AtomicInteger())).buildMailer()) {
 			original.sync().sendMail(email("original"));
 		}
-		final State state = new State();
-		try (Mailer replacement = updateMailer(builder(limits, state), fixture -> fixture.withSendingLimitsConfig(fixture.getSendingLimitsConfig().toBuilder().withMessageRateLimit(1, PERIOD).build())
-				.withProxyConfig(fixture.getProxyConfig().toBuilder().withHost("localhost").withPort(1080).withUsername("proxy-user").withPassword("proxy-password").build())).buildMailer()) {
+		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
+		properties.setProperty("mail.smtp.host", "smtp.example.invalid");
+		properties.setProperty("mail.smtp.port", "2525");
+		final Session session = Session.getInstance(properties);
+		final Provider provider = session.getProvider("smtp");
+		try (AuthenticatedSocksTestPeer proxy = new AuthenticatedSocksTestPeer(AuthenticatedSocksTestPeer.Protocol.SMTP);
+			 Mailer replacement = new MailerFromSessionBuilderImpl(ConfigLoaderTestHelper.emptyConfig(), limits).usingSession(session)
+					.withConnectionPoolConfig(ConnectionPoolConfig.builder().withClusterKey(UUID.randomUUID()).withCoreSize(0).withMaxSize(1).build())
+					.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("account").withMessageRateLimit(1, PERIOD).build())
+					.withProxyConfig(SocksProxyConfig.builder().withHost("127.0.0.1").withPort(proxy.port())
+							.withUsername("proxy-user").withPassword("proxy-secret").build()).buildMailer()) {
+			assertThat(replacement.getSession()).isSameAs(session);
+			assertThat(session.getProvider("smtp")).isSameAs(provider);
+			assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
+			assertThat(session.getProperty("mail.smtp.socks.port")).isEqualTo(Integer.toString(proxy.port()));
+			assertThat(session.getProperties().get("mail.smtp.socketFactory.transport")).isNotNull();
 			clock.reads.drainPermits();
 			final MailSend<MailSubmissionReceipt> waiting = replacement.async().sendMail(email("waiting"));
 			try {
 				assertThat(clock.reads.tryAcquire(5, SECONDS)).isTrue();
 				assertThat(waiting.getCompletion()).isNotDone();
-				assertThat(replacement.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("0");
-				assertThat(state.connections.get()).isZero();
-				assertThat(state.submissions.get()).isZero();
+				assertThat(proxy.accepted()).isZero();
+				assertThat(proxy.authenticationAttempts()).isZero();
+				assertThat(proxy.messages()).isZero();
 			} finally {
 				waiting.requestCancellation();
 			}
 			assertThat(waiting.getCompletion().handle((receipt, failure) -> failure).get(5, SECONDS))
 					.isInstanceOf(MailSendCancelledException.class);
+			assertThat(proxy.accepted()).isZero();
+			assertThat(proxy.authenticationAttempts()).isZero();
+			assertThat(proxy.messages()).isZero();
+			proxy.assertHealthy();
 		}
 	}
 

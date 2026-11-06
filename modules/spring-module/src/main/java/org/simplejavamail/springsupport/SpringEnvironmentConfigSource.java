@@ -9,6 +9,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 
+import static org.simplejavamail.internal.config.ConfigurationPropertyNames.isRetiredSocksBridgeProperty;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -40,6 +42,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	public Map<String, ?> getProperties() {
 		final Map<String, Object> resolvedProperties = new LinkedHashMap<>();
 
+		addRetiredPropertiesTo(resolvedProperties);
 		addSingleValuePropertiesTo(resolvedProperties);
 		addWildcardPropertiesTo(resolvedProperties);
 
@@ -52,6 +55,27 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 				? findUnderlyingPropertySourceName(propertyName)
 				: findSingleValuePropertySourceName(propertyName);
 		return underlyingSourceName != null ? underlyingSourceName : getName();
+	}
+
+	/** Removed settings are rejected by presence; resolving an obsolete placeholder must not hide the migration guidance. */
+	private void addRetiredPropertiesTo(final Map<String, Object> resolvedProperties) {
+		for (PropertySource<?> source : environment.getPropertySources()) {
+			if (isBootConfigurationPropertiesAggregator(source)) {
+				continue;
+			}
+			for (String rootKey : new String[] { "simplejavamail.proxy.socks5bridge.port", "simplejavamail.locked.proxy.socks5bridge.port" }) {
+				if (source.getProperty(rootKey) != null) {
+					resolvedProperties.put(rootKey, "");
+				}
+			}
+			if (source instanceof EnumerablePropertySource) {
+				for (String key : ((EnumerablePropertySource<?>) source).getPropertyNames()) {
+					if (isRetiredSocksBridgeProperty(key)) {
+						resolvedProperties.put(key, "");
+					}
+				}
+			}
+		}
 	}
 
 	private void addSingleValuePropertiesTo(final Map<String, Object> resolvedProperties) {
@@ -99,7 +123,7 @@ final class SpringEnvironmentConfigSource implements ConfigSource {
 	private void addEnumerableWildcardPropertiesTo(final EnumerablePropertySource<?> propertySource,
 			final Map<String, Object> resolvedProperties) {
 		for (String propertyName : propertySource.getPropertyNames()) {
-			if (isWildcardPropertyName(propertyName)) {
+			if (isWildcardPropertyName(propertyName) && !isRetiredSocksBridgeProperty(propertyName)) {
 				final String canonicalPropertyName = canonicalizeNamedMailerProperty(propertyName);
 				final String resolvedValue = resolveWildcardPropertyValue(propertyName, canonicalPropertyName);
 				if (resolvedValue != null) {

@@ -8,7 +8,6 @@ import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.mailer.SmtpConnectionPhase;
 import org.simplejavamail.api.mailer.SmtpConnectionReport;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
@@ -18,26 +17,21 @@ import org.simplejavamail.internal.util.SmtpProbeReports;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
-import java.util.concurrent.atomic.AtomicInteger;
 
-/** Selects inspection support, isolates credentials/configuration, and keeps the proxy alive around a dedicated probe. */
+/** Selects inspection support and isolates credentials/configuration for a dedicated connection probe. */
 final class SmtpConnectionProbe {
     private SmtpConnectionProbe() {
     }
 
     @NotNull
-    static SmtpConnectionReport probe(@NotNull final Session source, @NotNull final OperationalConfig config, final boolean authenticate,
-            @Nullable final AnonymousSocks5Server proxy, @NotNull final AtomicInteger connections) {
+    static SmtpConnectionReport probe(@NotNull final Session source, @NotNull final OperationalConfig config, final boolean authenticate) {
         final Instant startedAt = Instant.now();
         final SmtpConnectionReport.SmtpConnectionReportBuilder initial = SmtpProbeReports.begin(source, authenticate).startedAt(startedAt);
         if (config.getCustomMailer() != null) {
             return unavailable(initial, "CustomMailer owns its connection. Use its diagnostics or testConnection(); this probe cannot inspect that transport.");
         }
-        ProbeClosure closure = null;
         try {
             final String protocol = source.getProperty("mail.transport.protocol") == null ? "smtp" : source.getProperty("mail.transport.protocol");
             final Provider provider = source.getProvider(protocol);
@@ -48,27 +42,18 @@ final class SmtpConnectionProbe {
             }
             initial.supported(true);
             final Session dedicated = createIsolatedSession(source, provider, authenticate);
-            closure = new ProbeClosure(dedicated, adapter, authenticate, proxy, connections);
-            closure.run();
-            return closure.report.toBuilder().startedAt(startedAt).completedAt(Instant.now()).build();
+            final SmtpConnectionReport report = adapter.probe(dedicated, authenticate, transport -> {
+                if (authenticate) {
+                    TransportConnectionHelper.connectTransport(transport, dedicated);
+                } else {
+                    transport.connect();
+                }
+            });
+            return report.toBuilder().startedAt(startedAt).completedAt(Instant.now()).build();
         } catch (MessagingException | RuntimeException | ServiceConfigurationError failure) {
-            if (closure != null && closure.report != null) {
-                return withProxyCleanupFailure(closure.report, startedAt);
-            }
             return initial.completedAt(Instant.now()).failurePhase(SmtpConnectionPhase.SETUP)
                     .failureDescription(SmtpProbeReports.describeFailure(SmtpConnectionPhase.SETUP, failure)).build();
         }
-    }
-
-    private static SmtpConnectionReport withProxyCleanupFailure(final SmtpConnectionReport report, final Instant startedAt) {
-        final SmtpConnectionReport.SmtpConnectionReportBuilder completed = report.toBuilder().startedAt(startedAt).completedAt(Instant.now());
-        if (report.getFailurePhase() != null) {
-            final List<String> warnings = new ArrayList<>(report.getWarnings());
-            warnings.add("Proxy cleanup also failed; the first failure is retained.");
-            return completed.warnings(warnings).build();
-        }
-        return completed.failurePhase(SmtpConnectionPhase.CLOSE)
-                .failureDescription("The probe finished, but its proxy bridge could not close normally.").build();
     }
 
     @Nullable
@@ -128,29 +113,4 @@ final class SmtpConnectionProbe {
         }
     }
 
-    private static final class ProbeClosure extends AbstractProxyServerSyncingClosure {
-        private final Session session;
-        private final SmtpConnectionProbeAdapter adapter;
-        private final boolean authenticate;
-        private SmtpConnectionReport report;
-
-        private ProbeClosure(final Session session, final SmtpConnectionProbeAdapter adapter, final boolean authenticate,
-                final AnonymousSocks5Server proxy, final AtomicInteger connections) {
-            super(connections, proxy, session);
-            this.session = session;
-            this.adapter = adapter;
-            this.authenticate = authenticate;
-        }
-
-        @Override
-        void executeClosure() {
-            report = adapter.probe(session, authenticate, transport -> {
-                if (authenticate) {
-                    TransportConnectionHelper.connectTransport(transport, session);
-                } else {
-                    transport.connect();
-                }
-            });
-        }
-    }
 }

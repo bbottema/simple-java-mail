@@ -46,7 +46,7 @@ capture inputs -> resolve complete choices -> validate requirements -> immutable
 
 `CapturedConnectionInputs` retains final choices, source facts and Session property views. `ResolvedConnection` retains the selected logical configuration and its declarations. Only successful validation creates `ValidatedConnectionPlan`.
 
-The plan supplies the accepted property patch, logical inspection facts, remote proxy and factory decisions, and reusable requirements. Application does not perform another precedence pass or silently overwrite conflicting input with locks. Runtime bridge ports and provider-owned helpers remain derived application facts. Post-initialization and selected-pool checks verify actual requirements using the same interpretation rules.
+The plan supplies the accepted property patch, logical inspection facts, remote proxy and factory decisions, and reusable requirements. Application does not perform another precedence pass or silently overwrite conflicting input with locks. Provider-owned helpers remain derived application facts; authenticated SOCKS inspection names the remote proxy under ADR 0042. Post-initialization and selected-pool checks verify actual requirements using the same interpretation rules.
 
 Prepare each privately constructed named-failover node once per build, preserving cycle checks and ancestor restrictions before allocating owned resources. Do not cache prepared plans across separate builds. Borrowed Mailers retain their existing ownership.
 

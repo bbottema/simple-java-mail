@@ -12,13 +12,13 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 
 final class SocksAuthenticationHelper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksAuthenticationHelper.class);
 
 	private static final byte SOCKS_VERSION = 0x05;
 	private static final byte USERNAME_PASSWORD_VERSION = 0x01;
+	private static final byte AUTHENTICATION_SUCCEEDED = 0x00;
 	private static final int ACCEPTABLE_METHODS = 2; // anonymous & user / password
 
 	private static final int NO_AUTHENTICATION_REQUIRED_METHOD = 0x00;
@@ -57,12 +57,6 @@ final class SocksAuthenticationHelper {
 		return command == USERNAME_PASSWORD_METHOD;
 	}
 
-	public static void performUserPasswordAuthentication(final Socks5 socksProxy)
-			throws IOException {
-        requireNonNull(socksProxy, "Argument [socksProxy] may not be null");
-        performUserPasswordAuthentication(requireNonNull(socksProxy.getProxySocket(), "proxySocket"), socksProxy.getCredentials());
-    }
-
     static void performUserPasswordAuthentication(final Socket socket, final ProxyCredentials credentials) throws IOException {
 		if (credentials == null) {
 			throw new SocksException("Need Username/Password authentication");
@@ -92,7 +86,7 @@ final class SocksAuthenticationHelper {
 			if (authenticationResult[0] != USERNAME_PASSWORD_VERSION) {
 				throw new SocksException("Unsupported SOCKS username/password authentication version: " + (authenticationResult[0] & 0xff));
 			}
-			if (authenticationResult[1] != Socks5.AUTHENTICATION_SUCCEEDED) {
+			if (authenticationResult[1] != AUTHENTICATION_SUCCEEDED) {
 				throw new SocksException("Username or password error",
                         new AuthenticationFailedException("SOCKS proxy rejected username/password authentication"));
 			}

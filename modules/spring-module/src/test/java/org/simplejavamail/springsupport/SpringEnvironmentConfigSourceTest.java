@@ -37,31 +37,50 @@ class SpringEnvironmentConfigSourceTest {
 	@ParameterizedTest
 	@ValueSource(strings = {"simplejavamail.proxy.socks5bridge.port", "simplejavamail.locked.proxy.socks5bridge.port",
 			"simplejavamail.mailers.backup.proxy.socks5bridge.port", "simplejavamail.locked.mailers.backup.proxy.socks5bridge.port"})
-	void bridgePortInputsPreserveSpringPrecedencePlaceholdersAndProvenance(final String key) {
+	void bridgePortInputsRequireMigrationAndIdentifyTheSpringSource(final String key) {
 		final StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addFirst(source("bridge defaults", key, "1082"));
 		environment.getPropertySources().addFirst(new MapPropertySource("proxy deployment", Map.of(
 				key, "${bridge.listener.port}", "bridge.listener.port", "1081")));
-		assertBridgePort(loadConfig(environment), key, "proxy deployment");
+		assertRemovedBridgePort(environment, "proxy deployment");
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"simple-java-mail.proxy.socks5bridge.port", "simple-java-mail.locked.proxy.socks5bridge.port"})
-	void relaxedBootInputsRetainTheBridgePort(final String key) {
+	@ValueSource(strings = {"simple-java-mail.proxy.socks5bridge.port", "simple-java-mail.locked.proxy.socks5bridge.port",
+			"simple-java-mail.mailers.backup.proxy.socks5bridge.port", "simple-java-mail.locked.mailers.backup.proxy.socks5bridge.port"})
+	void relaxedBootInputsCannotSilentlyRetainTheRemovedSetting(final String key) {
 		final StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addFirst(source("Boot proxy deployment", key, "1081"));
 		ConfigurationPropertySources.attach(environment);
-		assertBridgePort(loadConfig(environment), key.replace("simple-java-mail.", "simplejavamail."), "Boot proxy deployment");
+		assertRemovedBridgePort(environment, "Boot proxy deployment");
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"SIMPLEJAVAMAIL_PROXY_SOCKS5BRIDGE_PORT", "SIMPLEJAVAMAIL_LOCKED_PROXY_SOCKS5BRIDGE_PORT"})
-	void uppercaseSpringEnvironmentInputsRetainTheBridgePort(final String key) {
+	@ValueSource(strings = {"SIMPLEJAVAMAIL_PROXY_SOCKS5BRIDGE_PORT", "SIMPLEJAVAMAIL_LOCKED_PROXY_SOCKS5BRIDGE_PORT",
+			"SIMPLEJAVAMAIL_MAILERS_MY_BACKUP_PROXY_SOCKS5BRIDGE_PORT", "SIMPLEJAVAMAIL_LOCKED_MAILERS_MY_BACKUP_PROXY_SOCKS5BRIDGE_PORT"})
+	void uppercaseSpringEnvironmentInputsRequireMigration(final String key) {
 		final StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource("proxy environment", Map.of(key, "1081")));
-		final String canonicalKey = key.contains("_LOCKED_")
-				? "simplejavamail.locked.proxy.socks5bridge.port" : "simplejavamail.proxy.socks5bridge.port";
-		assertBridgePort(loadConfig(environment), canonicalKey, "proxy environment");
+		assertRemovedBridgePort(environment, "proxy environment");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"", "${missing.bridge.listener.port}", "private-invalid-port"})
+	void retiredSettingValuesAreNotResolvedBeforeMigrationGuidance(final String value) {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(source("obsolete proxy deployment", "simplejavamail.proxy.socks5bridge.port", value));
+		assertRemovedBridgePort(environment, "obsolete proxy deployment");
+	}
+
+	@Test
+	void nonEnumerableSourcesCannotRetainARemovedRootSetting() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addFirst(new org.springframework.core.env.PropertySource<Object>("private proxy deployment") {
+			@Override public Object getProperty(final String name) {
+				return name.equals("simplejavamail.locked.proxy.socks5bridge.port") ? "${missing.listener.port}" : null;
+			}
+		});
+		assertRemovedBridgePort(environment, "private proxy deployment");
 	}
 
 	@Test
@@ -371,12 +390,9 @@ class SpringEnvironmentConfigSourceTest {
 		record("case", "spring.relaxed-source");
 	}
 
-	private static void assertBridgePort(final SimpleJavaMailConfig config, final String key, final String sourceName) {
-		final SimpleJavaMailConfig selected = key.contains(".mailers.backup.") ? config.get(ConfigKeys.NAMED_MAILERS).get("backup") : config;
-		assertThat(selected.get(ConfigKeys.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(1081);
-		assertThat(selected.getPropertySource(ConfigKeys.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(sourceName);
-		assertThat(locksOf(selected).contains(ConfigLoader.Property.PROXY_SOCKS5BRIDGE_PORT)).isEqualTo(key.startsWith("simplejavamail.locked."));
-		assertThat(diagnostic(config.getDiagnostics(), key).getSourceName()).isEqualTo(sourceName);
+	private static void assertRemovedBridgePort(final StandardEnvironment environment, final String sourceName) {
+		assertThatThrownBy(() -> loadConfig(environment)).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContainingAll("authenticated SOCKS bridge has been removed", "Remove property", sourceName, "connects directly");
 	}
 
 	private static ConfigDiagnostics load(final StandardEnvironment environment) {

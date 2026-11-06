@@ -196,8 +196,7 @@ final class PropertySchema {
 		setDiagnostics(PROXY, SensitivityPolicy.VISIBLE,
 				Property.PROXY_HOST,
 				Property.PROXY_PORT,
-				Property.PROXY_USERNAME,
-				Property.PROXY_SOCKS5BRIDGE_PORT);
+				Property.PROXY_USERNAME);
 		setDiagnostics(PROXY, SensitivityPolicy.REDACT, Property.PROXY_PASSWORD);
 		setDiagnostics(EMAIL_DEFAULTS, SensitivityPolicy.VISIBLE,
 				Property.DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS,

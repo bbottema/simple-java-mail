@@ -41,7 +41,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 import static testutil.socks.AuthenticatedSocksRouteTestSupport.requireDirectRoute;
 
 class ConnectionPlanLifecycleTest {
@@ -64,7 +63,6 @@ class ConnectionPlanLifecycleTest {
         final Properties before = (Properties) suppliedSession.getProperties().clone();
         final ExecutorService borrowed = Executors.newSingleThreadExecutor();
         final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
-        when(module.createAnonymousSocks5Server(any())).thenThrow(new AssertionError("Named child allocated a proxy bridge"));
         when(module.createSocketProvider(any())).thenThrow(new AssertionError("Named child allocated a proxy socket capability"));
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
              MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
@@ -177,9 +175,8 @@ class ConnectionPlanLifecycleTest {
         final var config = ConfigLoader.builder().load();
         final AuthenticatedSocksModule module = mock(AuthenticatedSocksModule.class);
         final IllegalStateException failure = new IllegalStateException("proxy capability allocation failed");
-        if (expectsDirectRoute()) { when(module.createSocketProvider(any())).thenThrow(failure); }
-        else { when(module.createAnonymousSocks5Server(any())).thenThrow(failure); }
-        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isEqualTo(expectsDirectRoute());
+        when(module.createSocketProvider(any())).thenThrow(failure);
+        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session)).isTrue();
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(module);
             assertThatThrownBy(() -> new MailerFromSessionBuilderImpl(config).usingSession(session)
@@ -188,13 +185,7 @@ class ConnectionPlanLifecycleTest {
                     .withConnectionConfig(ConnectionConfig.builder().withReadTimeout(Duration.ofMillis(123)).build())
                     .withProxyConfig(SocksProxyConfig.builder().withUsername("user").withPassword("test-secret").build()).buildMailer())
                     .isSameAs(failure);
-            if (expectsDirectRoute()) {
-                verify(module).createSocketProvider(any());
-                verify(module, never()).createAnonymousSocks5Server(any());
-            } else {
-                verify(module).createAnonymousSocks5Server(any());
-                verify(module, never()).createSocketProvider(any());
-            }
+            verify(module).createSocketProvider(any());
         }
         assertThat(properties).isEqualTo(before);
         try (Mailer ignored = new MailerFromSessionBuilderImpl(config).usingSession(session).buildMailer()) {
@@ -247,7 +238,6 @@ class ConnectionPlanLifecycleTest {
             assertThat(session.getDebugOut()).isSameAs(originalDebugOut);
             verifyNoInteractions(applicationFactory);
             verify(module).createSocketProvider(any());
-            verify(module, never()).createAnonymousSocks5Server(any());
             try (Mailer replacement = new MailerFromSessionBuilderImpl(config).usingSession(session).buildMailer()) {
                 assertThat(replacement.getSession()).as("failed direct construction retires its ownership claim").isSameAs(session);
             }

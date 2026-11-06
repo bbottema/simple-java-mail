@@ -11,7 +11,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,12 +25,10 @@ class SocksAuthenticationLoggingTest {
         final String username = "proxy-user-\u00fc";
         final String password = "proxy-secret-\u2603";
         final ByteArrayOutputStream request = new ByteArrayOutputStream();
-        final Socks5 proxy = new Socks5(new InetSocketAddress("localhost", 1080));
-        proxy.setCredentials(new ProxyCredentials(username, password));
-        proxy.setProxySocket(new Socket() {
+        final Socket socket = new Socket() {
             @Override public InputStream getInputStream() { return new ByteArrayInputStream(new byte[] {1, 0}); }
             @Override public OutputStream getOutputStream() { return request; }
-        });
+        };
         final CapturingAppender appender = new CapturingAppender();
         final org.apache.logging.log4j.core.Logger logger =
                 (org.apache.logging.log4j.core.Logger) LogManager.getLogger(SocksAuthenticationHelper.class);
@@ -40,7 +37,7 @@ class SocksAuthenticationLoggingTest {
         logger.addAppender(appender);
         logger.setLevel(Level.TRACE);
         try {
-            SocksAuthenticationHelper.performUserPasswordAuthentication(proxy);
+            SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials(username, password));
 
             final ByteArrayOutputStream expected = new ByteArrayOutputStream();
             expected.write(1);

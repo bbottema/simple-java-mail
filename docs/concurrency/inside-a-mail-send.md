@@ -6,7 +6,7 @@ This is the maintenance source for the [architecture infographic](assets/inside-
 
 - Version shown: Simple Java Mail 10.0.0 development line.
 - Path shown: a pooled asynchronous send with configured connection failover and managed Angus transport.
-- Last architecture review: 2026-10-29, including authenticated SOCKS setup/forwarding separation; see the [architecture guide](../failover/architecture.md), [bridge guide](14-authenticated-socks-bridge.md) and ledger below. Website encoding reviewed on 2026-10-11.
+- Last architecture review: 2026-11-06, including removal of the authenticated SOCKS relay; see the [architecture guide](../failover/architecture.md), [socket ownership guide](14-authenticated-socks-bridge.md) and ledger below. Website encoding reviewed on 2026-10-11.
 - Not a release-status graphic, a lock-order graph, or an exhaustive map of every send path.
 - Proposed changes stay out of the picture until implemented. Do not add them ahead of the code.
 
@@ -161,9 +161,9 @@ The [local preparation boundary](01-send-operation.md#local-preparation-and-prov
 
 ## Authenticated SOCKS setup capacity, 2026-10-29
 
-The canonical artwork's five responsibility layers remain accurate for #921: the internal proxy setup executor and forwarding handoff are not pictured as application send workers or transport-pool leases. The [bridge guide](14-authenticated-socks-bridge.md) now maps those inner actors. Established tunnels release setup workers while retained/pooled transport ownership, send supervision, cancellation requests and terminal outcomes keep their existing layer relationships. The master, optimized website derivative and umbrella-issue embed require no image change.
+This historical #921 review kept the canonical artwork's five responsibility layers unchanged: proxy setup and forwarding were never pictured as application send workers or transport-pool leases. ADR 0042 subsequently removed those internal bridge actors. Retained/pooled ownership, send supervision, cancellation requests and terminal outcomes keep their existing layer relationships.
 
 
 ## Direct authenticated SOCKS development route
 
-The [direct transport route](../adr/0042-direct-authenticated-socks-sockets.md) stays within the overview's existing connection/provider ownership layers. It removes the local bridge actors for that selected connection and captures the upstream physical socket before SOCKS setup. The retained bridge remains the ordinary released-dependency route described in the bridge guide. No send owner, receipt transition or lease fence is replaced, so the overview artwork remains a layer summary rather than a diagram of either proxy implementation.
+The [direct transport route](../adr/0042-direct-authenticated-socks-sockets.md) stays within the overview's existing connection/provider ownership layers. It captures the upstream physical socket before SOCKS setup and removes the local bridge entirely, as accepted on 2026-11-06. No send owner, receipt transition or lease fence is replaced. The canonical master, optimized website derivative and umbrella-issue embed contain no local proxy actors, so all remain accurate without an artwork change. The [socket ownership guide](14-authenticated-socks-bridge.md) supplies the detailed path.

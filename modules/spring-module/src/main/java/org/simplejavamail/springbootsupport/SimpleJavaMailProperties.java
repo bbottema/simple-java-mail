@@ -184,16 +184,6 @@ public class SimpleJavaMailProperties {
         private String port;
         private String username;
         private String password;
-        private Socks5bridge socks5bridge;
-
-        /**
-         * @deprecated See {@link SimpleJavaMailProperties}
-         */
-        @Getter
-        @Setter
-        public static class Socks5bridge {
-            private String port;
-        }
     }
 
     /**

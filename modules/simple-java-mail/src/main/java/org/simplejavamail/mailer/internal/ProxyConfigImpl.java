@@ -18,7 +18,6 @@ class ProxyConfigImpl implements ProxyConfig {
 	@Nullable private final Integer remoteProxyPort;
 	@Nullable private final String username;
 	@Nullable private final String password;
-	@Nullable private final Integer proxyBridgePort;
 	
 	@Override
 	public boolean requiresProxy() {
@@ -38,9 +37,6 @@ class ProxyConfigImpl implements ProxyConfig {
 		String str = format("%s:%s", remoteProxyHost, remoteProxyPort);
 		if (requiresAuthentication()) {
 			str += format(", username: %s", username);
-			str += proxyBridgePort != null && proxyBridgePort == 0
-					? ", proxy bridge @ loopback:automatic"
-					: format(", proxy bridge @ loopback:%s", proxyBridgePort);
 		}
 		return str;
 	}

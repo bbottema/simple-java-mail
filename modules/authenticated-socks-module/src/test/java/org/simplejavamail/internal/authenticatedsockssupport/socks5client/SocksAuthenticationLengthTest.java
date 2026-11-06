@@ -10,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.stream.Stream;
 
@@ -26,7 +25,7 @@ class SocksAuthenticationLengthTest {
             final String member) {
         final AuthenticationSocket socket = new AuthenticationSocket();
 
-        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket, username, password)))
+        assertThatThrownBy(() -> SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials(username, password)))
                 .isInstanceOf(SocksException.class).hasMessageContaining(member)
                 .hasMessageContaining("255").hasMessageNotContaining("synthetic-secret");
         assertThat(socket.request.size()).as("No credential packet may be written for " + boundary).isZero();
@@ -48,7 +47,7 @@ class SocksAuthenticationLengthTest {
             throws Exception {
         final AuthenticationSocket socket = new AuthenticationSocket();
 
-        SocksAuthenticationHelper.performUserPasswordAuthentication(proxy(socket, username, password));
+        SocksAuthenticationHelper.performUserPasswordAuthentication(socket, new ProxyCredentials(username, password));
 
         final DataInputStream packet = new DataInputStream(new ByteArrayInputStream(socket.request.toByteArray()));
         assertThat(packet.readUnsignedByte()).isEqualTo(1);
@@ -62,13 +61,6 @@ class SocksAuthenticationLengthTest {
                 Arguments.of("one byte per member", "u", "p"),
                 Arguments.of("255 ASCII bytes per member", "u".repeat(255), "p".repeat(255)),
                 Arguments.of("255 multibyte UTF-8 bytes per member", "ü".repeat(127) + "x", "€".repeat(85)));
-    }
-
-    private static Socks5 proxy(final AuthenticationSocket socket, final String username, final String password) {
-        final Socks5 proxy = new Socks5(new InetSocketAddress("127.0.0.1", 1080));
-        proxy.setCredentials(new ProxyCredentials(username, password));
-        proxy.setProxySocket(socket);
-        return proxy;
     }
 
     private static final class AuthenticationSocket extends Socket {

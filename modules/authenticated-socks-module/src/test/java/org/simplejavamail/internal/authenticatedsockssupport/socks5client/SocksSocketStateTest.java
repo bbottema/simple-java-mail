@@ -49,7 +49,7 @@ class SocksSocketStateTest {
     }
 
     private static Socket facade(final PhysicalSocket physical) throws IOException {
-        return new SocksSocket(new Socks5(new InetSocketAddress("127.0.0.1", 1080)), physical);
+        return new SocksSocket(physical, new InetSocketAddress("127.0.0.1", 1080), new ProxyCredentials("user", "password"));
     }
 
     private static final class PhysicalSocket extends Socket {

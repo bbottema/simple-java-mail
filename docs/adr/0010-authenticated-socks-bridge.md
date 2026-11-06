@@ -1,11 +1,11 @@
 # ADR 0010: Adapt authenticated SOCKS through a Mailer-owned loopback bridge
 
-The accepted [ADR 0042](0042-direct-authenticated-socks-sockets.md) adds direct routing when the selected Angus provider supports an independent transport socket. This bridge and its port configuration remain the supported route for the interim released dependency baseline. The maintainer accepted their retirement together with adoption of the compatible final Angus baseline on 2026-11-05. Direct development integration and that release checkpoint are tracked under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
+This is the historical bridge design. [ADR 0042](0042-direct-authenticated-socks-sockets.md) supersedes it with direct authenticated sockets and removal of the listener, relay and bridge-port settings. On 2026-11-06 the maintainer authorized source-code retirement immediately on the dedicated branch, superseding the earlier plan to wait for final Angus dependency adoption. That dependency checkpoint remains under [#922](https://github.com/bbottema/simple-java-mail/issues/922).
 
-- Status: Accepted (retrospective record of implemented design)
+- Status: Superseded by ADR 0042, 2026-11-06; retained as a retrospective record
 - Decision recorded: 2026-09-16; this is not the original decision date
-- Applies to: Authenticated SOCKS sending, including automatic bridge ports in unreleased 10.0.0
-- Implementation status: Implemented; anonymous remote SOCKS continues to use the direct provider path
+- Applies to: The former local authenticated SOCKS bridge
+- Implementation status: Bridge retirement in development under #922; anonymous remote SOCKS continues to use the provider path
 
 ## Context
 
@@ -44,7 +44,7 @@ Automatic allocation removes routine port coordination between Mailers. An expli
 
 ## Implementation anchors
 
-[MailerImpl](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) configures routing, [AbstractProxyServerSyncingClosure](../../modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/AbstractProxyServerSyncingClosure.java) coordinates request lifetime and port publication, and [AnonymousSocks5ServerImpl](../../modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/socks5server/AnonymousSocks5ServerImpl.java) owns binding and graceful listener shutdown. [Proxy closure tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/AbstractProxyServerSyncingClosureTest.java) and [SOCKS integration tests](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailerSocksIntegrationTest.java) are existing verification anchors. They were inspected, not rerun, for this documentation record.
+At the retained bridge revision, [MailerImpl](https://github.com/bbottema/simple-java-mail/blob/831714f9f23157426b434cf0696a5a71f9d0e659/modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/MailerImpl.java) configured routing, [AbstractProxyServerSyncingClosure](https://github.com/bbottema/simple-java-mail/blob/831714f9f23157426b434cf0696a5a71f9d0e659/modules/simple-java-mail/src/main/java/org/simplejavamail/mailer/internal/AbstractProxyServerSyncingClosure.java) coordinated request lifetime and port publication, and [AnonymousSocks5ServerImpl](https://github.com/bbottema/simple-java-mail/blob/831714f9f23157426b434cf0696a5a71f9d0e659/modules/authenticated-socks-module/src/main/java/org/simplejavamail/internal/authenticatedsockssupport/socks5server/AnonymousSocks5ServerImpl.java) owned binding and graceful listener shutdown. The former [proxy closure contracts](https://github.com/bbottema/simple-java-mail/blob/831714f9f23157426b434cf0696a5a71f9d0e659/modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/AbstractProxyServerSyncingClosureTest.java) and [SOCKS integration contracts](https://github.com/bbottema/simple-java-mail/blob/831714f9f23157426b434cf0696a5a71f9d0e659/modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/MailerSocksIntegrationTest.java) describe that ownership boundary.
 
 ## Connection conflict policy (accepted 24 October 2026)
 

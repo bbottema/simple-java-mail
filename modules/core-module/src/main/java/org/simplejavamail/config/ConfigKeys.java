@@ -159,8 +159,6 @@ public final class ConfigKeys {
     /** Configured input for {@code simplejavamail.proxy.password}. */
     public static final ConfigKey<String> PROXY_PASSWORD = PropertySchema.stringKey(Property.PROXY_PASSWORD);
 
-    /** Configured input for {@code simplejavamail.proxy.socks5bridge.port}. */
-    public static final ConfigKey<Integer> PROXY_SOCKS5BRIDGE_PORT = PropertySchema.integerKey(Property.PROXY_SOCKS5BRIDGE_PORT);
 
     /** Configured input for {@code simplejavamail.defaults.subject}. */
     public static final ConfigKey<String> DEFAULT_SUBJECT = PropertySchema.stringKey(Property.DEFAULT_SUBJECT);

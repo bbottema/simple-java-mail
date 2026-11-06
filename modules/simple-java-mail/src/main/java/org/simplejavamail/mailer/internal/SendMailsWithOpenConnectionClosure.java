@@ -8,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSender;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
@@ -21,8 +20,9 @@ import org.simplejavamail.internal.util.MailTransportLifecycleResolver;
 import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static java.lang.String.format;
@@ -34,7 +34,9 @@ import static org.simplejavamail.mailer.internal.MailerException.GENERIC_ERROR;
 /**
  * Runs caller-managed send logic while one SMTP connection is open.
  */
-class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractProxyServerSyncingClosure implements MailSender {
+class SendMailsWithOpenConnectionClosure<E extends Exception> implements Runnable, MailSender {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(SendMailsWithOpenConnectionClosure.class);
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
@@ -49,10 +51,9 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 
 	SendMailsWithOpenConnectionClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session,
 			@NotNull OpenConnectionCallback<E> openConnectionCallback, @NotNull Function<Email, Email> emailPreparer,
-			@NotNull MailSendObserverNotifier mailSendObserverNotifier, @Nullable AnonymousSocks5Server proxyServer,
-			boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter, @NotNull MailSendOperations operations,
+			@NotNull MailSendObserverNotifier mailSendObserverNotifier,
+			boolean transportModeLoggingOnly, @NotNull MailSendOperations operations,
 			@NotNull SendingAllowance sendingAllowance) {
-		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.openConnectionCallback = openConnectionCallback;
@@ -75,7 +76,7 @@ class SendMailsWithOpenConnectionClosure<E extends Exception> extends AbstractPr
 	}
 
 	@Override
-	void executeClosure() {
+	public void run() {
 		LOGGER.trace("sending emails with open connection...");
 		Throwable operationFailure = null;
 		try {

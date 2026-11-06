@@ -89,7 +89,6 @@ class ValidatedMailerPlanTest {
         }
         final var config = ConfigLoader.builder().withMap(values).load();
         final AuthenticatedSocksModule socks = mock(AuthenticatedSocksModule.class);
-        when(socks.createAnonymousSocks5Server(any())).thenThrow(new AssertionError("Proxy allocated before complete validation"));
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS);
              MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
             modules.when(ModuleLoader::loadAuthenticatedSocksModule).thenReturn(socks);

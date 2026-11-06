@@ -507,14 +507,11 @@ org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#clearPassword():or
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#clearPort():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#clearProxy():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#clearUsername():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
-org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#resetBridgePort():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#resetPort():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
-org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#useConfiguredBridgePort():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#useConfiguredHost():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#useConfiguredPassword():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#useConfiguredPort():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#useConfiguredUsername():org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
-org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#withBridgePort(java.lang.Integer):org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#withHost(java.lang.String):org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#withPassword(java.lang.String):org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION
 org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder#withPort(java.lang.Integer):org.simplejavamail.api.mailer.config.SocksProxyConfig$Builder	MAILER_CONNECTION

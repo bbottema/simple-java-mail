@@ -156,7 +156,7 @@ public final class MailTransportLifecycleResolver {
         final String className = effective.getProperty(classKey);
         if (!Objects.equals(className, session.getProperty(classKey))) {
             // An unknown class or removal could expose a different protocol-map entry hidden behind the current property.
-            // Conservatively retain legacy routing rather than reconstructing Session's private provider maps.
+            // Conservatively reject unsupported authenticated routing rather than reconstructing Session's private provider maps.
             if (className == null) {
                 return null;
             }

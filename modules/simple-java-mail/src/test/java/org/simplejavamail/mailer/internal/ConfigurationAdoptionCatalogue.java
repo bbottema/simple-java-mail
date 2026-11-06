@@ -54,7 +54,7 @@ final class ConfigurationAdoptionCatalogue {
                 Property.TRANSPORT_STRATEGY, Property.CONNECTION_CONFLICT_POLICY, Property.SMTP_HOST, Property.SMTP_PORT,
                 Property.SMTP_USERNAME, Property.SMTP_PASSWORD, Property.SMTP_CLIENT_HOSTNAME, Property.SMTP_LOCAL_ADDRESS,
                 Property.SMTP_LOCAL_PORT, Property.CUSTOM_SSLFACTORY_CLASS, Property.PROXY_HOST, Property.PROXY_PORT,
-                Property.PROXY_USERNAME, Property.PROXY_PASSWORD, Property.PROXY_SOCKS5BRIDGE_PORT, Property.DEFAULT_SESSION_TIMEOUT_MILLIS,
+                Property.PROXY_USERNAME, Property.PROXY_PASSWORD, Property.DEFAULT_SESSION_TIMEOUT_MILLIS,
                 Property.DEFAULT_CONNECT_TIMEOUT_MILLIS, Property.DEFAULT_READ_TIMEOUT_MILLIS, Property.DEFAULT_WRITE_TIMEOUT_MILLIS, Property.DEFAULT_TRUST_ALL_HOSTS,
                 Property.DEFAULT_TRUSTED_HOSTS, Property.DEFAULT_VERIFY_SERVER_IDENTITY, Property.OPPORTUNISTIC_TLS);
         classify(owners, Owner.MAILER_CONTENT_COMPATIBILITY,

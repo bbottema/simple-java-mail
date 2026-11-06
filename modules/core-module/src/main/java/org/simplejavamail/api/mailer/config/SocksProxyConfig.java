@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
-import static java.util.Objects.requireNonNull;
 
 /**
  * Immutable supplied SocksProxyConfig choices. Unset fields use applicable raw endpoints and factory configuration when the Mailer is built.
@@ -26,7 +25,6 @@ public class SocksProxyConfig {
     boolean usernameCleared;
     @Nullable @ToString.Exclude String password;
     boolean passwordCleared;
-    @Nullable Integer bridgePort;
 
     private SocksProxyConfig(final Builder builder) {
         host = builder.host;
@@ -37,7 +35,6 @@ public class SocksProxyConfig {
         usernameCleared = builder.usernameCleared;
         password = builder.password;
         passwordCleared = builder.passwordCleared;
-        bridgePort = builder.bridgePort;
     }
 
     /** @return A builder containing no supplied choices. */
@@ -72,8 +69,6 @@ public class SocksProxyConfig {
      * @see Builder#clearPassword()
      */
     public boolean isPasswordCleared() { return passwordCleared; }
-    /** @see Builder#withBridgePort(Integer) */
-    @Nullable public Integer getBridgePort() { return bridgePort; }
 
     /** Explicit choices for this group; inspection does not build or validate an incomplete configuration. */
     public static final class Builder {
@@ -85,7 +80,6 @@ public class SocksProxyConfig {
         private boolean usernameCleared;
         private String password;
         private boolean passwordCleared;
-        private Integer bridgePort;
         private Builder() { }
         private Builder(final SocksProxyConfig config) {
             host = config.host;
@@ -96,7 +90,6 @@ public class SocksProxyConfig {
             usernameCleared = config.usernameCleared;
             password = config.password;
             passwordCleared = config.passwordCleared;
-            bridgePort = config.bridgePort;
         }
         /**
          * Supplies the optional remote proxy host. A repeated call replaces the previous local choice.
@@ -145,10 +138,8 @@ public class SocksProxyConfig {
         @NotNull public Builder useConfiguredPort() { port = null; portCleared = false; return this; }
         /**
          * Sets the optional username to authenticate with the proxy. The authenticated SOCKS module performs the proxy login.
-         * On Angus providers with an independent transport hook, the connection goes directly through an authenticated SOCKS socket.
-         * Other supported routes retain the local anonymous bridge:
-         * <p>
-         * {@code Simple Java Mail client -> Angus -> local anonymous bridge -> authenticated remote SOCKS proxy -> SMTP server}.
+         * Angus uses a direct authenticated SOCKS socket before starting SMTP.
+         * SMTP, STARTTLS and SMTPS preserve the selected TLS configuration.
          * <p>
          * For an active authenticated proxy, the effective username and password must each contain 1 through 255 UTF-8 bytes.
          * The Mailer validates these lengths when it is built; collecting or inspecting supplied choices remains passive.
@@ -192,42 +183,10 @@ public class SocksProxyConfig {
          */
         @NotNull public Builder useConfiguredPassword() { password = null; passwordCleared = false; return this; }
         /**
-         * Relevant only when using username authentication with a proxy.
-         * <p>
-         * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to IPv4
-         * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
-         * <p>
-         * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-         * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
-         * not use a bridge port.
-         * The direct Angus route has no listener and does not use this setting; choosing a port does not force the bridge route.
-         * <p>
-         * Defaults to automatic allocation ({@value org.simplejavamail.api.mailer.MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
-         * <p>
-         * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
-         *
-         * @param bridgePort The loopback port to use, or {@code 0} to allocate an available port automatically.
-         *
-         * @see #withUsername(String)
-         */
-        @NotNull public Builder withBridgePort(final Integer bridgePort) { this.bridgePort = requireNonNull(bridgePort, "bridgePort"); return this; }
-        /** @see #withBridgePort(Integer) */
-        @Nullable public Integer getBridgePort() { return bridgePort; }
-        /**
-         * Selects the published library fallback.
-         * @see #withBridgePort(Integer)
-         */
-        @NotNull public Builder resetBridgePort() { return withBridgePort(MailerGenericBuilder.DEFAULT_PROXY_BRIDGE_PORT); }
-        /**
-         * Restores captured configuration for this member.
-         * @see #withBridgePort(Integer)
-         */
-        @NotNull public Builder useConfiguredBridgePort() { bridgePort = null; return this; }
-        /**
-         * Removes the proxy endpoint and credentials, selecting the built-in bridge-port fallback.
+         * Removes the proxy endpoint and credentials.
          * @see #withHost(String)
          */
-        @NotNull public Builder clearProxy() { return clearHost().clearPort().clearUsername().clearPassword().resetBridgePort(); }
+        @NotNull public Builder clearProxy() { return clearHost().clearPort().clearUsername().clearPassword(); }
         /** Describes choices without disclosing proxy credentials. */
         @Override public String toString() { return "SocksProxyConfig.Builder"; }
         /** @return An immutable snapshot; feature validation remains with its owning runtime. */

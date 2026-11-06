@@ -226,11 +226,6 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 */
 	int DEFAULT_PROXY_PORT = 1080;
 	/**
-	 * The temporary intermediary SOCKS5 relay server bridge is a server that sits in between JavaMail and the remote proxy.
-	 * A value of {@value} asks the operating system to allocate an available loopback port when the bridge starts.
-	 */
-	int DEFAULT_PROXY_BRIDGE_PORT = 0;
-	/**
 	 * Defaults to <code>{@value}</code>, sending mails rather than just only logging the mails.
 	 */
 	boolean DEFAULT_TRANSPORT_MODE_LOGGING_ONLY = false;
@@ -268,8 +263,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * <p>
 	 * {@link ConnectionConflictPolicy#ALLOW_EXPLICIT_OVERRIDES} permits deliberate customization. Explicit typed Java members win
 	 * over their raw-property counterparts regardless of call order, while omitted members retain applicable raw or baseline values.
-	 * Recognized raw SOCKS endpoints can combine with SJM credentials before an authenticated bridge is derived. Generated local
-	 * bridge addresses and ports are not competing declarations. Ordinary factory defaults never fill unrelated gaps in a supplied Session.
+	 * Recognized raw SOCKS endpoints can combine with SJM credentials for direct authenticated connections.
+	 * Ordinary factory defaults never fill unrelated gaps in a supplied Session.
 	 * <p>
 	 * Locks and mandatory transport requirements apply in both modes. Conflicts are checked during Mailer construction before
 	 * modifying a supplied Session or allocating connection resources. This setting is independent of configuration-group replacement;

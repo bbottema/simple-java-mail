@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.mailer.MailSubmissionStatus.ACCEPTED;
 
-/** Real Angus sending through the authenticated bridge, including a genuine RFC1929 challenge. */
+/** Real Angus sending through the authenticated direct socket, including a genuine RFC1929 challenge. */
 @Timeout(30)
 class AuthenticatedSocksAddressingTest {
 
@@ -68,11 +68,13 @@ class AuthenticatedSocksAddressingTest {
     }
 
     @Test
-    void theGeneratedLoopbackRouteWorksWhenTheJvmPrefersIpv6() throws Exception {
+    void theConfiguredIpv4ProxyEndpointWorksWhenTheJvmPrefersIpv6() throws Exception {
         try (ProxySmtpPeer proxy = new ProxySmtpPeer("127.0.0.1");
              Mailer mailer = mailer("127.0.0.1", proxy)) {
             assertThat(mailer.sync().sendMail(email()).getStatus()).isEqualTo(ACCEPTED);
             assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo("127.0.0.1");
+            assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo(Integer.toString(proxy.listener.getLocalPort()));
+            assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport")).isNotNull();
             assertThat(proxy.destination.get(5, TimeUnit.SECONDS)).isEqualTo("127.0.0.1");
         }
     }

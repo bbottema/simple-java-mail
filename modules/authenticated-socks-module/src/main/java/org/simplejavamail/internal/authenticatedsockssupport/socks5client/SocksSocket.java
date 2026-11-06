@@ -45,7 +45,7 @@ public final class SocksSocket extends Socket {
         return raw -> new SocksSocket(raw, proxyAddress, new ProxyCredentials(username, password));
     }
 
-    private SocksSocket(final Socket physical, final InetSocketAddress proxyAddress, final ProxyCredentials credentials)
+    SocksSocket(final Socket physical, final InetSocketAddress proxyAddress, final ProxyCredentials credentials)
             throws SocketException {
         this.physical = requireNonNull(physical, "unconnectedSocket");
         if (physical.isConnected()) { throw new SocketException("Authenticated SOCKS requires an unconnected physical socket"); }
@@ -53,19 +53,6 @@ public final class SocksSocket extends Socket {
         this.proxyAddress = requireNonNull(proxyAddress, "proxyAddress");
         this.credentials = credentials;
     }
-
-    // Internal construction retained alongside the bridge fallback.
-    public SocksSocket(final Socks5 proxy, final Socket physical) throws SocketException {
-        this(physical, requireNonNull(proxy, "proxy").getProxyAddress(), proxy.getCredentials());
-    }
-
-    public SocksSocket(final Socks5 proxy, final Socket physical, final InetSocketAddress target) throws IOException {
-        this(proxy, physical);
-        connect(target);
-    }
-
-    public SocksSocket(final Socks5 proxy) throws IOException { this(proxy, proxy.createProxySocket()); }
-    public SocksSocket(final Socks5 proxy, final InetSocketAddress target) throws IOException { this(proxy); connect(target); }
 
     @Override public void connect(final SocketAddress endpoint) throws IOException { connect(endpoint, 0); }
 

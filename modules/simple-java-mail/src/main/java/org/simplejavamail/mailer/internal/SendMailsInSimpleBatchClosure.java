@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.internal.authenticatedsockssupport.socks5server.AnonymousSocks5Server;
 import org.simplejavamail.api.internal.batchsupport.SendingAllowance;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.MailSendCleanupException;
@@ -20,9 +19,10 @@ import org.simplejavamail.internal.util.concurrent.MailSendControl;
 import org.simplejavamail.internal.telemetry.MailSendTelemetryBridge;
 import org.simplejavamail.mailer.internal.util.TransportConnectionHelper;
 import org.simplejavamail.mailer.internal.util.TransportRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static java.lang.String.format;
@@ -35,7 +35,9 @@ import static org.simplejavamail.mailer.internal.MailerException.UNKNOWN_ERROR;
 /**
  * Sends a caller-managed sequence of emails over one SMTP connection.
  */
-class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
+class SendMailsInSimpleBatchClosure implements Runnable {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(SendMailsInSimpleBatchClosure.class);
 
 	@NotNull private final OperationalConfig operationalConfig;
 	@NotNull private final Session session;
@@ -53,9 +55,8 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 
 	SendMailsInSimpleBatchClosure(@NotNull OperationalConfig operationalConfig, @NotNull Session session, @NotNull Iterable<Email> userProvidedEmails,
 			@NotNull Function<Email, Email> emailPreparer, @NotNull MailSendObserverNotifier mailSendObserverNotifier,
-			@Nullable AnonymousSocks5Server proxyServer, boolean transportModeLoggingOnly, @NotNull AtomicInteger smtpConnectionCounter,
+			boolean transportModeLoggingOnly,
 			@NotNull MailSendControl control, @NotNull SendingAllowance sendingAllowance) {
-		super(smtpConnectionCounter, proxyServer, session);
 		this.operationalConfig = operationalConfig;
 		this.session = session;
 		this.userProvidedEmails = userProvidedEmails;
@@ -67,7 +68,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	}
 
 	@Override
-	public void executeClosure() {
+	public void run() {
 		LOGGER.trace("sending emails in simple batch...");
 		try {
 			control.checkStopped();

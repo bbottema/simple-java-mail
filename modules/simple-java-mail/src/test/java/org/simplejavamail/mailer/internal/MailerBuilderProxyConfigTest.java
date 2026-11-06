@@ -10,29 +10,27 @@ import testutil.ConfigLoaderTestHelper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static testutil.socks.AuthenticatedSocksRouteTestSupport.expectsDirectRoute;
 
 public class MailerBuilderProxyConfigTest {
 
 	@Test
-	public void authenticatedProxyUsesAutomaticBridgePortByDefault() throws Exception {
+	public void authenticatedProxyUsesTheRemoteEndpointWithoutALocalListener() throws Exception {
 		try (org.simplejavamail.api.mailer.Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("smtp.example.com", 25)
 				.withProxyConfig(SocksProxyConfig.builder().withHost("proxy.example.com").withPort(1080).withUsername("username").withPassword("password").build())
 				.buildMailer()) {
-			assertThat(mailer.getProxyConfig().getProxyBridgePort()).isZero();
-			assertThat(mailer.getProxyConfig().toString()).contains("proxy bridge @ loopback:automatic");
-			assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isEqualTo(expectsDirectRoute());
-			assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo(expectsDirectRoute() ? "proxy.example.com" : "127.0.0.1");
-			assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo(expectsDirectRoute() ? "1080" : "0");
-			assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isEqualTo(expectsDirectRoute());
+			assertThat(mailer.getProxyConfig().toString()).contains("proxy.example.com:1080").doesNotContain("bridge", "loopback", "password");
+			assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(mailer.getSession())).isTrue();
+			assertThat(mailer.getSession().getProperty("mail.smtp.socks.host")).isEqualTo("proxy.example.com");
+			assertThat(mailer.getSession().getProperty("mail.smtp.socks.port")).isEqualTo("1080");
+			assertThat(mailer.getSession().getProperties().get("mail.smtp.socketFactory.transport") != null).isTrue();
 		}
 	}
 
 	@Test
 	public void NoArgconstructor_WithoutConfigFile_WithoutHost() {
-		ProxyConfig emptyProxyConfig = new ProxyConfigImpl(null, null, null, null, null);
-		verifyProxyConfig(emptyProxyConfig, null, null, null, null, null);
+		ProxyConfig emptyProxyConfig = new ProxyConfigImpl(null, null, null, null);
+		verifyProxyConfig(emptyProxyConfig, null, null, null, null);
 		assertThat(emptyProxyConfig.requiresProxy()).isFalse();
 		assertThat(emptyProxyConfig.requiresAuthentication()).isFalse();
 	}
@@ -90,12 +88,10 @@ public class MailerBuilderProxyConfigTest {
 								   @Nullable String host,
 								   @Nullable Integer port,
 								   @Nullable String username,
-								   @Nullable String password,
-								   @Nullable Integer defaultProxyBridgePort) {
+								   @Nullable String password) {
 		assertThat(proxyConfig.getRemoteProxyHost()).isEqualTo(host);
 		assertThat(proxyConfig.getRemoteProxyPort()).isEqualTo(port);
 		assertThat(proxyConfig.getUsername()).isEqualTo(username);
 		assertThat(proxyConfig.getPassword()).isEqualTo(password);
-		assertThat(proxyConfig.getProxyBridgePort()).isEqualTo(defaultProxyBridgePort);
 	}
 }

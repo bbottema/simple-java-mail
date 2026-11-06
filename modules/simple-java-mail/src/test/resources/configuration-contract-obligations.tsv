@@ -170,7 +170,6 @@ field	connection.proxyHost	simple-java-mail	library
 field	connection.proxyPort	simple-java-mail	library
 field	connection.proxyUsername	simple-java-mail	library
 field	connection.proxyPassword	simple-java-mail	library
-field	connection.proxyBridgePort	simple-java-mail	library
 field	connection.sslHostsToTrust	simple-java-mail	library
 field	connection.trustAllHosts	simple-java-mail	library
 field	connection.verifyingServerIdentity	simple-java-mail	library
@@ -544,7 +543,6 @@ cli	--mailer:withMessageRateLimit|org.simplejavamail.api.internal.clisupport.Cli
 cli	--mailer:withOpportunisticTLS|org.simplejavamail.api.internal.clisupport.CliRegularMailerConfigurationBuilder#withOpportunisticTLS(boolean):org.simplejavamail.api.mailer.MailerRegularBuilder	cli-module	full
 cli	--mailer:withProperty|org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(java.lang.String,java.lang.Object):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
 cli	--mailer:withProxy|org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withProxy(java.lang.String,java.lang.Integer,java.lang.String,java.lang.String):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
-cli	--mailer:withProxyBridgePort|org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withProxyBridgePort(java.lang.Integer):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
 cli	--mailer:withRateLimitBurstsAllowed|org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withRateLimitBurstsAllowed(boolean):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
 cli	--mailer:withRateLimitGroup|org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withRateLimitGroup(java.lang.String):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
 cli	--mailer:withReadTimeout|org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withReadTimeout(java.lang.Integer):org.simplejavamail.api.mailer.MailerGenericBuilder	cli-module	full
@@ -644,8 +642,7 @@ test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyReviewTest#trust
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyReviewTest#typedFactoryInstanceKeepsAnExplicitRawClassProperty	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyReviewTest#typedFactoryInstanceShadowsTheClassOnlyDuringOwnedSessionActivation	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyReviewTest#wildcardHostEntryDoesNotEnableTrustAllWithoutTheDedicatedChoice	simple-java-mail	library
-test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#authenticatedRouteCanSatisfyALiteralLockedLoopbackEndpoint	simple-java-mail	library
-test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#bridgePortRefreshUsesTheActualProtocolOfAnUnmarkedSuppliedSession	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#authenticatedRouteRejectsALiteralLockedLoopbackEndpoint	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#clearedServerPortUsesTheSelectedStrategyFallbackInTheActualSession	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#conflictingCredentialsNeverAppearInErrors	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionConflictPolicyTest#conflictingRawAndTypedProxyHostsFailBeforeConstruction	simple-java-mail	library
@@ -680,7 +677,7 @@ test	org.simplejavamail.mailer.internal.ConnectionFailoverTest#failedConstructio
 test	org.simplejavamail.mailer.internal.ConnectionFailoverTest#namedCyclesAndIncompletePoliciesFailBeforeConstruction	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionFailoverTest#namedDefinitionIsIndependentAndLockedRelationshipCannotBeCleared	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionFailoverTest#nestedRelationshipsKeepOneObserverAndClosingInitiatorLeavesBorrowedMailersUsable	simple-java-mail	library
-test	org.simplejavamail.mailer.internal.ConnectionInlineSocksPortTest#interpretationAndBridgeRoutingUseTheProviderPortGrammar	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ConnectionInlineSocksPortTest#interpretationAndDirectRoutingUseTheProviderPortGrammar	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionLockObservationTest#directFactoryInstancesStillCannotClaimToHonorTlsLocks	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionLockObservationTest#inheritedFactoryClassCannotBypassTlsLocks	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.ConnectionLockObservationTest#inheritedTextInAnObjectFactorySlotDoesNotBecomeAnActiveFactory	simple-java-mail	library

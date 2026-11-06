@@ -68,7 +68,7 @@ final class ConnectionCoverageCatalogue {
                 Property.SMTP_CLIENT_HOSTNAME, Property.CUSTOM_SSLFACTORY_CLASS}) {
             result.put(property, Kind.TEXT);
         }
-        for (Property property : new Property[] {Property.SMTP_PORT, Property.PROXY_PORT, Property.PROXY_SOCKS5BRIDGE_PORT,
+        for (Property property : new Property[] {Property.SMTP_PORT, Property.PROXY_PORT,
                 Property.SMTP_LOCAL_PORT, Property.DEFAULT_SESSION_TIMEOUT_MILLIS, Property.DEFAULT_CONNECT_TIMEOUT_MILLIS,
                 Property.DEFAULT_READ_TIMEOUT_MILLIS, Property.DEFAULT_WRITE_TIMEOUT_MILLIS}) {
             result.put(property, Kind.NUMBER);

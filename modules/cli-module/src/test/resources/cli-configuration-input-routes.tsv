@@ -197,7 +197,6 @@
 --mailer:withOpportunisticTLS	org.simplejavamail.api.internal.clisupport.CliRegularMailerConfigurationBuilder#withOpportunisticTLS(boolean):org.simplejavamail.api.mailer.MailerRegularBuilder
 --mailer:withProperty	org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(java.lang.String,java.lang.Object):org.simplejavamail.api.mailer.MailerGenericBuilder
 --mailer:withProxy	org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withProxy(java.lang.String,java.lang.Integer,java.lang.String,java.lang.String):org.simplejavamail.api.mailer.MailerGenericBuilder
---mailer:withProxyBridgePort	org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withProxyBridgePort(java.lang.Integer):org.simplejavamail.api.mailer.MailerGenericBuilder
 --mailer:withRateLimitBurstsAllowed	org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withRateLimitBurstsAllowed(boolean):org.simplejavamail.api.mailer.MailerGenericBuilder
 --mailer:withRateLimitGroup	org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withRateLimitGroup(java.lang.String):org.simplejavamail.api.mailer.MailerGenericBuilder
 --mailer:withReadTimeout	org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder#withReadTimeout(java.lang.Integer):org.simplejavamail.api.mailer.MailerGenericBuilder

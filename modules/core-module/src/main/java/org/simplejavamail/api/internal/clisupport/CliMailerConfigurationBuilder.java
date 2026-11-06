@@ -191,9 +191,7 @@ public interface CliMailerConfigurationBuilder {
 	 * <p>
 	 * The remote route is resolved before authenticated routing is derived. Authentication needs the optional
 	 * {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}. Angus providers with the independent transport hook use a direct
-	 * authenticated SOCKS socket. Other supported routes use a local loopback bridge that authenticates with the remote proxy.
-	 * The effective Session reports the remote endpoint on the direct route or the local endpoint while a bridge is used;
-	 * {@link Mailer#getProxyConfig()} describes the remote proxy in either case. Generated bridge addresses and ports are not competing user configuration.
+	 * authenticated SOCKS socket. The effective Session and {@link Mailer#getProxyConfig()} both describe the remote proxy endpoint.
 	 * For an active authenticated route, the effective username and password must each contain 1 through 255 UTF-8 octets. This is checked when
 	 * the Mailer is built, before connecting; collecting and inspecting supplied choices does not validate an incomplete configuration.
 	 *
@@ -227,10 +225,7 @@ public interface CliMailerConfigurationBuilder {
 
 	/**
 	 * Sets the optional username to authenticate with the proxy. The authenticated SOCKS module performs the proxy login.
-	 * On Angus providers with an independent transport hook, the connection goes directly through an authenticated SOCKS socket.
-	 * Other supported routes retain the local anonymous bridge:
-	 * <p>
-	 * {@code Simple Java Mail client -> Angus -> local anonymous bridge -> authenticated remote SOCKS proxy -> SMTP server}.
+	 * Angus uses a direct authenticated SOCKS socket before SMTP, preserving the selected TLS settings.
 	 * Replacing or removing an imported username follows the connection conflict policy described by {@link #withProxy(String, Integer, String, String)}.
 	 * An effective active username requires 1 through 255 UTF-8 octets when the Mailer is built; supplied-choice inspection remains passive.
 	 * @param proxyUsername Proxy username, or {@code null} to request removal of a captured username.
@@ -251,29 +246,6 @@ public interface CliMailerConfigurationBuilder {
 	@Cli.ExcludeApi(reason = "API is a subset of a more details API")
 	MailerGenericBuilder<?> withProxyPassword(@Nullable @Cli.Optional String proxyPassword);
 
-	/**
-	 * Relevant only when using username authentication with a proxy.
-	 * <p>
-	 * Overrides the port used by the temporary SOCKS5 relay between Jakarta Mail and the authenticated remote proxy. The relay binds to IPv4
-	 * loopback {@code 127.0.0.1} and owns this port while this Mailer has active proxy operations. Destination and remote-proxy connections can still use IPv6.
-	 * <p>
-	 * Port {@code 0} lets the operating system choose an available port every time the bridge starts. This avoids collisions between separate
-	 * authenticated-proxy Mailers. Use a positive port when an application needs the bridge to bind to a fixed port. Anonymous proxy connections do
-	 * not use a bridge port.
-	 * The direct Angus route has no listener and does not use this setting; choosing a port does not force the bridge route.
-	 * <p>
-	 * Defaults to automatic allocation ({@value MailerGenericBuilder#DEFAULT_PROXY_BRIDGE_PORT}) if no custom default property was configured.
-	 * A different explicitly configured bridge port follows
-	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; configuration locks still apply.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.AuthenticatedSocksModule#NAME}.
-	 *
-	 * @param proxyBridgePort The loopback port to use, or {@code 0} to allocate an available port automatically.
-	 *
-	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
-	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withUsername(String)
-	 */
-	MailerGenericBuilder<?> withProxyBridgePort(@NotNull Integer proxyBridgePort);
 
 	/**
 	 * Controls whether client-side validation findings block sending or are reported as warnings.
@@ -439,9 +411,7 @@ public interface CliMailerConfigurationBuilder {
 	 * an advanced setting and can cause conflicts if another connection already uses that port.
 	 * <p>
 	 * If a remote SOCKS proxy is used, the SMTP server usually sees the proxy's outgoing IP address. With Simple Java
-	 * Mail's retained authenticated SOCKS bridge, this setting binds Jakarta Mail's socket to the local bridge/proxy path,
-	 * not the proxy server's own outbound socket. With the direct Angus transport route, it binds the physical connection
-	 * to the remote proxy.
+	 * Mail's authenticated SOCKS socket, it binds the client connection to the remote proxy rather than the proxy server's own outbound socket.
 	 * <p>
 	 * A caller-supplied Session keeps its local binding when these members are untouched. Replacement or removal follows
 	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}:
@@ -959,7 +929,7 @@ public interface CliMailerConfigurationBuilder {
 	MailerGenericBuilder<?> resetConnectionPoolLoadBalancingStrategy();
 
 	/**
-	 * Removes the supplied remote proxy host, port and credentials, including captured choices, and restores automatic bridge-port allocation.
+	 * Removes the supplied remote proxy host, port and credentials, including captured choices.
 	 * This requests removal rather than restoring captured configuration. Conflicts with imported proxy values follow
 	 * {@link MailerGenericBuilder#withConnectionConflictPolicy(org.simplejavamail.api.mailer.config.ConnectionConflictPolicy)}; locks still apply.
 	 * @see #withProxy(String, Integer, String, String)
@@ -1040,11 +1010,6 @@ public interface CliMailerConfigurationBuilder {
 	@Nullable
 	String getProxyPassword();
 
-	/**
-	 * @see org.simplejavamail.api.mailer.config.SocksProxyConfig.Builder#withBridgePort(Integer)
-	 */
-	@Nullable
-	Integer getProxyBridgePort();
 
 	/**
 	 * @see org.simplejavamail.api.mailer.config.ValidationConfig.Builder#withClientValidationWarningsOnly(boolean)

@@ -11,11 +11,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AngusTransportSocketSupportTest {
     @Test
-    void loadedCodeMatchesTheDeliberateBuildLane() {
-        final boolean expected = "direct".equals(System.getProperty("sjm.test.authenticatedSocksRoute", "bridge"));
-        assertThat(AngusTransportSocketSupport.isSupported()).as("transport hook in the selected Angus artifact").isEqualTo(expected);
+    void loadedAngusHasTheRequiredTransportSocketHook() {
+        assertThat(AngusTransportSocketSupport.isSupported()).as("transport hook required by authenticated SOCKS").isTrue();
         assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(Session.getInstance(new Properties())))
-                .as("the ordinary provider discovery reaches the same capability").isEqualTo(expected);
+                .as("the ordinary provider discovery reaches the same capability").isTrue();
     }
 
     @Test
@@ -49,8 +48,7 @@ class AngusTransportSocketSupportTest {
         assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session, effective)).isFalse();
         effective.remove("mail.smtp.class");
         effective.setProperty("mail.transport.protocol", "smtps");
-        final boolean expected = "direct".equals(System.getProperty("sjm.test.authenticatedSocksRoute", "bridge"));
-        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session, effective)).isEqualTo(expected);
+        assertThat(MailTransportLifecycleResolver.supportsDirectAuthenticatedSocks(session, effective)).isTrue();
         assertThat(session.getProperties()).doesNotContainKey("mail.transport.protocol");
     }
 }
