@@ -764,3 +764,24 @@ the separate SOCKS/Angus worktrees, and older .local/manual residues retain thei
 own ownership. This custody record does not add an executable cleanup block.
 #>
 #endregion ReviewDeliveryCustody20261105
+
+#region SessionIntegrationCustody969
+<#
+Session integration #969.
+
+Task-owned linked checkouts retired with normal git worktree removal:
+C:\workstation\sjm-session-integration-20261105\sjm
+C:\workstation\sjm-session-integration-20261105\website
+C:\workstation\sjm-session-integration-20261105\combined
+C:\workstation\sjm-session-integration-20261105\combined-website
+C:\workstation\sjm-session-integration-20261105\delivery
+C:\workstation\sjm-session-integration-20261105\delivery-website
+
+The Session handoff/execution plans are retired under
+C:\workstation\sjm-session-integration-20261105\evidence\retired-plans.
+Evidence, source snapshots and produced artifacts remain retained under
+C:\workstation\sjm-session-integration-20261105\evidence.
+Keep that evidence and the task parent; this record adds no executable deletion.
+No completed #969 paths remain in the executable cleanup allowlists.
+#>
+#endregion SessionIntegrationCustody969
