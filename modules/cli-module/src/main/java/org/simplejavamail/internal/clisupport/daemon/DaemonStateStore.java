@@ -42,9 +42,14 @@ final class DaemonStateStore {
 
 	LockHandle tryLock() throws IOException {
 		paths.prepare();
-		final FileChannel channel = FileChannel.open(paths.lockFile(), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+		final Path file = paths.lockFile();
+		if (Files.exists(file, LinkOption.NOFOLLOW_LINKS) && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+			throw new DaemonSecurityException("Daemon lock must be a regular file, not a symbolic link or another file type");
+		}
+		final FileChannel channel = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+				LinkOption.NOFOLLOW_LINKS);
 		try {
-			DaemonStateSecurity.ensurePrivateFile(paths.lockFile());
+			DaemonStateSecurity.ensurePrivateFile(file);
 			final FileLock lock = channel.tryLock();
 			if (lock == null) {
 				channel.close();
