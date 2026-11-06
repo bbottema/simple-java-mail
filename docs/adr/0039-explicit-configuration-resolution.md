@@ -61,6 +61,34 @@ This remains a Mailer-construction rule; group builders and inspection stay pass
 
 Validation and ownership rejection leave a supplied Session unchanged. Retain construction rollback and borrowed-resource boundaries. This is a connection-specific effect boundary; ordinary subject selection does not need a synthetic application-plan lifecycle.
 
+### Passive Session capture and construction order (accepted 5 November 2026)
+
+Capture a supplied Session as data: retain its original reference for later application, detach its observed property containers and
+retain its native debug flag and borrowed output stream in the existing `SessionDebugConfig`. Keep that flag separate from raw
+`mail.debug`, since native setters can legitimately leave them different. Internal consumers receive detached property views. Capture,
+resolution, validation and inspection do not create or configure a live Session, construct transports, run authentication callbacks or
+write to application streams merely to represent configuration.
+
+Resolve and validate the completed choices before activation. For an SJM-owned Session, assemble the final properties before creating
+it so constructor-consumed settings take effect. Preserve runtime object identity, direct-entry/default visibility and borrowed-resource
+ownership. For a supplied Session, apply the validated choices to that same native instance after exclusive ownership is claimed;
+its Authenticator, providers, address mapping and private cached state remain its own.
+
+When applying debug choices, install the selected destination before enabling debugging. Owned Session construction must suppress raw
+`mail.debug=true` bootstrap output until that destination is ready while preserving the property view and resolved native flag. Owned
+Sessions retain existing Java/configured debug precedence; raw `mail.debug=true` does not override that selection. A live
+private Session with debugging enabled is not an input snapshot.
+
+Guard only known ineffective late construction changes on supplied Sessions. In particular, a Session-scoped event queue captures
+the direct `mail.event.executor` object at Session construction; a requested replacement cannot retrofit that queue. The `session`
+scope is case-insensitive. Equivalent already-present choices retain executor identity; an effective service-scoped overlay, including
+a transport's default `folder` scope, remains eligible because its queue is created later. Conflict policy and
+locks still select eligible declarations; permissive conflict handling cannot make a native constructor field mutable. Visible properties
+do not establish how an application's earlier mutations affected private cached state.
+
+[#969](https://github.com/bbottema/simple-java-mail/issues/969) tracks implementation and delivery. Passive capture completes the
+unreleased #867 machinery. Property application order also corrects the published 9.3.9 owned-Session path.
+
 ### Initial consumers and adoption boundary
 
 Connection configuration is the first complete consumer, with its behavior owned by [ADR 0038](0038-connection-configuration-conflicts.md).

@@ -263,6 +263,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * {@link ConnectionConflictPolicy#REJECT_CONFLICTS} rejects differing explicit factory declarations, recognized raw properties,
 	 * visible supplied Session settings and final Java choices for the same logical setting. Equivalent parsed values are accepted.
 	 * Trusted-host lists with the same exact names are compatible regardless of ordering or duplicates; opaque factory instances compare by identity.
+	 * The active {@code mail.smtp.class} or {@code mail.smtps.class} provider selector compares visible class-name text case-sensitively,
+	 * including inherited String defaults, without loading provider classes during resolution.
 	 * Built-in defaults are not competing declarations. Repeated setters retain their normal replacement behavior; only the final
 	 * choices are compared. Explicit removal of an imported choice also counts as conflicting customization.
 	 * <p>
@@ -410,6 +412,10 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * Supported connection settings participate in {@link #withConnectionConflictPolicy(ConnectionConflictPolicy)};
 	 * extra properties are not an unconditional override of typed connection choices.
 	 * Non-String keys and their values are retained as opaque entries; their display text does not make them connection property names.
+	 * Runtime values such as executors and socket factories retain their identity; use this overload instead of
+	 * {@link #withProperty(String, Object)}, which converts a non-null value to text. Completed properties are installed before an owned Session
+	 * is constructed, so a direct {@code mail.event.executor} can configure Session-scoped event delivery. On a supplied Session, an unsupported
+	 * late replacement of its Session-scoped event executor is rejected. Invalid constructor-consumed values may fail during construction.
 	 *
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperties(Map)
 	 * @see org.simplejavamail.api.mailer.MailerGenericBuilder#withProperty(String, Object)
@@ -449,6 +455,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	 * provider ownership remain unchanged. Eligibility follows its effective protocol and mechanisms, including explicit additional properties,
 	 * even when the Session is reused after its previous Mailer completes shutdown. A retained transport-strategy marker does not select authentication.
 	 * Configuring both a fixed token and a provider is rejected.
+	 * A supplied Session also needs an explicit effective {@code mail.transport.protocol} before SJM can validate that namespace's mechanisms.
+	 * At connection time, SJM supplies the token and lets the already selected provider resolve its username from its URL and Session settings.
 	 * <p>
 	 * Calling this method again replaces the provider. {@link #clearOAuth2AccessTokenProvider()} removes it without closing an application object,
 	 * changing the transport strategy, or removing a separately configured SMTP password or token. Previously built Mailers remain unchanged.

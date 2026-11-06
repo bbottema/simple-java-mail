@@ -8,7 +8,7 @@ import org.simplejavamail.mailer.internal.ConnectionSetupFailure;
 import org.simplejavamail.mailer.internal.OAuth2AccessTokenResolver;
 
 /**
-	 * Opens Jakarta Mail transports. OAuth2 requires the explicit username-and-token form because Jakarta Mail's Authenticator cannot provide a refreshed token.
+	 * Opens Jakarta Mail transports. OAuth2 supplies a token while the selected provider resolves its username because Jakarta Mail's Authenticator cannot provide a refreshed token.
 	 *
 	 * @see <a href="https://eclipse-ee4j.github.io/angus-mail/OAuth2">Angus Mail OAuth2 support</a>
  */
@@ -16,7 +16,7 @@ public class TransportConnectionHelper {
 
 	public static void connectTransport(final Transport transport, final Session session) throws MessagingException {
 		if (usesOAuth2Authentication(session)) {
-			connectWithOAuth2Token(transport, session, OAuth2AccessTokenResolver.resolveAccessToken(session));
+			connectWithOAuth2Token(transport, OAuth2AccessTokenResolver.resolveAccessToken(session));
         } else {
             transport.connect();
         }
@@ -28,7 +28,7 @@ public class TransportConnectionHelper {
 		final String accessToken = usesOAuth2Authentication ? OAuth2AccessTokenResolver.resolveAccessToken(session) : null;
         try {
 			if (usesOAuth2Authentication) {
-				connectWithOAuth2Token(transport, session, accessToken);
+				connectWithOAuth2Token(transport, accessToken);
             } else {
                 transport.connect();
             }
@@ -42,9 +42,7 @@ public class TransportConnectionHelper {
 				|| session.getProperties().containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY);
 	}
 
-	private static void connectWithOAuth2Token(final Transport transport, final Session session, final String accessToken) throws MessagingException {
-		final String protocol = session.getProperties().getProperty("mail.transport.protocol", "smtp");
-		final String username = session.getProperty("mail." + protocol + ".user");
-		transport.connect(username, accessToken);
+	private static void connectWithOAuth2Token(final Transport transport, final String accessToken) throws MessagingException {
+		transport.connect(null, accessToken);
 	}
 }

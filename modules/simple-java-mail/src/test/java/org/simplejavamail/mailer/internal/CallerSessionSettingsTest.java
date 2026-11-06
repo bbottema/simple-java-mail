@@ -196,6 +196,7 @@ class CallerSessionSettingsTest {
     @Test
     void clearingCannotSilentlyReactivateAnInheritedPropertiesDefault() {
         final Properties defaults = new Properties();
+        defaults.setProperty("mail.transport.protocol", "smtp");
         defaults.setProperty("mail.smtp.localaddress", "192.0.2.1");
         final Properties properties = new Properties(defaults);
         properties.setProperty("mail.smtp.localaddress", "192.0.2.2");
@@ -209,6 +210,7 @@ class CallerSessionSettingsTest {
     @Test
     void inheritedSessionPropertiesCanSatisfyMandatoryConnectionSettings() throws Exception {
         final Properties defaults = new Properties();
+        defaults.setProperty("mail.transport.protocol", "smtp");
         defaults.setProperty("mail.smtp.host", "required.example.test");
         final Session session = Session.getInstance(new Properties(defaults));
         try (Mailer mailer = factory(Map.of("locked.smtp.host", "required.example.test")).mailerBuilder(session).buildMailer()) {
@@ -441,6 +443,7 @@ class CallerSessionSettingsTest {
 
     private static Properties timeoutProperties(final String connect, final String read, final String write) {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.setProperty("mail.smtp.connectiontimeout", connect);
         properties.setProperty("mail.smtp.timeout", read);
         properties.setProperty("mail.smtp.writetimeout", write);

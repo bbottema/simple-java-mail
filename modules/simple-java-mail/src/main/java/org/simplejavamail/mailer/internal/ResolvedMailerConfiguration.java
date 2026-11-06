@@ -42,13 +42,13 @@ final class ResolvedMailerConfiguration {
     static ResolvedMailerConfiguration resolve(final CapturedMailerInputs inputs) {
         final CapturedConnectionInputs captured = inputs.getConnection();
         final ResolvedConnection connection = ConnectionConfigurationResolver.resolve(captured);
-        final MailerSessionSettings settings = MailerSessionSettings.resolve(captured.getSuppliedSession(), captured.getStrategy(),
+        final MailerSessionSettings settings = MailerSessionSettings.resolve(captured.copySessionProperties(), captured.getDebugBaseline(), captured.getStrategy(),
                 captured.copyAdditionalProperties(), connection.overrides, locksOf(captured.getConfig()).getValues(), connection.proxy,
                 connection.shadowedFactoryClassProperty, inputs.isApplyDebugEnabled(), inputs.isApplyDebugOutput()).toBuilder()
                 .connectionConflictPolicy(captured.getPolicy()).customMailer(captured.getCustomMailer()).tokenProvider(captured.getTokenProvider()).build();
         final MailerOperationalSettings operational = inputs.getOperational().toBuilder()
                 .debugConfig(resolveDebugConfig(captured.getConfig(), inputs.getOperational().getDebugConfig(), settings.getDebugConfig(),
-                        captured.getSuppliedSession() != null)).build();
+                        captured.getTargetSession() != null)).build();
         final EmailGovernance governance = new EmailGovernanceImpl(captured.getConfig(), new EmailStartingBuilderImpl(captured.getConfig()),
                 inputs.getEmailValidator(), inputs.getEmailDefaults(), inputs.getEmailOverrides(), inputs.getMaximumEmailSize());
         final ResolvedMailerConfiguration child = inputs.getNamedChild() == null ? null : resolve(inputs.getNamedChild());

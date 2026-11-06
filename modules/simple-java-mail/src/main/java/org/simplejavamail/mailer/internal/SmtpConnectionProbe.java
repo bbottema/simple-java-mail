@@ -37,9 +37,13 @@ final class SmtpConnectionProbe {
         if (config.getCustomMailer() != null) {
             return unavailable(initial, "CustomMailer owns its connection. Use its diagnostics or testConnection(); this probe cannot inspect that transport.");
         }
+        final String protocol = source.getProperty("mail.transport.protocol");
+        if (protocol == null) {
+            return unavailable(initial, "Declare mail.transport.protocol on the supplied Session or through withProperty(...) before probing. "
+                    + "Simple Java Mail cannot inspect the Session's private address mapping to choose the correct protocol and endpoint.");
+        }
         ProbeClosure closure = null;
         try {
-            final String protocol = source.getProperty("mail.transport.protocol") == null ? "smtp" : source.getProperty("mail.transport.protocol");
             final Provider provider = source.getProvider(protocol);
             final SmtpConnectionProbeAdapter adapter = selectAdapter(provider);
             if (adapter == null) {

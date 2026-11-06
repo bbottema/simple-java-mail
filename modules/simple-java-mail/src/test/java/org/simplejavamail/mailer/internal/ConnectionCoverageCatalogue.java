@@ -22,7 +22,7 @@ final class ConnectionCoverageCatalogue {
     private static Map<String, Access> access() {
         final Map<String, Access> aliases = new LinkedHashMap<>();
         access(aliases, Access.SESSION_STRING, "host", "user", "socks.host", "localaddress", "localhost",
-                "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms", "ssl.trust");
+                "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms", "ssl.trust", "class");
         access(aliases, Access.PROPERTY_INTEGER, "port", "socks.port", "localport", "connectiontimeout", "timeout", "writetimeout");
         access(aliases, Access.PROPERTY_BOOLEAN, "auth", "ssl.checkserveridentity", "starttls.enable", "starttls.required", "ssl.enable",
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
@@ -41,7 +41,7 @@ final class ConnectionCoverageCatalogue {
 
     private static Map<String, Grammar> grammar() {
         final Map<String, Grammar> aliases = new LinkedHashMap<>();
-        grammar(aliases, Grammar.TEXT, "host", "user", "localaddress", "localhost", "auth.mechanisms");
+        grammar(aliases, Grammar.TEXT, "host", "user", "localaddress", "localhost", "auth.mechanisms", "class");
         grammar(aliases, Grammar.INTEGER, "port", "socks.port", "localport", "connectiontimeout", "timeout", "writetimeout");
         grammar(aliases, Grammar.BOOLEAN, "auth", "ssl.checkserveridentity", "starttls.enable", "starttls.required", "ssl.enable",
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
@@ -80,7 +80,7 @@ final class ConnectionCoverageCatalogue {
 
     private static Map<String, Kind> members() {
         final Map<String, Kind> result = new LinkedHashMap<>();
-        add(result, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms");
+        add(result, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class", "socketFactory.class", "auth.mechanisms", "class");
         add(result, Kind.NUMBER, "port", "socks.port", "localport", "connectiontimeout", "timeout", "writetimeout");
         add(result, Kind.BOOLEAN, "auth", "ssl.checkserveridentity", "starttls.enable", "starttls.required", "ssl.enable",
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");

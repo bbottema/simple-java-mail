@@ -323,7 +323,7 @@ class SmtpsOAuth2Test {
             assertThat(properties).doesNotContainKeys("mail." + protocol + ".ssl.checkserveridentity", "mail." + protocol + ".ssl.trust");
             final Transport transport = mock(Transport.class);
             TransportConnectionHelper.connectTransport(transport, session);
-            verify(transport).connect(USER, TOKEN);
+            verify(transport).connect(null, TOKEN);
         }
     }
 

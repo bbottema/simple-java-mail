@@ -79,6 +79,7 @@ class SmtpConnectionProbePortTest {
     @ValueSource(booleans = {false, true})
     void opaqueDirectPortMasksAnInheritedStringAsItDoesForAngus(final boolean implicitTls) {
         final Properties defaults = new Properties();
+        defaults.setProperty("mail.transport.protocol", "smtp");
         defaults.setProperty("mail.smtp.port", "2523");
         final Properties properties = new Properties(defaults);
         properties.put("mail.smtp.port", new Object());
@@ -91,6 +92,7 @@ class SmtpConnectionProbePortTest {
     @Test
     void aDirectIntegerTakesPrecedenceOverInheritedStringPort() {
         final Properties defaults = new Properties();
+        defaults.setProperty("mail.transport.protocol", "smtp");
         defaults.setProperty("mail.smtp.port", "0x9db");
         final Properties properties = new Properties(defaults);
         properties.put("mail.smtp.port", 2524);

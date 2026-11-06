@@ -270,6 +270,7 @@ class SmtpCapabilityProbeCharacterizationTest {
 
     static Session session(final boolean trustTestCertificate) throws Exception {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.setProperty("mail.smtp.localhost", "probe.example.test");
         properties.setProperty("mail.smtp.connectiontimeout", "10000");
         properties.setProperty("mail.smtp.timeout", "10000");

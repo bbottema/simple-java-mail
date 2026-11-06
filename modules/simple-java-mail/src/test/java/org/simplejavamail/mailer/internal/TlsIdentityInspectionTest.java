@@ -121,7 +121,7 @@ class TlsIdentityInspectionTest {
             assertThat(reconstructed.getConnectionOverrides()).doesNotContainKey(identityKey("smtp"));
             final Properties baseline = sessionProperties("smtp");
             baseline.setProperty(identityKey("smtp"), "true");
-            assertThat(reconstructed.finalProperties(Session.getInstance(baseline), new Properties()).getProperty(identityKey("smtp")))
+            assertThat(reconstructed.finalProperties(baseline, new Properties()).getProperty(identityKey("smtp")))
                     .isEqualTo("true");
         }
     }

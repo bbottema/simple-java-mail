@@ -250,7 +250,8 @@ class SocketTimeoutResolutionTest {
         final Session session = suppliedSession(TransportStrategy.SMTP, false);
         session.getProperties().put("mail.transport.protocol", "custom-smtp");
         assertThatThrownBy(() -> mail.mailerBuilder(session).withTransportModeLoggingOnly(true).buildMailer())
-                .hasMessageContaining("locked.defaults.readtimeoutmillis").hasMessageContaining("neither smtp nor smtps");
+                .hasMessageContaining("locked.defaults.readtimeoutmillis")
+                .hasMessageContaining("without an explicit supported mail.transport.protocol").hasMessageContaining("smtp or smtps");
         assertThatThrownBy(() -> mail.mailerBuilder().withSMTPServer("localhost", 25)
                 .withCustomMailer(mock(CustomMailer.class)).buildMailer())
                 .hasMessageContaining("locked.defaults.readtimeoutmillis").hasMessageContaining("withCustomMailer");

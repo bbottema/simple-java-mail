@@ -228,6 +228,7 @@ rule	provider.grammar.socks-endpoint	simple-java-mail	library
 rule	provider.grammar.boolean	simple-java-mail	library
 rule	provider.grammar.trust-hosts	simple-java-mail	library
 rule	provider.grammar.factory-lookup	simple-java-mail	library
+rule	provider.grammar.provider-selection	simple-java-mail	library
 rule	provider.unknown-pass-through	simple-java-mail	library
 rule	mailer.layer.BUILT_IN	simple-java-mail	library
 rule	mailer.layer.CONFIGURED	simple-java-mail	library

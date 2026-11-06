@@ -283,19 +283,18 @@ final class LockedSmtpConnectionRequirements {
 		}
 	}
 
-	void verifyCallerOwnedSession(final Session session) {
-		final TransportStrategy strategy = MailerSessionSettings.transportStrategy(session.getProperties());
+	void verifyCallerOwnedSession(final Properties properties, @Nullable final TransportStrategy strategy) {
 		verifyCallerOwnedCredentials();
 		if (strategy == null) {
 			verifyUnknownSessionStrategy();
 		}
-		lockedExtraProperties.keySet().stream().filter(session.getProperties()::containsKey)
-				.forEach(key -> verifySessionValue(key, ConnectionPropertyValues.visibleValue(session.getProperties(), key)));
+		lockedExtraProperties.keySet().stream().filter(properties::containsKey)
+				.forEach(key -> verifySessionValue(key, ConnectionPropertyValues.visibleValue(properties, key)));
 		// These settings belong to the supplied Session, not to the generic builder that initializes operational settings below.
 		for (Map.Entry<String, Property> entry : sessionProperties.entrySet()) {
 			if (entry.getValue() == SMTP_HOST || entry.getValue() == SMTP_PORT || entry.getValue() == SMTP_USERNAME
 					|| entry.getValue() == TRANSPORT_STRATEGY || entry.getValue() == CUSTOM_SSLFACTORY_CLASS || entry.getValue() == OPPORTUNISTIC_TLS) {
-				verifySessionValue(entry.getKey(), ConnectionPropertyValues.visibleValue(session.getProperties(), entry.getKey()));
+				verifySessionValue(entry.getKey(), ConnectionPropertyValues.visibleValue(properties, entry.getKey()));
 			}
 		}
 	}
@@ -317,7 +316,7 @@ final class LockedSmtpConnectionRequirements {
 		for (Property property : Property.values()) {
 			if (locks.contains(property) && (property == TRANSPORT_STRATEGY || property.name().startsWith("PROXY_")
 					|| !sessionKeys(property, TransportStrategy.SMTP).isEmpty())) {
-				throw locks.conflict(property, "You supplied a Session whose mail.transport.protocol is neither smtp nor smtps, while this factory locks an SMTP setting. "
+				throw locks.conflict(property, "You supplied a Session without an explicit supported mail.transport.protocol (smtp or smtps), while this factory locks an SMTP setting. "
 						+ "Simple Java Mail cannot map that custom protocol's connection properties to this SMTP lock reliably. "
 						+ "Call this factory's mailerBuilder() without a Session, or remove this lock from the configuration source.");
 			}

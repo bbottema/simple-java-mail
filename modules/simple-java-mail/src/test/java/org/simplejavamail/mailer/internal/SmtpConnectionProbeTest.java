@@ -96,6 +96,7 @@ class SmtpConnectionProbeTest {
     @ValueSource(booleans = {false, true})
     void endpointDefaultsMatchAngusIncludingInheritedImplicitTls(final boolean implicitTls) {
         final Properties defaults = new Properties();
+        defaults.setProperty("mail.transport.protocol", "smtp");
         defaults.setProperty("mail.smtp.ssl.enable", Boolean.toString(implicitTls));
         final Properties properties = new Properties(defaults);
         final Session session = Session.getInstance(properties);

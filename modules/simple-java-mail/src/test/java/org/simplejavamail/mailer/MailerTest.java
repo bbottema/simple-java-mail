@@ -230,6 +230,7 @@ public class MailerTest {
 	public void usingSession_AnonymousProxy_OverridesOnlySocksRoute() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
 		properties.setProperty("mail.smtp.port", "2525");
 		properties.setProperty("mail.smtp.starttls.required", "true");
@@ -257,6 +258,7 @@ public class MailerTest {
 	public void usingSession_AuthenticatedProxy_RoutesThroughLocalBridge() throws Exception {
 		simpleJavaMail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "caller-smtp.example.com");
 		properties.setProperty("mail.smtp.socks.host", "old-proxy.example.com");
 		properties.setProperty("mail.smtp.socks.port", "9999");

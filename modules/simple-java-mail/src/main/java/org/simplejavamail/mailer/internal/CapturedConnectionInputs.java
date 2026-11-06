@@ -9,6 +9,7 @@ import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
+import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
@@ -23,7 +24,8 @@ import java.util.Properties;
 final class CapturedConnectionInputs {
     private final SimpleJavaMailConfig config;
     @Nullable private final Session targetSession;
-    @Nullable private final Session suppliedSession;
+    @Getter(AccessLevel.NONE) private final Properties sessionProperties;
+    private final SessionDebugConfig debugBaseline;
     @Nullable private final TransportStrategy strategy;
     private final ConnectionConflictPolicy policy;
     @Getter(AccessLevel.NONE) private final Properties additionalProperties;
@@ -46,7 +48,8 @@ final class CapturedConnectionInputs {
             final boolean proxyCustomized, @Nullable final CustomMailer customMailer, @Nullable final OAuth2AccessTokenProvider tokenProvider) {
         this.config = config;
         this.targetSession = targetSession;
-        this.suppliedSession = targetSession == null ? null : snapshot(targetSession);
+        this.sessionProperties = targetSession == null ? new Properties() : SessionPropertyObservation.snapshot(targetSession.getProperties());
+        this.debugBaseline = MailerSessionSettings.debugBaseline(targetSession);
         this.strategy = strategy;
         this.policy = policy;
         this.additionalProperties = SessionPropertyObservation.snapshot(additionalProperties);
@@ -63,16 +66,11 @@ final class CapturedConnectionInputs {
     }
 
     Properties copyAdditionalProperties() { return SessionPropertyObservation.snapshot(additionalProperties); }
+    Properties copySessionProperties() { return SessionPropertyObservation.snapshot(sessionProperties); }
 
     static <K, V> Map<K, V> immutable(final Map<K, V> source) {
         // Null values are deliberate removals, so Map.copyOf is not suitable here.
         return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
-    private static Session snapshot(final Session source) {
-        final Session snapshot = Session.getInstance(SessionPropertyObservation.snapshot(source.getProperties()));
-        snapshot.setDebug(source.getDebug());
-        snapshot.setDebugOut(source.getDebugOut());
-        return snapshot;
-    }
 }

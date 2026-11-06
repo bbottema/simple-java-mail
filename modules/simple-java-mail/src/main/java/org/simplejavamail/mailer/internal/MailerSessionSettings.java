@@ -58,34 +58,34 @@ final class MailerSessionSettings {
     boolean shouldApplyDebugEnabled() { return applyDebugEnabled; }
     boolean shouldApplyDebugOutput() { return applyDebugOutput; }
 
-    /** Keep inherited property values visible when validation creates a detached Session from this snapshot. */
+    /** Retain direct entries and inherited String visibility without constructing a Session for validation. */
     Properties copyEffectiveProperties() {
         return SessionPropertyObservation.snapshot(effectiveProperties);
     }
 
     Properties copyAdditionalProperties() { return SessionPropertyObservation.snapshot(additionalProperties); }
 
-    Properties finalProperties(final Session baseline, final Properties additionalProperties) {
-        final Properties copy = copyProperties(baseline);
+    Properties finalProperties(final Properties baseline, final Properties additionalProperties) {
+        final Properties copy = SessionPropertyObservation.snapshot(baseline);
         copy.putAll(additionalProperties);
         applyActivationOverrides(copy);
         return copy;
     }
 
-    static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
+    static MailerSessionSettings resolve(final Properties sessionProperties, final SessionDebugConfig debugBaseline, @Nullable final TransportStrategy strategy,
             final Properties additionalProperties, final Map<Property, Object> connectionChoices, final Map<String, Object> lockedValues,
             final boolean applyDebugEnabled, final boolean applyDebugOutput) {
-        final Properties effective = copyProperties(suppliedSession);
+        final Properties effective = SessionPropertyObservation.snapshot(sessionProperties);
         effective.putAll(additionalProperties);
         final Map<String, Object> overrides = connectionOverrides(strategy, connectionChoices, effective);
-        return resolve(suppliedSession, strategy, additionalProperties, overrides, lockedValues, null, null, applyDebugEnabled, applyDebugOutput);
+        return resolve(sessionProperties, debugBaseline, strategy, additionalProperties, overrides, lockedValues, null, null, applyDebugEnabled, applyDebugOutput);
     }
 
-    static MailerSessionSettings resolve(@Nullable final Session suppliedSession, @Nullable final TransportStrategy strategy,
+    static MailerSessionSettings resolve(final Properties sessionProperties, final SessionDebugConfig debugBaseline, @Nullable final TransportStrategy strategy,
             final Properties additionalProperties, final Map<String, Object> resolvedOverrides, final Map<String, Object> lockedValues,
             @Nullable final ProxyConfig proxyConfig, @Nullable final String shadowedFactoryClassProperty,
             final boolean applyDebugEnabled, final boolean applyDebugOutput) {
-        final Properties effective = copyProperties(suppliedSession);
+        final Properties effective = SessionPropertyObservation.snapshot(sessionProperties);
         effective.putAll(additionalProperties);
         final Map<String, Object> applicationOverrides = new LinkedHashMap<>(resolvedOverrides);
         lockedValues.forEach((key, value) -> {
@@ -98,7 +98,7 @@ final class MailerSessionSettings {
             effective.remove(shadowedFactoryClassProperty);
         }
         verifyRemovedSettings(effective, applicationOverrides);
-        return snapshot(strategy, applicationOverrides, effective, suppliedSession, applyDebugEnabled, applyDebugOutput).toBuilder()
+        return snapshot(strategy, applicationOverrides, effective, debugBaseline, applyDebugEnabled, applyDebugOutput).toBuilder()
                 .additionalProperties(SessionPropertyObservation.snapshot(additionalProperties))
                 .proxyConfig(proxyConfig)
                 .shadowedFactoryClassProperty(shadowedFactoryClassProperty)
@@ -127,7 +127,7 @@ final class MailerSessionSettings {
                 choices.put(Property.DEFAULT_VERIFY_SERVER_IDENTITY, config.getVerifyingServerIdentity());
             }
         }
-        return resolve(null, strategy, config.getProperties(), choices, Collections.emptyMap(), true, true).toBuilder()
+        return resolve(new Properties(), debugBaseline(null), strategy, config.getProperties(), choices, Collections.emptyMap(), true, true).toBuilder()
                 .connectionConflictPolicy(config.getConnectionConflictPolicy()).customMailer(config.getCustomMailer())
                 .tokenProvider(config.getOAuth2AccessTokenProvider()).build();
     }
@@ -140,17 +140,10 @@ final class MailerSessionSettings {
         }
     }
 
-    private static Properties copyProperties(@Nullable final Session suppliedSession) {
-        if (suppliedSession == null) {
-            return new Properties();
-        }
-        return SessionPropertyObservation.snapshot(suppliedSession.getProperties());
-    }
-
     /** The protocol selects property names. A historical SJM marker never establishes ownership of a supplied Session. */
     @Nullable
     static TransportStrategy transportStrategy(final Properties properties) {
-        final String protocol = properties.getProperty("mail.transport.protocol", "smtp");
+        final String protocol = properties.getProperty("mail.transport.protocol");
         if ("smtps".equals(protocol)) {
             return TransportStrategy.SMTPS;
         }
@@ -165,7 +158,7 @@ final class MailerSessionSettings {
         final Map<String, Object> overrides = new LinkedHashMap<>();
         if (strategy == null) {
             if (!choices.isEmpty()) {
-                throw new IllegalArgumentException("The supplied Session selects a custom mail.transport.protocol, so Simple Java Mail cannot apply "
+                throw new IllegalArgumentException("The supplied Session needs an explicit supported mail.transport.protocol (smtp or smtps) before Simple Java Mail can apply "
                         + "connection options such as withSessionTimeout(...), withConnectTimeout(...), withReadTimeout(...), withWriteTimeout(...), withLocalBindAddress(...), trustingSSLHosts(...) or "
                         + "verifyingServerIdentity(...) reliably. Configure those settings on the Session with your provider's property names "
                         + "or through withProperty(...), or let the factory create an SMTP Session without supplying one.");
@@ -214,12 +207,12 @@ final class MailerSessionSettings {
     }
 
     private static MailerSessionSettings snapshot(@Nullable final TransportStrategy strategy, final Map<String, Object> overrides,
-            final Properties effective, @Nullable final Session suppliedSession, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
+            final Properties effective, final SessionDebugConfig debugBaseline, final boolean applyDebugEnabled, final boolean applyDebugOutput) {
         final String trusted = strategy == null ? null : effective.getProperty(strategy.propertyNameSSLTrust());
         return MailerSessionSettings.builder()
                 .transportStrategy(strategy)
                 .effectiveProperties(effective)
-                .debugConfig(debugBaseline(suppliedSession))
+                .debugConfig(debugBaseline)
                 .applyDebugEnabled(applyDebugEnabled)
                 .applyDebugOutput(applyDebugOutput)
                 .connectionOverrides(Collections.unmodifiableMap(new LinkedHashMap<>(overrides)))
@@ -235,7 +228,7 @@ final class MailerSessionSettings {
                 .build();
     }
 
-    private static SessionDebugConfig debugBaseline(@Nullable final Session suppliedSession) {
+    static SessionDebugConfig debugBaseline(@Nullable final Session suppliedSession) {
         return suppliedSession == null
                 ? SessionDebugConfig.builder().withEnabled(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG).withOutput(MailerGenericBuilder.DEFAULT_JAVAXMAIL_DEBUG_OUTPUT).build()
                 : SessionDebugConfig.builder().withEnabled(suppliedSession.getDebug()).withPrinter(suppliedSession.getDebugOut()).build();

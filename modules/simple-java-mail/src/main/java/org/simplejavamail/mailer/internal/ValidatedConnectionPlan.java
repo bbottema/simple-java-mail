@@ -47,13 +47,14 @@ final class ValidatedConnectionPlan {
                 inputs.getConfig(), resolved.proxy, settings.isTrustAllSSLHost(), inputs.getStrategy());
         requirements.verifyAdditionalProperties(inputs.copyAdditionalProperties());
         requirements.verifyExplicitConnectionChoices(resolved.explicitOverrides);
-        if (inputs.getSuppliedSession() != null) {
-            requirements.verifyCallerOwnedSession(inputs.getSuppliedSession());
+        if (inputs.getTargetSession() != null) {
+            requirements.verifyCallerOwnedSession(inputs.copySessionProperties(), settings.getTransportStrategy());
+            verifyConstructionOnlySettings(inputs.copySessionProperties(), settings.copyEffectiveProperties());
         }
         LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(inputs.getConfig()), settings.copyEffectiveProperties(), inputs.getStrategy());
         if (inputs.isSmtpActive()) {
-            final TransportStrategy authenticationStrategy = inputs.getSuppliedSession() == null ? inputs.getStrategy() : null;
-            OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(settings.copyEffectiveProperties()), new Properties(),
+            final TransportStrategy authenticationStrategy = inputs.getTargetSession() == null ? inputs.getStrategy() : null;
+            OAuth2AccessTokenResolver.validateConfiguration(settings.copyEffectiveProperties(), new Properties(),
                     authenticationStrategy, inputs.getTokenProvider());
             if (resolved.proxy.requiresProxy() && resolved.proxy.requiresAuthentication()) {
                 ModuleLoader.loadAuthenticatedSocksModule();
@@ -64,25 +65,36 @@ final class ValidatedConnectionPlan {
 
     /** Internal injection constructors supply completed facts, without inventing a builder declaration history. */
     static ValidatedConnectionPlan validateApplication(final SimpleJavaMailConfig config, @Nullable final ServerConfig server,
-            final ProxyConfig proxy, final Session baseline, final OperationalConfig operational,
+            final ProxyConfig proxy, @Nullable final Session targetSession, final Properties baseline, final OperationalConfig operational,
             final MailerSessionSettings settings, final boolean ownsSession) {
         final TransportStrategy strategy = settings.getTransportStrategy();
         final LockedSmtpConnectionRequirements requirements = new LockedSmtpConnectionRequirements(config, proxy,
                 operational.isTrustAllSSLHost(), strategy);
         requirements.verifyAdditionalProperties(operational.getProperties());
-        if (!ownsSession) { requirements.verifyCallerOwnedSession(baseline); }
+        if (!ownsSession) { requirements.verifyCallerOwnedSession(baseline, strategy); }
         final Properties effective = settings.finalProperties(baseline, operational.getProperties());
+        if (!ownsSession) { verifyConstructionOnlySettings(baseline, effective); }
         LockedSmtpConnectionRequirements.verifyCustomSocketFactory(locksOf(config), effective, strategy);
         if (operational.getCustomMailer() == null) {
             if (ownsSession) {
                 MailerImpl.validateMandatoryStartTls(strategy, operational.getProperties());
                 MailerImpl.validateImplicitTlsOAuth2Protocol(strategy, operational.getProperties());
             }
-            OAuth2AccessTokenResolver.validateConfiguration(Session.getInstance(effective), new Properties(),
+            OAuth2AccessTokenResolver.validateConfiguration(effective, new Properties(),
                     ownsSession ? strategy : null, operational.getOAuth2AccessTokenProvider());
             if (proxy.requiresProxy() && proxy.requiresAuthentication()) { ModuleLoader.loadAuthenticatedSocksModule(); }
         }
-        return new ValidatedConnectionPlan(ownsSession ? null : baseline, operational.getProperties(), settings, server);
+        return new ValidatedConnectionPlan(targetSession, operational.getProperties(), settings, server);
+    }
+
+    /** Jakarta Mail creates this queue in Session's constructor, but service-scoped queues are created later. */
+    private static void verifyConstructionOnlySettings(final Properties baseline, final Properties effective) {
+        if ("session".equalsIgnoreCase(effective.getProperty("mail.event.scope"))
+                && baseline.get("mail.event.executor") != effective.get("mail.event.executor")) {
+            throw new IllegalArgumentException("Cannot change mail.event.executor for Session-scoped events after the supplied Session was created. "
+                    + "Configure mail.event.executor on the Properties passed to Session.getInstance(...), or let Simple Java Mail create the Session. "
+                    + "ALLOW_EXPLICIT_OVERRIDES cannot replace an existing Session event queue.");
+        }
     }
 
     MailerSessionSettings settings() { return settings; }

@@ -113,6 +113,7 @@ class ConnectionConflictPolicyTest {
     @Test
     void strictComparesCapturedInputsWithSessionAndJavaWithoutMutatingTheSession() {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.setProperty("mail.smtp.host", "session.example.org");
         final Session session = Session.getInstance(properties);
         final Properties before = (Properties) properties.clone();
@@ -267,6 +268,7 @@ class ConnectionConflictPolicyTest {
     @Test
     void missingRequestedAuthenticationModuleFailsBeforeChangingSuppliedSession() {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.setProperty("mail.smtp.socks.host", "remote.example.org");
         final Session session = Session.getInstance(properties);
         final Properties original = (Properties) properties.clone();
@@ -375,6 +377,7 @@ class ConnectionConflictPolicyTest {
     @Test
     void incompatiblePhysicalProxyLockFailsBeforeAllocatingOwnedExecutorOrMutatingSession() {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         final Session session = Session.getInstance(properties);
         final SimpleJavaMail configured = factory(Map.of("simplejavamail.locked.extraproperties.mail.smtp.socks.host", "locked.example.org"));
         try (MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
@@ -383,7 +386,7 @@ class ConnectionConflictPolicyTest {
                     .withProxyConfig(SocksProxyConfig.builder().withHost("different.example.org").withPort(2345).build()).buildMailer())
                     .hasMessageContaining("locked.extraproperties.mail.smtp.socks.host");
             assertThat(executors.constructed()).isEmpty();
-            assertThat(properties).isEmpty();
+            assertThat(properties).containsOnlyKeys("mail.transport.protocol");
         }
     }
 

@@ -134,6 +134,7 @@ class ConnectionPlanLifecycleTest {
     @Test
     void untouchedSuppliedDefaultsRemainInherited() throws Exception {
         final Properties inherited = new Properties();
+        inherited.setProperty("mail.transport.protocol", "smtp");
         inherited.setProperty("mail.smtp.timeout", "5000");
         final Properties supplied = new Properties(inherited);
         final Session session = Session.getInstance(supplied);
@@ -161,6 +162,7 @@ class ConnectionPlanLifecycleTest {
     @Test
     void allocationFailureRestoresOnlyTheAppliedCallerSessionChoices() throws Exception {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.setProperty("mail.smtp.timeout", "5000");
         properties.setProperty("mail.smtp.socks.host", "proxy.example.org");
         properties.setProperty("application.extra", "original");

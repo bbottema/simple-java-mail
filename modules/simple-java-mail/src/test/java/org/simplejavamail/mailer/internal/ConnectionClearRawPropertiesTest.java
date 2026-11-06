@@ -206,6 +206,7 @@ class ConnectionClearRawPropertiesTest {
             final Properties defaults = new Properties();
             defaults.setProperty(inheritedKey, rawProperties(strategy).get(inheritedKey));
             final Properties properties = new Properties(defaults);
+            properties.setProperty("mail.transport.protocol", "smtp");
             properties.putAll(rawProperties(strategy));
             final Session session = Session.getInstance(properties);
             final Properties original = (Properties) properties.clone();
@@ -233,6 +234,7 @@ class ConnectionClearRawPropertiesTest {
             assertThatThrownBy(() -> builder(factory, strategy).withConnectionConfig(clearAll()).buildMailer())
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(lock.getKey());
             final Properties properties = new Properties();
+            properties.setProperty("mail.transport.protocol", "smtp");
             properties.putAll(rawProperties(strategy));
             properties.setProperty(strategy.propertyNameHost(), "caller.example.test");
             final Session session = Session.getInstance(properties);

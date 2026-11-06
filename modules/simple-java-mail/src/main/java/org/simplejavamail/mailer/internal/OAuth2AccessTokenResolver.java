@@ -21,17 +21,21 @@ public final class OAuth2AccessTokenResolver {
 
 	/** Pass an SJM preset only for an owned Session; null selects the supplied Session's effective authentication mechanisms. */
 	@Nullable
-	static Supplier<String> validateConfiguration(@NotNull Session session,
+	static Supplier<String> validateConfiguration(@NotNull Properties sessionProperties,
 			@NotNull Properties additionalProperties,
 			@Nullable TransportStrategy transportStrategy,
 			@Nullable OAuth2AccessTokenProvider explicitProvider) {
-		final boolean fixedTokenConfigured = session.getProperty(OAUTH2_TOKEN_PROPERTY) != null
+		final boolean fixedTokenConfigured = sessionProperties.getProperty(OAUTH2_TOKEN_PROPERTY) != null
 				|| additionalProperties.getProperty(OAUTH2_TOKEN_PROPERTY) != null;
-		final Object sessionProvider = session.getProperties().get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
+		final Object sessionProvider = sessionProperties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object additionalProvider = additionalProperties.get(OAUTH2_TOKEN_PROVIDER_PROPERTY);
 		final Object configuredProvider = selectProvider(explicitProvider, sessionProvider, additionalProvider);
+		if (configuredProvider != null && transportStrategy == null && sessionProperties.getProperty("mail.transport.protocol") == null) {
+			throw new IllegalArgumentException("Declare mail.transport.protocol on the supplied Session or through withProperty(...) "
+					+ "before configuring an OAuth2 access-token provider, so Simple Java Mail can validate the selected authentication mechanisms.");
+		}
 		final boolean oauth2Transport = isOAuth2Transport(transportStrategy)
-				|| (transportStrategy == null && hasOAuth2AuthenticationMechanism(session));
+				|| (transportStrategy == null && hasOAuth2AuthenticationMechanism(sessionProperties));
 
 		if (configuredProvider != null && !(configuredProvider instanceof Supplier)) {
 			throw new MailerException(MailerException.INVALID_OAUTH2_TOKEN_PROVIDER);
@@ -106,9 +110,10 @@ public final class OAuth2AccessTokenResolver {
 		return candidate;
 	}
 
-	private static boolean hasOAuth2AuthenticationMechanism(@NotNull Session session) {
-		final String protocol = session.getProperties().getProperty("mail.transport.protocol", "smtp");
-		final String authenticationMechanisms = session.getProperty("mail." + protocol + ".auth.mechanisms");
+	private static boolean hasOAuth2AuthenticationMechanism(@NotNull Properties properties) {
+		final String protocol = properties.getProperty("mail.transport.protocol");
+		if (protocol == null) { return false; }
+		final String authenticationMechanisms = properties.getProperty("mail." + protocol + ".auth.mechanisms");
 		if (authenticationMechanisms == null) {
 			return false;
 		}

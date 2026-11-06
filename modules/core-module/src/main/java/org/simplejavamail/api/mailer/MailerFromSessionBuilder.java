@@ -18,6 +18,9 @@ import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
  * select {@code ALLOW_EXPLICIT_OVERRIDES} when deliberate replacement is intended. Compatible raw SOCKS endpoints can combine with SJM proxy credentials.
  * Generic connection setters use the Session's {@code smtp} or {@code smtps} protocol. For a custom protocol, use the provider's own property names instead;
  * unknown provider properties remain outside the supported conflict comparison.
+ * Declare {@code mail.transport.protocol} on the Session or through {@code withProperty(...)} before using protocol-specific connection choices
+ * or connection probes. Without that declaration, ordinary sending keeps the Session's native address mapping and protocol-specific inspection
+ * remains unknown. The active {@code mail.smtp.class} or {@code mail.smtps.class} provider selector participates in conflict checking.
  * <p>
  * Factory settings supplied through {@code simplejavamail.locked.} properties must also be honored. A locked SMTP username or password cannot be checked
  * reliably on a caller-owned Session: its cached credentials or Authenticator may choose another account even when its visible properties match.
@@ -42,6 +45,11 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * compatible raw SOCKS endpoints and SJM credentials can form one proxy configuration.
 	 * Clearing a connection setting inherited through {@link java.util.Properties} defaults is rejected if removing it would simply reactivate
 	 * that default. Use a new Session with independent Properties containing only the desired settings, or supply an explicit replacement value.
+	 * Constructor-only settings must already be configured when you create the Session. In particular, a different {@code mail.event.executor}
+	 * for effective {@code mail.event.scope=session} is rejected during Mailer construction, even with {@code ALLOW_EXPLICIT_OVERRIDES}.
+	 * The same already-present executor is compatible; service-scoped event queues can still consume a late executor overlay.
+	 * The original Session, Authenticator and provider registrations retain their identities. Debug capture reads the native flag and output
+	 * without writing to the stream, even when the native flag differs from the raw {@code mail.debug} property.
 	 * <p>
 	 * One Mailer at a time may use the Session and its {@link java.util.Properties} object. Building another Mailer with either is rejected before
 	 * changing the first Mailer's configuration, even if the Mailers belong to different factories. Reuse the existing Mailer for concurrent sends,

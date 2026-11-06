@@ -160,7 +160,7 @@ public final class SmtpConnectionReport implements Serializable {
         return toBuilder().build();
     }
 
-    /** Logical configured server name, not a physical-peer claim. Escaped for diagnostic output. */
+    /** Logical configured server name, not a physical-peer claim. {@code "unknown"} when the protocol declaration is missing. Escaped for diagnostic output. */
     @NotNull
     public String getHost() {
         return host;
@@ -172,7 +172,7 @@ public final class SmtpConnectionReport implements Serializable {
         return port < 0 ? null : port;
     }
 
-    /** Jakarta Mail protocol used for the dedicated probe. */
+    /** Jakarta Mail protocol used for the dedicated probe, or {@code "unknown"} when its explicit declaration is missing. */
     @NotNull
     public String getProtocol() {
         return protocol;

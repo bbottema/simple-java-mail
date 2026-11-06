@@ -143,6 +143,16 @@ Connection configuration is checked during `buildMailer()`. The default `Connect
 
 Trusted-host lists with the same exact names are compatible even when ordered differently or repeated. Factory objects are compared by identity, and an untouched supplied Session keeps its omitted settings. Raw SOCKS host values can include a port; a separate raw port takes precedence over the embedded one.
 
+A supplied Session keeps its native Authenticator, providers and address mapping. Declare `mail.transport.protocol` on it, or through
+`withProperty(...)`, when asking SJM to interpret protocol-specific settings or probe a connection. Ordinary native sending can still use
+its address mapping without that declaration. The active `mail.smtp.class` or `mail.smtps.class` provider selector participates in the same
+conflict policy. OAuth connections leave username resolution to the selected provider.
+
+Additional properties are assembled before SJM creates an owned Session. Use `withProperties(Properties)` to retain runtime objects such
+as `mail.event.executor`; `withProperty(String, Object)` converts its value to text. For Session-scoped events on a Session you supply,
+configure the executor before creating that Session. An ineffective late replacement fails at Mailer construction. See
+[Session initialization and event delivery](https://www.simplejavamail.org/configuration.html#session-construction-properties).
+
 Use [locked configuration](https://www.simplejavamail.org/configuration.html#section-locked-configuration) when selected centrally supplied values must stay fixed within that factory. For example, `simplejavamail.locked.smtp.host=relay.company.com` rejects a conflicting relay choice, while `simplejavamail.locked.defaults.bcc.address=archive@company.com` keeps that recipient in the actual delivery envelope. Ordinary settings remain customizable; an independently configured factory remains possible.
 
 This leaves application code to describe each email while shared rules stay in one reusable place.

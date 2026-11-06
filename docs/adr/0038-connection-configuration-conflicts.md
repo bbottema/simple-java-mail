@@ -41,6 +41,26 @@ contracts, TLS choices and Session/lease ownership retain their meaning. This ad
 reach the same underlying selection error through its fixed-token supplied-Session
 path. This decision does not change credential-alias ownership after Session reuse, which is a separate finding.
 
+### Explicit protocol and provider selection (accepted 5 November 2026)
+
+Ordinary sending retains the supplied Session's native transport selection, including its RFC822 address mapping when
+`mail.transport.protocol` is absent. Operations that need SJM to interpret protocol-specific settings, including connection probes,
+require an explicit effective protocol. The declaration may come from the Session or an eligible explicit Java additional property;
+conflicts and locks apply normally. Absence does not prove SMTP, and inspection leaves protocol-specific facts unknown rather than
+materializing a guess. Do not construct a transport or inspect private address mappings to discover the protocol.
+
+Direct OAuth connections, like pooled connections, pass the token to the already selected transport while leaving username resolution
+to that provider. Native URL, protocol-specific and mail-wide fallbacks retain their precedence.
+
+Include the active supported protocol's `mail.smtp.class` or `mail.smtps.class` in recognized connection declarations. Compare visible
+class-name Strings case-sensitively, including inherited String defaults, without loading classes, constructing providers or invoking
+application equality/string conversion. Explicit differences fail in `REJECT_CONFLICTS`; deliberate Java replacement is eligible in
+`ALLOW_EXPLICIT_OVERRIDES`, with locks binding in both modes. Inactive namespaces, implicit native provider defaults and opaque entries
+retain their existing handling. The original Session still owns its provider registrations.
+
+[#969](https://github.com/bbottema/simple-java-mail/issues/969) tracks implementation and delivery of this accepted follow-up. Its
+provider-selector correction completes the unreleased #867 conflict model; it is not a separate released feature.
+
 ### One advanced construction policy
 
 Introduce the core-owned `ConnectionConflictPolicy` enum with `REJECT_CONFLICTS` and `ALLOW_EXPLICIT_OVERRIDES`. The default for 10.0.0 is `REJECT_CONFLICTS`.

@@ -33,8 +33,8 @@ class TransportConnectionHelperTest {
 		TransportConnectionHelper.connectTransport(secondTransport, session);
 
 		assertThat(calls).hasValue(2);
-		verify(firstTransport).connect("user@example.com", "token-1");
-		verify(secondTransport).connect("user@example.com", "token-2");
+		verify(firstTransport).connect(null, "token-1");
+		verify(secondTransport).connect(null, "token-2");
 	}
 
 	@Test
@@ -45,7 +45,7 @@ class TransportConnectionHelperTest {
 
 		TransportConnectionHelper.connectTransport(transport, session);
 
-		verify(transport).connect("user@example.com", "fixed-token");
+		verify(transport).connect(null, "fixed-token");
 	}
 
 	@Test
@@ -92,7 +92,7 @@ class TransportConnectionHelperTest {
 		});
 		Transport transport = mock(Transport.class);
 		AuthenticationFailedException failure = new AuthenticationFailedException("rejected");
-		doThrow(failure).when(transport).connect("user@example.com", "rejected-token");
+		doThrow(failure).when(transport).connect(null, "rejected-token");
 
 		assertThatThrownBy(() -> TransportConnectionHelper.connectTransport(transport, session)).isSameAs(failure);
 		assertThat(calls).hasValue(1);

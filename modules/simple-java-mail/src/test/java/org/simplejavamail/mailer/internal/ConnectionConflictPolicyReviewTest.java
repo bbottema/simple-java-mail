@@ -228,6 +228,7 @@ class ConnectionConflictPolicyReviewTest {
     @Test
     void suppliedSessionRetainsLiteralEmptyConnectionTextWhenDeliberatelySelected() throws Exception {
         final Properties supplied = new Properties();
+        supplied.setProperty("mail.transport.protocol", "smtp");
         supplied.setProperty("mail.smtp.localaddress", "192.0.2.1");
         supplied.setProperty("mail.smtp.localhost", "caller.example.org");
         try (Mailer mailer = factory(Map.of()).mailerBuilder(Session.getInstance(supplied))

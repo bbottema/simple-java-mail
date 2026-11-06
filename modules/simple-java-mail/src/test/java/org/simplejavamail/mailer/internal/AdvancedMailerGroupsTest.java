@@ -89,6 +89,7 @@ class AdvancedMailerGroupsTest {
     @Test
     void replacingConnectionGroupDiscardsExplicitSessionProvenance() throws Exception {
         final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
         properties.put("mail.smtp.timeout", "4321");
         final Session session = Session.getInstance(properties);
         try (Mailer mailer = factory(Map.of("simplejavamail.defaults.sessiontimeoutmillis", 999))

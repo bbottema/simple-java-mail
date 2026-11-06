@@ -1,6 +1,5 @@
 package org.simplejavamail.mailer.internal;
 
-import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.ProxyConfig;
@@ -61,7 +60,8 @@ final class ConnectionConfigurationResolver {
 
     static ResolvedConnection resolve(final CapturedConnectionInputs inputs) {
         final SimpleJavaMailConfig config = inputs.getConfig();
-        final Session suppliedSession = inputs.getSuppliedSession();
+        final boolean suppliedSession = inputs.getTargetSession() != null;
+        final Properties sessionProperties = inputs.copySessionProperties();
         final TransportStrategy strategy = inputs.getStrategy();
         final Properties additionalProperties = inputs.copyAdditionalProperties();
         final Map<String, Object> rawChoices = inputs.getRawChoices();
@@ -73,18 +73,21 @@ final class ConnectionConfigurationResolver {
         final boolean proxyCustomized = inputs.isProxyCustomized();
         final boolean smtpActive = inputs.isSmtpActive();
         final ConnectionConfigurationResolver resolver = new ConnectionConfigurationResolver(config, strategy, proxyFallback.requiresAuthentication());
-        final Map<String, Object> baseline = resolver.captureConnectionBaseline(suppliedSession, additionalProperties);
+        final Map<String, Object> baseline = resolver.captureConnectionBaseline(sessionProperties, additionalProperties);
         final Map<Property, Object> applicableTypedChoices = smtpActive ? typedChoices : inactiveRouteChoices(typedChoices);
-        final Map<String, Object> typed = resolver.projectTypedChoices(applicableTypedChoices, baseline, physicalChoices, smtpActive, suppliedSession == null);
-        resolver.collectDeclarations(suppliedSession, rawChoices, typedChoices, typed, physicalChoices, smtpActive);
+        final Map<String, Object> typed = resolver.projectTypedChoices(applicableTypedChoices, baseline, physicalChoices, smtpActive, !suppliedSession);
+        resolver.collectDeclarations(sessionProperties, rawChoices, typedChoices, typed, physicalChoices, smtpActive);
 
         final Map<String, Object> effective = resolver.resolveConnectionValues(suppliedSession, additionalProperties, defaults, baseline, rawChoices, typed);
         resolver.applyTransportResets(effective, baseline, applicableTypedChoices);
         requiredOverrides.forEach((key, value) -> putOrRemove(effective, key, value));
         final ProxyConfig proxy;
         if (smtpActive && strategy != null) {
-            proxy = resolver.resolveRemoteProxy(effective, typed, proxyFallback, suppliedSession == null || proxyCustomized);
+            proxy = resolver.resolveRemoteProxy(effective, typed, proxyFallback, !suppliedSession || proxyCustomized);
             resolver.applyRemoteProxy(effective, typed, proxy);
+        } else if (smtpActive && suppliedSession) {
+            // Ordinary factory endpoints never fill supplied-Session gaps, including when its native protocol is unknown.
+            proxy = new ProxyConfigImpl(null, null, proxyFallback.getUsername(), proxyFallback.getPassword(), proxyFallback.getProxyBridgePort());
         } else {
             proxy = proxyFallback;
         }
@@ -94,7 +97,7 @@ final class ConnectionConfigurationResolver {
                 overrides.put(key, null);
             }
         });
-        if (suppliedSession != null) {
+        if (suppliedSession) {
             resolver.retainRequestedSessionChanges(overrides, typed, additionalProperties, requiredOverrides, proxyCustomized);
             if (!proxyCustomized && !locksOf(config).contains(Property.PROXY_PORT)
                     && strategy != null && !baseline.containsKey(strategy.propertyNameSocksPort())) {
@@ -121,7 +124,7 @@ final class ConnectionConfigurationResolver {
 
     static void validateDeclarations(final ResolvedConnection resolved) {
         final CapturedConnectionInputs inputs = resolved.inputs;
-        if (inputs.isSmtpActive() && inputs.getStrategy() != null) {
+        if (inputs.isSmtpActive()) {
             final ConnectionConfigurationResolver validator = new ConnectionConfigurationResolver(inputs.getConfig(), inputs.getStrategy(),
                     inputs.getProxyFallback().requiresAuthentication());
             validator.declarations.putAll(resolved.declarations);
@@ -132,8 +135,8 @@ final class ConnectionConfigurationResolver {
         }
     }
 
-    private Map<String, Object> captureConnectionBaseline(@Nullable final Session suppliedSession, final Properties additionalProperties) {
-        final Properties properties = suppliedSession == null ? new Properties() : SessionPropertyObservation.snapshot(suppliedSession.getProperties());
+    private Map<String, Object> captureConnectionBaseline(final Properties sessionProperties, final Properties additionalProperties) {
+        final Properties properties = SessionPropertyObservation.snapshot(sessionProperties);
         properties.putAll(additionalProperties);
         final Map<String, Object> baseline = visibleProperties(properties);
         normalizeRawProxyEndpoint(baseline);
@@ -173,9 +176,9 @@ final class ConnectionConfigurationResolver {
     }
 
     @Nullable
-    private String shadowedFactoryClassProperty(@Nullable final Session suppliedSession, final Properties additionalProperties,
+    private String shadowedFactoryClassProperty(final boolean suppliedSession, final Properties additionalProperties,
             final Map<String, Object> typed, final Map<String, Object> effective) {
-        if (suppliedSession != null || strategy == null || typed.get(strategy.propertyNameSSLSocketFactory()) == null) {
+        if (suppliedSession || strategy == null || typed.get(strategy.propertyNameSSLSocketFactory()) == null) {
             return null;
         }
         final String classProperty = strategy.propertyNameSSLSocketFactoryClass();
@@ -183,22 +186,22 @@ final class ConnectionConfigurationResolver {
         return effective.get(classProperty) != null && !additionalProperties.containsKey(classProperty) ? classProperty : null;
     }
 
-    private void collectDeclarations(@Nullable final Session suppliedSession, final Map<String, Object> rawChoices,
+    private void collectDeclarations(final Properties sessionProperties, final Map<String, Object> rawChoices,
             final Map<Property, Object> typedChoices, final Map<String, Object> typed, final Map<String, Object> physicalChoices,
             final boolean smtpActive) {
-        if (smtpActive && strategy != null) {
-            collectFactoryDeclarations();
-            collectRawDeclarations(suppliedSession, rawChoices);
+        if (smtpActive) {
+            if (strategy != null) { collectFactoryDeclarations(); }
+            collectRawDeclarations(sessionProperties, rawChoices);
             typed.forEach((key, value) -> declare(key, value, ConfigurationOrigin.of(ConfigurationOrigin.Kind.JAVA, key,
                     physicalChoices.containsKey(key) ? "typed Java TLS setting (withCustomSSLFactoryInstance/withTlsConfig)"
                             : typedLabel(key, typedChoices, strategy))));
         }
     }
 
-    private Map<String, Object> resolveConnectionValues(@Nullable final Session suppliedSession, final Properties additionalProperties, final Map<String, Object> defaults,
+    private Map<String, Object> resolveConnectionValues(final boolean suppliedSession, final Properties additionalProperties, final Map<String, Object> defaults,
             final Map<String, Object> baseline, final Map<String, Object> rawChoices, final Map<String, Object> typed) {
         final Map<String, Object> effective = new LinkedHashMap<>();
-        if (suppliedSession == null) {
+        if (!suppliedSession) {
             defaults.forEach((key, value) -> effective.put(key, propertyValue(value)));
         }
         final Set<String> keys = new LinkedHashSet<>(effective.keySet());
@@ -259,7 +262,9 @@ final class ConnectionConfigurationResolver {
             final Map<String, Object> rawChoices) {
         final Map<String, Object> overrides = new LinkedHashMap<>();
         effective.forEach((key, value) -> {
-            if (isSupported(key)) {
+            if (isSupported(key) && !(ConnectionPropertyValues.isProviderSelector(key)
+                    && rawChoices.get(key) != null && !(rawChoices.get(key) instanceof String))) {
+                // An opaque raw selector is applied literally; projecting its inherited String would lose that storage identity.
                 overrides.put(key, value);
             }
         });
@@ -314,14 +319,14 @@ final class ConnectionConfigurationResolver {
         });
     }
 
-    private void collectRawDeclarations(@Nullable final Session suppliedSession, final Map<String, Object> rawChoices) {
+    private void collectRawDeclarations(final Properties sessionProperties, final Map<String, Object> rawChoices) {
         final Map<String, String> captured = config.get(ConfigKeys.EXTRA_PROPERTIES);
         if (captured != null) {
             collectRawSource(captured, key -> factoryOrigin(EXTRA_PREFIX + key, ConfigurationOrigin.Kind.FACTORY_RAW));
         }
-        collectRawSource(visibleProperties(suppliedSession), key -> ConfigurationOrigin.of(ConfigurationOrigin.Kind.SESSION, key,
-                suppliedSession != null && ConnectionPropertyValues.readsString(key)
-                        && !(suppliedSession.getProperties().get(key) instanceof String) && suppliedSession.getProperty(key) != null
+        collectRawSource(visibleProperties(sessionProperties), key -> ConfigurationOrigin.of(ConfigurationOrigin.Kind.SESSION, key,
+                ConnectionPropertyValues.readsString(key)
+                        && !(sessionProperties.get(key) instanceof String) && sessionProperties.getProperty(key) != null
                         ? "supplied Session defaults" : "supplied Session"));
         final Map<String, Object> finalRawChoices = new LinkedHashMap<>();
         rawChoices.forEach((key, value) -> {
@@ -329,6 +334,14 @@ final class ConnectionConfigurationResolver {
                 finalRawChoices.put(key, value);
             }
         });
+        final Properties selectedRawProperties = SessionPropertyObservation.snapshot(sessionProperties);
+        if (captured != null) { selectedRawProperties.putAll(captured); }
+        finalRawChoices.forEach((key, value) -> {
+            if (value == null) { selectedRawProperties.remove(key); }
+            else { selectedRawProperties.put(key, value); }
+        });
+        finalRawChoices.replaceAll((key, value) -> ConnectionPropertyValues.isProviderSelector(key)
+                && value != null && !(value instanceof String) ? selectedRawProperties.getProperty(key) : value);
         collectRawSource(finalRawChoices, key -> ConfigurationOrigin.of(ConfigurationOrigin.Kind.JAVA_RAW, key,
                 "withProperty/withProperties(" + key + ")"));
     }
@@ -356,6 +369,10 @@ final class ConnectionConfigurationResolver {
     }
 
     private void declare(final String key, @Nullable final Object value, final ConfigurationOrigin origin) {
+        // Session selects a provider through getProperty: an opaque entry alone is not a class-name declaration.
+        if (ConnectionPropertyValues.isProviderSelector(key) && value != null && !(value instanceof String)) {
+            return;
+        }
         if (isSupported(key) || key.equals(PASSWORD) || key.equals(PROXY_USERNAME) || key.equals(PROXY_PASSWORD) || key.equals(PROXY_BRIDGE_PORT)) {
             final ConfigurationSetting<Object> setting = ConnectionSettings.projectedProperty(key);
             declarations.computeIfAbsent(setting, ignored -> new ArrayList<>()).add(ConfigurationDeclaration.of(setting,
@@ -467,6 +484,7 @@ final class ConnectionConfigurationResolver {
         if (locksOf(config).getValues().containsKey(EXTRA_PREFIX + key)) {
             return EXTRA_PREFIX + key;
         }
+        if (strategy == null) { return null; }
         for (Property property : Property.values()) {
             if (locksOf(config).contains(property) && (sessionKeys(property, strategy).contains(key)
                     || key.equals(strategy.propertyNameSSLTrust()) && (property == Property.DEFAULT_TRUST_ALL_HOSTS || property == Property.DEFAULT_TRUSTED_HOSTS)
@@ -667,10 +685,6 @@ final class ConnectionConfigurationResolver {
             return false;
         }
         return ConnectionPropertyValues.isSupported(key);
-    }
-
-    static Map<String, Object> visibleProperties(@Nullable final Session session) {
-        return session == null ? new LinkedHashMap<>() : visibleProperties(session.getProperties());
     }
 
     private static Map<String, Object> visibleProperties(final Properties properties) {

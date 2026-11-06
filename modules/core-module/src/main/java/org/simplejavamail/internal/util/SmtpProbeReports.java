@@ -14,7 +14,11 @@ public final class SmtpProbeReports {
     }
 
     public static SmtpConnectionReport.SmtpConnectionReportBuilder begin(final Session session, final boolean authenticate) {
-        final String protocol = session.getProperty("mail.transport.protocol") == null ? "smtp" : session.getProperty("mail.transport.protocol");
+        final String protocol = session.getProperty("mail.transport.protocol");
+        if (protocol == null) {
+            return SmtpConnectionReport.builder().host("unknown").port(-1).protocol("unknown")
+                    .startedAt(Instant.now()).authenticationRequested(authenticate).warnings(List.of());
+        }
         final String configuredHost = session.getProperty("mail." + protocol + ".host");
         final String fallbackHost = session.getProperty("mail.host");
         final Object configuredSsl = session.getProperties().get("mail." + protocol + ".ssl.enable");

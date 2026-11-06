@@ -60,9 +60,14 @@ class LockedMailerConfigurationTest {
 		customProtocol.setProperty("mail.transport.protocol", "custom-smtp");
 		assertThatThrownBy(() -> factory.mailerBuilder(Session.getInstance(customProtocol)).buildMailer())
 				.hasMessageContaining("locked.smtp.host").hasMessageContaining("You supplied a Session")
-				.hasMessageContaining("mail.transport.protocol is neither smtp nor smtps").hasMessageContaining("factory locks an SMTP setting")
+				.hasMessageContaining("without an explicit supported mail.transport.protocol").hasMessageContaining("smtp or smtps")
+				.hasMessageContaining("factory locks an SMTP setting")
 				.hasMessageContaining("mailerBuilder() without a Session").hasMessageContaining("remove this lock");
 		assertThatThrownBy(() -> factory.mailerBuilder(Session.getInstance(new Properties())).buildMailer())
+				.hasMessageContaining("locked.smtp.host").hasMessageContaining("without an explicit supported mail.transport.protocol");
+		final Properties missingHost = new Properties();
+		missingHost.setProperty("mail.transport.protocol", "smtp");
+		assertThatThrownBy(() -> factory.mailerBuilder(Session.getInstance(missingHost)).buildMailer())
 				.hasMessageContaining("locked.smtp.host").hasMessageContaining("missing Jakarta Mail property mail.smtp.host");
 		final Properties properties = TransportStrategy.SMTP.generateProperties();
 		properties.setProperty("mail.smtp.host", "other.example.org");

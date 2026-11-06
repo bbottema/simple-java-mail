@@ -28,7 +28,7 @@ final class ConnectionPropertyValues {
                 "auth.login.disable", "auth.plain.disable", "auth.digest-md5.disable", "auth.ntlm.disable", "auth.xoauth2.disable");
         register(members, Kind.TRUST, "ssl.trust");
         register(members, Kind.TEXT, "host", "user", "socks.host", "localaddress", "localhost", "ssl.socketFactory.class",
-                "socketFactory.class", "auth.mechanisms");
+                "socketFactory.class", "auth.mechanisms", "class");
         register(members, Kind.OBJECT, "ssl.socketFactory", "socketFactory");
         return Collections.unmodifiableMap(members);
     }
@@ -60,6 +60,10 @@ final class ConnectionPropertyValues {
     static boolean readsString(final String key) {
         final Kind kind = kindOf(key);
         return kind == Kind.TEXT || kind == Kind.TRUST;
+    }
+
+    static boolean isProviderSelector(final String key) {
+        return key.equals("mail.smtp.class") || key.equals("mail.smtps.class");
     }
 
     @Nullable

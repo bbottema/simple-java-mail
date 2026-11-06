@@ -243,12 +243,25 @@ public class MailerImpl implements Mailer {
 		if (!ownsSession) {
 			SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !locksOf(factoryConfig).isEmpty());
 		}
-		if (session == null) {
-			session = createMailSessionWithoutOAuth2Validation(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS);
+		final ValidatedConnectionPlan applicationPlan;
+		try {
+			final Properties baseline = ownsSession
+					? mailSessionProperties(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS)
+					: SessionPropertyObservation.snapshot(session.getProperties());
+			applicationPlan = preparedPlan == null
+					? ValidatedConnectionPlan.validateApplication(factoryConfig, serverConfig, proxyConfig, session, baseline, operationalConfig, sessionSettings, ownsSession)
+					: preparedPlan;
+			if (ownsSession) {
+				session = createOwnedSession(serverConfig, transportStrategy, sessionSettings.finalProperties(baseline, operationalConfig.getProperties()));
+			}
+		} catch (RuntimeException | Error failure) {
+			// The graph constructor owns public-path rollback; completed-facts injection has no outer construction attempt.
+			if (preparedPlan == null && !operationalConfig.isExecutorServiceIsUserProvided()) {
+				try { operationalConfig.getExecutorService().shutdown(); }
+				catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+			}
+			throw failure;
 		}
-		final ValidatedConnectionPlan applicationPlan = preparedPlan == null
-				? ValidatedConnectionPlan.validateApplication(factoryConfig, serverConfig, proxyConfig, session, operationalConfig, sessionSettings, ownsSession)
-				: preparedPlan;
 		this.session = session;
 		this.rehearsalSessionContext = new RehearsalSessionContext(session, SESSION_OWNER);
 		this.operationalConfig = operationalConfig;
@@ -380,7 +393,7 @@ public class MailerImpl implements Mailer {
 		// Only owned Sessions select authentication from an SJM preset; supplied Sessions use their current effective mechanisms.
 		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : null;
 		final Supplier<String> oauth2AccessTokenProvider = operationalConfig.getCustomMailer() == null ? OAuth2AccessTokenResolver.validateConfiguration(
-				Session.getInstance(sessionSettings.finalProperties(session, operationalConfig.getProperties())), new Properties(),
+				sessionSettings.finalProperties(session.getProperties(), operationalConfig.getProperties()), new Properties(),
 				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
 		) : null;
 		initSession(session, operationalConfig, sessionSettings);
@@ -505,13 +518,13 @@ public class MailerImpl implements Mailer {
 	 */
 	@NotNull
 	public static Session createMailSession(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy) {
-		final Session session = createMailSessionWithoutOAuth2Validation(serverConfig, transportStrategy, true);
-		OAuth2AccessTokenResolver.validateConfiguration(session, new Properties(), transportStrategy, null);
-		return session;
+		final Properties properties = mailSessionProperties(serverConfig, transportStrategy, true);
+		OAuth2AccessTokenResolver.validateConfiguration(properties, new Properties(), transportStrategy, null);
+		return createOwnedSession(serverConfig, transportStrategy, properties);
 	}
 
 	@NotNull
-	private static Session createMailSessionWithoutOAuth2Validation(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy,
+	private static Properties mailSessionProperties(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy,
 			final boolean opportunisticTLS) {
 		final Properties props = transportStrategy.generateProperties();
 		if (transportStrategy == SMTP) {
@@ -538,28 +551,40 @@ public class MailerImpl implements Mailer {
 			if (serverConfig.getPassword() != null) {
 				if (!OAuth2AccessTokenResolver.isOAuth2Transport(transportStrategy)) {
 					props.put(transportStrategy.propertyNameAuthenticate(), "true");
-					return Session.getInstance(props, new SmtpAuthenticator(serverConfig));
 				} else {
-					// props.put(transportStrategy.propertyNameAuthenticate(), "false");
 					props.put(TransportStrategy.OAUTH2_TOKEN_PROPERTY, serverConfig.getPassword());
-					return Session.getInstance(props);
 				}
 			}
 		}
-		return Session.getInstance(props);
+		return props;
+	}
+
+	/** Construct only after validation, with final constructor-consumed values and quiet debug bootstrap. */
+	private static Session createOwnedSession(@Nullable final ServerConfig serverConfig, final TransportStrategy strategy,
+			final Properties properties) {
+		final boolean directDebug = properties.containsKey("mail.debug");
+		final Object rawDebug = properties.get("mail.debug");
+		properties.setProperty("mail.debug", "false");
+		try {
+			return Session.getInstance(properties, serverConfig != null && serverConfig.getPassword() != null
+					&& !OAuth2AccessTokenResolver.isOAuth2Transport(strategy) ? new SmtpAuthenticator(serverConfig) : null);
+		} finally {
+			if (directDebug) { properties.put("mail.debug", rawDebug); }
+			else { properties.remove("mail.debug"); }
+		}
 	}
 
 	private static void initSession(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig,
 			final MailerSessionSettings sessionSettings) {
-		if (sessionSettings.shouldApplyDebugEnabled()) {
-			session.setDebug(Boolean.TRUE.equals(operationalConfig.getDebugConfig().getEnabled()));
-		}
 		if (sessionSettings.shouldApplyDebugOutput()) {
 			if (operationalConfig.getDebugConfig().getPrinter() != null) {
 				session.setDebugOut(operationalConfig.getDebugConfig().getPrinter());
 			} else if (operationalConfig.getDebugConfig().getOutput() != null) {
 				session.setDebugOut(SessionDebugOutputResolver.resolve(operationalConfig.getDebugConfig().getOutput()));
 			}
+		}
+		if (sessionSettings.shouldApplyDebugEnabled()) {
+			session.setDebug(Boolean.TRUE.equals(operationalConfig.getDebugConfig().getEnabled()));
 		}
 		session.getProperties().putAll(operationalConfig.getProperties());
 		sessionSettings.applyConnectionOverrides(session);
@@ -893,7 +918,9 @@ public class MailerImpl implements Mailer {
 
 	@Nullable
 	String logicalHost() {
-		return serverConfig != null ? serverConfig.getHost() : session.getProperty(selectedProtocolPrefix() + ".host");
+		if (serverConfig != null) { return serverConfig.getHost(); }
+		final String protocol = session.getProperty("mail.transport.protocol");
+		return protocol == null ? null : session.getProperty("mail." + protocol + ".host");
 	}
 
 	@Nullable
@@ -901,14 +928,12 @@ public class MailerImpl implements Mailer {
 		if (serverConfig != null) {
 			return serverConfig.getPort();
 		}
-		final String propertyName = selectedProtocolPrefix() + ".port";
+		final String protocol = session.getProperty("mail.transport.protocol");
+		if (protocol == null) { return null; }
+		final String propertyName = "mail." + protocol + ".port";
 		final Integer port = ConnectionPropertyValues.integerValue(
 				ConnectionPropertyValues.visibleValue(session.getProperties(), propertyName));
 		return port != null && port >= 1 && port <= 65535 ? port : null;
-	}
-
-	private String selectedProtocolPrefix() {
-		return "mail." + session.getProperties().getProperty("mail.transport.protocol", "smtp");
 	}
 
 	List<SelectedPoolTransport> connectionCandidates(final MailSendControl control, final boolean failoverEnabled) {

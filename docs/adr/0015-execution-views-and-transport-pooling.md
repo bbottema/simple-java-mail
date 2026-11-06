@@ -90,6 +90,24 @@ remain subject to [ADR 0025](0025-factory-scoped-locked-configuration.md).
 This distinction does not change proxy routing's documented override, managed-provider initialization, conversion-context ownership,
 exclusive Session reuse, pooling or shutdown. A Session may be reused by another Mailer only after its former owner's successful shutdown.
 
+### Native Session state and initialization (accepted 5 November 2026)
+
+Keep the supplied Session, Authenticator, provider registrations and address mapping intact. Native sending can use an address mapping
+without `mail.transport.protocol`; SJM protocol-specific interpretation and probing require an explicit effective declaration instead of
+assuming SMTP. Protocol-independent message preparation and transparent native sending do not acquire that requirement. Direct OAuth
+connections leave username resolution to the already selected provider.
+
+An owned Session receives completed validated properties at creation. Constructor-consumed runtime objects remain borrowed: SJM does
+not initialize or close application executors or socket factories during configuration capture. For Session-scoped event delivery,
+`mail.event.executor` must already be configured when a caller creates its Session. Reject an ineffective late replacement before
+activation, while allowing equivalent preconfigured choices and effective service-scoped overlays. Debug has public setters and is
+applied with the selected destination installed before enabling it. Preserve exclusive ownership, rollback, cancellation, pool
+registration and shutdown boundaries.
+
+See [ADR 0038](0038-connection-configuration-conflicts.md#explicit-protocol-and-provider-selection-accepted-5-november-2026) for
+declaration authority and [ADR 0039](0039-explicit-configuration-resolution.md#passive-session-capture-and-construction-order-accepted-5-november-2026)
+for passive capture and construction order. [#969](https://github.com/bbottema/simple-java-mail/issues/969) tracks implementation and delivery.
+
 ### Captured TLS identity setting (accepted 30 October 2026)
 
 `OperationalConfig.getVerifyingServerIdentity()` returns nullable `Boolean` construction data. Recognized raw Boolean and case-insensitive

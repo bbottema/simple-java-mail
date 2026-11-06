@@ -90,7 +90,9 @@ class OAuth2AccessTokenProviderTest {
 
 	@Test
 	void customSessionProviderShouldRequireOAuth2AuthenticationMechanism() {
-		Session session = Session.getInstance(new Properties());
+		Properties properties = new Properties();
+		properties.setProperty("mail.transport.protocol", "smtp");
+		Session session = Session.getInstance(properties);
 
 		assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder(session)
 				.withOAuth2AccessTokenProvider(() -> "token")

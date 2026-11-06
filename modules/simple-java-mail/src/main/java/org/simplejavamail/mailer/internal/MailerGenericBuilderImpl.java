@@ -744,9 +744,9 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 	}
 
 	private MailerSessionSettings sessionSettingsWithLocks(final CapturedConnectionInputs inputs, final ResolvedConnection resolution) {
-		final boolean applyDebugEnabled = inputs.getSuppliedSession() == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG);
+		final boolean applyDebugEnabled = inputs.getTargetSession() == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG);
 		final boolean applyDebugOutput = debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT);
-		return MailerSessionSettings.resolve(inputs.getSuppliedSession(), inputs.getStrategy(), inputs.copyAdditionalProperties(), resolution.overrides, locksOf(config).getValues(),
+		return MailerSessionSettings.resolve(inputs.copySessionProperties(), inputs.getDebugBaseline(), inputs.getStrategy(), inputs.copyAdditionalProperties(), resolution.overrides, locksOf(config).getValues(),
 				resolution.proxy, resolution.shadowedFactoryClassProperty, applyDebugEnabled, applyDebugOutput).toBuilder()
 				.connectionConflictPolicy(inputs.getPolicy()).customMailer(inputs.getCustomMailer()).tokenProvider(inputs.getTokenProvider()).build();
 	}

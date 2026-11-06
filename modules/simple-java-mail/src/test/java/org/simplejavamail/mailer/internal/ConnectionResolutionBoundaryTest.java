@@ -31,6 +31,7 @@ class ConnectionResolutionBoundaryTest {
     @EnumSource(ConnectionConflictPolicy.class)
     void inheritedWildcardBehindAnOpaqueDirectEntryCannotSurviveExplicitDisable(final ConnectionConflictPolicy policy) {
         final Properties defaults = properties("mail.smtp.ssl.trust", "*");
+        defaults.setProperty("mail.transport.protocol", "smtp");
         final Properties supplied = new Properties(defaults);
         supplied.put("mail.smtp.ssl.trust", Boolean.FALSE);
         final Session session = Session.getInstance(supplied);

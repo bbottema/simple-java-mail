@@ -64,6 +64,17 @@ This is reporting alignment, not another connection setting or a change to Sessi
 selection, authentication choice and dedicated-connection ownership. [#733](https://github.com/bbottema/simple-java-mail/issues/733) tracks
 the correction for unreleased 10.0.0.
 
+## Explicit supplied-Session protocol (accepted 5 November 2026)
+
+A probe needs an explicit effective `mail.transport.protocol`, supplied on the Session or through eligible explicit additional
+properties. A private native address mapping cannot be read through the public Session API, so an absent declaration does not establish
+SMTP. Return an unsupported SETUP report explaining the missing declaration before selecting a provider or constructing a transport;
+retain the existing report representation for unavailable endpoint facts. Ordinary native sending keeps its address mapping without a
+probe precondition. Conflict policy, locks, provider support and dedicated-connection ownership remain unchanged.
+
+[ADR 0038](0038-connection-configuration-conflicts.md#explicit-protocol-and-provider-selection-accepted-5-november-2026) owns declaration
+authority; [#969](https://github.com/bbottema/simple-java-mail/issues/969) tracks implementation and delivery of this accepted follow-up.
+
 ## Alternatives and consequences
 
 The dedicated connection and prohibition on debug-log parsing/reflection are explicit issue requirements. Reusing a pooled transport would mix diagnosis with send ownership and report whichever prior state the pool happened to retain. Introducing probes as a send preflight would add another connection without proving the subsequent connection has identical capabilities. Those causal tradeoffs explain the chosen boundary; the probe is not a new gate on ordinary sends.

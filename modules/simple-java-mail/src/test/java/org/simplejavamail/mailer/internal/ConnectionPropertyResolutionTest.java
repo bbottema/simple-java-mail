@@ -33,12 +33,13 @@ class ConnectionPropertyResolutionTest {
             final Properties raw = new Properties();
             raw.put("mail.smtp.timeout", 123L);
             final Properties sessionProperties = new Properties();
+            sessionProperties.setProperty("mail.transport.protocol", "smtp");
             final MailerGenericBuilder<?> builder = builder(supplied ? Session.getInstance(sessionProperties) : null)
                     .withProperties(raw).withConnectionConfig(readTimeout(123));
 
             assertThatThrownBy(() -> buildAndClose(builder)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("mail.smtp.timeout");
-            assertThat(sessionProperties).isEmpty();
+            assertThat(sessionProperties).containsOnlyKeys("mail.transport.protocol");
         }
     }
 
@@ -48,7 +49,7 @@ class ConnectionPropertyResolutionTest {
             for (boolean typedLast : new boolean[] {false, true}) {
                 final Properties raw = new Properties();
                 raw.put("mail.smtp.timeout", 123L);
-                final MailerGenericBuilder<?> builder = builder(supplied ? Session.getInstance(new Properties()) : null)
+                final MailerGenericBuilder<?> builder = builder(supplied ? smtpSession() : null)
                         .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
                 if (typedLast) {
                     builder.withProperties(raw).withConnectionConfig(readTimeout(123));
@@ -68,12 +69,13 @@ class ConnectionPropertyResolutionTest {
     void strictComparisonDoesNotParseOpaqueBooleanLikeObjects() {
         for (boolean supplied : new boolean[] {false, true}) {
             final Properties sessionProperties = new Properties();
+            sessionProperties.setProperty("mail.transport.protocol", "smtp");
             final MailerGenericBuilder<?> builder = builder(supplied ? Session.getInstance(sessionProperties) : null)
                     .withProperties(opaqueIdentityCheck()).withTlsConfig(identityCheck());
 
             assertThatThrownBy(() -> buildAndClose(builder)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("mail.smtp.ssl.checkserveridentity");
-            assertThat(sessionProperties).isEmpty();
+            assertThat(sessionProperties).containsOnlyKeys("mail.transport.protocol");
         }
     }
 
@@ -81,7 +83,7 @@ class ConnectionPropertyResolutionTest {
     void explicitIdentityCheckReplacesOpaqueRawObjectsInEitherCallOrder() throws Exception {
         for (boolean supplied : new boolean[] {false, true}) {
             for (boolean typedLast : new boolean[] {false, true}) {
-                final MailerGenericBuilder<?> builder = builder(supplied ? Session.getInstance(new Properties()) : null)
+                final MailerGenericBuilder<?> builder = builder(supplied ? smtpSession() : null)
                         .withConnectionConflictPolicy(ConnectionConflictPolicy.ALLOW_EXPLICIT_OVERRIDES);
                 if (typedLast) {
                     builder.withProperties(opaqueIdentityCheck()).withTlsConfig(identityCheck());
@@ -193,6 +195,12 @@ class ConnectionPropertyResolutionTest {
             assertThatThrownBy(() -> buildAndClose(builder)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("locked.extraproperties.mail.smtp.ssl.trust");
         }
+    }
+
+    private static Session smtpSession() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", "smtp");
+        return Session.getInstance(properties);
     }
 
     private static ConnectionConfig readTimeout(final int millis) {

@@ -168,6 +168,8 @@ public interface Mailer extends AutoCloseable {
 		 * Like {@link #testConnection()}, this connects even in logging-only mode. It never sends an email, borrows a pool lease or notifies
 		 * the mail-send observer. CustomMailer and unsupported providers return an unsupported report without connecting.
 		 * The original Session's properties/provider are left unchanged.
+		 * A supplied Session needs an explicit effective {@code mail.transport.protocol}. Without it, the report is unsupported with a setup
+		 * explanation, {@code "unknown"} host/protocol and no port; no transport is created to discover the Session's private address mapping.
 		 * <p>
 		 * Uses provider connection/read timeouts, not total mail-send deadlines. TLS metadata may be unavailable with custom provider/security hooks.
 		 * Advertised capabilities and successful connection setup prove neither future message acceptance nor delivery.
