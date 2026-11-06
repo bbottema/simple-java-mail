@@ -215,6 +215,41 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # 6 November contract repairs (#488, #704, #756, #961): retire exact registered worktrees through Git first.
+    # Retain task evidence until maintainer inspection; never delete the shared task parent.
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\smime\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\smime\website'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\smime\sjm' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\smime\website' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\smime\sjm'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\smime' }
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\smime\website'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\smime' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\receipts\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\receipts\website'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\receipts\sjm' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\receipts\website' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\receipts\sjm'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\receipts' }
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\receipts\website'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\receipts' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\daemon\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\daemon\website'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\daemon\sjm' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\daemon\website' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\daemon\sjm'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\daemon' }
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\daemon\website'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\daemon' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\reports\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\reports\website'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\reports\sjm' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\reports\website' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\reports\sjm'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\reports' }
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\reports\website'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\reports' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\combined\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-contract-repairs-20261106\combined\website'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\combined\sjm' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\combined\website' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\combined\sjm'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\combined' }
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\combined\website'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\combined' }
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\evidence' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\evidence'; Parent = 'C:\workstation\sjm-contract-repairs-20261106' }
+
     # #966: only remaining task-owned leaves; never target the parent or its retained evidence.
     # Remove-Item -LiteralPath 'C:\workstation\sjm-oauth-protocol-20261105\rehearsal-repository' -Recurse -Force
     # Remove-Item -LiteralPath 'C:\workstation\sjm-oauth-protocol-20261105\tools' -Recurse -Force
