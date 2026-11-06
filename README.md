@@ -325,6 +325,8 @@ Use `simplejavamail.defaults.sendtoacceptedrecipients` for a default, or `simple
 
 For individual replies, inspect `receipt.getRecipientResults()`: each result retains the envelope address, its RCPT reply (including an optional enhanced status such as `4.2.0`), and its final submission disposition. A positive RCPT reply is not final message acceptance. `receipt.getRetryDisposition()` distinguishes known-safe retry candidates from permanent rejection, missing provider facts, and duplicate risk; `getRetryableRecipients()` returns candidates only for the safe-to-retry dispositions. These are inputs to your retry policy, not an automatic resend facility. The existing accepted/unsent/invalid lists remain available.
 
+Logging-only receipts describe the prepared recipient intent, including raw recipient headers and delivery overrides, with unknown acceptance and no SMTP replies. A CustomMailer receipt captures that intent before your callback; your implementation owns its external delivery mapping. If raw headers cannot be parsed, the receipt keeps the existing typed recipient view.
+
 For cross-cutting audit and metrics code, configure one terminal observer on the reusable `Mailer`:
 
 ```java
