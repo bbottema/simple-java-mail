@@ -24,6 +24,8 @@ import org.simplejavamail.api.email.ReportedMailServer;
 import org.simplejavamail.api.email.ReportedRecipient;
 import org.simplejavamail.internal.email.EnhancedStatusCodeImpl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,6 +45,8 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted;
 
 /** Interprets DSN header blocks after MIME decoding; Jakarta Mail still owns MIME and header parsing. */
 @UtilityClass
@@ -118,7 +122,7 @@ class DeliveryStatusReportParser {
 	 * Action: failed
 	 * Status: 5.1.1</pre>
 	 */
-	static DeliveryStatusReport parse(final DataSource source, @Nullable final String containerWarning) {
+	static DeliveryStatusReport parse(final DataSource source, @Nullable final String containerWarning, final MimePartCapture capture) {
 		final Set<String> warnings = new LinkedHashSet<>();
 		if (containerWarning != null) {
 			warnings.add(containerWarning);
@@ -126,7 +130,8 @@ class DeliveryStatusReportParser {
 		final List<RecipientDeliveryReport> recipients = new ArrayList<>();
 		String envelopeId = null;
 		ReportedMailServer reportingServer = null;
-		try (PushbackInputStream input = new PushbackInputStream(source.getInputStream())) {
+		StatusInput selected = null;
+		try (PushbackInputStream input = new PushbackInputStream(selected = new StatusInput(source.getInputStream(), !capture.hasAcquiredBytes()))) {
 			final InternetHeaders messageFields = readBlock(input, warnings);
 			envelopeId = singleValue(messageFields, "Original-Envelope-Id", false, warnings, UnaryOperator.identity());
 			reportingServer = reportedServer(typedValue(messageFields, "Reporting-MTA", true, warnings));
@@ -139,9 +144,9 @@ class DeliveryStatusReportParser {
 				}
 			}
 		} catch (final IOException | MessagingException readFailure) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new MimeMessageParseException("Reading the notification's delivery-status data was interrupted", readFailure);
-			}
+			rethrowIfInterrupted(readFailure);
+			capture.optionalReadFailed(selected != null && selected.bytes != null ? selected.bytes.toByteArray() : null,
+					selected != null && selected.fullyRead, readFailure);
 			// This optional interpretation must not lose the Email or completed blocks. Never turn an interrupted block into complete facts.
 			warnings.add("Reading the delivery report failed; recovered facts may be incomplete. Only completed header blocks were interpreted.");
 		}
@@ -154,6 +159,31 @@ class DeliveryStatusReportParser {
 				.recipients(recipients)
 				.warnings(new ArrayList<>(warnings))
 				.build();
+	}
+
+	/** Observe the selected read below pushback so an unread byte is captured only once. Healthy reads leave no retained copy. */
+	private static final class StatusInput extends FilterInputStream {
+		private final ByteArrayOutputStream bytes;
+		private boolean fullyRead;
+
+		private StatusInput(final InputStream input, final boolean captureBytes) {
+			super(input);
+			bytes = captureBytes ? new ByteArrayOutputStream() : null;
+		}
+
+		@Override public int read() throws IOException {
+			final int value = in.read();
+			if (value == -1) fullyRead = true;
+			else if (bytes != null) bytes.write(value);
+			return value;
+		}
+
+		@Override public int read(final byte[] buffer, final int offset, final int length) throws IOException {
+			final int count = in.read(buffer, offset, length);
+			if (count == -1) fullyRead = true;
+			else if (count > 0 && bytes != null) bytes.write(buffer, offset, count);
+			return count;
+		}
 	}
 
 	private static InternetHeaders readBlock(final PushbackInputStream input, final Set<String> warnings) throws MessagingException {

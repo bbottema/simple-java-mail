@@ -97,6 +97,10 @@ final class MimePartCapture {
         return acquiredBytes;
     }
 
+    boolean hasAcquiredBytes() {
+        return acquiredBytes != null;
+    }
+
     byte[] closedAfterCompleteRead(final CapturedMimeContent.Failure failure) {
         acquiredBytes = failure.getCaptured();
         problem(EmailProblem.Code.RESOURCE_CLOSE_FAILED, null, InputInspection.describe(failure));
@@ -181,6 +185,18 @@ final class MimePartCapture {
 
     void problem(final EmailProblem.Code code, final String value, final String message) {
         inspection.recordPart(code, this, value, message);
+    }
+
+    /** Retain only bytes already consumed by an optional interpreter; never reopen the borrowed resource for diagnostics. */
+    void optionalReadFailed(final byte[] captured, final boolean fullyRead, final Throwable failure) {
+        retainAcquired();
+        if (content == null && captured != null) {
+            content = EmailInspection.content(captured, EmailSourceContent.Representation.READER_BYTES, fullyRead);
+        }
+        final EmailProblem.Code code = fullyRead ? EmailProblem.Code.RESOURCE_CLOSE_FAILED
+                : InputInspection.causedBy(failure, IOException.class) ? EmailProblem.Code.CONTENT_READ_FAILED
+                : EmailProblem.Code.CONTENT_NOT_REPRESENTED;
+        problem(code, null, InputInspection.describe(failure));
     }
 
     void headerProblem(final EmailProblem.Code code, final String name, final String value, final String message) {

@@ -280,7 +280,7 @@ public final class MimeMessageParser {
                 createDataSource(currentPart, fetchAttachmentData, statusPart, capture), capture);
 		if (statusPart) {
 			// Reuse bytes already cached for attachment conversion; do not fetch the original status body again.
-			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.parse(mimeDataSource.getDataSource(), parsedComponents.deliveryStatusWarning);
+			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.parse(mimeDataSource.getDataSource(), parsedComponents.deliveryStatusWarning, capture);
 		}
 		final boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition);
 		final boolean isInline = Part.INLINE.equalsIgnoreCase(disposition);
