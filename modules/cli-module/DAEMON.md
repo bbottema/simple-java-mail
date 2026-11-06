@@ -79,6 +79,11 @@ Slow SMTP commands use separate reply capacity from authentication and managemen
 available. When reply capacity is full, another command receives the authenticated busy result before a new request is registered or
 submitted. A duplicate observer can also receive busy; that does not change the result of its earlier accepted request or cause a replay.
 
+Completed request identities stay protected throughout the authentication freshness window, including its allowed future timestamps.
+The recent-request ledger can refuse a new command as busy when all retained identities are still protected. Replaying an identical
+retained request observes its original result or an explicit unavailable-result tombstone; it does not submit the command again.
+The ledger is bounded and memory-only, so it is not a durable archive or a promise of exactly-once SMTP delivery.
+
 ## Configuration and files
 
 Classpath `simplejavamail.properties`, environment variables, and JVM system properties are captured when the daemon starts. Detached startup

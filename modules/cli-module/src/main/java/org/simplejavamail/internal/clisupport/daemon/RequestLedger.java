@@ -12,9 +12,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.LongSupplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
- * Prevents a request UUID from executing twice during one daemon session.
+ * Prevents a retained request UUID from executing twice during one daemon session.
  * A duplicate with identical content observes the original future; changed content under the same UUID is rejected.
  * Completed entries remain as bounded tombstones long enough to cover the protocol freshness window, and result output
  * may be discarded under memory pressure only by replacing it with an explicit ambiguous outcome, never by retrying.
@@ -23,10 +26,21 @@ final class RequestLedger {
 	private static final int MAX_ENTRIES = 512;
 	private static final long MAX_RETAINED_RESULT_BYTES = 8L * 1024 * 1024;
 	private static final long RETENTION_NANOS = Duration.ofMinutes(5).toNanos();
-	private static final long MINIMUM_TOMBSTONE_NANOS = DaemonProtocol.FRESHNESS.toNanos();
+	// A frame accepted with a future timestamp can remain fresh for twice the allowed clock skew.
+	private static final long MINIMUM_TOMBSTONE_NANOS = DaemonProtocol.FRESHNESS.multipliedBy(2).toNanos();
 
 	private final LinkedHashMap<UUID, Entry> entries = new LinkedHashMap<>();
+	private final LongSupplier nanoTime;
 	private long retainedResultBytes;
+
+	RequestLedger() {
+		this(System::nanoTime);
+	}
+
+	/** Keeps elapsed-time retention independent from wall-clock timestamp validation. */
+	RequestLedger(final LongSupplier nanoTime) {
+		this.nanoTime = requireNonNull(nanoTime, "nanoTime");
+	}
 
 	synchronized Registration register(final DaemonRequest request) {
 		pruneExpiredEntries();
@@ -81,7 +95,7 @@ final class RequestLedger {
 
 	private synchronized void retainCompletedResult(final Entry entry, final CliExecutionResult result,
 			final Throwable failure) {
-		entry.completedNanos = System.nanoTime();
+		entry.completedNanos = nanoTime.getAsLong();
 		if (failure == null) {
 			entry.resultBytes = encodedLength(result.stdout()) + encodedLength(result.stderr());
 			retainedResultBytes += entry.resultBytes;
@@ -90,7 +104,7 @@ final class RequestLedger {
 	}
 
 	private void pruneExpiredEntries() {
-		final long cutoff = System.nanoTime() - RETENTION_NANOS;
+		final long cutoff = nanoTime.getAsLong() - RETENTION_NANOS;
 		final Iterator<Entry> iterator = entries.values().iterator();
 		while (iterator.hasNext()) {
 			final Entry entry = iterator.next();
@@ -102,7 +116,7 @@ final class RequestLedger {
 	}
 
 	private void removeOldestTerminal() {
-		final long safeRemovalCutoff = System.nanoTime() - MINIMUM_TOMBSTONE_NANOS;
+		final long safeRemovalCutoff = nanoTime.getAsLong() - MINIMUM_TOMBSTONE_NANOS;
 		final Iterator<Map.Entry<UUID, Entry>> iterator = entries.entrySet().iterator();
 		while (iterator.hasNext()) {
 			final Entry entry = iterator.next().getValue();

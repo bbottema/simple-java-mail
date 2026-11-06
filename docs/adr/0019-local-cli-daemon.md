@@ -51,6 +51,12 @@ for unreleased 10.0.0; the issue tracks delivery.
 
 Bound connections, workers, queued requests, Mailer entries and retained result bytes/time. Register each request identity before executing it. While its ledger entry is retained, the same UUID and content retrieves or attaches to the original result; changed content under that UUID is rejected. Under output pressure, replace old result bodies with lightweight ambiguous-result tombstones rather than executing again. Retain tombstones across the authentication freshness window.
 
+Clarification accepted 6 November 2026 under [#488](https://github.com/bbottema/simple-java-mail/issues/488): capacity eviction must cover
+the entire lifetime of an accepted authenticated frame, including its allowed future timestamp. With a two-minute allowance on either side
+of the current time, retain completed identities for at least four minutes before capacity eviction. Normal five-minute expiry remains
+bounded; a full ledger refuses new identities while all existing entries are still protected. Retention uses elapsed time independently
+from the protocol's wall-clock freshness checks. The timestamp allowance, request/content identity and result observation are unchanged.
+
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
 ### Startup-log path safety (accepted 2 November 2026)

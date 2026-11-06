@@ -11,6 +11,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,6 +77,33 @@ class DaemonProtocolTest {
 		final byte[] secret = new byte[32];
 		final DaemonRequest request = new DaemonRequest(DaemonOperation.STATUS, session, UUID.randomUUID(),
 				Instant.now().minus(DaemonProtocol.FRESHNESS.multipliedBy(2)), Path.of("."), List.of());
+		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		DaemonProtocol.writeRequest(new FragmentedWritable(bytes), request, secret);
+
+		assertThatThrownBy(() -> DaemonProtocol.readRequest(new FragmentedReadable(bytes.toByteArray()), session, secret))
+				.isInstanceOf(DaemonProtocolException.class)
+				.extracting(error -> ((DaemonProtocolException) error).kind())
+				.isEqualTo(DaemonProtocolException.Kind.STALE);
+	}
+
+	@Test
+	void authenticatedFutureTimestampWithinTheAllowanceIsAccepted() throws Exception {
+		final UUID session = UUID.randomUUID();
+		final byte[] secret = new byte[32];
+		final DaemonRequest request = new DaemonRequest(DaemonOperation.EXECUTE, session, UUID.randomUUID(),
+				Instant.now().plusSeconds(90).truncatedTo(ChronoUnit.MILLIS), Path.of("."), List.of("send"));
+		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		DaemonProtocol.writeRequest(new FragmentedWritable(bytes), request, secret);
+
+		assertThat(DaemonProtocol.readRequest(new FragmentedReadable(bytes.toByteArray()), session, secret)).isEqualTo(request);
+	}
+
+	@Test
+	void authenticatedTimestampBeyondTheFutureAllowanceIsRejected() throws Exception {
+		final UUID session = UUID.randomUUID();
+		final byte[] secret = new byte[32];
+		final DaemonRequest request = new DaemonRequest(DaemonOperation.EXECUTE, session, UUID.randomUUID(),
+				Instant.now().plus(DaemonProtocol.FRESHNESS).plusSeconds(30), Path.of("."), List.of("send"));
 		final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		DaemonProtocol.writeRequest(new FragmentedWritable(bytes), request, secret);
 

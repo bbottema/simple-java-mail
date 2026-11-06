@@ -49,7 +49,7 @@ final class DaemonServer {
 	private final AtomicReference<State> state = new AtomicReference<>(State.NEW);
 	private final AtomicBoolean cleanupStarted = new AtomicBoolean();
 	private final CountDownLatch stopped = new CountDownLatch(1);
-	private final RequestLedger ledger = new RequestLedger();
+	private final RequestLedger ledger;
 	private final Object admissionGate = new Object();
 	private final Semaphore replyCapacity = new Semaphore(REPLY_CAPACITY);
 	// Keep channels registered across intake-to-reply handoff, without sharing admission permits with controls.
@@ -79,6 +79,11 @@ final class DaemonServer {
 		this(instance, commandExecutor, DaemonShutdown.embedded());
 	}
 
+	/** A supplied ledger permits deterministic retention boundaries through the authenticated server path. */
+	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor, final RequestLedger ledger) {
+		this(instance, commandExecutor, DaemonShutdown.embedded(), null, ledger);
+	}
+
 	/** Standalone authority is explicit; ordinary constructors cannot terminate an embedding JVM. */
 	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor, final DaemonShutdown shutdown) {
 		this(instance, commandExecutor, shutdown, null);
@@ -87,11 +92,17 @@ final class DaemonServer {
 	/** A supplied registry keeps construction/closure failure fixtures within their owning test process. */
 	DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor,
 			final DaemonShutdown shutdown, final DaemonMailerRegistry registry) {
+		this(instance, commandExecutor, shutdown, registry, new RequestLedger());
+	}
+
+	private DaemonServer(final String instance, final Function<DaemonRequest, CliExecutionResult> commandExecutor,
+			final DaemonShutdown shutdown, final DaemonMailerRegistry registry, final RequestLedger ledger) {
 		paths = DaemonPaths.forInstance(instance);
 		stateStore = new DaemonStateStore(paths);
 		this.commandExecutor = commandExecutor == null ? this::executeCliCommand : commandExecutor;
 		this.shutdown = shutdown;
 		this.registry = registry;
+		this.ledger = ledger;
 	}
 
 	int run() {

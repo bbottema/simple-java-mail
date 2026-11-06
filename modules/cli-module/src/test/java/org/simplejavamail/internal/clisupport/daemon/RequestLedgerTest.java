@@ -5,9 +5,11 @@ import org.simplejavamail.internal.clisupport.CliExecutionResult;
 import org.simplejavamail.internal.clisupport.CliExitCode;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -65,6 +67,37 @@ class RequestLedgerTest {
 		assertThatThrownBy(() -> ledger.register(request(UUID.randomUUID(), "overflow")))
 				.isInstanceOf(DaemonOverloadedException.class)
 				.hasMessageContaining("ledger is full");
+	}
+
+	@Test
+	void capacityEvictionCoversBothSidesOfTheAcceptedTimestampWindow() {
+		final AtomicLong nanoTime = new AtomicLong(1);
+		final RequestLedger ledger = new RequestLedger(nanoTime::get);
+		for (int i = 0; i < 512; i++) {
+			ledger.register(request(UUID.randomUUID(), "bounded-" + i)).result()
+					.complete(CliExecutionResult.success("", ""));
+		}
+
+		nanoTime.addAndGet(DaemonProtocol.FRESHNESS.multipliedBy(2).toNanos());
+		assertThatThrownBy(() -> ledger.register(request(UUID.randomUUID(), "still-protected")))
+				.isInstanceOf(DaemonOverloadedException.class);
+
+		nanoTime.incrementAndGet();
+		assertThat(ledger.register(request(UUID.randomUUID(), "after-replay-window")).newlyRegistered()).isTrue();
+		assertThat(ledger.pruneExpiredEntriesAndCount()).isEqualTo(512);
+	}
+
+	@Test
+	void ordinaryExpiryStillReleasesCompletedIdentityAndOutputAfterFiveMinutes() {
+		final AtomicLong nanoTime = new AtomicLong(1);
+		final RequestLedger ledger = new RequestLedger(nanoTime::get);
+		ledger.register(request(UUID.randomUUID(), "expired")).result().complete(CliExecutionResult.success("retained", ""));
+
+		nanoTime.addAndGet(Duration.ofMinutes(5).toNanos());
+		assertThat(ledger.pruneExpiredEntriesAndCount()).isEqualTo(1);
+		nanoTime.incrementAndGet();
+		assertThat(ledger.pruneExpiredEntriesAndCount()).isZero();
+		assertThat(ledger.retainedResultBytes()).isZero();
 	}
 
 	@Test

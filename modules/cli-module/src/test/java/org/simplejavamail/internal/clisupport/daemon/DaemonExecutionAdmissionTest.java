@@ -33,6 +33,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -310,6 +311,42 @@ class DaemonExecutionAdmissionTest {
     }
 
     @Test
+    void futureFreshAuthenticatedFrameCannotExecuteAgainAfterAgedLedgerPressure() throws Exception {
+        final AtomicLong nanoTime = new AtomicLong(1);
+        final AtomicInteger originalExecutions = new AtomicInteger();
+        try (ServerFixture fixture = new ServerFixture(stateRoot, request -> {
+            if (request.arguments().equals(List.of("original"))) { originalExecutions.incrementAndGet(); }
+            return CliExecutionResult.success(request.arguments().get(0), "");
+        }, () -> { }, new RequestLedger(nanoTime::get))) {
+            final DaemonRequest original = new DaemonRequest(DaemonOperation.EXECUTE, fixture.discovery.sessionId(), UUID.randomUUID(),
+                    Instant.now().plusSeconds(90), fixture.workingDirectory, List.of("original"));
+            try (PendingReply first = fixture.open(original, fixture.discovery.authenticationSecret())) {
+                assertThat(first.await().stdout()).isEqualTo("original");
+            }
+            for (int i = 0; i < 511; i++) {
+                try (PendingReply filler = fixture.execute(UUID.randomUUID(), "filler-" + i)) {
+                    assertThat(filler.await().category()).isEqualTo(CliExitCode.SUCCESS);
+                }
+            }
+            assertThat(value(fixture.status(), "recentRequests")).isEqualTo(512);
+
+            // Advance only the ledger's elapsed-time source. The exact authenticated frame is still fresh on the real protocol clock.
+            nanoTime.addAndGet(Duration.ofSeconds(121).toNanos());
+            final DaemonResponse capacityResult;
+            try (PendingReply overflow = fixture.execute(UUID.randomUUID(), "overflow")) {
+                capacityResult = overflow.await();
+            }
+            try (PendingReply replay = fixture.open(original, fixture.discovery.authenticationSecret())) {
+                assertThat(replay.await().stdout()).isEqualTo("original");
+            }
+
+            assertThat(originalExecutions).as("the same authenticated send frame executes only once").hasValue(1);
+            assertThat(capacityResult.category()).isEqualTo(CliExitCode.DAEMON_BUSY);
+            assertThat(capacityResult.stderr()).contains("ledger is full");
+        }
+    }
+
+    @Test
     void failedAuthenticationSessionAndFreshnessNeverReachApplicationAdmission() throws Exception {
         final AtomicInteger executions = new AtomicInteger();
         try (ServerFixture fixture = new ServerFixture(stateRoot, request -> {
@@ -396,6 +433,11 @@ class DaemonExecutionAdmissionTest {
 
         private ServerFixture(final Path root, final Function<DaemonRequest, CliExecutionResult> commandExecutor,
                 final Runnable releaseWork) throws Exception {
+            this(root, commandExecutor, releaseWork, new RequestLedger());
+        }
+
+        private ServerFixture(final Path root, final Function<DaemonRequest, CliExecutionResult> commandExecutor,
+                final Runnable releaseWork, final RequestLedger ledger) throws Exception {
             this.workingDirectory = root.toAbsolutePath().normalize();
             this.releaseWork = releaseWork;
             PROPERTY_NAMES.forEach(name -> savedProperties.put(name, System.getProperty(name)));
@@ -403,7 +445,7 @@ class DaemonExecutionAdmissionTest {
             System.setProperty("log4j.configurationFile", DaemonExecutionAdmissionTest.class.getResource("/log4j2.xml").toExternalForm());
             System.setProperty(DaemonPaths.STATE_DIRECTORY_PROPERTY, workingDirectory.toString());
             System.setProperty(DaemonPaths.FORCE_TCP_PROPERTY, "true");
-            server = new DaemonServer(INSTANCE, commandExecutor);
+            server = new DaemonServer(INSTANCE, commandExecutor, ledger);
             serverResult = serverThread.submit(server::run);
             try {
                 final DaemonStateStore stateStore = new DaemonStateStore(DaemonPaths.forInstance(INSTANCE));
