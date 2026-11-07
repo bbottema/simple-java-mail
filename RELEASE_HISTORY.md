@@ -128,7 +128,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
-- [#969](https://github.com/bbottema/simple-java-mail/issues/969): apply completed properties before creating an owned Session, so Session-scoped events use the requested executor. Supplied Sessions retain their native state and reject ineffective late executor replacements. Direct OAuth connections use the selected provider's username resolution; protocol-specific interpretation requires an explicit effective protocol rather than assuming SMTP.
+- [#969](https://github.com/bbottema/simple-java-mail/issues/969): apply completed properties before creating an owned Session, so Session-scoped events use the requested executor. Supplied Sessions retain their native state and reject ineffective late executor replacements. Failed construction keeps exclusive Session ownership through cleanup and restoration, preventing late undo writes from changing a replacement Mailer. Direct OAuth connections use the selected provider's username resolution; protocol-specific interpretation requires an explicit effective protocol rather than assuming SMTP.
 
 - [#967](https://github.com/bbottema/simple-java-mail/issues/967): pooled sends use the current registration's fixed token, callback or ordinary authentication after a Session is reused. Credentials are passed directly to the pool rather than copied into extra Session properties, so an old callback cannot override a replacement token or ordinary Session Authenticator.
 

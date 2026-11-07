@@ -2,6 +2,7 @@ package org.simplejavamail.mailer.internal;
 
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.config.SocksProxyConfig;
+import org.simplejavamail.api.mailer.config.SendingLimitsConfig;
 import java.time.Duration;
 import org.simplejavamail.api.mailer.config.SessionDebugConfig;
 import jakarta.mail.Message.RecipientType;
@@ -29,17 +30,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static testutil.MailerTestConfig.updateMailer;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doThrow;
@@ -172,6 +177,71 @@ class MailerSessionOwnershipTest {
 	}
 
 	@Test
+	void failedConstructionKeepsOwnershipUntilCallerSettingsAreRestored() throws Exception {
+		final RollbackProperties properties = new RollbackProperties();
+		final Object originalValue = new Object();
+		properties.put("test.existing", originalValue);
+		final State state = new State();
+		final Session session = session(properties, state);
+		final PrintStream originalDebugOutput = new PrintStream(new ByteArrayOutputStream());
+		session.setDebugOut(originalDebugOutput);
+		final Properties before = (Properties) properties.clone();
+		final SendingLimitsConfig limits = SendingLimitsConfig.builder().withRateLimitGroup("rollback")
+				.withMessageRateLimit(1, Duration.ofMinutes(1)).build();
+		try (Mailer ignored = mail.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(limits).buildMailer()) {
+			// Establish the factory-local group so a different policy fails after Session configuration.
+		}
+		final CountDownLatch restoring = new CountDownLatch(1);
+		final CountDownLatch finishRestore = new CountDownLatch(1);
+		properties.beforeRestore = () -> { restoring.countDown(); await(finishRestore); };
+		final ExecutorService constructing = Executors.newSingleThreadExecutor();
+		final AtomicReference<Mailer> unexpectedReplacement = new AtomicReference<>();
+		final Future<Throwable> failedBuild = constructing.submit(() -> catchThrowable(() -> mail.mailerBuilder(session)
+				.withProperty("test.restore", "first-attempt").withProperty("test.existing", "changed")
+				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true)
+						.withPrinter(new PrintStream(new ByteArrayOutputStream())).build())
+				.withSendingLimitsConfig(limits.toBuilder().withMessageRateLimit(2, Duration.ofMinutes(1)).build())
+				.buildMailer()));
+		try {
+			assertThat(restoring.await(5, SECONDS)).isTrue();
+			assertThat(session.getDebug()).isTrue();
+			assertThatThrownBy(() -> unexpectedReplacement.set(builder(session, "replacement")
+					.withProperty("test.restore", "replacement").buildMailer()))
+					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already belongs to another Mailer");
+		} finally {
+			finishRestore.countDown();
+			try {
+				assertThat(failedBuild.get(5, SECONDS)).isInstanceOf(IllegalArgumentException.class)
+						.hasMessageContaining("Mailers sharing a rate-limit group");
+			} finally {
+				if (unexpectedReplacement.get() != null) { unexpectedReplacement.get().close(); }
+				constructing.shutdownNow();
+			}
+		}
+		assertThat(properties).isEqualTo(before);
+		assertThat(properties.get("test.existing")).isSameAs(originalValue);
+		assertThat(properties.containsKey("test.restore")).isFalse();
+		assertThat(session.getDebug()).isFalse();
+		assertThat(session.getDebugOut()).isSameAs(originalDebugOutput);
+		try (Mailer replacement = builder(session, "replacement").withProperty("test.restore", "replacement").buildMailer()) {
+			replacement.sync().sendMail(email());
+			assertThat(properties.getProperty("test.restore")).isEqualTo("replacement");
+			assertThat(state.senders).containsExactly("replacement@example.test");
+		}
+	}
+
+	@Test
+	void constructionClaimsSessionBeforeCapturingItsRestorationSnapshot() throws Exception {
+		final RollbackProperties properties = new RollbackProperties();
+		final Session session = session(properties, new State());
+		properties.beforeSnapshot = () -> assertThat(properties.get("org.simplejavamail.internal.mailerOwner"))
+				.as("Restoration state must be captured while this construction owns the Session").isNotNull();
+		try (Mailer ignored = builder(session, "owner").withProperty("test.restore", "applied").buildMailer()) {
+			assertThat(properties.getProperty("test.restore")).isEqualTo("applied");
+		}
+	}
+
+	@Test
 	void completedShutdownAllowsReusingTheSessionWithNewGovernance() throws Exception {
 		final State state = new State();
 		final Session session = session(new Properties(), state);
@@ -252,6 +322,25 @@ class MailerSessionOwnershipTest {
 		}
 	}
 
+	@Test
+	void failedCallerStateRestorationDoesNotAllowAnotherOwnerToTakeOver() throws Exception {
+		final RollbackProperties properties = new RollbackProperties();
+		final Session session = session(properties, new State());
+		final IllegalStateException failure = new IllegalStateException("test pool registration failure");
+		final IllegalStateException restoration = new IllegalStateException("test caller state restoration failure");
+		properties.beforeRestore = () -> { throw restoration; };
+		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+			final BatchModule batch = mock(BatchModule.class);
+			modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
+			doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
+			when(batch.shutdownConnectionPools(session)).thenReturn(CompletableFuture.completedFuture(null));
+			assertThatThrownBy(() -> builder(session, "failed").withProperty("test.restore", "applied").buildMailer()).isSameAs(failure);
+			assertThat(failure.getSuppressed()).containsExactly(restoration);
+			assertThatThrownBy(() -> builder(session, "replacement").buildMailer()).isInstanceOf(IllegalArgumentException.class)
+					.hasMessageContaining("already belongs to another Mailer");
+		}
+	}
+
 	private MailerFromSessionBuilderImpl builder(final Session session, final String owner) {
 		return (MailerFromSessionBuilderImpl) SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
 				.withEmailOverrides(mail.emailBuilder().startingBlank().from(owner + "@example.test").withHeader("X-Owner", owner).buildEmail())
@@ -311,6 +400,23 @@ class MailerSessionOwnershipTest {
 		private final List<String> senders = new CopyOnWriteArrayList<>();
 		private final List<String> headers = new CopyOnWriteArrayList<>();
 		private Runnable beforeSend = () -> { };
+	}
+
+	private static final class RollbackProperties extends Properties {
+		private Runnable beforeSnapshot = () -> { };
+		private Runnable beforeRestore = () -> { };
+
+		@Override
+		public boolean containsKey(final Object key) {
+			if ("test.restore".equals(key)) { beforeSnapshot.run(); }
+			return super.containsKey(key);
+		}
+
+		@Override
+		public Object remove(final Object key) {
+			if ("test.restore".equals(key)) { beforeRestore.run(); }
+			return super.remove(key);
+		}
 	}
 
 	public static final class RecordingTransport extends Transport {

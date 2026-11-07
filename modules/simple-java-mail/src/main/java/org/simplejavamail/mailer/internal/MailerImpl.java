@@ -272,26 +272,21 @@ public class MailerImpl implements Mailer {
 				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
 		this.mailSendObserverNotifier = observerNotifier;
 		this.mailSendOperations = new MailSendOperations(operationalConfig);
-		final SessionConfigurationRollback callerRollback = ownsSession ? null
-				: new SessionConfigurationRollback(session, applicationPlan, proxyConfig);
+		SessionConfigurationRollback callerRollback = null;
 		boolean poolRegistrationBegun = false;
-		boolean configurationStarted = false;
 		try {
 			claimSessionOwnership();
-			configurationStarted = true;
+			callerRollback = ownsSession ? null : new SessionConfigurationRollback(session, applicationPlan, proxyConfig);
 			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, applicationPlan);
 			poolRegistrationBegun = true;
 			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
 		} catch (RuntimeException | Error failure) {
-			rollbackConstruction(poolRegistrationBegun, failure);
-			if (configurationStarted && callerRollback != null && session.getProperties().get(SESSION_OWNER) != sessionOwner) {
-				callerRollback.restore(failure);
-			}
+			rollbackConstruction(poolRegistrationBegun, callerRollback, failure);
 			throw failure;
 		}
 	}
 
-	/** Restore only this construction's planned writes after its owned resources and claim have retired. */
+	/** Capture and restore only this construction's planned writes while its exclusive Session claim is held. */
 	private static final class SessionConfigurationRollback {
 		private final Session session;
 		private final Map<Object, Object> original = new LinkedHashMap<>();
@@ -319,12 +314,14 @@ public class MailerImpl implements Mailer {
 			}
 		}
 
-		private void restore(final Throwable failure) {
+		private boolean restore(final Throwable failure) {
+			boolean restored = true;
 			for (Map.Entry<Object, Object> entry : original.entrySet()) {
 				try {
 					session.getProperties().put(entry.getKey(), entry.getValue());
 				} catch (RuntimeException | Error restoreFailure) {
 					failure.addSuppressed(restoreFailure);
+					restored = false;
 				}
 			}
 			for (Object key : absent) {
@@ -332,6 +329,7 @@ public class MailerImpl implements Mailer {
 					session.getProperties().remove(key);
 				} catch (RuntimeException | Error restoreFailure) {
 					failure.addSuppressed(restoreFailure);
+					restored = false;
 				}
 			}
 			try {
@@ -339,7 +337,9 @@ public class MailerImpl implements Mailer {
 				if (session.getDebug() != debug) { session.setDebug(debug); }
 			} catch (RuntimeException | Error restoreFailure) {
 				failure.addSuppressed(restoreFailure);
+				restored = false;
 			}
+			return restored;
 		}
 	}
 
@@ -441,7 +441,8 @@ public class MailerImpl implements Mailer {
 	}
 
 	/** A failed build must not leave a published cluster participant or owned workers behind. The validated graph constructor owns failover-graph rollback. */
-	private void rollbackConstruction(final boolean poolRegistrationBegun, final Throwable failure) {
+	private void rollbackConstruction(final boolean poolRegistrationBegun, @Nullable final SessionConfigurationRollback callerRollback,
+			final Throwable failure) {
 		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
 			operationalConfig.getExecutorService().shutdown();
 		}
@@ -451,7 +452,9 @@ public class MailerImpl implements Mailer {
 			if (poolRegistrationBegun) {
 				closeConnectionPools().get();
 			}
-			releaseSessionOwnership();
+			if (callerRollback == null || callerRollback.restore(failure)) {
+				releaseSessionOwnership();
+			}
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
 			failure.addSuppressed(interrupted);

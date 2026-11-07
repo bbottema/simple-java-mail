@@ -1,5 +1,10 @@
 # Architecture decision records
 
+The 7 November [supplied-Session cleanup clarification](0039-explicit-configuration-resolution.md#supplied-session-failure-cleanup-accepted-7-november-2026)
+under [#969](https://github.com/bbottema/simple-java-mail/issues/969) retains exclusive ownership through failed-construction cleanup and
+restoration. [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline) keeps the ownership boundary; the
+issue tracks implementation and delivery of this unreleased integration follow-up.
+
 The 5 November [Session integration follow-up](0039-explicit-configuration-resolution.md#passive-session-capture-and-construction-order-accepted-5-november-2026)
 under [#969](https://github.com/bbottema/simple-java-mail/issues/969) makes capture data-only and assembles properties before owned Session
 creation. [ADR 0038](0038-connection-configuration-conflicts.md#explicit-protocol-and-provider-selection-accepted-5-november-2026) owns

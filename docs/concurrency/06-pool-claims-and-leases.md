@@ -60,6 +60,11 @@ Authenticated SOCKS uses an operation-owned local bridge. Background replenishme
 
 `releaseSessionOwnership()` removes only its own exact token and converter. Rejected construction cannot retire another owner's context. Graceful shutdown retains ownership while accepted work and connections drain. This makes `selectedOwner()` stable for every admitted pooled operation without adding another registration-context API.
 
+Failed construction captures its restoration snapshot only after claiming ownership, then retains that claim through resource cleanup and
+restoration of planned properties and native debug state. Only successful restoration releases it for a replacement. Cleanup/restoration
+failure retains the guard with its cause attached to the original construction failure. A rejected claim never restores another owner's
+state. Restoration runs outside the Properties monitor while exclusive ownership still prevents another Mailer from taking over.
+
 Reuse one Mailer for concurrent sends, or create independent Sessions with independent Properties copied from the original SMTP settings. Successful completed shutdown permits reuse. [MailerSessionOwnershipTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailerSessionOwnershipTest.java) covers public sync/async sends, shared Properties, construction interleaving, rollback and draining shutdown. Website migration notes document the changed Session-sharing behavior.
 
 ## Acquisition: reserve, prepare, hand off

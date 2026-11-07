@@ -201,6 +201,18 @@ pool/allowance state remains live. Keep atomic registration, post-initialization
 enforce phase order and construction inputs; behavioral contracts establish interpretation and constraint completeness. Simple scalar consumers
 such as subject selection retain direct resolution without a synthetic construction lifecycle.
 
+### Supplied Session failure cleanup (accepted 7 November 2026)
+
+Failed construction retains exclusive ownership of a supplied Session until its owned resources have been cleaned up and its planned
+property/debug changes have been restored. Claim the Session before capturing its restoration snapshot. Release it only after restoration
+finishes, so a replacement cannot receive late writes from the failed build. A rejected claim neither captures restoration state nor undoes
+another owner's settings. Resource cleanup or restoration failure retains the existing claim and original/suppressed failure handling.
+
+This completes the unreleased rollback ordering from #867 within [#969](https://github.com/bbottema/simple-java-mail/issues/969), following
+[ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline). It adds no public configuration choice or general
+Session transaction facility. Native Session identity, borrowed resources and the settings retained after successful shutdown keep their
+existing contracts. Which individual writes belong in the restoration plan remains separate from this ownership-ordering decision.
+
 ### Inherited fixed OAuth2 token activation (accepted 1 November 2026)
 
 Apply the provider-visible String interpretation to fixed-token activation when opening a transport, consistently with credential validation
