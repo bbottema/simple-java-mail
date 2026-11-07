@@ -36,6 +36,7 @@ import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.modules.BatchModule;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
 
 import java.net.ConnectException;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -477,23 +479,58 @@ class ConnectionFailoverTest {
                 "simplejavamail.failover.mailer", "secondary",
                 "simplejavamail.mailers.secondary.transport.mode.logging.only", "true")).load();
         final FactoryMailerRuntime runtime = new FactoryMailerRuntime(config);
+        final SendingLimitsConfig shared = SendingLimitsConfig.builder().withRateLimitGroup("shared")
+                .withMessageRateLimit(1, Duration.ofSeconds(1)).build();
+        final IllegalStateException failure = new IllegalStateException("late primary pool initialization failure");
         try (Mailer established = new MailerRegularBuilderImpl(config, runtime).clearFailoverMailer().withTransportModeLoggingOnly(true)
-                .withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("shared").withMessageRateLimit(1, Duration.ofSeconds(1)).build()).buildMailer()) {
+                .withSendingLimitsConfig(shared).buildMailer()) {
             try (MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class, (executor, context) -> {
                 final AtomicBoolean shutdown = new AtomicBoolean();
                 when(executor.isShutdown()).thenAnswer(invocation -> shutdown.get());
                 when(executor.awaitTermination(anyLong(), any())).thenAnswer(invocation -> shutdown.get());
                 doAnswer(invocation -> { shutdown.set(true); return null; }).when(executor).shutdown();
-            })) {
+            }); MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+                final BatchModule batch = mock(BatchModule.class);
+                final AtomicInteger initializedChildren = new AtomicInteger();
+                modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
+                modules.when(ModuleLoader::batchModuleAvailable).thenReturn(true);
+                doAnswer(invocation -> {
+                    final Session session = invocation.getArgument(2);
+                    if ("true".equals(session.getProperty("application.fail.primary"))) { throw failure; }
+                    initializedChildren.incrementAndGet();
+                    return null;
+                }).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
+                when(batch.shutdownConnectionPools(any())).thenReturn(CompletableFuture.completedFuture(null));
                 final MailerRegularBuilderImpl failing = new MailerRegularBuilderImpl(config, runtime);
-                assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withSendingLimitsConfig(failing.getSendingLimitsConfig().toBuilder()
-                        .withRateLimitGroup("shared").withMessageRateLimit(2, Duration.ofSeconds(1)).build()).buildMailer())
-                        .hasMessageContaining("sharing a rate-limit group");
+                assertThatThrownBy(() -> failing.withTransportModeLoggingOnly(true).withSendingLimitsConfig(shared)
+                        .withProperty("application.fail.primary", true).buildMailer()).isSameAs(failure);
+                assertThat(initializedChildren).hasValue(1);
                 assertThat(executors.constructed()).hasSize(2);
                 for (MailSendExecutor owned : executors.constructed()) {
                     verify(owned).shutdown();
                     assertThat(owned.isShutdown()).isTrue();
                 }
+            }
+            assertThat(established.getOperationalConfig().getExecutorService().isShutdown()).isFalse();
+            established.sync().sendMail(email());
+        }
+    }
+
+    @Test
+    void establishedGroupConflictPrecedesOwnedNamedRouteAllocation() throws Exception {
+        final SimpleJavaMailConfig config = ConfigLoader.builder().withMap(Map.of(
+                "simplejavamail.failover.mailer", "secondary",
+                "simplejavamail.mailers.secondary.transport.mode.logging.only", "true")).load();
+        final FactoryMailerRuntime runtime = new FactoryMailerRuntime(config);
+        final SendingLimitsConfig shared = SendingLimitsConfig.builder().withRateLimitGroup("shared")
+                .withMessageRateLimit(1, Duration.ofSeconds(1)).build();
+        try (Mailer established = new MailerRegularBuilderImpl(config, runtime).clearFailoverMailer()
+                .withTransportModeLoggingOnly(true).withSendingLimitsConfig(shared).buildMailer()) {
+            try (MockedConstruction<MailSendExecutor> executors = mockConstruction(MailSendExecutor.class)) {
+                assertThatThrownBy(() -> new MailerRegularBuilderImpl(config, runtime).withTransportModeLoggingOnly(true)
+                        .withSendingLimitsConfig(shared.toBuilder().withMessageRateLimit(2, Duration.ofSeconds(1)).build()).buildMailer())
+                        .hasMessageContaining("sharing a rate-limit group");
+                assertThat(executors.constructed()).isEmpty();
             }
             assertThat(established.getOperationalConfig().getExecutorService().isShutdown()).isFalse();
             established.sync().sendMail(email());
