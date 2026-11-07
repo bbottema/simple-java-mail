@@ -1,5 +1,14 @@
 # Architecture decision records
 
+The accepted [#488](https://github.com/bbottema/simple-java-mail/issues/488) validation follow-up keeps full
+governed MIME preparation separate from sending-resource construction.
+[ADR 0014](0014-send-time-rehearsal.md#cli-preparation-without-sending-resources-accepted-7-november-2026) owns the
+shared preparation path,
+[ADR 0019](0019-local-cli-daemon.md#validation-reuses-only-ready-mailers-accepted-7-november-2026) limits daemon
+reuse to ready compatible Mailers, and
+[ADR 0018](0018-cli-from-builder-contracts.md#internal-validation-entry-point-accepted-7-november-2026) keeps the
+execution adapter outside generated options.
+
 The accepted [#971](https://github.com/bbottema/simple-java-mail/issues/971) correction keeps generated image Content-IDs ASCII across
 JVM locales. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#locale-independent-generated-image-identifiers-accepted-7-november-2026)
 owns this generation rule; explicit IDs and strict UTF-8 transport requirements retain their existing roles.
