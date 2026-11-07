@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,6 +80,16 @@ final class DaemonMailerRegistry implements MailerProvider {
 			}
 		}
 		throw shuttingDown();
+	}
+
+	@Override
+	public Optional<Lease> tryAcquireExisting(@NotNull final CliMailerProfile profile) {
+		synchronized (shutdownGate) {
+			assertOpen();
+			final Entry entry = entries.get(profile);
+			final Mailer mailer = entry == null ? null : entry.acquireReady();
+			return mailer == null ? Optional.empty() : Optional.of(lease(entry, mailer));
+		}
 	}
 
 	private EntryRegistration registerEntry(final CliMailerProfile profile) {
@@ -382,6 +393,17 @@ final class DaemonMailerRegistry implements MailerProvider {
 			active++;
 			lastUsedNanos = System.nanoTime();
 			return true;
+		}
+
+		private synchronized Mailer acquireReady() {
+			if (retired || closeStarted || !mailer.isDone() || mailer.isCompletedExceptionally() || mailer.isCancelled()) {
+				return null;
+			}
+			final Mailer ready = mailer.getNow(null);
+			if (ready == null) { return null; }
+			active++;
+			lastUsedNanos = System.nanoTime();
+			return ready;
 		}
 
 		private synchronized void release() {

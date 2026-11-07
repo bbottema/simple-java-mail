@@ -14,6 +14,22 @@ Applications also need to inspect, preview or archive what this Mailer would pre
 
 ## Decision
 
+### CLI preparation without sending resources (accepted 7 November 2026)
+
+CLI validation uses the same governed preparation as `Mailer.validate` and rehearsal, but does not need to construct a sending Mailer.
+Resolve and validate the selected configuration, then prepare the primary message through the shared MIME/security/size pipeline with
+an independently owned MIME Session. Preserve defaults, overrides, locks, warnings, exact EML, provider encoding settings and content ownership.
+Configuration validation stays passive about transports and authentication callbacks; ordinary content and key processing keep their existing work.
+
+A ready profile-compatible daemon Mailer may supply that preparation through its existing validation operation. A cold, pending, failed or
+retiring profile instead uses transient preparation without publishing a sending entry or waiting for SMTP startup. Neither case starts
+sending workers, proxy bridges, allowance registrations or connection pools for validation. Existing daemon pool activity remains independent.
+The later send path still constructs its normal owned route and activates configured resources.
+
+Keep batch support available to the process. The exception is scoped to CLI validation's preparation path, without changing configured pool
+sizes, logging mode or module availability. [#488](https://github.com/bbottema/simple-java-mail/issues/488) owns CLI routing and lifetime under
+[ADR 0019](0019-local-cli-daemon.md#validation-reuses-only-ready-mailers-accepted-7-november-2026); #688/#709 retain preparation semantics.
+
 ### Preparation outlives sending resources (accepted 2 November 2026)
 
 Closing a Mailer releases sending resources while rehearsal and validation remain available through that Mailer's own preparation rules. Full/base modes and exact EML share this lifetime. Neither existing nor new preparation is admitted as send work or delays send draining, resource cleanup or Session reuse.

@@ -188,9 +188,16 @@ class CliImageWorkingDirectoryTest {
                     onValidation.run();
                     return null;
                 });
-        final MailerProvider provider = (profile, factory) -> new MailerProvider.Lease() {
-            @Override public Mailer mailer() { return mailer; }
-            @Override public void close() { }
+        final MailerProvider provider = new MailerProvider() {
+            @Override public Lease acquire(final CliMailerProfile profile, final java.util.function.Supplier<Mailer> factory) {
+                throw new AssertionError("Validation must only request an existing Mailer");
+            }
+            @Override public java.util.Optional<Lease> tryAcquireExisting(final CliMailerProfile profile) {
+                return java.util.Optional.of(new Lease() {
+                    @Override public Mailer mailer() { return mailer; }
+                    @Override public void close() { }
+                });
+            }
         };
         final List<String> arguments = new ArrayList<>(List.of("validate", "--email:startingBlank",
                 "--email:from", "sender@example.org", "--email:to", "reader@example.org",

@@ -5,7 +5,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
-import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.config.ConfigLoader;
 
 import java.nio.file.Path;
@@ -14,7 +13,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -47,20 +45,12 @@ class CliValidationWarningOptionsTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void existingBooleanOptionRetainsItsPolarityAndOverridesConfiguredProperties(final boolean warningsOnly) {
-        final AtomicReference<Mailer> selected = new AtomicReference<>();
-        final OneShotMailerProvider delegate = new OneShotMailerProvider();
-        final MailerProvider provider = (profile, factory) -> delegate.acquire(profile, () -> {
-            final Mailer mailer = factory.get();
-            selected.set(mailer);
-            return mailer;
-        });
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(ConfigLoader.builder()
-                .withMap(Map.of("simplejavamail.disable.all.clientvalidation", true)).load(), provider)) {
+                .withMap(Map.of("simplejavamail.disable.all.clientvalidation", true)).load(), new OneShotMailerProvider())) {
             final CliExecutionResult result = execute(environment, validationArguments(
                     "--mailer:disablingAllClientValidation", Boolean.toString(warningsOnly)));
-            assertThat(selected.get()).as(result.stderr()).isNotNull();
-            assertThat(selected.get().getOperationalConfig().isClientValidationWarningsOnly()).isEqualTo(warningsOnly);
             assertThat(result.exitCode()).as(result.stderr()).isEqualTo(warningsOnly ? 0 : CliExitCode.COMMAND_FAILED.code());
+            if (!warningsOnly) { assertThat(result.stderr()).contains("not-an-email-address"); }
         }
     }
 

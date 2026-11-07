@@ -57,7 +57,9 @@ public class GenerateCliHelpTest {
 
 		assertThat(new String(outContent.toByteArray(), UTF_8))
 				.contains("--email:options --mailer:options")
-				.contains("without connecting to SMTP");
+                .contains("without connecting to SMTP")
+                .contains("without starting sending pools")
+                .doesNotContain("--mailer:validateEmailForCli");
 	}
 
 	@Test

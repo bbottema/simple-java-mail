@@ -62,6 +62,20 @@ final class SessionConfigurationChanges {
         return new Applied(session, restoreCallerState);
     }
 
+    /** Projects the validated changes onto owned MIME properties without a sending converter, owner or live Session writes. */
+    Properties propertiesForPreparation(final Properties baseline) {
+        final Properties target = SessionPropertyObservation.snapshot(baseline);
+        properties.forEach((key, value) -> {
+            if (!SessionBasedEmailToMimeMessageConverter.MIMEMESSAGE_CONVERTER_KEY.equals(key) && !MailerImpl.SESSION_OWNER.equals(key)) {
+                if (value == null) { target.remove(key); }
+                else { target.put(key, value); }
+            }
+        });
+        target.remove(SessionBasedEmailToMimeMessageConverter.MIMEMESSAGE_CONVERTER_KEY);
+        target.remove(MailerImpl.SESSION_OWNER);
+        return target;
+    }
+
     final class Applied {
         private final Session session;
         private final boolean restoreCallerState;

@@ -1,6 +1,6 @@
 # Simple Java Mail CLI daemon
 
-The daemon is optional. Ordinary `sjm send`, `connect`, `probe`, and `validate` commands still run once in the current process and close their Mailer. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
+The daemon is optional. Ordinary `sjm send`, `connect`, `probe`, and `validate` commands still run once in the current process. Sending and connection commands close their Mailer afterward; validation prepares the message without constructing sending resources. The CLI requires Java 17 or newer; the non-CLI libraries require Java 11 or newer.
 
 ## Metadata and source builds
 
@@ -66,6 +66,16 @@ sjm probe --daemon=require --authenticate  # credentials come from the daemon's 
 The daemon can reuse the same Mailer for probes with and without authentication, but each probe uses a fresh dedicated SMTP connection, not a pooled send transport. Reports are returned to the requesting client, including failed and unsupported reports. Exit code 0 means success, 3 means a failed or unsupported probe, and 2 means invalid arguments; daemon routing errors retain the codes below. Execution exceptions go to stderr. See the [CLI diagnostic examples](https://www.simplejavamail.org/cli.html#section-probe) for sample output and report interpretation.
 
 The authentication flag does not control send-pool warm-up. Building a Mailer with a nonzero pool core size can separately open and authenticate pooled connections. Keep the pool core size at 0 (the default), including any per-cluster override, when that is unwanted. A probe does not stop pools already running in the daemon.
+
+## Validation
+
+`sjm validate` applies the selected defaults, overrides and locks, performs client-side checks, renders MIME, processes configured security
+and checks the final encoded size. It starts no SMTP connections, sending workers, proxy bridges or connection pools, including when a
+nonzero pool core size is configured. Ordinary content and key reads keep their existing behavior.
+
+The daemon can lease an already ready, compatible Mailer for validation. Otherwise the command prepares transiently without adding a
+sending-cache entry or waiting for another command's Mailer construction. Existing pools continue independently, and a later `send` still
+constructs its normal Mailer and activates configured pool settings. The bundled batch module stays available throughout.
 
 ## Batch and connection reuse
 

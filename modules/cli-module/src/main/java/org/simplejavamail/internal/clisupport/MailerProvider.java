@@ -3,6 +3,7 @@ package org.simplejavamail.internal.clisupport;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.mailer.Mailer;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -13,6 +14,15 @@ public interface MailerProvider extends AutoCloseable {
 
 	@NotNull
 	Lease acquire(@NotNull CliMailerProfile profile, @NotNull Supplier<Mailer> factory);
+
+	/**
+	 * Leases an already ready, live compatible Mailer without constructing, waiting for or publishing one.
+	 * Providers without retained Mailers have no existing entry to offer.
+	 */
+	@NotNull
+	default Optional<Lease> tryAcquireExisting(@NotNull final CliMailerProfile profile) {
+		return Optional.empty();
+	}
 
 	@Override
 	default void close() {

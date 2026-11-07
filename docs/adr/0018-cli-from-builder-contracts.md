@@ -11,6 +11,14 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+### Internal validation entry point (accepted 7 November 2026)
+
+The CLI may invoke an internal builder-adapter operation to run governed validation without constructing sending resources. Exclude that
+operation from generated options: the existing `validate` command and ordered Email/Mailer options remain the application-facing syntax.
+Reuse the normal captured configuration, preparation rules and profile calculation rather than a separately maintained validation API.
+The main implementation owns preparation; the core internal CLI contract only crosses the existing module boundary. [#488](https://github.com/bbottema/simple-java-mail/issues/488)
+and [ADR 0014](0014-send-time-rehearsal.md#cli-preparation-without-sending-resources-accepted-7-november-2026) own the behavior and lifetime.
+
 ### Recognize help options without changing ordinary values (accepted 22 October 2026)
 
 Help belongs to the selected generated command model. An ordinary subject, body, header or file value that ends in

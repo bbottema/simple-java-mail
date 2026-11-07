@@ -18,6 +18,7 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.internal.clisupport.CliFailoverMailerBuilder;
 import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
+import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.CliMailSendRetryBuilder;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
@@ -448,10 +449,21 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 
 	/** Validate the whole captured graph before constructing privately owned executors, proxy bridges or pools. */
 	final MailerImpl buildConfiguredMailer() {
+		return constructMailer(prepareMailerPlan());
+	}
+
+	/** @see CliMailerConfigurationBuilder#validateEmailForCli(Email) */
+	@Override
+	@Cli.ExcludeApi(reason = "Internal CLI execution entry point, not a builder option")
+	public final void validateEmailForCli(@NotNull final Email email) {
+		final Email supplied = requireNonNull(email, "email");
+		EmailPreparation.validate(prepareMailerPlan(), supplied);
+	}
+
+	private ValidatedMailerPlan prepareMailerPlan() {
 		final CapturedMailerInputs captured = captureMailerInputs();
 		final ResolvedMailerConfiguration resolved = ResolvedMailerConfiguration.resolve(captured);
-		final ValidatedMailerPlan plan = ValidatedMailerPlan.validate(resolved);
-		return constructMailer(plan);
+		return ValidatedMailerPlan.validate(resolved);
 	}
 
 	abstract MailerImpl constructMailer(ValidatedMailerPlan plan);

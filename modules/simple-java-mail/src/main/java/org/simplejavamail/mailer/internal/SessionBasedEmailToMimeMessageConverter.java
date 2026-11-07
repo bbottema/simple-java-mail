@@ -8,8 +8,10 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +55,8 @@ import static org.simplejavamail.mailer.internal.util.MailboxAddressMapper.requi
  * that both the operational connection and the emails being sent through a specific SMTP server are managed by the Mailer responsible
  * for this SMTP server configuration (data being email defaults/overrides defined on Mailer level).
  */
-@RequiredArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode
 @ToString
 public class SessionBasedEmailToMimeMessageConverter {
@@ -63,13 +66,30 @@ public class SessionBasedEmailToMimeMessageConverter {
     static final String MIMEMESSAGE_CONVERTER_KEY = "SESSION_BASED_EMAIL_TO_MIME_MESSAGE_CONVERTER_KEY";
 
     private final Session session;
-    private final OperationalConfig operationalConfig;
+    private final boolean legacySmtpContentSupportEnabled;
+    private final boolean transportModeLoggingOnly;
     private final EmailGovernance emailGovernance;
     @Nullable
     private final LockedSmtpConfiguration lockedSmtpConfiguration;
 
     public SessionBasedEmailToMimeMessageConverter(final Session session, final OperationalConfig operationalConfig, final EmailGovernance emailGovernance) {
         this(session, operationalConfig, emailGovernance, null);
+    }
+
+    public SessionBasedEmailToMimeMessageConverter(final Session session, final OperationalConfig operationalConfig,
+            final EmailGovernance emailGovernance, @Nullable final LockedSmtpConfiguration lockedSmtpConfiguration) {
+        this.session = session;
+        this.legacySmtpContentSupportEnabled = operationalConfig.isLegacySmtpContentSupportEnabled();
+        this.transportModeLoggingOnly = operationalConfig.isTransportModeLoggingOnly();
+        this.emailGovernance = emailGovernance;
+        this.lockedSmtpConfiguration = lockedSmtpConfiguration;
+    }
+
+    /** Preparation needs MIME policy and governance, without an executor-bearing operational configuration. */
+    static SessionBasedEmailToMimeMessageConverter forPreparation(final Session session, final EmailGovernance governance,
+            final boolean legacySmtpContentSupportEnabled) {
+        return builder().session(session).emailGovernance(governance)
+                .legacySmtpContentSupportEnabled(legacySmtpContentSupportEnabled).transportModeLoggingOnly(false).build();
     }
 
     public static void primeSession(Session session, OperationalConfig operationalConfig, EmailGovernance emailGovernance) {
@@ -194,7 +214,7 @@ public class SessionBasedEmailToMimeMessageConverter {
                 .withSendingToAcceptedRecipients(email.getSendingToAcceptedRecipients())
                 .build())
             .withContentRequirement(InternalEmail.requireInternalEmail(email).determineContentRequirement())
-            .withLegacySmtpContentSupportEnabled(operationalConfig.isLegacySmtpContentSupportEnabled())
+            .withLegacySmtpContentSupportEnabled(legacySmtpContentSupportEnabled)
             .build();
     }
 
@@ -342,7 +362,7 @@ public class SessionBasedEmailToMimeMessageConverter {
             InternalEmail.requireInternalEmail(email).updateId(message.getMessageID());
         }
 
-        logEmail(message, operationalConfig.isTransportModeLoggingOnly(), email);
+        logEmail(message, transportModeLoggingOnly, email);
         return message;
     }
 

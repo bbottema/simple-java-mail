@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.internal.clisupport.CliMailerConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
@@ -15,6 +16,7 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Optional;
 
 import static java.lang.String.format;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -92,8 +94,13 @@ class CliCommandLineConsumerResultHandler {
 		final Email email = buildSelectedEmail(selectedEmailBuilder);
 		final CliMailerProfile profile = CliMailerProfile.create(environment.config(), receivedOptions, profileKey,
 				environment.configurationWorkingDirectory());
-		try (MailerProvider.Lease lease = environment.mailerProvider().acquire(profile, mailerBuilder::buildMailer)) {
-			lease.mailer().validate(email);
+		final Optional<MailerProvider.Lease> existing = environment.mailerProvider().tryAcquireExisting(profile);
+		if (existing.isPresent()) {
+			try (MailerProvider.Lease lease = existing.get()) {
+				lease.mailer().validate(email);
+			}
+		} else {
+			((CliMailerConfigurationBuilder) mailerBuilder).validateEmailForCli(email);
 		}
 	}
 

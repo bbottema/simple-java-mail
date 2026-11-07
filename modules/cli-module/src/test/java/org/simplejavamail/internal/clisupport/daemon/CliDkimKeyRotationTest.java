@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -46,6 +47,7 @@ class CliDkimKeyRotationTest {
         final SimpleJavaMailConfig configuration = configuration(prefix + file);
         final RecordingMailerProvider provider = new RecordingMailerProvider();
         try (CliExecutionEnvironment environment = new CliExecutionEnvironment(configuration, provider, directory)) {
+            provider.seedSendingMailer(environment);
             validate(environment);
             validate(environment);
             final Mailer first = provider.mailers.get(0);
@@ -54,11 +56,30 @@ class CliDkimKeyRotationTest {
 
             Files.write(file, replacementKey);
             validate(environment);
+            assertThat(provider.mailers).hasSize(2);
+            assertThat(provider.registry.entryCount()).isEqualTo(1);
+            provider.seedSendingMailer(environment);
+            validate(environment);
             final Mailer replacement = provider.mailers.get(2);
             assertThat(replacement).isNotSameAs(first);
             assertThat(signingKey(replacement)).containsExactly(replacementKey);
             assertThat(signingKey(first)).containsExactly(firstKey);
             assertThat(provider.registry.entryCount()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void coldValidationReadsCurrentKeyMaterialWithoutSeedingTheSendingCache() throws Exception {
+        final Path file = Files.write(directory.resolve("cold-key.der"), privateKey());
+        final RecordingMailerProvider provider = new RecordingMailerProvider();
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(configuration(file.toString()), provider, directory)) {
+            validate(environment);
+            Files.write(file, new byte[] {1, 2, 3});
+            assertThat(executeValidation(environment).exitCode()).isNotZero();
+            Files.write(file, privateKey());
+            validate(environment);
+            assertThat(provider.mailers).isEmpty();
+            assertThat(provider.registry.entryCount()).isZero();
         }
     }
 
@@ -198,6 +219,19 @@ class CliDkimKeyRotationTest {
             final Lease lease = registry.acquire(profile, factory);
             mailers.add(lease.mailer());
             return lease;
+        }
+
+        @Override
+        public Optional<Lease> tryAcquireExisting(final CliMailerProfile profile) {
+            final Optional<Lease> lease = registry.tryAcquireExisting(profile);
+            lease.ifPresent(existing -> mailers.add(existing.mailer()));
+            return lease;
+        }
+
+        private void seedSendingMailer(final CliExecutionEnvironment environment) {
+            final CliMailerProfile profile = CliMailerProfile.create(environment.config(), List.of(), new byte[32],
+                    environment.configurationWorkingDirectory());
+            try (Lease ignored = registry.acquire(profile, () -> environment.simpleJavaMail().mailerBuilder().buildMailer())) { }
         }
 
         @Override

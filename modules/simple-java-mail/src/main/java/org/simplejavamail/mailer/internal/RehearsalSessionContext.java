@@ -60,7 +60,7 @@ final class RehearsalSessionContext {
     }
 
     /** Session bootstrap logging is not part of rehearsal; retain the property view without enabling its debug output. */
-    private static Session quietMimeSession(final Properties properties) {
+    static Session quietMimeSession(final Properties properties) {
         final boolean suppliedDebug = properties.containsKey("mail.debug");
         final Object debug = properties.get("mail.debug");
         properties.setProperty("mail.debug", "false");

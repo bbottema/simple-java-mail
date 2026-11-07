@@ -73,7 +73,6 @@ import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
-import static org.simplejavamail.mailer.internal.MailerException.VALIDATION_ERROR;
 
 /**
  * @see Mailer
@@ -502,7 +501,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	@NotNull
-	private static Properties mailSessionProperties(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy,
+    static Properties mailSessionProperties(@Nullable final ServerConfig serverConfig, @NotNull final TransportStrategy transportStrategy,
 			final boolean opportunisticTLS) {
 		final Properties props = transportStrategy.generateProperties();
 		if (transportStrategy == SMTP) {
@@ -965,24 +964,9 @@ public class MailerImpl implements Mailer {
 	@Override
 	@NotNull
 	public MailRehearsal rehearse(@NotNull final Email email, final boolean processSecurityAndValidateSize) throws MailException {
-		val suppliedEmail = verifyNonnull(email);
-		val preparationSession = rehearsalSessionContext.capture();
-		val governedEmail = prepareEmailForSending(suppliedEmail);
-		// A rehearsal owns its effective snapshot and must never propagate a generated Message-ID to the caller's draft.
-		//noinspection deprecation
-		((InternalEmail) governedEmail).setUserProvidedEmail(null);
-		try {
-			val rehearsal = new SessionBasedEmailToMimeMessageConverter(preparationSession, operationalConfig, emailGovernance)
-					.rehearseMimeMessage(governedEmail, processSecurityAndValidateSize);
-			if (rehearsal.getEmailId() != null) {
-				// Keep the effective Email consistent with the EML while its detached source draft remains unchanged.
-				//noinspection deprecation
-				((InternalEmail) governedEmail).updateId(rehearsal.getEmailId());
-			}
-			return rehearsal;
-		} catch (MessagingException e) {
-			throw new MailerException(MailFailureKind.PREPARATION, format(VALIDATION_ERROR, governedEmail.getId()), e);
-		}
+		return EmailPreparation.rehearse(verifyNonnull(email), rehearsalSessionContext.capture(), emailGovernance,
+				operationalConfig.isClientValidationWarningsOnly(), operationalConfig.isLegacySmtpContentSupportEnabled(),
+				processSecurityAndValidateSize);
 	}
 
 	/**

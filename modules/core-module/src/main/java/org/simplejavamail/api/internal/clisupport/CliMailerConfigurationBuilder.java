@@ -33,6 +33,14 @@ import static org.simplejavamail.api.internal.clisupport.model.CliBuilderApiType
 public interface CliMailerConfigurationBuilder {
 
     /**
+     * Applies the captured Mailer policy and performs full CLI message validation without constructing sending resources.
+     * Ordinary content and security processing retain the same preparation behavior as {@link Mailer#validate(Email)}.
+     * @param email The message to prepare and validate.
+     */
+    @Cli.ExcludeApi(reason = "Internal CLI execution entry point, not a builder option")
+    void validateEmailForCli(@NotNull Email email);
+
+    /**
      * Sets Jakarta Mail debug logging without changing its selected output.
      * @param enabled Whether debug logging is enabled.
      */

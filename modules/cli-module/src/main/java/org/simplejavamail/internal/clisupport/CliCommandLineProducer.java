@@ -58,7 +58,8 @@ class CliCommandLineProducer {
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection, including possible authentication and any proxy settings",
                 colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         createProbeCommand(rootCommandsHolder, declaredOptions, maxTextWidth);
-        createRootCommand(rootCommandsHolder, "validate", "Rehearse preparing an email with the mailer's defaults, overrides, MIME security and size limit, without connecting to SMTP",
+        createRootCommand(rootCommandsHolder, "validate", "Rehearse preparing an email with the mailer's defaults, overrides, MIME security and size limit, without connecting to SMTP. "
+                        + "Reuses a ready compatible daemon Mailer; otherwise prepares transiently without starting sending pools.",
                 colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ").setExpandAtFiles(false);

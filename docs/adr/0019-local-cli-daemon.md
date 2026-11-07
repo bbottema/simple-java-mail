@@ -59,6 +59,21 @@ from the protocol's wall-clock freshness checks. The timestamp allowance, reques
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Validation reuses only ready Mailers (accepted 7 November 2026)
+
+Validation may lease an already constructed, live Mailer with the request's compatible profile. Existing-only acquisition never constructs
+an entry, reserves cache capacity, evicts another profile or waits for a pending Mailer. Use the same retirement and shutdown gates as other
+leases; pending, failed or retiring entries select transient preparation instead. A closed registry retains its ordinary refusal behavior.
+
+One-shot commands and daemon cache misses prepare the message directly from validated configuration without registering a sending Mailer.
+Transient preparation does not enter the sending cache, so later sends still activate their configured pools and owned failover route.
+Existing SMTP pools may continue working independently while a ready Mailer's validation runs. Keep profile HMACs, used-key fingerprints,
+configuration/request directory ownership and bounded request admission unchanged.
+
+This is the CLI-specific activation boundary under [#488](https://github.com/bbottema/simple-java-mail/issues/488), sharing full governed
+preparation with [ADR 0014](0014-send-time-rehearsal.md#cli-preparation-without-sending-resources-accepted-7-november-2026). Do not disable
+the batch module globally or replace pool settings with zero merely to run validation.
+
 ### Startup-log path safety (accepted 2 November 2026)
 
 Before clearing a detached daemon's startup log, refuse existing symbolic links and nonregular paths, including dangling links. Rejection must
