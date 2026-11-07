@@ -127,6 +127,83 @@ class ImportedAddressRecoveryTest {
 
     @ParameterizedTest
     @EnumSource(ImportRoute.class)
+    void selectedMalformedSenderHasOneSourceLinkedProblem(final ImportRoute route) throws Exception {
+        final String malformed = "broken <address";
+        final String source = "Message-ID: <received@example.org>\r\nSender: " + malformed + "\r\n" + message(null, null);
+        final Email imported = convert(route, source);
+        assertThat(imported.getFromRecipient().getAddress()).isEqualTo(malformed);
+        assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly(malformed);
+        assertReadableContent(imported);
+        assertExactSource(route, imported, source);
+        assertSenderProblem(imported, malformed);
+
+        final Email copy = MAIL.emailBuilder().copying(imported).fixingMessageId("<copy@example.org>").buildEmail();
+        assertThat(copy.getSourceData()).isSameAs(imported.getSourceData());
+        assertThat(copy.getProblems()).containsExactlyElementsOf(imported.getProblems());
+        assertSenderProblem(roundTrip(copy), malformed);
+    }
+
+    @Test
+    void unusedMalformedSenderDoesNotAcquireAProblem() throws Exception {
+        final Email imported = MAIL.converter().fromEml("Sender: broken <address\r\n" + message(FROM, REPLY)).toEmail();
+        assertThat(imported.getFromRecipient().getAddress()).isEqualTo("sender@example.org");
+        assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("support@example.org");
+        assertThat(imported.getProblems()).isEmpty();
+        assertReadableContent(imported);
+    }
+
+    @Test
+    void senderRecoveryReferencesEveryUsedOccurrenceWithoutInspectingExplicitReplyTo() {
+        final String joined = "First <first@example.org>,broken <address";
+        final Email imported = MAIL.converter().fromEml("Sender: First <first@example.org>\r\nsender: broken <address\r\n"
+                + message(null, REPLY)).toEmail();
+        final List<EmailSourceHeader> senders = new ArrayList<>();
+        for (final EmailSourceHeader header : imported.getSourceData().getHeaders()) {
+            if (header.getName().equalsIgnoreCase("Sender")) senders.add(header);
+        }
+        assertThat(imported.getFromRecipient().getAddress()).isEqualTo(joined);
+        assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("support@example.org");
+        assertThat(senders).hasSize(2);
+        assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.FIELD_NOT_INTERPRETED);
+            assertThat(problem.getLocation()).isEqualTo("Sender");
+            assertThat(problem.getSourceValue()).isEqualTo(joined);
+            assertThat(problem.getSources()).containsExactlyElementsOf(senders);
+        });
+        assertReadableContent(imported);
+    }
+
+    @Test
+    void successfulProviderSenderInterpretationDoesNotAcquireAProblem() throws Exception {
+        final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()),
+                new ByteArrayInputStream(("Sender: broken <address\r\n" + message(null, null)).getBytes(UTF_8))) {
+            @Override public Address[] getFrom() throws MessagingException {
+                return new Address[] {new jakarta.mail.internet.InternetAddress("native@example.org")};
+            }
+        };
+        final Email imported = MAIL.converter().fromMimeMessage(source).toEmail();
+        assertThat(imported.getFromRecipient().getAddress()).isEqualTo("native@example.org");
+        assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("native@example.org");
+        assertThat(imported.getProblems()).isEmpty();
+        assertReadableContent(imported);
+    }
+
+    private static void assertSenderProblem(final Email email, final String malformed) {
+        final EmailSourceHeader sender = email.getSourceData().getHeaders().stream()
+                .filter(header -> header.getName().equalsIgnoreCase("Sender")).findFirst().orElseThrow(AssertionError::new);
+        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.FIELD_NOT_INTERPRETED);
+            assertThat(problem.getLocation()).isEqualTo("Sender");
+            assertThat(problem.getSourceValue()).isEqualTo(malformed);
+            assertThat(problem.getOrigin()).isSameAs(email.getSourceData().getOrigin());
+            assertThat(problem.getOrigin().getMessageId()).isEqualTo("<received@example.org>");
+            assertThat(problem.getSources()).containsExactly(sender);
+        });
+    }
+
+    @ParameterizedTest
+    @EnumSource(ImportRoute.class)
     void validNamesListsAndExistingNonStrictRecipientInterpretationRemainUnchanged(final ImportRoute route) throws Exception {
         final String source = message("First <first@example.org>, Second <second@example.org>",
                 "\"Doe, Jane\" <jane@example.org>, Other <other@example.org>, Other <other@example.org>")

@@ -313,6 +313,14 @@ public final class InputInspection {
         }
     }
 
+    /** One selected Sender source can supply both From and Reply-To without becoming two recovery observations. */
+    void noteSenderRecovery(final String value, final String message) {
+        if (problems.stream().noneMatch(problem -> problem.code == EmailProblem.Code.FIELD_NOT_INTERPRETED
+                && problem.location.equals("Sender") && Objects.equals(problem.value, value))) {
+            record(EmailProblem.Code.FIELD_NOT_INTERPRETED, "Sender", value, message);
+        }
+    }
+
     void noteReportWarnings(final DeliveryStatusReport report, final List<MimePartCapture> affectedParts) {
         if (report != null) {
             final List<EmailSourcePart> affected = new ArrayList<>();

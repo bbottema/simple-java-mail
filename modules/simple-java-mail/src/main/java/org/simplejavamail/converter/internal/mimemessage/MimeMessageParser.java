@@ -95,9 +95,9 @@ public final class MimeMessageParser {
                 () -> Arrays.asList(rawAddressHeader(inspection.joined("Cc")))));
         parsedComponents.bccAddresses.addAll(inspection.recover("Bcc", inspection.joined("Bcc"), () -> parseBccAddresses(mimeMessage),
                 () -> Arrays.asList(rawAddressHeader(inspection.joined("Bcc")))));
-        parsedComponents.fromAddress = inspection.recover("From", () -> parseFromAddress(mimeMessage),
+        parsedComponents.fromAddress = inspection.recover("From", () -> parseFromAddress(mimeMessage, inspection),
                 () -> rawAddress(inspection.raw("From")));
-        parsedComponents.replyToAddresses.addAll(inspection.recover("Reply-To", inspection.joined("Reply-To"), () -> parseReplyToAddresses(mimeMessage),
+        parsedComponents.replyToAddresses.addAll(inspection.recover("Reply-To", inspection.joined("Reply-To"), () -> parseReplyToAddresses(mimeMessage, inspection),
                 () -> Arrays.asList(rawAddressHeader(inspection.joined("Reply-To")))));
 		// Only the effective root message owns message-level headers; child parts retain their own resource metadata.
 		for (final Header header : inspection.headers()) {
@@ -1149,12 +1149,17 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@Nullable
 	public static InternetAddress parseFromAddress(@NotNull final MimeMessage mimeMessage) {
+		return parseFromAddress(mimeMessage, null);
+	}
+
+	@Nullable
+	private static InternetAddress parseFromAddress(final MimeMessage mimeMessage, @Nullable final InputInspection inspection) {
 		try {
 			final Address[] addresses;
 			try {
 				addresses = mimeMessage.getFrom();
 			} catch (final AddressException malformedAddress) {
-				return recoverFromAddressHeader(mimeMessage, malformedAddress)[0];
+				return recoverFromAddressHeader(mimeMessage, malformedAddress, inspection)[0];
 			}
 			return (addresses == null || addresses.length == 0) ? null : (InternetAddress) addresses[0];
 		} catch (final MessagingException e) {
@@ -1165,13 +1170,18 @@ public final class MimeMessageParser {
 	@SuppressWarnings("WeakerAccess")
 	@NotNull
 	public static List<InternetAddress> parseReplyToAddresses(@NotNull final MimeMessage mimeMessage) {
+		return parseReplyToAddresses(mimeMessage, null);
+	}
+
+	@NotNull
+	private static List<InternetAddress> parseReplyToAddresses(final MimeMessage mimeMessage, @Nullable final InputInspection inspection) {
 		try {
 			final Address[] addresses;
 			try {
 				addresses = mimeMessage.getReplyTo();
 			} catch (final AddressException malformedAddress) {
 				final InternetAddress[] retained = retainMalformedAddressHeader(mimeMessage.getHeader("Reply-To", ","), malformedAddress);
-				return Arrays.asList(retained != null ? retained : recoverFromAddressHeader(mimeMessage, malformedAddress));
+				return Arrays.asList(retained != null ? retained : recoverFromAddressHeader(mimeMessage, malformedAddress, inspection));
 			}
 			return parseInternetAddresses(addresses);
 		} catch (final MessagingException e) {
@@ -1179,12 +1189,17 @@ public final class MimeMessageParser {
 		}
 	}
 
-	private static InternetAddress[] recoverFromAddressHeader(final MimeMessage message, final AddressException originalFailure)
+	private static InternetAddress[] recoverFromAddressHeader(final MimeMessage message, final AddressException originalFailure,
+			@Nullable final InputInspection inspection)
 			throws MessagingException {
 		final String from = message.getHeader("From", ",");
-		final InternetAddress[] retained = retainMalformedAddressHeader(from != null ? from : message.getHeader("Sender", ","), originalFailure);
+		final String source = from != null ? from : message.getHeader("Sender", ",");
+		final InternetAddress[] retained = retainMalformedAddressHeader(source, originalFailure);
 		if (retained == null) {
 			throw originalFailure;
+		}
+		if (from == null && inspection != null) {
+			inspection.noteSenderRecovery(source, originalFailure.getMessage());
 		}
 		return retained;
 	}
