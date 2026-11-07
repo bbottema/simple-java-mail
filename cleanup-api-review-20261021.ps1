@@ -371,43 +371,16 @@ $externalDirectoryTargets = @(
     @{ Path = 'C:\workstation\sjm-review-20261107\combined\evidence'; Parent = 'C:\workstation\sjm-review-20261107\combined' }
     @{ Path = 'C:\workstation\sjm-review-20261107\evidence'; Parent = 'C:\workstation\sjm-review-20261107' }
     # BEGIN accepted-review-followups-20261107 custody (#972, #961, #704; documentation #755)
-    # Retire these exact registered worktrees through Git before directory cleanup.
-    # Retired plans stay in their owning worktree until its normal retirement.
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\image\sjm\docs\plans\optional-image-sources-20261107.md' -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\sender\sjm\docs\plans\sender-observation-20261107.md' -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\protection\sjm\docs\plans\openpgp-child-smime-20261107.md' -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\combined\sjm\docs\plans\review-followups-20261107.md' -Force
-    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-followup-20261107\image\website'
-    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-followup-20261107\image\sjm'
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\image\website' -Recurse -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\image\sjm' -Recurse -Force
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\image\website'; Parent = 'C:\workstation\sjm-review-followup-20261107\image' }
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\image\sjm'; Parent = 'C:\workstation\sjm-review-followup-20261107\image' }
+    # Retain task records for maintainer inspection; task-owned checkouts retire through normal Git.
+    # Retired plans are under C:\workstation\sjm-review-followup-20261107\lead\retired-plans:
+    # optional-image-sources-20261107.md, sender-observation-20261107.md,
+    # openpgp-child-smime-20261107.md and review-followups-20261107.md.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\image\evidence' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-review-followup-20261107\image\evidence'; Parent = 'C:\workstation\sjm-review-followup-20261107\image' }
-    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-followup-20261107\sender\website'
-    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-followup-20261107\sender\sjm'
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\sender\website' -Recurse -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\sender\sjm' -Recurse -Force
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\sender\website'; Parent = 'C:\workstation\sjm-review-followup-20261107\sender' }
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\sender\sjm'; Parent = 'C:\workstation\sjm-review-followup-20261107\sender' }
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\sender\evidence' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-review-followup-20261107\sender\evidence'; Parent = 'C:\workstation\sjm-review-followup-20261107\sender' }
-    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-followup-20261107\protection\website'
-    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-followup-20261107\protection\sjm'
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\protection\website' -Recurse -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\protection\sjm' -Recurse -Force
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\protection\website'; Parent = 'C:\workstation\sjm-review-followup-20261107\protection' }
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\protection\sjm'; Parent = 'C:\workstation\sjm-review-followup-20261107\protection' }
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\protection\evidence' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-review-followup-20261107\protection\evidence'; Parent = 'C:\workstation\sjm-review-followup-20261107\protection' }
-    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-followup-20261107\prose\website'
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\prose\website' -Recurse -Force
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\prose\website'; Parent = 'C:\workstation\sjm-review-followup-20261107\prose' }
-    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-followup-20261107\combined\website'
-    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-followup-20261107\combined\sjm'
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\combined\website' -Recurse -Force
-    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\combined\sjm' -Recurse -Force
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\combined\website'; Parent = 'C:\workstation\sjm-review-followup-20261107\combined' }
-    @{ Path = 'C:\workstation\sjm-review-followup-20261107\combined\sjm'; Parent = 'C:\workstation\sjm-review-followup-20261107\combined' }
-    # Retain execution records and original dirty-checkout snapshots for maintainer inspection.
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\lead' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-review-followup-20261107\lead'; Parent = 'C:\workstation\sjm-review-followup-20261107' }
     # END accepted-review-followups-20261107 custody
