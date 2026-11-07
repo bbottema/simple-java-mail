@@ -34,11 +34,25 @@ public class PropertyDiagnosticText {
     public static String render(final Properties properties) {
         final Map<String, String> displayed = new TreeMap<>();
         properties.forEach((key, value) -> {
-            final String name = String.valueOf(key);
-            final String displayValue = isSensitiveName(name) ? "<redacted>" : String.valueOf(value);
-            displayed.put(escapeControlCharacters(name), escapeControlCharacters(displayValue));
+            if (key instanceof String) {
+                final String name = (String) key;
+                displayed.put(escapeControlCharacters(name), isSensitiveName(name) ? "<redacted>" : renderValue(value));
+            }
         });
         return displayed.toString();
+    }
+
+    /** Formats known immutable scalars; borrowed application objects are described without calling their methods. */
+    public static String renderValue(final Object value) {
+        final String text;
+        if (value == null || value instanceof String || value instanceof Boolean || value instanceof Character
+                || value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long
+                || value instanceof Float || value instanceof Double) {
+            text = String.valueOf(value);
+        } else {
+            text = "<" + value.getClass().getName() + ">";
+        }
+        return escapeControlCharacters(text);
     }
 
     private static String normalizePropertyName(final String propertyName) {

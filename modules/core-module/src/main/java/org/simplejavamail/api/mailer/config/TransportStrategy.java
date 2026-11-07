@@ -4,6 +4,7 @@ import jakarta.mail.Session;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.simplejavamail.internal.util.PropertyDiagnosticText;
 
 import java.util.Properties;
 
@@ -927,11 +928,20 @@ public enum TransportStrategy {
 
 	public String toString(final Properties properties) {
 		return format("session (host: %s, port: %s, username: %s, authenticate: %s, oauth2: %s, transport: %s)",
-				properties.get(propertyNameHost()),
-				properties.get(propertyNamePort()),
-				properties.get(propertyNameUsername()),
-				properties.get(propertyNameAuthenticate()),
+				diagnosticProperty(properties, propertyNameHost(), null),
+				diagnosticProperty(properties, propertyNamePort(), Integer.class),
+				diagnosticProperty(properties, propertyNameUsername(), null),
+				diagnosticProperty(properties, propertyNameAuthenticate(), Boolean.class),
 				properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROPERTY) || properties.containsKey(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY),
 				this);
+	}
+
+	private static String diagnosticProperty(final Properties properties, final String name, @Nullable final Class<?> directType) {
+		final Object direct = properties.get(name);
+		if (directType != null && directType.isInstance(direct)) {
+			return PropertyDiagnosticText.renderValue(direct);
+		}
+		final String text = properties.getProperty(name);
+		return PropertyDiagnosticText.renderValue(text != null ? text : direct);
 	}
 }

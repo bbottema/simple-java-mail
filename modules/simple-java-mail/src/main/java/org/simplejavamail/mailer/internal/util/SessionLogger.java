@@ -14,9 +14,12 @@ public class SessionLogger {
 	private static final Logger LOGGER = getLogger(SessionLogger.class);
 
 	/**
-	 * Simply logs host details, credentials used and whether authentication will take place and finally the transport protocol used.
+	 * Logs enabled DEBUG Session diagnostics while leaving opaque application objects unformatted.
 	 */
 	public static void logSession(final Session session, final String activity) {
+		if (!LOGGER.isDebugEnabled()) {
+			return;
+		}
 		final TransportStrategy transportStrategy = TransportStrategy.findStrategyForSession(session);
 		final Properties properties = session.getProperties();
 		final String sessionDetails = (transportStrategy != null) ? transportStrategy.toString(properties) : PropertyDiagnosticText.render(properties);
