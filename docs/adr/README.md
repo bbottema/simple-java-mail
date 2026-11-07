@@ -4,6 +4,11 @@ The accepted [#972](https://github.com/bbottema/simple-java-mail/issues/972) cor
 required/optional resolution choice even when a valid URL base is configured. [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#optional-malformed-image-sources-accepted-7-november-2026)
 owns source-resolution behavior; ADR 0003 retains selected-base validation before content access.
 
+The accepted 7 November [#961](https://github.com/bbottema/simple-java-mail/issues/961) Sender follow-up retains one source-linked
+observation when an actual address grammar failure falls back to Sender. [ADR 0035](0035-tolerant-reading-and-strict-production.md#observations-for-a-selected-sender-fallback-accepted-7-november-2026)
+keeps selected-source recovery and provider authority; [ADR 0041](0041-email-source-inspection-and-problems.md#problems-and-immutable-input-identity)
+owns the observation and original source identity. Unused Sender fields do not gain a new inspection pass.
+
 The accepted 7 November OpenPGP follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) require interpretable
 declarations before concluding that protection is absent, and avoid OpenPGP serialization of ordinary non-OpenPGP MIME input.
 [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#openpgp-declaration-validity-and-unused-content-accepted-7-november-2026)

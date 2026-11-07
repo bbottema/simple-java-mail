@@ -115,6 +115,12 @@ observed input Message-ID when available. Capture that identity before selecting
 Message-IDs remain absent, reused IDs do not conflate independent inputs, and a library-generated inspection-wrapper ID is not a purported
 received identity. The diagnostic reference is not an email ID, content hash or authenticity claim.
 
+Clarification accepted 7 November 2026 under [#961](https://github.com/bbottema/simple-java-mail/issues/961): an actual grammar recovery
+from `Sender`, selected because `From` is absent, records one IMPORT/FIELD_NOT_INTERPRETED observation linked to the captured Sender
+occurrence(s). From and Reply-To using that same fallback share the observation. Preserve its original input identity and source links
+through copying and serialization. [ADR 0035](0035-tolerant-reading-and-strict-production.md#observations-for-a-selected-sender-fallback-accepted-7-november-2026)
+keeps the existing address selection and successful provider interpretations; deliberately unused Sender fields remain outside this recovery.
+
 An inherited observation from A still identifies A after copies select B and C as their current Message-IDs. A genuinely new recoverable
 problem observed while processing B identifies B. Preserve actual source identity and ownership for materialized protected content;
 aggregate inner observations once without promoting a child finding into parent protection success. An unknown or unrequested protection

@@ -522,6 +522,18 @@ Copying and supported serialization retain recovered typed input. Exact inspecti
 explicit envelope. Return-Path keeps #838's distinct absent-typed-value/source-header rule, while receipt fallback and the deferred RFC-group
 policy remain unchanged. This applies the existing tolerant-import decision under [#914](https://github.com/bbottema/simple-java-mail/issues/914).
 
+### Observations for a selected Sender fallback (accepted 7 November 2026)
+
+When an address getter's grammar failure is recovered from `Sender` because `From` is absent, retain that actual recovery as one
+source-linked Problem under [ADR 0041](0041-email-source-inspection-and-problems.md#problems-and-immutable-input-identity). Both From and
+Reply-To can use the same malformed Sender; this does not create two separate source issues. Keep the complete tolerant address text,
+readable neighboring content and existing From/Sender/Reply-To selection.
+
+Record the recovery where the selected source is known. A successful provider interpretation stays authoritative, and an unused Sender
+does not acquire a new decoding or validation pass. Existing cancellation, codec, content and unrelated application-failure rules remain
+unchanged. This completes unreleased [#961](https://github.com/bbottema/simple-java-mail/issues/961) inspection over #914's recovery behavior;
+it adds no public API or released-source migration.
+
 ## Parameterized S/MIME attachments (accepted 31 October 2026)
 
 The [5 November detached-parent clarification in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#independent-attachments-after-detached-signature-unwrapping-accepted-5-november-2026)
