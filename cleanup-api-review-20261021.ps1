@@ -140,6 +140,9 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # BEGIN openpgp-inspection-review-20261107 retired plan
+    'docs/plans/openpgp-inspection-review-20261107.md'
+    # END openpgp-inspection-review-20261107 retired plan
     # #704/#822: completed plan retained after automatic approval review refused its deletion.
     'docs/plans/smime-declaration-repairs-20261107.md'
     # #966: the retired work packet remains available for individual cleanup after inspection.
@@ -217,6 +220,30 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # BEGIN openpgp-inspection-review-20261107 task custody
+    # #704: retire nested/main checkouts through normal Git worktree removal before directory cleanup.
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\declarations' }
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm\simplejavamail.org'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm\simplejavamail.org' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\lazy\sjm'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\lazy' }
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm\simplejavamail.org'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm\simplejavamail.org' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm' }
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\combined' }
+    # Retain owned evidence until maintainer inspection; never clean the shared review parent wholesale.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\evidence' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\evidence'; Parent = 'C:\workstation\sjm-openpgp-review-20261107' }
+    # END openpgp-inspection-review-20261107 task custody
     # #704/#822: the attached primary checkout stays protected while this task owns it.
     # Archive it through the app after primary ownership ends; keep the registered-worktree guard.
     @{ Path = 'C:\Users\Benny Bottema\.codex\worktrees\smime-declaration-recognition-20261107\simple-java-mail'; Parent = 'C:\Users\Benny Bottema\.codex\worktrees\smime-declaration-recognition-20261107' }
