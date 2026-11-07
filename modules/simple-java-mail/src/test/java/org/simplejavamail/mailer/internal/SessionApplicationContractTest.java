@@ -368,6 +368,32 @@ class SessionApplicationContractTest {
         assertThat(properties.containsKey("org.simplejavamail.internal.mailerOwner")).isFalse();
     }
 
+    @Test
+    void failedOutputRestorationDoesNotSkipIndependentDebugEnabledRestoration() {
+        final Properties properties = new Properties();
+        final Session original = Session.getInstance(properties);
+        final PrintStream oldOutput = new PrintStream(new ByteArrayOutputStream());
+        final PrintStream replacementOutput = new PrintStream(new ByteArrayOutputStream());
+        original.setDebugOut(oldOutput);
+        final Session session = spy(original);
+        final IllegalStateException failure = new IllegalStateException("late pool failure");
+        final IllegalStateException cleanup = new IllegalStateException("debug output restoration failed");
+        doThrow(cleanup).when(session).setDebugOut(oldOutput);
+        try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+            final BatchModule batch = mock(BatchModule.class);
+            modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
+            modules.when(ModuleLoader::batchModuleAvailable).thenReturn(true);
+            doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
+            when(batch.shutdownConnectionPools(session)).thenReturn(CompletableFuture.completedFuture(null));
+            assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
+                    .withDebugConfig(SessionDebugConfig.builder().withEnabled(true).withPrinter(replacementOutput).build()).buildMailer())
+                    .isSameAs(failure);
+        }
+        assertThat(session.getDebug()).isFalse();
+        assertThat(failure.getSuppressed()).containsExactly(cleanup);
+        assertThat(properties.containsKey("org.simplejavamail.internal.mailerOwner")).isTrue();
+    }
+
     private static final class PartialApplicationProperties extends Properties {
         private final Set<String> untouched;
         private boolean armed;

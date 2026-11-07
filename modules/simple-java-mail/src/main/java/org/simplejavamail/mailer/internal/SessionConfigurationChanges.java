@@ -117,6 +117,11 @@ final class SessionConfigurationChanges {
             }
             try {
                 if (debugOutputAttempted && session.getDebugOut() != debugOut) { session.setDebugOut(debugOut); }
+            } catch (RuntimeException | Error cleanup) {
+                if (failure != cleanup) { failure.addSuppressed(cleanup); }
+                restored = false;
+            }
+            try {
                 if (debugEnabledAttempted && session.getDebug() != debug) { session.setDebug(debug); }
             } catch (RuntimeException | Error cleanup) {
                 if (failure != cleanup) { failure.addSuppressed(cleanup); }
