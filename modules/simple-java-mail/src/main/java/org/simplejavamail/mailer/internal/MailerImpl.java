@@ -48,13 +48,9 @@ import org.simplejavamail.mailer.internal.util.TransportRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -71,14 +67,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
-import static org.simplejavamail.api.internal.authenticatedsockssupport.common.Socks5Bridge.LOOPBACK_HOST;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_OAUTH2;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.SMTP_TLS;
 import static org.simplejavamail.internal.util.MiscUtil.valueNullOrEmpty;
 import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgument;
 import static org.simplejavamail.internal.util.Preconditions.verifyNonnull;
-import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpty;
 import static org.simplejavamail.mailer.internal.MailerException.VALIDATION_ERROR;
 
 /**
@@ -88,7 +82,7 @@ import static org.simplejavamail.mailer.internal.MailerException.VALIDATION_ERRO
 public class MailerImpl implements Mailer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
-	private static final String SESSION_OWNER = "org.simplejavamail.internal.mailerOwner";
+	static final String SESSION_OWNER = "org.simplejavamail.internal.mailerOwner";
 
 	/**
 	 * Used to actually send the email. This session can come from being passed in the default constructor, or made by <code>Mailer</code> directly.
@@ -155,35 +149,43 @@ public class MailerImpl implements Mailer {
 
 	@Nullable private CompletableFuture<Void> shutdownFuture;
 
-	/** Construction consumes only a validated graph; acquired resources remain owned by this attempt until it succeeds. */
+	/** Reserve all live allowance rules before constructing the validated owned route. */
 	static MailerImpl construct(final ValidatedMailerPlan plan) {
+		final ConstructionAttempt attempt = ConstructionAttempt.reserve(plan);
+		try {
+			final MailerImpl mailer = constructNode(plan, attempt);
+			if (mailer.failoverMailer() != null) {
+				for (MailerImpl participant = mailer; participant != null; participant = participant.failoverMailer()) {
+					participant.definition().recovery.enableCoordinatedFailover();
+				}
+			}
+			attempt.commit();
+			return mailer;
+		} catch (RuntimeException | Error failure) {
+			attempt.rollback(failure);
+			throw failure;
+		}
+	}
+
+	private static MailerImpl constructNode(final ValidatedMailerPlan plan, final ConstructionAttempt attempt) {
 		final ResolvedMailerConfiguration resolved = plan.getConfiguration();
 		final CapturedMailerInputs inputs = resolved.getInputs();
 		final MailerOperationalSettings settings = resolved.getOperational();
-		MailerImpl child = inputs.getBorrowedFailover();
-		ExecutorService ownedExecutor = null;
-		try {
-			if (plan.getNamedChild() != null) { child = construct(plan.getNamedChild()); }
-			final ExecutorService executor;
-			if (settings.getExecutorService() == null) {
-				ownedExecutor = settings.createOwnedExecutor();
-				executor = ownedExecutor;
-			} else {
-				executor = settings.getExecutorService();
-			}
-			final OperationalConfig operational = settings.createOperationalConfig(resolved.getSessionSettings(), executor);
-			final MailSendObserverNotifier notifier = bindObserverNotifier(inputs, settings);
-			return new MailerImpl(plan.getConnection().serverConfig(), inputs.isRegularMailer() ? resolved.getSessionSettings().getTransportStrategy() : null,
-					resolved.getGovernance(), verifyNonnull(resolved.getSessionSettings().getProxyConfig()), plan.getConnection().targetSession(), operational,
-					notifier, inputs.isOpportunisticTLS(), inputs.getSendingLimits(), inputs.getDefinition(), child, plan.getNamedChild() != null,
-					resolved.getSessionSettings(), plan.getConnection());
-		} catch (RuntimeException | Error failure) {
-			if (ownedExecutor != null && !ownedExecutor.isShutdown()) {
-				try { ownedExecutor.shutdown(); } catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
-			}
-			if (plan.getNamedChild() != null && child != null) { closeOwnedChild(child, failure); }
-			throw failure;
+		final ConstructionAllowance allowance = attempt.nodes.get(plan);
+		final MailerImpl child = plan.getNamedChild() == null ? inputs.getBorrowedFailover() : constructNode(plan.getNamedChild(), attempt);
+		final ExecutorService executor;
+		if (settings.getExecutorService() == null) {
+			allowance.ownedExecutor = settings.createOwnedExecutor();
+			executor = allowance.ownedExecutor;
+		} else {
+			executor = settings.getExecutorService();
 		}
+		final OperationalConfig operational = settings.createOperationalConfig(resolved.getSessionSettings(), executor);
+		allowance.notifier = bindObserverNotifier(inputs, settings);
+		return new MailerImpl(plan.getConnection().serverConfig(), inputs.isRegularMailer() ? resolved.getSessionSettings().getTransportStrategy() : null,
+				resolved.getGovernance(), verifyNonnull(resolved.getSessionSettings().getProxyConfig()), plan.getConnection().targetSession(), operational,
+				allowance.notifier, inputs.isOpportunisticTLS(), allowance, inputs.getDefinition(), child, plan.getNamedChild() != null,
+				resolved.getSessionSettings(), plan.getConnection());
 	}
 
 	/** Captures observer registrations and binds the already-resolved telemetry permission; no progress dispatcher is started here. */
@@ -195,15 +197,6 @@ public class MailerImpl implements Mailer {
 						Boolean.TRUE.equals(settings.getTelemetryConfig().getSmtpEndpointAttributes()))).build();
 	}
 
-	private static void closeOwnedChild(final MailerImpl child, final Throwable failure) {
-		try { child.close(); }
-		catch (Exception cleanup) {
-			if (cleanup instanceof InterruptedException) { Thread.currentThread().interrupt(); }
-			failure.addSuppressed(cleanup);
-		} catch (Error cleanup) {
-			failure.addSuppressed(cleanup);
-		}
-	}
 
 	MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig) {
@@ -220,14 +213,14 @@ public class MailerImpl implements Mailer {
 			@Nullable final MailSendResultObserver mailSendResultObserver, final boolean opportunisticTLS) {
 		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig,
 				new MailSendObserverNotifier(mailSendResultObserver, operationalConfig.isTransportModeLoggingOnly()), opportunisticTLS,
-				new FactorySendingLimits(), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false,
+				ConstructionAllowance.standalone(operationalConfig), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false,
 				MailerSessionSettings.fromOperationalConfig(operationalConfig, transportStrategy), null);
 	}
 
 	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
 			@NotNull ProxyConfig proxyConfig, @Nullable Session session, @NotNull OperationalConfig operationalConfig,
 			@NotNull MailSendObserverNotifier observerNotifier, final boolean opportunisticTLS,
-			@NotNull final FactorySendingLimits factorySendingLimits, final FactoryMailerRuntime.Definition definition,
+			@NotNull final ConstructionAllowance allowance, final FactoryMailerRuntime.Definition definition,
 			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer, final MailerSessionSettings sessionSettings,
 			@Nullable final ValidatedConnectionPlan preparedPlan) {
 		this.definition = definition;
@@ -238,109 +231,135 @@ public class MailerImpl implements Mailer {
 		this.emailGovernance = emailGovernance;
 		this.proxyConfig = proxyConfig;
 		final boolean ownsSession = session == null;
-		final SimpleJavaMailConfig factoryConfig = emailGovernance instanceof EmailGovernanceImpl
-				? ((EmailGovernanceImpl) emailGovernance).configuration() : ConfigLoader.builder().load();
-		if (!ownsSession) {
-			SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !locksOf(factoryConfig).isEmpty());
-		}
-		final ValidatedConnectionPlan applicationPlan;
 		try {
+			final SimpleJavaMailConfig factoryConfig = emailGovernance instanceof EmailGovernanceImpl
+					? ((EmailGovernanceImpl) emailGovernance).configuration() : ConfigLoader.builder().load();
+			if (!ownsSession) { SessionBasedEmailToMimeMessageConverter.verifySessionCanBeConfigured(session, !locksOf(factoryConfig).isEmpty()); }
 			final Properties baseline = ownsSession
 					? mailSessionProperties(serverConfig, checkNonEmptyArgument(transportStrategy, "transportStrategy"), opportunisticTLS)
-					: SessionPropertyObservation.snapshot(session.getProperties());
-			applicationPlan = preparedPlan == null
+					: preparedPlan == null ? SessionPropertyObservation.snapshot(session.getProperties()) : null;
+			final ValidatedConnectionPlan applicationPlan = preparedPlan == null
 					? ValidatedConnectionPlan.validateApplication(factoryConfig, serverConfig, proxyConfig, session, baseline, operationalConfig, sessionSettings, ownsSession)
 					: preparedPlan;
-			if (ownsSession) {
-				session = createOwnedSession(serverConfig, transportStrategy, sessionSettings.finalProperties(baseline, operationalConfig.getProperties()));
-			}
-		} catch (RuntimeException | Error failure) {
-			// The graph constructor owns public-path rollback; completed-facts injection has no outer construction attempt.
-			if (preparedPlan == null && !operationalConfig.isExecutorServiceIsUserProvided()) {
-				try { operationalConfig.getExecutorService().shutdown(); }
-				catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
-			}
-			throw failure;
-		}
-		this.session = session;
-		this.rehearsalSessionContext = new RehearsalSessionContext(session, SESSION_OWNER);
-		this.operationalConfig = operationalConfig;
-		this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
-				supportsBackgroundConnectionSetup());
-		final TransportStrategy effectiveTransportStrategy = sessionSettings.getTransportStrategy();
-		final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
-				operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
-		this.mailSendObserverNotifier = observerNotifier;
-		this.mailSendOperations = new MailSendOperations(operationalConfig);
-		SessionConfigurationRollback callerRollback = null;
-		boolean poolRegistrationBegun = false;
-		try {
+			if (ownsSession) { session = createOwnedSession(serverConfig, transportStrategy, sessionSettings.finalProperties(baseline, operationalConfig.getProperties())); }
+			this.session = session;
+			this.rehearsalSessionContext = new RehearsalSessionContext(session, SESSION_OWNER);
+			this.operationalConfig = operationalConfig;
+			this.connectionObserver = new DestinationConnectionObserver(definition.recovery, describeDestination(definition, serverConfig),
+					supportsBackgroundConnectionSetup());
+			final TransportStrategy effectiveTransportStrategy = sessionSettings.getTransportStrategy();
+			final LockedSmtpConfiguration lockedSmtpConfiguration = new LockedSmtpConfiguration(factoryConfig, serverConfig, proxyConfig,
+					operationalConfig, effectiveTransportStrategy, sessionSettings.copyEffectiveProperties());
+			this.mailSendObserverNotifier = observerNotifier;
+			this.mailSendOperations = new MailSendOperations(operationalConfig);
+			this.sendingLimits = allowance.reservation.limiter();
+			allowance.mailer = this;
+			allowance.ownsSession = ownsSession;
 			claimSessionOwnership();
-			callerRollback = ownsSession ? null : new SessionConfigurationRollback(session, applicationPlan, proxyConfig);
-			this.proxyServer = configureSendingSession(effectiveTransportStrategy, lockedSmtpConfiguration, ownsSession, applicationPlan);
-			poolRegistrationBegun = true;
-			this.sendingLimits = registerSendingAllowance(factorySendingLimits);
+			applicationPlan.verifyClaimedBaseline(session);
+			allowance.applied = applicationPlan.changes().capture(session, !ownsSession);
+			allowance.applied.apply(operationalConfig.getDebugConfig(),
+					new SessionBasedEmailToMimeMessageConverter(session, operationalConfig, emailGovernance, lockedSmtpConfiguration));
+			this.proxyServer = createProxy(proxyConfig, operationalConfig);
+			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession);
+			allowance.poolRegistrationBegun = true;
+			initCluster(session, operationalConfig, sendingLimits);
+			if (preparedPlan == null) { allowance.attempt.commit(); }
 		} catch (RuntimeException | Error failure) {
-			rollbackConstruction(poolRegistrationBegun, callerRollback, failure);
+			if (preparedPlan == null) { allowance.attempt.rollback(failure); }
 			throw failure;
 		}
 	}
 
-	/** Capture and restore only this construction's planned writes while its exclusive Session claim is held. */
-	private static final class SessionConfigurationRollback {
-		private final Session session;
-		private final Map<Object, Object> original = new LinkedHashMap<>();
-		private final Set<Object> absent = new LinkedHashSet<>();
-		private final boolean debug;
-		private final PrintStream debugOut;
+	/** Owns provisional allowance rules and construction effects until the complete route succeeds. */
+	private static final class ConstructionAttempt {
+		private final Map<ValidatedMailerPlan, ConstructionAllowance> nodes = new java.util.IdentityHashMap<>();
+		private final List<ConstructionAllowance> allowances = new ArrayList<>();
+		private boolean finished;
 
-		private SessionConfigurationRollback(final Session session, final ValidatedConnectionPlan plan, final ProxyConfig proxy) {
-			this.session = session;
-			this.debug = session.getDebug();
-			this.debugOut = session.getDebugOut();
-			final Set<Object> keys = new LinkedHashSet<>(plan.additionalProperties().keySet());
-			keys.addAll(plan.settings().getConnectionOverrides().keySet());
-			if (proxy.requiresProxy()) {
-				final TransportStrategy strategy = plan.settings().getTransportStrategy() == null ? SMTP : plan.settings().getTransportStrategy();
-				keys.add(strategy.propertyNameSocksHost());
-				keys.add(strategy.propertyNameSocksPort());
-			}
-			for (Object key : keys) {
-				if (session.getProperties().containsKey(key)) {
-					original.put(key, session.getProperties().get(key));
-				} else {
-					absent.add(key);
-				}
-			}
+		private static ConstructionAttempt reserve(final ValidatedMailerPlan plan) {
+			final ConstructionAttempt attempt = new ConstructionAttempt();
+			try { attempt.reserveNode(plan); return attempt; }
+			catch (RuntimeException | Error failure) { attempt.rollback(failure); throw failure; }
 		}
 
-		private boolean restore(final Throwable failure) {
-			boolean restored = true;
-			for (Map.Entry<Object, Object> entry : original.entrySet()) {
-				try {
-					session.getProperties().put(entry.getKey(), entry.getValue());
-				} catch (RuntimeException | Error restoreFailure) {
-					failure.addSuppressed(restoreFailure);
-					restored = false;
-				}
-			}
-			for (Object key : absent) {
-				try {
-					session.getProperties().remove(key);
-				} catch (RuntimeException | Error restoreFailure) {
-					failure.addSuppressed(restoreFailure);
-					restored = false;
-				}
-			}
-			try {
-				if (session.getDebugOut() != debugOut) { session.setDebugOut(debugOut); }
-				if (session.getDebug() != debug) { session.setDebug(debug); }
-			} catch (RuntimeException | Error restoreFailure) {
-				failure.addSuppressed(restoreFailure);
-				restored = false;
-			}
-			return restored;
+		private void reserveNode(final ValidatedMailerPlan plan) {
+			final CapturedMailerInputs inputs = plan.getConfiguration().getInputs();
+			final MailerOperationalSettings settings = plan.getConfiguration().getOperational();
+			final ConstructionAllowance allowance = new ConstructionAllowance(this, inputs.getSendingLimits().reserve(
+					inputs.getDefinition().name == null ? null : inputs.getDefinition().privateAllowance,
+					settings.getRateLimitGroup(), settings.getMessageRateLimit(), settings.getRecipientRateLimit(), settings.isRateLimitBurstsAllowed()));
+			allowances.add(allowance);
+			nodes.put(plan, allowance);
+			if (plan.getNamedChild() != null) { reserveNode(plan.getNamedChild()); }
 		}
+
+		private void commit() {
+			if (finished) { return; }
+			for (ConstructionAllowance allowance : allowances) { allowance.reservation.commit(); allowance.applied = null; }
+			finished = true;
+		}
+
+		private void rollback(final Throwable failure) {
+			if (finished) { return; }
+			finished = true;
+			boolean resourcesRetired = true;
+			for (ConstructionAllowance allowance : allowances) {
+				allowance.resourcesRetired = allowance.retireResources(failure);
+				resourcesRetired &= allowance.resourcesRetired;
+			}
+			for (ConstructionAllowance allowance : allowances) {
+				try {
+					if (resourcesRetired && allowance.mailer != null) {
+						if (allowance.applied == null || allowance.applied.restore(failure)) {
+							allowance.mailer.releaseSessionOwnership(allowance.ownsSession);
+						}
+					}
+				} catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); }
+				try { if (allowance.resourcesRetired) { allowance.reservation.abort(); } }
+				catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); }
+			}
+		}
+	}
+
+	private static final class ConstructionAllowance {
+		private final ConstructionAttempt attempt;
+		private final FactorySendingLimits.Reservation reservation;
+		@Nullable private ExecutorService ownedExecutor;
+		@Nullable private MailSendObserverNotifier notifier;
+		@Nullable private MailerImpl mailer;
+		@Nullable private SessionConfigurationChanges.Applied applied;
+		private boolean ownsSession;
+		private boolean poolRegistrationBegun;
+		private boolean resourcesRetired;
+
+		private ConstructionAllowance(final ConstructionAttempt attempt, final FactorySendingLimits.Reservation reservation) {
+			this.attempt = attempt;
+			this.reservation = reservation;
+		}
+
+		private static ConstructionAllowance standalone(final OperationalConfig settings) {
+			final ConstructionAttempt attempt = new ConstructionAttempt();
+			final ConstructionAllowance allowance = new ConstructionAllowance(attempt, new FactorySendingLimits().reserve(null,
+					settings.getRateLimitGroup(), settings.getMessageRateLimit(), settings.getRecipientRateLimit(), settings.isRateLimitBurstsAllowed()));
+			if (!settings.isExecutorServiceIsUserProvided()) { allowance.ownedExecutor = settings.getExecutorService(); }
+			attempt.allowances.add(allowance);
+			return allowance;
+		}
+
+		private boolean retireResources(final Throwable failure) {
+			if (mailer != null) { return mailer.retireConstructionResources(poolRegistrationBegun, failure); }
+			boolean retired = true;
+			try { if (ownedExecutor != null) { ownedExecutor.shutdown(); } }
+			catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+			try { if (notifier != null) { notifier.closeProgress(); } }
+			catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+			return retired;
+		}
+	}
+
+	private static void suppress(final Throwable primary, final Throwable cleanup) {
+		if (primary != cleanup) { primary.addSuppressed(cleanup); }
 	}
 
 	private static String describeDestination(final FactoryMailerRuntime.Definition definition, @Nullable final ServerConfig serverConfig) {
@@ -368,58 +387,22 @@ public class MailerImpl implements Mailer {
 	}
 
 	/** Only completed cleanup can retire this owner; failed/rejected construction must never retire somebody else's converter. */
-	private void releaseSessionOwnership() {
+	private void releaseSessionOwnership() { releaseSessionOwnership(true); }
+
+	private void releaseSessionOwnership(final boolean retireConverter) {
 		final Properties properties = session.getProperties();
 		synchronized (properties) {
 			if (properties.get(SESSION_OWNER) == sessionOwner) {
-				SessionBasedEmailToMimeMessageConverter.unprimeSession(session);
+				if (retireConverter) { SessionBasedEmailToMimeMessageConverter.unprimeSession(session); }
 				properties.remove(SESSION_OWNER);
 			}
 		}
 	}
 
-	private MailSendRateLimiter registerSendingAllowance(final FactorySendingLimits factorySendingLimits) {
-		return factorySendingLimits.register(definition.name == null ? null : definition.privateAllowance,
-				operationalConfig.getRateLimitGroup(), operationalConfig.getMessageRateLimit(),
-				operationalConfig.getRecipientRateLimit(), operationalConfig.isRateLimitBurstsAllowed(),
-				limiter -> initCluster(session, operationalConfig, limiter));
-	}
-
-	/** Configuration may allocate a proxy bridge, but does not start it or connect to SMTP. */
-	@Nullable
-	private AnonymousSocks5Server configureSendingSession(@Nullable final TransportStrategy effectiveTransportStrategy,
-			final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession, final ValidatedConnectionPlan plan) {
-		final MailerSessionSettings sessionSettings = plan.settings();
-		// Only owned Sessions select authentication from an SJM preset; supplied Sessions use their current effective mechanisms.
-		final TransportStrategy authenticationStrategy = ownsSession ? effectiveTransportStrategy : null;
-		final Supplier<String> oauth2AccessTokenProvider = operationalConfig.getCustomMailer() == null ? OAuth2AccessTokenResolver.validateConfiguration(
-				sessionSettings.finalProperties(session.getProperties(), operationalConfig.getProperties()), new Properties(),
-				authenticationStrategy, operationalConfig.getOAuth2AccessTokenProvider()
-		) : null;
-		initSession(session, operationalConfig, sessionSettings);
-		final AnonymousSocks5Server configuredProxy = configureSessionWithProxy(proxyConfig, operationalConfig, session,
-				effectiveTransportStrategy, sessionSettings.getProxyConfig() != null);
-		try {
-			finishSendingSessionConfiguration(lockedSmtpConfiguration, ownsSession, oauth2AccessTokenProvider);
-			return configuredProxy;
-		} catch (RuntimeException | Error failure) {
-			if (configuredProxy != null) {
-				try {
-					configuredProxy.stop();
-				} catch (RuntimeException | Error cleanupFailure) {
-					failure.addSuppressed(cleanupFailure);
-				}
-			}
-			throw failure;
-		}
-	}
-
-	private void finishSendingSessionConfiguration(final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession,
-			@Nullable final Supplier<String> oauth2AccessTokenProvider) {
+	private void finishSendingSessionConfiguration(final LockedSmtpConfiguration lockedSmtpConfiguration, final boolean ownsSession) {
 		if (operationalConfig.getCustomMailer() == null) {
 			lockedSmtpConfiguration.verifySelected(lockedSmtpConfiguration, session);
 		}
-		SessionBasedEmailToMimeMessageConverter.primeSession(session, operationalConfig, emailGovernance, lockedSmtpConfiguration);
 		if (ownsSession && operationalConfig.getCustomMailer() == null) {
 			try {
 				if (proxyConfig.requiresProxy() && !proxyConfig.requiresAuthentication()) {
@@ -435,32 +418,24 @@ public class MailerImpl implements Mailer {
 						+ "Check the cause and your Jakarta Mail provider dependencies.", failure);
 			}
 		}
-		if (oauth2AccessTokenProvider != null) {
-			session.getProperties().put(TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY, oauth2AccessTokenProvider);
-		}
 	}
 
-	/** A failed build must not leave a published cluster participant or owned workers behind. The validated graph constructor owns failover-graph rollback. */
-	private void rollbackConstruction(final boolean poolRegistrationBegun, @Nullable final SessionConfigurationRollback callerRollback,
-			final Throwable failure) {
-		if (!operationalConfig.isExecutorServiceIsUserProvided()) {
-			operationalConfig.getExecutorService().shutdown();
-		}
-		try {
-			mailSendOperations.shutdown().get();
-			mailSendObserverNotifier.closeProgress();
-			if (poolRegistrationBegun) {
-				closeConnectionPools().get();
-			}
-			if (callerRollback == null || callerRollback.restore(failure)) {
-				releaseSessionOwnership();
-			}
-		} catch (InterruptedException interrupted) {
-			Thread.currentThread().interrupt();
-			failure.addSuppressed(interrupted);
-		} catch (ExecutionException | RuntimeException | Error cleanupFailure) {
-			failure.addSuppressed(cleanupFailure);
-		}
+	/** Resource retirement precedes restoration and release for every node of the failed owned route. */
+	private boolean retireConstructionResources(final boolean poolRegistrationBegun, final Throwable failure) {
+		boolean retired = true;
+		try { if (!operationalConfig.isExecutorServiceIsUserProvided()) { operationalConfig.getExecutorService().shutdown(); } }
+		catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+		try { mailSendOperations.shutdown().get(); }
+		catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); suppress(failure, interrupted); retired = false; }
+		catch (ExecutionException | RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+		try { mailSendObserverNotifier.closeProgress(); }
+		catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+		try { if (poolRegistrationBegun) { closeConnectionPools().get(); } }
+		catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); suppress(failure, interrupted); retired = false; }
+		catch (ExecutionException | RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+		try { if (proxyServer != null) { proxyServer.stop(); } }
+		catch (RuntimeException | Error cleanup) { suppress(failure, cleanup); retired = false; }
+		return retired;
 	}
 
 	FactoryMailerRuntime.Definition definition() {
@@ -486,7 +461,7 @@ public class MailerImpl implements Mailer {
 		if (transportStrategy != SMTP_TLS && transportStrategy != SMTP_OAUTH2) {
 			return;
 		}
-		// Only direct entries are copied by initSession. Angus accepts Boolean true or the untrimmed, case-insensitive string "true".
+		// Only direct entries are applied. Angus accepts Boolean true or the untrimmed, case-insensitive string "true".
 		final Object requiredOverride = additionalProperties.get("mail.smtp.starttls.required");
 		if (requiredOverride == null || Boolean.TRUE.equals(requiredOverride)
 				|| requiredOverride instanceof String && "true".equalsIgnoreCase((String) requiredOverride)) {
@@ -577,61 +552,11 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private static void initSession(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig,
-			final MailerSessionSettings sessionSettings) {
-		if (sessionSettings.shouldApplyDebugOutput()) {
-			if (operationalConfig.getDebugConfig().getPrinter() != null) {
-				session.setDebugOut(operationalConfig.getDebugConfig().getPrinter());
-			} else if (operationalConfig.getDebugConfig().getOutput() != null) {
-				session.setDebugOut(SessionDebugOutputResolver.resolve(operationalConfig.getDebugConfig().getOutput()));
-			}
-		}
-		if (sessionSettings.shouldApplyDebugEnabled()) {
-			session.setDebug(Boolean.TRUE.equals(operationalConfig.getDebugConfig().getEnabled()));
-		}
-		session.getProperties().putAll(operationalConfig.getProperties());
-		sessionSettings.applyConnectionOverrides(session);
-	}
-
-	/**
-	 * Installs the already resolved remote proxy route on the Session. Construction compares explicit connection declarations before reaching this step.
-	 * <p>
-	 * These properties are <em>"mail.smtp(s).socks.host"</em> and <em>"mail.smtp(s).socks.port"</em>. The resolved SMTP or SMTPS protocol selects the
-	 * property names, including for a caller-supplied Session without Simple Java Mail's transport-strategy marker.
-	 * Authenticated proxying sets the host to the JVM loopback address. The configured bridge port is used as the
-	 * initial port value; after the bridge starts, the actual bound port is written immediately before the transport connects.
-	 *
-	 * @param proxyConfig       Proxy server details, optionally with username / password.
-	 * @param session           The session with properties to add the new configuration to.
-	 * @param transportStrategy Resolved protocol used for property names. Internal callers can omit it to use <em>"mail.smtp.socks.*"</em> names.
-	 * @param routePrepared Whether the application plan already installed the anonymous route without filling caller-Session gaps.
-	 * @return null in case of no proxy or anonymous proxy, or a AnonymousSocks5Server proxy bridging server instance in case of authenticated proxy.
-	 */
+	/** All initial proxy properties are already declared by the validated Session changes. */
 	@Nullable
-	private static AnonymousSocks5Server configureSessionWithProxy(
-			@NotNull final ProxyConfig proxyConfig,
-			@NotNull final OperationalConfig operationalConfig,
-			@NotNull final Session session,
-			@Nullable final TransportStrategy transportStrategy, final boolean routePrepared) {
-		if (operationalConfig.getCustomMailer() != null) {
-			LOGGER.trace("CustomMailer provided by user, skipping proxy.");
-		} else if (!proxyConfig.requiresProxy()) {
-			LOGGER.trace("No proxy set, skipping proxy.");
-		} else {
-			final TransportStrategy proxyPropertyStrategy = transportStrategy != null ? transportStrategy : TransportStrategy.SMTP;
-			final Properties sessionProperties = session.getProperties();
-			if (!routePrepared) {
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), verifyNonnullOrEmpty(proxyConfig.getRemoteProxyHost()));
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getRemoteProxyPort()));
-			}
-			if (proxyConfig.requiresAuthentication()) {
-				// wire anonymous proxy request to our own proxy bridge, so we can perform authentication to the actual proxy
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksHost(), LOOPBACK_HOST);
-				sessionProperties.put(proxyPropertyStrategy.propertyNameSocksPort(), String.valueOf(proxyConfig.getProxyBridgePort()));
-				return ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxyConfig);
-			}
-		}
-		return null;
+	private static AnonymousSocks5Server createProxy(final ProxyConfig proxy, final OperationalConfig operational) {
+		return operational.getCustomMailer() == null && proxy.requiresProxy() && proxy.requiresAuthentication()
+				? ModuleLoader.loadAuthenticatedSocksModule().createAnonymousSocks5Server(proxy) : null;
 	}
 
 	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, final SendingAllowance allowance) {

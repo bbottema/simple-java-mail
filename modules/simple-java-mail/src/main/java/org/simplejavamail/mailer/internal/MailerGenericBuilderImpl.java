@@ -451,13 +451,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		final CapturedMailerInputs captured = captureMailerInputs();
 		final ResolvedMailerConfiguration resolved = ResolvedMailerConfiguration.resolve(captured);
 		final ValidatedMailerPlan plan = ValidatedMailerPlan.validate(resolved);
-		final MailerImpl mailer = constructMailer(plan);
-		if (mailer.failoverMailer() != null) {
-			for (MailerImpl participant = mailer; participant != null; participant = participant.failoverMailer()) {
-				participant.definition().recovery.enableCoordinatedFailover();
-			}
-		}
-		return mailer;
+		return constructMailer(plan);
 	}
 
 	abstract MailerImpl constructMailer(ValidatedMailerPlan plan);

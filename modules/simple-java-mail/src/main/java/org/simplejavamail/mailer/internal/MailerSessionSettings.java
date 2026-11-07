@@ -283,10 +283,6 @@ final class MailerSessionSettings {
         });
     }
 
-    void applyConnectionOverrides(final Session session) {
-        applyActivationOverrides(session.getProperties());
-    }
-
     private void applyActivationOverrides(final Properties target) {
         applyOverrides(target, connectionOverrides);
         if (shadowedFactoryClassProperty != null) {

@@ -48,25 +48,27 @@ public final class FactorySendingLimits {
 	@NotNull
 	public MailSendRateLimiter register(@Nullable final Object definitionIdentity, @Nullable final String group, @Nullable final SendingRateLimit messages,
 			@Nullable final SendingRateLimit recipients, final boolean allowBursts, final Consumer<MailSendRateLimiter> initialize) {
+		try (Reservation reservation = reserve(definitionIdentity, group, messages, recipients, allowBursts)) {
+			initialize.accept(reservation.limiter());
+			reservation.commit();
+			return reservation.limiter();
+		}
+	}
+
+	/** Reserve compatible rules before construction; only a complete owned route commits the reservation. */
+	@NotNull
+	public Reservation reserve(@Nullable final Object definitionIdentity, @Nullable final String group, @Nullable final SendingRateLimit messages,
+			@Nullable final SendingRateLimit recipients, final boolean allowBursts) {
 		if (group != null && group.isBlank()) {
 			throw new IllegalArgumentException("A rate-limit group needs a nonblank name; reset the group to use a private allowance.");
 		}
 		final Rules rules = new Rules(messages, recipients, allowBursts);
 		final Object allowanceIdentity = group == null ? definitionIdentity : group;
 		if (allowanceIdentity == null) {
-			final MailSendRateLimiter limiter = rules.newLimiter(clock);
-			initialize.accept(limiter);
-			return limiter;
+			return new Reservation(null, null, rules.newLimiter(clock));
 		}
 		final Registration registration = retainProvisionalRegistration(allowanceIdentity, rules);
-		boolean initialized = false;
-		try {
-			initialize.accept(registration.limiter);
-			initialized = true;
-			return registration.limiter;
-		} finally {
-			finishRegistration(allowanceIdentity, registration, initialized);
-		}
+		return new Reservation(allowanceIdentity, registration, registration.limiter);
 	}
 
 	private synchronized Registration retainProvisionalRegistration(final Object allowanceIdentity, final Rules rules) {
@@ -88,7 +90,34 @@ public final class FactorySendingLimits {
 		registration.established |= initialized;
 		registration.pendingBuilders--;
 		if (!registration.established && registration.pendingBuilders == 0) {
-			allowanceRegistrations.remove(allowanceIdentity);
+			allowanceRegistrations.remove(allowanceIdentity, registration);
+		}
+	}
+
+	/** One attempt's claim on rules; completion is idempotent and invokes no initialization callbacks under the registry monitor. */
+	public final class Reservation implements AutoCloseable {
+		@Nullable private final Object identity;
+		@Nullable private final Registration registration;
+		private final MailSendRateLimiter limiter;
+		private boolean completed;
+
+		private Reservation(@Nullable final Object identity, @Nullable final Registration registration, final MailSendRateLimiter limiter) {
+			this.identity = identity;
+			this.registration = registration;
+			this.limiter = limiter;
+		}
+
+		@NotNull public MailSendRateLimiter limiter() { return limiter; }
+		public void commit() { finish(true); }
+		public void abort() { finish(false); }
+		@Override public void close() { abort(); }
+
+		private void finish(final boolean success) {
+			synchronized (FactorySendingLimits.this) {
+				if (completed) { return; }
+				completed = true;
+				if (registration != null) { finishRegistration(identity, registration, success); }
+			}
 		}
 	}
 

@@ -60,7 +60,7 @@ public class SessionBasedEmailToMimeMessageConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailerImpl.class);
 
-    private static final String MIMEMESSAGE_CONVERTER_KEY = "SESSION_BASED_EMAIL_TO_MIME_MESSAGE_CONVERTER_KEY";
+    static final String MIMEMESSAGE_CONVERTER_KEY = "SESSION_BASED_EMAIL_TO_MIME_MESSAGE_CONVERTER_KEY";
 
     private final Session session;
     private final OperationalConfig operationalConfig;

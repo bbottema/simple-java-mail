@@ -512,6 +512,13 @@ Spring's default Mailer destruction and normal CLI cleanup must close privately 
 Spring beans remain borrowed, with their existing lifecycle declarations. Roll back privately created resources if construction fails,
 without closing any application-supplied instance. Configuration loading/reference validation alone must not open SMTP connections.
 
+The #969 clarification accepted on 7 November 2026 treats the complete privately constructed route as one construction attempt.
+Reserve all of its allowance rules before constructing children or allocating resources, and establish new rules only after the primary,
+its private descendants and final initialization succeed. Rollback must not leave a failed route's child policies established merely because
+a child constructor returned first. Existing registrations and compatible concurrent successes keep their rules and history; borrowed
+Mailers are untouched. Unresolved resource retirement retains dependent reservations. See
+[ADR 0039](0039-explicit-configuration-resolution.md#complete-session-application-and-route-reservations-accepted-7-november-2026).
+
 ### Accepted cross-factory failover use
 
 Allow a failover Mailer built by a different SimpleJavaMail factory. This lets an application reuse existing Spring-managed Mailers or separately

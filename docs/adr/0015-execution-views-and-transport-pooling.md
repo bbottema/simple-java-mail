@@ -96,6 +96,11 @@ finish resource cleanup and restoration before releasing the Session for another
 state, and unresolved cleanup retains the claim. [ADR 0039](0039-explicit-configuration-resolution.md#supplied-session-failure-cleanup-accepted-7-november-2026)
 owns the construction ordering. Successful shutdown continues to retain the settings of the Mailer that completed construction.
 
+The complete-application clarification accepted later on 7 November 2026 under #969 makes every planned configuration change carry its
+restoration obligation, including callbacks and removed provider selectors. A claimed Session whose relevant baseline changed since capture
+is rejected before application. [ADR 0039](0039-explicit-configuration-resolution.md#complete-session-application-and-route-reservations-accepted-7-november-2026)
+also reserves allowance rules for the complete owned route before resource construction; unresolved cleanup keeps dependent reservations.
+
 ### Native Session state and initialization (accepted 5 November 2026)
 
 Keep the supplied Session, Authenticator, provider registrations and address mapping intact. Native sending can use an address mapping

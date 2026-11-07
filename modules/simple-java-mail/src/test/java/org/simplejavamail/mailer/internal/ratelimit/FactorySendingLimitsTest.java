@@ -18,6 +18,32 @@ class FactorySendingLimitsTest {
 	private final SendingRateLimit messages = new SendingRateLimit(30, Duration.ofMinutes(1));
 
 	@Test
+	void provisionalReservationsAreIdempotentAndDoNotEraseACompatibleSuccess() {
+		final FactorySendingLimits registry = new FactorySendingLimits();
+		final FactorySendingLimits.Reservation pending = registry.reserve(null, "account", messages, null, false);
+		final MailSendRateLimiter shared = registry.register("account", messages, null, false, unused -> { });
+		assertThat(pending.limiter()).isSameAs(shared);
+		pending.abort();
+		pending.abort();
+		pending.commit();
+		assertThat(registry.register("account", messages, null, false, unused -> { })).isSameAs(shared);
+		assertThatThrownBy(() -> registry.register("account", null, null, false, unused -> { })).hasMessageContaining("same message limit");
+	}
+
+	@Test
+	void abortedProvisionalRulesCanBeReplacedAndCommittedOnesCannot() {
+		final FactorySendingLimits registry = new FactorySendingLimits();
+		final FactorySendingLimits.Reservation first = registry.reserve(null, "account", messages, null, false);
+		first.abort();
+		final FactorySendingLimits.Reservation replacement = registry.reserve(null, "account", null, messages, true);
+		replacement.commit();
+		replacement.commit();
+		replacement.abort();
+		assertThat(registry.register("account", null, messages, true, unused -> { })).isSameAs(replacement.limiter());
+		assertThatThrownBy(() -> registry.register("account", messages, null, false, unused -> { })).hasMessageContaining("same message limit");
+	}
+
+	@Test
 	void failedInitializationReleasesRulesButCannotRemoveAnEstablishedGroup() {
 		final FactorySendingLimits registry = new FactorySendingLimits();
 		final RuntimeException failure = new IllegalStateException("pool initialization failed");

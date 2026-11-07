@@ -58,12 +58,25 @@ Authenticated SOCKS uses an operation-owned local bridge. Background replenishme
 
 `MailerImpl.claimSessionOwnership()` runs before changing properties, installing the MIME converter, configuring a proxy or registering a pool. The check-and-claim is atomic under the actual Properties monitor. That monitor protects only token claim/removal and converter retirement; configuration, pool callbacks, waits and network work run outside it.
 
-`releaseSessionOwnership()` removes only its own exact token and converter. Rejected construction cannot retire another owner's context. Graceful shutdown retains ownership while accepted work and connections drain. This makes `selectedOwner()` stable for every admitted pooled operation without adding another registration-context API.
+Normal shutdown removes only its own exact ownership token and converter. Failed construction restores any earlier converter entry before
+retiring only its token, so context restoration cannot be undone by a second unprime. Rejected construction cannot retire another owner's
+context. Graceful shutdown retains ownership while accepted work and connections drain. This makes `selectedOwner()` stable for every
+admitted pooled operation without adding another registration-context API.
 
 Failed construction captures its restoration snapshot only after claiming ownership, then retains that claim through resource cleanup and
 restoration of planned properties and native debug state. Only successful restoration releases it for a replacement. Cleanup/restoration
 failure retains the guard with its cause attached to the original construction failure. A rejected claim never restores another owner's
 state. Restoration runs outside the Properties monitor while exclusive ownership still prevents another Mailer from taking over.
+
+The validated application description contains every initial configuration write/removal, callback, proxy route, native debug change and
+converter installation. It captures original direct-entry absence/identity before attempting application; restoration uses the same
+description rather than another list of keys. A claimed Session whose captured property/debug baseline changed is rejected before writes,
+using String value and borrowed-object identity comparisons without callbacks or another resolution pass.
+
+Before any owned route node is constructed, its factory allowance rules are reserved atomically. One complete primary/private-failover
+construction commits those reservations only after final initialization. Failed construction retires its acquired resources before
+restoring Sessions and aborting provisional registrations. Existing rules and compatible concurrent successes retain their history;
+unresolved retirement keeps dependent reservations and ownership guards. Borrowed Mailers remain outside the construction attempt.
 
 Reuse one Mailer for concurrent sends, or create independent Sessions with independent Properties copied from the original SMTP settings. Successful completed shutdown permits reuse. [MailerSessionOwnershipTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/MailerSessionOwnershipTest.java) covers public sync/async sends, shared Properties, construction interleaving, rollback and draining shutdown. Website migration notes document the changed Session-sharing behavior.
 

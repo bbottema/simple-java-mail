@@ -186,22 +186,24 @@ class MailerSessionOwnershipTest {
 		final PrintStream originalDebugOutput = new PrintStream(new ByteArrayOutputStream());
 		session.setDebugOut(originalDebugOutput);
 		final Properties before = (Properties) properties.clone();
-		final SendingLimitsConfig limits = SendingLimitsConfig.builder().withRateLimitGroup("rollback")
-				.withMessageRateLimit(1, Duration.ofMinutes(1)).build();
-		try (Mailer ignored = mail.mailerBuilder().withSMTPServer("localhost", 25).withSendingLimitsConfig(limits).buildMailer()) {
-			// Establish the factory-local group so a different policy fails after Session configuration.
-		}
+		final IllegalStateException failure = new IllegalStateException("late pool initialization failure");
 		final CountDownLatch restoring = new CountDownLatch(1);
 		final CountDownLatch finishRestore = new CountDownLatch(1);
 		properties.beforeRestore = () -> { restoring.countDown(); await(finishRestore); };
 		final ExecutorService constructing = Executors.newSingleThreadExecutor();
 		final AtomicReference<Mailer> unexpectedReplacement = new AtomicReference<>();
-		final Future<Throwable> failedBuild = constructing.submit(() -> catchThrowable(() -> mail.mailerBuilder(session)
-				.withProperty("test.restore", "first-attempt").withProperty("test.existing", "changed")
-				.withDebugConfig(SessionDebugConfig.builder().withEnabled(true)
-						.withPrinter(new PrintStream(new ByteArrayOutputStream())).build())
-				.withSendingLimitsConfig(limits.toBuilder().withMessageRateLimit(2, Duration.ofMinutes(1)).build())
-				.buildMailer()));
+		final Future<Throwable> failedBuild = constructing.submit(() -> {
+			try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
+				final BatchModule batch = mock(BatchModule.class);
+				modules.when(ModuleLoader::loadBatchModule).thenReturn(batch);
+				doThrow(failure).when(batch).registerToCluster(any(), any(), any(), any(), any(), any());
+				when(batch.shutdownConnectionPools(session)).thenReturn(CompletableFuture.completedFuture(null));
+				return catchThrowable(() -> mail.mailerBuilder(session)
+						.withProperty("test.restore", "first-attempt").withProperty("test.existing", "changed")
+						.withDebugConfig(SessionDebugConfig.builder().withEnabled(true)
+								.withPrinter(new PrintStream(new ByteArrayOutputStream())).build()).buildMailer());
+			}
+		});
 		try {
 			assertThat(restoring.await(5, SECONDS)).isTrue();
 			assertThat(session.getDebug()).isTrue();
@@ -211,8 +213,7 @@ class MailerSessionOwnershipTest {
 		} finally {
 			finishRestore.countDown();
 			try {
-				assertThat(failedBuild.get(5, SECONDS)).isInstanceOf(IllegalArgumentException.class)
-						.hasMessageContaining("Mailers sharing a rate-limit group");
+				assertThat(failedBuild.get(5, SECONDS)).isSameAs(failure);
 			} finally {
 				if (unexpectedReplacement.get() != null) { unexpectedReplacement.get().close(); }
 				constructing.shutdownNow();
@@ -387,12 +388,13 @@ class MailerSessionOwnershipTest {
 		private Runnable afterBuilderProperties = () -> { };
 
 		@Override
-		public void putAll(final Map<?, ?> values) {
-			super.putAll(values);
+		public Object put(final Object key, final Object value) {
+			final Object previous = super.put(key, value);
 			// Pause after an actual builder property is applied, outside the Properties monitor.
-			if (values.containsKey("test.build")) {
+			if ("test.build".equals(key)) {
 				afterBuilderProperties.run();
 			}
+			return previous;
 		}
 	}
 

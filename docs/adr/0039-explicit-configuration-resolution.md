@@ -213,6 +213,29 @@ This completes the unreleased rollback ordering from #867 within [#969](https://
 Session transaction facility. Native Session identity, borrowed resources and the settings retained after successful shutdown keep their
 existing contracts. Which individual writes belong in the restoration plan remains separate from this ownership-ordering decision.
 
+### Complete Session application and route reservations (accepted 7 November 2026)
+
+The maintainer extended #969 to make validated application and failure restoration consume the same internal change description.
+Each construction property set/removal, selected OAuth callback, initial proxy route, native debug update and converter installation
+includes its restoration obligation. Capture original direct-entry absence and borrowed object identity before mutation, once per affected
+setting. Preserve inherited defaults. Public ConfigKey remains a schema-bound input read contract, not a runtime restoration registry.
+
+After claiming a supplied Session, compare its relevant captured baseline before application. String values compare by content; opaque
+objects and native debug output compare by identity. Exclude this attempt's ownership marker. A changed baseline is rejected without
+configuration writes or another resolution pass. Capturing, validation and this comparison neither invoke application callbacks nor
+construct a temporary Session or Transport. A successful build discards restoration records and adds no work to the send path.
+
+The complete owned route is one construction attempt. Reserve its shared/private allowance rules before constructing children or
+allocating owned resources; the existing atomic registry check provides the reservation. Commit new rules only after the whole route
+and final initialization succeed. Failure retires owned resources and releases only this attempt's provisional registrations, preserving
+established rules and compatible concurrent successes. Unresolved cleanup retains dependent reservations and the Session claim.
+Borrowed Mailers retain their own lifetime. Registry locks cover bookkeeping, never resource initialization or application code.
+
+This refines the unreleased construction work from #867/#755 while keeping configuration precedence, locks, optional-feature eligibility,
+native Session/provider identity and successful-shutdown contracts. Known configuration incompatibility precedes Session application;
+complete cleanup still handles later resource failures. [ADR 0015](0015-execution-views-and-transport-pooling.md) owns Session exclusivity
+and [ADR 0029](0029-smtp-submission-failover.md) owns private-route lifetime.
+
 ### Inherited fixed OAuth2 token activation (accepted 1 November 2026)
 
 Apply the provider-visible String interpretation to fixed-token activation when opening a transport, consistently with credential validation

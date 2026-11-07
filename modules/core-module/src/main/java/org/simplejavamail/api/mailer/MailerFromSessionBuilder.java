@@ -61,6 +61,9 @@ public interface MailerFromSessionBuilder<T extends MailerFromSessionBuilder<?>>
 	 * wait for {@link Mailer#close()} or the future returned by {@link Mailer#closeAsync()}. If cleanup fails, use a fresh Session.
 	 * A failed build also retains ownership until its resources are cleaned up and the earlier property/debug settings are restored.
 	 * A competing build is rejected until that work completes; failed cleanup or restoration requires a fresh Session.
+	 * Effective settings and shared sending-limit compatibility are checked before applying configuration. If the Session's captured
+	 * property or debug state changes while this Mailer is being built, construction is rejected without applying those settings; retry
+	 * once the change has finished. Do not edit the Session concurrently with construction.
 	 * A null argument is rejected without discarding the previously supplied Session or changing its properties.
 	 *
 	 * @param session A mostly preconfigured mail {@link Session} object with which a {@link Message} can be produced.

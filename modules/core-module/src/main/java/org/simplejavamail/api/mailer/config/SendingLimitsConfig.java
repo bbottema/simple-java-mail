@@ -164,6 +164,8 @@ public class SendingLimitsConfig {
          * Shares sending allowance between configurations using this name within the same SimpleJavaMail factory. For example, two Mailers
          * using {@code company-account} and thirty messages per minute share thirty, not sixty. Their message/recipient rules and burst setting
          * must agree, or construction fails. Closing a participant does not reset the group's recent history.
+         * A new group's rules become established only after the complete privately constructed Mailer route succeeds. Failed construction
+         * releases its provisional rules after dependent resources are retired; an existing or concurrently successful participant keeps them.
          * <p>
          * A separate factory or process has independent allowance, even with the same group name. This name does not identify a connection-pool
          * cluster or discover an SMTP account. Without a name, each registered configuration has a private allowance. Naming a group alone
