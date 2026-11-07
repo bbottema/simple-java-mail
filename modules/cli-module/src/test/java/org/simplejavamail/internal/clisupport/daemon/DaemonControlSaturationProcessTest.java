@@ -9,9 +9,11 @@ import org.simplejavamail.internal.clisupport.CliExitCode;
 import org.subethamail.wiser.Wiser;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.Closeable;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -178,7 +181,6 @@ class DaemonControlSaturationProcessTest {
     }
 
     private ChildProcess startProcess(final boolean forceTcp, final String... arguments) throws IOException {
-        final Path output = Files.createTempFile(stateRoot, "cli-", ".log");
         final List<String> command = new ArrayList<>();
         command.add(Path.of(System.getProperty("java.home"), "bin", DaemonPaths.isWindows() ? "java.exe" : "java").toString());
         command.add("-D" + DaemonPaths.STATE_DIRECTORY_PROPERTY + "=" + stateRoot);
@@ -189,7 +191,7 @@ class DaemonControlSaturationProcessTest {
         command.add(System.getProperty("java.class.path"));
         command.add("org.simplejavamail.cli.SimpleJavaMail");
         command.addAll(List.of(arguments));
-        return new ChildProcess(new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile()).start(), output);
+        return new ChildProcess(new ProcessBuilder(command).redirectErrorStream(true).start());
     }
 
     private static String[] routedSendArguments(final int port, final String subject) {
@@ -236,20 +238,139 @@ class DaemonControlSaturationProcessTest {
         }
     }
 
-    private record ChildProcess(Process process, Path log) implements AutoCloseable {
+    private static final class ChildProcess implements AutoCloseable {
+        private final Process process;
+        private final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        private final Thread drainer;
+        private final AtomicBoolean captureFailureReported = new AtomicBoolean();
+        private volatile Throwable captureFailure;
+
+        private ChildProcess(final Process process) {
+            this.process = process;
+            Thread capturing = null;
+            try {
+                capturing = new Thread(this::drain, "sjm-test-cli-output-" + process.pid());
+                capturing.setDaemon(true);
+                capturing.start();
+            } catch (RuntimeException | Error failure) {
+                retireFailedCaptureSetup(capturing, failure);
+                throw failure;
+            }
+            drainer = capturing;
+        }
+
+        private void retireFailedCaptureSetup(final Thread capturing, final Throwable failure) {
+            final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            boolean interrupted = false;
+            try {
+                process.destroyForcibly();
+                assertThat(process.waitFor(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS))
+                        .as("Owned CLI process must terminate after output capture cannot start").isTrue();
+            } catch (InterruptedException cleanup) {
+                interrupted = true;
+                addFailure(failure, cleanup);
+            } catch (RuntimeException | Error cleanup) {
+                addFailure(failure, cleanup);
+            } finally {
+                addFailure(failure, finishCapture(capturing, deadline));
+                if (interrupted) { Thread.currentThread().interrupt(); }
+            }
+        }
+
+        private void drain() {
+            try (InputStream input = process.getInputStream()) {
+                final byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    captured.write(buffer, 0, count);
+                }
+            } catch (IOException | RuntimeException | Error failure) {
+                captureFailure = failure;
+            }
+        }
+
         private Invocation await(final Duration timeout) throws Exception {
-            final boolean exited = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            final long deadline = System.nanoTime() + timeout.toNanos();
+            final boolean exited = process.waitFor(timeout.toNanos(), TimeUnit.NANOSECONDS);
             assertThat(exited).as(output()).isTrue();
+            awaitOutput(deadline);
             return new Invocation(process.exitValue(), output());
         }
 
-        private String output() throws IOException { return Files.readString(log, StandardCharsets.UTF_8); }
+        private String output() throws IOException {
+            checkCaptureFailure();
+            // A live snapshot may end between UTF-8 bytes; diagnostics must not manufacture a decoding failure.
+            return captured.toString(StandardCharsets.UTF_8);
+        }
 
-        @Override public void close() throws InterruptedException {
-            if (process.isAlive()) {
-                process.destroyForcibly();
-                assertThat(process.waitFor(5, TimeUnit.SECONDS)).as("Owned CLI process must terminate").isTrue();
+        private void awaitOutput(final long deadline) throws InterruptedException, IOException {
+            awaitOutput(drainer, deadline);
+        }
+
+        private void awaitOutput(final Thread capturing, final long deadline) throws InterruptedException, IOException {
+            final long remaining = deadline - System.nanoTime();
+            if (capturing != null) {
+                if (capturing.isAlive() && remaining > 0) { TimeUnit.NANOSECONDS.timedJoin(capturing, remaining); }
+                assertThat(capturing.isAlive()).as("Owned CLI output must drain within its process operation deadline").isFalse();
             }
+            checkCaptureFailure();
+        }
+
+        private void checkCaptureFailure() throws IOException {
+            final Throwable failure = captureFailure;
+            if (failure == null || !captureFailureReported.compareAndSet(false, true)) { return; }
+            if (failure instanceof IOException io) { throw io; }
+            if (failure instanceof RuntimeException runtime) { throw runtime; }
+            if (failure instanceof Error error) { throw error; }
+        }
+
+        @Override public void close() throws InterruptedException, IOException {
+            final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            Throwable primary = null;
+            try {
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                    assertThat(process.waitFor(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS))
+                            .as("Owned CLI process must terminate").isTrue();
+                }
+                awaitOutput(deadline);
+            } catch (InterruptedException | IOException | RuntimeException | Error failure) {
+                primary = failure;
+                throw failure;
+            } finally {
+                final Throwable cleanup = finishCapture(drainer, deadline);
+                if (primary != null) { addFailure(primary, cleanup); }
+                else if (cleanup instanceof InterruptedException interrupted) { throw interrupted; }
+                else if (cleanup instanceof IOException io) { throw io; }
+                else if (cleanup instanceof RuntimeException runtime) { throw runtime; }
+                else if (cleanup instanceof Error error) { throw error; }
+            }
+        }
+
+        private Throwable finishCapture(final Thread capturing, final long deadline) {
+            Throwable failure = null;
+            for (Closeable stream : new Closeable[] {process.getOutputStream(), process.getErrorStream(), process.getInputStream()}) {
+                try { stream.close(); }
+                catch (IOException | RuntimeException | Error cleanup) {
+                    if (failure == null) { failure = cleanup; }
+                    else { addFailure(failure, cleanup); }
+                }
+            }
+            try {
+                awaitOutput(capturing, deadline);
+            } catch (InterruptedException cleanup) {
+                Thread.currentThread().interrupt();
+                if (failure == null) { failure = cleanup; }
+                else { addFailure(failure, cleanup); }
+            } catch (IOException | RuntimeException | Error cleanup) {
+                if (failure == null) { failure = cleanup; }
+                else { addFailure(failure, cleanup); }
+            }
+            return failure;
+        }
+
+        private static void addFailure(final Throwable primary, final Throwable cleanup) {
+            if (cleanup != null && primary != cleanup) { primary.addSuppressed(cleanup); }
         }
     }
 
