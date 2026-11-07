@@ -552,7 +552,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	/** All initial proxy properties are already declared by the validated Session changes. */
+	/** Allocate the authenticated bridge without starting it; initial routing is declared by the validated Session changes. */
 	@Nullable
 	private static AnonymousSocks5Server createProxy(final ProxyConfig proxy, final OperationalConfig operational) {
 		return operational.getCustomMailer() == null && proxy.requiresProxy() && proxy.requiresAuthentication()

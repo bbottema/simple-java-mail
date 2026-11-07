@@ -30,6 +30,11 @@ final class SessionConfigurationChanges {
         this.applyDebugEnabled = settings.shouldApplyDebugEnabled();
     }
 
+    /**
+     * Describes initial proxy properties in the resolved SMTP/SMTPS namespace; internal calls without a strategy keep the SMTP fallback.
+     * Authenticated routing uses loopback and the configured bridge port initially. After the operation starts that bridge,
+     * {@link SmtpProxyScope} writes its actual bound port immediately before the transport connects.
+     */
     static SessionConfigurationChanges describe(final MailerSessionSettings settings, final Properties additional,
             final ProxyConfig proxy, @Nullable final Supplier<String> provider) {
         final Map<Object, Object> properties = new LinkedHashMap<>();
