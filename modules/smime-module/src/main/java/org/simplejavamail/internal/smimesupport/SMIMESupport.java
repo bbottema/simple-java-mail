@@ -142,7 +142,8 @@ public class SMIMESupport implements SMIMEModule {
 			details = combined;
 		}
 		return SmimePreprocessingResultImpl.builder().recognized(result.isRecognized()).effectiveMimeMessage(originalMessage)
-				.details(details).protectedAttachments(Collections.emptyList()).decryptedArtifacts(Collections.emptyList()).build();
+				.details(details).protectedAttachments(Collections.emptyList()).decryptedArtifacts(Collections.emptyList())
+				.declarationFailure(result.getDeclarationFailure()).build();
 	}
 
 	private static boolean hasAmbiguousApplicationKind(@NotNull final MimeMessage message) {
@@ -172,16 +173,19 @@ public class SMIMESupport implements SMIMEModule {
 	public SmimePreprocessingResult processIncoming(@NotNull final Session session,
 			@NotNull final MimeMessage originalMessage,
 			@Nullable final Pkcs12Config pkcs12Config) {
+		final ContentType contentType;
+		try {
+			contentType = new ContentType(originalMessage.getContentType());
+		} catch (ParseException invalidDeclaration) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(invalidDeclaration);
+			// The ordinary MIME parser retains this interpretation problem; no protection has been recognized.
+			return unrecognized(originalMessage);
+		} catch (MessagingException unreadableDeclaration) {
+			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(unreadableDeclaration);
+			return unreadableDeclaration(originalMessage, unreadableDeclaration);
+		}
 		byte[] originalBytes = null;
 		try {
-			final ContentType contentType;
-			try {
-				contentType = new ContentType(originalMessage.getContentType());
-			} catch (ParseException invalidDeclaration) {
-				org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(invalidDeclaration);
-				// The ordinary MIME parser retains this interpretation problem; no protection has been recognized.
-				return unrecognized(originalMessage);
-			}
 			if (!SmimeRecognitionUtil.isSmimeContentType(contentType)) {
 				return unrecognized(originalMessage);
 			}
@@ -428,6 +432,21 @@ public class SMIMESupport implements SMIMEModule {
 			.protectedAttachments(Collections.emptyList())
 			.decryptedArtifacts(Collections.emptyList())
 			.build();
+	}
+
+	@NotNull
+	private static SmimePreprocessingResult unreadableDeclaration(@NotNull final MimeMessage message,
+			@NotNull final MessagingException failure) {
+		return SmimePreprocessingResultImpl.builder()
+				.recognized(false)
+				.effectiveMimeMessage(message)
+				.details(OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.UNKNOWN)
+						.verificationStatus(OriginalSmimeDetails.VerificationStatus.UNKNOWN)
+						.decryptionStatus(OriginalSmimeDetails.DecryptionStatus.UNKNOWN).build())
+				.protectedAttachments(Collections.emptyList())
+				.decryptedArtifacts(Collections.emptyList())
+				.declarationFailure(failure)
+				.build();
 	}
 
 	@NotNull

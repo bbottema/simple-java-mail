@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.smimesupport;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.Builder;
 import org.jetbrains.annotations.ApiStatus;
@@ -24,6 +25,7 @@ public final class SmimePreprocessingResultImpl implements SmimePreprocessingRes
     private final OriginalSmimeDetails nestedSignedDetails;
     private final List<AttachmentResource> protectedAttachments;
     private final List<AttachmentResource> decryptedArtifacts;
+    private final MessagingException declarationFailure;
 
     @Builder
 	private SmimePreprocessingResultImpl(final boolean recognized,
@@ -31,13 +33,15 @@ public final class SmimePreprocessingResultImpl implements SmimePreprocessingRes
                                     @NotNull final OriginalSmimeDetails details,
                                     @NotNull final List<AttachmentResource> protectedAttachments,
                                     @NotNull final List<AttachmentResource> decryptedArtifacts,
-                                    @Nullable final OriginalSmimeDetails nestedSignedDetails) {
+                                    @Nullable final OriginalSmimeDetails nestedSignedDetails,
+                                    @Nullable final MessagingException declarationFailure) {
         this.recognized = recognized;
         this.effectiveMimeMessage = requireNonNull(effectiveMimeMessage, "effectiveMimeMessage");
         this.details = requireNonNull(details, "details");
         this.protectedAttachments = immutableCopy(protectedAttachments);
         this.decryptedArtifacts = immutableCopy(decryptedArtifacts);
         this.nestedSignedDetails = nestedSignedDetails;
+        this.declarationFailure = declarationFailure;
     }
 
 	/** @see SmimePreprocessingResult#isRecognized() */
@@ -63,6 +67,10 @@ public final class SmimePreprocessingResultImpl implements SmimePreprocessingRes
 	@Override
 	@NotNull
 	public List<AttachmentResource> getDecryptedArtifacts() { return decryptedArtifacts; }
+	/** @see SmimePreprocessingResult#getDeclarationFailure() */
+	@Override
+	@Nullable
+	public MessagingException getDeclarationFailure() { return declarationFailure; }
 
     private static List<AttachmentResource> immutableCopy(final List<AttachmentResource> source) {
         return Collections.unmodifiableList(new ArrayList<>(requireNonNull(source, "source")));

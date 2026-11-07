@@ -274,6 +274,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		val builder = emailStartingBuilder.startingBlank();
         final InputInspection contentInspection = effectiveMessage == mimeMessage
                 ? originalInspection : InputInspection.capture(effectiveMessage, generatedArtifact, EmailSourceData.Representation.EXTRACTED);
+        if (smimeResult != null && smimeResult.getDeclarationFailure() != null) {
+            contentInspection.noteUnreadableContentType(smimeResult.getDeclarationFailure());
+        }
 		val parsed = MimeMessageParser.parseMimeMessage(effectiveMessage, fetchAttachmentData, contentInspection);
 		val emailBuilder = MimeMessageEmailMapper.populate(builder, parsed);
         final InternalEmailPopulatingBuilder inspectionBuilder = (InternalEmailPopulatingBuilder) emailBuilder;
@@ -298,7 +301,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
             InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
             return emailBuilder;
 		}
-        decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config, parsed::getAttachmentSource);
+        if (smimeResult != null && smimeResult.getDeclarationFailure() != null) {
+            inspectionBuilder.withOriginalSmimeDetails(smimeResult.getDetails());
+            processIndependentSmimeAttachments(inspectionBuilder, emailBuilder.getAttachments(), java.util.Collections.emptyList(),
+                    pkcs12Config, parsed::getAttachmentSource);
+        } else {
+            decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config, parsed::getAttachmentSource);
+        }
         InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
         return emailBuilder;
 	}

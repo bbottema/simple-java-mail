@@ -28,6 +28,7 @@ public final class InputInspection {
     private final List<PendingProblem> problems = new ArrayList<>();
     private final List<MimePartCapture> parts = new ArrayList<>();
     private final List<EmailSourcePart> originalHtmlParts = new ArrayList<>();
+    private boolean contentTypeReadUnavailable;
     private EmailSourceData source;
 
     private InputInspection(final List<Header> receivedHeaders, final String messageId,
@@ -199,6 +200,19 @@ public final class InputInspection {
     public boolean decodingFailed(final String field, final String value) {
         return problems.stream().anyMatch(problem -> problem.code == EmailProblem.Code.VALUE_NOT_DECODED
                 && problem.location.equals(field) && Objects.equals(problem.value, value));
+    }
+
+    /** Retains one root declaration-read observation without retrying an unavailable metadata reader. */
+    public void noteUnreadableContentType(final Throwable failure) {
+        rethrowIfInterrupted(failure);
+        if (!contentTypeReadUnavailable) {
+            contentTypeReadUnavailable = true;
+            record(EmailProblem.Code.CONTENT_READ_FAILED, "Content-Type", raw("Content-Type"), describe(failure));
+        }
+    }
+
+    boolean isContentTypeReadUnavailable() {
+        return contentTypeReadUnavailable;
     }
 
     public void record(final EmailProblem.Code code, final String field, final String value, final String message) {

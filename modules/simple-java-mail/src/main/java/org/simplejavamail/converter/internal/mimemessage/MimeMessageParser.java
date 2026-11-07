@@ -164,7 +164,7 @@ public final class MimeMessageParser {
     private static void interpretMimePart(final MimePart currentPart, final ParsedMimeMessageComponents parsedComponents,
             final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture) {
         if (currentPart instanceof MimeMessage) {
-            parsedComponents.reportContainer = DeliveryStatusReportParser.isReportContainer(currentPart);
+            parsedComponents.reportContainer = inspectOuterReportContainer(currentPart, parsedComponents.inspection);
             if (DeliveryStatusReportParser.isStatusPart(currentPart)) {
                 parsedComponents.deliveryStatusPart = currentPart;
                 parsedComponents.deliveryStatusSources.add(capture);
@@ -255,9 +255,20 @@ public final class MimeMessageParser {
 		}
 	}
 
+    private static boolean inspectOuterReportContainer(final MimePart part, final InputInspection inspection) {
+        if (inspection.isContentTypeReadUnavailable()) return false;
+        try {
+            return DeliveryStatusReportParser.isReportContainer(part);
+        } catch (final MimeMessageParseException failure) {
+            if (!InputInspection.recognizedFailure(failure)) throw failure;
+            inspection.noteUnreadableContentType(failure);
+            return false;
+        }
+    }
+
 	private static void selectOuterDeliveryStatusPart(final MimePart currentPart, final Multipart parts,
 			final ParsedMimeMessageComponents parsedComponents) {
-		if (!(currentPart instanceof MimeMessage) || !DeliveryStatusReportParser.isReportContainer(currentPart)) {
+		if (!(currentPart instanceof MimeMessage) || !parsedComponents.reportContainer) {
 			return;
 		}
 		int selectedIndex = -1;

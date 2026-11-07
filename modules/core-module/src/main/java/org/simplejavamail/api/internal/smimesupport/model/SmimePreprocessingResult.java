@@ -1,5 +1,6 @@
 package org.simplejavamail.api.internal.smimesupport.model;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -28,4 +29,7 @@ public interface SmimePreprocessingResult extends InboundProtectionResult<Origin
 	@NotNull List<AttachmentResource> getProtectedAttachments();
 
 	@NotNull List<AttachmentResource> getDecryptedArtifacts();
+
+	/** Temporary metadata-read context for source inspection; this is not a cryptographic processing failure. */
+	@Nullable MessagingException getDeclarationFailure();
 }
