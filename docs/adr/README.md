@@ -1,5 +1,19 @@
 # Architecture decision records
 
+The accepted [#971](https://github.com/bbottema/simple-java-mail/issues/971) correction keeps generated image Content-IDs ASCII across
+JVM locales. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#locale-independent-generated-image-identifiers-accepted-7-november-2026)
+owns this generation rule; explicit IDs and strict UTF-8 transport requirements retain their existing roles.
+
+The accepted #961 optional-field recovery follow-up keeps unreadable address facts unavailable when no raw fallback exists, retaining
+their Problems and readable neighbors without weakening typed recipient invariants. ADRs [0035](0035-tolerant-reading-and-strict-production.md#optional-field-recovery-without-source-text-accepted-7-november-2026)
+and [0041](0041-email-source-inspection-and-problems.md) govern this existing unreleased inspection contract.
+
+The accepted 7 November follow-ups under [#969](https://github.com/bbottema/simple-java-mail/issues/969) and
+[#704](https://github.com/bbottema/simple-java-mail/issues/704) make construction effects explicit and keep signed-only Outlook verification
+outcomes consistent. ADRs [0039](0039-explicit-configuration-resolution.md#complete-session-application-and-route-reservations-accepted-7-november-2026) and [0015](0015-execution-views-and-transport-pooling.md) own
+complete Session application/restoration and provisional whole-route allowances; [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#signed-only-outlook-verification-outcomes-accepted-7-november-2026)
+preserves processing ERROR separately from INVALID while retaining readable content. The owning issues track implementation and delivery.
+
 The 7 November [supplied-Session cleanup clarification](0039-explicit-configuration-resolution.md#supplied-session-failure-cleanup-accepted-7-november-2026)
 under [#969](https://github.com/bbottema/simple-java-mail/issues/969) retains exclusive ownership through failed-construction cleanup and
 restoration. [ADR 0015](0015-execution-views-and-transport-pooling.md#caller-supplied-session-baseline) keeps the ownership boundary; the
