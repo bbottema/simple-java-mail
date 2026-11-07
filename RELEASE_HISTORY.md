@@ -128,6 +128,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#972](https://github.com/bbottema/simple-java-mail/issues/972): malformed HTML image URLs now follow the configured optional/required resolution choice even when a valid URL base is supplied. Optional resolution leaves the reference in the HTML; required resolution still rejects it. Selected-base validation and containment remain unchanged.
+
 - [#971](https://github.com/bbottema/simple-java-mail/issues/971): keep automatically generated image Content-IDs ASCII independently of the JVM locale, so Turkish casing does not add unwanted SMTPUTF8 requirements to otherwise ASCII mail. Explicit caller IDs and genuine UTF-8 transport checks retain their existing behavior.
 
 - [#969](https://github.com/bbottema/simple-java-mail/issues/969): apply completed properties before creating an owned Session, so Session-scoped events use the requested executor. Supplied Sessions retain their native state and reject ineffective late executor replacements. Shared rate-limit rules are reserved before construction and become permanent only after the complete owned route succeeds. One application plan also captures restoration of supplied-Session changes, including OAuth callbacks. Failed construction keeps exclusive Session ownership through cleanup and restoration, preventing late undo writes from changing a replacement Mailer. Direct OAuth connections use the selected provider's username resolution; protocol-specific interpretation requires an explicit effective protocol rather than assuming SMTP.

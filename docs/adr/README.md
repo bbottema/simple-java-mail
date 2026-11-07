@@ -1,5 +1,9 @@
 # Architecture decision records
 
+The accepted [#972](https://github.com/bbottema/simple-java-mail/issues/972) correction makes malformed HTML image URLs follow the existing
+required/optional resolution choice even when a valid URL base is configured. [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#optional-malformed-image-sources-accepted-7-november-2026)
+owns source-resolution behavior; ADR 0003 retains selected-base validation before content access.
+
 The accepted 7 November OpenPGP follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) require interpretable
 declarations before concluding that protection is absent, and avoid OpenPGP serialization of ordinary non-OpenPGP MIME input.
 [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#openpgp-declaration-validity-and-unused-content-accepted-7-november-2026)

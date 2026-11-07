@@ -161,6 +161,8 @@ Email setters retain submitted choices. Ordinary `buildEmail()` creates the mess
 
 Automatic image settings are finalized at `buildEmail()`, before reading images. An ordinary inherited image-base URL is ignored when URL resolution is disabled, or when you replace or explicitly clear that base; a malformed selected base fails the build when URL resolution is enabled. Mandatory locks still apply. See [image configuration timing](https://www.simplejavamail.org/features.html#automatic-image-configuration-timing).
 
+Malformed image URLs in the HTML follow the ordinary unresolved-image choice, including when a valid URL base is configured. Optional resolution leaves those references in the HTML; use `embeddedImageAutoResolutionMustBeSuccesful(true)` when they should stop construction. See [automatic-image resolution failures](https://www.simplejavamail.org/features.html#automatic-image-resolution-failure).
+
 Message settings, including DKIM signing, use an `Email` template rather than a separate Mailer-specific feature API:
 
 ```java
