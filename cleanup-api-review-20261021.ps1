@@ -222,6 +222,9 @@ $relativeFileTargets = @(
 $externalDirectoryTargets = @(
     # BEGIN openpgp-inspection-review-20261107 task custody
     # #704: retire nested/main checkouts through normal Git worktree removal before directory cleanup.
+    # Automatic approval review rejected this plan/worktree retirement, stating only 'blocked by policy'.
+    # The rejected action did not execute; retain these paths and do not retry deletion through another method.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\combined\sjm\docs\plans\openpgp-inspection-review-20261107.md' -Force
     # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org'
     # Remove-Item -LiteralPath 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-openpgp-review-20261107\declarations\sjm' }
