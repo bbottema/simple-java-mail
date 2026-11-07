@@ -89,19 +89,18 @@ public final class OpenPgpSupport implements OpenPgpModule {
             @NotNull final MimeMessage originalMessage, @Nullable final OpenPgpReceiveConfig receiveConfig) {
         try {
             final boolean declaredOpenPgp = isOpenPgpSigned(originalMessage) || isOpenPgpEncrypted(originalMessage);
-            boolean pendingOpenPgp = false;
+            boolean pendingProtection = false;
             if (!declaredOpenPgp) {
                 final String[] declarations = originalMessage.getHeader("Content-Type");
                 if (declarations == null || declarations.length == 0) {
                     // Native setContent(...) can leave headers pending. Metadata only keeps the existing serialization path eligible;
                     // it never replaces a physical declaration or establishes protection facts before native finalization.
                     final ContentType pendingType = new ContentType(originalMessage.getDataHandler().getContentType());
-                    final String protocol = pendingType.getParameter("protocol");
-                    pendingOpenPgp = pendingType.match("multipart/signed") && "application/pgp-signature".equalsIgnoreCase(protocol)
-                            || pendingType.match("multipart/encrypted") && "application/pgp-encrypted".equalsIgnoreCase(protocol);
+                    pendingProtection = pendingType.match("multipart/signed") || pendingType.match("multipart/encrypted")
+                            || pendingType.match("application/pkcs7-mime") || pendingType.match("application/x-pkcs7-mime");
                 }
             }
-            if (!declaredOpenPgp && !pendingOpenPgp) {
+            if (!declaredOpenPgp && !pendingProtection) {
                 return OpenPgpParseResultImpl.builder().recognized(false).effectiveMimeMessage(originalMessage)
                         .details(OpenPgpDetailsImpl.plain()).build();
             }

@@ -14,6 +14,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.DeliveryAction;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
@@ -180,6 +181,30 @@ class OpenPgpPlainMimeReadBoundaryTest {
         assertThat(message.serializations).isZero();
         assertPlain(imported);
         assertThat(message.getContentType()).isEqualTo("text/plain");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"S_MIME test message signed.eml", "S_MIME test message encrypted.eml"})
+    void unsavedNativeSmimeContentStillReachesSmimeInspection(final String fixtureName) throws Exception {
+        final MimeMessage fixture;
+        try (InputStream input = getClass().getResourceAsStream("/pkcs12/test messages/" + fixtureName)) {
+            if (input == null) throw new AssertionError("Missing fixture: " + fixtureName);
+            fixture = new MimeMessage(Session.getInstance(new Properties()), input);
+        }
+        final CountingMessage message = new CountingMessage();
+        message.setDataHandler(fixture.getDataHandler());
+        assertThat(message.getHeader("Content-Type")).isNull();
+        assertThat(message.getContentType()).isEqualTo("text/plain");
+
+        final Email imported = mail.converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail();
+
+        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(fixtureName.contains("encrypted")
+                ? OriginalSmimeDetails.SmimeMode.ENCRYPTED : OriginalSmimeDetails.SmimeMode.SIGNED);
+        if (fixtureName.contains("encrypted")) {
+            assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING);
+        } else {
+            assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        }
     }
 
     private static byte[] resource(final String name) throws IOException {
