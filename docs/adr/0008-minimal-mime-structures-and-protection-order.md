@@ -57,6 +57,19 @@ content. This adds no public API, trust policy or automatic traversal of further
 owns interpretation, and [ADR 0040](0040-retained-protected-content-merging.md) keeps child processing separate from retained-content promotion.
 The correction completes the unreleased protection-preprocessing work under [#704](https://github.com/bbottema/simple-java-mail/issues/704).
 
+### Independent S/MIME files after opening OpenPGP mail (accepted 7 November 2026)
+
+When incoming OpenPGP processing exposes a readable MIME entity, apply the same supported independent S/MIME attachment interpretation
+and explicitly requested decryption as for an unsigned parent. Keep the original files, opened child representations and source-linked
+observations under their existing owners. The parent's original OpenPGP bytes and signature/decryption results remain unchanged.
+
+This child processing does not promote a sole decrypted file into the parent's body or establish S/MIME protection for the parent. It does
+not open a further protected entity at the effective message root. Unopened OpenPGP content, missing optional modules, missing keys,
+explicit decryption failures and optional malformed-child recovery retain their existing boundaries. The outbound choice between
+S/MIME and OpenPGP remains unchanged. This completes the unreleased incoming-processing work in
+[#704](https://github.com/bbottema/simple-java-mail/issues/704); ADRs 0035/0036/0041 retain interpretation, ownership and source observations,
+and ADR 0040 keeps independent-file processing separate from content promotion.
+
 The clarification accepted on 21 October 2026 distinguishes retained input inspection from defaults/overrides completion. Original
 cryptographic results and protected bytes, decrypted-attachment inspection lists and retained S/MIME signed-content views are input history.
 Ordinary copying and supported serialization preserve them; completion resolves outgoing content and settings without carrying those

@@ -9,6 +9,11 @@ observation when an actual address grammar failure falls back to Sender. [ADR 00
 keeps selected-source recovery and provider authority; [ADR 0041](0041-email-source-inspection-and-problems.md#problems-and-immutable-input-identity)
 owns the observation and original source identity. Unused Sender fields do not gain a new inspection pass.
 
+The accepted 7 November [independent-file clarification under #704](0008-minimal-mime-structures-and-protection-order.md#independent-smime-files-after-opening-openpgp-mail-accepted-7-november-2026)
+keeps supported S/MIME attachment interpretation and requested decryption available after OpenPGP exposes readable content. Parent
+protection facts, original files and bytes retain their owners; ADRs 0035/0040/0041 preserve interpretation, promotion and source observations.
+The issue tracks this unreleased incoming-protection follow-up.
+
 The accepted 7 November OpenPGP follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) require interpretable
 declarations before concluding that protection is absent, and avoid OpenPGP serialization of ordinary non-OpenPGP MIME input.
 [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#openpgp-declaration-validity-and-unused-content-accepted-7-november-2026)

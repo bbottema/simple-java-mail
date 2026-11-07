@@ -99,7 +99,12 @@ public interface ConfiguredEmailConverter {
 	/** Receive-side options shared by EML and MIME imports. Options affect Email conversion, not direct MIME/EML export. */
 	interface IncomingConversion<T extends IncomingConversion<T>> {
 
-		/** Supplies the private key store for reading S/MIME-encrypted content. Repeated calls replace the previous configuration. */
+		/**
+		 * Supplies the private key store for reading S/MIME-encrypted content. Repeated calls replace the previous configuration.
+		 * This also applies to supported independent S/MIME files in readable content exposed by an OpenPGP parent. Original files and
+		 * parent protection results remain available; opening an independent file does not replace the parent body or open a further
+		 * protected entity at the message root.
+		 */
 		@NotNull T withSmimeDecryption(@NotNull Pkcs12Config pkcs12Config);
 
 		/** @see #withSmimeDecryption(Pkcs12Config) */

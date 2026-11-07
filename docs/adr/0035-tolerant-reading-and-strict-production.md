@@ -541,6 +541,10 @@ applies the same independent-attachment boundary after a detached-signed parent 
 requested child decryption. Original resources and source-linked observations remain available; child outcomes do not replace parent
 protection facts or add new exception recovery. [#704](https://github.com/bbottema/simple-java-mail/issues/704) owns the unreleased follow-up.
 
+The [7 November OpenPGP clarification](0008-minimal-mime-structures-and-protection-order.md#independent-smime-files-after-opening-openpgp-mail-accepted-7-november-2026)
+also applies this independent-file processing to readable content exposed by OpenPGP. It preserves the same interpretation and failure
+rules without treating a protected effective root as another attachment to open.
+
 Recognize an attachment's S/MIME media type independently of its Content-Type parameters. Valid parameters such as `smime-type`
 and `name` must not prevent requested decryption or signature inspection. Parse metadata at the S/MIME recognition boundary rather
 than stripping parameters from imported resources. Preserve the complete metadata, source bytes, content ownership and existing

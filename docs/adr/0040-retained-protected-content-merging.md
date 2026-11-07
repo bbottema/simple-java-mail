@@ -69,6 +69,10 @@ the parent's signature resources and facts. Do not use the sole-attachment heuri
 inner content view or combine an unrelated child's encryption with the parent mode. The existing merged/separate selection does not suppress
 this supported child processing. [#704](https://github.com/bbottema/simple-java-mail/issues/704) tracks this unreleased correction.
 
+The [7 November OpenPGP clarification in ADR 0008](0008-minimal-mime-structures-and-protection-order.md#independent-smime-files-after-opening-openpgp-mail-accepted-7-november-2026)
+preserves the same separation for independent S/MIME files after OpenPGP exposes readable content. Their processing does not supply
+a retained parent content view or enable sole-file promotion, and it does not open a protected entity at the effective message root.
+
 If no readable inner Email was produced, enabling merging does not synthesize one or erase the outer body. That fallback is distinct from choosing between body alternatives of an available inner Email.
 
 ### Field ownership

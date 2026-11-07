@@ -286,6 +286,10 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
         }
 		((InternalEmailPopulatingBuilder) emailBuilder).withOriginalOpenPgpDetails(openPgpResult.getDetails());
 		if (openPgpResult.isRecognized()) {
+            if (effectiveMessage != mimeMessage && !parsed.isRootRepresentedAsResource() && ModuleLoader.smimeModuleAvailable()) {
+                processIndependentSmimeAttachments(inspectionBuilder, emailBuilder.getAttachments(), java.util.Collections.emptyList(),
+                        pkcs12Config, parsed::getAttachmentSource);
+            }
             InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
 			return emailBuilder;
 		}
