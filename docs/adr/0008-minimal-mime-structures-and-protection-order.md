@@ -360,6 +360,8 @@ An application-built native MimeMessage can hold pending multipart content witho
 When that declaration is absent, pending DataHandler type metadata may keep the existing protected-message serialization path eligible.
 It neither replaces a present, malformed or unreadable declaration nor establishes final protection facts. Ordinary pending content still
 requires no OpenPGP serialization; after serializing possible protected input, the existing declaration and cryptographic processing decide.
+This eligibility also preserves pending native S/MIME content, so skipping unnecessary OpenPGP work does not disable its separately owned
+incoming processing. It adds no optional-module dependency or S/MIME validation authority to the OpenPGP implementation.
 
 The maintainer accepted both follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0. They add
 no application API, receive option, alternate header authority or broader recursive processing. The issue tracks implementation and delivery.
