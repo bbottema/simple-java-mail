@@ -1,5 +1,9 @@
 # Architecture decision records
 
+The accepted [#788](https://github.com/bbottema/simple-java-mail/issues/788) follow-up keeps Session diagnostic formatting inert when
+DEBUG is disabled and describes opaque application objects safely when enabled. [ADR 0004](0004-configuration-provenance-diagnostics.md#opaque-session-values-and-disabled-logging-accepted-7-november-2026)
+owns this automatic-rendering behavior without changing provider configuration or explicit property access.
+
 The accepted [#972](https://github.com/bbottema/simple-java-mail/issues/972) correction makes malformed HTML image URLs follow the existing
 required/optional resolution choice even when a valid URL base is configured. [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#optional-malformed-image-sources-accepted-7-november-2026)
 owns source-resolution behavior; ADR 0003 retains selected-base validation before content access.

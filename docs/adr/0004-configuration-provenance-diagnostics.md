@@ -33,6 +33,23 @@ Apply the same extra-property sensitivity rules when rendering a Mailer, its bui
 Automatic rendering must not expose a known password or token merely because it entered through an advanced Jakarta Mail property. Explicit
 property access remains available for applications that need the actual values; sharing rendering rules does not change those accessors.
 
+## Opaque Session values and disabled logging (accepted 7 November 2026)
+
+Automatic Session logging does no Session, property or strategy inspection when its DEBUG output is disabled. With logging enabled,
+both the complete property description and the abbreviated transport description avoid invoking application key/value `toString` or
+`hashCode` merely to produce text. Omit non-String keys rather than inventing property names or exposing values whose sensitivity cannot
+be established from a name. Describe opaque values by their type; retain ordinary String text, safe built-in scalar values and control-character escaping.
+
+Apply known-secret redaction before value conversion. Abbreviated text connection fields follow provider-visible inherited String values
+when an opaque direct entry hides them; valid typed port/authentication values retain their ordinary display. The complete property listing
+retains its direct-entry meaning and describes opaque values by type. This is diagnostic formatting only: Session
+properties and borrowed objects are neither changed nor replaced, and existing explicit accessors retain the actual values. No general
+content-based secret classifier, callback invocation, exception-swallowing policy or public configuration API is introduced.
+
+This extends the existing automatic-rendering decision under [#788](https://github.com/bbottema/simple-java-mail/issues/788).
+ADRs [0038](0038-connection-configuration-conflicts.md) and [0039](0039-explicit-configuration-resolution.md) keep provider interpretation
+and resource identity, while [ADR 0031](0031-public-api-and-internal-construction.md) keeps the shared formatter an internal utility.
+
 ## Alternatives and consequences
 
 Re-reading the environment when logging could describe a different state from the snapshot used to build a Mailer. Capturing provenance during resolution keeps those facts together. This causal explanation is derived from the resolver design and the issue's immutability requirement.
