@@ -823,7 +823,7 @@ public final class MimeMessageParser {
                         && !capture.hasHeader("Content-Disposition")) {
                     org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(unavailable);
                     capture.headerProblem(EmailProblem.Code.FIELD_NOT_INTERPRETED, "Content-Disposition", null,
-                            InputInspection.describe(unavailable));
+                            InputInspection.describe(new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_DISPOSITION, unavailable)));
                     return null;
                 }
                 if (!(unavailable instanceof ParseException)) {

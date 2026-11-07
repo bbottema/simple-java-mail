@@ -19,6 +19,7 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
@@ -81,6 +82,24 @@ class OptionalDispositionRecoveryTest {
         assertThat(email.getPlainText()).isEqualTo("Readable parent");
         assertThat(email.getAttachments()).isEmpty();
         assertThat(email.getProblems()).isNotEmpty();
+    }
+
+    @Test
+    void dispositionProblemKeepsTheGetterFailureAndSuppressedContext() throws Exception {
+        final MessagingException failure = new MessagingException("disposition lookup unavailable", new IOException("metadata store failure"));
+        failure.addSuppressed(new IOException("metadata cleanup failure"));
+        final MimeBodyPart resource = new MimeBodyPart(new ByteArrayInputStream(
+                "Content-Type: application/octet-stream\r\n\r\nReadable resource".getBytes(UTF_8))) {
+            @Override public String getDisposition() throws MessagingException { throw failure; }
+        };
+
+        final Email email = MAIL.converter().fromMimeMessage(message(resource)).toEmail();
+
+        assertThat(email.getAttachments()).hasSize(1);
+        assertThat(email.getProblems()).anySatisfy(problem -> {
+            assertThat(problem.getLocation()).endsWith("/Content-Disposition");
+            assertThat(problem.getMessage()).contains("disposition lookup unavailable", "metadata cleanup failure");
+        });
     }
 
     @Test
