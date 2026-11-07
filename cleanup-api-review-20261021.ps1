@@ -140,6 +140,8 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # #704/#822: completed plan retained after automatic approval review refused its deletion.
+    'docs/plans/smime-declaration-repairs-20261107.md'
     # #966: the retired work packet remains available for individual cleanup after inspection.
     # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\pooled-oauth-protocol-20261105.md' -Force
     'docs/plans/pooled-oauth-protocol-20261105.md'
@@ -215,6 +217,9 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # #704/#822: the attached primary checkout stays protected while this task owns it.
+    # Archive it through the app after primary ownership ends; keep the registered-worktree guard.
+    @{ Path = 'C:\Users\Benny Bottema\.codex\worktrees\smime-declaration-recognition-20261107\simple-java-mail'; Parent = 'C:\Users\Benny Bottema\.codex\worktrees\smime-declaration-recognition-20261107' }
     # Matching tracked website Java examples exported for relative source-context links.
     # Remove-Item -LiteralPath 'C:\workstation\sjm-contract-repairs-20261106\combined\simplejavamail.org' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-contract-repairs-20261106\combined\simplejavamail.org'; Parent = 'C:\workstation\sjm-contract-repairs-20261106\combined' }
@@ -856,3 +861,35 @@ Keep that evidence and the task parent; this record adds no executable deletion.
 No completed #969 paths remain in the executable cleanup allowlists.
 #>
 #endregion SessionIntegrationCustody969
+
+#region SmimeDeclarationReviewCustody20261107
+<#
+The #704/#822 declaration repairs and guides are delivered on codex/10.0.0
+at 722269d75410655ce54cc41f4c32063d7513b8a5, with website
+8bf3d251988560d424ebdf0a9f40822b0a4fafd6 published first. Both issues are closed
+and their existing project items are Done.
+
+The worker and combined nested/main checkouts were retired through normal Git
+worktree removal. Their exact retired paths were:
+C:\workstation\sjm-smime-declaration-20261107\recognition\sjm
+C:\workstation\sjm-smime-declaration-20261107\recognition\sjm\simplejavamail.org
+C:\workstation\sjm-smime-declaration-20261107\interruption\sjm
+C:\workstation\sjm-smime-declaration-20261107\interruption\sjm\simplejavamail.org
+C:\workstation\sjm-smime-declaration-20261107\combined\sjm
+C:\workstation\sjm-smime-declaration-20261107\combined\sjm\simplejavamail.org
+
+The retained plan is docs/plans/smime-declaration-repairs-20261107.md.
+Automatic approval review rejected its deletion before execution, stating only
+"blocked by policy". Do not retry that deletion through another method.
+Its exact file entry remains in the guarded allowlist above.
+
+The managed checkout listed above remains the task's attached primary, containing
+the delivered sources. The app refused archive with "The task's primary checkout
+cannot be removed." Keep it until that ownership ends; do not bypass that guard.
+
+Retain .local/smime-declaration-repairs-20261107-evidence and the task parent.
+The older decrypted-merge dependency junction still stops the full cleanup WhatIf
+run; it was left intact. Preserve unrelated main/website dirty and staged work,
+older plans, other registered worktrees and existing path/reparse-point guards.
+#>
+#endregion SmimeDeclarationReviewCustody20261107
