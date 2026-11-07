@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.simplejavamail.api.mailer.config.TransportStrategy.OAUTH2_TOKEN_PROVIDER_PROPERTY;
@@ -324,6 +326,71 @@ class SessionApplicationContractTest {
                 .withSendingLimitsConfig(limits("child-release", 2)).buildMailer()) {
             // The failed parent's cleanup exception cannot pin its retired child's provisional policy.
         }
+    }
+
+    @Test
+    void failedPropertyApplicationRestoresOnlyAttemptedMutationsIncludingTheThrowingPut() {
+        final PartialApplicationProperties properties = new PartialApplicationProperties(
+                Set.of(SessionBasedEmailToMimeMessageConverter.MIMEMESSAGE_CONVERTER_KEY));
+        properties.setProperty("application.first", "before");
+        final Session session = Session.getInstance(properties);
+        final IllegalStateException failure = new IllegalStateException("first put changed state then failed");
+        properties.firstFailure = failure;
+        properties.armed = true;
+        assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
+                .withProperty("application.first", "after").buildMailer()).isSameAs(failure);
+        assertThat(properties.getProperty("application.first")).isEqualTo("before");
+        assertThat(properties.untouchedWrites).isZero();
+        assertThat(failure.getSuppressed()).isEmpty();
+        assertThat(properties.containsKey("org.simplejavamail.internal.mailerOwner")).isFalse();
+    }
+
+    @Test
+    void failedDebugOutputApplicationRestoresOutputWithoutTouchingUnattemptedProperties() {
+        final PartialApplicationProperties properties = new PartialApplicationProperties(
+                Set.of("application.future", SessionBasedEmailToMimeMessageConverter.MIMEMESSAGE_CONVERTER_KEY));
+        properties.setProperty("application.future", "before");
+        final Session original = Session.getInstance(properties);
+        final PrintStream oldOutput = new PrintStream(new ByteArrayOutputStream());
+        final PrintStream replacementOutput = new PrintStream(new ByteArrayOutputStream());
+        original.setDebugOut(oldOutput);
+        final Session session = spy(original);
+        final IllegalStateException failure = new IllegalStateException("debug output changed then failed");
+        doAnswer(invocation -> { invocation.callRealMethod(); throw failure; }).when(session).setDebugOut(replacementOutput);
+        properties.armed = true;
+        assertThatThrownBy(() -> SimpleJavaMail.withConfig(ConfigLoader.builder().load()).mailerBuilder(session)
+                .withProperty("application.future", "after")
+                .withDebugConfig(SessionDebugConfig.builder().withPrinter(replacementOutput).build()).buildMailer()).isSameAs(failure);
+        assertThat(session.getDebugOut()).isSameAs(oldOutput);
+        assertThat(properties.getProperty("application.future")).isEqualTo("before");
+        assertThat(properties.untouchedWrites).isZero();
+        assertThat(failure.getSuppressed()).isEmpty();
+        assertThat(properties.containsKey("org.simplejavamail.internal.mailerOwner")).isFalse();
+    }
+
+    private static final class PartialApplicationProperties extends Properties {
+        private final Set<String> untouched;
+        private boolean armed;
+        private RuntimeException firstFailure;
+        private int untouchedWrites;
+
+        private PartialApplicationProperties(final Set<String> untouched) { this.untouched = untouched; }
+
+        private void record(final Object key) {
+            if (armed && untouched.contains(key)) {
+                untouchedWrites++;
+                throw new IllegalStateException("An unattempted setting was written during cleanup");
+            }
+        }
+
+        @Override public synchronized Object put(final Object key, final Object value) {
+            record(key);
+            final Object before = super.put(key, value);
+            if (armed && "application.first".equals(key) && "after".equals(value)) { throw firstFailure; }
+            return before;
+        }
+
+        @Override public synchronized Object remove(final Object key) { record(key); return super.remove(key); }
     }
 
     enum CapturedFact { DIRECT_STRING, INHERITED_STRING, OPAQUE_IDENTITY, DEBUG_FLAG, DEBUG_OUTPUT }

@@ -70,7 +70,9 @@ state. Restoration runs outside the Properties monitor while exclusive ownership
 
 The validated application description contains every initial configuration write/removal, callback, proxy route, native debug change and
 converter installation. It captures original direct-entry absence/identity before attempting application; restoration uses the same
-description rather than another list of keys. A claimed Session whose captured property/debug baseline changed is rejected before writes,
+description rather than another list of keys. It restores only the attempted property prefix and native setters, recording an attempt before
+each mutator to cover changes followed by a thrown failure without writing unreached settings during cleanup.
+A claimed Session whose captured property/debug baseline changed is rejected before writes,
 using String value and borrowed-object identity comparisons without callbacks or another resolution pass.
 
 Before any owned route node is constructed, its factory allowance rules are reserved atomically. One complete primary/private-failover

@@ -68,6 +68,9 @@ final class SessionConfigurationChanges {
         private final Map<Object, Object> original = new LinkedHashMap<>();
         private final boolean debug;
         private final PrintStream debugOut;
+        private int attemptedProperties;
+        private boolean debugOutputAttempted;
+        private boolean debugEnabledAttempted;
 
         private Applied(final Session session, final boolean restoreCallerState) {
             this.session = session;
@@ -84,12 +87,14 @@ final class SessionConfigurationChanges {
 
         void apply(final SessionDebugConfig debugConfig, final SessionBasedEmailToMimeMessageConverter converter) {
             if (applyDebugOutput) {
-                if (debugConfig.getPrinter() != null) { session.setDebugOut(debugConfig.getPrinter()); }
-                else if (debugConfig.getOutput() != null) { session.setDebugOut(SessionDebugOutputResolver.resolve(debugConfig.getOutput())); }
+                final PrintStream output = debugConfig.getPrinter() != null ? debugConfig.getPrinter()
+                        : debugConfig.getOutput() != null ? SessionDebugOutputResolver.resolve(debugConfig.getOutput()) : null;
+                if (output != null) { debugOutputAttempted = true; session.setDebugOut(output); }
             }
-            if (applyDebugEnabled) { session.setDebug(Boolean.TRUE.equals(debugConfig.getEnabled())); }
+            if (applyDebugEnabled) { debugEnabledAttempted = true; session.setDebug(Boolean.TRUE.equals(debugConfig.getEnabled())); }
             final Properties target = session.getProperties();
             properties.forEach((key, value) -> {
+                attemptedProperties++;
                 if (SessionBasedEmailToMimeMessageConverter.MIMEMESSAGE_CONVERTER_KEY.equals(key)) { target.put(key, converter); }
                 else if (value == null) { target.remove(key); }
                 else { target.put(key, value); }
@@ -99,7 +104,9 @@ final class SessionConfigurationChanges {
         boolean restore(final Throwable failure) {
             if (!restoreCallerState) { return true; }
             boolean restored = true;
+            int remaining = attemptedProperties;
             for (Map.Entry<Object, Object> entry : original.entrySet()) {
+                if (remaining-- == 0) { break; }
                 try {
                     if (entry.getValue() == ABSENT) { session.getProperties().remove(entry.getKey()); }
                     else { session.getProperties().put(entry.getKey(), entry.getValue()); }
@@ -109,8 +116,8 @@ final class SessionConfigurationChanges {
                 }
             }
             try {
-                if (session.getDebugOut() != debugOut) { session.setDebugOut(debugOut); }
-                if (session.getDebug() != debug) { session.setDebug(debug); }
+                if (debugOutputAttempted && session.getDebugOut() != debugOut) { session.setDebugOut(debugOut); }
+                if (debugEnabledAttempted && session.getDebug() != debug) { session.setDebug(debug); }
             } catch (RuntimeException | Error cleanup) {
                 if (failure != cleanup) { failure.addSuppressed(cleanup); }
                 restored = false;

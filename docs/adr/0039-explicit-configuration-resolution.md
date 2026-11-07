@@ -218,7 +218,9 @@ existing contracts. Which individual writes belong in the restoration plan remai
 The maintainer extended #969 to make validated application and failure restoration consume the same internal change description.
 Each construction property set/removal, selected OAuth callback, initial proxy route, native debug update and converter installation
 includes its restoration obligation. Capture original direct-entry absence and borrowed object identity before mutation, once per affected
-setting. Preserve inherited defaults. Public ConfigKey remains a schema-bound input read contract, not a runtime restoration registry.
+setting. Restore only attempted mutations, marking each before invoking its mutator so a write that changes state and then throws is included.
+Unreached properties and native setters must not acquire new cleanup side effects. Preserve inherited defaults. Public ConfigKey remains
+a schema-bound input read contract, not a runtime restoration registry.
 
 After claiming a supplied Session, compare its relevant captured baseline before application. String values compare by content; opaque
 objects and native debug output compare by identity. Exclude this attempt's ownership marker. A changed baseline is rejected without
