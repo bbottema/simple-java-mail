@@ -384,6 +384,19 @@ $externalDirectoryTargets = @(
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-followup-20261107\lead' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-review-followup-20261107\lead'; Parent = 'C:\workstation\sjm-review-followup-20261107' }
     # END accepted-review-followups-20261107 custody
+    # BEGIN safe-session-logging-20261107 custody (#788)
+    # Retire these exact registered checkouts through normal Git before directory cleanup.
+    # Retired plan: C:\workstation\sjm-session-logging-20261107\sjm\docs\plans\safe-session-logging-20261107.md
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-session-logging-20261107\website'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-session-logging-20261107\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-session-logging-20261107\website' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-session-logging-20261107\sjm' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-session-logging-20261107\website'; Parent = 'C:\workstation\sjm-session-logging-20261107' }
+    @{ Path = 'C:\workstation\sjm-session-logging-20261107\sjm'; Parent = 'C:\workstation\sjm-session-logging-20261107' }
+    # Retain task records and matching package artifacts for maintainer inspection.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-session-logging-20261107\evidence' -Recurse -Force
+    @{ Path = 'C:\workstation\sjm-session-logging-20261107\evidence'; Parent = 'C:\workstation\sjm-session-logging-20261107' }
+    # END safe-session-logging-20261107 custody
     # @{
     #     Path = 'C:\workstation\api-review-example'
     #     Parent = 'C:\workstation'
