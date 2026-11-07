@@ -1,5 +1,11 @@
 # Architecture decision records
 
+The accepted 7 November OpenPGP follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) require interpretable
+declarations before concluding that protection is absent, and avoid OpenPGP serialization of ordinary non-OpenPGP MIME input.
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#openpgp-declaration-validity-and-unused-content-accepted-7-november-2026)
+owns recognition and protection facts; ADRs 0035/0036/0041 retain source evidence, cancellation and selected-content read ownership.
+The issue tracks implementation and delivery of these unreleased feature refinements.
+
 The accepted [#704](https://github.com/bbottema/simple-java-mail/issues/704) and [#822](https://github.com/bbottema/simple-java-mail/issues/822)
 declaration-read follow-ups keep unrecognized S/MIME facts unknown, preserve the ordinary source-read observation and propagate typed
 interruption even during unavailable inspection. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#smime-declaration-read-failures-accepted-7-november-2026)

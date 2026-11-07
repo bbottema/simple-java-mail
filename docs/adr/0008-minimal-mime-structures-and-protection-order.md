@@ -341,6 +341,21 @@ remain outside this decision. [#704](https://github.com/bbottema/simple-java-mai
 implementation follows this distinction on the 10.0.0 development branch. This does not reopen the completed S/MIME repair or the original
 OpenPGP feature.
 
+### OpenPGP declaration validity and unused content (accepted 7 November 2026)
+
+Negative OpenPGP classification requires an interpretable MIME declaration. Jakarta Mail's tolerant type matching can return false for a
+malformed Content-Type; that result alone does not establish plain, unsigned or unencrypted input. Ordinary and exact import, with or
+without the optional implementation, retain UNKNOWN for unestablished protection facts and preserve available source evidence and readable
+neighbors. Previously established outer signature/decryption facts retain their existing ownership when a nested declaration is unavailable.
+
+Inspect the declaration before serializing a supplied message for OpenPGP processing. A valid ordinary MIME declaration that does not select
+OpenPGP requires no OpenPGP content read or serialization. Recognized signed/encrypted envelopes retain their existing byte-preserving
+processing, key selection and failure outcomes. Parser-selected body, eager-attachment, report and independent S/MIME work keep their own
+read boundaries under ADRs 0035, 0036 and 0041. Typed interruption and unrelated application failures retain their existing exception behavior.
+
+The maintainer accepted both follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0. They add
+no application API, receive option, alternate header authority or broader recursive processing. The issue tracks implementation and delivery.
+
 ## Exact EML incoming facts (accepted 1 November 2026)
 
 [ADR 0013](0013-exact-eml-submission.md#automatic-incoming-protection-inspection-accepted-1-november-2026) clarifies that exact construction
