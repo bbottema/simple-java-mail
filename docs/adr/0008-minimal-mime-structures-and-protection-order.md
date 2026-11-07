@@ -159,6 +159,18 @@ This corrects metadata classification without changing resource lookup, path cas
 The existing disk mapping and explicitly supplied MIME types retain their behavior. No application setting or global locale change is
 introduced. [#860](https://github.com/bbottema/simple-java-mail/issues/860) tracks implementation and delivery for unreleased 10.0.0.
 
+### Locale-independent generated image identifiers (accepted 7 November 2026)
+
+Automatic embedded-image resolution selects identifiers from ASCII letters and normalizes them independently of the JVM locale.
+A default language must not turn an ASCII `I` into a non-ASCII character and introduce an internationalized MIME header for otherwise
+ordinary content. Retain the existing ten-letter generated form and case-sensitive identity of caller-supplied Content-IDs.
+
+This extends generated-ID normalization only; the earlier MIME-classification correction keeps its separate scope. Image bytes,
+resource lookup and stream ownership retain their contracts. SMTPUTF8 and 8BITMIME requirements still follow actual submitted content
+under [ADR 0007](0007-provider-neutral-mime-boundary.md#smtp-content-negotiation-742); no locale setting or relaxed transport check follows.
+The generator exists in released 9.3.9, while the current strict submission consequence belongs to the 10.0.0 development branch.
+[#971](https://github.com/bbottema/simple-java-mail/issues/971) tracks this correction of #260's existing dynamic-image behavior.
+
 ## Shared upstream DKIM engine (accepted 23 October 2026)
 
 The upstream DKIM library owns signing semantics; SJM owns MIME finalization, configuration translation and protection ordering.

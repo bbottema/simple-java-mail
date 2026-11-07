@@ -555,7 +555,7 @@ public final class MiscUtil {
 			}
 		}
 
-		return buffer.toString().toLowerCase();
+		return buffer.toString().toLowerCase(Locale.ROOT);
 	}
 	
 	/**
