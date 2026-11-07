@@ -313,14 +313,15 @@ $externalDirectoryTargets = @(
     # Retired plan: C:\workstation\sjm-session-rollback-20261107\evidence\session-rollback-plan.md
     # Remove-Item -LiteralPath 'C:\workstation\sjm-session-rollback-20261107\evidence' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-session-rollback-20261107\evidence'; Parent = 'C:\workstation\sjm-session-rollback-20261107' }
-    # #969/#704: completed review custody, with related #961/#971 and the separate #488 successor.
-    # Component website checkouts are retired. Keep these main checkouts and evidence until manual cleanup is allowed.
-    # Automatic review refused the exact plan deletions before execution; do not retry them through another or parent path.
+    # #969/#704: completed review custody, with related #961/#971 and CLI #488.
+    # All owned review website worktrees are retired; retained mains have only empty uninitialized gitlink placeholders.
+    # Automatic review refused these exact plan deletions before execution. Keep originals, containing mains and branch refs.
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\session\sjm\docs\plans\session-construction-20261107.md' -Force
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\smime\sjm\docs\plans\smime-outlook-20261107.md' -Force
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\reading\sjm\docs\plans\import-recovery-20261107.md' -Force
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\image\sjm\docs\plans\image-id-locale-20261107.md' -Force
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\combined\sjm\docs\plans\review-delivery-20261107.md' -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261107\validation\sjm\docs\plans\cli-validation-20261107.md' -Force
     @{ Path = 'C:\workstation\sjm-review-20261107\session\sjm'; Parent = 'C:\workstation\sjm-review-20261107\session' }
     @{ Path = 'C:\workstation\sjm-review-20261107\session\evidence'; Parent = 'C:\workstation\sjm-review-20261107\session' }
     @{ Path = 'C:\workstation\sjm-review-20261107\smime\sjm'; Parent = 'C:\workstation\sjm-review-20261107\smime' }
@@ -329,13 +330,8 @@ $externalDirectoryTargets = @(
     @{ Path = 'C:\workstation\sjm-review-20261107\reading\evidence'; Parent = 'C:\workstation\sjm-review-20261107\reading' }
     @{ Path = 'C:\workstation\sjm-review-20261107\image\sjm'; Parent = 'C:\workstation\sjm-review-20261107\image' }
     @{ Path = 'C:\workstation\sjm-review-20261107\image\evidence'; Parent = 'C:\workstation\sjm-review-20261107\image' }
-    # #488 is still active. Retire its website before its main checkout only after accepted delivery.
-    # Active plan: C:\workstation\sjm-review-20261107\validation\sjm\docs\plans\cli-validation-20261107.md
-    @{ Path = 'C:\workstation\sjm-review-20261107\validation\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261107\validation\sjm' }
     @{ Path = 'C:\workstation\sjm-review-20261107\validation\sjm'; Parent = 'C:\workstation\sjm-review-20261107\validation' }
     @{ Path = 'C:\workstation\sjm-review-20261107\validation\evidence'; Parent = 'C:\workstation\sjm-review-20261107\validation' }
-    # The combined runner stays in use for #488; its refused plan and containing main checkout remain.
-    @{ Path = 'C:\workstation\sjm-review-20261107\combined\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261107\combined\sjm' }
     @{ Path = 'C:\workstation\sjm-review-20261107\combined\sjm'; Parent = 'C:\workstation\sjm-review-20261107\combined' }
     @{ Path = 'C:\workstation\sjm-review-20261107\combined\evidence'; Parent = 'C:\workstation\sjm-review-20261107\combined' }
     @{ Path = 'C:\workstation\sjm-review-20261107\evidence'; Parent = 'C:\workstation\sjm-review-20261107' }
