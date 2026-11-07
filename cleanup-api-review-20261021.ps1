@@ -307,10 +307,10 @@ $externalDirectoryTargets = @(
         Path = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028\simple-java-mail'
         Parent = 'C:\Users\Benny Bottema\.codex\worktrees\review-six-fixes-20261028'
     }
-    # #969: retire the registered checkout through Git after delivery; retain evidence for maintainer inspection.
-    # The active plan exists only at sjm\docs\plans\session-rollback-20261107.md inside this checkout.
-    # git -C 'C:\workstation\simple-java-mail' worktree remove -- 'C:\workstation\sjm-session-rollback-20261107\sjm'
-    @{ Path = 'C:\workstation\sjm-session-rollback-20261107\sjm'; Parent = 'C:\workstation\sjm-session-rollback-20261107' }
+    # #969: Session-rollback checkouts retired through Git; retain evidence for maintainer inspection.
+    # Retired main checkout: C:\workstation\sjm-session-rollback-20261107\sjm
+    # Retired website checkout: C:\workstation\sjm-session-rollback-20261107\sjm\simplejavamail.org
+    # Retired plan: C:\workstation\sjm-session-rollback-20261107\evidence\session-rollback-plan.md
     # Remove-Item -LiteralPath 'C:\workstation\sjm-session-rollback-20261107\evidence' -Recurse -Force
     @{ Path = 'C:\workstation\sjm-session-rollback-20261107\evidence'; Parent = 'C:\workstation\sjm-session-rollback-20261107' }
     # @{
