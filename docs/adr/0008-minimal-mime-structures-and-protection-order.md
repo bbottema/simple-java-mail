@@ -347,6 +347,9 @@ Negative OpenPGP classification requires an interpretable MIME declaration. Jaka
 malformed Content-Type; that result alone does not establish plain, unsigned or unencrypted input. Ordinary and exact import, with or
 without the optional implementation, retain UNKNOWN for unestablished protection facts and preserve available source evidence and readable
 neighbors. Previously established outer signature/decryption facts retain their existing ownership when a nested declaration is unavailable.
+An inspection failure inside an already recognized envelope retains its existing processing-error boundary, including aggregate signature
+ERROR alongside established per-signature outcomes and outer DECRYPTED facts. This clarification adds no special nested ParseException
+mapping or different signature-summary composition.
 
 Inspect the declaration before serializing a supplied message for OpenPGP processing. A valid ordinary MIME declaration that does not select
 OpenPGP requires no OpenPGP content read or serialization. Recognized signed/encrypted envelopes retain their existing byte-preserving
