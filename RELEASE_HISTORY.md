@@ -324,7 +324,7 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#768](https://github.com/bbottema/simple-java-mail/issues/768): repeated Email completion adds only missing template recipients, attachments and images, while preserving all supplied occurrences. The selected Mailer's defaults and overrides still apply; suppression survives completion and copying, and locks remain binding. Resource matching avoids reading borrowed content and leaves uncertain sources separate. See the [migration note](https://www.simplejavamail.org/migration-notes-10.0.0.html#repeated-email-completion).
 - Email equality includes DKIM configuration and counts repeated attachment/image occurrences without reading their content.
 - Connection tests reject work after Mailer shutdown starts, including asynchronous checks still waiting on an application-owned executor.
-- Mailer and Session-property rendering redact recognized secrets.
+- [#788](https://github.com/bbottema/simple-java-mail/issues/788): Mailer and Session-property descriptions redact recognized secrets and show application objects by type. Session logging skips formatting when its SLF4J DEBUG output is off.
 - Custom-header replacement and Email-template precedence treat differently capitalized names as the same header. Email equality accounts for
   duplicate recipient occurrences symmetrically while retaining its order-insensitive comparison.
 - EML export failures retain their cause and identify the conversion operation instead of reporting an impossible internal state.
