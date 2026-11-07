@@ -114,8 +114,9 @@ public interface ConfiguredEmailConverter {
 		/**
 		 * Chooses whether Email conversion reads attachment data. The default is {@value EmailStartingBuilder#DEFAULT_FETCH_ATTACHMENT_DATA}.
 		 * When disabled, attachment data sources are retained for later access instead of reading their content eagerly. Reading those data sources later
-		 * can still perform I/O; this does not remove attachments or prohibit sending them. This option controls attachment extraction, not protection
-		 * inspection: a protection module may still need to read or serialize the source while examining it.
+		 * can still perform I/O; this does not remove attachments or prohibit sending them. OpenPGP inspection leaves unrelated attachment content
+		 * unread when a valid MIME declaration identifies ordinary, non-OpenPGP mail. Reading a recognized signed or encrypted envelope can still
+		 * require reading or serializing its content, independently of this attachment-extraction choice. Other protection processing keeps its own read needs.
 		 * Optional delivery-report interpretation can also read the selected status content. Ordinary read failures preserve completed report
 		 * facts and acquired source content with a linked processing problem; cancellation remains a failure rather than a recovery warning.
 		 * Both choices retain equivalent attachment content-type metadata, including valid parameters such as {@code charset}.
