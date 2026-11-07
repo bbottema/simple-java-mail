@@ -96,7 +96,7 @@ public final class MimeMessageParser {
         parsedComponents.bccAddresses.addAll(inspection.recover("Bcc", inspection.joined("Bcc"), () -> parseBccAddresses(mimeMessage),
                 () -> Arrays.asList(rawAddressHeader(inspection.joined("Bcc")))));
         parsedComponents.fromAddress = inspection.recover("From", () -> parseFromAddress(mimeMessage),
-                () -> rawAddressHeader(inspection.raw("From"))[0]);
+                () -> rawAddress(inspection.raw("From")));
         parsedComponents.replyToAddresses.addAll(inspection.recover("Reply-To", inspection.joined("Reply-To"), () -> parseReplyToAddresses(mimeMessage),
                 () -> Arrays.asList(rawAddressHeader(inspection.joined("Reply-To")))));
 		// Only the effective root message owns message-level headers; child parts retain their own resource metadata.
@@ -818,14 +818,24 @@ public final class MimeMessageParser {
             }
 			try {
 				return currentPart.getDisposition();
-			} catch (final ParseException malformedParameter) {
+			} catch (final MessagingException unavailable) {
+                if (capture != null && (declarations == null || declarations.length == 0)
+                        && !capture.hasHeader("Content-Disposition")) {
+                    org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(unavailable);
+                    capture.headerProblem(EmailProblem.Code.FIELD_NOT_INTERPRETED, "Content-Disposition", null,
+                            InputInspection.describe(unavailable));
+                    return null;
+                }
+                if (!(unavailable instanceof ParseException)) {
+                    throw unavailable;
+                }
 				final String recovered = recoverMalformedDisposition(currentPart);
 				if (recovered == null) {
-					throw malformedParameter;
+					throw unavailable;
 				}
                 if (capture != null) {
                     capture.headerProblem(EmailProblem.Code.FIELD_NOT_INTERPRETED, "Content-Disposition",
-                            capture.raw("Content-Disposition"), malformedParameter.getMessage());
+                            capture.raw("Content-Disposition"), unavailable.getMessage());
                 }
 				return recovered;
 			}
@@ -1188,10 +1198,19 @@ public final class MimeMessageParser {
 		throw originalFailure;
 	}
 
-	private static InternetAddress[] rawAddressHeader(final String source) {
+	private static InternetAddress[] rawAddressHeader(@Nullable final String source) {
+		final InternetAddress retained = rawAddress(source);
+		return retained == null ? new InternetAddress[0] : new InternetAddress[] {retained};
+	}
+
+	@Nullable
+	private static InternetAddress rawAddress(@Nullable final String source) {
+		if (source == null) {
+			return null;
+		}
 		final InternetAddress retained = new InternetAddress();
 		retained.setAddress(source);
-		return new InternetAddress[] {retained};
+		return retained;
 	}
 
 	@NotNull

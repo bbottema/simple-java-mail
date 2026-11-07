@@ -73,6 +73,10 @@ final class MimePartCapture {
         return false;
     }
 
+    boolean hasHeader(final String name) {
+        return headers.stream().anyMatch(header -> header.getName().equalsIgnoreCase(name));
+    }
+
     void add(final MimePartCapture child) {
         children.add(child);
     }

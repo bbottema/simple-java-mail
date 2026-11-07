@@ -121,6 +121,21 @@ send gate follows from this recovery model. An unfinished output artifact is nev
 Use Jakarta Mail and existing specialist importers for their parsing responsibilities. Add narrow recovery at the interpretation boundary, not a
 second general MIME parser, global permissive JVM/Session settings, indiscriminate exception handling or an automatic repair-and-retry pipeline.
 
+### Optional field recovery without source text (accepted 7 November 2026)
+
+A recognized optional-field read or interpretation failure can have no captured raw value to recover. In that case, retain the existing
+Problem and available source evidence, leave the typed fact unavailable, and continue interpreting readable neighbors. An unavailable
+singular address is absent; an unavailable address list is empty. Do not create a recipient or another typed placeholder from missing text.
+Actual captured text and successful provider interpretations keep their existing fallback and selection rules, including From/Sender behavior.
+
+A failed disposition getter can likewise leave disposition unavailable when the direct declaration lookup succeeded with no values and
+no disposition occurrence was captured. Continue interpreting readable content under the existing rules. A present, conflicting or
+unreadable declaration does not establish absence and retains its existing component boundary, especially for attached multipart children.
+
+This completes the unreleased inspection contract under [#961](https://github.com/bbottema/simple-java-mail/issues/961), alongside
+[ADR 0041](0041-email-source-inspection-and-problems.md). It adds no broad exception recovery, public setting or source-based send gate.
+Cancellation, unrelated application failures, ordinary outgoing validation and selected content/resource read ownership retain their boundaries.
+
 Missing attachment naming metadata must not discard an otherwise readable message. When both the filename and Content-Type header are absent,
 retain the existing `UnknownAttachment` fallback without requiring content reads or changing eager/lazy ownership. Keep the established forwarded
 message naming rule separate from this missing-header correction. This application was accepted on 22 October 2026 under

@@ -32,6 +32,11 @@ Return Email directly from the existing import/conversion journey. A returned Em
 interpreted and only available source evidence, metadata and problems remain. Do not add EmailConversionResult<Email>, toEmailResult(),
 a builder-result layer, a public source-data/problem builder, or an inspection-activation switch.
 
+The 7 November clarification under #961 keeps this result available when a recognized optional-field reader fails and no raw fallback
+was captured. Leave that typed field unavailable while retaining the Problem, original input identity and available source references.
+Do not manufacture a typed placeholder from absent evidence. [ADR 0035](0035-tolerant-reading-and-strict-production.md#optional-field-recovery-without-source-text-accepted-7-november-2026)
+owns the recovery and exception boundaries; successful provider interpretations and actual captured raw values retain their existing meaning.
+
 Keep successfully represented bodies, attachments and embedded images in their ordinary fields and collections. Do not add recovery
 states or invalid-content placeholders to AttachmentResource. Expose immutable source evidence through Email.getSourceData() and
 historical processing observations through Email.getProblems(). Fresh composition and older snapshots without captured inspection
