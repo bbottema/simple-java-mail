@@ -891,12 +891,13 @@ public class SMIMESupport implements SMIMEModule {
 	@Nullable
 	private AttachmentDecryptionResult getSignedContent(final MimeBodyPart mimeBodyPart, @Nullable final OriginalSmimeDetailsImpl smimeDetailsToUpdate)
 			throws MessagingException, IOException {
-		final boolean validSignature = checkSmimePartSignature(mimeBodyPart);
+		final OriginalSmimeDetails verification = verifyIncomingSignature(mimeBodyPart);
 		if (smimeDetailsToUpdate != null) {
-			smimeDetailsToUpdate.completeWithSmimeSignatureValid(validSignature);
+			smimeDetailsToUpdate.completeWith(verification);
 		}
-		if (!validSignature) {
-			LOGGER.warn("Content is S/MIME signed, but signature is not valid; keeping the signed content for parsing.");
+		if (verification.getVerificationStatus() != OriginalSmimeDetails.VerificationStatus.VALID) {
+			LOGGER.warn("Content is S/MIME signed, but signature verification returned {}; keeping the signed content for parsing.",
+					verification.getVerificationStatus());
 		}
 		return extractSignedContent(mimeBodyPart, SmimeMode.SIGNED);
 	}
@@ -919,17 +920,6 @@ public class SMIMESupport implements SMIMEModule {
 		}
 		LOGGER.warn("Content classified as signed, but apparently not using S/MIME; skipping S/MIME interpreter...");
 		return null;
-	}
-
-	private boolean checkSmimePartSignature(final MimeBodyPart mimeBodyPart) {
-		try {
-			return hasSignerInformation(mimeBodyPart) && SmimeCryptoSupport.checkSignature(mimeBodyPart);
-		} catch (SmimeException e) {
-			org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(e);
-			LOGGER.warn("Content is S/MIME signed, but signature verification failed. Reason: {}", e.getMessage());
-			LOGGER.debug("S/MIME attachment signature verification failure: {}", e.getMessage());
-			return false;
-		}
 	}
 
 	@Nullable

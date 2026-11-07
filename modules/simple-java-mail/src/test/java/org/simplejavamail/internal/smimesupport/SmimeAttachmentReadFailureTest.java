@@ -9,7 +9,9 @@ import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.util.concurrent.CancellationException;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +47,29 @@ class SmimeAttachmentReadFailureTest {
         final FailingSource source = new FailingSource(null, null, closing);
         assertFailure(source, decrypt, closing);
         assertThat(source.closed).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void interruptedResourceReadingIsNotAnOrdinarySignatureFailure(final boolean decrypt) {
+        final InterruptedIOException interrupted = new InterruptedIOException("S/MIME content read interrupted");
+        final FailingSource source = new FailingSource(null, interrupted, null);
+        final AttachmentResource attachment = AttachmentResource.builder().withName("smime.p7m").withDataSource(source).build();
+        final SMIMESupport smime = new SMIMESupport();
+        try {
+            assertThatThrownBy(() -> {
+                if (decrypt) {
+                    smime.decryptAttachments(singletonList(attachment), null,
+                            OriginalSmimeDetailsImpl.builder().smimeMode(SIGNED).build());
+                } else {
+                    smime.getSignedByAddress(attachment);
+                }
+            }).isInstanceOf(CancellationException.class).hasCause(interrupted);
+            assertThat(source.opened).isEqualTo(1);
+            assertThat(source.closed).isEqualTo(1);
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     private static void assertFailure(final FailingSource source, final boolean decrypt, final IOException cause) {

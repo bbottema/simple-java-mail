@@ -448,6 +448,19 @@ protected bytes; missing and unknown values retain their existing interpretation
 missing keys and cryptographic failure remain unchanged. This extends the media-type decision under
 [#890](https://github.com/bbottema/simple-java-mail/issues/890) for unreleased 10.0.0; the issue tracks implementation and delivery.
 
+## Signed-only Outlook verification outcomes (accepted 7 November 2026)
+
+Signed-only Outlook message envelopes use the same rich verification result as MIME/EML and opened encrypted envelopes. Preserve
+`VALID` for completed successful verification, `INVALID` for an established signature mismatch, and `ERROR` with its reason when
+verification cannot complete, for example because the signed entity omits its signer certificate. Extractable readable content does
+not turn an error into an invalid signature or establish trust.
+
+This completes the unreleased protection-result contract under [#704](https://github.com/bbottema/simple-java-mail/issues/704).
+Reuse the existing verifier once and keep the current content-extraction and envelope/independent-attachment boundaries. Merge
+selection, retained representations, decryption facts, copying, serialization and interruption/content-failure behavior retain their
+existing owners in [ADR 0040](0040-retained-protected-content-merging.md) and ADRs 0035/0036. No trust policy, certificate lookup,
+application API or extra verification pass is introduced.
+
 ## Opaque signatures inside encrypted S/MIME (accepted 29 October 2026)
 
 Recognize standard `application/pkcs7-mime` and legacy `application/x-pkcs7-mime` opaque signed entities consistently at the
