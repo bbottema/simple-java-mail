@@ -14,6 +14,7 @@ import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEMLByteArray;
+import static org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted;
 
 /** Header-only recognition when ordinary import cannot use the optional cryptographic implementation. */
 final class UnavailableSmimeInspection {
@@ -26,6 +27,7 @@ final class UnavailableSmimeInspection {
         try {
             type = new ContentType(message.getContentType());
         } catch (MessagingException invalidContentType) {
+            rethrowIfInterrupted(invalidContentType);
             // A malformed declaration establishes neither plain content nor a cryptographic failure.
             return Details.builder().smimeMode(SmimeMode.UNKNOWN).build();
         }
