@@ -1,5 +1,10 @@
 # Architecture decision records
 
+The accepted [#704](https://github.com/bbottema/simple-java-mail/issues/704) and [#822](https://github.com/bbottema/simple-java-mail/issues/822)
+declaration-read follow-ups keep unrecognized S/MIME facts unknown, preserve the ordinary source-read observation and propagate typed
+interruption even during unavailable inspection. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#smime-declaration-read-failures-accepted-7-november-2026)
+owns the protection facts; ADRs 0035 and 0041 retain their cancellation, source-evidence and ownership roles.
+
 The accepted [#488](https://github.com/bbottema/simple-java-mail/issues/488) validation follow-up keeps full
 governed MIME preparation separate from sending-resource construction.
 [ADR 0014](0014-send-time-rehearsal.md#cli-preparation-without-sending-resources-accepted-7-november-2026) owns the

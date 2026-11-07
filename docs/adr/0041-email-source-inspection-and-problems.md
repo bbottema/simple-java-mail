@@ -135,6 +135,12 @@ and available source evidence. Isolate component work before committing it to th
 cannot make that buffer a usable artifact. Invalid arguments/options, consumed-source reuse, cancellation, Errors and unrelated application
 or programming failures retain their exception behavior. No catch-all RuntimeException recovery or message-text classification is introduced.
 
+The 7 November #704/#822 declaration clarification retains an initial S/MIME Content-Type read failure as an ordinary source-linked
+import observation, without asserting protection presence or a cryptographic failure. Optional report classification must not prevent
+independently available body or resource interpretation. Temporary reader failure context used between
+modules is not retained as a throwable or live reader on Email. Typed interruption during unavailable inspection still escapes as
+cancellation, including after ordinary body retrieval; it does not become a recovered successful inspection or a new warning policy.
+
 No SourceContentOmissionPolicy, explicit omission acknowledgement or historical-problem send gate is added. Direct and diagnostic conversion
 terminals share the same best-effort behavior. Normal output renders selected normal content; retained sources are not automatically
 added as headers, bodies or attachments. Existing exact/protected authoritative bytes, current output validation, locks and stream/resource

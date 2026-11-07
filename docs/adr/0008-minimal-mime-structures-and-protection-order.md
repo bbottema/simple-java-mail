@@ -286,6 +286,20 @@ and the ordinary MIME interpretation observation. Failure to recognize the decla
 signed or encrypted content; only the latter establishes a cryptographic processing failure. This applies to preprocessing and the later
 root metadata read without changing source/resource ownership, interruption or explicit decryption behavior.
 
+### S/MIME declaration-read failures (accepted 7 November 2026)
+
+The initial root declaration lookup can fail with MessagingException before the optional implementation recognizes any protection.
+Keep mode, verification and decryption UNKNOWN in that case, and retain the ordinary Content-Type read observation with available
+source evidence and readable neighboring content. A later independent-attachment pass must not replace those unestablished root facts
+with confirmed plain content or invent a cryptographic failure. Recognized signed/encrypted envelopes keep their actual processing
+outcomes, protected originals and existing missing-key behavior. This completes [#704](https://github.com/bbottema/simple-java-mail/issues/704).
+
+Unavailable inspection without the implementation follows the same cancellation boundary: apply the existing typed interruption rule
+before recovering a declaration-read failure, including a late lookup after ordinary body retrieval. Preserve the original cause,
+suppressed context and caller thread state; ordinary malformed declarations, noninterrupted failures and socket timeouts remain
+recoverable. This completes [#822](https://github.com/bbottema/simple-java-mail/issues/822). Neither correction adds an application API,
+configuration, trust rule or change to exact/protected source ownership. ADRs 0035 and 0041 retain their failure and observation roles.
+
 ### Unopened S/MIME ciphertext (accepted 23 October 2026)
 
 The same distinction applies when the S/MIME implementation is available but encrypted content cannot be inspected. Retain `KEY_MISSING`

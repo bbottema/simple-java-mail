@@ -300,6 +300,13 @@ acquisition, reading and stream cleanup use the same typed interruption rules as
 the thread interrupt flag to remain set. Preserve the caller's thread state and original failure context, including interrupted causes
 and suppressed failures. Ordinary socket timeouts and other recoverable I/O failures retain completed-block recovery and warnings.
 
+The S/MIME declaration clarification accepted on 7 November 2026 under #704 and #822 applies this distinction before protection is
+recognized and during the late module-absent metadata fallback. An initial declaration-read failure leaves root protection facts UNKNOWN
+with an ordinary source-read observation; it is not a signature or decryption failure. A typed interrupted read remains cancellation
+even after readable content has been obtained. Keep the original failure context and caller thread state, and do not convert unrelated
+application RuntimeException or Error into malformed input. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#smime-declaration-read-failures-accepted-7-november-2026)
+owns the protection-fact decision; exact bytes, content acquisition and independent attachment processing retain their existing owners.
+
 Leniency is not proof of authenticity or permission to retry. Continue verifying signatures over the original bytes, reporting inaccessible ciphertext
 honestly, and preserving exact/protected representations. Do not normalize signed bytes to manufacture a successful verification result.
 The unavailable S/MIME inspection clarification in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#unavailable-smime-inspection-accepted-2026-10-21)
