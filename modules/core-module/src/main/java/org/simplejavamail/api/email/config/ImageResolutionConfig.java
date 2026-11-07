@@ -374,6 +374,7 @@ public class ImageResolutionConfig implements Serializable {
          * <p>
          * Not using this option effectively means a more lenient approach to image sources.
          * References blocked by a configured base boundary count as unresolved.
+         * Malformed image-source URLs also count as unresolved, with or without a configured base. A malformed selected base remains a configuration error.
          * If required resolution fails, the Email builder retains its HTML and embedded images from before that resolution pass.
          * Correcting the source or HTML and building again does not retain unused images from the failed pass.
          * <p>

@@ -240,6 +240,17 @@ it does not introduce resource deduplication or change the separate template-com
 The decision was accepted under [#858](https://github.com/bbottema/simple-java-mail/issues/858) for unreleased 10.0.0. The correction is
 implemented; the issue tracks delivery. Public methods remain unchanged.
 
+### Optional malformed image sources (accepted 7 November 2026)
+
+A malformed HTML image URL is an unresolved source whether or not a valid URL base is configured. The existing required/optional
+resolution choice applies consistently: optional resolution retains that source in the HTML, while required resolution rejects the pass
+and preserves its prior HTML and image resources. Other resolvable images keep their normal behavior and order.
+
+This concerns source text in the HTML, not a selected configuration base. [ADR 0003](0003-immutable-configuration-snapshots.md#email-image-resolution-validation-accepted-2-november-2026)
+still requires that active base to be valid before content access. Containment, locks, source selection, stream ownership and other I/O
+failure behavior remain unchanged. [#972](https://github.com/bbottema/simple-java-mail/issues/972) tracks this correction to published 9.3.9
+behavior in the dynamic-image feature introduced by #260; it adds no API or configuration setting.
+
 ### Quoted automatic-image sources (accepted 27 October 2026)
 
 An automatically resolved image source ends at the same quote that opened its HTML `src` attribute. The other quote is part of the

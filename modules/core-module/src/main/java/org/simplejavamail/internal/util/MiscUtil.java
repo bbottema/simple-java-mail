@@ -30,6 +30,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
@@ -325,10 +326,14 @@ public final class MiscUtil {
 		}
 
 		final URL sourceUrl;
-		if (isCorrectlyFormattedUrl(srcLocation)) {
-			sourceUrl = new URL(srcLocation);
-		} else {
-			sourceUrl = resolveAgainstBaseUrl(baseUrl, srcLocation);
+		try {
+			if (isCorrectlyFormattedUrl(srcLocation)) {
+				sourceUrl = new URL(srcLocation);
+			} else {
+				sourceUrl = resolveAgainstBaseUrl(baseUrl, srcLocation);
+			}
+		} catch (MalformedURLException malformedSource) {
+			return null;
 		}
 
 		if (!allowOutsideBaseUrl && !urlIsWithinBase(baseUrl, sourceUrl)) {
