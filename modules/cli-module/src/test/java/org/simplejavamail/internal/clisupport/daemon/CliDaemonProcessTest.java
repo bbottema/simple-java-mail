@@ -38,20 +38,49 @@ class CliDaemonProcessTest {
 		final Invocation start = invoke(true, "daemon", "start", "--daemon-instance=integration");
 		assertThat(start.exitCode).as(start.output).isZero();
 		try {
-			final Invocation first = invoke(true, validationArguments("localhost"));
+			final String[] primaryProfile = withLoggingOnlyMode(validationArguments("localhost"));
+			final String[] otherHostProfile = withLoggingOnlyMode(validationArguments("smtp.other.example"));
+			final Invocation first = invoke(true, primaryProfile);
 			assertThat(first.exitCode).as(first.output).isZero();
-			final Invocation second = invoke(true, validationArguments("localhost"));
+			final Invocation second = invoke(true, primaryProfile);
 			assertThat(second.exitCode).as(second.output).isZero();
-			final Invocation otherProfile = invoke(true, validationArguments("smtp.other.example"));
+			final Invocation otherProfile = invoke(true, otherHostProfile);
 			assertThat(otherProfile.exitCode).as(otherProfile.output).isZero();
 			final String password = "daemon-password-" + UUID.randomUUID();
 			final String body = "daemon-body-" + UUID.randomUUID();
-			final Invocation secretBearing = invoke(true, secretValidationArguments(password, body));
+			final String[] secretProfile = withLoggingOnlyMode(secretValidationArguments(password, body));
+			final Invocation secretBearing = invoke(true, secretProfile);
 			assertThat(secretBearing.exitCode).as(secretBearing.output).isZero();
+			assertDaemonMailerCount("integration", 0);
 
-			final Invocation status = invoke(true, "daemon", "status", "--daemon-instance=integration");
-			assertThat(status.exitCode).as(status.output).isZero();
-			assertThat(status.output).contains("state=READY", "transport=TCP", "mailers=3");
+			// Real sends construct the retained Mailers; validation only leases a ready matching profile.
+			final Invocation primarySend = invoke(true, asSendCommand(primaryProfile));
+			assertThat(primarySend.exitCode).as(primarySend.output).isZero();
+			assertDaemonMailerCount("integration", 1);
+			final Invocation readyPrimary = invoke(true, primaryProfile);
+			assertThat(readyPrimary.exitCode).as(readyPrimary.output).isZero();
+			final Invocation stillColdOtherHost = invoke(true, otherHostProfile);
+			assertThat(stillColdOtherHost.exitCode).as(stillColdOtherHost.output).isZero();
+			assertDaemonMailerCount("integration", 1);
+
+			final Invocation otherHostSend = invoke(true, asSendCommand(otherHostProfile));
+			assertThat(otherHostSend.exitCode).as(otherHostSend.output).isZero();
+			assertDaemonMailerCount("integration", 2);
+			final Invocation readyOtherHost = invoke(true, otherHostProfile);
+			assertThat(readyOtherHost.exitCode).as(readyOtherHost.output).isZero();
+			final Invocation stillColdSecret = invoke(true, secretProfile);
+			assertThat(stillColdSecret.exitCode).as(stillColdSecret.output).isZero();
+			assertDaemonMailerCount("integration", 2);
+
+			// Logging-only sends log their body, so seed this profile without the validation-only secret body.
+			final Invocation secretProfileSend = invoke(true,
+					asSendCommand(withLoggingOnlyMode(secretValidationArguments(password, "Mailer seed"))));
+			assertThat(secretProfileSend.exitCode).as(secretProfileSend.output).isZero();
+			assertDaemonMailerCount("integration", 3);
+			final Invocation readySecret = invoke(true, secretProfile);
+			assertThat(readySecret.exitCode).as(readySecret.output).isZero();
+
+			assertDaemonMailerCount("integration", 3);
 			try (java.util.stream.Stream<Path> files = Files.walk(stateRoot)) {
 				for (Path file : files.filter(Files::isRegularFile)
 						.filter(path -> !path.getFileName().toString().equals("instance.lock")).toList()) {
@@ -101,7 +130,7 @@ class CliDaemonProcessTest {
 		try {
 			final Invocation status = invoke(true, "daemon", "status", "--daemon-instance=acquire");
 			assertThat(status.exitCode).as(status.output).isZero();
-			assertThat(status.output).contains("mailers=1");
+			assertThat(status.output).contains("state=READY", "transport=TCP", "mailers=0", "recentRequests=1");
 		} finally {
 			final Invocation stop = invoke(true, "daemon", "stop", "--daemon-instance=acquire");
 			assertThat(stop.exitCode).as(stop.output).isZero();
@@ -447,14 +476,23 @@ class CliDaemonProcessTest {
 				new String[] { "daemon", "start", "--daemon-instance=no-batch" }, classPath));
 		assertThat(start.exitCode).as(start.output).isZero();
 		try {
-			final Invocation first = invoke(command(true, validationArguments("localhost", "no-batch"), classPath));
-			final Invocation second = invoke(command(true, validationArguments("localhost", "no-batch"), classPath));
+			final String[] profile = withLoggingOnlyMode(validationArguments("localhost", "no-batch"));
+			final Invocation first = invoke(command(true, profile, classPath));
+			final Invocation second = invoke(command(true, profile, classPath));
 			assertThat(first.exitCode).as(first.output).isZero();
 			assertThat(second.exitCode).as(second.output).isZero();
-			final Invocation status = invoke(command(true,
-					new String[] { "daemon", "status", "--daemon-instance=no-batch" }, classPath));
-			assertThat(status.exitCode).as(status.output).isZero();
-			assertThat(status.output).contains("mailers=1");
+			assertDaemonMailerCount("no-batch", 0, classPath);
+
+			final Invocation send = invoke(command(true, asSendCommand(profile), classPath));
+			assertThat(send.exitCode).as(send.output).isZero();
+			assertDaemonMailerCount("no-batch", 1, classPath);
+			final Invocation readyFirst = invoke(command(true, profile, classPath));
+			final Invocation readySecond = invoke(command(true, profile, classPath));
+			final Invocation reusedSend = invoke(command(true, asSendCommand(profile), classPath));
+			assertThat(readyFirst.exitCode).as(readyFirst.output).isZero();
+			assertThat(readySecond.exitCode).as(readySecond.output).isZero();
+			assertThat(reusedSend.exitCode).as(reusedSend.output).isZero();
+			assertDaemonMailerCount("no-batch", 1, classPath);
 		} finally {
 			final Invocation stop = invoke(command(true,
 					new String[] { "daemon", "stop", "--daemon-instance=no-batch" }, classPath));
@@ -523,6 +561,31 @@ class CliDaemonProcessTest {
 				"--email:to", "Recipient", "recipient@example.com",
 				"--mailer:withSMTPServer", smtpHost, "25"
 		};
+	}
+
+	private static String[] withLoggingOnlyMode(final String[] arguments) {
+		final String[] loggingOnlyArguments = Arrays.copyOf(arguments, arguments.length + 2);
+		loggingOnlyArguments[arguments.length] = "--mailer:withTransportModeLoggingOnly";
+		loggingOnlyArguments[arguments.length + 1] = "true";
+		return loggingOnlyArguments;
+	}
+
+	private static String[] asSendCommand(final String[] validationArguments) {
+		final String[] sendArguments = validationArguments.clone();
+		sendArguments[0] = "send";
+		return sendArguments;
+	}
+
+	private void assertDaemonMailerCount(final String instance, final int count) throws Exception {
+		assertDaemonMailerCount(instance, count, System.getProperty("java.class.path"));
+	}
+
+	private void assertDaemonMailerCount(final String instance, final int count, final String classPath) throws Exception {
+		final Invocation status = invoke(command(true,
+				new String[] { "daemon", "status", "--daemon-instance=" + instance }, classPath));
+		assertThat(status.exitCode).as(status.output).isZero();
+		assertThat(status.output).contains("state=READY", "transport=TCP", "activeMailerLeases=0", "mailerCloseFailures=0");
+		assertThat(value(status.output, "mailers")).as(status.output).isEqualTo(Integer.toString(count));
 	}
 
 	private static void assertThinClassLoading(final Invocation invocation) {
