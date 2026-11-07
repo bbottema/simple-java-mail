@@ -663,10 +663,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	}
 
 	private static boolean isOpenPgpMime(final MimeMessage mimeMessage) throws MessagingException {
-		if (!mimeMessage.isMimeType("multipart/signed") && !mimeMessage.isMimeType("multipart/encrypted")) {
+		final boolean protectedType = mimeMessage.isMimeType("multipart/signed") || mimeMessage.isMimeType("multipart/encrypted");
+		// Native matching tolerates malformed declarations; a negative match alone cannot establish plain content.
+		final ContentType contentType = new ContentType(mimeMessage.getContentType());
+		if (!protectedType) {
 			return false;
 		}
-		final String protocol = new ContentType(mimeMessage.getContentType()).getParameter("protocol");
+		final String protocol = contentType.getParameter("protocol");
 		return "application/pgp-signature".equalsIgnoreCase(protocol)
 				|| "application/pgp-encrypted".equalsIgnoreCase(protocol);
 	}
