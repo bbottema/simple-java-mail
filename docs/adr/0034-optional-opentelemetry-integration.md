@@ -221,8 +221,10 @@ Use SJM-namespaced instruments where no applicable semantic convention exists, a
 Counts do not establish billing, provider quotas or final delivery. Never derive exact counts from bounded diagnostic histories.
 
 Reuse the logical-send observation UUID for span/log correlation, including telemetry-only sends. It remains different from a TraceId,
-Message-ID, ENVID or business deduplication key. Never use per-send identifiers as metric labels. Generate none when telemetry, progress
-and result observation are all absent.
+Message-ID, ENVID or business deduplication key. Never use per-send identifiers as metric labels. The shared identity is generated once
+for every logical send, including when reporting is disabled, as recorded in
+[ADR 0012](0012-terminal-send-observation.md#handler-lifetime-and-application-correlation-accepted-19-october-2026) and
+[ADR 0032](0032-live-mail-send-progress.md#decision). Disabled telemetry does not create a span or enable progress/result reporting.
 
 ### Privacy, overhead and lifecycle
 
