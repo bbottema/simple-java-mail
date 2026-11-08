@@ -1,5 +1,12 @@
 # Architecture decision records
 
+The accepted 8 November [#967](https://github.com/bbottema/simple-java-mail/issues/967) follow-up keeps unused SMTP credentials and pool
+registration inactive when CustomMailer owns delivery, including with optional batch support. [ADR 0038](0038-connection-configuration-conflicts.md#inactive-oauth-settings-with-custommailer-accepted-8-november-2026)
+owns the inactive-route boundary. The [#726](https://github.com/bbottema/simple-java-mail/issues/726) follow-up closes a simple batch's
+acquired transport after lifecycle setup failure while preserving primary/suppressed failures and cancellation-through-close ordering;
+[ADR 0015](0015-execution-views-and-transport-pooling.md#simple-batch-setup-cleanup-accepted-8-november-2026) owns that cleanup boundary.
+Both issues track implementation and delivery separately from the accepted decisions.
+
 The accepted 8 November [#973](https://github.com/bbottema/simple-java-mail/issues/973) correction preserves interrupted automatic-image
 reads during composition and conversion, retaining required-read causes while ordinary optional misses and socket timeouts keep their
 existing behavior. ADRs [0035](0035-tolerant-reading-and-strict-production.md) and [0036](0036-structural-message-snapshots-and-borrowed-content.md)
