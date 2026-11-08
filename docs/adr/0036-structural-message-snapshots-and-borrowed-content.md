@@ -251,6 +251,15 @@ still requires that active base to be valid before content access. Containment, 
 failure behavior remain unchanged. [#972](https://github.com/bbottema/simple-java-mail/issues/972) tracks this correction to published 9.3.9
 behavior in the dynamic-image feature introduced by #260; it adds no API or configuration setting.
 
+### Interrupted automatic-image reads (accepted 8 November 2026)
+
+An image-resolution interruption leaves the draft's HTML and image resources unchanged, including when an earlier source in the pass
+was successfully resolved. Preserve already supplied image occurrences and close every stream acquired by URL/classpath loading.
+If reading and closing both fail, retain the first failure with the cleanup failure suppressed; do not let cleanup replace the read
+context. A required read failure retains its cause. The cancellation boundary belongs to [ADR 0035](0035-tolerant-reading-and-strict-production.md#automatic-image-interruption-accepted-8-november-2026).
+[#973](https://github.com/bbottema/simple-java-mail/issues/973) applies it during ordinary composition and conversion while preserving
+source order, containment, locks, borrowed file content and ordinary unresolved-source behavior. It adds no API or setting.
+
 ### Quoted automatic-image sources (accepted 27 October 2026)
 
 An automatically resolved image source ends at the same quote that opened its HTML `src` attribute. The other quote is part of the

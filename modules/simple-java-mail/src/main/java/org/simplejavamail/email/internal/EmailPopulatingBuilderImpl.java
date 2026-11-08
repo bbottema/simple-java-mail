@@ -93,6 +93,7 @@ import static org.simplejavamail.email.internal.EmailException.ERROR_PARSING_URL
 import static org.simplejavamail.email.internal.EmailException.ERROR_READING_FROM_FILE;
 import static org.simplejavamail.email.internal.EmailException.ERROR_RESOLVING_IMAGE_DATASOURCE;
 import static org.simplejavamail.email.internal.EmailException.NAME_MISSING_FOR_EMBEDDED_IMAGE;
+import static org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted;
 import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 import static org.simplejavamail.internal.util.MiscUtil.randomCid10;
 import static org.simplejavamail.internal.util.MiscUtil.tryResolveFileDataSourceFromClassPath;
@@ -700,7 +701,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				resolvedDataSource = tryResolveFileDataSourceFromClassPath(embeddedImageBaseClassPath, allowEmbeddedImageOutsideBaseClassPath, srcLocation);
 			}
 			if (resolvedDataSource == null && embeddedImageAutoResolutionForURLs) {
-				resolvedDataSource = tryResolveUrlDataSource(embeddedImageBaseUrl, allowEmbeddedImageOutsideBaseUrl, srcLocation);
+				resolvedDataSource = resolveDynamicImageUrl(srcLocation);
 			}
 			if (resolvedDataSource == null) {
 				boolean autoresolutionWasAttempted = embeddedImageAutoResolutionForFiles || embeddedImageAutoResolutionForClassPathResources || embeddedImageAutoResolutionForURLs;
@@ -711,9 +712,21 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 				return resolvedDataSource;
 			}
 		} catch (IOException e) {
-			// unable to load datasource
+			rethrowIfInterrupted(e);
+			throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation), e);
 		}
 		throw new EmailException(format(ERROR_RESOLVING_IMAGE_DATASOURCE, srcLocation));
+	}
+
+	@Nullable
+	private DataSource resolveDynamicImageUrl(final String srcLocation) throws IOException {
+		try {
+			return tryResolveUrlDataSource(embeddedImageBaseUrl, allowEmbeddedImageOutsideBaseUrl, srcLocation);
+		} catch (IOException failure) {
+			rethrowIfInterrupted(failure);
+			if (embeddedImageAutoResolutionMustBeSuccesful) throw failure;
+			return null;
+		}
 	}
 
 	/**

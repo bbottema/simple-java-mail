@@ -288,6 +288,16 @@ This applies the comment grammar in [RFC 2045 section 1](https://www.rfc-editor.
 delegation decision, and was accepted under [#856](https://github.com/bbottema/simple-java-mail/issues/856) for unreleased 10.0.0. The issue
 records delivery of the implementation.
 
+## Automatic-image interruption (accepted 8 November 2026)
+
+Automatic image resolution follows the same interruption boundary during composition and conversion. An interrupted source open,
+read or stream close cancels the operation even when an unresolved image would otherwise be optional. Preserve the original failure,
+its interrupted causes and suppressed cleanup failures, and the caller's thread state. An ordinary socket timeout alone does not
+establish interruption. A required image read failure retains its cause; ordinary optional URL failures and existing classpath read
+failure behavior remain unchanged. [#973](https://github.com/bbottema/simple-java-mail/issues/973) corrects published 9.3.9 behavior
+in the dynamic-image feature introduced by #260, without a new application API or configuration option. ADR 0036 retains stream
+ownership, source selection and the atomic image-resolution pass.
+
 ## Failure and security boundaries
 
 An optional interpretation failing is different from failing to obtain the message content the caller requested. For example, optional delivery-report

@@ -449,11 +449,13 @@ public interface CliEmailConfigurationBuilder {
 	 * <p>
 	 * Not using this option effectively means a more lenient approach to image sources.
 	 * References blocked by a configured base boundary count as unresolved.
+	 * Interrupted image I/O remains an error even when resolution is optional. Required image read failures retain their original causes.
 	 * <p>
 	 * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
 	 * when viewing the email in some client (e.g. relative url's).
 	 *
 	 * @param embeddedImageAutoResolutionMustBeSuccesful Whether auto resolution is enforced and bubbles up failure to do so.
+	 * @see org.simplejavamail.api.email.config.ImageResolutionConfig.Builder#embeddedImageAutoResolutionMustBeSuccesful(boolean)
 	 */
 	EmailPopulatingBuilder embeddedImageAutoResolutionMustBeSuccesful(final boolean embeddedImageAutoResolutionMustBeSuccesful);
 

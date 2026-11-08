@@ -279,6 +279,7 @@ public final class MiscUtil {
 			}
 			return dataSource;
 		} catch (IOException | InvalidPathException e) {
+			InterruptedIoGuard.rethrowIfInterrupted(e);
 			return allowOutsideBaseDir ? tryLoadingFromDiskWithoutBase(srcLocation, sourceDirectory) : null;
 		}
 	}
@@ -351,6 +352,7 @@ public final class MiscUtil {
 			}
 			return tryLoadingFromDisk(realSourcePath.toFile());
 		} catch (IOException | InvalidPathException e) {
+			InterruptedIoGuard.rethrowIfInterrupted(e);
 			return null;
 		}
 	}
@@ -385,24 +387,21 @@ public final class MiscUtil {
 	private static DataSource tryLoadingFromClassPath(final @NotNull String resourceName)
 			throws IOException {
 		final String cleanResourceName = resourceName.replaceAll("//", "/");
-		final InputStream is = MiscUtil.class.getResourceAsStream(cleanResourceName);
-
-		if (is != null) {
-			try {
+		try (InputStream is = MiscUtil.class.getResourceAsStream(cleanResourceName)) {
+			if (is != null) {
 				final String mimeType = ImageMimeType.getContentType(resourceName);
 				final ByteArrayDataSource ds = new ByteArrayDataSource(is, mimeType);
 				// EMAIL-125: set the name of the DataSource to the normalized resource URL similar to other DataSource implementations, e.g. FileDataSource, URLDataSource
 				ds.setName(MiscUtil.class.getResource(cleanResourceName).toString());
 				return ds;
-			} finally {
-				is.close();
 			}
 		}
 		return null;
 	}
 
 	@Nullable
-	private static DataSource tryLoadingFromUrl(@NotNull final URL sourceUrl, @Nullable final URL baseUrl, final boolean allowOutsideBaseUrl) {
+	private static DataSource tryLoadingFromUrl(@NotNull final URL sourceUrl, @Nullable final URL baseUrl, final boolean allowOutsideBaseUrl)
+			throws IOException {
 		URL currentUrl = sourceUrl;
 		for (int redirectCount = 0; redirectCount <= MAX_URL_REDIRECTS; redirectCount++) {
 			if (baseUrl != null && !allowOutsideBaseUrl && !urlIsWithinBase(baseUrl, currentUrl)) {
@@ -418,7 +417,6 @@ public final class MiscUtil {
 					final int responseCode = httpConnection.getResponseCode();
 					if (isRedirectResponse(responseCode)) {
 						final String location = httpConnection.getHeaderField("Location");
-						httpConnection.disconnect();
 						if (location == null || redirectCount == MAX_URL_REDIRECTS) {
 							return null;
 						}
@@ -432,16 +430,14 @@ public final class MiscUtil {
 					final ByteArrayDataSource dataSource = new ByteArrayDataSource(readInputStreamToBytes(inputStream), contentType);
 					dataSource.setName(currentUrl.toExternalForm());
 					return dataSource;
-				} finally {
-					if (connection instanceof HttpURLConnection) {
-						((HttpURLConnection) connection).disconnect();
-					}
 				}
-			} catch (IOException | IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
+				InterruptedIoGuard.rethrowIfInterrupted(e);
+				return null;
+			} finally {
 				if (connection instanceof HttpURLConnection) {
 					((HttpURLConnection) connection).disconnect();
 				}
-				return null;
 			}
 		}
 		return null;

@@ -378,6 +378,11 @@ public class ImageResolutionConfig implements Serializable {
          * If required resolution fails, the Email builder retains its HTML and embedded images from before that resolution pass.
          * Correcting the source or HTML and building again does not retain unused images from the failed pass.
          * <p>
+         * Interrupted image I/O cancels composition or conversion with {@link java.util.concurrent.CancellationException}, even when
+         * resolution is optional. The original failure and suppressed cleanup failures remain available through its cause, and the
+         * caller's thread interrupt state is preserved. Ordinary URL socket timeouts still count as unresolved sources. A required
+         * image read failure retains its original cause; an actual classpath read failure remains an error even in optional mode.
+         * <p>
          * Note: It also allows you to work with URL's as image sources that can't be resolved at time of sending, but that makes sense
          * when viewing the email in some client (e.g. relative url's).
          *
