@@ -667,13 +667,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	}
 
 	private static boolean isOpenPgpMime(final MimeMessage mimeMessage) throws MessagingException {
-		final boolean protectedType = mimeMessage.isMimeType("multipart/signed") || mimeMessage.isMimeType("multipart/encrypted");
+		final boolean signed = mimeMessage.isMimeType("multipart/signed");
+		final boolean encrypted = !signed && mimeMessage.isMimeType("multipart/encrypted");
 		// Native matching tolerates malformed declarations; a negative match alone cannot establish plain content.
 		final ContentType contentType = new ContentType(mimeMessage.getContentType());
-		if (!protectedType) {
+		if (!signed && !encrypted) {
 			return false;
 		}
 		final String protocol = contentType.getParameter("protocol");
+		if (signed && "application/pgp-encrypted".equalsIgnoreCase(protocol)
+				|| encrypted && "application/pgp-signature".equalsIgnoreCase(protocol)) {
+			throw new MessagingException("The OpenPGP MIME type conflicts with its protocol");
+		}
 		return "application/pgp-signature".equalsIgnoreCase(protocol)
 				|| "application/pgp-encrypted".equalsIgnoreCase(protocol);
 	}

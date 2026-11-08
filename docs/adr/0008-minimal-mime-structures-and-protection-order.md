@@ -379,6 +379,19 @@ incoming processing. It adds no optional-module dependency or S/MIME validation 
 The maintainer accepted both follow-ups under [#704](https://github.com/bbottema/simple-java-mail/issues/704) for unreleased 10.0.0. They add
 no application API, receive option, alternate header authority or broader recursive processing. The issue tracks implementation and delivery.
 
+### Contradictory OpenPGP declarations (accepted 8 November 2026)
+
+The MIME subtype and protocol must identify the same OpenPGP protection form. A declaration of `multipart/encrypted` with
+`application/pgp-signature`, or `multipart/signed` with `application/pgp-encrypted`, establishes neither a valid protected envelope nor
+plain content. Keep mode, signature status and decryption status UNKNOWN across ordinary and exact import, fluent and static entry
+points, and optional-module presence or absence. Preserve readable neighbors and available source evidence without inventing a
+cryptographic failure. The existing nested-processing boundary still owns previously established outer results.
+
+Correctly paired OpenPGP declarations retain their existing byte-preserving processing and key outcomes. Ordinary non-OpenPGP and S/MIME
+declarations retain their current meanings. This follows the existing S/MIME UNKNOWN rule when a declaration cannot establish protection;
+it adds no application API, receive setting, trust policy or released migration obligation. The maintainer accepted implementation and
+delivery under [#704](https://github.com/bbottema/simple-java-mail/issues/704) as completion of the unreleased OpenPGP feature.
+
 ## Exact EML incoming facts (accepted 1 November 2026)
 
 [ADR 0013](0013-exact-eml-submission.md#automatic-incoming-protection-inspection-accepted-1-november-2026) clarifies that exact construction

@@ -293,12 +293,18 @@ public final class OpenPgpSupport implements OpenPgpModule {
         final boolean signed = message.isMimeType("multipart/signed");
         // Native type matching can return false for a malformed declaration rather than reporting its parse failure.
         final ContentType contentType = new ContentType(message.getContentType());
+        if (signed && "application/pgp-encrypted".equalsIgnoreCase(contentType.getParameter("protocol"))) {
+            throw new MessagingException("The OpenPGP MIME type conflicts with its protocol");
+        }
         return signed && "application/pgp-signature".equalsIgnoreCase(contentType.getParameter("protocol"));
     }
 
     private static boolean isOpenPgpEncrypted(final MimeMessage message) throws MessagingException {
         final boolean encrypted = message.isMimeType("multipart/encrypted");
         final ContentType contentType = new ContentType(message.getContentType());
+        if (encrypted && "application/pgp-signature".equalsIgnoreCase(contentType.getParameter("protocol"))) {
+            throw new MessagingException("The OpenPGP MIME type conflicts with its protocol");
+        }
         return encrypted && "application/pgp-encrypted".equalsIgnoreCase(contentType.getParameter("protocol"));
     }
 

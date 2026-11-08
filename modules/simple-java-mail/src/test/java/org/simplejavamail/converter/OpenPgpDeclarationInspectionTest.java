@@ -22,11 +22,13 @@ import java.io.File;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,6 +39,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OpenPgpDeclarationInspectionTest {
+
+    private static final String[] CONTRADICTORY_TYPES = {
+            "multipart/encrypted; boundary=crossed; protocol=\"application/pgp-signature\"",
+            "multipart/signed; boundary=crossed; protocol=\"application/pgp-encrypted\""
+    };
 
     @TempDir
     Path childOutput;
@@ -60,6 +67,73 @@ class OpenPgpDeclarationInspectionTest {
                                 assertThat(SimpleJavaMail.fromDefaults().converter().fromEmail(received).toEmlBytes()).containsExactly(source);
                             }
                         })));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> contradictoryProtectionDeclarationsRemainUnknown() {
+        return Arrays.stream(CONTRADICTORY_TYPES).flatMap(type ->
+                Stream.of("fluent-eml", "static-eml", "fluent-mime", "static-mime", "exact").map(route ->
+                        DynamicTest.dynamicTest(type + " / " + route, () -> assertContradictory(type, route))));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> contradictoryProtectionDoesNotSerializeBorrowedMimeContent() {
+        return Arrays.stream(CONTRADICTORY_TYPES).map(type -> DynamicTest.dynamicTest(type, () -> {
+            final AtomicInteger serializations = new AtomicInteger();
+            final MimeMessage supplied = new MimeMessage(Session.getInstance(new Properties()),
+                    new ByteArrayInputStream(contradictorySource(type))) {
+                @Override
+                public void writeTo(final OutputStream output) throws java.io.IOException, MessagingException {
+                    serializations.incrementAndGet();
+                    super.writeTo(output);
+                }
+            };
+
+            final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied)
+                    .withFetchAttachmentData(false).toEmail();
+
+            assertUnknown(received.getOriginalOpenPgpDetails());
+            assertThat(received.getPlainText()).isEqualTo("Readable neighboring body");
+            assertThat(serializations).as("an unestablished envelope needs no protected-byte snapshot").hasValue(0);
+        }));
+    }
+
+    private static void assertContradictory(final String type, final String route) throws Exception {
+        final byte[] source = contradictorySource(type);
+        final Email received = read(source, route);
+
+        assertUnknown(received.getOriginalOpenPgpDetails());
+        assertThat(received.getSubject()).isEqualTo("Readable subject");
+        assertThat(received.getPlainText()).isEqualTo("Readable neighboring body");
+        assertThat(received.getSourceData().getHeaders()).extracting(EmailSourceHeader::getRawValue).contains(type);
+        assertThat(received.getProblems()).noneMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED
+                || problem.getCode() == EmailProblem.Code.SIGNATURE_INVALID);
+        assertUnknown(SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail().getOriginalOpenPgpDetails());
+        assertUnknown(roundTrip(received).getOriginalOpenPgpDetails());
+        if (route.equals("exact")) {
+            assertThat(SimpleJavaMail.fromDefaults().converter().fromEmail(received).toEmlBytes()).containsExactly(source);
+        }
+    }
+
+    @Test
+    void successfulNativeTypeMatchingRetainsItsAuthority() throws Exception {
+        assertNativeTypeAuthority();
+    }
+
+    private static void assertNativeTypeAuthority() throws Exception {
+        final MimeMessage supplied = new MimeMessage(Session.getInstance(new Properties()),
+                new ByteArrayInputStream(contradictorySource(CONTRADICTORY_TYPES[0]))) {
+            @Override
+            public boolean isMimeType(final String type) throws MessagingException {
+                if (type.equals("multipart/signed")) return true;
+                if (type.equals("multipart/encrypted")) return false;
+                return super.isMimeType(type);
+            }
+        };
+
+        final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied).toEmail();
+
+        assertThat(received.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.SIGNED);
     }
 
     @Test
@@ -166,6 +240,12 @@ class OpenPgpDeclarationInspectionTest {
             assertThatThrownBy(() -> Class.forName("org.simplejavamail.internal.openpgpsupport.OpenPgpSupport"))
                     .isInstanceOf(ClassNotFoundException.class);
             assertThat(ModuleLoader.openPgpModuleAvailable()).isFalse();
+            assertNativeTypeAuthority();
+            for (String type : CONTRADICTORY_TYPES) {
+                for (String route : new String[] {"fluent-eml", "static-eml", "fluent-mime", "static-mime", "exact"}) {
+                    assertContradictory(type, route);
+                }
+            }
             for (String type : new String[] {"not-a-content-type", "text/plain; =broken"}) {
                 for (String route : new String[] {"fluent-eml", "static-eml", "fluent-mime", "static-mime", "exact"}) {
                     final Email received = read(source(type), route);
@@ -240,6 +320,13 @@ class OpenPgpDeclarationInspectionTest {
         return ("From: sender@example.org\r\nTo: reader@example.org\r\nSubject: Readable subject\r\n"
                 + "Message-ID: <declaration@example.org>\r\nMIME-Version: 1.0\r\n"
                 + (type == null ? "" : "Content-Type: " + type + "\r\n") + "\r\nOrdinary content\r\n").getBytes(UTF_8);
+    }
+
+    private static byte[] contradictorySource(final String type) {
+        return ("From: sender@example.org\r\nTo: reader@example.org\r\nSubject: Readable subject\r\n"
+                + "Message-ID: <crossed@example.org>\r\nMIME-Version: 1.0\r\nContent-Type: " + type + "\r\n\r\n"
+                + "--crossed\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nReadable neighboring body\r\n"
+                + "--crossed--\r\n").getBytes(UTF_8);
     }
 
     private static void assertUnknown(final OriginalOpenPgpDetails details) {
