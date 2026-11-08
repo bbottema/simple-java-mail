@@ -4,16 +4,21 @@ import jakarta.mail.Header;
 import jakarta.mail.internet.MimeMessage;
 import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.Entry;
+import org.apache.poi.poifs.filesystem.EntryUtils;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.OutlookConversion;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceHeader;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigLoader;
@@ -21,6 +26,8 @@ import org.simplejavamail.config.ConfigLoader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -137,15 +144,198 @@ class OutlookReceiptHeaderRoutesTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("uninterpretableNestedFields")
+    void nestedAddressRecoveryRetainsTheChildObservationAndSource(final String field, final String value,
+            final EmailProblem.Code code) throws Exception {
+        final byte[] directMsg = OutlookAddressImportTest.withAddressHeader(field, value);
+        final Email direct = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(directMsg)).toEmail();
+        assertThat(direct.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(code);
+            assertThat(problem.getLocation()).isEqualTo(field + "[0]");
+            assertThat(problem.getSourceValue()).isEqualTo(value);
+        });
+        final int nestedCount = 1;
+        final String nestedId = "<nested-recovery@example.org>";
+        final String headers = "From: nested@example.org\r\nTo: reader@example.org\r\n"
+                + "Message-ID: " + nestedId + "\r\n" + field + ": " + value + "\r\n"
+                + "Comments: =?X-NO-SUCH-CHARSET?Q?deliberately_unused?=\r\n";
+        final byte[] msg = nestedMsg(headers);
+        for (final Email parent : Arrays.asList(MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail(),
+                EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(msg)))) {
+            assertNestedRecovery(parent, field, value, code, nestedCount);
+            final Email copy = MAIL.emailBuilder().copying(parent).fixingMessageId("<copy@example.org>").buildEmail();
+            assertNestedRecovery(copy, field, value, code, nestedCount);
+            assertThat(copy.getProblems()).containsExactlyElementsOf(parent.getProblems());
+            assertThat(copy.getSourceData()).isSameAs(parent.getSourceData());
+
+            final ByteArrayOutputStream serialized = new ByteArrayOutputStream();
+            try (ObjectOutputStream output = new ObjectOutputStream(serialized)) { output.writeObject(copy); }
+            try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(serialized.toByteArray()))) {
+                final Email restored = (Email) input.readObject();
+                assertNestedRecovery(restored, field, value, code, nestedCount);
+                assertThat(restored.getProblems()).extracting(problem -> problem.getOrigin().getReference())
+                        .containsExactlyElementsOf(parent.getProblems().stream().map(problem -> problem.getOrigin().getReference())
+                                .collect(java.util.stream.Collectors.toList()));
+            }
+            assertThat(parent.getPlainText()).isNotEmpty();
+            assertThat(parent.getDispositionNotificationToRecipients()).isEmpty();
+            assertThat(parent.getReturnReceiptToRecipients()).isEmpty();
+            assertThat(parent.getAttachments()).anySatisfy(attachment ->
+                    assertThat(attachment.getDataSource().getContentType()).startsWith("message/rfc822"));
+        }
+    }
+
+    static Stream<Arguments> uninterpretableNestedFields() {
+        return Stream.of("Disposition-Notification-To", "Return-Receipt-To", "Return-Path").flatMap(field -> Stream.of(
+                Arguments.of(field, ",", EmailProblem.Code.FIELD_NOT_INTERPRETED),
+                Arguments.of(field, "=?X-NO-SUCH-CHARSET?Q?Name?= <receipt@example.org>", EmailProblem.Code.VALUE_NOT_DECODED)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To", "Return-Path"})
+    void nestedLenientAddressInterpretationRetainsTheExistingNoProblemPolicy(final String field) throws Exception {
+        final String value = "broken <address";
+        final byte[] direct = OutlookAddressImportTest.withAddressHeader(field, value);
+        assertThat(MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(direct)).toEmail().getProblems()).isEmpty();
+        final byte[] msg = nestedMsg("From: nested@example.org\r\nTo: reader@example.org\r\n" + field + ": " + value + "\r\n");
+        final Email parent = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
+        assertThat(parent.getProblems()).isEmpty();
+        for (AttachmentResource attachment : parent.getAttachments()) {
+            if (attachment.getDataSource().getContentType().startsWith("message/rfc822")) {
+                final MimeMessage nested = MAIL.converter().fromEml(attachment.readAllBytes()).toMimeMessage();
+                assertThat(nested.getHeader(field, null)).contains(value);
+            }
+        }
+    }
+
+    @Test
+    void anUnselectedNestedReplyToRemainsSourceEvidenceWithoutAnObservation() throws Exception {
+        final String value = "=?X-NO-SUCH-CHARSET?Q?Name?= <reply@example.org>";
+        final byte[] msg = nestedMsg("From: nested@example.org\r\nTo: reader@example.org\r\nReply-To: " + value + "\r\n");
+        final Email parent = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
+        assertThat(parent.getProblems()).isEmpty();
+        final List<EmailSourceHeader> captured = new ArrayList<>();
+        for (EmailSourcePart part : parent.getSourceData().getParts()) collectHeaders(part, captured);
+        assertThat(captured).anySatisfy(header -> {
+            assertThat(header.getName()).isEqualTo("Reply-To");
+            assertThat(header.getRawValue()).isEqualTo(value);
+        });
+        for (AttachmentResource attachment : parent.getAttachments()) {
+            if (attachment.getDataSource().getContentType().startsWith("message/rfc822")) {
+                final MimeMessage nested = MAIL.converter().fromEml(attachment.readAllBytes()).toMimeMessage();
+                assertThat(nested.getHeader("Reply-To", null)).isNull();
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void siblingAndDeeperRecoveriesKeepDistinctOriginsEvenWhenMessageIdsAreAbsentOrEqual(final boolean withId) throws Exception {
+        final byte[] msg;
+        final String sharedId = withId ? "<shared-nested@example.org>" : null;
+        final String field = "Disposition-Notification-To";
+        try (InputStream input = getFixture(); InputStream templateInput = getFixture();
+                POIFSFileSystem file = new POIFSFileSystem(input); POIFSFileSystem template = new POIFSFileSystem(templateInput)) {
+            final DirectoryNode firstAttachment = attachedMessage(file.getRoot());
+            final DirectoryNode firstChild = (DirectoryNode) firstAttachment.getEntry("__substg1.0_3701000D");
+            final DirectoryNode originalAttachment = attachedMessage(template.getRoot());
+            copyAttachment(originalAttachment, file.getRoot(), "__attach_version1.0_#0000F001");
+            copyAttachment(originalAttachment, firstChild, "__attach_version1.0_#0000F002");
+            final String headers = "From: nested@example.org\r\nTo: reader@example.org\r\n"
+                    + (withId ? "Message-ID: " + sharedId + "\r\n" : "") + field + ": ,\r\n";
+            assertThat(replaceNestedHeaders(file.getRoot(), true, headers)).isEqualTo(3);
+            replaceNestedIds(file.getRoot(), sharedId);
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            file.writeFilesystem(output);
+            msg = output.toByteArray();
+        }
+        final Email parent = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
+        assertNestedRecovery(parent, field, ",", EmailProblem.Code.FIELD_NOT_INTERPRETED, 3);
+        assertThat(parent.getProblems()).extracting(problem -> problem.getOrigin().getReference()).doesNotHaveDuplicates();
+        assertThat(parent.getProblems()).extracting(EmailProblem::getLocation).doesNotHaveDuplicates();
+        assertThat(parent.getProblems()).extracting(problem -> problem.getOrigin().getMessageId())
+                .containsExactly(sharedId, sharedId, sharedId);
+        assertThat(parent.getProblems()).anySatisfy(problem ->
+                assertThat(problem.getLocation().split("/message/", -1)).hasSize(3));
+    }
+
+    private static InputStream getFixture() {
+        return OutlookReceiptHeaderRoutesTest.class.getResourceAsStream("/test-messages/#298 Email with nested msg.msg");
+    }
+
+    private static byte[] nestedMsg(final String headers) throws Exception {
+        try (InputStream input = getFixture(); POIFSFileSystem file = new POIFSFileSystem(input)) {
+            assertThat(replaceNestedHeaders(file.getRoot(), true, headers)).isEqualTo(1);
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            file.writeFilesystem(output);
+            return output.toByteArray();
+        }
+    }
+
+    private static DirectoryNode attachedMessage(final DirectoryNode node) throws Exception {
+        for (Entry entry : node) {
+            if (entry.isDirectoryEntry() && ((DirectoryNode) entry).hasEntry("__substg1.0_3701000D")) return (DirectoryNode) entry;
+        }
+        throw new AssertionError("The fixture must contain an embedded MSG");
+    }
+
+    private static void copyAttachment(final DirectoryNode source, final DirectoryNode target, final String name) throws Exception {
+        final DirectoryNode copied = (DirectoryNode) target.createDirectory(name);
+        for (Entry entry : source) EntryUtils.copyNodeRecursively(entry, copied);
+    }
+
+    private static void replaceNestedIds(final DirectoryNode node, final String id) throws Exception {
+        if ("__substg1.0_3701000D".equalsIgnoreCase(node.getName())) {
+            for (String type : List.of("001E", "001F")) {
+                final String name = "__substg1.0_1035" + type;
+                if (node.hasEntry(name)) node.getEntry(name).delete();
+            }
+            if (id != null) node.createDocument("__substg1.0_1035001F",
+                    new ByteArrayInputStream((id + '\0').getBytes(StandardCharsets.UTF_16LE)));
+        }
+        for (Entry entry : node) if (entry.isDirectoryEntry()) replaceNestedIds((DirectoryNode) entry, id);
+    }
+
+    private static void assertNestedRecovery(final Email parent, final String field, final String value,
+            final EmailProblem.Code code, final int count) {
+        assertThat(parent.getProblems()).hasSize(count);
+        final List<EmailSourceHeader> headers = new ArrayList<>();
+        for (EmailSourcePart part : parent.getSourceData().getParts()) collectHeaders(part, headers);
+        for (EmailProblem problem : parent.getProblems()) {
+            assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
+            assertThat(problem.getCode()).isEqualTo(code);
+            assertThat(problem.getLocation()).startsWith("source/parts[").endsWith("/message/" + field + "[0]");
+            assertThat(problem.getSourceValue()).isEqualTo(value);
+            assertThat(problem.getOrigin().getReference()).isNotEqualTo(parent.getSourceData().getOrigin().getReference());
+            assertThat(problem.getSources()).singleElement().satisfies(source -> {
+                assertThat(source).isInstanceOf(EmailSourceHeader.class);
+                final EmailSourceHeader header = (EmailSourceHeader) source;
+                assertThat(header.getName()).isEqualTo(field);
+                assertThat(header.getRawValue()).isEqualTo(value);
+                assertThat(header.getOrigin()).isSameAs(problem.getOrigin());
+                assertThat(headers).anySatisfy(captured -> assertThat(captured).isSameAs(header));
+            });
+        }
+    }
+
+    private static void collectHeaders(final EmailSourcePart part, final List<EmailSourceHeader> target) {
+        target.addAll(part.getHeaders());
+        for (EmailSourcePart child : part.getChildren()) collectHeaders(child, target);
+    }
+
     private static int replaceNestedHeaders(final DirectoryNode node, final boolean root) throws Exception {
+        return replaceNestedHeaders(node, root, "From: nested@example.org\r\nTo: reader@example.org\r\n"
+                + "disposition-notification-to: nested-receipt@example.org\r\n"
+                + "rEtUrN-rEcEiPt-To: nested-return@example.org\r\n");
+    }
+
+    private static int replaceNestedHeaders(final DirectoryNode node, final boolean root, final String headers) throws Exception {
         int replaced = 0;
         if (!root && "__substg1.0_3701000D".equalsIgnoreCase(node.getName())) {
             final String type = node.hasEntry("__substg1.0_007D001E") ? "001E" : "001F";
             final String stream = "__substg1.0_007D" + type;
             final Charset charset = "001F".equals(type) ? StandardCharsets.UTF_16LE : StandardCharsets.ISO_8859_1;
-            final String headers = "From: nested@example.org\r\nTo: reader@example.org\r\n"
-                    + "disposition-notification-to: nested-receipt@example.org\r\n"
-                    + "rEtUrN-rEcEiPt-To: nested-return@example.org\r\n";
             final byte[] encoded = (headers + '\0').getBytes(charset);
             node.createOrUpdateDocument(stream, new ByteArrayInputStream(encoded));
             final byte[] originalProperties;
@@ -169,7 +359,7 @@ class OutlookReceiptHeaderRoutesTest {
             replaced++;
         }
         for (final Entry entry : node) {
-            if (entry.isDirectoryEntry()) replaced += replaceNestedHeaders((DirectoryNode) entry, false);
+            if (entry.isDirectoryEntry()) replaced += replaceNestedHeaders((DirectoryNode) entry, false, headers);
         }
         return replaced;
     }

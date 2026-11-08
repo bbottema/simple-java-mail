@@ -76,8 +76,13 @@ final class OutlookSourceCapture {
 				final InspectionOutlookData nativeData = InspectionOutlookData.builder().rawHeaders(nested.getHeaders())
 						.messageClass(nested.getMessageClass()).propertiesAsHex(nested.getPropertiesAsHex())
 						.propertyCodes(nested.getPropertyCodes()).build();
-				final EmailSourceData nestedMetadata = InputInspection.capture(nativeData, nested.getMessageId()).getSourceData();
-				final List<EmailProblem> nestedProblems = new ArrayList<>();
+				final InputInspection nestedInspection = InputInspection.capture(nativeData, nested.getMessageId());
+				nestedInspection.noteAddressRecovery("Disposition-Notification-To", "Return-Receipt-To", "Return-Path");
+				if (nested.getReplyToEmail() != null && !nested.getReplyToEmail().trim().isEmpty()) {
+					nestedInspection.noteAddressRecovery("Reply-To");
+				}
+				final EmailSourceData nestedMetadata = nestedInspection.getSourceData();
+				final List<EmailProblem> nestedProblems = new ArrayList<>(nestedInspection.getProblems());
 				final EmailSourceData nestedSource = capture(nestedMetadata, nested, null, nestedProblems);
 				children = singletonList(EmailInspection.part(nestedSource.getOrigin(), "source/message", nestedSource.getHeaders(),
 						nestedSource.getProperties(), nestedSource.getParts(), null, null));

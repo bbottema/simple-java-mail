@@ -290,7 +290,12 @@ public final class InputInspection {
     }
 
     public void noteAddressRecovery() {
-        for (final String field : Arrays.asList("From", "To", "Cc", "Bcc", "Reply-To", "Disposition-Notification-To", "Return-Receipt-To", "Return-Path")) {
+        noteAddressRecovery("From", "To", "Cc", "Bcc", "Reply-To", "Disposition-Notification-To", "Return-Receipt-To", "Return-Path");
+    }
+
+    /** Observe only the received address fields interpreted by the selected conversion route. */
+    public void noteAddressRecovery(final String... fields) {
+        for (final String field : fields) {
             final List<String> values = values(field);
             for (int i = 0; i < values.size(); i++) {
                 final String value = values.get(i);
