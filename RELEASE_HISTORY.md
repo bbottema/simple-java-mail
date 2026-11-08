@@ -130,6 +130,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#977](https://github.com/bbottema/simple-java-mail/issues/977): bounded shared S/MIME key reuse and expired idle entries, so changing customers or credentials does not accumulate every previously loaded keystore indefinitely. Signing and incoming decryption keep the same Java usage; evicted configurations reload when needed.
+
 - [#976](https://github.com/bbottema/simple-java-mail/issues/976): CLI integer options reject Boolean words, fractions and overflowing values instead of coercing them into different settings. Valid integer input keeps its existing units and option-specific meaning, including explicit zero timeouts.
 
 - [#974](https://github.com/bbottema/simple-java-mail/issues/974): readable Outlook messages remain importable when optional date metadata is missing. Unavailable dates remain absent, and sent-date selection retains client-submit time before the existing source-date fallback.

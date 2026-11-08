@@ -85,8 +85,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
@@ -110,7 +108,16 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 public class SMIMESupport implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
-	private static final ConcurrentMap<Pkcs12Config, SmimeKey> SIMPLE_SMIMESTORE_CACHE = new ConcurrentHashMap<>();
+	private static final SmimeKeyCache SIMPLE_SMIMESTORE_CACHE = SmimeKeyCache.create();
+	private final SmimeKeyCache keyCache;
+
+	public SMIMESupport() {
+		this(SIMPLE_SMIMESTORE_CACHE);
+	}
+
+	SMIMESupport(@NotNull final SmimeKeyCache keyCache) {
+		this.keyCache = keyCache;
+	}
 
 	/** Read-only message facts keep unopened nested ciphertext uncertain without changing ordinary import behavior. */
 	@NotNull
@@ -1273,7 +1280,7 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12Config) {
-		return SIMPLE_SMIMESTORE_CACHE.computeIfAbsent(pkcs12Config, configuration -> {
+		return keyCache.get(pkcs12Config, configuration -> {
 			final SmimeKey smimeKey = produceSmimeKey(configuration);
 			if (smimeKey == null) {
 				throw new SmimeException(ERROR_OBTAINING_SMIME_KEY);

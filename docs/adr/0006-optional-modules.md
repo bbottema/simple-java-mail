@@ -132,10 +132,22 @@ correction for unreleased 10.0.0.
 ### Shared S/MIME key reuse (accepted 29 October 2026)
 
 Keep the parsed-key cache introduced under #320 to avoid repeatedly loading the same PKCS12 material. Lookup and publication must be
-atomic under concurrent signing and decryption: equal immutable configurations reuse one completed parsed key, distinct configurations
-remain separate, and a failed load leaves no cached result. This applies the existing shared-instance requirement under
-[#906](https://github.com/bbottema/simple-java-mail/issues/906) for unreleased 10.0.0. Cache lifetime, retention and eviction policy remain
-unchanged; this correction does not introduce a public cache API.
+atomic under concurrent signing and decryption: equal immutable configurations reuse one completed resident key, distinct configurations
+remain separate, and a failed load leaves no cached result. [#906](https://github.com/bbottema/simple-java-mail/issues/906) applies this
+shared-instance requirement to concurrent use.
+
+The retention decision accepted on 8 November 2026 under [#977](https://github.com/bbottema/simple-java-mail/issues/977) replaces unbounded
+retention with finite capacity and expiry after inactivity. The optional S/MIME module owns shared reuse for both sending and incoming
+decryption. Full capacity retires the least recently used completed entry instead of rejecting valid work. An operation can finish with a
+key it already holds after eviction, while a later lookup can reload the supplied material. Configuration identity, validation and
+cryptographic outcomes retain their existing meaning; applications acquire no cache setup or cleanup obligation.
+
+Key loading runs outside cache bookkeeping locks, with concurrent loads of the same configuration sharing their result. A lazy,
+module-owned daemon removes idle entries without another foreground lookup and retires when the cache empties. It does not inherit an
+application thread-context class loader. Expiration observes current access times, and a retired worker cannot affect a replacement
+generation. Capacity and idle duration remain internal policy; this is a bound on resident reuse, not a complete heap bound or a promise
+to erase material retained by applications or operations. If expiration maintenance cannot be started, successful operations can proceed
+without retaining a cache entry. No public cache API, factory-owned cache or new dependency is introduced.
 
 ### OpenTelemetry configuration and runtime loading (updated 2026-10-16)
 
