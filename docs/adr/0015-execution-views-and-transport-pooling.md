@@ -23,6 +23,15 @@ Keep simple batches lazy, sequential and first-failure-stopping. Their return va
 
 Route SMTP transport acquisition through the optional batch module when it is present; otherwise use a directly owned Session transport. The batch bridge owns pool registration, acquisition and shutdown, while the Mailer owns asynchronous scheduling. Reusable transports are exclusive leases, released after success and invalidated after failure. A batch or open-connection callback can keep one transport for its own scope; it does not expose a transport for unrestricted concurrent use.
 
+### Simple-batch setup cleanup (accepted 8 November 2026)
+
+A simple batch owns its dedicated Transport as soon as the supplied Session returns it, before per-operation lifecycle-adapter setup.
+If adapter discovery, construction or abort-action creation fails, close that Transport and propagate the original failure, retaining any
+secondary close failure as suppressed. After successful setup, keep the abort registration active through Transport close and detach it
+afterward. Preserve the existing send loop, provider-discovery lifetime, connection semantics and later cancellation/receipt facts.
+This clarification completes the unreleased lifecycle integration under [#726](https://github.com/bbottema/simple-java-mail/issues/726),
+with [ADR 0007](0007-provider-neutral-mime-boundary.md#provider-discovery-lifetime-749) retaining per-operation provider construction.
+
 ### Authentication belongs to a pool registration (accepted 5 November 2026)
 
 The SMTP pool manager's existing `registerResourcePool` API accepts an explicit nullable OAuth token supplier alongside a

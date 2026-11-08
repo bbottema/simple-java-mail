@@ -136,7 +136,7 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 	private void sendEmailsUsingSingleTransport(@NotNull final Iterator<Email> emailIterator)
 			throws MessagingException {
 		final Transport transport = session.getTransport();
-		try (MailSendControl.Registration ignored = MailTransportLifecycleResolver.registerAbort(transport, control)) {
+		try (MailSendControl.Registration ignored = registerAbortOrClose(transport)) {
 			try (Transport ownedTransport = transport) {
 				try {
 					control.checkStopped();
@@ -168,6 +168,19 @@ class SendMailsInSimpleBatchClosure extends AbstractProxyServerSyncingClosure {
 			}
 		} finally {
 			LOGGER.trace("closing transport");
+		}
+	}
+
+	private MailSendControl.Registration registerAbortOrClose(final Transport transport) {
+		try {
+			return MailTransportLifecycleResolver.registerAbort(transport, control);
+		} catch (RuntimeException | Error failure) {
+			try {
+				transport.close();
+			} catch (MessagingException | RuntimeException | Error cleanupFailure) {
+				if (cleanupFailure != failure) failure.addSuppressed(cleanupFailure);
+			}
+			throw failure;
 		}
 	}
 
