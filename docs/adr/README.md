@@ -1,5 +1,14 @@
 # Architecture decision records
 
+The accepted 8 November [#973](https://github.com/bbottema/simple-java-mail/issues/973) correction preserves interrupted automatic-image
+reads during composition and conversion, retaining required-read causes while ordinary optional misses and socket timeouts keep their
+existing behavior. ADRs [0035](0035-tolerant-reading-and-strict-production.md) and [0036](0036-structural-message-snapshots-and-borrowed-content.md)
+own cancellation, acquired-stream cleanup and image-pass atomicity; the issue tracks implementation and delivery.
+
+The accepted 8 November [#704](https://github.com/bbottema/simple-java-mail/issues/704) follow-up keeps contradictory OpenPGP multipart
+subtype/protocol pairs UNKNOWN across ordinary/exact import and optional-module presence or absence. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md)
+owns those unestablished facts without changing correctly paired envelope processing or ordinary non-OpenPGP recognition.
+
 The accepted [#788](https://github.com/bbottema/simple-java-mail/issues/788) follow-up keeps Session diagnostic formatting inert when
 DEBUG is disabled and describes opaque application objects safely when enabled. [ADR 0004](0004-configuration-provenance-diagnostics.md#opaque-session-values-and-disabled-logging-accepted-7-november-2026)
 owns this automatic-rendering behavior without changing provider configuration or explicit property access.
