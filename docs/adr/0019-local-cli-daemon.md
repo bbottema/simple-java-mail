@@ -59,6 +59,17 @@ from the protocol's wall-clock freshness checks. The timestamp allowance, reques
 
 Keep the ledger memory-only. Once an execution response is lost, do not automatically create a new send or fall back to one-shot execution. Report uncertainty so a new CLI invocation is an explicit user decision. A crash can erase both the result and request history; there is no durable-spool or exactly-once-delivery guarantee.
 
+### Eligible idle Mailer eviction (accepted 8 November 2026)
+
+When a new profile reaches the Mailer-cache limit, retire the oldest eligible idle Mailer. Pending construction and active leases are
+not eviction candidates. Check eligibility at retirement under the entry's existing ownership gate; if an earlier candidate has become
+leased, retired or otherwise unavailable, continue considering the remaining candidates before refusing new work for capacity.
+
+Retirement still removes an entry from lookup before closing it exactly once, and shutdown retains ownership of pending construction
+and cleanup. Existing-only acquisition for validation retains its ready-compatible-only behavior. Profile identities, cache bounds and
+CLI options remain unchanged. This completes the existing unreleased daemon contract under
+[#488](https://github.com/bbottema/simple-java-mail/issues/488).
+
 ### Validation reuses only ready Mailers (accepted 7 November 2026)
 
 Validation may lease an already constructed, live Mailer with the request's compatible profile. Existing-only acquisition never constructs

@@ -214,16 +214,18 @@ final class DaemonMailerRegistry implements MailerProvider {
 
 	private void retireOldestIdle() {
 		entries.entrySet().stream()
-				.filter(entry -> entry.getValue().activeLeaseCount() == 0)
-				.min(Comparator.comparingLong(entry -> entry.getValue().lastUsedNanos))
-				.ifPresent(entry -> retire(entry.getKey(), entry.getValue()));
+				.map(entry -> new EvictionCandidate(entry.getKey(), entry.getValue(), entry.getValue().lastUsedNanos))
+				.sorted(Comparator.comparingLong(EvictionCandidate::lastUsedNanos))
+				.anyMatch(candidate -> retire(candidate.profile(), candidate.entry()));
 	}
 
-	private void retire(final CliMailerProfile profile, final Entry entry) {
+	private boolean retire(final CliMailerProfile profile, final Entry entry) {
 		if (entry.retire() && entries.remove(profile, entry)) {
 			capacity.release();
 			closeWhenConstructed(entry);
+			return true;
 		}
+		return false;
 	}
 
 	private void forceRetire(final CliMailerProfile profile, final Entry entry) {
@@ -373,6 +375,10 @@ final class DaemonMailerRegistry implements MailerProvider {
 	}
 
 	private record EntryRegistration(Entry entry, boolean newlyRegistered) {
+	}
+
+	/** Freeze ordering before retirement checks; concurrent leases can update an entry's live timestamp. */
+	private record EvictionCandidate(CliMailerProfile profile, Entry entry, long lastUsedNanos) {
 	}
 
 	/** Coordinates construction, leasing, retirement, and close-once state for one cached Mailer. */

@@ -83,7 +83,11 @@ The official standalone archive includes `batch-module`. Keeping a Mailer alive 
 
 A custom classpath without `batch-module` remains supported. It still avoids repeated daemon, parser, configuration, and Mailer construction. It does not have an SMTP connection pool to retain.
 
-Eviction and shutdown wait for active leases and command futures, remove the Mailer from lookup, and close it. The registry and request queue are bounded. Status reports anonymous counts, never configuration values or profile fingerprints.
+An active command keeps its Mailer leased. When the cache is full, a new profile can replace the oldest fully constructed idle Mailer.
+A Mailer still starting up or in use is retained; it does not prevent another idle Mailer from being replaced. If every retained Mailer is
+starting up or in use, the new profile is refused for capacity. Retirement removes the Mailer from lookup before closing it, and shutdown
+retains ownership through command draining and cleanup. The registry and request queue are bounded. Status reports anonymous counts,
+never configuration values or profile fingerprints.
 
 Slow SMTP commands use separate reply capacity from authentication and management, so command saturation leaves `status` and `stop`
 available. When reply capacity is full, another command receives the authenticated busy result before a new request is registered or
