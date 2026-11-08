@@ -145,8 +145,7 @@ $relativeTargets = @(
 )
 $relativeFileTargets = @(
     # BEGIN review-delivery-20261108 custody
-    # Retire this plan only after the local CustomMailer and batch follow-ups are delivered.
-    'docs/plans/approved-review-20261108.md'
+    # Retired plan: .local/api-review-20261108-evidence/retired-approved-review-20261108-completed.md
     # END review-delivery-20261108 custody
     # BEGIN openpgp-inspection-review-20261107 retired plan
     'docs/plans/openpgp-inspection-review-20261107.md'
@@ -228,9 +227,32 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # BEGIN review-local-20261108 custody (#967, #726)
+    # Retain matching delivered sources and artifacts until guarded retirement can proceed.
+    # Worktree retirement remains deferred under the recorded automatic approval rejection; no deletion was retried.
+    # Manual retirement statements for these exact task paths:
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108\custom\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108\custom\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108\custom' -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108\batch\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108\batch\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108\batch' -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108\local\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108\local\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108\local' -Force
+    @{ Path = 'C:\workstation\sjm-review-20261108\custom\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\custom\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\custom\sjm'; Parent = 'C:\workstation\sjm-review-20261108\custom' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\custom'; Parent = 'C:\workstation\sjm-review-20261108' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\batch\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\batch\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\batch\sjm'; Parent = 'C:\workstation\sjm-review-20261108\batch' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\batch'; Parent = 'C:\workstation\sjm-review-20261108' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\local\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\local\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\local\sjm'; Parent = 'C:\workstation\sjm-review-20261108\local' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\local'; Parent = 'C:\workstation\sjm-review-20261108' }
+    # END review-local-20261108 custody
     # BEGIN review-delivery-20261108 custody
     # Retire nested/main registered worktrees through Git before directory cleanup.
-    # The combined checkout remains active while local follow-ups await delivery.
+    # These checkouts retain matching delivered sources and artifacts.
     # Automatic approval review rejected retirement of the images/OpenPGP pairs: 'blocked by policy'.
     # No deletion ran; keep these exact paths and do not retry through another deletion method.
     # Manual retirement after approval is available:
