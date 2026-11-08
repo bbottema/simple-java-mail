@@ -467,6 +467,8 @@ received.getProblems();                 // actual processing issues, with origin
 Original RTF remains available when an Outlook body becomes HTML; an expected successful conversion does not itself create a Problem.
 If a malformed Sender supplies the existing fallback for a missing From, its recovery Problem points to that received Sender header.
 From and Reply-To using the same fallback share one observation; an unused Sender is left alone.
+When an embedded Outlook message is converted to an EML attachment, recovered address problems also appear in the parent Email's
+`getProblems()`, linked to the child's original source and identity.
 Delivery-report interpretation warnings link to the affected source part through `problem.getSources()`; an ambiguous report can identify
 multiple conflicting parts. Reading those references does not fetch the report content again.
 If the selected delivery-report read fails after consuming a prefix, that prefix remains in source inspection with incomplete capture and

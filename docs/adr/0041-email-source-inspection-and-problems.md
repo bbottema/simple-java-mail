@@ -137,6 +137,12 @@ occurrence(s). From and Reply-To using that same fallback share the observation.
 through copying and serialization. [ADR 0035](0035-tolerant-reading-and-strict-production.md#observations-for-a-selected-sender-fallback-accepted-7-november-2026)
 keeps the existing address selection and successful provider interpretations; deliberately unused Sender fields remain outside this recovery.
 
+Clarification accepted 8 November 2026 under [#961](https://github.com/bbottema/simple-java-mail/issues/961): address recoveries performed
+while materializing an embedded Outlook MSG are included once in the root Email's Problems. Qualify the child location and link the
+observation to its captured source occurrence and original input identity, including through copying and serialization. Keep the
+tolerant address value, generated EML attachment and neighboring content. This does not request another content read or extend
+inspection to ordinary untouched EML attachments; deliberately unused source values do not gain an observation.
+
 An inherited observation from A still identifies A after copies select B and C as their current Message-IDs. A genuinely new recoverable
 problem observed while processing B identifies B. Preserve actual source identity and ownership for materialized protected content;
 aggregate inner observations once without promoting a child finding into parent protection success. An unknown or unrequested protection

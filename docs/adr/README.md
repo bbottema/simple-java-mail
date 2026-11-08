@@ -1,5 +1,9 @@
 # Architecture decision records
 
+The accepted 8 November [#961](https://github.com/bbottema/simple-java-mail/issues/961) follow-up includes address recoveries performed
+while materializing embedded Outlook messages in the root Email's Problems. [ADR 0041](0041-email-source-inspection-and-problems.md#problems-and-immutable-input-identity)
+preserves child source references, original identities and qualified locations. The issue tracks implementation and delivery separately.
+
 The accepted 8 November [#974](https://github.com/bbottema/simple-java-mail/issues/974) correction keeps missing Outlook dates absent while preserving readable message content and the existing client-submit/source-date selection. [ADR 0035](0035-tolerant-reading-and-strict-production.md) owns interpretation; ADRs 0036/0041 retain snapshot and source-evidence ownership.
 
 The accepted [#975](https://github.com/bbottema/simple-java-mail/issues/975) change retires #201's fabricated Outlook From address. [ADR 0041](0041-email-source-inspection-and-problems.md) keeps missing sender facts unavailable and retains source evidence; outgoing validation and deliberate sender/default configuration remain separate.
