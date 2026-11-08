@@ -235,6 +235,12 @@ $relativeFileTargets = @(
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
     # #976: unlink only this task's dependency junction, then retire clean worktrees through Git.
+    # Automatic approval review rejected task retirement before execution: "blocked by policy".
+    # No restore or deletion ran. Preserve both registered worktrees and do not retry through another method.
+    # Before a later manual retirement, inspect for future work; the original task-only cleanup draft is already delivered.
+    # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\976-cli-integer-input.md' -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-integer-cli-20261108'
+    @{ Path = 'C:\workstation\sjm-review-integer-cli-20261108'; Parent = 'C:\workstation' }
     # Remove-Item -LiteralPath 'C:\workstation\sjm-review-integer-cli-20261108\website\node_modules' -Force
     # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-integer-cli-20261108\website'
     # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-integer-cli-20261108\sjm'
