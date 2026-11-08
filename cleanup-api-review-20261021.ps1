@@ -233,6 +233,29 @@ $externalDirectoryTargets = @(
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
     # Retire only clean task-owned nested/main/parser worktrees through Git after delivery.
     # Retain .local/review-outlook-daemon-20261108-evidence for maintainer inspection.
+    # All issue work is delivered. Automatic approval review rejected this task's
+    # checkout/cache removal before execution, stating only "blocked by policy".
+    # No deletion was retried. Exact manual retirement statements remain below;
+    # preserve the archived evidence and the guards before using them later.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm\.local' -Recurse -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm\.local' -Recurse -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm\.local' -Recurse -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm\.local' -Recurse -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\parser\.local' -Recurse -Force
+    # git -C 'C:\workstation\outlook-message-parser' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\parser'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\m2-dates' -Recurse -Force
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm\.local' -Recurse -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\outlook-daemon-review-20261108.md' -Force
     @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm' }
     @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates' }
     @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
