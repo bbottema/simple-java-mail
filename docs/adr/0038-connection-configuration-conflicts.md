@@ -110,6 +110,15 @@ Resolve one remote destination and authentication configuration before deriving 
 
 [ADR 0021](0021-mandatory-starttls-configuration-consistency.md) continues to reject mandatory-transport contradictions. Existing required-input, feature-activation and ownership restrictions are not disabled by permissive conflict handling. `CustomMailer` does not activate SJM's SMTP route merely because connection settings exist.
 
+### Inactive OAuth settings with CustomMailer (accepted 8 November 2026)
+
+When `CustomMailer` owns delivery, retain supplied SMTP OAuth token and callback entries without selecting, validating or invoking them.
+Installing the optional batch module does not activate those unused credentials or register an unused SMTP pool for this Mailer.
+Apply the same boundary to owned and supplied Sessions under either connection-conflict policy. Factory locks retain their existing checks;
+ordinary SMTP Mailers retain credential validation, lazy token lookup and their pool registration and shutdown ownership under ADR 0015.
+This completes the unreleased registration integration under [#967](https://github.com/bbottema/simple-java-mail/issues/967), without a new
+public API, property or dependency. The issue tracks implementation and delivery.
+
 ### Validate before effects; explain conflicts safely
 
 Collect declarations and resolve policy before changing a supplied Session or allocating connection resources. Apply a valid resolution only after exclusive Session ownership is claimed. Retain construction rollback, provider initialization order and post-initialization lock checks.

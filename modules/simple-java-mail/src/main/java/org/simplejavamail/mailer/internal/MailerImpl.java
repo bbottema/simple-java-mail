@@ -559,7 +559,7 @@ public class MailerImpl implements Mailer {
 	}
 
 	private void initCluster(@NotNull final Session session, @NotNull final OperationalConfig operationalConfig, final SendingAllowance allowance) {
-		if (ModuleLoader.batchModuleAvailable()) {
+		if (operationalConfig.getCustomMailer() == null && ModuleLoader.batchModuleAvailable()) {
 			ModuleLoader.loadBatchModule().registerToCluster(operationalConfig, operationalConfig.getClusterKey(), session,
 					allowance, connectionObserver, OAuth2AccessTokenResolver.captureAccessTokenProvider(session));
 		}

@@ -561,6 +561,8 @@ public interface MailerGenericBuilder<T extends MailerGenericBuilder<?>> {
 	/**
 	 * Lets your callback deliver the prepared email instead of using Simple Java Mail's SMTP transport.
 	 * The callback receives the governed Email and prepared MIME message; see {@link CustomMailer} for its transport responsibilities.
+	 * Retained SMTP OAuth credentials are not selected or validated while this callback handles delivery, including when the batch module is installed.
+	 * Your callback owns its connection and authentication.
 	 * <p>
 	 * Calling this method again replaces the callback. {@link #clearCustomMailer()} removes it without closing an application object or changing
 	 * SMTP configuration. The next Mailer built from this builder uses its remaining SMTP settings, so it needs a host unless logging-only mode applies.
