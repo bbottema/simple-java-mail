@@ -47,15 +47,22 @@ public interface OutlookMessageData extends Serializable {
 	@Nullable
 	String getDisplayBcc();
 
+	/**
+	 * @return A defensive copy of the source date selected by the Outlook reader, or null when unavailable.
+	 * This is separate from the client-submit time; the reader can use the stored creation time as its source-date fallback.
+	 */
 	@Nullable
 	Date getDate();
 
+	/** @return A defensive copy of the native client-submit time, or null when absent. */
 	@Nullable
 	Date getClientSubmitTime();
 
+	/** @return A defensive copy of the stored creation time, or null when absent. */
 	@Nullable
 	Date getCreationDate();
 
+	/** @return A defensive copy of the stored last-modification time, or null when absent. */
 	@Nullable
 	Date getLastModificationDate();
 

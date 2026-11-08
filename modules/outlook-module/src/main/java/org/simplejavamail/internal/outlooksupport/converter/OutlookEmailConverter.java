@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.IdentityHashMap;
+import java.util.Date;
 import jakarta.activation.DataSource;
 
 import static jakarta.mail.Message.RecipientType.BCC;
@@ -133,8 +134,10 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
 		}
 		builder.fixingMessageId(outlookMessage.getMessageId());
-		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime())
-				.orElse(outlookMessage.getDate())); // TODO creation date?
+		final Date sentDate = ofNullable(outlookMessage.getClientSubmitTime()).orElseGet(outlookMessage::getDate);
+		if (sentDate != null) {
+			builder.fixingSentDate(sentDate);
+		}
 		if (!valueNullOrEmpty(outlookMessage.getReplyToEmail())) {
 			builder.withReplyTo(importedRecipients(outlookMessage.getReplyToName(), outlookMessage.getReplyToEmail()));
 		}

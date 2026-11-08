@@ -366,6 +366,20 @@ the incorrect declared-charset behavior is also present in released 9.3.9, so mi
 | Catch every exception and return an Email | Maximizes apparent availability | Conceals programming failures, unreadable content and incomplete attachments. |
 | Retain only raw bytes and leave interpretation to applications | Avoids recovery policy | Gives up the library's useful mail-domain knowledge and convenient Email read model. |
 
+## Optional Outlook dates (accepted 8 November 2026)
+
+An absent Outlook source date, creation time or last-modification time must remain unavailable without rejecting the message's readable
+content or other metadata. Keep the specialist parser's existing date interpretation and selection responsibilities. Its optional date
+getters return null for absent values and defensive copies for present values; Simple Java Mail does not catch arbitrary
+NullPointerExceptions or manufacture timestamps to compensate for missing metadata.
+
+For the Email sent date, prefer Outlook's client-submit time and consult the existing source-date fallback only when that first choice
+is absent. Leave the Email date unfixed when neither value is available. Outlook metadata inspection, copying and serialization retain
+the same absence and metadata ownership; ordinary reconstructed MIME keeps its existing current-date generation when no date is fixed.
+This corrects the sparse-MSG failure present in released 9.3.9 under [#974](https://github.com/bbottema/simple-java-mail/issues/974), with
+the null-safe reader correction owned by [outlook-message-parser#103](https://github.com/bbottema/outlook-message-parser/issues/103).
+It does not add another date parser or change existing source-date precedence under ADRs 0036 and 0041.
+
 ## Imported sent-date interpretation (accepted 27 October 2026)
 
 MIME/EML source Date headers must establish a usable timestamp before populating the Email sent-date field. Leave impossible calendar values
