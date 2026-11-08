@@ -64,6 +64,8 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    # #976: retained maintainer evidence; remove after inspection.
+    '.local/review-integer-cli-20261108-evidence'
     # BEGIN review-delivery-20261108 custody
     # Retain execution and custody records until maintainer inspection.
     '.local/api-review-20261108-evidence'
@@ -144,6 +146,8 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # #976: retire this task's plan after delivery.
+    'docs/plans/976-cli-integer-input.md'
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
     'docs/plans/outlook-daemon-review-20261108.md'
     # END outlook-daemon-review-20261108 custody
@@ -230,6 +234,12 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # #976: unlink only this task's dependency junction, then retire clean worktrees through Git.
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-integer-cli-20261108\website\node_modules' -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-integer-cli-20261108\website'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-integer-cli-20261108\sjm'
+    @{ Path = 'C:\workstation\sjm-review-integer-cli-20261108\website'; Parent = 'C:\workstation\sjm-review-integer-cli-20261108' }
+    @{ Path = 'C:\workstation\sjm-review-integer-cli-20261108\sjm'; Parent = 'C:\workstation\sjm-review-integer-cli-20261108' }
     # BEGIN embedded-msg-review-20261108 custody (#961)
     # Retain .local/review-embedded-msg-20261108-evidence for maintainer inspection.
     # Automatic approval review rejected task worktree/branch retirement before execution,
