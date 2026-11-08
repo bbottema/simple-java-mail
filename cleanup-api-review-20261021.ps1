@@ -144,6 +144,9 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
+    'docs/plans/outlook-daemon-review-20261108.md'
+    # END outlook-daemon-review-20261108 custody
     # BEGIN review-delivery-20261108 custody
     # Retired plan: .local/api-review-20261108-evidence/retired-approved-review-20261108-completed.md
     # END review-delivery-20261108 custody
@@ -227,6 +230,27 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
+    # Retire only clean task-owned nested/main/parser worktrees through Git after delivery.
+    # Retain .local/review-outlook-daemon-20261108-evidence for maintainer inspection.
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\dates'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\daemon'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\sender\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\sender' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\sender'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\combined\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\combined' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\combined'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\parser'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery\sjm'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\delivery'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-outlook-daemon\m2-dates'; Parent = 'C:\workstation\sjm-review-20261108-outlook-daemon' }
+    # END outlook-daemon-review-20261108 custody
     # BEGIN review-local-20261108 custody (#967, #726)
     # Retain matching delivered sources and artifacts until guarded retirement can proceed.
     # Worktree retirement remains deferred under the recorded automatic approval rejection; no deletion was retried.
