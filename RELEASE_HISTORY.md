@@ -130,6 +130,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#974](https://github.com/bbottema/simple-java-mail/issues/974): readable Outlook messages remain importable when optional date metadata is missing. Unavailable dates remain absent, and sent-date selection retains client-submit time before the existing source-date fallback.
+
 - [#973](https://github.com/bbottema/simple-java-mail/issues/973): interrupted automatic-image reads now cancel composition and conversion even when unresolved URL images are optional. Required image-read failures retain their original causes; ordinary optional URL misses and socket timeouts keep their existing behavior.
 
 - [#972](https://github.com/bbottema/simple-java-mail/issues/972): malformed HTML image URLs now follow the configured optional/required resolution choice even when a valid URL base is supplied. Optional resolution leaves the reference in the HTML; required resolution still rejects it. Selected-base validation and containment remain unchanged.
@@ -359,6 +361,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#757](https://github.com/bbottema/simple-java-mail/issues/757): restored selected-member Email defaults, overrides and validation in clustered sends, including without failover. Destination preparation starts from the original Email; the invoking Mailer's ordinary templates no longer contaminate another member's submission. A second live Mailer sharing a Session or its Properties is rejected before it can replace the first owner's configuration. Individual async preparation now runs on executor execution, with consistent scheduling/preparation diagnostics. See the migration notes for applications depending on the previous behavior.
 
 ### Supporting Libraries
+
+- Updated [Outlook Message Parser to 1.16.3](https://github.com/bbottema/outlook-message-parser/releases/tag/1.16.3), retaining null for absent source, creation and modification dates while preserving defensive copies for available dates ([#974](https://github.com/bbottema/simple-java-mail/issues/974)).
 
 - Updated [SMTP Connection Pool to 4.5.0](https://github.com/simple-java-mail/smtp-connection-pool/releases/tag/4.5.0), [Clustered Object Pool to 4.4.0](https://github.com/bbottema/clustered-object-pool/releases/tag/4.4.0) and [Generic Object Pool to 2.6.0](https://github.com/bbottema/generic-object-pool/releases/tag/2.6.0), retaining failed-lease waiter recovery and connection creation-age retirement. The SMTP pool preserves selected-provider OAuth username resolution under [#966](https://github.com/bbottema/simple-java-mail/issues/966) and supplies explicit per-registration authentication for [#967](https://github.com/bbottema/simple-java-mail/issues/967). Mailer integrates their cancellable claim and lease-abort contracts under [#726](https://github.com/bbottema/simple-java-mail/issues/726), and selects a destination before borrowing its connection for [#751](https://github.com/bbottema/simple-java-mail/issues/751). Finite candidate traversal, claim-scoped connection observations and deferred background top-up support coordinated connection failover under [#755](https://github.com/bbottema/simple-java-mail/issues/755). Fully retired cluster metadata can now be released after disposal, avoiding retention across repeated Mailer creation and closure.
 

@@ -1,5 +1,7 @@
 # Architecture decision records
 
+The accepted 8 November [#974](https://github.com/bbottema/simple-java-mail/issues/974) correction keeps missing Outlook dates absent while preserving readable message content and the existing client-submit/source-date selection. [ADR 0035](0035-tolerant-reading-and-strict-production.md) owns interpretation; ADRs 0036/0041 retain snapshot and source-evidence ownership.
+
 The accepted [#975](https://github.com/bbottema/simple-java-mail/issues/975) change retires #201's fabricated Outlook From address. [ADR 0041](0041-email-source-inspection-and-problems.md) keeps missing sender facts unavailable and retains source evidence; outgoing validation and deliberate sender/default configuration remain separate.
 
 The accepted [#488](https://github.com/bbottema/simple-java-mail/issues/488) cache follow-up selects an eligible idle Mailer during capacity eviction, including when an older entry is still constructing. [ADR 0019](0019-local-cli-daemon.md) preserves active leases, pending construction, shutdown and close-once ownership. The issues track implementation and delivery separately from these accepted decisions.
