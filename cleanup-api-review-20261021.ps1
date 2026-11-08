@@ -230,6 +230,23 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # BEGIN embedded-msg-review-20261108 custody (#961)
+    # Retain .local/review-embedded-msg-20261108-evidence for maintainer inspection.
+    # Automatic approval review rejected task worktree/branch retirement before execution,
+    # stating only "blocked by policy". No deletion ran or was retried.
+    # Keep these checkouts and their plan for later manual retirement.
+    # Retire the task-owned nested/main worktrees through Git before removing their parent.
+    # Exact manual retirement statements, after preserving the completed plan with the evidence:
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-embedded-msg\sjm\docs\plans\embedded-msg-review-20261108.md' -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108-embedded-msg\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108-embedded-msg\sjm'
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' branch -d 'codex/embedded-msg-docs-20261108'
+    # git -C 'C:\workstation\simple-java-mail' branch -d 'codex/embedded-msg-review-20261108'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108-embedded-msg' -Force
+    @{ Path = 'C:\workstation\sjm-review-20261108-embedded-msg\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108-embedded-msg\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-embedded-msg\sjm'; Parent = 'C:\workstation\sjm-review-20261108-embedded-msg' }
+    @{ Path = 'C:\workstation\sjm-review-20261108-embedded-msg'; Parent = 'C:\workstation' }
+    # END embedded-msg-review-20261108 custody
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
     # Retire only clean task-owned nested/main/parser worktrees through Git after delivery.
     # Retain .local/review-outlook-daemon-20261108-evidence for maintainer inspection.
