@@ -1,5 +1,9 @@
 # Architecture decision records
 
+The accepted 8 November [#976](https://github.com/bbottema/simple-java-mail/issues/976) correction parses CLI integer options at their declared
+width, rejecting Boolean words, fractions and overflow before builder invocation. [ADR 0018](0018-cli-from-builder-contracts.md#integer-option-input-accepted-8-november-2026)
+owns the translation; ADR 0039 retains adapter binding. Valid values and option-specific range checks keep their existing meaning.
+
 The accepted 8 November [#961](https://github.com/bbottema/simple-java-mail/issues/961) follow-up includes address recoveries performed
 while materializing embedded Outlook messages in the root Email's Problems. [ADR 0041](0041-email-source-inspection-and-problems.md#problems-and-immutable-input-identity)
 preserves child source references, original identities and qualified locations. The issue tracks implementation and delivery separately.

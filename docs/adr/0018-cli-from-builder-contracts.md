@@ -11,6 +11,17 @@ A separately maintained command-line API and help text would duplicate the Java 
 
 ## Decision
 
+### Integer option input (accepted 8 November 2026)
+
+CLI parameters declared as `int` or `Integer` parse the supplied text directly at the signed 32-bit width before builder invocation. Boolean
+words, fractional values and overflow are argument errors rather than inputs to a general conversion graph. Valid integer values retain the
+builder's range checks and option-specific meaning, including zero where it explicitly selects an unlimited timeout. Omitted optional arguments
+remain omitted, and Boolean, long and double parameters retain their own conversions.
+
+This corrects released 9.3.9 behavior in which general coercion could silently select a different operational setting. It changes input
+interpretation without changing Java signatures, CLI option names or configuration units. [#976](https://github.com/bbottema/simple-java-mail/issues/976)
+tracks implementation and delivery. Adapter conversion and binding retain [ADR 0039](0039-explicit-configuration-resolution.md)'s ownership.
+
 ### Internal validation entry point (accepted 7 November 2026)
 
 The CLI may invoke an internal builder-adapter operation to run governed validation without constructing sending resources. Exclude that

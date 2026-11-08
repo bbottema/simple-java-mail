@@ -130,6 +130,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- [#976](https://github.com/bbottema/simple-java-mail/issues/976): CLI integer options reject Boolean words, fractions and overflowing values instead of coercing them into different settings. Valid integer input keeps its existing units and option-specific meaning, including explicit zero timeouts.
+
 - [#974](https://github.com/bbottema/simple-java-mail/issues/974): readable Outlook messages remain importable when optional date metadata is missing. Unavailable dates remain absent, and sent-date selection retains client-submit time before the existing source-date fallback.
 
 - [#973](https://github.com/bbottema/simple-java-mail/issues/973): interrupted automatic-image reads now cancel composition and conversion even when unresolved URL images are optional. Required image-read failures retain their original causes; ordinary optional URL misses and socket timeouts keep their existing behavior.
