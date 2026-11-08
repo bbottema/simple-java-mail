@@ -127,7 +127,7 @@ public class EmailConverterTest {
 		final Email msg = result.buildEmail();
 
 		assertThat(result.getOutlookMessageData().getLastModifierName()).isEqualTo("haozl@Ctrip.com");
-		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null, null));
+		assertThat(msg.getFromRecipient()).isNull();
 	}
 
 	@Test
@@ -229,7 +229,7 @@ public class EmailConverterTest {
 		final Recipient time2talk = new Recipient("time2talk@online-convert.com", "time2talk@online-convert.com", TO, null);
 
 		@NotNull Email msg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/unsent draft.msg"));
-		EmailAssert.assertThat(msg).hasFromRecipient(new Recipient(null, "donotreply@unknown-from-address.net", null, null));
+		assertThat(msg.getFromRecipient()).isNull();
 		EmailAssert.assertThat(msg).hasSubject("MSG Test File");
 		EmailAssert.assertThat(msg).hasOnlyRecipients(time2talk);
 		EmailAssert.assertThat(msg).hasNoAttachments();

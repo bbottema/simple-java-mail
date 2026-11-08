@@ -38,7 +38,7 @@ public class ReadSmimeAttachmentsTest {
 	public void testSMIMEMessageFromOutlookMsgWithDefaultMergeBehavior() throws Exception {
 		Email emailParsedFromMsg = EmailConverter.outlookMsgToEmail(new File(RESOURCE_FOLDER + "/SMIME (signed and clear text).msg"));
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null, null));
+		assertThat(emailParsedFromMsg.getFromRecipient()).isNull();
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("Invio messaggio SMIME (signed and clear text)");
 		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO, null));
 
@@ -86,7 +86,7 @@ public class ReadSmimeAttachmentsTest {
 				.clearBounceTo() // same
 				// Outlook doesn't provide Content-TransferEncoding header on attachment level:
 				.withAttachments(removeContentTransferEncodingFromAttachments(fromEmlBuilder))
-				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
+				.clearFromRecipient() // saved MSG has no sender address; retain the EML's other content for comparison
 				.buildEmail();
 
 		// EML conversion can retain the exact protected outer entity. Outlook MSG conversion starts from an attachment,
@@ -113,7 +113,7 @@ public class ReadSmimeAttachmentsTest {
 				.notMergingSingleSMIMESignedAttachment()
 				.buildEmail();
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasFromRecipient(new Recipient("Alessandro Gasparini", "donotreply@unknown-from-address.net", null, null));
+		assertThat(emailParsedFromMsg.getFromRecipient()).isNull();
 		EmailAssert.assertThat(emailParsedFromMsg).hasSubject("Invio messaggio SMIME (signed and clear text)");
 		EmailAssert.assertThat(emailParsedFromMsg).hasOnlyRecipients(new Recipient("a.gasparini@logicaldoc.com", "a.gasparini@logicaldoc.com", TO, null));
 
@@ -173,7 +173,7 @@ public class ReadSmimeAttachmentsTest {
 				.clearBounceTo() // same
 				// Outlook doesn't provide Content-TransferEncoding header on attachment level:
 				.withAttachments(removeContentTransferEncodingFromAttachments(fromEmlBuilder))
-				.from(verifyNonnullOrEmpty(fromEmlBuilder.getFromRecipient()).getName(), "donotreply@unknown-from-address.net")
+				.clearFromRecipient() // saved MSG has no sender address; retain the EML's other content for comparison
 				.buildEmail();
 
 		Email emailWithCopiedMerginBehavior = SimpleJavaMail.fromDefaults().emailBuilder()

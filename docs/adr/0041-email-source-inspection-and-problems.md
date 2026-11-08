@@ -42,6 +42,22 @@ states or invalid-content placeholders to AttachmentResource. Expose immutable s
 historical processing observations through Email.getProblems(). Fresh composition and older snapshots without captured inspection
 have empty source/problem values; empty source data does not invent an input origin or establish successful inspection.
 
+### Missing Outlook sender (accepted 8 November 2026)
+
+An Outlook MSG with no reader-established sender address has no From recipient in the converted Email. Keep any available sender name
+and native source metadata in the existing source inspection view; a name alone does not establish a mailbox. A last-modifier identity
+does not become a sender. Ordinary copying and supported serialization preserve that absence and the original source evidence.
+
+This deliberately supersedes [#201](https://github.com/bbottema/simple-java-mail/issues/201)'s released dummy-address policy for 10.0.0.
+Do not manufacture `donotreply@unknown-from-address.net`. Actual Outlook sender interpretation and MIME/EML From/Sender recovery keep
+their existing ownership under [ADR 0035](0035-tolerant-reading-and-strict-production.md). An absent optional sender is not an import
+failure and does not create a Problem by itself.
+
+Outgoing preparation still requires a sender. Applications can configure From on a copy or deliberately allow existing Email defaults
+to supply it; imports retain their existing default-suppression choice. Overrides retain their ordinary authority. No import setting,
+new sender getter or automatic inference is added. [#975](https://github.com/bbottema/simple-java-mail/issues/975) owns this compatibility
+change and its migration guidance; acceptance does not claim delivery.
+
 ### Generic source structure and selective original content
 
 Source data is an enumerable diagnostic view of available headers, native properties, parts and actually materialized derived views.

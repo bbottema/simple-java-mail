@@ -128,8 +128,10 @@ public class OutlookEmailConverter implements OutlookModule {
 				);
 		parseReceiptHeaders(outlookMessage, builder);
 		parseReturnPathHeaders(outlookMessage, builder);
-		String fromEmail = ofNullable(outlookMessage.getFromEmail()).orElse("donotreply@unknown-from-address.net");
-		builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
+		final String fromEmail = outlookMessage.getFromEmail();
+		if (fromEmail != null) {
+			builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
+		}
 		builder.fixingMessageId(outlookMessage.getMessageId());
 		builder.fixingSentDate(ofNullable(outlookMessage.getClientSubmitTime())
 				.orElse(outlookMessage.getDate())); // TODO creation date?

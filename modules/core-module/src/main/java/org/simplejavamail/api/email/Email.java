@@ -742,6 +742,10 @@ public class Email implements Serializable {
 	}
 	
 	/**
+	 * Returns the configured or interpreted From recipient, or null when no sender address is available. In particular, an imported
+	 * Outlook message without a sender address has no From recipient; available native sender names remain in {@link #getSourceData()}.
+	 * Configure From on a copy or deliberately enable applicable Email defaults before preparing such a message for sending.
+	 *
 	 * @see EmailPopulatingBuilder#from(Recipient)
 	 */
 	@Nullable
