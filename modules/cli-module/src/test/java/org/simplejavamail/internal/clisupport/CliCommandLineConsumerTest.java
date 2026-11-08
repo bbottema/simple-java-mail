@@ -4,6 +4,8 @@ import org.bbottema.javareflection.ClassUtils;
 import org.bbottema.javareflection.model.MethodModifier;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionValue;
@@ -93,6 +95,28 @@ public class CliCommandLineConsumerTest {
 		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(
 				new ArrayList<>(asList("9223372036854775808", "1", "0.2", "0.75")), method))
 				.isInstanceOf(CliExecutionException.class).hasMessage("Unable to parse a command-line value as long");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"false", "true", "1.5", "1e3", "2147483648", "-2147483649", "4294967321"})
+	public void integerArgumentsRejectCoercionAndNarrowing(final String invalid) throws NoSuchMethodException {
+		final Method method = TestClass.class.getMethod("integerValues", int.class, Integer.class);
+		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList(invalid, "25")), method))
+				.isInstanceOf(CliExecutionException.class).hasMessage("Unable to parse a command-line value as int");
+		assertThatThrownBy(() -> CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("25", invalid)), method))
+				.isInstanceOf(CliExecutionException.class).hasMessage("Unable to parse a command-line value as Integer");
+	}
+
+	@Test
+	public void integerArgumentsPreserveTheirFullRangeZeroAndExplicitSign() throws NoSuchMethodException {
+		final Method method = TestClass.class.getMethod("integerValues", int.class, Integer.class);
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("-2147483648", "2147483647")), method))
+				.containsExactly(Integer.MIN_VALUE, Integer.MAX_VALUE);
+		assertThat(CliCommandLineConsumer.convertProvidedOptionValues(
+				new ArrayList<>(asList("0", "+25")), method)).containsExactly(0, 25);
 	}
 	
 	@Test
@@ -199,6 +223,8 @@ public class CliCommandLineConsumerTest {
 		public void arrayValues(final String[] values) {
 		}
 		public void numericValues(final long primitiveLong, final Long boxedLong, final double primitiveDouble, final Double boxedDouble) {
+		}
+		public void integerValues(final int primitiveInteger, final Integer boxedInteger) {
 		}
 
 		public void testMethod(

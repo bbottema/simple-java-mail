@@ -102,7 +102,10 @@ class CliCommandLineConsumer {
 			return MiscUtil.extractEmailAddresses(stringValue);
 		}
 		try {
-			// Parse the declared numeric width directly; a conversion through Integer loses fractions or overflows replay-byte limits.
+			// Parse at the declared numeric width; generic conversion can coerce booleans or narrow numbers.
+			if (targetType == int.class || targetType == Integer.class) {
+				return Integer.valueOf(stringValue);
+			}
 			if (targetType == long.class || targetType == Long.class) {
 				return Long.valueOf(stringValue);
 			}
