@@ -7,11 +7,11 @@
 
 ### Parser-opened content streams (accepted 22 October 2026)
 
-Eager MIME attachment extraction and calendar-stream interpretation own each stream they acquire while producing the converted value. Close those streams on success and failure, preserving the original read cause and suppressed close failures through the conversion exception family. A close failure after a successful read still fails the operation. Borrowing the DataSource does not transfer ownership of a separately acquired stream to the application. Lazy extraction and caller-supplied top-level EML streams retain their existing contracts. [#828](https://github.com/bbottema/simple-java-mail/issues/828) tracks this application of the ownership decision.
+Eager MIME attachment extraction and calendar-stream interpretation own each stream they acquire while producing the converted value. Close those streams on success and failure. The later [best-effort recovery decision in ADR 0041](0041-email-source-inspection-and-problems.md#best-effort-recovery-and-outgoing-content) distinguishes recovered component observations from failures that still throw; conversion exceptions preserve original causes and suppressed close failures. A close failure after a complete read does not discard the acquired content. Borrowing the DataSource does not transfer ownership of a separately acquired stream to the application. Lazy extraction and caller-supplied top-level EML streams retain their existing contracts. [#828](https://github.com/bbottema/simple-java-mail/issues/828) tracks the original ownership decision; #961 owns the later recovery contract.
 
 Calendar charset resolution happens before acquiring a content stream, so an unsupported or illegal charset cannot leave a stream outside the
-reader's cleanup scope. The existing unsupported-encoding conversion failure and charset defaults remain unchanged. Successful reads and I/O
-failures retain their existing stream ownership, original causes and suppressed close failures; neither the DataSource nor a caller-supplied EML
+reader's cleanup scope. Charset defaults remain unchanged; known interpretation failures follow ADR 0041's later recovery contract. Successful reads and I/O
+failures retain their existing stream ownership; conversion exceptions retain original causes and suppressed close failures. Neither the DataSource nor a caller-supplied EML
 stream becomes parser-owned. This clarification was accepted on 28 October 2026 under
 [#883](https://github.com/bbottema/simple-java-mail/issues/883) for unreleased 10.0.0.
 

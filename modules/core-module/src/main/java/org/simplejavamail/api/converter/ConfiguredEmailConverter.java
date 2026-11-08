@@ -37,7 +37,8 @@ import java.nio.file.Path;
  * When a provider returns plain-text or HTML content as a stream, import decodes it like the ordinary text handler: use the declared MIME charset,
  * or the {@code us-ascii} MIME label when absent, through Jakarta Mail's charset aliases. Current Jakarta Mail interprets that label as ISO-8859-1.
  * Already-decoded String content keeps the provider's interpretation. Parser-acquired body streams are closed on success and failure, including
- * charset, read and close failures; the original and suppressed causes remain available through the conversion exception family.
+ * charset, read and close failures. Recovered component failures appear in {@link Email#getProblems()} with available source evidence.
+ * Conversion exceptions retain their original and suppressed causes. Cancellation and unrelated application failures still propagate.
  * This does not close the DataSource or an application-supplied top-level EML stream, or make lazy attachment content eager.
  * If existing address interpretation cannot parse a From, To/Cc/Bcc or Reply-To field, its complete source remains in the corresponding
  * tolerant {@link org.simplejavamail.api.email.Recipient}. Readable neighboring content remains available, while ordinary outgoing validation
@@ -126,8 +127,9 @@ public interface ConfiguredEmailConverter {
 		 * facts and acquired source content with a linked processing problem; cancellation remains a failure rather than a recovery warning.
 		 * Both choices retain equivalent attachment content-type metadata, including valid parameters such as {@code charset}.
 		 * Eager extraction closes every attachment stream it opens, including on failure. Calendar interpretation likewise closes streams it acquires;
-		 * this does not close the DataSource itself or a caller-supplied top-level EML source stream. Known I/O failures retain their original cause,
-		 * including suppressed closing failures, through the conversion exception family.
+		 * this does not close the DataSource itself or a caller-supplied top-level EML source stream. Recovered component failures appear in
+		 * {@link Email#getProblems()} with available source evidence. Conversion exceptions retain their original cause and suppressed closing
+		 * failures. Cancellation and unrelated application failures still propagate.
 		 */
 		@NotNull T withFetchAttachmentData(boolean fetchAttachmentData);
 
