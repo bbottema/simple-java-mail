@@ -231,6 +231,15 @@ $externalDirectoryTargets = @(
     # BEGIN review-delivery-20261108 custody
     # Retire nested/main registered worktrees through Git before directory cleanup.
     # The combined checkout remains active while local follow-ups await delivery.
+    # Automatic approval review rejected retirement of the images/OpenPGP pairs: 'blocked by policy'.
+    # No deletion ran; keep these exact paths and do not retry through another deletion method.
+    # Manual retirement after approval is available:
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108\images\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108\images\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108\images' -Force
+    # git -C 'C:\workstation\simple-java-mail\simplejavamail.org' worktree remove 'C:\workstation\sjm-review-20261108\openpgp\sjm\simplejavamail.org'
+    # git -C 'C:\workstation\simple-java-mail' worktree remove 'C:\workstation\sjm-review-20261108\openpgp\sjm'
+    # Remove-Item -LiteralPath 'C:\workstation\sjm-review-20261108\openpgp' -Force
     @{ Path = 'C:\workstation\sjm-review-20261108\images\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\images\sjm' }
     @{ Path = 'C:\workstation\sjm-review-20261108\images\sjm'; Parent = 'C:\workstation\sjm-review-20261108\images' }
     @{ Path = 'C:\workstation\sjm-review-20261108\images'; Parent = 'C:\workstation\sjm-review-20261108' }
