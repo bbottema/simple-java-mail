@@ -64,6 +64,10 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    # BEGIN review-delivery-20261108 custody
+    # Retain execution and custody records until maintainer inspection.
+    '.local/api-review-20261108-evidence'
+    # END review-delivery-20261108 custody
     # Retained review artifacts can be removed after maintainer inspection.
     '.local/api-review-20261105-evidence'
     '.local/email-source-inspection-20261103'
@@ -140,6 +144,10 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # BEGIN review-delivery-20261108 custody
+    # Retire this plan only after the local CustomMailer and batch follow-ups are delivered.
+    'docs/plans/approved-review-20261108.md'
+    # END review-delivery-20261108 custody
     # BEGIN openpgp-inspection-review-20261107 retired plan
     'docs/plans/openpgp-inspection-review-20261107.md'
     # END openpgp-inspection-review-20261107 retired plan
@@ -220,6 +228,19 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # BEGIN review-delivery-20261108 custody
+    # Retire nested/main registered worktrees through Git before directory cleanup.
+    # The combined checkout remains active while local follow-ups await delivery.
+    @{ Path = 'C:\workstation\sjm-review-20261108\images\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\images\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\images\sjm'; Parent = 'C:\workstation\sjm-review-20261108\images' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\images'; Parent = 'C:\workstation\sjm-review-20261108' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\openpgp\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\openpgp\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\openpgp\sjm'; Parent = 'C:\workstation\sjm-review-20261108\openpgp' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\openpgp'; Parent = 'C:\workstation\sjm-review-20261108' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\combined\sjm\simplejavamail.org'; Parent = 'C:\workstation\sjm-review-20261108\combined\sjm' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\combined\sjm'; Parent = 'C:\workstation\sjm-review-20261108\combined' }
+    @{ Path = 'C:\workstation\sjm-review-20261108\combined'; Parent = 'C:\workstation\sjm-review-20261108' }
+    # END review-delivery-20261108 custody
     # BEGIN openpgp-inspection-review-20261107 task custody
     # #704: retire nested/main checkouts through normal Git worktree removal before directory cleanup.
     # Automatic approval review rejected this plan/worktree retirement, stating only 'blocked by policy'.
