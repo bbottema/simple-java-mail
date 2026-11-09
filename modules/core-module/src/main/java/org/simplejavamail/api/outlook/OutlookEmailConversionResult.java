@@ -34,7 +34,8 @@ public class OutlookEmailConversionResult {
 	}
 
 	/**
-	 * @return Outlook-specific source metadata and raw headers from the converted {@code .msg} message.
+	 * @return Outlook-specific source metadata, raw headers and native body values from the {@code .msg} message,
+	 * independently of S/MIME content selection or later builder changes.
 	 */
 	@NotNull
 	public OutlookMessageData getOutlookMessageData() {

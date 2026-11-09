@@ -22,6 +22,8 @@ import static org.simplejavamail.internal.util.Preconditions.checkNonEmptyArgume
  * <p>
  * This data is useful for archival and inspection use cases where source headers or MAPI properties
  * should remain visible without copying those headers into {@link org.simplejavamail.api.email.Email#getHeaders()}.
+ * Native body values describe the MSG input, independently of content selected by S/MIME processing
+ * or later changes to the converted email builder.
  */
 public class OutlookMessageData implements Serializable {
 
@@ -41,6 +43,8 @@ public class OutlookMessageData implements Serializable {
 	private final Set<String> propertiesAsHex;
 	private final Set<Integer> propertyCodes;
 	private final String propertyListing;
+	private final String bodyHTML;
+	private final String bodyRTF;
 
 	@SuppressWarnings("ConstructorWithTooManyParameters")
 	public OutlookMessageData(
@@ -77,6 +81,48 @@ public class OutlookMessageData implements Serializable {
 			@Nullable final Set<String> propertiesAsHex,
 			@Nullable final Set<Integer> propertyCodes,
 			@Nullable final String propertyListing) {
+		this(headers, rawHeaders, messageClass, displayTo, displayCc, displayBcc, date, clientSubmitTime, creationDate, lastModificationDate,
+				lastModifierName, propertiesAsHex, propertyCodes, propertyListing, null, null);
+	}
+
+	/**
+	 * Creates a detached snapshot of Outlook source data. Body values are stored without processing.
+	 *
+	 * @param headers Source headers grouped by name.
+	 * @param rawHeaders Source header text.
+	 * @param messageClass Outlook message class.
+	 * @param displayTo Outlook display text for TO recipients.
+	 * @param displayCc Outlook display text for CC recipients.
+	 * @param displayBcc Outlook display text for BCC recipients.
+	 * @param date Source message date.
+	 * @param clientSubmitTime Source client submission time.
+	 * @param creationDate Source item creation time.
+	 * @param lastModificationDate Source item modification time.
+	 * @param lastModifierName Source/store last modifier name.
+	 * @param propertiesAsHex Source property identifiers in hexadecimal form.
+	 * @param propertyCodes Source property identifiers.
+	 * @param propertyListing Source property listing.
+	 * @param bodyHTML Native HTML exposed by the Outlook reader, without RTF fallback; null when unavailable or not captured.
+	 * @param bodyRTF Reader-decompressed and decoded RTF text; null when unavailable or not captured.
+	 */
+	@SuppressWarnings("ConstructorWithTooManyParameters")
+	public OutlookMessageData(
+			@Nullable final Map<String, ? extends Collection<String>> headers,
+			@Nullable final String rawHeaders,
+			@Nullable final String messageClass,
+			@Nullable final String displayTo,
+			@Nullable final String displayCc,
+			@Nullable final String displayBcc,
+			@Nullable final Date date,
+			@Nullable final Date clientSubmitTime,
+			@Nullable final Date creationDate,
+			@Nullable final Date lastModificationDate,
+			@Nullable final String lastModifierName,
+			@Nullable final Set<String> propertiesAsHex,
+			@Nullable final Set<Integer> propertyCodes,
+			@Nullable final String propertyListing,
+			@Nullable final String bodyHTML,
+			@Nullable final String bodyRTF) {
 		this.headers = copyHeaders(headers);
 		this.rawHeaders = rawHeaders;
 		this.messageClass = messageClass;
@@ -91,6 +137,8 @@ public class OutlookMessageData implements Serializable {
 		this.propertiesAsHex = copySet(propertiesAsHex);
 		this.propertyCodes = copySet(propertyCodes);
 		this.propertyListing = propertyListing;
+		this.bodyHTML = bodyHTML;
+		this.bodyRTF = bodyRTF;
 	}
 
 	/**
@@ -186,6 +234,32 @@ public class OutlookMessageData implements Serializable {
 	@Nullable
 	public String getPropertyListing() {
 		return propertyListing;
+	}
+
+	/**
+	 * Returns the native HTML body exposed by the Outlook reader, without its RTF-to-HTML fallback.
+	 * This is source data, not necessarily the HTML returned by the converted Email after S/MIME processing or builder changes.
+	 * An empty body remains empty; null means unavailable or not captured, including legacy constructors and serialized snapshots.
+	 * Absence of native HTML does not establish that the message was originally plain text.
+	 *
+	 * @return The captured native HTML, or null when unavailable or not captured. This getter performs no I/O or conversion.
+	 */
+	@Nullable
+	public String getBodyHTML() {
+		return bodyHTML;
+	}
+
+	/**
+	 * Returns the source RTF body text after the Outlook reader's decompression and decoding, without further processing.
+	 * This is not the compressed RTF property or the original MSG bytes. RTF may contain plain text, encapsulated HTML or rich text.
+	 * An empty body remains empty; null means unavailable or not captured, including legacy constructors and serialized snapshots.
+	 * Like {@link #getBodyHTML()}, this describes the native MSG, independently of the final converted Email.
+	 *
+	 * @return The captured RTF text, or null when unavailable or not captured. This getter performs no I/O or conversion.
+	 */
+	@Nullable
+	public String getBodyRTF() {
+		return bodyRTF;
 	}
 
 	@NotNull

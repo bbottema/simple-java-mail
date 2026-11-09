@@ -3,11 +3,12 @@ https://www.simplejavamail.org
 <dependency>
     <groupId>org.simplejavamail</groupId>
     <artifactId>simple-java-mail</artifactId>
-    <version>9.3.9</version>
+    <version>9.3.10</version>
 </dependency>
 
-v9.3.0 - v9.3.9
+v9.3.0 - v9.3.10
 
+- **v9.3.10:** #979: expose native HTML and reader-decoded RTF through OutlookMessageData from the same MSG conversion. The existing HTML fallback stays enabled, and these source values remain independent of S/MIME content selection.
 - **v9.3.9:** #869: preserve the original embedded-image filename when importing Outlook MSG files, keeping the Content-ID separate so HTML image references still work.
 - **v9.3.9:** #868: correct inherited module project URLs in published Maven metadata to point to the existing documentation pages.
 - **v9.3.8:** #820: restored persisted CLI Javadoc-cache reuse by correctly serializing Therapi's unmodifiable collections. CLI help now reuses the packaged documentation cache; old or damaged caches still fall back to embedded Javadocs, and CLI options are unchanged.

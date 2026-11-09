@@ -162,7 +162,9 @@ public class OutlookEmailConverter implements OutlookModule {
 				outlookMessage.getLastModifierName(),
 				outlookMessage.getPropertiesAsHex(),
 				outlookMessage.getPropertyCodes(),
-				outlookMessage.getPropertyListing());
+				outlookMessage.getPropertyListing(),
+				outlookMessage.getBodyHTML(),
+				outlookMessage.getBodyRTF());
 	}
 
 	@SuppressWarnings("StatementWithEmptyBody")
