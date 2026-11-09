@@ -384,9 +384,14 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
     }
 
     private static MailerRegularBuilder<?> builder(final int port, final TransportStrategy strategy) {
-        return factory().mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(strategy)
+        final MailerRegularBuilder<?> settings = factory().mailerBuilder().withSMTPServer("localhost", port).withTransportStrategy(strategy)
                 .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build());
+        if (strategy == SMTPS) {
+            // The scripted peer acknowledges QUIT before requiring EOF; its client must wait for that reply.
+            settings.withProperty("mail.smtps.quitwait", "true");
+        }
+        return settings;
     }
 
     private static SimpleJavaMail factory() {
