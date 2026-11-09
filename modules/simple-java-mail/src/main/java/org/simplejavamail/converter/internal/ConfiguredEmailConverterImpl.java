@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import org.simplejavamail.converter.internal.mimemessage.InputInspection;
 import org.simplejavamail.api.outlook.OutlookMessageData;
 
@@ -64,6 +66,7 @@ import org.simplejavamail.email.internal.EmailPopulatingBuilderFactoryImpl;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
+import org.simplejavamail.internal.modules.SMIMEModule;
 import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
@@ -91,6 +94,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	private final EmailStartingBuilder emailStartingBuilder;
 	private final EmailPopulatingBuilderFactoryImpl emailPopulatingBuilderFactory;
     private final SimpleJavaMailConfig configuration;
+    private final FactorySmimeRuntime smimeRuntime;
 
 	/**
 	 * Creates a converter for an immutable configuration snapshot.
@@ -99,11 +103,24 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	 * @see SimpleJavaMail#converter()
 	 */
 	public ConfiguredEmailConverterImpl(@NotNull final SimpleJavaMailConfig config) {
+        this(config, new FactorySmimeRuntime(config));
+    }
+
+    public ConfiguredEmailConverterImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySmimeRuntime smimeRuntime) {
+        this.smimeRuntime = requireNonNull(smimeRuntime, "smimeRuntime");
 		final SimpleJavaMailConfig requiredConfig = requireNonNull(config, "config");
         this.configuration = requiredConfig;
-		this.emailStartingBuilder = new EmailStartingBuilderImpl(requiredConfig);
+		this.emailStartingBuilder = new EmailStartingBuilderImpl(requiredConfig, smimeRuntime);
 		this.emailPopulatingBuilderFactory = new EmailPopulatingBuilderFactoryImpl(requiredConfig);
 	}
+
+    /** The originating factory owner is retained separately from every operation budget and output snapshot. */
+    public FactorySmimeRuntime smimeRuntime() { return smimeRuntime; }
+
+    /** Static artifact routes keep their no-template policy while retaining their conventional factory owner. */
+    public ConfiguredEmailConverterImpl forArtifactExport() {
+        return new ConfiguredEmailConverterImpl(org.simplejavamail.config.ConfigLoader.builder().load(), smimeRuntime);
+    }
 
     ImportContext prepareImport(final ImportLimitsConfig choices, final boolean rawSource) {
         return ImportContext.prepare(configuration, choices, rawSource);
@@ -121,7 +138,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	/** Creates an editable output snapshot without consulting another factory or changing the input. */
 	EmailPopulatingBuilder copyForOutput(final Email email) {
-		return new EmailStartingBuilderImpl(org.simplejavamail.config.ConfigLoader.builder().load()).copying(email);
+		return new EmailStartingBuilderImpl(org.simplejavamail.config.ConfigLoader.builder().load(), smimeRuntime).copying(email);
 	}
 
 	/** @see ConfiguredEmailConverter#fromMimeMessage(MimeMessage) */
@@ -382,10 +399,10 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
                 .signatureStatus(SignatureStatus.UNKNOWN).decryptionStatus(DecryptionStatus.UNKNOWN).build());
     }
 
-    private static void processIndependentSmimeAttachments(final InternalEmailPopulatingBuilder builder,
+    private void processIndependentSmimeAttachments(final InternalEmailPopulatingBuilder builder,
             final List<AttachmentResource> attachments, final List<AttachmentResource> parentArtifacts,
             @Nullable final Pkcs12Config pkcs12Config, final Function<AttachmentResource, EmailSourcePart> sourceOf) {
-        final List<AttachmentDecryptionResult> results = loadSmimeModule().processIndependentAttachments(attachments, pkcs12Config);
+        final List<AttachmentDecryptionResult> results = smimeModule(pkcs12Config).processIndependentAttachments(attachments, pkcs12Config);
         final List<AttachmentResource> processed = new ArrayList<>(parentArtifacts);
         for (final AttachmentDecryptionResult result : results) {
             processed.add(result.getAttachmentResource());
@@ -570,13 +587,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	}
 
 	@Nullable
-	private static SmimePreprocessingResult preprocessSmime(@NotNull final MimeMessage mimeMessage,
+	private SmimePreprocessingResult preprocessSmime(@NotNull final MimeMessage mimeMessage,
 			@Nullable final Pkcs12Config pkcs12Config) {
 		if (!ModuleLoader.smimeModuleAvailable()) {
 			return null;
 		}
 		final Session session = mimeMessage.getSession() != null ? mimeMessage.getSession() : createDummySession();
-		return ModuleLoader.loadSmimeModule().processIncoming(session, mimeMessage, pkcs12Config);
+		return smimeModule(pkcs12Config).processIncoming(session, mimeMessage, pkcs12Config);
 	}
 
 	@NotNull
@@ -798,16 +815,20 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		requireSmimeForExplicitDecryption(pkcs12Config);
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
 				.outlookMsgToEmailBuilder(msgInputStream, emailStartingBuilder, emailPopulatingBuilderFactory,
-                        InternalEmailConverterImpl.forImport(context.traversal));
+                        InternalEmailConverterImpl.forImport(context.traversal, this));
 		return fromMsgBuilder;
 	}
 
-	private static void requireSmimeForExplicitDecryption(@Nullable final Pkcs12Config pkcs12Config) {
+	private void requireSmimeForExplicitDecryption(@Nullable final Pkcs12Config pkcs12Config) {
 		if (pkcs12Config != null) {
 			// Explicit decryption is a requested feature, not the optional inspection attempted when its module happens to be present.
-			loadSmimeModule();
+			smimeRuntime.module();
 		}
 	}
+
+    private SMIMEModule smimeModule(final Pkcs12Config keys) {
+        return keys == null ? loadSmimeModule() : smimeRuntime.module();
+    }
 
 	@NotNull
 	private OutlookEmailConversionResult toOutlookEmailConversionResult(@NotNull final EmailFromOutlookMessage result,
@@ -842,12 +863,12 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		    if (context.traversal.hasOmissions()
                     && !(outlookMessage.getOutlookAttachments().size() == 1 && emailBuilder.getAttachments().size() == 1)) {
                 final OriginalSmimeDetails details = UnavailableSmimeInspection.fromOutlook(outlookMessage);
-                final List<AttachmentDecryptionResult> children = loadSmimeModule().processIndependentAttachments(emailBuilder.getAttachments(), pkcs12Config);
+                final List<AttachmentDecryptionResult> children = smimeModule(pkcs12Config).processIndependentAttachments(emailBuilder.getAttachments(), pkcs12Config);
                 final SmimeParseResult independent = independentSmimeResult(details, children);
                 handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, independent, context);
                 return independent;
             }
-			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
+			SmimeParseResult smimeParseResult = smimeModule(pkcs12Config).decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, context);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 			return smimeParseResult;
@@ -885,7 +906,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
                         java.util.Collections.emptyList(), pkcs12Config, sourceOf);
                 return emailBuilder;
             }
-			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
+			SmimeParseResult smimeParseResult = smimeModule(pkcs12Config).decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
 			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, context);
 			InspectionAssembly.attachmentProtection((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, sourceOf);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);

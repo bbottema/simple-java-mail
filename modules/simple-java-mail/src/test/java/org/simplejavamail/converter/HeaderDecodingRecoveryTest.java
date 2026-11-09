@@ -90,7 +90,7 @@ class HeaderDecodingRecoveryTest {
 		final Session session = Session.getInstance(new Properties());
 		final MimeMessage plain = mimeMessage(multipart("X-Legacy: " + UNDECODABLE + "\r\n"));
 		final Email sender = MAIL.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org").buildEmail();
-		final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, sender, plain,
+		final MimeMessage signed = ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY).signMessageWithSmime(session, sender, plain,
 				SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build());
 		final byte[] original = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final Email imported = MAIL.converter().fromEml(original).toEmail();

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import org.simplejavamail.api.email.Email;
@@ -26,11 +28,12 @@ final class EmailPreparation {
         final ResolvedMailerConfiguration configuration = plan.getConfiguration();
         final MailerOperationalSettings operational = configuration.getOperational();
         rehearse(email, mimeSession(plan), configuration.getGovernance(), operational.isClientValidationWarningsOnly(),
-                operational.isLegacySmtpContentSupportEnabled(), true);
+                operational.isLegacySmtpContentSupportEnabled(), true, configuration.getInputs().getSmimeRuntime());
     }
 
     static MailRehearsal rehearse(final Email suppliedEmail, final Session preparationSession, final EmailGovernance governance,
-            final boolean warningsOnly, final boolean legacySmtpContentSupportEnabled, final boolean processSecurityAndValidateSize) {
+            final boolean warningsOnly, final boolean legacySmtpContentSupportEnabled, final boolean processSecurityAndValidateSize,
+            final FactorySmimeRuntime smimeRuntime) {
         final Email governedEmail = InternalEmail.requireInternalEmail(requireNonNull(suppliedEmail, "email"))
                 .prepareForSending(governance, warningsOnly);
         // A preview owns its generated identity; it must not propagate it into the caller's draft.
@@ -38,7 +41,7 @@ final class EmailPreparation {
         try {
             final MailRehearsal rehearsal = SessionBasedEmailToMimeMessageConverter
                     .forPreparation(preparationSession, governance, legacySmtpContentSupportEnabled)
-                    .rehearseMimeMessage(governedEmail, processSecurityAndValidateSize);
+                    .rehearseMimeMessage(governedEmail, processSecurityAndValidateSize, smimeRuntime);
             if (rehearsal.getEmailId() != null) {
                 InternalEmail.requireInternalEmail(governedEmail).updateId(rehearsal.getEmailId());
             }

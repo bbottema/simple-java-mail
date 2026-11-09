@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ public final class FactoryMailerRuntime {
 	private final FactorySendingLimits sendingLimits;
 	private final Map<String, Definition> definitions;
 	private final LongSupplier clock;
+	private final FactorySmimeRuntime smime;
 
 	public FactoryMailerRuntime(final SimpleJavaMailConfig config) {
 		this(config, new FactorySendingLimits());
@@ -33,6 +35,7 @@ public final class FactoryMailerRuntime {
 	FactoryMailerRuntime(final SimpleJavaMailConfig config, final FactorySendingLimits sendingLimits, final LongSupplier clock) {
 		this.sendingLimits = requireNonNull(sendingLimits, "sendingLimits");
 		this.clock = requireNonNull(clock, "clock");
+		this.smime = new FactorySmimeRuntime(config);
 		final Map<String, SimpleJavaMailConfig> configured = MailerConfigurationResolver.configured(config, ConfigKeys.NAMED_MAILERS, Collections.emptyMap());
 		final Map<String, Definition> captured = new LinkedHashMap<>();
 		configured.forEach((name, value) -> captured.put(name, new Definition(name, value, clock)));
@@ -46,6 +49,9 @@ public final class FactoryMailerRuntime {
 	FactorySendingLimits sendingLimits() {
 		return sendingLimits;
 	}
+
+	/** The root factory's private-key owner also serves privately constructed named Mailers. */
+	public FactorySmimeRuntime smime() { return smime; }
 
 	Definition named(final String name) {
 		final Definition definition = definitions.get(name);

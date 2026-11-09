@@ -176,7 +176,7 @@ class ImportedHeaderScopeTest {
 		final Session session = Session.getInstance(new Properties());
 		final MimeMessage plain = new MimeMessage(session, new ByteArrayInputStream(multipart(ROOT_CHOICES, CHILD_CHOICES).getBytes(UTF_8)));
 		final Email sender = MAIL.emailBuilder().startingBlank().from("sender@shop.example").to("reader@example.org").buildEmail();
-		final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, sender, plain,
+		final MimeMessage signed = ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY).signMessageWithSmime(session, sender, plain,
 				SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build());
 		final byte[] source = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final Email email = MAIL.converter().fromEml(source).toEmail();

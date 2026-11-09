@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetHeaders;
@@ -53,7 +55,7 @@ final class ExactEmlSource implements EmailSource {
 
 	@Override
 	@NotNull
-	public MimeMessage renderMimeMessage(@NotNull final Email email, @NotNull final Session session, final boolean processSecurity)
+	public MimeMessage renderMimeMessage(@NotNull final Email email, @NotNull final Session session, final boolean processSecurity, @NotNull final FactorySmimeRuntime smimeRuntime)
 			throws MessagingException {
 		return FinalizedMimeMessage.fromExactMessageBytes(session, emlBytes);
 	}

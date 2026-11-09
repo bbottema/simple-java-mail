@@ -249,7 +249,7 @@ class ConversionFollowupBoundaryTest {
 
     @Test
     void directSmimeHelperAndExplicitDecryptionKeepTheirFailureBoundary() {
-        final SMIMEModule smime = ModuleLoader.loadSmimeModule();
+        final SMIMEModule smime = ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
         final AttachmentResource malformed = AttachmentResource.builder().withName("broken.p7m")
                 .withData("not CMS".getBytes(US_ASCII), "application/pkcs7-mime; smime-type=signed-data").build();
         final Email parent = MAIL.emailBuilder().startingBlank().buildEmail();

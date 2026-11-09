@@ -60,6 +60,12 @@ and its [TLS inspection clarification](0015-execution-views-and-transport-poolin
 
 Keep `SimpleJavaMail.fromDefaults()` as a conventional lazy factory: classpath properties, then environment variables, then JVM properties, resolved once on first use. A change in configuration requires a new snapshot and replacement objects. The factory owns no Mailer resources; applications close the Mailers they create.
 
+Factory-owned runtime state remains separate from that snapshot. [ADR 0006](0006-optional-modules.md#factory-owned-smime-key-reuse) applies
+this boundary to S/MIME key reuse: one factory's Mailers and converters share its lazy runtime, while separate factories remain independent
+even with the same snapshot object. `simplejavamail.smime.cache.capacity` is factory-root input, with unlimited retention as its published
+fallback. Replacing capacity requires replacement configured objects; closing one Mailer does not clear the other participants' entries.
+The snapshot and serialized Email data never own that live runtime, and the factory adds no resource-close obligation.
+
 ### Fail-fast validation and passive inspection
 
 Clarified 21 October 2026: inherited rules must be coherent at their declared validation boundary. Builder precedence allows customization

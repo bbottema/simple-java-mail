@@ -488,7 +488,7 @@ abstract class MailerGenericBuilderImpl<T extends MailerGenericBuilderImpl<?>>
 		final String lockedName = locksOf(config).contains(Property.FAILOVER_MAILER)
 				? MailerConfigurationResolver.configured(config, ConfigKeys.FAILOVER_MAILER, null) : null;
 		final CapturedMailerInputs result = CapturedMailerInputs.builder().connection(connection).operational(operational).requirements(requirements)
-				.definition(definition).sendingLimits(sendingLimits).emailValidator(emailValidator).emailDefaults(emailDefaults).emailOverrides(emailOverrides)
+				.definition(definition).sendingLimits(sendingLimits).smimeRuntime(runtime.smime()).emailValidator(emailValidator).emailDefaults(emailDefaults).emailOverrides(emailOverrides)
 				.maximumEmailSize(maximumEmailSize).handlers(sendHandlers).handlersFactory(sendHandlersFactory).idGenerator(sendIdGenerator)
 				.applyDebugEnabled(suppliedSession == null || debugConfig.getEnabled() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG))
 				.applyDebugOutput(debugConfig.getOutput() != null || debugConfig.getPrinter() != null || config.hasProperty(ConfigKeys.JAVAXMAIL_DEBUG_OUTPUT))

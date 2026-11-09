@@ -168,7 +168,7 @@ class InlineResourceMetadataTest {
 		final Session session = Session.getInstance(new Properties());
 		final MimeMessage source = new MimeMessage(session, new ByteArrayInputStream(EML.getBytes(UTF_8)));
 		final Email configuration = mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org").buildEmail();
-		final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(session, configuration, source,
+		final MimeMessage signed = ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY).signMessageWithSmime(session, configuration, source,
 				SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build());
 		final byte[] bytes = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final Email imported = mail.converter().fromEml(bytes).toEmail();

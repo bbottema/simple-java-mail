@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import org.simplejavamail.api.mailer.MailFailureKind;
 
 import jakarta.mail.Address;
@@ -162,7 +164,7 @@ public class SessionBasedEmailToMimeMessageConverter {
     public static MimeMessage convertAndLogMimeMessage(Session session, final Email email) throws MessagingException {
         try {
             val mimeMessageConverter = (SessionBasedEmailToMimeMessageConverter) session.getProperties().get(MIMEMESSAGE_CONVERTER_KEY);
-            val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email);
+            val mimeMessage = mimeMessageConverter.convertAndLogMimeMessage(email, selectedRuntime(session));
             mimeMessageConverter.validateMaximumEmailSize(mimeMessage);
             return mimeMessage;
         } catch (MessagingException failure) {
@@ -172,9 +174,9 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    MailRehearsal rehearseMimeMessage(final Email email, final boolean processSecurityAndValidateSize)
+    MailRehearsal rehearseMimeMessage(final Email email, final boolean processSecurityAndValidateSize, final FactorySmimeRuntime smimeRuntime)
             throws MessagingException {
-        val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize);
+        val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize, smimeRuntime);
         final byte[] emlBytes = serializeMimeMessage(mimeMessage);
         if (processSecurityAndValidateSize) {
             validateMaximumEmailSize(emlBytes.length);
@@ -352,8 +354,8 @@ public class SessionBasedEmailToMimeMessageConverter {
     }
 
     @NotNull
-    private MimeMessage convertAndLogMimeMessage(final Email email) throws MessagingException {
-        val message = convertMimeMessage(email, session);
+    private MimeMessage convertAndLogMimeMessage(final Email email, final FactorySmimeRuntime smimeRuntime) throws MessagingException {
+        val message = convertMimeMessage(email, session, true, smimeRuntime);
 
         SessionLogger.logSession(session, "mail");
 
@@ -366,13 +368,19 @@ public class SessionBasedEmailToMimeMessageConverter {
         return message;
     }
 
-    private static MimeMessage convertMimeMessage(final Email email, final Session session) throws MessagingException {
-        return convertMimeMessage(email, session, true);
+    /** Existing Session ownership identifies the actual selected Mailer; capacity is never inferred from raw properties. */
+    private static FactorySmimeRuntime selectedRuntime(final Session session) {
+        final MailerImpl owner = MailerImpl.selectedOwnerOrNull(session);
+        if (owner != null) return owner.smimeRuntime();
+        final SessionBasedEmailToMimeMessageConverter converter = context(session);
+        return converter != null && converter.emailGovernance instanceof EmailGovernanceImpl
+                ? new FactorySmimeRuntime(((EmailGovernanceImpl) converter.emailGovernance).configuration())
+                : FactorySmimeRuntime.isolated();
     }
 
-    private static MimeMessage convertMimeMessage(final Email email, final Session session, final boolean processSecurity) throws MessagingException {
+    private static MimeMessage convertMimeMessage(final Email email, final Session session, final boolean processSecurity, final FactorySmimeRuntime smimeRuntime) throws MessagingException {
         try {
-            return InternalEmail.requireInternalEmail(email).renderMimeMessage(session, processSecurity);
+            return InternalEmail.requireInternalEmail(email).renderMimeMessage(session, processSecurity, smimeRuntime);
         } catch (UnsupportedEncodingException e) {
             LOGGER.trace("Failed to send email {}\n{}", email.getId(), email);
             throw new MailerException(MailFailureKind.PREPARATION, format(INVALID_ENCODING, email.getId()), e);

@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -38,9 +40,9 @@ public abstract class SpecializedMimeMessageProducer {
 	 */
 	abstract boolean compatibleWithEmail(@NotNull Email email);
 	
-	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session)
+	final MimeMessage populateMimeMessage(@NotNull final Email email, @NotNull Session session, final FactorySmimeRuntime smimeRuntime)
 			throws MessagingException, UnsupportedEncodingException {
-		return MimeMessageProducerHelper.applyMessageProtection(email, session, populateBaseMimeMessage(email, session));
+		return MimeMessageProducerHelper.applyMessageProtection(email, session, populateBaseMimeMessage(email, session), smimeRuntime);
 	}
 
 	final MimeMessage populateBaseMimeMessage(@NotNull final Email email, @NotNull Session session)
@@ -64,7 +66,7 @@ public abstract class SpecializedMimeMessageProducer {
 		return message;
 	}
 
-	static MimeMessage applySecurity(@NotNull final Email email, @NotNull final Session session, MimeMessage message)
+	static MimeMessage applySecurity(@NotNull final Email email, @NotNull final Session session, MimeMessage message, final FactorySmimeRuntime smimeRuntime)
 			throws MessagingException {
 
 		/*
@@ -75,7 +77,7 @@ public abstract class SpecializedMimeMessageProducer {
 			4. DKIM signing
 		 */
 
-		message = SmimeMessageProtection.apply(session, message, email);
+		message = SmimeMessageProtection.apply(session, message, email, smimeRuntime);
 
 		if (email.getOpenPgpSigningConfig() != null) {
 			message = ModuleLoader.loadOpenPgpModule().signMessage(

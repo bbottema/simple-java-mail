@@ -29,6 +29,10 @@ public interface SMIMEModule extends InboundProtectionHandler<Pkcs12Config, Orig
 
 	String NAME = "S/MIME module";
 
+	/** Creates one private-key runtime for its owning factory; the reflection-loaded entry point retains no factory runtime. */
+	@NotNull
+	SMIMEModule createRuntime(int capacity);
+
 	@NotNull
 	@Override
 	SmimePreprocessingResult processIncoming(@NotNull Session session, @NotNull MimeMessage originalMessage,

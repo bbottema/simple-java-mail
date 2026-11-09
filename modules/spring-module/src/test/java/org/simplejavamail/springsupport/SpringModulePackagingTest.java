@@ -1,6 +1,7 @@
 package org.simplejavamail.springsupport;
 
 import org.junit.jupiter.api.Test;
+import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 
 import java.io.File;
@@ -123,6 +124,17 @@ public class SpringModulePackagingTest {
 				final String type = member.equals("maximuminputbytes") ? "java.lang.Long" : "java.lang.Integer";
 				assertThat(metadata.substring(propertyStart, metadata.indexOf('}', propertyStart))).contains("\"type\": \"" + type + "\"");
 			}
+		}
+	}
+
+	@Test
+	void smimeCacheCapacityHasIntegerMetadataForOrdinaryAndLockedRoot() throws IOException, URISyntaxException {
+		final String metadata = readUtf8(new File(productionRoot(), CONFIGURATION_METADATA));
+		for (String key : java.util.List.of("simplejavamail.smime.cache.capacity", "simplejavamail.locked.smime.cache.capacity")) {
+			final int propertyStart = metadata.indexOf("\"name\": \"" + key + "\"");
+			assertThat(propertyStart).as(key).isNotNegative();
+			assertThat(metadata.substring(propertyStart, metadata.indexOf('}', propertyStart)))
+					.contains("\"type\": \"java.lang.Integer\"", "\"defaultValue\": " + ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
 		}
 	}
 

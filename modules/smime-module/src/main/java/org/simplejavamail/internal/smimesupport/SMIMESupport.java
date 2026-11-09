@@ -108,15 +108,19 @@ import static org.simplejavamail.internal.util.MiscUtil.defaultTo;
 public class SMIMESupport implements SMIMEModule {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMIMESupport.class);
-	private static final SmimeKeyCache SIMPLE_SMIMESTORE_CACHE = SmimeKeyCache.create();
-	private final SmimeKeyCache keyCache;
+	@Nullable private final SmimeKeyCache keyCache;
 
 	public SMIMESupport() {
-		this(SIMPLE_SMIMESTORE_CACHE);
+		this.keyCache = null;
 	}
 
 	SMIMESupport(@NotNull final SmimeKeyCache keyCache) {
 		this.keyCache = keyCache;
+	}
+
+	@Override
+	public SMIMEModule createRuntime(final int capacity) {
+		return new SMIMESupport(new SmimeKeyCache(capacity));
 	}
 
 	/** Read-only message facts keep unopened nested ciphertext uncertain without changing ordinary import behavior. */
@@ -1280,6 +1284,9 @@ public class SMIMESupport implements SMIMEModule {
 
 	@NotNull
 	private SmimeKey retrieveSmimeKeyFromPkcs12Keystore(@NotNull Pkcs12Config pkcs12Config) {
+		if (keyCache == null) {
+            throw new IllegalStateException("Private key loading requires a factory-owned S/MIME runtime.");
+        }
 		return keyCache.get(pkcs12Config, configuration -> {
 			final SmimeKey smimeKey = produceSmimeKey(configuration);
 			if (smimeKey == null) {

@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -23,7 +25,7 @@ interface EmailSource extends Serializable {
 	void validateForSending(@NotNull Email email, @NotNull EmailGovernance emailGovernance, boolean clientValidationWarningsOnly);
 
 	@NotNull
-	MimeMessage renderMimeMessage(@NotNull Email email, @NotNull Session session, boolean processSecurity)
+	MimeMessage renderMimeMessage(@NotNull Email email, @NotNull Session session, boolean processSecurity, @NotNull FactorySmimeRuntime smimeRuntime)
 			throws MessagingException, UnsupportedEncodingException;
 
 	@NotNull

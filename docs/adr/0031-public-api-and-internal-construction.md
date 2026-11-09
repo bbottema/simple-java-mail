@@ -160,6 +160,10 @@ The accepted schema-bound configuration read API puts `ConfigKey<T>` and `Config
 API. Ordinary key-based reads, presence/provenance and fallback selection compile without the main implementation.
 Schema parsing/projection stays internal to core's existing loader; typed keys do not expose parser/descriptor assembly.
 
+The factory-root S/MIME capacity setting follows the same boundary: core publishes its property identity, Integer key and fallback, main
+retains the factory owner, and the optional module creates its internal key-reuse runtime. The existing configuration API supplies the value;
+no public cache object, factory overload or Mailer/per-operation capacity setter is added. See [ADR 0006](0006-optional-modules.md#factory-owned-smime-key-reuse).
+
 Use the existing artifacts; this decision does not rename `core-module` or introduce a second API artifact.
 
 | Maven module | Responsibility | Examples |

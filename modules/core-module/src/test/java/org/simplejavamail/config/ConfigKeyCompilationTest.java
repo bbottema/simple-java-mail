@@ -19,6 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ConfigKeyCompilationTest {
 
     @Test
+    void smimeCapacityHasAnInvariantIntegerReadAndACoreOwnedFallback() throws Exception {
+        assertCompiles("Integer capacity = c.get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY); "
+                + "Integer selected = c.valueOrProperty(null, ConfigKeys.SMIME_KEY_CACHE_CAPACITY, "
+                + "ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);");
+        assertDoesNotCompile("Long capacity = c.get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY);");
+        assertDoesNotCompile("Object capacity = c.valueOrProperty(1L, ConfigKeys.SMIME_KEY_CACHE_CAPACITY);");
+    }
+
+    @Test
     void importLimitKeysRetainTheirDeclaredWidths() throws Exception {
         assertCompiles("Long bytes = c.get(ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES); "
                 + "Integer parts = c.get(ConfigKeys.IMPORT_MAXIMUM_PART_COUNT); "

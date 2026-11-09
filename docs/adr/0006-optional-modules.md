@@ -113,7 +113,7 @@ specialized Outlook result stays supported. Portability of other fields in the w
 
 ### Runtime loading and shared instances
 
-`ModuleLoader` lazily caches one instance per module interface using `ConcurrentHashMap.computeIfAbsent`. Optional feature implementations must therefore tolerate shared concurrent use. Class-availability checks let selected paths degrade deliberately: absent batch support means direct transports, while requesting an unavailable signing module raises a focused error. Module absence is not permission to silently omit requested protection.
+`ModuleLoader` lazily caches one module entry point per interface using `ConcurrentHashMap.computeIfAbsent`. Entry points must tolerate shared concurrent use; feature runtimes retain their declared owner rather than entering that shared cache. Class-availability checks let selected paths degrade deliberately: absent batch support means direct transports, while requesting an unavailable signing module raises a focused error. Module absence is not permission to silently omit requested protection.
 
 OpenPGP follows the same boundary. Its PGPainless implementation belongs to `openpgp-module`; adding it does not impose OpenPGP dependencies on ordinary senders. The separate provider adapter SPI is covered by [ADR 0007](0007-provider-neutral-mime-boundary.md): replaceable transport providers and the fixed set of bundled optional feature modules use different discovery contracts.
 
@@ -129,25 +129,43 @@ resolve `org.simplejavamail.openpgp` explicitly and continue through the same pu
 loading and absence behavior retain their contracts. [#704](https://github.com/bbottema/simple-java-mail/issues/704) tracks this packaging
 correction for unreleased 10.0.0.
 
-### Shared S/MIME key reuse (accepted 29 October 2026)
+<a id="shared-smime-key-reuse-accepted-29-october-2026"></a>
+### Factory-owned S/MIME key reuse
 
-Keep the parsed-key cache introduced under #320 to avoid repeatedly loading the same PKCS12 material. Lookup and publication must be
-atomic under concurrent signing and decryption: equal immutable configurations reuse one completed resident key, distinct configurations
-remain separate, and a failed load leaves no cached result. [#906](https://github.com/bbottema/simple-java-mail/issues/906) applies this
-shared-instance requirement to concurrent use.
+Keep automatic parsed-key reuse for signing and incoming decryption. One `SimpleJavaMail` factory owns its lazy S/MIME runtime, shared by
+the Mailers, converters and applicable helpers it creates. Separate factories have independent caches, even when constructed from the same
+`SimpleJavaMailConfig` snapshot. The snapshot remains immutable input; Email, PKCS12 configuration and supported serialized graphs do not
+acquire a live cache or factory reference.
 
-The retention decision accepted on 8 November 2026 under [#977](https://github.com/bbottema/simple-java-mail/issues/977) replaces unbounded
-retention with finite capacity and expiry after inactivity. The optional S/MIME module owns shared reuse for both sending and incoming
-decryption. Full capacity retires the least recently used completed entry instead of rejecting valid work. An operation can finish with a
-key it already holds after eviction, while a later lookup can reload the supplied material. Configuration identity, validation and
-cryptographic outcomes retain their existing meaning; applications acquire no cache setup or cleanup obligation.
+Configure entry retention through the factory-root property `simplejavamail.smime.cache.capacity`, its ordinary locked counterpart and
+`ConfigKeys.SMIME_KEY_CACHE_CAPACITY`. `ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY = -1` is the published fallback. Absence or `-1`
+means unlimited completed entries while the owner remains reachable; `0` retains no completed entries; a positive integer limits the cache
+to that many completed configurations and retires the least recently used entry when space is needed. Values below `-1` are invalid at
+active feature use before key loading. Source types retain the ordinary schema boundary. A named-Mailer declaration of this property is
+rejected with guidance to configure the factory root or create a separate factory.
 
-Key loading runs outside cache bookkeeping locks, with concurrent loads of the same configuration sharing their result. A lazy,
-module-owned daemon removes idle entries without another foreground lookup and retires when the cache empties. It does not inherit an
-application thread-context class loader. Expiration observes current access times, and a retired worker cannot affect a replacement
-generation. Capacity and idle duration remain internal policy; this is a bound on resident reuse, not a complete heap bound or a promise
-to erase material retained by applications or operations. If expiration maintenance cannot be started, successful operations can proceed
-without retaining a cache entry. No public cache API, factory-owned cache or new dependency is introduced.
+Capacity counts completed configurations, including retained keystore/password data and parsed keys. It is not a byte or whole-heap bound.
+Full capacity evicts rather than rejecting valid work. An operation may finish with a key it already holds after eviction; later use can
+reload the supplied material. Equal resident configurations and overlapping first loads share their result, while distinct configurations
+remain separate. Failed loads do not become resident, owner and waiters retain the original failure, and later calls can retry. Loading
+runs outside cache bookkeeping locks. Zero capacity can still share an overlapping active load without retaining its completed result.
+
+The reflection-loaded module entry point stays stateless with respect to factory caches and creates the necessary internal runtime through
+the existing core module boundary. Optional key types and cryptographic interpretation remain in the S/MIME implementation. Factory
+construction, configuration inspection and ordinary unprotected sending do not activate that runtime or read keys. The selected sending or
+preparation Mailer supplies its owner; conversion and nested/helper processing preserve their originating factory. Private named Mailers
+share their creating factory's owner, and borrowed cross-factory destinations use their own. Static conveniences use the conventional
+default factory. Cache policy is not inferred from Session properties or outgoing Email configuration.
+
+Changing capacity requires a replacement configured factory and its participating objects. Existing objects keep their captured policy;
+closing one Mailer does not clear entries shared with other participants. The cache owns heap values only, with no time-based expiry,
+worker, public cache object or additional factory-close obligation. Idle entries can remain for their owner's lifetime. Applications that
+need a count bound choose a positive capacity; no finite default or material-erasure guarantee is implied.
+
+This current policy was accepted on 9 November 2026 under [#977](https://github.com/bbottema/simple-java-mail/issues/977). It preserves
+[#320](https://github.com/bbottema/simple-java-mail/issues/320)'s reuse rationale and [#906](https://github.com/bbottema/simple-java-mail/issues/906)'s
+atomic-loading requirement, and supersedes the earlier unreleased [ab3e445e](https://github.com/bbottema/simple-java-mail/commit/ab3e445e64c1c17c851b0202bd2d1edd8af95739)
+retention experiment.
 
 ### OpenTelemetry configuration and runtime loading (updated 2026-10-16)
 

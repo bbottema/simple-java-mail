@@ -21,7 +21,7 @@ import org.simplejavamail.config.ConfigLoader.Property;
  * For example, {@code Integer port = config.get(ConfigKeys.SMTP_PORT)} and
  * {@code Duration timeout = config.get(ConfigKeys.SESSION_TIMEOUT)}. Missing values, including aggregate maps,
  * are null because a snapshot contains explicit input only. Present snapshot maps are detached and unmodifiable.
- * Runtime defaults remain with the owning builder. Values can contain credentials; use diagnostics when logging.
+ * Runtime defaults are resolved by the owning feature. Values can contain credentials; use diagnostics when logging.
  * <p>
  * {@link ConfigKey#key()} supplies the unchanged textual name. Dynamic inputs and
  * {@link SimpleJavaMailConfig#asMap()} retain their parser representation and original units. Numeric-millisecond
@@ -29,6 +29,13 @@ import org.simplejavamail.config.ConfigLoader.Property;
  */
 public final class ConfigKeys {
     private ConfigKeys() { }
+
+    /**
+     * Captured factory-root choice for {@code simplejavamail.smime.cache.capacity}. Absence remains null; the active S/MIME runtime uses
+     * {@link ConfigLoader#DEFAULT_SMIME_KEY_CACHE_CAPACITY}. Minus one selects unlimited completed entries, zero retains none, and a positive
+     * value applies least-recently-used entry capacity. This choice does not activate S/MIME or belong to individual named Mailers.
+     */
+    public static final ConfigKey<Integer> SMIME_KEY_CACHE_CAPACITY = PropertySchema.integerKey(Property.SMIME_KEY_CACHE_CAPACITY);
 
     /** Configured raw-input size choice for {@code simplejavamail.conversion.import.maximuminputbytes}; zero selects unlimited. */
     public static final ConfigKey<Long> IMPORT_MAXIMUM_INPUT_BYTES = PropertySchema.longKey(Property.IMPORT_MAXIMUM_INPUT_BYTES);

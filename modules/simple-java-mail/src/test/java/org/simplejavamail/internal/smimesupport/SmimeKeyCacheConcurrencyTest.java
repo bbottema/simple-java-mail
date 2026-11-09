@@ -35,6 +35,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class SmimeKeyCacheConcurrencyTest {
+    private final SMIMESupport ownedRuntime = (SMIMESupport) new SMIMESupport()
+            .createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
 
     @Test
     void concurrentFirstUseOfEqualConfigurationsReusesOneParsedKey() throws Exception {
@@ -155,11 +157,11 @@ class SmimeKeyCacheConcurrencyTest {
                 .keyAlias(keys.getKeyAlias()).keyPassword(keys.getKeyPassword()).build();
     }
 
-    private static SmimeKey load(final Pkcs12Config keys) throws Exception {
+    private SmimeKey load(final Pkcs12Config keys) throws Exception {
         final Method method = SMIMESupport.class.getDeclaredMethod("retrieveSmimeKeyFromPkcs12Keystore", Pkcs12Config.class);
         method.setAccessible(true);
         try {
-            return (SmimeKey) method.invoke(new SMIMESupport(), keys);
+            return (SmimeKey) method.invoke(ownedRuntime, keys);
         } catch (InvocationTargetException failure) {
             if (failure.getCause() instanceof Exception) {
                 throw (Exception) failure.getCause();

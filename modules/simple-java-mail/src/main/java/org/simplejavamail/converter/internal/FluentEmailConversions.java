@@ -326,7 +326,7 @@ class FluentEmailConversions {
 			return operation.render(email,
 					selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"),
 					selectOptionOrCreateFallback(governance, EmailGovernanceImpl::NO_GOVERNANCE, "withEmailGovernance"),
-					converter::copyForOutput, writingContent);
+					converter::copyForOutput, writingContent, converter.smimeRuntime());
 		}
 
 		final void checkImportOptions() {

@@ -38,6 +38,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
+import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.cert.X509Certificate;
@@ -212,18 +215,21 @@ class MailerHelperSmimeTest {
 		final Email details = Protection.BOTH.configure(mail.emailBuilder().startingBlank()
 				.from("sender@example.org").to("reader@example.org").withPlainText("body")).buildEmail();
 		final SMIMEModule smime = spy(ModuleLoader.loadSmimeModule());
-		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+        final SMIMEModule runtime = spy(smime.createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY));
+		try (AutoCloseable conventional = bindRuntime(SimpleJavaMail.fromDefaults(), runtime);
+                AutoCloseable configured = bindRuntime(mail, runtime);
+                MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::loadSmimeModule).thenReturn(smime);
 			for (boolean helper : new boolean[] {true, false}) {
-				clearInvocations(smime);
+				clearInvocations(smime, runtime);
 				if (helper) {
 					final MimeMessage raw = rawMessage();
 					MailerHelper.signAndOrEncryptMessageWithSmime(raw.getSession(), raw, details);
 				} else {
 					mail.converter().fromEmail(details).toMimeMessage();
 				}
-				final InOrder stages = inOrder(smime);
-				stages.verify(smime).signMessageWithSmime(any(), any(), any(), same(details.getSmimeSigningConfig()));
+				final InOrder stages = inOrder(smime, runtime);
+				stages.verify(runtime).signMessageWithSmime(any(), any(), any(), same(details.getSmimeSigningConfig()));
 				final ArgumentCaptor<MimeMessage> encryptionInput = ArgumentCaptor.forClass(MimeMessage.class);
 				stages.verify(smime).encryptMessageWithSmime(any(), any(), encryptionInput.capture(), same(details.getSmimeEncryptionConfig()));
 				stages.verifyNoMoreInteractions();
@@ -296,7 +302,9 @@ class MailerHelperSmimeTest {
 		final SMIMEModule smime = mock(SMIMEModule.class);
 		when(smime.signMessageWithSmime(any(), any(Email.class), any(), same(details.getSmimeSigningConfig())))
 				.thenReturn(unfinalizable);
-		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+		try (AutoCloseable conventional = bindRuntime(SimpleJavaMail.fromDefaults(), smime);
+                AutoCloseable configured = bindRuntime(mail, smime);
+                MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::loadSmimeModule).thenReturn(smime);
 			assertThatThrownBy(() -> MailerHelper.signAndOrEncryptMessageWithSmime(unfinalizable.getSession(), rawMessage(), details))
 					.isInstanceOf(MailerException.class).hasCause(failure)
@@ -338,6 +346,16 @@ class MailerHelperSmimeTest {
 			}
 		}
 	}
+
+    /** Fault injection follows the real owner boundary; the loaded module entry remains a stateless factory. */
+    private static AutoCloseable bindRuntime(final SimpleJavaMail factory, final SMIMEModule runtime) throws Exception {
+        final FactorySmimeRuntime owner = ((ConfiguredEmailConverterImpl) factory.converter()).smimeRuntime();
+        final Field field = FactorySmimeRuntime.class.getDeclaredField("module");
+        field.setAccessible(true);
+        final Object previous = field.get(owner);
+        field.set(owner, runtime);
+        return () -> field.set(owner, previous);
+    }
 
 	private void assertProtectedContent(final MimeMessage message, final Protection protection, final String expectedBody) throws Exception {
 		assertThat(message).isInstanceOf(FinalizedMimeMessage.class);

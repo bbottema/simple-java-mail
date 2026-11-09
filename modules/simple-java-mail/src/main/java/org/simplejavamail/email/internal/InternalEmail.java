@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetHeaders;
@@ -82,7 +84,13 @@ public class InternalEmail extends Email {
     @NotNull
     public MimeMessage renderMimeMessage(@NotNull final Session session, final boolean processSecurity)
             throws MessagingException, UnsupportedEncodingException {
-        return emailSource.renderMimeMessage(this, session, processSecurity);
+        return renderMimeMessage(session, processSecurity, FactorySmimeRuntime.isolated());
+    }
+
+    @NotNull
+    public MimeMessage renderMimeMessage(@NotNull final Session session, final boolean processSecurity,
+            @NotNull final FactorySmimeRuntime smimeRuntime) throws MessagingException, UnsupportedEncodingException {
+        return emailSource.renderMimeMessage(this, session, processSecurity, smimeRuntime);
     }
 
     @NotNull

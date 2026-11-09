@@ -1,4 +1,17 @@
 # Finite contract obligations, independent of successful evidence.
+field	factory.smime-key-cache	simple-java-mail	library
+rule	smime.cache-capacity	simple-java-mail	library
+adapter	factory.smime-runtime	simple-java-mail	library
+case	smime.factory-cache	simple-java-mail	library
+adapter	spring.smime-cache	spring-module	full
+case	spring.smime-cache-ownership	spring-module	full
+test	org.simplejavamail.springsupport.SpringEnvironmentConfigSourceTest#smimeCacheCapacityKeepsSpringSourceAuthorityAndVisibleMetadata	spring-module	full
+test	org.simplejavamail.springsupport.SpringModulePackagingTest#smimeCacheCapacityHasIntegerMetadataForOrdinaryAndLockedRoot	spring-module	full
+test	org.simplejavamail.springsupport.SpringSmimeCacheCapacityTest#independentlyConfiguredContextsShareOnlyTheirOwnSigningAndDecryptionCache	spring-module	full
+adapter	cli.smime-cache-profile	cli-module	full
+case	cli.smime-cache-ownership	cli-module	full
+test	org.simplejavamail.internal.clisupport.CliMailerProfileTest#smimeCapacitySeparatesProfilesWhileEquivalentParsedChoicesRemainCompatible	cli-module	full
+test	org.simplejavamail.internal.clisupport.daemon.CliSmimeCacheCapacityTest#capacityChangesSeparateRetainedMailersAndActualSigningAndImportUseTheirRequestOwner	cli-module	full
 field	converter.import.maximumInputBytes	simple-java-mail	library
 field	converter.import.maximumPartCount	simple-java-mail	library
 field	converter.import.maximumNestingDepth	simple-java-mail	library

@@ -1,5 +1,7 @@
 package org.simplejavamail.mailer.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import org.simplejavamail.api.mailer.MailFailureKind;
 
 import static org.simplejavamail.internal.config.ConfigurationSnapshot.locksOf;
@@ -138,6 +140,7 @@ public class MailerImpl implements Mailer {
 	private final RehearsalSessionContext rehearsalSessionContext;
 	private final MailSendRateLimiter sendingLimits;
 	private final FactoryMailerRuntime.Definition definition;
+	private final FactorySmimeRuntime smimeRuntime;
 	@Nullable private final MailerImpl failoverMailer;
 	private final boolean ownsFailoverMailer;
 	private final DestinationConnectionObserver connectionObserver;
@@ -184,7 +187,7 @@ public class MailerImpl implements Mailer {
 		return new MailerImpl(plan.getConnection().serverConfig(), inputs.isRegularMailer() ? resolved.getSessionSettings().getTransportStrategy() : null,
 				resolved.getGovernance(), verifyNonnull(resolved.getSessionSettings().getProxyConfig()), plan.getConnection().targetSession(), operational,
 				allowance.notifier, inputs.isOpportunisticTLS(), allowance, inputs.getDefinition(), child, plan.getNamedChild() != null,
-				resolved.getSessionSettings(), plan.getConnection());
+				resolved.getSessionSettings(), plan.getConnection(), inputs.getSmimeRuntime());
 	}
 
 	/** Captures observer registrations and binds the already-resolved telemetry permission; no progress dispatcher is started here. */
@@ -213,7 +216,9 @@ public class MailerImpl implements Mailer {
 		this(serverConfig, transportStrategy, emailGovernance, proxyConfig, session, operationalConfig,
 				new MailSendObserverNotifier(mailSendResultObserver, operationalConfig.isTransportModeLoggingOnly()), opportunisticTLS,
 				ConstructionAllowance.standalone(operationalConfig), new FactoryMailerRuntime.Definition(null, ConfigLoader.builder().load()), null, false,
-				MailerSessionSettings.fromOperationalConfig(operationalConfig, transportStrategy), null);
+				MailerSessionSettings.fromOperationalConfig(operationalConfig, transportStrategy), null,
+                new FactorySmimeRuntime(emailGovernance instanceof EmailGovernanceImpl
+                        ? ((EmailGovernanceImpl) emailGovernance).configuration() : ConfigLoader.builder().load()));
 	}
 
 	private MailerImpl(@Nullable ServerConfig serverConfig, @Nullable TransportStrategy transportStrategy, @NotNull EmailGovernance emailGovernance,
@@ -221,8 +226,9 @@ public class MailerImpl implements Mailer {
 			@NotNull MailSendObserverNotifier observerNotifier, final boolean opportunisticTLS,
 			@NotNull final ConstructionAllowance allowance, final FactoryMailerRuntime.Definition definition,
 			@Nullable final MailerImpl failoverMailer, final boolean ownsFailoverMailer, final MailerSessionSettings sessionSettings,
-			@Nullable final ValidatedConnectionPlan preparedPlan) {
+			@Nullable final ValidatedConnectionPlan preparedPlan, final FactorySmimeRuntime smimeRuntime) {
 		this.definition = definition;
+        this.smimeRuntime = smimeRuntime;
 		this.failoverMailer = failoverMailer;
 		this.ownsFailoverMailer = ownsFailoverMailer;
 		this.serverConfig = serverConfig;
@@ -717,13 +723,20 @@ public class MailerImpl implements Mailer {
 	MailSendReplayBudget replayBudget() { return mailSendOperations.replayBudget(); }
 
 	static MailerImpl selectedOwner(final Session selectedSession) {
-		final Object owner = selectedSession.getProperties().get(SESSION_OWNER);
-		if (!(owner instanceof SessionOwner)) {
+		final MailerImpl owner = selectedOwnerOrNull(selectedSession);
+		if (owner == null) {
 			throw new MailerException("The selected pool connection has no owning Simple Java Mail Mailer. "
 					+ "Register cluster members through mailerBuilder() so their email settings and resource lifetimes can be honored.");
 		}
-		return ((SessionOwner) owner).mailer;
+		return owner;
 	}
+
+    /** Direct internal MIME-converter construction can be unowned; routed pool selection still requires selectedOwner(). */
+    @Nullable
+    static MailerImpl selectedOwnerOrNull(final Session selectedSession) {
+        final Object owner = selectedSession.getProperties().get(SESSION_OWNER);
+        return owner instanceof SessionOwner ? ((SessionOwner) owner).mailer : null;
+    }
 
 	/** Session diagnostics must not recursively render the Mailer and its Session, or expose this runtime owner's configuration. */
 	private static final class SessionOwner {
@@ -966,8 +979,10 @@ public class MailerImpl implements Mailer {
 	public MailRehearsal rehearse(@NotNull final Email email, final boolean processSecurityAndValidateSize) throws MailException {
 		return EmailPreparation.rehearse(verifyNonnull(email), rehearsalSessionContext.capture(), emailGovernance,
 				operationalConfig.isClientValidationWarningsOnly(), operationalConfig.isLegacySmtpContentSupportEnabled(),
-				processSecurityAndValidateSize);
+				processSecurityAndValidateSize, smimeRuntime);
 	}
+
+    FactorySmimeRuntime smimeRuntime() { return smimeRuntime; }
 
 	/**
 	 * @see Mailer#validate(Email)

@@ -25,6 +25,13 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** S/MIME reuse policy is captured configuration; reading it needs no optional module or main implementation. */
+    public static Integer smimeCapacity(final SimpleJavaMailConfig config) {
+        final Integer supplied = config.get(org.simplejavamail.config.ConfigKeys.SMIME_KEY_CACHE_CAPACITY);
+        final Integer selected = config.valueOrProperty(null, org.simplejavamail.config.ConfigKeys.SMIME_KEY_CACHE_CAPACITY,
+                org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
+        return supplied == null ? selected : supplied;
+    }
     /** Import settings and continuing conversion calls need core contracts only. */
     public static Email limitedImport(final ConfiguredEmailConverter converter, final java.io.InputStream source) {
         final ImportLimitsConfig supplied = ImportLimitsConfig.builder().withMaximumInputBytes(25_000_000L)

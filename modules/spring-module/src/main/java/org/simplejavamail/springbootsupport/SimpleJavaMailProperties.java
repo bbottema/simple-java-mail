@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
 import org.simplejavamail.api.converter.config.ImportLimitsConfig;
+import org.simplejavamail.config.ConfigLoader;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
@@ -516,6 +517,18 @@ public class SimpleJavaMailProperties {
     public static class Smime {
         private Signing signing;
         private Encryption encryption;
+         private Cache cache;
+
+         /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+         @Getter
+         @Setter
+         public static class Cache {
+             /**
+              * Number of key configurations kept for reuse by one factory: -1 unlimited, zero disabled, or a positive capacity.
+              * @see ConfigLoader#DEFAULT_SMIME_KEY_CACHE_CAPACITY
+              */
+             private Integer capacity = ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY;
+         }
 
         /**
          * @deprecated See {@link SimpleJavaMailProperties}

@@ -36,8 +36,14 @@ public final class SmimeMessageProtection {
 	@NotNull
 	public static MimeMessage apply(@NotNull final Session session, @NotNull MimeMessage message, @NotNull final Email email)
 			throws MessagingException {
+        return apply(session, message, email, FactorySmimeRuntime.conventional());
+    }
+
+    /** Uses the selected owner for private-key work; certificate-only operations keep their stateless module path. */
+    public static MimeMessage apply(final Session session, MimeMessage message, final Email email,
+            final FactorySmimeRuntime smimeRuntime) throws MessagingException {
 		if (email.getSmimeSigningConfig() != null) {
-			final MimeMessage signed = ModuleLoader.loadSmimeModule().signMessageWithSmime(
+			final MimeMessage signed = smimeRuntime.module().signMessageWithSmime(
 					session, email, message, email.getSmimeSigningConfig());
 			message = FinalizedMimeMessage.finalizeMessage(signed, FinalizedMimeMessage.ProtectionState.CONTENT_PROTECTED);
 		}

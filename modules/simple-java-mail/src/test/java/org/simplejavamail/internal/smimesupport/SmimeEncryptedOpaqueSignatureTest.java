@@ -233,7 +233,8 @@ class SmimeEncryptedOpaqueSignatureTest {
         final OutlookMessage outlook = mock(OutlookMessage.class);
         when(outlook.getSmimeMime()).thenReturn(declaration);
 
-        final SmimeParseResultBuilder parsed = new SMIMESupport().decryptAttachments(List.of(envelope, independent), outlook, loadPkcs12KeyStore());
+        final SmimeParseResultBuilder parsed = ((SMIMESupport) new SMIMESupport().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY))
+                .decryptAttachments(List.of(envelope, independent), outlook, loadPkcs12KeyStore());
 
         assertThat(parsed.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.ENCRYPTED);
         assertThat(parsed.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);

@@ -341,7 +341,7 @@ class DeliveryStatusReportTest {
 				org.simplejavamail.api.email.config.SmimeSigningConfig.builder().pkcs12Config(keys).build();
 		final MimeMessage clear = message(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT.replace("5.1.1", "5.01.001")));
 		final Email identity = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank().from("sender@example.test").buildEmail();
-		final MimeMessage signed = org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule()
+		final MimeMessage signed = org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY)
 				.signMessageWithSmime(clear.getSession(), identity, clear, signing);
 		final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(signed);
 		// Model received wire bytes, rather than a mutable, freshly generated provider object whose cached headers may still change.

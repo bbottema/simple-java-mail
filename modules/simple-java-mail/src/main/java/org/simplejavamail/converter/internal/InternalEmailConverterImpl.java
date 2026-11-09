@@ -17,15 +17,22 @@ public class InternalEmailConverterImpl implements InternalEmailConverter {
 
 	public static final InternalEmailConverter INSTANCE = new InternalEmailConverterImpl();
     private final ImportTraversal traversal;
+    private final ConfiguredEmailConverterImpl converter;
 
-    private InternalEmailConverterImpl() { this(ImportTraversal.unlimited()); }
-    private InternalEmailConverterImpl(final ImportTraversal traversal) { this.traversal = traversal; }
-    static InternalEmailConverter forImport(final ImportTraversal traversal) { return new InternalEmailConverterImpl(traversal); }
+    private InternalEmailConverterImpl() { this(ImportTraversal.unlimited(), null); }
+    private InternalEmailConverterImpl(final ImportTraversal traversal, final ConfiguredEmailConverterImpl converter) {
+        this.traversal = traversal;
+        this.converter = converter;
+    }
+    static InternalEmailConverter forImport(final ImportTraversal traversal, final ConfiguredEmailConverterImpl converter) {
+        return new InternalEmailConverterImpl(traversal, converter);
+    }
     @Override public ImportTraversal importTraversal() { return traversal; }
 
 	@Override
 	public MimeMessage emailToMimeMessage(@NotNull final Email email) {
-		return EmailConverter.emailToMimeMessage(email);
+		return converter == null ? EmailConverter.emailToMimeMessage(email)
+                : converter.forArtifactExport().fromEmail(email).toMimeMessage();
 	}
 
 	@Override

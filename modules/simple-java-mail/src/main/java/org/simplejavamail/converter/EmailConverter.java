@@ -843,12 +843,13 @@ public class EmailConverter {
 
 	private static ConfiguredEmailConverterImpl conventionalConverter() {
 		// Keep released static parsing/ownership semantics while the configured public surface remains the fluent from... API.
-		return new ConfiguredEmailConverterImpl(SimpleJavaMail.fromDefaults().getConfig());
+		return (ConfiguredEmailConverterImpl) SimpleJavaMail.fromDefaults().converter();
 	}
 
 	private static ConfiguredEmailConverterImpl artifactConverter() {
 		// Static exports historically read no factory defaults; the private copy factory needs only an empty snapshot.
-		return new ConfiguredEmailConverterImpl(ConfigLoader.builder().load());
+		return new ConfiguredEmailConverterImpl(ConfigLoader.builder().load(),
+                org.simplejavamail.internal.smime.FactorySmimeRuntime.conventional());
 	}
 
 	private static Session createDummySession() {

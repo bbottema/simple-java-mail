@@ -35,6 +35,24 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 class SpringEnvironmentConfigSourceTest {
 
 	@Test
+	void smimeCacheCapacityKeepsSpringSourceAuthorityAndVisibleMetadata() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addLast(source("application", "simplejavamail.smime.cache.capacity", "10000"));
+		environment.getPropertySources().addFirst(new MapPropertySource("central cache policy", Map.of(
+				"simple-java-mail.locked.smime.cache.capacity", "${retained.keys}", "retained.keys", "0")));
+		ConfigurationPropertySources.attach(environment);
+		final SimpleJavaMailConfig config = loadConfig(environment);
+
+		assertThat(config.get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY)).isZero();
+		assertThat(locksOf(config).contains(ConfigLoader.Property.SMIME_KEY_CACHE_CAPACITY)).isTrue();
+		final ConfigPropertyDiagnostic diagnostic = diagnostic(config.getDiagnostics(), "simplejavamail.locked.smime.cache.capacity");
+		assertThat(diagnostic.getSourceName()).isEqualTo("central cache policy");
+		assertThat(diagnostic.getDisplayValue()).isEqualTo("0");
+		assertThat(diagnostic.getGroup()).isEqualTo(ConfigDiagnosticGroup.MESSAGE_SECURITY);
+		assertThat(diagnostic.isRedacted()).isFalse();
+	}
+
+	@Test
 	void importLimitsKeepSpringPrecedencePlaceholdersAndLockedMetadata() {
 		final StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addLast(new MapPropertySource("application import choices", Map.of(

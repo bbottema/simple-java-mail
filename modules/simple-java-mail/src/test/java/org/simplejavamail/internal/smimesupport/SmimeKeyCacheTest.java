@@ -6,6 +6,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.OriginalSmimeDetails;
@@ -17,25 +18,18 @@ import org.simplejavamail.utils.mail.smime.SmimeKey;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -45,7 +39,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class SmimeKeyCacheTest {
-
     @Test
     void capacityEvictsTheLeastRecentlyUsedConfigurationWithoutRejectingWork() {
         final Fixture fixture = new Fixture();
@@ -60,74 +53,6 @@ class SmimeKeyCacheTest {
         assertThat(fixture.load(2)).isNotSameAs(second);
         assertThat(fixture.loads.get(keys(1))).isEqualTo(1);
         assertThat(fixture.loads.get(keys(2))).isEqualTo(2);
-    }
-
-    @Test
-    void idleMaintenanceReleasesEntriesWithoutAnotherForegroundLookupAndRestartsOnUse() {
-        final Fixture fixture = new Fixture();
-        final SmimeKey first = fixture.load(1);
-        assertThat(fixture.schedulers).hasSize(1);
-        final ManualMaintenance originalWorker = fixture.schedulers.get(0);
-
-        fixture.advanceSeconds(10);
-        originalWorker.runNext();
-
-        assertThat(originalWorker.isShutdown()).isTrue();
-        assertThat(fixture.load(1)).isNotSameAs(first);
-        assertThat(fixture.schedulers).hasSize(2);
-        assertThat(fixture.schedulers.get(1).isShutdown()).isFalse();
-    }
-
-    @Test
-    void aResidentLookupRefreshesIdleExpiryWithoutCreatingMoreMaintenanceTasks() {
-        final Fixture fixture = new Fixture();
-        final SmimeKey first = fixture.load(1);
-        fixture.advanceSeconds(9);
-        assertThat(fixture.load(1)).isSameAs(first);
-        assertThat(fixture.schedulers).hasSize(1);
-        final ManualMaintenance worker = fixture.schedulers.get(0);
-        assertThat(worker.tasks).hasSize(1);
-
-        fixture.advanceSeconds(1);
-        worker.runNext();
-
-        assertThat(worker.isShutdown()).isFalse();
-        assertThat(worker.tasks).hasSize(1);
-        assertThat(worker.lastDelay).isEqualTo(TimeUnit.SECONDS.toNanos(9));
-        fixture.advanceSeconds(9);
-        worker.runNext();
-        assertThat(worker.isShutdown()).isTrue();
-        assertThat(fixture.load(1)).isNotSameAs(first);
-    }
-
-    @Test
-    void overdueMaintenanceDoesNotAllowAnExpiredEntryToBeReused() {
-        final Fixture fixture = new Fixture();
-        final SmimeKey first = fixture.load(1);
-        fixture.advanceSeconds(11);
-
-        assertThat(fixture.load(1)).isNotSameAs(first);
-        assertThat(fixture.loads.get(keys(1))).isEqualTo(2);
-    }
-
-    @Test
-    void aRetiredWorkerCannotEvictOrCloseTheReplacementGeneration() {
-        final Fixture fixture = new Fixture();
-        fixture.load(1);
-        assertThat(fixture.schedulers).hasSize(1);
-        final ManualMaintenance originalWorker = fixture.schedulers.get(0);
-        final Runnable oldTask = originalWorker.tasks.removeFirst();
-        fixture.advanceSeconds(10);
-        oldTask.run();
-        final SmimeKey replacement = fixture.load(1);
-        assertThat(fixture.schedulers).hasSize(2);
-        final ManualMaintenance replacementWorker = fixture.schedulers.get(1);
-
-        oldTask.run();
-
-        assertThat(replacementWorker.isShutdown()).isFalse();
-        assertThat(replacementWorker.tasks).hasSize(1);
-        assertThat(fixture.load(1)).isSameAs(replacement);
     }
 
     @Test
@@ -162,16 +87,17 @@ class SmimeKeyCacheTest {
         final SmimeException failure = new SmimeException("Unable to load this store");
 
         assertThatThrownBy(() -> fixture.cache.get(keys(1), ignored -> { throw failure; })).isSameAs(failure);
-        assertThat(fixture.schedulers).isEmpty();
         assertThat(fixture.load(1)).isNotNull();
         assertThat(fixture.loads.get(keys(1))).isEqualTo(1);
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void concurrentWaitersKeepTheOriginalFailureAndALaterLoadCanSucceed(final boolean fatal) throws Exception {
+    @EnumSource(FailureKind.class)
+    void concurrentWaitersKeepTheOriginalFailureAndALaterLoadCanSucceed(final FailureKind kind) throws Exception {
         final Fixture fixture = new Fixture();
-        final Throwable failure = fatal ? new AssertionError("Store loader failed") : new SmimeException("Store loader failed");
+        final Throwable failure = kind == FailureKind.ERROR ? new AssertionError("Store loader failed")
+                : kind == FailureKind.COMPLETION ? new CompletionException(new IllegalStateException("Store loader failed"))
+                : new SmimeException("Store loader failed");
         final CountDownLatch loading = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         final AtomicReference<Throwable> ownerFailure = new AtomicReference<>();
@@ -222,17 +148,6 @@ class SmimeKeyCacheTest {
     }
 
     @Test
-    void inabilityToStartMaintenanceDoesNotRetainKeysOrRejectValidLoading() {
-        final SmimeKeyCache cache = new SmimeKeyCache(2, Duration.ofSeconds(10), System::nanoTime,
-                () -> { throw new SecurityException("Cache worker unavailable"); });
-        final SmimeKey first = new SmimeKey(null);
-        final SmimeKey second = new SmimeKey(null);
-
-        assertThat(cache.get(keys(1), ignored -> first)).isSameAs(first);
-        assertThat(cache.get(keys(1), ignored -> second)).isSameAs(second);
-    }
-
-    @Test
     void alreadyAcquiredKeysStayUsableAndSigningAndDecryptionReloadEvictedEntries() throws Exception {
         final Fixture fixture = new Fixture();
         final SMIMESupport support = new SMIMESupport(fixture.cache);
@@ -267,8 +182,8 @@ class SmimeKeyCacheTest {
         final SmimeKey afterCapacityEviction = loadedKey(support, keys);
         assertThat(afterCapacityEviction).isNotSameAs(alreadyAcquired);
 
-        fixture.advanceSeconds(10);
-        fixture.schedulers.get(0).runNext();
+        fixture.load(1);
+        fixture.load(2);
         final SmimePreprocessingResult opened = support.processIncoming(session, incoming, keys);
         assertThat(opened.getDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
         assertThat(EmailConverter.mimeMessageToEmail(opened.getEffectiveMimeMessage()).getPlainText())
@@ -277,68 +192,70 @@ class SmimeKeyCacheTest {
     }
 
     @Test
-    void theDefaultMaintenanceThreadIsDaemonAndDoesNotInheritApplicationContext() throws Exception {
-        final ClassLoader previous = Thread.currentThread().getContextClassLoader();
-        final InheritableThreadLocal<String> applicationContext = new InheritableThreadLocal<>();
-        final Method factory = SmimeKeyCache.class.getDeclaredMethod("newMaintenanceWorker");
-        factory.setAccessible(true);
-        final ScheduledThreadPoolExecutor worker = (ScheduledThreadPoolExecutor) factory.invoke(null);
-        applicationContext.set("application request");
-        Thread.currentThread().setContextClassLoader(new ClassLoader(previous) { });
-        try {
-            worker.submit(() -> {
-                assertThat(Thread.currentThread().isDaemon()).isTrue();
-                assertThat(Thread.currentThread().getContextClassLoader()).isNull();
-                assertThat(applicationContext.get()).isNull();
-            }).get(10, TimeUnit.SECONDS);
-        } finally {
-            applicationContext.remove();
-            Thread.currentThread().setContextClassLoader(previous);
-            worker.shutdownNow();
-            assertThat(worker.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
-        }
+    void zeroRetainsNoCompletedEntryButDoesNotRejectSuccessfulLoads() {
+        final Fixture fixture = new Fixture(0);
+        final SmimeKey first = fixture.load(1);
+        assertThat(fixture.load(1)).isNotSameAs(first);
+        assertThat(fixture.loads.get(keys(1))).isEqualTo(2);
     }
 
     @Test
-    void deniedShutdownStillAllowsTheEmptyMaintenanceWorkerToRetire() throws Exception {
-        final Method factory = SmimeKeyCache.class.getDeclaredMethod("newMaintenanceWorker");
-        factory.setAccessible(true);
-        final ScheduledThreadPoolExecutor worker = (ScheduledThreadPoolExecutor) factory.invoke(null);
-        worker.setKeepAliveTime(20, TimeUnit.MILLISECONDS);
-        final AtomicReference<Thread> ownedThread = new AtomicReference<>();
-        final java.util.concurrent.ThreadFactory threads = worker.getThreadFactory();
-        worker.setThreadFactory(task -> {
-            final Thread thread = threads.newThread(task);
-            ownedThread.set(thread);
-            return thread;
-        });
-        final AtomicInteger deniedShutdowns = new AtomicInteger();
-        final java.util.concurrent.ScheduledExecutorService shutdownDenied =
-                (java.util.concurrent.ScheduledExecutorService) Proxy.newProxyInstance(getClass().getClassLoader(),
-                        new Class<?>[] {java.util.concurrent.ScheduledExecutorService.class}, (proxy, method, arguments) -> {
-                            if (method.getName().equals("shutdown")) {
-                                deniedShutdowns.incrementAndGet();
-                                throw new SecurityException("Owned worker shutdown denied");
-                            }
-                            try {
-                                return method.invoke(worker, arguments);
-                            } catch (InvocationTargetException failure) {
-                                throw failure.getCause();
-                            }
-                        });
+    void unlimitedRetainsAllConfigurationsBeyondTheFormerPrivateCeiling() {
+        final Fixture fixture = new Fixture(-1);
+        final List<SmimeKey> observed = new ArrayList<>();
+        for (int id = 0; id < 300; id++) observed.add(fixture.load(id));
+        for (int id = 0; id < 300; id++) assertThat(fixture.load(id)).isSameAs(observed.get(id));
+        assertThat(fixture.loads).hasSize(300).allSatisfy((configuration, count) -> assertThat(count).isEqualTo(1));
+    }
+
+    @Test
+    void theConfiguredPositiveCapacityHasNoHidden256EntryCeiling() {
+        final Fixture fixture = new Fixture(300);
+        final List<SmimeKey> observed = new ArrayList<>();
+        for (int id = 0; id < 300; id++) observed.add(fixture.load(id));
+        for (int id = 0; id < 300; id++) assertThat(fixture.load(id)).isSameAs(observed.get(id));
+        fixture.load(300);
+        assertThat(fixture.load(0)).isNotSameAs(observed.get(0));
+    }
+
+    @Test
+    void unsupportedNegativeCapacityIsAFeatureConfigurationError() {
+        assertThatThrownBy(() -> new SmimeKeyCache(-2)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("simplejavamail.smime.cache.capacity");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 2})
+    void overlappingEqualLoadsShareTheActiveResultEvenWhenCompletedRetentionIsDisabled(final int capacity) throws Exception {
+        final Fixture fixture = new Fixture(capacity);
+        final CountDownLatch loading = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        final SmimeKey key = new SmimeKey(null);
+        final FutureTask<SmimeKey> producer = new FutureTask<>(() -> fixture.cache.get(keys(1), ignored -> {
+            loading.countDown();
+            await(release);
+            return key;
+        }));
+        final FutureTask<SmimeKey> consumer = new FutureTask<>(() -> fixture.load(1));
+        final Thread owner = new Thread(producer, "smime-cache-owner");
+        final Thread waiter = new Thread(consumer, "smime-cache-waiter");
         try {
-            final SmimeKeyCache cache = new SmimeKeyCache(1, Duration.ofMillis(20), System::nanoTime, () -> shutdownDenied);
-            cache.get(keys(1), ignored -> new SmimeKey(null));
-            assertThat(ownedThread.get()).isNotNull();
-
-            ownedThread.get().join(TimeUnit.SECONDS.toMillis(5));
-
-            assertThat(deniedShutdowns).hasValue(1);
-            assertThat(ownedThread.get().isAlive()).isFalse();
-            assertThat(worker.isShutdown()).isFalse();
+            owner.start();
+            assertThat(loading.await(10, TimeUnit.SECONDS)).isTrue();
+            waiter.start();
+            awaitWaiting(waiter);
+            release.countDown();
+            assertThat(producer.get(10, TimeUnit.SECONDS)).isSameAs(key);
+            assertThat(consumer.get(10, TimeUnit.SECONDS)).isSameAs(key);
+            owner.join(TimeUnit.SECONDS.toMillis(10));
+            waiter.join(TimeUnit.SECONDS.toMillis(10));
+            assertThat(fixture.loads).isEmpty();
+            if (capacity == 0) assertThat(fixture.load(1)).isNotSameAs(key);
+            else assertThat(fixture.load(1)).isSameAs(key);
         } finally {
-            worker.shutdownNow();
-            assertThat(worker.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+            release.countDown();
+            owner.join(TimeUnit.SECONDS.toMillis(10));
+            waiter.join(TimeUnit.SECONDS.toMillis(10));
         }
     }
 
@@ -355,7 +272,7 @@ class SmimeKeyCacheTest {
 
     private static Pkcs12Config keys(final int id) {
         return Pkcs12Config.builder().pkcs12Store(new byte[] {(byte) id}).storePassword("store")
-                .keyAlias("key").keyPassword("key").build();
+                .keyAlias("key-" + id).keyPassword("key").build();
     }
 
     private static void await(final CountDownLatch latch) {
@@ -374,52 +291,17 @@ class SmimeKeyCacheTest {
         }
         assertThat(caller.getState()).isEqualTo(Thread.State.WAITING);
     }
-
     private static final class Fixture {
-        private final AtomicLong clock = new AtomicLong();
-        private final List<ManualMaintenance> schedulers = new ArrayList<>();
         private final Map<Pkcs12Config, Integer> loads = new ConcurrentHashMap<>();
         private final Function<Pkcs12Config, SmimeKey> loader = configuration -> {
             loads.merge(configuration, 1, Integer::sum);
             return new SmimeKey(null);
         };
-        private final SmimeKeyCache cache = new SmimeKeyCache(2, Duration.ofSeconds(10), clock::get, () -> {
-            final ManualMaintenance worker = new ManualMaintenance();
-            schedulers.add(worker);
-            return worker;
-        });
-
+        private final SmimeKeyCache cache;
+        private Fixture() { this(2); }
+        private Fixture(final int capacity) { cache = new SmimeKeyCache(capacity); }
         private SmimeKey load(final int id) { return cache.get(keys(id), loader); }
-        private void advanceSeconds(final long seconds) { clock.addAndGet(TimeUnit.SECONDS.toNanos(seconds)); }
     }
 
-    /** Records scheduled work without running threads, so idle retirement can be driven independently of cache lookups. */
-    private static final class ManualMaintenance extends ScheduledThreadPoolExecutor {
-        private final Deque<Runnable> tasks = new ArrayDeque<>();
-        private long lastDelay;
-
-        private ManualMaintenance() { super(1); }
-
-        @Override
-        public ScheduledFuture<?> schedule(final Runnable command, final long delay, final TimeUnit unit) {
-            assertThat(isShutdown()).isFalse();
-            lastDelay = unit.toNanos(delay);
-            tasks.addLast(command);
-            return new ScheduledTask(command, lastDelay);
-        }
-
-        private void runNext() { tasks.removeFirst().run(); }
-    }
-
-    private static final class ScheduledTask extends FutureTask<Void> implements ScheduledFuture<Void> {
-        private final long delay;
-        private ScheduledTask(final Runnable command, final long delay) {
-            super(command, null);
-            this.delay = delay;
-        }
-        @Override public long getDelay(final TimeUnit unit) { return unit.convert(delay, TimeUnit.NANOSECONDS); }
-        @Override public int compareTo(final Delayed other) {
-            return Long.compare(delay, other.getDelay(TimeUnit.NANOSECONDS));
-        }
-    }
+    enum FailureKind { SMIME, ERROR, COMPLETION }
 }

@@ -59,6 +59,18 @@ class CliMailerProfileTest {
 		assertThat(strict).isNotEqualTo(legacy);
 	}
 
+	@Test
+	void smimeCapacitySeparatesProfilesWhileEquivalentParsedChoicesRemainCompatible() {
+		final String key = org.simplejavamail.config.ConfigKeys.SMIME_KEY_CACHE_CAPACITY.key();
+		final CliMailerProfile disabled = profile(ConfigLoader.builder().withMap(Map.of(key, 0)).load(), new byte[32]);
+		final CliMailerProfile retained = profile(ConfigLoader.builder().withMap(Map.of(key, 1)).load(), new byte[32]);
+		final CliMailerProfile equivalent = profile(ConfigLoader.builder().withMap(Map.of(key, "1")).load(), new byte[32]);
+		final CliMailerProfile unlimited = profile(ConfigLoader.builder().withMap(Map.of(key, -1)).load(), new byte[32]);
+		assertThat(retained).isEqualTo(equivalent).hasSameHashCodeAs(equivalent);
+		assertThat(disabled).isNotEqualTo(retained).isNotEqualTo(unlimited);
+		assertThat(retained).isNotEqualTo(unlimited);
+	}
+
 	private CliMailerProfile profile(final SimpleJavaMailConfig config, final byte[] daemonKey) {
 		return CliMailerProfile.create(config, List.of(), daemonKey, workingDirectory);
 	}

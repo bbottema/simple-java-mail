@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -37,29 +39,40 @@ public final class MimeMessageProducerHelper {
 	
 	@SuppressWarnings("deprecation")
 	public static MimeMessage produceMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
-		return produceMimeMessage(email, session, true);
+		return produceMimeMessage(email, session, true, FactorySmimeRuntime.isolated());
 	}
 
 	@SuppressWarnings("deprecation")
 	public static MimeMessage produceBaseMimeMessage(Email email, Session session) throws UnsupportedEncodingException, MessagingException {
-		return produceMimeMessage(email, session, false);
+		return produceMimeMessage(email, session, false, FactorySmimeRuntime.isolated());
+	}
+
+	/** Renders under the actual selected factory owner without retaining that owner on the shared producer. */
+	public static MimeMessage produceMimeMessage(final Email email, final Session session, final FactorySmimeRuntime smimeRuntime)
+			throws UnsupportedEncodingException, MessagingException {
+		return produceMimeMessage(email, session, true, smimeRuntime);
 	}
 
 	/** Applies the existing protection pipeline to an already prepared base message without repeating metadata/content preparation. */
 	@org.jetbrains.annotations.ApiStatus.Internal
 	public static MimeMessage applyMessageProtection(@NotNull final Email email, @NotNull final Session session,
 			@NotNull final MimeMessage message) throws MessagingException {
-		return SpecializedMimeMessageProducer.applySecurity(email, session, message);
+		return applyMessageProtection(email, session, message, FactorySmimeRuntime.isolated());
+	}
+
+    public static MimeMessage applyMessageProtection(final Email email, final Session session,
+            final MimeMessage message, final FactorySmimeRuntime smimeRuntime) throws MessagingException {
+        return SpecializedMimeMessageProducer.applySecurity(email, session, message, smimeRuntime);
 	}
 
 	@SuppressWarnings("deprecation")
-	private static MimeMessage produceMimeMessage(Email email, Session session, boolean processSecurity) throws UnsupportedEncodingException, MessagingException {
+	private static MimeMessage produceMimeMessage(Email email, Session session, boolean processSecurity, FactorySmimeRuntime smimeRuntime) throws UnsupportedEncodingException, MessagingException {
 		assert email instanceof InternalEmail;
 		((InternalEmail) email).verifyDefaultsAndOverridesApplied();
 		for (SpecializedMimeMessageProducer mimeMessageProducer : mimeMessageProducers) {
 			if (mimeMessageProducer.compatibleWithEmail(email)) {
 				return processSecurity
-						? mimeMessageProducer.populateMimeMessage(email, session)
+						? mimeMessageProducer.populateMimeMessage(email, session, smimeRuntime)
 						: mimeMessageProducer.populateBaseMimeMessage(email, session);
 			}
 		}

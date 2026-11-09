@@ -87,7 +87,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public EmailStartingBuilder emailBuilder() {
-		return new EmailStartingBuilderImpl(config);
+		return new EmailStartingBuilderImpl(config, runtime.smime());
 	}
 
 	/**
@@ -96,7 +96,7 @@ public final class SimpleJavaMail {
 	 */
 	@Cli.ExcludeApi(reason = "This API is specifically for Java use")
 	public ConfiguredEmailConverter converter() {
-		return new ConfiguredEmailConverterImpl(config);
+		return new ConfiguredEmailConverterImpl(config, runtime.smime());
 	}
 
 	/**

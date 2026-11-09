@@ -54,6 +54,15 @@ public final class ConfigLoader {
 	 */
 	public static final String DEFAULT_CONFIG_FILENAME = "simplejavamail.properties";
 
+	/**
+	 * Default number of completed S/MIME key configurations retained by each configured factory: {@value} selects unlimited reuse.
+	 * Zero retains no completed entries; a positive value applies an entry-count capacity shared by that factory's Mailers and converters.
+	 * Changing the choice requires a replacement configured factory. The value is not a byte or whole-heap limit.
+	 *
+	 * @see ConfigKeys#SMIME_KEY_CACHE_CAPACITY
+	 */
+	public static final int DEFAULT_SMIME_KEY_CACHE_CAPACITY = -1;
+
 	private final List<ConfigSource> sources = new ArrayList<>();
 
 	/**
@@ -155,6 +164,8 @@ public final class ConfigLoader {
 		DEFAULT_VERIFY_SERVER_IDENTITY("simplejavamail.defaults.verifyserveridentity"),
 		TRANSPORT_MODE_LOGGING_ONLY("simplejavamail.transport.mode.logging.only"),
 		OPPORTUNISTIC_TLS("simplejavamail.opportunistic.tls"),
+		/** Factory-root S/MIME key-cache entry capacity; see {@link ConfigLoader#DEFAULT_SMIME_KEY_CACHE_CAPACITY}. */
+		SMIME_KEY_CACHE_CAPACITY("simplejavamail.smime.cache.capacity"),
 		SMIME_SIGNING_KEYSTORE("simplejavamail.smime.signing.keystore"),
 		SMIME_SIGNING_KEYSTORE_PASSWORD("simplejavamail.smime.signing.keystore_password"),
 		SMIME_SIGNING_KEY_ALIAS("simplejavamail.smime.signing.key_alias"),
@@ -484,6 +495,11 @@ public final class ConfigLoader {
 			final Matcher matcher = NAMED_MAILER_PROPERTY_PATTERN.matcher(ConfigurationLocks.ordinaryName(key));
 			if (matcher.matches()) {
 				final String ordinaryChildKey = "simplejavamail." + matcher.group("tail");
+				if (ordinaryChildKey.equals(Property.SMIME_KEY_CACHE_CAPACITY.key())) {
+					throw new IllegalArgumentException("Configure " + Property.SMIME_KEY_CACHE_CAPACITY.key()
+							+ " on the factory root or use a separate configured factory; named Mailer '"
+							+ matcher.group("name") + "' cannot replace its creating factory's S/MIME cache capacity.");
+				}
 				namedMailerProperties.computeIfAbsent(matcher.group("name"), unused -> new LinkedHashMap<>())
 						.put(value.locked ? ConfigurationLocks.lockedName(ordinaryChildKey) : ordinaryChildKey, value);
 			}

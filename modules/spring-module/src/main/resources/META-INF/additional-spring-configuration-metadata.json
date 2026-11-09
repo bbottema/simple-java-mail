@@ -1,0 +1,12 @@
+{
+  "properties": [
+    {
+      "name": "simplejavamail.smime.cache.capacity",
+      "defaultValue": -1
+    },
+    {
+      "name": "simplejavamail.locked.smime.cache.capacity",
+      "defaultValue": -1
+    }
+  ]
+}

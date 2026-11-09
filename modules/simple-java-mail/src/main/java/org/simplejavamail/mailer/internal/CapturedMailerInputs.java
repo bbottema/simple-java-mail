@@ -10,6 +10,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.mailer.internal.ratelimit.FactorySendingLimits;
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
 
 import java.util.UUID;
 import java.util.function.Function;
@@ -25,6 +26,7 @@ final class CapturedMailerInputs {
     private final MailerConfigurationRequirements requirements;
     private final FactoryMailerRuntime.Definition definition;
     private final FactorySendingLimits sendingLimits;
+    private final FactorySmimeRuntime smimeRuntime;
     @Nullable private final EmailValidator emailValidator;
     @Nullable private final Email emailDefaults;
     @Nullable private final Email emailOverrides;

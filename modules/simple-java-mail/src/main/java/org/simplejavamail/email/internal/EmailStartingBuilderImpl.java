@@ -1,5 +1,7 @@
 package org.simplejavamail.email.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.jetbrains.annotations.NotNull;
@@ -41,9 +43,15 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 
 	private final SimpleJavaMailConfig config;
+	private final FactorySmimeRuntime smimeRuntime;
 	
 	public EmailStartingBuilderImpl(@NotNull final SimpleJavaMailConfig config) {
+		this(config, new FactorySmimeRuntime(config));
+	}
+
+	public EmailStartingBuilderImpl(@NotNull final SimpleJavaMailConfig config, @NotNull final FactorySmimeRuntime smimeRuntime) {
 		this.config = requireNonNull(config, "config");
+		this.smimeRuntime = requireNonNull(smimeRuntime, "smimeRuntime");
 	}
 
 	/**
@@ -120,7 +128,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 
 	private EmailPopulatingBuilder replyingTo(final Email email, final boolean replyToAll, final String htmlTemplate) {
 		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
-			return replyingTo(EmailConverter.emailToMimeMessage(email), replyToAll, htmlTemplate);
+			return replyingTo(converter().fromEmail(email).toMimeMessage(), replyToAll, htmlTemplate);
 		}
 		try {
 			final MimeMessage headers = MimeMessageHelper.createReplyHeaders(email, JakartaMailImplementation.createSession(new Properties()));
@@ -417,7 +425,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	}
 
 	private ConfiguredEmailConverter converter() {
-		return new ConfiguredEmailConverterImpl(config);
+		return new ConfiguredEmailConverterImpl(config, smimeRuntime);
 	}
 
 	private EmailPopulatingBuilderImpl newPopulatingBuilder() {

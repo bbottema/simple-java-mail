@@ -1,5 +1,7 @@
 package org.simplejavamail.converter.internal;
 
+import org.simplejavamail.internal.smime.FactorySmimeRuntime;
+
 import jakarta.activation.DataSource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
@@ -118,7 +120,7 @@ final class ArtifactConversions {
         }
 
         MimeMessage render(final Email input, final Session session, final EmailGovernance governance,
-                final Function<Email, EmailPopulatingBuilder> copy, final boolean writingContent) {
+                final Function<Email, EmailPopulatingBuilder> copy, final boolean writingContent, final FactorySmimeRuntime smimeRuntime) {
             try {
                 final Email effective = InternalEmail.requireInternalEmail(input).prepareForConversion(governance);
                 final InternalEmail internal = InternalEmail.requireInternalEmail(effective);
@@ -126,11 +128,11 @@ final class ArtifactConversions {
                 // Exact sources already own their authoritative artifact; never rebuild their represented resources.
                 final Email prepared = !internal.isExactEml() && (writingContent || protecting)
                         ? stageContent(effective, session, copy) : effective;
-                if (!protecting) return InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, true);
+                if (!protecting) return InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, true, smimeRuntime);
                 // Metadata and caller-owned getters remain outside the narrowly recognized protection-failure boundary.
-                final MimeMessage base = InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, false);
+                final MimeMessage base = InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, false, smimeRuntime);
                 try {
-                    return MimeMessageProducerHelper.applyMessageProtection(prepared, session, base);
+                    return MimeMessageProducerHelper.applyMessageProtection(prepared, session, base, smimeRuntime);
                 } catch (final MailException failure) {
                     if (failure.getKind() == MailFailureKind.PREPARATION) {
                         InterruptedIoGuard.rethrowIfInterrupted(failure);
