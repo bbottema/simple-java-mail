@@ -78,6 +78,7 @@ class InheritedOAuth2TokenTest {
             final TokenSource source, final Operation operation) throws Exception {
         final AtomicInteger providerCalls = new AtomicInteger();
         final AtomicInteger authenticationCount = new AtomicInteger();
+        final java.util.concurrent.CountDownLatch authenticationObserved = new java.util.concurrent.CountDownLatch(1);
         final Properties defaults = new Properties();
         final Properties properties = new Properties(defaults);
         final Object opaqueTokenEntry = new Object();
@@ -87,6 +88,7 @@ class InheritedOAuth2TokenTest {
             establishTls(peer, protocol.equals("smtp") ? "SMTP_OAUTH2" : "SMTPS_OAUTH2");
             authenticate(peer, source);
             authenticationCount.incrementAndGet();
+            authenticationObserved.countDown();
             if (operation == Operation.SEND) {
                 acceptMessage(peer);
             }
@@ -105,6 +107,7 @@ class InheritedOAuth2TokenTest {
                     assertThat(mailer.getSession().getProperties()).containsEntry(OAUTH2_TOKEN_PROPERTY, TOKEN);
                 }
                 assertThatCode(() -> execute(mailer, operation)).doesNotThrowAnyException();
+                assertThat(authenticationObserved.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
                 assertThat(authenticationCount).hasValue(1);
                 assertThat(providerCalls).hasValue(source == TokenSource.CALLBACK ? 1 : 0);
                 if (source != TokenSource.REGULAR_BUILDER) {
