@@ -44,12 +44,13 @@ class OptionalPreprocessorCancellationTest {
         final Throwable original = kind == FailureKind.INTERRUPTED_IO
                 ? new InterruptedIOException("one-shot preprocessor interruption")
                 : new CancellationException("one-shot preprocessor cancellation");
-        final MimeMessage input = message(detector, original);
+        final FailingSerializationMessage input = message(detector, original);
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
         try {
             if (detector == Detector.SMIME) {
                 try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
                     modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
+                    assertThat(ModuleLoader.smimeModuleAvailable()).isTrue();
                     assertCancellation(input, original, kind);
                 }
             } else {
@@ -64,17 +65,20 @@ class OptionalPreprocessorCancellationTest {
 
     @ParameterizedTest @EnumSource(Detector.class)
     void ordinarySerializationFailureKeepsTheExistingReadableFallback(final Detector detector) throws Exception {
-        final MimeMessage input = message(detector, new IOException("one-shot ordinary serialization failure"));
+        final FailingSerializationMessage input = message(detector, new IOException("one-shot ordinary serialization failure"));
         try {
             final Email email;
             if (detector == Detector.SMIME) {
                 try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
                     modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
+                    assertThat(ModuleLoader.smimeModuleAvailable()).isTrue();
                     email = MAIL.converter().fromMimeMessage(input).toEmail();
                 }
             } else {
+                assertThat(ModuleLoader.openPgpModuleAvailable()).isTrue();
                 email = MAIL.converter().fromMimeMessage(input).toEmail();
             }
+            assertThat(input.writeAttempts).as("the selected protection serialization must exercise the injected I/O failure").isPositive();
             assertThat(email.getPlainText()).isEqualTo("Readable after serialization failure");
             assertThat(Thread.currentThread().isInterrupted()).isFalse();
         } finally {
@@ -82,12 +86,13 @@ class OptionalPreprocessorCancellationTest {
         }
     }
 
-    private static void assertCancellation(final MimeMessage input, final Throwable original, final FailureKind kind) {
+    private static void assertCancellation(final FailingSerializationMessage input, final Throwable original, final FailureKind kind) {
         assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(input).toEmail())
                 .isInstanceOfSatisfying(CancellationException.class, canceled -> {
                     if (kind == FailureKind.DIRECT_CANCELLATION) assertThat(canceled).isSameAs(original);
                     else assertThat(hasCause(canceled, original)).isTrue();
                 });
+        assertThat(input.writeAttempts).as("a declared protected envelope must reach the injected serialization cancellation").isPositive();
     }
 
     private static boolean hasCause(final Throwable failure, final Throwable expected) {
@@ -98,23 +103,32 @@ class OptionalPreprocessorCancellationTest {
         return false;
     }
 
-    private static MimeMessage message(final Detector detector, final Throwable firstWriteFailure) throws Exception {
+    private static FailingSerializationMessage message(final Detector detector, final Throwable firstWriteFailure) throws Exception {
         final String plain = "Content-Type: text/plain; charset=UTF-8\r\n\r\nReadable after serialization failure";
-        final String content = detector == Detector.OPENPGP ? plain
-                : "Content-Type: multipart/signed; boundary=signed; protocol=\"application/pkcs7-signature\"\r\n\r\n"
-                + "--signed\r\n" + plain + "\r\n--signed\r\nContent-Type: application/pkcs7-signature\r\n"
-                + "Content-Disposition: attachment; filename=smime.p7s\r\nContent-Transfer-Encoding: base64\r\n\r\nAA==\r\n--signed--\r\n";
-        return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream((HEADERS + content).getBytes(UTF_8))) {
-            private boolean first = true;
-            @Override public void writeTo(final OutputStream output) throws IOException, MessagingException {
-                if (first) {
-                    first = false;
-                    if (firstWriteFailure instanceof InterruptedIOException) Thread.currentThread().interrupt();
-                    if (firstWriteFailure instanceof IOException) throw (IOException) firstWriteFailure;
-                    throw (CancellationException) firstWriteFailure;
-                }
-                super.writeTo(output);
+        final String protocol = detector == Detector.OPENPGP ? "application/pgp-signature" : "application/pkcs7-signature";
+        final String filename = detector == Detector.OPENPGP ? "signature.asc" : "smime.p7s";
+        final String content = "Content-Type: multipart/signed; boundary=signed; protocol=\"" + protocol + "\"\r\n\r\n"
+                + "--signed\r\n" + plain + "\r\n--signed\r\nContent-Type: " + protocol + "\r\n"
+                + "Content-Disposition: attachment; filename=" + filename + "\r\nContent-Transfer-Encoding: base64\r\n\r\nAA==\r\n--signed--\r\n";
+        return new FailingSerializationMessage(content, firstWriteFailure);
+    }
+
+    private static final class FailingSerializationMessage extends MimeMessage {
+        private final Throwable firstWriteFailure;
+        private int writeAttempts;
+
+        private FailingSerializationMessage(final String content, final Throwable firstWriteFailure) throws Exception {
+            super(Session.getInstance(new Properties()), new ByteArrayInputStream((HEADERS + content).getBytes(UTF_8)));
+            this.firstWriteFailure = firstWriteFailure;
+        }
+
+        @Override public void writeTo(final OutputStream output) throws IOException, MessagingException {
+            if (++writeAttempts == 1) {
+                if (firstWriteFailure instanceof InterruptedIOException) Thread.currentThread().interrupt();
+                if (firstWriteFailure instanceof IOException) throw (IOException) firstWriteFailure;
+                throw (CancellationException) firstWriteFailure;
             }
-        };
+            super.writeTo(output);
+        }
     }
 }

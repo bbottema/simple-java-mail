@@ -2,6 +2,7 @@ package org.simplejavamail.converter;
 
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -238,16 +239,29 @@ class DeliveryStatusReadInspectionTest {
 
     @Test
     void reportInterruptionRemainsAFailureWithOptionalProtectionModulesPresent() throws Exception {
+        assertThat(ModuleLoader.openPgpModuleAvailable()).isTrue();
+        assertThat(ModuleLoader.smimeModuleAvailable()).isTrue();
         final ReportSource source = new ReportSource("message/delivery-status", COMPLETE, Stage.ACQUIRE,
                 new InterruptedIOException("cancelled first read"));
-        source.failureOnOpen = 2;
-        final MimeMessage message = message(source);
+        source.failureOnOpen = 1;
+        final AtomicInteger serializations = new AtomicInteger();
+        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties())) {
+            @Override public void writeTo(final OutputStream output) throws IOException, MessagingException {
+                serializations.incrementAndGet();
+                super.writeTo(output);
+            }
+        };
+        message.setDataHandler(new DataHandler(source));
+        message.setHeader("Content-Type", source.getContentType());
+        message.setSubject("Readable subject");
         message.setHeader("Content-Transfer-Encoding", "8bit");
 
-        // Protection preprocessing reads the first stream; the optional delivery-report read itself is interrupted.
+        // Ordinary report declarations bypass protection serialization; interrupt the report's first selected acquisition.
         assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail())
                 .isInstanceOf(CancellationException.class).hasCause(source.failure);
-        assertThat(source.opens).hasValue(2);
+        assertThat(serializations).hasValue(0);
+        assertThat(source.opens).hasValue(1);
+        assertThat(source.closes).hasValue(0);
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
     }
 
