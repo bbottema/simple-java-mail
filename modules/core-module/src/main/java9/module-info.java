@@ -14,6 +14,7 @@ module org.simplejavamail.core {
 	exports org.simplejavamail;
 	exports org.simplejavamail.api.email;
 	exports org.simplejavamail.api.converter;
+	exports org.simplejavamail.api.converter.config;
 	exports org.simplejavamail.api.email.config;
 	exports org.simplejavamail.api.internal.authenticatedsockssupport.common;
 	exports org.simplejavamail.api.internal.authenticatedsockssupport.socks5server;
@@ -33,6 +34,7 @@ module org.simplejavamail.core {
 	exports org.simplejavamail.config;
 	exports org.simplejavamail.internal.config;
 	exports org.simplejavamail.internal.configresolution;
+	exports org.simplejavamail.internal.converter to org.simplejavamail, org.simplejavamail.outlook;
 	exports org.simplejavamail.internal.email;
 	exports org.simplejavamail.internal.modules;
 	exports org.simplejavamail.internal.telemetry;

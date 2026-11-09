@@ -15,8 +15,8 @@ import java.util.Map;
  * structured output intended for diagnostic logs.
  * <p>
  * Properties under {@code simplejavamail.locked.} supply their ordinary counterpart's effective value and remain restrictions on later customization
- * in every Mailer created from this snapshot's factory. Diagnostics retain the locked name and its source. An independently configured factory remains
- * possible; these local restrictions are not a security sandbox.
+ * within the configured objects and operations that adopt this snapshot's factory, including Mailers and received-mail conversions. Diagnostics retain
+ * the locked name and its source. An independently configured factory remains possible; these local restrictions are not a security sandbox.
  */
 public interface SimpleJavaMailConfig {
 

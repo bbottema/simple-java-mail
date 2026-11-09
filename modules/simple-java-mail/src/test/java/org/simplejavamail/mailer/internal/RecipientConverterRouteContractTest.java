@@ -15,15 +15,16 @@ import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification.NotifyOption;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
-import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
+import org.simplejavamail.converter.internal.ConverterImportRouteProbe;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -33,13 +34,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.simplejavamail.mailer.internal.EmailContractTestSupport.ADDRESS;
 import static org.simplejavamail.mailer.internal.EmailContractTestSupport.NAME;
 import static org.simplejavamail.mailer.internal.EmailContractTestSupport.KEY_BYTES;
@@ -49,7 +43,9 @@ import static testutil.configcontracts.ConfigurationContractCoverage.record;
 
 class RecipientConverterRouteContractTest {
     static Stream<Method> routes() {
-        return EmailContractTestSupport.routes(IRecipientBuilder.class, IRecipientsBuilder.class,
+        final Set<ConfigurationAdoptionCatalogue.Owner> legacyOwners = EnumSet.allOf(ConfigurationAdoptionCatalogue.Owner.class);
+        legacyOwners.remove(ConfigurationAdoptionCatalogue.Owner.CONVERTER_IMPORT_LIMITS);
+        return EmailContractTestSupport.routes(legacyOwners, IRecipientBuilder.class, IRecipientsBuilder.class,
                 ConfiguredEmailConverter.EmailConversion.class, ConfiguredEmailConverter.EmlConversion.class,
                 ConfiguredEmailConverter.IncomingConversion.class, ConfiguredEmailConverter.OutlookConversion.class);
     }
@@ -164,13 +160,12 @@ class RecipientConverterRouteContractTest {
         final EmailContractTestSupport.BorrowedInput input = new EmailContractTestSupport.BorrowedInput(bytes);
         final ConfiguredEmailConverterImpl converter = spy((ConfiguredEmailConverterImpl) fixture.mail.converter());
         if (method.getDeclaringClass() == ConfiguredEmailConverter.IncomingConversion.class) {
-            doReturn(fixture.mail.emailBuilder().startingBlank().withSubject("Imported"))
-                    .when(converter).mimeMessageToEmailBuilder(any(MimeMessage.class), nullable(Pkcs12Config.class), nullable(OpenPgpReceiveConfig.class), anyBoolean());
+            ConverterImportRouteProbe.stubMimeImport(converter, fixture.mail.emailBuilder().startingBlank().withSubject("Imported"));
         }
         if (outlook && name.contains("Smime")) {
             final OutlookEmailConversionResult imported = mock(OutlookEmailConversionResult.class);
             doReturn(fixture.mail.emailBuilder().startingBlank().withSubject("Imported")).when(imported).getEmailBuilder();
-            doReturn(imported).when(converter).outlookMsgToEmailBuilderWithOutlookData(any(java.io.InputStream.class), nullable(Pkcs12Config.class));
+            ConverterImportRouteProbe.stubOutlookImport(converter, imported, bytes);
         }
         final Object receiver;
         if (method.getDeclaringClass() == ConfiguredEmailConverter.EmailConversion.class) {
@@ -179,6 +174,9 @@ class RecipientConverterRouteContractTest {
         } else if (outlook) { receiver = converter.fromOutlookMsg(input); }
         else { receiver = converter.fromEml(input); }
         final Session session = Session.getInstance(new Properties());
+        if (method.getDeclaringClass() == ConfiguredEmailConverter.IncomingConversion.class) {
+            ((ConfiguredEmailConverter.EmlConversion) receiver).withSession(session);
+        }
         final EmailGovernance governance = new MailerRegularBuilderImpl(org.simplejavamail.config.ConfigLoader.builder().load())
                 .withEmailOverrides(fixture.mail.emailBuilder().startingBlank().withSubject("Governed").buildEmail()).buildEmailGovernance();
         final OpenPgpReceiveConfig pgp = OpenPgpReceiveConfig.builder().addVerificationKeyRing(KEY_BYTES).build();
@@ -188,7 +186,8 @@ class RecipientConverterRouteContractTest {
         else if (name.contains("Governance")) { field = "governance"; selected = governance; }
         else if (name.contains("Smime")) { field = "pkcs12Config"; selected = fixture.store; }
         else if (name.contains("OpenPgp")) { field = "openPgpReceiveConfig"; selected = pgp; }
-        else { field = "fetchAttachmentData"; selected = false; }
+        else if (name.contains("FetchAttachmentData")) { field = "fetchAttachmentData"; selected = false; }
+        else { throw new AssertionError("No legacy converter option fixture for " + method); }
         if (name.startsWith("clear") || name.startsWith("reset")) {
             final Method seed = java.util.Arrays.stream(method.getDeclaringClass().getMethods()).filter(candidate -> candidate.getName().equals(
                     field.equals("session") ? "withSession" : field.equals("governance") ? "withEmailGovernance" : field.equals("pkcs12Config")
@@ -213,12 +212,15 @@ class RecipientConverterRouteContractTest {
             } else { assertThat(rendered.getSubject()).isEqualTo(expected == null ? outlook ? "Test E-Mail" : "Source" : "Governed"); }
         } else if (outlook) {
             assertThat(((ConfiguredEmailConverter.OutlookConversion) receiver).toEmailBuilder().getSubject()).isEqualTo("Imported");
-            verify(converter).outlookMsgToEmailBuilderWithOutlookData(any(java.io.InputStream.class), expected == null ? isNull() : same(fixture.store));
+            ConverterImportRouteProbe.verifyOutlookImport(converter, expected == null ? null : fixture.store);
+            assertThat(input.available()).isZero();
         } else {
             assertThat(((ConfiguredEmailConverter.IncomingConversion<?>) receiver).toEmailBuilder().getSubject()).isEqualTo("Imported");
-            verify(converter).mimeMessageToEmailBuilder(any(MimeMessage.class), field.equals("pkcs12Config") && expected != null ? same(fixture.store) : isNull(),
-                    field.equals("openPgpReceiveConfig") && expected != null ? same(pgp) : isNull(),
-                    eq(field.equals("fetchAttachmentData") ? (Boolean) expected : org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA));
+            ConverterImportRouteProbe.verifyMimeImport(converter, session,
+                    field.equals("pkcs12Config") && expected != null ? fixture.store : null,
+                    field.equals("openPgpReceiveConfig") && expected != null ? pgp : null,
+                    field.equals("fetchAttachmentData") ? (Boolean) expected : org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
+            assertThat(input.available()).isZero();
         }
         assertThat(input.closed).isFalse();
         record("field", "converter." + (field.equals("pkcs12Config") ? "smime" : field.equals("openPgpReceiveConfig") ? "openpgp"

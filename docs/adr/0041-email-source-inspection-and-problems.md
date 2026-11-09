@@ -115,6 +115,13 @@ This avoids a second full raw archive; it does not promise exactly equal heap si
 original/converted versions, partial reads and temporary parser/crypto buffers can differ. Assess retained memory separately from peak allocation.
 No retention-budget, disk-spooling, silent eviction or source-resolver policy is introduced by this decision.
 
+The later [optional import-limit decision in ADR 0042](0042-optional-import-limits.md), accepted 9 November 2026, bounds selected raw-input
+acquisition and SJM part/depth traversal. A limit stop uses the same incomplete captured-content and source-linked Problem contract, while
+preserving usable completed content. It does not add a separate retained-evidence byte budget or silently evict already captured sources.
+When a limit prevents a retained inner view from materializing any body alternative, that partial Email remains available for inspection
+and its separate-view presentation preserves completed outer content. ADR 0042 keeps this stop condition distinct from fully visited absent
+alternatives and preserves source-based protection facts when an attachment list is partial; ordinary merge field rules remain in ADR 0040.
+
 ### Problems and immutable input identity
 
 EmailProblem contains an operation, stable category, qualified location, available offending source value, explanation, immutable input

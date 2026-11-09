@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion;
@@ -14,6 +15,7 @@ import org.simplejavamail.api.converter.ConfiguredEmailConverter.IncomingConvers
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.MimeMessageConversion;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.OutlookConversion;
 import org.simplejavamail.api.converter.EmailConversionResult;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -35,6 +37,7 @@ import static java.util.Objects.requireNonNull;
 /** Single-use source conversions. Each terminal delegates the established path for its source and destination. */
 @UtilityClass
 class FluentEmailConversions {
+    private static final ImportLimitsConfig NO_IMPORT_CHOICES = ImportLimitsConfig.builder().build();
 
 	private abstract static class SingleConversion {
 		private boolean consumed;
@@ -58,6 +61,7 @@ class FluentEmailConversions {
 		private OpenPgpReceiveConfig openPgpReceiveConfig;
 		private boolean fetchAttachmentData = EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA;
 		private boolean attachmentDataConfigured;
+        private ImportLimitsConfig importLimits;
 
 		Incoming(final ConfiguredEmailConverterImpl converter) {
 			this.converter = converter;
@@ -65,11 +69,31 @@ class FluentEmailConversions {
 
 		abstract T self();
 
+        @Override
+        public final T withImportLimitsConfig(final ImportLimitsConfig limits) {
+            checkAvailable();
+            importLimits = requireNonNull(limits, "importLimitsConfig");
+            return self();
+        }
+
+        @Override
+        public final ImportLimitsConfig getImportLimitsConfig() { return importLimits == null ? NO_IMPORT_CHOICES : importLimits; }
+
+        @Override
+        public final T useConfiguredImportLimitsConfig() {
+            checkAvailable();
+            importLimits = null;
+            return self();
+        }
+
 		abstract MimeMessage sourceMessage();
 
 		MimeMessage sourceMessageForEmail() {
 			return sourceMessage();
 		}
+
+        MimeMessage sourceMessageForEmail(final ImportContext context) { return sourceMessageForEmail(); }
+        boolean hasRawSource() { return false; }
 
 		/** @see IncomingConversion#withSmimeDecryption(Pkcs12Config) */
 		@Override
@@ -123,7 +147,7 @@ class FluentEmailConversions {
 
 		final void checkDirectExportOptions() {
 			checkAvailable();
-			if (pkcs12Config != null || openPgpReceiveConfig != null || attachmentDataConfigured) {
+			if (pkcs12Config != null || openPgpReceiveConfig != null || attachmentDataConfigured || importLimits != null) {
 				throw new IllegalStateException("Receive-side options apply to toEmail() or toEmailBuilder(), not direct MIME/EML conversion. "
 						+ "Choose an Email target, or clear the receive-side options before exporting the original message.");
 			}
@@ -132,15 +156,16 @@ class FluentEmailConversions {
 		/** @see IncomingConversion#toEmailBuilder() */
 		@Override
 		public final EmailPopulatingBuilder toEmailBuilder() {
+			final ImportContext context = converter.prepareImport(getImportLimitsConfig(), hasRawSource());
 			beginConversion();
 			final boolean fetchData = selectOptionOrCreateFallback(attachmentDataConfigured ? fetchAttachmentData : null,
 					() -> EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, "withFetchAttachmentData");
 			try {
 				try {
-					return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(), pkcs12Config, openPgpReceiveConfig, fetchData);
+					return converter.mimeMessageToEmailBuilder(sourceMessageForEmail(context), pkcs12Config, openPgpReceiveConfig, fetchData, context);
 				} catch (final SourceCloseException failure) {
 					final EmailPopulatingBuilder builder = converter.mimeMessageToEmailBuilder(failure.getMimeMessage(),
-							pkcs12Config, openPgpReceiveConfig, fetchData);
+							pkcs12Config, openPgpReceiveConfig, fetchData, context);
 					ConfiguredEmailConverterImpl.noteInputCloseFailure(builder, (IOException) failure.getCause());
 					return builder;
 				}
@@ -158,11 +183,11 @@ class FluentEmailConversions {
 
 	static final class FromEml extends Incoming<EmlConversion> implements EmlConversion {
 		private final Function<Session, MimeMessage> source;
-		private final Function<Session, MimeMessage> preservedSource;
+		private final BiFunction<Session, ImportContext, MimeMessage> preservedSource;
 		private Session session;
 
 		FromEml(final ConfiguredEmailConverterImpl converter, final Function<Session, MimeMessage> source,
-				final Function<Session, MimeMessage> preservedSource) {
+				final BiFunction<Session, ImportContext, MimeMessage> preservedSource) {
 			super(converter);
 			this.source = source;
 			this.preservedSource = preservedSource;
@@ -195,9 +220,11 @@ class FluentEmailConversions {
 		}
 
 		@Override
-		MimeMessage sourceMessageForEmail() {
-			return preservedSource.apply(selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"));
+		MimeMessage sourceMessageForEmail(final ImportContext context) {
+			return preservedSource.apply(selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"), context);
 		}
+
+        @Override boolean hasRawSource() { return true; }
 
 		/** @see EmlConversion#toMimeMessage() */
 		@Override
@@ -397,13 +424,31 @@ class FluentEmailConversions {
 	}
 
 	static final class FromOutlook extends ExportOptions implements OutlookConversion {
-		private final Function<Pkcs12Config, OutlookEmailConversionResult> source;
+		private final BiFunction<Pkcs12Config, ImportContext, OutlookEmailConversionResult> source;
 		private Pkcs12Config pkcs12Config;
+        private ImportLimitsConfig importLimits;
 
-		FromOutlook(final ConfiguredEmailConverterImpl converter, final Function<Pkcs12Config, OutlookEmailConversionResult> source) {
+		FromOutlook(final ConfiguredEmailConverterImpl converter, final BiFunction<Pkcs12Config, ImportContext, OutlookEmailConversionResult> source) {
 			super(converter);
 			this.source = source;
 		}
+
+        @Override
+        public OutlookConversion withImportLimitsConfig(final ImportLimitsConfig limits) {
+            checkAvailable();
+            importLimits = requireNonNull(limits, "importLimitsConfig");
+            return this;
+        }
+
+        @Override
+        public ImportLimitsConfig getImportLimitsConfig() { return importLimits == null ? NO_IMPORT_CHOICES : importLimits; }
+
+        @Override
+        public OutlookConversion useConfiguredImportLimitsConfig() {
+            checkAvailable();
+            importLimits = null;
+            return this;
+        }
 
 		/** @see OutlookConversion#withSmimeDecryption(Pkcs12Config) */
 		@Override
@@ -457,8 +502,9 @@ class FluentEmailConversions {
 		}
 
 		private OutlookEmailConversionResult readSource() {
+            final ImportContext context = converter.prepareImport(getImportLimitsConfig(), true);
 			beginConversion();
-			return source.apply(pkcs12Config);
+			return source.apply(pkcs12Config, context);
 		}
 
 		/** @see OutlookConversion#toEmailBuilder() */

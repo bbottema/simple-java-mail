@@ -46,10 +46,24 @@ final class SourceReadException extends EmailConverterException {
 
 	/** Reads an input once without taking its closing ownership; prefixes survive an IOException. */
 	static byte[] acquire(final InputStream input, final EmailSourceData.Format format) {
+		return acquire(input, format, 0);
+	}
+
+    /** A finite original-input bound is checked while acquiring, with at most one byte used to distinguish EOF from excess. */
+    static byte[] acquire(final InputStream input, final EmailSourceData.Format format, final long maximumBytes) {
 		final ByteArrayOutputStream captured = new ByteArrayOutputStream();
 		final byte[] buffer = new byte[8192];
 		try {
-			for (int count; (count = input.read(buffer)) != -1;) {
+			while (true) {
+                final long remaining = maximumBytes == 0 ? Long.MAX_VALUE : maximumBytes - captured.size();
+                if (remaining == 0) {
+                    if (input.read() == -1) return captured.toByteArray();
+                    throw new SourceReadException(format, captured.toByteArray(), false, EmailProblem.Code.IMPORT_LIMIT_EXCEEDED,
+                            new EmailConverterException("Import maximumInputBytes limit of " + maximumBytes + " was exceeded", null));
+                }
+                final int count = maximumBytes == 0 ? input.read(buffer)
+                        : input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                if (count == -1) return captured.toByteArray();
 				if (count == 0) {
 					final int next = input.read();
 					if (next == -1) break;

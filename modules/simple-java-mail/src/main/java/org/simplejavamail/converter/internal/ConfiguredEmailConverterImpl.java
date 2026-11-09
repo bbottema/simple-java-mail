@@ -26,6 +26,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
+import org.simplejavamail.internal.converter.ImportTraversal;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -88,6 +90,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	private final EmailStartingBuilder emailStartingBuilder;
 	private final EmailPopulatingBuilderFactoryImpl emailPopulatingBuilderFactory;
+    private final SimpleJavaMailConfig configuration;
 
 	/**
 	 * Creates a converter for an immutable configuration snapshot.
@@ -97,9 +100,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	 */
 	public ConfiguredEmailConverterImpl(@NotNull final SimpleJavaMailConfig config) {
 		final SimpleJavaMailConfig requiredConfig = requireNonNull(config, "config");
+        this.configuration = requiredConfig;
 		this.emailStartingBuilder = new EmailStartingBuilderImpl(requiredConfig);
 		this.emailPopulatingBuilderFactory = new EmailPopulatingBuilderFactoryImpl(requiredConfig);
 	}
+
+    ImportContext prepareImport(final ImportLimitsConfig choices, final boolean rawSource) {
+        return ImportContext.prepare(configuration, choices, rawSource);
+    }
+
+    private ImportContext prepareImport(final boolean rawSource) {
+        return prepareImport(ImportLimitsConfig.builder().build(), rawSource);
+    }
 
 	/** @see ConfiguredEmailConverter#fromEmail(Email) */
 	@Override
@@ -130,7 +142,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		final byte[] captured = requireNonNull(eml, "eml").clone();
 		return new FluentEmailConversions.FromEml(this,
 				session -> parseEmlInput(new ByteArrayInputStream(captured), session),
-				session -> readPreservedEml(new ByteArrayInputStream(captured), session));
+				(session, context) -> readPreservedEml(new ByteArrayInputStream(captured), session, context.maximumInputBytes));
 	}
 
 	/** @see ConfiguredEmailConverter#fromEml(File) */
@@ -145,7 +157,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		final Path captured = requireNonNull(emlPath, "emlPath");
 		return new FluentEmailConversions.FromEml(this,
 				session -> parseEmlPath(captured, session),
-				session -> readPreservedEmlPath(captured, session));
+				(session, context) -> readPreservedEmlPath(captured, session, context.maximumInputBytes));
 	}
 
 	/** @see ConfiguredEmailConverter#fromEml(InputStream) */
@@ -154,35 +166,38 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		final InputStream captured = requireNonNull(emlInputStream, "emlInputStream");
 		return new FluentEmailConversions.FromEml(this,
 				session -> parseEmlInput(captured, session),
-				session -> readPreservedEml(captured, session));
+				(session, context) -> readPreservedEml(captured, session, context.maximumInputBytes));
 	}
 
 	/** @see ConfiguredEmailConverter#fromOutlookMsg(String) */
 	@Override
 	public OutlookConversion fromOutlookMsg(@NotNull final String msgFileName) {
 		final String captured = requireNonNull(msgFileName, "msgFileName");
-		return new FluentEmailConversions.FromOutlook(this, pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+		return new FluentEmailConversions.FromOutlook(this, (pkcs12, context) -> {
+            checkNonEmptyArgument(captured, "msgFile");
+            return outlookMsgToEmailBuilderWithOutlookData(Path.of(captured), pkcs12, context);
+        });
 	}
 
 	/** @see ConfiguredEmailConverter#fromOutlookMsg(File) */
 	@Override
 	public OutlookConversion fromOutlookMsg(@NotNull final File msgFile) {
 		final File captured = requireNonNull(msgFile, "msgFile");
-		return new FluentEmailConversions.FromOutlook(this, pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+		return new FluentEmailConversions.FromOutlook(this, (pkcs12, context) -> outlookMsgToEmailBuilderWithOutlookData(captured.toPath(), pkcs12, context));
 	}
 
 	/** @see ConfiguredEmailConverter#fromOutlookMsg(Path) */
 	@Override
 	public OutlookConversion fromOutlookMsg(@NotNull final Path msgPath) {
 		final Path captured = requireNonNull(msgPath, "msgPath");
-		return new FluentEmailConversions.FromOutlook(this, pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12));
+		return new FluentEmailConversions.FromOutlook(this, (pkcs12, context) -> outlookMsgToEmailBuilderWithOutlookData(captured, pkcs12, context));
 	}
 
 	/** @see ConfiguredEmailConverter#fromOutlookMsg(InputStream) */
 	@Override
 	public OutlookConversion fromOutlookMsg(@NotNull final InputStream msgInputStream) {
 		final InputStream captured = requireNonNull(msgInputStream, "msgInputStream");
-		return new FluentEmailConversions.FromOutlook(this, pkcs12 -> outlookMsgToEmailBuilderWithOutlookData(leavingOpen(captured), pkcs12));
+		return new FluentEmailConversions.FromOutlook(this, (pkcs12, context) -> outlookMsgToEmailBuilderWithOutlookData(leavingOpen(captured), pkcs12, context));
 	}
 
 	private static InputStream leavingOpen(final InputStream input) {
@@ -206,10 +221,10 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		return parsed;
 	}
 
-	private static MimeMessage readPreservedEmlPath(final Path path, final Session session) {
+	private static MimeMessage readPreservedEmlPath(final Path path, final Session session, final long maximumBytes) {
 		MimeMessage parsed = null;
 		try (InputStream input = Files.newInputStream(path)) {
-			parsed = readPreservedEml(input, session);
+			parsed = readPreservedEml(input, session, maximumBytes);
 		} catch (IOException e) {
 			if (parsed != null) throw new SourceCloseException(parsed, e);
 			throw new SourceReadException(EmailSourceData.Format.MIME, null, false, EmailProblem.Code.CONTENT_READ_FAILED, e);
@@ -218,11 +233,16 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	}
 
 	private static MimeMessage readPreservedEml(final InputStream input, final Session session) {
-		final byte[] emlBytes = SourceReadException.acquire(checkNonEmptyArgument(input, "emlInputStream"), EmailSourceData.Format.MIME);
+        return readPreservedEml(input, session, 0);
+    }
+
+    private static MimeMessage readPreservedEml(final InputStream input, final Session session, final long maximumBytes) {
+        final Session requiredSession = checkNonEmptyArgument(session, "session");
+		final byte[] emlBytes = SourceReadException.acquire(checkNonEmptyArgument(input, "emlInputStream"), EmailSourceData.Format.MIME, maximumBytes);
 		try {
 			// Protection inspection must retain the received representation, including line endings tolerated by the MIME parser.
 			return FinalizedMimeMessage.fromMessageBytes(
-					checkNonEmptyArgument(session, "session"), emlBytes, FinalizedMimeMessage.ProtectionState.NONE);
+                    requiredSession, emlBytes, FinalizedMimeMessage.ProtectionState.NONE);
 		} catch (MessagingException e) {
 			throw new SourceReadException(EmailSourceData.Format.MIME, emlBytes, true, EmailProblem.Code.FIELD_NOT_INTERPRETED, e);
 		}
@@ -245,6 +265,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			builder.withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults().build());
 		}
 		((InternalEmailPopulatingBuilder) builder).retainInspection(failure.getSourceData(), singletonList(failure.getProblem()));
+        if (failure.getProblem().getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED) {
+            retainUninspectedProtection((InternalEmailPopulatingBuilder) builder);
+        }
 		noteSuppressedInputCloseFailures(builder, failure);
 		return builder;
 	}
@@ -255,16 +278,27 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			final boolean fetchAttachmentData) {
-        return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, fetchAttachmentData, false);
+        return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, fetchAttachmentData, false, prepareImport(false));
+    }
+
+    EmailPopulatingBuilder mimeMessageToEmailBuilder(final MimeMessage mimeMessage, final Pkcs12Config pkcs12Config,
+            final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean fetchAttachmentData, final ImportContext context) {
+        return mimeMessageToEmailBuilder(mimeMessage, pkcs12Config, openPgpReceiveConfig, fetchAttachmentData, false, context);
     }
 
     private EmailPopulatingBuilder mimeMessageToEmailBuilder(final MimeMessage mimeMessage, final Pkcs12Config pkcs12Config,
-            final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean fetchAttachmentData, final boolean generatedArtifact) {
+            final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean fetchAttachmentData, final boolean generatedArtifact,
+            final ImportContext context) {
 		checkNonEmptyArgument(mimeMessage, "mimeMessage");
 		requireSmimeForExplicitDecryption(pkcs12Config);
+        if (!context.traversal.admit()) {
+            context.noteProjection(false, true);
+            return skippedImport(context.traversal);
+        }
         final InputInspection originalInspection =
-                InputInspection.capture(mimeMessage, generatedArtifact);
-		final InboundProtectionResult<OriginalOpenPgpDetails> openPgpResult = preprocessOpenPgp(mimeMessage, openPgpReceiveConfig);
+                InputInspection.capture(mimeMessage, generatedArtifact).withImportTraversal(context.traversal);
+		final InboundProtectionResult<OriginalOpenPgpDetails> openPgpResult = preprocessOpenPgp(mimeMessage, openPgpReceiveConfig, false,
+                context.traversal.hasLimits() && !(mimeMessage instanceof FinalizedMimeMessage));
 		final SmimePreprocessingResult smimeResult = openPgpResult.isRecognized()
 				? null
 				: preprocessSmime(openPgpResult.getEffectiveMimeMessage(), pkcs12Config);
@@ -272,19 +306,31 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 				? smimeResult.getEffectiveMimeMessage()
 				: openPgpResult.getEffectiveMimeMessage();
 		val builder = emailStartingBuilder.startingBlank();
+        final ImportContext contentContext = effectiveMessage == mimeMessage ? context : context.at(context.traversal.view("opened"));
+        final boolean contentAdmitted = contentContext.traversal.admit();
         final InputInspection contentInspection = effectiveMessage == mimeMessage
-                ? originalInspection : InputInspection.capture(effectiveMessage, generatedArtifact, EmailSourceData.Representation.EXTRACTED);
+                ? originalInspection : contentAdmitted
+                ? InputInspection.capture(effectiveMessage, generatedArtifact, EmailSourceData.Representation.EXTRACTED)
+                    .withImportTraversal(contentContext.traversal)
+                : originalInspection.withoutContent(contentContext.traversal.stopDescription());
         if (smimeResult != null && smimeResult.getDeclarationFailure() != null) {
             contentInspection.noteUnreadableContentType(smimeResult.getDeclarationFailure());
         }
-		val parsed = MimeMessageParser.parseMimeMessage(effectiveMessage, fetchAttachmentData, contentInspection);
+		val parsed = MimeMessageParser.parseMimeMessage(contentAdmitted ? effectiveMessage : mimeMessage, fetchAttachmentData, contentInspection);
+        context.noteProjection(contentInspection.hasReadableBodyMaterialized(), contentInspection.hasImportLimitStop());
 		val emailBuilder = MimeMessageEmailMapper.populate(builder, parsed);
         final InternalEmailPopulatingBuilder inspectionBuilder = (InternalEmailPopulatingBuilder) emailBuilder;
-        if (effectiveMessage != mimeMessage) {
+		if (effectiveMessage != mimeMessage && contentAdmitted) {
             inspectionBuilder.retainInspection(originalInspection.getSourceData(), originalInspection.getProblems());
             InspectionAssembly.attach(inspectionBuilder, contentInspection.getSourceData(), contentInspection.getProblems());
         }
-		((InternalEmailPopulatingBuilder) emailBuilder).withOriginalOpenPgpDetails(openPgpResult.getDetails());
+		((InternalEmailPopulatingBuilder) emailBuilder).withOriginalOpenPgpDetails(
+                finishDeferredOpenPgpCapture(openPgpResult, mimeMessage, contentInspection));
+        if (!contentAdmitted) {
+            if (smimeResult != null) inspectionBuilder.withOriginalSmimeDetails(smimeResult.getDetails());
+            InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
+            return emailBuilder;
+        }
 		if (openPgpResult.isRecognized()) {
             if (effectiveMessage != mimeMessage && !parsed.isRootRepresentedAsResource() && ModuleLoader.smimeModuleAvailable()) {
                 processIndependentSmimeAttachments(inspectionBuilder, emailBuilder.getAttachments(), java.util.Collections.emptyList(),
@@ -297,7 +343,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			final boolean detachedSignatureUnwrapped = effectiveMessage != openPgpResult.getEffectiveMimeMessage()
 					&& "multipart/signed".equalsIgnoreCase(smimeResult.getDetails().getSmimeMime());
             final List<AttachmentResource> clearAttachments = emailBuilder.getAttachments();
-            applySmimePreprocessingResult(emailBuilder, smimeResult, detachedSignatureUnwrapped);
+			applySmimePreprocessingResult(emailBuilder, smimeResult, detachedSignatureUnwrapped, contentContext);
             if (detachedSignatureUnwrapped && !parsed.isRootRepresentedAsResource()) {
                 processIndependentSmimeAttachments(inspectionBuilder, clearAttachments, smimeResult.getDecryptedArtifacts(),
                         pkcs12Config, parsed::getAttachmentSource);
@@ -310,11 +356,31 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
             processIndependentSmimeAttachments(inspectionBuilder, emailBuilder.getAttachments(), java.util.Collections.emptyList(),
                     pkcs12Config, parsed::getAttachmentSource);
         } else {
-            decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config, parsed::getAttachmentSource);
+			decryptAttachments(emailBuilder, effectiveMessage, pkcs12Config, parsed::getAttachmentSource, contentContext,
+                    contentInspection.hasCompleteProjection());
         }
         InspectionAssembly.protection(inspectionBuilder, originalInspection::getOrigin);
         return emailBuilder;
 	}
+
+    private EmailPopulatingBuilder skippedImport(final ImportTraversal scope) {
+        final org.simplejavamail.api.email.EmailSourceIdentity origin = EmailInspection.origin(null);
+        final EmailSourceData source = EmailInspection.source(origin, EmailSourceData.Format.MIME,
+                EmailSourceData.Representation.EXTRACTED, java.util.Collections.emptyList(), java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(), java.util.Collections.emptyList());
+        final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) emailStartingBuilder.startingBlank();
+        builder.retainInspection(source,
+                singletonList(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.IMPORT_LIMIT_EXCEEDED,
+                        "source", null, scope.stopDescription(), java.util.Collections.emptyList())));
+        retainUninspectedProtection(builder);
+        return builder;
+    }
+
+    private static void retainUninspectedProtection(final InternalEmailPopulatingBuilder builder) {
+        builder.withOriginalSmimeDetails(UnavailableSmimeInspection.unknown());
+        builder.withOriginalOpenPgpDetails(OpenPgpDetailsImpl.builder().openPgpMode(OpenPgpMode.UNKNOWN)
+                .signatureStatus(SignatureStatus.UNKNOWN).decryptionStatus(DecryptionStatus.UNKNOWN).build());
+    }
 
     private static void processIndependentSmimeAttachments(final InternalEmailPopulatingBuilder builder,
             final List<AttachmentResource> attachments, final List<AttachmentResource> parentArtifacts,
@@ -346,6 +412,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			@NotNull final Session session) {
+        checkNonEmptyArgument(session, "session");
 		EmailPopulatingBuilder parsed = null;
 		try (InputStream emlInputStream = Files.newInputStream(requireNonNull(emlPath, "emlPath"))) {
 			parsed = emlToEmailBuilder(emlInputStream, pkcs12Config, openPgpReceiveConfig, session);
@@ -366,9 +433,10 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			@Nullable final Pkcs12Config pkcs12Config,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig,
 			@NotNull final Session session) {
+        final ImportContext context = prepareImport(true);
 		try {
-			return mimeMessageToEmailBuilder(readPreservedEml(emlInputStream, session),
-					pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA);
+			return mimeMessageToEmailBuilder(readPreservedEml(emlInputStream, session, context.maximumInputBytes),
+					pkcs12Config, openPgpReceiveConfig, EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, context);
 		} catch (SourceReadException failure) {
 			return sourceFailureBuilder(failure);
 		}
@@ -394,13 +462,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final Path msgPath,
 			@Nullable final Pkcs12Config pkcs12Config) {
+        return outlookMsgToEmailBuilderWithOutlookData(msgPath, pkcs12Config, prepareImport(true));
+    }
+
+    private OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(final Path msgPath,
+            final Pkcs12Config pkcs12Config, final ImportContext context) {
 		requireNonNull(msgPath, "msgPath");
 		requireSmimeForExplicitDecryption(pkcs12Config);
 		ModuleLoader.loadOutlookModule();
 		try {
 			// The stream overload retains the specialist reader's established ownership for this internally opened stream.
 			final InputStream msgInputStream = Files.newInputStream(msgPath);
-			return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config);
+			return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config, context);
 		} catch (IOException e) {
 			return sourceFailureOutlook(new SourceReadException(EmailSourceData.Format.OUTLOOK_MSG, null, false,
 					EmailProblem.Code.CONTENT_READ_FAILED, e));
@@ -411,14 +484,19 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@NotNull
 	public OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(@NotNull final InputStream msgInputStream,
 			@Nullable final Pkcs12Config pkcs12Config) {
+        return outlookMsgToEmailBuilderWithOutlookData(msgInputStream, pkcs12Config, prepareImport(true));
+    }
+
+    OutlookEmailConversionResult outlookMsgToEmailBuilderWithOutlookData(final InputStream msgInputStream,
+            final Pkcs12Config pkcs12Config, final ImportContext context) {
 		requireNonNull(msgInputStream, "msgInputStream");
 		requireSmimeForExplicitDecryption(pkcs12Config);
 		ModuleLoader.loadOutlookModule();
 		byte[] captured = null;
 		OutlookEmailConversionResult parsed = null;
 		try (InputStream ownedInput = msgInputStream) {
-			captured = SourceReadException.acquire(ownedInput, EmailSourceData.Format.OUTLOOK_MSG);
-			parsed = toOutlookEmailConversionResult(loadOutlookMessage(new ByteArrayInputStream(captured), pkcs12Config), pkcs12Config);
+			captured = SourceReadException.acquire(ownedInput, EmailSourceData.Format.OUTLOOK_MSG, context.maximumInputBytes);
+			parsed = toOutlookEmailConversionResult(loadOutlookMessage(new ByteArrayInputStream(captured), pkcs12Config, context), pkcs12Config, context);
 		} catch (SourceReadException failure) {
 			return sourceFailureOutlook(failure);
 		} catch (OutlookInputException parseFailure) {
@@ -505,7 +583,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	private EmailPopulatingBuilder applySmimePreprocessingResult(
 			@NotNull final EmailPopulatingBuilder emailBuilder,
 			@NotNull final SmimePreprocessingResult result,
-			final boolean detachedSignatureUnwrapped) {
+			final boolean detachedSignatureUnwrapped, final ImportContext context) {
 		final List<AttachmentResource> clearAttachments = new ArrayList<>(emailBuilder.getAttachments());
 		AttachmentResource effectiveMessageArtifact = null;
 		for (AttachmentResource artifact : result.getDecryptedArtifacts()) {
@@ -514,7 +592,9 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 				break;
 			}
 		}
-		if (effectiveMessageArtifact != null) {
+        final NestedContent nestedContent = effectiveMessageArtifact == null ? null : emlAttachmentToEmailBuilder(effectiveMessageArtifact, context);
+        final boolean mergeReadableInner = nestedContent != null && nestedContent.materialized && !nestedContent.bodyLimited;
+		if (mergeReadableInner) {
 			emailBuilder.clearAttachments();
 			emailBuilder.clearEmbeddedImages();
 			((InternalEmailPopulatingBuilder) emailBuilder).clearContentTransferEncoding();
@@ -527,33 +607,40 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			}
 		}
 		final List<AttachmentResource> decrypted = new ArrayList<>(result.getDecryptedArtifacts());
-		if (effectiveMessageArtifact == null) {
+		if (!mergeReadableInner) {
 			decrypted.addAll(clearAttachments);
 		}
 		final InternalEmailPopulatingBuilder internal = (InternalEmailPopulatingBuilder) emailBuilder;
 		internal.withDecryptedAttachments(decrypted);
 		internal.withOriginalSmimeDetails(result.getDetails());
-		if (effectiveMessageArtifact != null) {
+		if (nestedContent != null) {
 			// Nested protected messages must use this converter's snapshot too, not the static converter's default factory.
-			final NestedContent nestedContent = emlAttachmentToEmailBuilder(effectiveMessageArtifact);
-			final EmailPopulatingBuilder nestedBuilder = nestedContent.builder;
+			final EmailPopulatingBuilder nestedBuilder = nestedContent.contentBuilder;
 			if (result.getNestedSignedDetails() != null) {
 				((InternalEmailPopulatingBuilder) nestedBuilder).withOriginalSmimeDetails(result.getNestedSignedDetails());
 			}
             final Email nested = nestedBuilder.buildEmail();
-			if (nestedContent.materialized) internal.withSmimeSignedEmail(nested);
+            if (nestedContent.materialized) {
+                internal.withSmimeSignedEmail(nested);
+                if (nestedContent.bodyLimited) internal.notMergingSingleSMIMESignedAttachment();
+                else if (internal.isMergeSingleSMIMESignedAttachment()) context.noteProjection(nestedContent.readableBody, false);
+            }
             InspectionAssembly.attach(internal, nested.getSourceData(), nested.getProblems());
 		}
 		return emailBuilder;
 	}
 
 	@NotNull
-	private NestedContent emlAttachmentToEmailBuilder(@NotNull final AttachmentResource attachment) {
+	private NestedContent emlAttachmentToEmailBuilder(@NotNull final AttachmentResource attachment, final ImportContext context) {
 		EmailPopulatingBuilder parsed = null;
 		boolean materialized = false;
+        final ImportContext representation = context.newRepresentation();
+        if (!context.traversal.admit()) {
+            return NestedContent.builder().contentBuilder(skippedImport(context.traversal)).bodyLimited(true).build();
+        }
 		try (InputStream input = attachment.openStream()) {
             parsed = mimeMessageToEmailBuilder(readPreservedEml(input, createDummySession()), null, null,
-                    EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, true);
+                    EmailStartingBuilder.DEFAULT_FETCH_ATTACHMENT_DATA, true, representation);
 			materialized = true;
 		} catch (SourceReadException failure) {
 			parsed = sourceFailureBuilder(failure);
@@ -571,17 +658,16 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 			inspection.retainInspection(EmailInspection.source(source.getOrigin(), source.getFormat(), EmailSourceData.Representation.GENERATED,
 					source.getHeaders(), source.getProperties(), source.getParts(), source.getDerivedSources()), inspection.getProblems());
 		}
-		return new NestedContent(parsed, materialized);
+		return NestedContent.builder().contentBuilder(parsed).materialized(materialized)
+                .bodyLimited(representation.bodyWasLimited()).readableBody(representation.hasReadableBody()).build();
 	}
 
+    @lombok.Builder
 	private static final class NestedContent {
-		private final EmailPopulatingBuilder builder;
+		private final EmailPopulatingBuilder contentBuilder;
 		private final boolean materialized;
-
-		private NestedContent(final EmailPopulatingBuilder builder, final boolean materialized) {
-			this.builder = builder;
-			this.materialized = materialized;
-		}
+        private final boolean bodyLimited;
+        private final boolean readableBody;
 	}
 
 	private static boolean hasAttachmentNamed(
@@ -616,6 +702,13 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	@NotNull
 	private static InboundProtectionResult<OriginalOpenPgpDetails> preprocessOpenPgp(@NotNull final MimeMessage mimeMessage,
 			@Nullable final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean recognizedEnvelopeOnly) {
+        return preprocessOpenPgp(mimeMessage, openPgpReceiveConfig, recognizedEnvelopeOnly, false);
+    }
+
+    @NotNull
+    private static InboundProtectionResult<OriginalOpenPgpDetails> preprocessOpenPgp(@NotNull final MimeMessage mimeMessage,
+            @Nullable final OpenPgpReceiveConfig openPgpReceiveConfig, final boolean recognizedEnvelopeOnly,
+            final boolean deferProtectedBytes) {
 		try {
 			if (recognizedEnvelopeOnly) {
 				// Plain exact mail needs neither optional-module initialization nor another serialized copy of its source.
@@ -635,6 +728,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 				final boolean signed = mimeMessage.isMimeType("multipart/signed");
 				return UnprocessedOpenPgpMail.builder()
 						.recognized(true)
+                        .protectedBytesDeferred(deferProtectedBytes)
 						.effectiveMimeMessage(mimeMessage)
 					.details(OpenPgpDetailsImpl.builder()
 								.openPgpMode(signed ? OpenPgpMode.SIGNED : OpenPgpMode.ENCRYPTED)
@@ -642,7 +736,7 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 								.decryptionStatus(signed && !recognizedEnvelopeOnly
 										? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.UNKNOWN)
 								.failureReason("OpenPGP/MIME message was preserved because openpgp-module is not available")
-								.originalProtectedMessage(mimeMessageToEMLByteArray(mimeMessage))
+								.originalProtectedMessage(unprocessedOpenPgpBytes(mimeMessage, deferProtectedBytes))
 								.build())
 						.build();
 			}
@@ -666,6 +760,21 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		}
 	}
 
+    private static byte @Nullable [] unprocessedOpenPgpBytes(final MimeMessage message, final boolean deferProtectedBytes) {
+        if (message instanceof FinalizedMimeMessage) return ((FinalizedMimeMessage) message).getSerializedBytes();
+        return deferProtectedBytes ? null : mimeMessageToEMLByteArray(message);
+    }
+
+    private static OriginalOpenPgpDetails finishDeferredOpenPgpCapture(final InboundProtectionResult<OriginalOpenPgpDetails> result,
+            final MimeMessage original, final InputInspection inspection) {
+        if (result instanceof UnprocessedOpenPgpMail && ((UnprocessedOpenPgpMail) result).isProtectedBytesDeferred()
+                && inspection.hasCompleteProjection()) {
+            return OpenPgpDetailsImpl.copyOf(result.getDetails()).toBuilder()
+                    .originalProtectedMessage(mimeMessageToEMLByteArray(original)).build();
+        }
+        return result.getDetails();
+    }
+
 	private static boolean isOpenPgpMime(final MimeMessage mimeMessage) throws MessagingException {
 		final boolean signed = mimeMessage.isMimeType("multipart/signed");
 		final boolean encrypted = !signed && mimeMessage.isMimeType("multipart/encrypted");
@@ -685,10 +794,11 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	@NotNull
 	private EmailFromOutlookMessage loadOutlookMessage(@NotNull final InputStream msgInputStream,
-			@Nullable final Pkcs12Config pkcs12Config) {
+			@Nullable final Pkcs12Config pkcs12Config, final ImportContext context) {
 		requireSmimeForExplicitDecryption(pkcs12Config);
 		EmailFromOutlookMessage fromMsgBuilder = ModuleLoader.loadOutlookModule()
-				.outlookMsgToEmailBuilder(msgInputStream, emailStartingBuilder, emailPopulatingBuilderFactory, InternalEmailConverterImpl.INSTANCE);
+				.outlookMsgToEmailBuilder(msgInputStream, emailStartingBuilder, emailPopulatingBuilderFactory,
+                        InternalEmailConverterImpl.forImport(context.traversal));
 		return fromMsgBuilder;
 	}
 
@@ -701,18 +811,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	@NotNull
 	private OutlookEmailConversionResult toOutlookEmailConversionResult(@NotNull final EmailFromOutlookMessage result,
-			@Nullable final Pkcs12Config pkcs12Config) {
+			@Nullable final Pkcs12Config pkcs12Config, final ImportContext context) {
         final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) result.getEmailBuilder();
         final InputInspection inspection =
                 InputInspection.capture(result.getOutlookMessageData(), builder.getId());
         inspection.noteAddressRecovery();
         inspection.noteUninterpretedDate(builder.getSentDate());
         builder.retainInspection(inspection.getSourceData(), inspection.getProblems());
-		final SmimeParseResult attachmentInspection = decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config);
+		final SmimeParseResult attachmentInspection = decryptAttachments(result.getEmailBuilder(), result.getOutlookMessage(), pkcs12Config, context);
         InspectionAssembly.protection(builder, inspection::getOrigin);
         final List<EmailProblem> capturedProblems = new ArrayList<>(builder.getProblems());
         builder.retainInspection(OutlookSourceCapture.capture(builder.getSourceData(), result.getOutlookMessage(), builder, capturedProblems,
-                        outlookAttachmentFailures(attachmentInspection, result.getAttachmentSourceIndices())),
+                        outlookAttachmentFailures(attachmentInspection, result.getAttachmentSourceIndices()), context.traversal),
                 capturedProblems);
         if (Objects.equals(builder.getHTMLText(), result.getOutlookMessage().getBodyHTML())) {
             builder.retainReceivedHtml(builder.getHTMLText(), OutlookSourceCapture.originalHtmlParts(builder.getSourceData(), result.getOutlookMessage()));
@@ -727,10 +837,18 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 
 	private SmimeParseResult decryptAttachments(final EmailPopulatingBuilder emailBuilder,
 			final OutlookMessage outlookMessage,
-			@Nullable final Pkcs12Config pkcs12Config) {
+			@Nullable final Pkcs12Config pkcs12Config, final ImportContext context) {
 		if (ModuleLoader.smimeModuleAvailable()) {
+		    if (context.traversal.hasOmissions()
+                    && !(outlookMessage.getOutlookAttachments().size() == 1 && emailBuilder.getAttachments().size() == 1)) {
+                final OriginalSmimeDetails details = UnavailableSmimeInspection.fromOutlook(outlookMessage);
+                final List<AttachmentDecryptionResult> children = loadSmimeModule().processIndependentAttachments(emailBuilder.getAttachments(), pkcs12Config);
+                final SmimeParseResult independent = independentSmimeResult(details, children);
+                handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, independent, context);
+                return independent;
+            }
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), outlookMessage, pkcs12Config);
-			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, context);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 			return smimeParseResult;
 		} else {
@@ -759,14 +877,22 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 	private EmailPopulatingBuilder decryptAttachments(final EmailPopulatingBuilder emailBuilder,
 			final MimeMessage mimeMessage,
 			@Nullable final Pkcs12Config pkcs12Config,
-			final Function<AttachmentResource, EmailSourcePart> sourceOf) {
+			final Function<AttachmentResource, EmailSourcePart> sourceOf, final ImportContext context, final boolean completeProjection) {
 		if (ModuleLoader.smimeModuleAvailable()) {
+		    if (context.traversal.hasOmissions()) {
+                ((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromDeclaration(mimeMessage));
+                processIndependentSmimeAttachments((InternalEmailPopulatingBuilder) emailBuilder, emailBuilder.getAttachments(),
+                        java.util.Collections.emptyList(), pkcs12Config, sourceOf);
+                return emailBuilder;
+            }
 			SmimeParseResult smimeParseResult = loadSmimeModule().decryptAttachments(emailBuilder.getAttachments(), mimeMessage, pkcs12Config);
-			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult);
+			handleSmimeParseResult((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, context);
 			InspectionAssembly.attachmentProtection((InternalEmailPopulatingBuilder) emailBuilder, smimeParseResult, sourceOf);
 			updateEmailIfBothSignedAndEncrypted(emailBuilder, smimeParseResult);
 		} else {
-			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(UnavailableSmimeInspection.fromMessage(mimeMessage));
+			((InternalEmailPopulatingBuilder) emailBuilder).withOriginalSmimeDetails(context.traversal.hasOmissions()
+                    || context.traversal.hasLimits() && !completeProjection
+                    ? UnavailableSmimeInspection.fromDeclaration(mimeMessage) : UnavailableSmimeInspection.fromMessage(mimeMessage));
 		}
 		return emailBuilder;
 	}
@@ -784,17 +910,33 @@ public final class ConfiguredEmailConverterImpl implements ConfiguredEmailConver
 		}
 	}
 
-	private void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder,
-			final SmimeParseResult smimeParseResult) {
+    private void handleSmimeParseResult(final InternalEmailPopulatingBuilder emailBuilder,
+            final SmimeParseResult smimeParseResult, final ImportContext context) {
 		emailBuilder.withDecryptedAttachments(smimeParseResult.getDecryptedAttachments());
 		emailBuilder.withOriginalSmimeDetails(smimeParseResult.getOriginalSmimeDetails());
 		if (smimeParseResult.getSmimeSignedOrEncryptedEmail() != null) {
-            final NestedContent nestedContent = emlAttachmentToEmailBuilder(smimeParseResult.getSmimeSignedOrEncryptedEmail());
-            final Email nested = nestedContent.builder.buildEmail();
-            if (nestedContent.materialized) emailBuilder.withSmimeSignedEmail(nested);
+            final NestedContent nestedContent = emlAttachmentToEmailBuilder(smimeParseResult.getSmimeSignedOrEncryptedEmail(),
+                    context.at(context.traversal.child("protected-message")));
+            final Email nested = nestedContent.contentBuilder.buildEmail();
+            if (nestedContent.materialized) {
+                emailBuilder.withSmimeSignedEmail(nested);
+                if (nestedContent.bodyLimited) emailBuilder.notMergingSingleSMIMESignedAttachment();
+                else if (emailBuilder.isMergeSingleSMIMESignedAttachment()) context.noteProjection(nestedContent.readableBody, false);
+            }
             InspectionAssembly.attach(emailBuilder, nested.getSourceData(), nested.getProblems());
 		}
 	}
+
+    private static SmimeParseResult independentSmimeResult(final OriginalSmimeDetails details, final List<AttachmentDecryptionResult> children) {
+        final List<AttachmentResource> resources = new ArrayList<>();
+        for (AttachmentDecryptionResult child : children) resources.add(child.getAttachmentResource());
+        return new SmimeParseResult() {
+            @Override public OriginalSmimeDetails getOriginalSmimeDetails() { return details; }
+            @Override public AttachmentResource getSmimeSignedOrEncryptedEmail() { return null; }
+            @Override public List<AttachmentDecryptionResult> getDecryptedAttachmentResults() { return children; }
+            @Override public List<AttachmentResource> getDecryptedAttachments() { return resources; }
+        };
+    }
 
 	private static Session createDummySession() {
 		return JakartaMailImplementation.createSession(new Properties());

@@ -28,6 +28,7 @@ import org.simplejavamail.api.outlook.OutlookMessageData;
 import org.simplejavamail.internal.modules.OutlookModule;
 import org.simplejavamail.internal.outlooksupport.internal.model.OutlookMessageProxy;
 import org.simplejavamail.internal.util.InternalEmailConverter;
+import org.simplejavamail.internal.converter.ImportTraversal;
 import org.simplejavamail.outlookmessageparser.model.OutlookAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookFileAttachment;
 import org.simplejavamail.outlookmessageparser.model.OutlookMessage;
@@ -113,12 +114,16 @@ public class OutlookEmailConverter implements OutlookModule {
 			@NotNull final OutlookMessage outlookMessage,
 			@NotNull final EmailPopulatingBuilderFactory builderFactory,
 			@NotNull final InternalEmailConverter internalEmailConverter) {
+        return buildEmailFromOutlookMessage(builder, outlookMessage, builderFactory, internalEmailConverter,
+                internalEmailConverter.importTraversal());
+    }
+
+    private static EmailFromOutlookMessage buildEmailFromOutlookMessage(final EmailPopulatingBuilder builder,
+            final OutlookMessage outlookMessage, final EmailPopulatingBuilderFactory builderFactory,
+            final InternalEmailConverter internalEmailConverter, final ImportTraversal traversal) {
 		checkNonEmptyArgument(builder, "emailBuilder");
 		checkNonEmptyArgument(outlookMessage, "outlookMessage");
-		final Map<OutlookAttachment, Integer> nativeAttachmentIndices = new IdentityHashMap<>();
-		for (int index = 0; index < outlookMessage.getOutlookAttachments().size(); index++) {
-			nativeAttachmentIndices.put(outlookMessage.getOutlookAttachments().get(index), index);
-		}
+        traversal.admit();
 		final Map<DataSource, Integer> attachmentSourceIndices = new IdentityHashMap<>();
 		outlookMessage.getHeadersMap().entrySet().stream()
 				.filter(e -> !valueNullOrEmpty(e.getKey()))
@@ -143,10 +148,13 @@ public class OutlookEmailConverter implements OutlookModule {
 		}
 		copyReceiversFromOutlookMessage(builder, outlookMessage);
 		builder.withSubject(outlookMessage.getSubject());
-		builder.withPlainText(outlookMessage.getBodyText());
-		builder.withHTMLText(outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML());
+        final String plain = outlookMessage.getBodyText();
+        final String html = outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML();
+        if (admitBody(traversal, "plain", plain)) builder.withPlainText(plain);
+        if (admitBody(traversal, "html", html)) builder.withHTMLText(html);
 		
-		final Map<String, OutlookFileAttachment> cidMap = referencedImages(outlookMessage, internalEmailConverter);
+        final Map<OutlookAttachment, Integer> nativeAttachmentIndices = admittedAttachments(outlookMessage, traversal);
+		final Map<String, OutlookFileAttachment> cidMap = referencedImages(outlookMessage, internalEmailConverter, nativeAttachmentIndices);
 		for (final Map.Entry<String, OutlookFileAttachment> cid : cidMap.entrySet()) {
 			final String contentId = verifyNonnullOrEmpty(extractCID(checkNonEmptyArgument(cid.getKey(), "cid.key")));
 			final OutlookFileAttachment attachment = cid.getValue();
@@ -163,7 +171,7 @@ public class OutlookEmailConverter implements OutlookModule {
 					.withContentId(contentId)
 					.build());
 		}
-		for (final OutlookFileAttachment attachment : ordinaryAttachments(outlookMessage, cidMap)) {
+		for (final OutlookFileAttachment attachment : ordinaryAttachments(outlookMessage, cidMap, nativeAttachmentIndices)) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
 			final AttachmentResource resource = AttachmentResource.builder().withName(attachmentName)
 					.withData(attachment.getData(), attachmentMimeType(attachment)).build();
@@ -171,10 +179,17 @@ public class OutlookEmailConverter implements OutlookModule {
 			attachmentSourceIndices.put(resource.getDataSource(), nativeAttachmentIndices.get(attachment));
 		}
 		for (int i = 0; i < outlookMessage.getOutlookAttachments().size(); i++) {
+		    final ImportTraversal attachmentScope = traversal.child("attachments[" + i + "]");
+            if (!attachmentScope.isAdmitted()) break;
 			final OutlookAttachment attachment = outlookMessage.getOutlookAttachments().get(i);
 			if (attachment instanceof OutlookMsgAttachment) {
+                final ImportTraversal nestedScope = attachmentScope.child("message");
+                if (!nestedScope.admit()) {
+                    attachmentScope.noteStoppedChildren();
+                    continue;
+                }
 				final OutlookMessage nestedMsg = ((OutlookMsgAttachment) attachment).getOutlookMessage();
-				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter)
+				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter, nestedScope)
 						.getEmailBuilder().buildEmail();
 				if (hasNoMimeContent(email)) {
 					// Some Exchange delivery receipts contain a nominal .msg attachment without any MIME body.
@@ -202,14 +217,36 @@ public class OutlookEmailConverter implements OutlookModule {
 			.build();
 	}
 
+    private static boolean admitBody(final ImportTraversal traversal, final String kind, final String value) {
+        if (value == null) return false;
+        if (traversal.child("body[" + kind + "]").admit()) return true;
+        traversal.noteStoppedChildren();
+        return false;
+    }
+
+    private static Map<OutlookAttachment, Integer> admittedAttachments(final OutlookMessage message, final ImportTraversal traversal) {
+        final Map<OutlookAttachment, Integer> admitted = new IdentityHashMap<>();
+        final List<OutlookAttachment> attachments = message.getOutlookAttachments();
+        for (int index = 0; index < attachments.size(); index++) {
+            if (!traversal.child("attachments[" + index + "]").admit()) {
+                traversal.noteStoppedChildren();
+                break;
+            }
+            admitted.put(attachments.get(index), index);
+        }
+        return admitted;
+    }
+
 	@NotNull
-	private static Map<String, OutlookFileAttachment> referencedImages(final OutlookMessage message, final InternalEmailConverter converter) {
+	private static Map<String, OutlookFileAttachment> referencedImages(final OutlookMessage message, final InternalEmailConverter converter,
+            final Map<OutlookAttachment, Integer> admitted) {
 		final Map<String, OutlookFileAttachment> selected = new HashMap<>();
 		final String nativeHtml = message.getBodyHTML();
 		final String html = !valueNullOrEmpty(nativeHtml) ? nativeHtml : message.getConvertedBodyHTML();
 		if (!valueNullOrEmpty(html)) {
 			final Set<String> references = converter.referencedContentIds(html);
 			for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
+                if (!admitted.containsKey(attachment)) break;
 				if (attachment instanceof OutlookFileAttachment) {
 					final OutlookFileAttachment file = (OutlookFileAttachment) attachment;
 					if (file.getData().length != 0 && !selectReferencedImage(selected, references, file, file.getContentId())
@@ -232,9 +269,14 @@ public class OutlookEmailConverter implements OutlookModule {
 	}
 
 	private static List<OutlookFileAttachment> ordinaryAttachments(final OutlookMessage message,
-			final Map<String, OutlookFileAttachment> cidMap) {
+			final Map<String, OutlookFileAttachment> cidMap, final Map<OutlookAttachment, Integer> admitted) {
 		// Retain the specialist parser's existing set/collision semantics instead of introducing a new occurrence or ordering policy.
-		final Set<OutlookAttachment> remaining = new HashSet<>(message.getOutlookAttachments());
+        final List<OutlookAttachment> selected = new ArrayList<>();
+        for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
+            if (!admitted.containsKey(attachment)) break;
+            selected.add(attachment);
+        }
+		final Set<OutlookAttachment> remaining = new HashSet<>(selected);
 		remaining.removeAll(cidMap.values());
 		final List<OutlookFileAttachment> files = new ArrayList<>();
 		for (final OutlookAttachment attachment : remaining) {

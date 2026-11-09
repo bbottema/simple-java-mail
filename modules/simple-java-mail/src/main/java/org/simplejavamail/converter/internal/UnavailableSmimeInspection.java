@@ -11,25 +11,39 @@ import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime;
 import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
+import org.simplejavamail.internal.util.FinalizedMimeMessage;
 
 import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import static org.simplejavamail.converter.EmailConverter.mimeMessageToEMLByteArray;
 import static org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted;
 
-/** Header-only recognition when ordinary import cannot use the optional cryptographic implementation. */
+/** Declaration recognition and available source evidence when ordinary import cannot use cryptographic interpretation. */
 final class UnavailableSmimeInspection {
 
     private UnavailableSmimeInspection() {
     }
 
+    static OriginalSmimeDetails unknown() {
+        return Details.builder().smimeMode(SmimeMode.UNKNOWN).build();
+    }
+
     static OriginalSmimeDetails fromMessage(final MimeMessage message) {
+        return inspect(message, true);
+    }
+
+    /** A limited projection must not acquire an omitted payload merely to complete diagnostic evidence. */
+    static OriginalSmimeDetails fromDeclaration(final MimeMessage message) {
+        return inspect(message, false);
+    }
+
+    private static OriginalSmimeDetails inspect(final MimeMessage message, final boolean allowSerialization) {
         final ContentType type;
         try {
             type = new ContentType(message.getContentType());
         } catch (MessagingException invalidContentType) {
             rethrowIfInterrupted(invalidContentType);
             // A malformed declaration establishes neither plain content nor a cryptographic failure.
-            return Details.builder().smimeMode(SmimeMode.UNKNOWN).build();
+            return unknown();
         }
         if (!isPotentialSmime(type.getBaseType(), type.getParameter("protocol"))) {
             return new PlainSmimeDetails();
@@ -41,8 +55,15 @@ final class UnavailableSmimeInspection {
                 .smimeName(type.getParameter("name"))
                 .smimeProtocol(type.getParameter("protocol"))
                 .smimeMicalg(type.getParameter("micalg"))
-                .originalProtectedMessage(mimeMessageToEMLByteArray(message))
+                .originalProtectedMessage(originalBytes(message, allowSerialization))
                 .build();
+    }
+
+    private static byte @Nullable [] originalBytes(final MimeMessage message, final boolean allowSerialization) {
+        if (message instanceof FinalizedMimeMessage) {
+            return ((FinalizedMimeMessage) message).getSerializedBytes();
+        }
+        return allowSerialization ? mimeMessageToEMLByteArray(message) : null;
     }
 
     static OriginalSmimeDetails fromOutlook(final OutlookMessage message) {

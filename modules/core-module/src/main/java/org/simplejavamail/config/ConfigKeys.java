@@ -30,6 +30,15 @@ import org.simplejavamail.config.ConfigLoader.Property;
 public final class ConfigKeys {
     private ConfigKeys() { }
 
+    /** Configured raw-input size choice for {@code simplejavamail.conversion.import.maximuminputbytes}; zero selects unlimited. */
+    public static final ConfigKey<Long> IMPORT_MAXIMUM_INPUT_BYTES = PropertySchema.longKey(Property.IMPORT_MAXIMUM_INPUT_BYTES);
+
+    /** Configured traversal count choice for {@code simplejavamail.conversion.import.maximumpartcount}; zero selects unlimited. */
+    public static final ConfigKey<Integer> IMPORT_MAXIMUM_PART_COUNT = PropertySchema.integerKey(Property.IMPORT_MAXIMUM_PART_COUNT);
+
+    /** Configured traversal depth choice for {@code simplejavamail.conversion.import.maximumnestingdepth}; zero selects unlimited. */
+    public static final ConfigKey<Integer> IMPORT_MAXIMUM_NESTING_DEPTH = PropertySchema.integerKey(Property.IMPORT_MAXIMUM_NESTING_DEPTH);
+
     /** Configured input for {@code simplejavamail.javaxmail.debug}. */
     public static final ConfigKey<Boolean> JAVAXMAIL_DEBUG = PropertySchema.booleanKey(Property.JAVAXMAIL_DEBUG);
 

@@ -112,6 +112,20 @@ public class SpringModulePackagingTest {
 		}
 	}
 
+	@Test
+	void importLimitsHaveWidthSpecificMetadataForOrdinaryAndLockedConfiguration() throws IOException, URISyntaxException {
+		final String metadata = readUtf8(new File(productionRoot(), CONFIGURATION_METADATA));
+		for (String prefix : java.util.List.of("simplejavamail.", "simplejavamail.locked.")) {
+			for (String member : java.util.List.of("maximuminputbytes", "maximumpartcount", "maximumnestingdepth")) {
+				final String name = prefix + "conversion.import." + member;
+				final int propertyStart = metadata.indexOf("\"name\": \"" + name + "\"");
+				assertThat(propertyStart).as(name).isNotNegative();
+				final String type = member.equals("maximuminputbytes") ? "java.lang.Long" : "java.lang.Integer";
+				assertThat(metadata.substring(propertyStart, metadata.indexOf('}', propertyStart))).contains("\"type\": \"" + type + "\"");
+			}
+		}
+	}
+
 	private static String readUtf8(final File file) throws IOException {
 		return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
 	}

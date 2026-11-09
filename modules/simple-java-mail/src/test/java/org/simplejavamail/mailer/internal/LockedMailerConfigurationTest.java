@@ -146,7 +146,7 @@ class LockedMailerConfigurationTest {
 		assertThatThrownBy(() -> factory.mailerBuilder(Session.getInstance(new Properties(), authenticator)).buildMailer())
 				.hasMessageContaining("locked.smtp.password").hasMessageContaining("factory locks the SMTP credential")
 				.hasMessageContaining("This key uses simplejavamail.locked.*")
-				.hasMessageContaining("fixed for every Mailer created by this factory")
+				.hasMessageContaining("fixed within this factory's configured objects and operations")
 				.hasMessageContaining("you supplied a Session").hasMessageContaining("cannot inspect or replace that Authenticator")
 				.hasMessageContaining("mailerBuilder() without a Session").hasMessageContaining("remove the SMTP credential lock")
 				.hasMessageNotContaining("central-secret").hasMessageNotContaining("session-secret").hasMessageNotContaining("session-user");

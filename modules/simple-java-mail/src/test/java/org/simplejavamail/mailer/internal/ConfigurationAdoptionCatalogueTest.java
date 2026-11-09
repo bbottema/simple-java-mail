@@ -54,7 +54,7 @@ class ConfigurationAdoptionCatalogueTest {
         final Path module = Files.isDirectory(Path.of("../core-module/src/main/java")) ? Path.of("../core-module/src/main/java")
                 : Path.of("modules/core-module/src/main/java");
         final Pattern builder = Pattern.compile("public\\s+static\\s+(?:final\\s+)?class\\s+(\\w*Builder)\\b");
-        for (String scope : Arrays.asList("email", "mailer")) {
+        for (String scope : Arrays.asList("email", "mailer", "converter")) {
             final Path sources = module.resolve("org/simplejavamail/api/" + scope + "/config");
             try (Stream<Path> files = Files.list(sources)) {
                 for (Path source : (Iterable<Path>) files.filter(path -> path.toString().endsWith(".java"))::iterator) {

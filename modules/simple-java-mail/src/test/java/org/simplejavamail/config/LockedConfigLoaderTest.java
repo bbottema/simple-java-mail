@@ -75,8 +75,8 @@ class LockedConfigLoaderTest {
 		assertThatThrownBy(() -> locksOf(config).verify(SMTP_PASSWORD, "other-secret"))
 				.hasMessageNotContaining("configured-secret").hasMessageNotContaining("other-secret").hasMessageContaining("central\\nsource")
 				.hasMessageContaining("This key uses simplejavamail.locked.*")
-				.hasMessageContaining("fixed for every Mailer created by this factory")
-				.hasMessageContaining("Ordinary properties, builder calls and Email settings cannot override it")
+				.hasMessageContaining("fixed within this factory's configured objects and operations")
+				.hasMessageContaining("Ordinary properties, builder calls, Email settings and conversion options cannot override it")
 				.hasMessageContaining("change this lock in its configuration source");
 	}
 

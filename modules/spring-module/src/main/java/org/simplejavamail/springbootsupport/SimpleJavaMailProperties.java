@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
 import org.simplejavamail.api.mailer.config.ConnectionConflictPolicy;
 import org.simplejavamail.api.mailer.config.MailSendRetryPolicy;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
@@ -24,6 +25,7 @@ public class SimpleJavaMailProperties {
     private Javaxmail javaxmail;
     private String transportstrategy;
     private Connection connection;
+    private Conversion conversion;
     private Map<String, String> extraproperties;
 
     /** Named SMTP configurations used by failover routes. Each resolves independently, without inheriting root settings. */
@@ -43,6 +45,38 @@ public class SimpleJavaMailProperties {
     private Custom custom;
     private Transport transport;
     private Opportunistic opportunistic;
+
+    /** @deprecated Metadata only; runtime choices are read through Spring's Environment. */
+    public static class Conversion {
+        private Import importLimits;
+
+        /** Import limits; the JavaBean name preserves the canonical {@code conversion.import} property path. */
+        public Import getImport() { return importLimits; }
+
+        /** @see #getImport() */
+        public void setImport(final Import importLimits) { this.importLimits = importLimits; }
+
+        /** @deprecated Metadata only; see {@link SimpleJavaMailProperties}. */
+        @Getter
+        @Setter
+        public static class Import {
+            /**
+             * Maximum original raw input size in bytes; zero explicitly selects unlimited.
+             * @see ImportLimitsConfig.Builder#withMaximumInputBytes(long)
+             */
+            private Long maximuminputbytes;
+            /**
+             * Maximum admitted import nodes; zero explicitly selects unlimited.
+             * @see ImportLimitsConfig.Builder#withMaximumPartCount(int)
+             */
+            private Integer maximumpartcount;
+            /**
+             * Maximum traversal depth, with root at one; zero explicitly selects unlimited.
+             * @see ImportLimitsConfig.Builder#withMaximumNestingDepth(int)
+             */
+            private Integer maximumnestingdepth;
+        }
+    }
 
     /** @deprecated Metadata only; runtime values are read through Spring's Environment. */
     @Getter

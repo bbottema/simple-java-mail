@@ -84,6 +84,8 @@ final class MimePartCapture {
     void readerText(final Object value) {
         if (value instanceof String) {
             readerText = (String) value;
+        } else if (!(value instanceof InputStream)) {
+            inspection.noteUnvisitedStructure();
         }
     }
 
@@ -157,6 +159,7 @@ final class MimePartCapture {
     }
 
     void invalidTransferEncoding(final MimePart part, final boolean externalReadSelected, final String message) {
+        inspection.noteUnvisitedStructure();
         final jakarta.mail.internet.ParseException issue = new jakarta.mail.internet.ParseException(message);
         captureRaw(part, issue, externalReadSelected);
         problem(EmailProblem.Code.CONTENT_NOT_REPRESENTED, null, InputInspection.describe(issue));
@@ -188,6 +191,7 @@ final class MimePartCapture {
     }
 
     void problem(final EmailProblem.Code code, final String value, final String message) {
+        if (code == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED) inspection.noteImportLimit();
         inspection.recordPart(code, this, value, message);
     }
 
@@ -258,7 +262,9 @@ final class MimePartCapture {
     }
 
     private void captureRaw(final MimePart part, final Throwable originalFailure, final boolean externalReadSelected) {
-        if (!externalReadSelected && part.getClass() != MimeBodyPart.class && part.getClass() != MimeMessage.class
+        // Bounded recovery can reuse cached native bytes without reopening an unvisited foreign payload for diagnostics.
+        final boolean externalReadAllowed = externalReadSelected && !inspection.importTraversal().hasLimits();
+        if (!externalReadAllowed && part.getClass() != MimeBodyPart.class && part.getClass() != MimeMessage.class
                 && !(part instanceof org.simplejavamail.internal.util.FinalizedMimeMessage)) {
             return;
         }
@@ -270,7 +276,7 @@ final class MimePartCapture {
             if (raw == null) {
                 return;
             }
-            if (!externalReadSelected && raw.getClass() != ByteArrayInputStream.class
+            if (!externalReadAllowed && raw.getClass() != ByteArrayInputStream.class
                     && raw.getClass() != jakarta.mail.util.SharedByteArrayInputStream.class) {
                 return;
             }

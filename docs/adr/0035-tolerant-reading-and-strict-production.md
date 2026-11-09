@@ -336,6 +336,10 @@ Outgoing composition, send-time validation, injection checks, transport requirem
 contracts. Successful import does not promise successful sending. Exact submission is a preservation mode, not permission to repair or weaken its byte
 or transport-safety requirements. Retain existing resource/size bounds; reading tolerantly does not authorize unbounded work on hostile input.
 
+[ADR 0042](0042-optional-import-limits.md), accepted 9 November 2026, defines optional input-byte, part-count and nesting limits for Email
+imports. A configured limit stop preserves usable completed content and available incomplete source evidence with a typed Problem; it is
+not a strict-parser mode. Cancellation, unrelated application failures, source ownership and truthful protection facts retain their boundaries.
+
 ### First protected MIME header boundary (accepted 1 November 2026)
 
 When the OpenPGP or S/MIME byte-oriented helper separates a message's headers from its body, use the first empty header line made from the supported

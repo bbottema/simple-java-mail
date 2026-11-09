@@ -109,7 +109,8 @@ public final class CliSupport {
 				}
 				try (ImageFileResolutionContext imageDirectories = ImageFileResolutionContext.install(workingDirectory,
 						environment.configurationWorkingDirectory())) {
-					final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions);
+					final CliReceivedCommand received = CliCommandLineConsumer.consumeCommandLineInput(parseResult, declaredOptions,
+                            environment.simpleJavaMail());
 					commandExecutionStarted = true;
 					final CliExitCode category = CliCommandLineConsumerResultHandler.executeReceivedCommand(received, environment, profileKey, out);
 					return new CliExecutionResult(category, stdout.asString(), stderr.asString());

@@ -6,6 +6,7 @@ import org.simplejavamail.api.mailer.config.MailSendTelemetryConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
 import jakarta.mail.Message.RecipientType;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.EmailStartingBuilder;
@@ -24,6 +25,31 @@ import org.simplejavamail.config.SimpleJavaMailConfig;
 
 /** Compile-only application code: bootstrap supplies these core contracts; no main implementation or transport provider is on the compile path. */
 public final class CoreOnlyConsumer {
+    /** Import settings and continuing conversion calls need core contracts only. */
+    public static Email limitedImport(final ConfiguredEmailConverter converter, final java.io.InputStream source) {
+        final ImportLimitsConfig supplied = ImportLimitsConfig.builder().withMaximumInputBytes(25_000_000L)
+                .withMaximumPartCount(1000).withMaximumNestingDepth(30).build();
+        final ImportLimitsConfig copied = supplied.toBuilder().resetMaximumInputBytes().useConfiguredMaximumPartCount().build();
+        final ConfiguredEmailConverter.EmlConversion conversion = converter.fromEml(source).withImportLimitsConfig(copied);
+        final Long bytes = conversion.getImportLimitsConfig().getMaximumInputBytes();
+        final Integer parts = conversion.getImportLimitsConfig().getMaximumPartCount();
+        final Integer depth = conversion.getImportLimitsConfig().getMaximumNestingDepth();
+        return conversion.useConfiguredImportLimitsConfig().withImportLimitsConfig(supplied).toEmail();
+    }
+
+    /** The same supplied group is available on native MIME and Outlook stages without another conversion overload. */
+    public static void importLimitStages(final ConfiguredEmailConverter converter, final jakarta.mail.internet.MimeMessage message,
+            final java.nio.file.Path msg, final SimpleJavaMailConfig config) {
+        final ImportLimitsConfig traversal = ImportLimitsConfig.builder().withMaximumPartCount(1).withMaximumNestingDepth(1).build();
+        converter.fromMimeMessage(message).withImportLimitsConfig(traversal).getImportLimitsConfig();
+        converter.fromMimeMessage(message).useConfiguredImportLimitsConfig();
+        converter.fromOutlookMsg(msg).withImportLimitsConfig(traversal).getImportLimitsConfig();
+        converter.fromOutlookMsg(msg).useConfiguredImportLimitsConfig();
+        final Long bytes = config.get(org.simplejavamail.config.ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES);
+        final Integer parts = config.get(org.simplejavamail.config.ConfigKeys.IMPORT_MAXIMUM_PART_COUNT);
+        final Integer depth = config.get(org.simplejavamail.config.ConfigKeys.IMPORT_MAXIMUM_NESTING_DEPTH);
+    }
+
     /** Unknown S/MIME facts are available directly through core result contracts, without a separate availability guard. */
     public static boolean unknownSmime(final Email email) {
         final org.simplejavamail.api.email.OriginalSmimeDetails details = email.getOriginalSmimeDetails();

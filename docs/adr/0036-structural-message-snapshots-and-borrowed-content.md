@@ -99,6 +99,10 @@ They share selectively retained original content too; a source element does not 
 Changing a copy's Message-ID or supplying replacement normal content never rewrites captured sources or Problems. Source getters only read
 captured data, while whole-Email serialization keeps its separate normal-resource capture rule. Output completion starts its own history.
 
+Optional import limits in [ADR 0042](0042-optional-import-limits.md) preserve this ownership boundary. An import can retain its acquired
+prefix as incomplete evidence when a configured bound stops reading; no partial attachment becomes complete normal content. Its allowance
+does not follow the resulting Email into later borrowed-resource reads, copying or outgoing preparation.
+
 For an Outlook MSG containing a decrypted detached S/MIME signature, the retained generated EML owns the signed MIME entity and its signature material under
 [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#retained-detached-signed-content-after-decryption-accepted-29-october-2026).
 Ordinary copying and serialization retain those bytes independently of the readable-content merge choice. A generated MSG-derived EML

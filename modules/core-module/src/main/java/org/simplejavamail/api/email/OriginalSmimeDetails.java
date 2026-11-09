@@ -104,12 +104,17 @@ public interface OriginalSmimeDetails extends Serializable {
 	}
 
 	/**
-	 * Returns a defensive copy of the exact outer protected EML bytes when conversion started from an S/MIME entity.
+	 * Returns a defensive copy of the captured outer protected EML representation, or {@code null} when complete bytes are unavailable.
+	 * For raw EML input, captured bytes preserve the exact received representation.
 	 *
-	 * <p>The bytes are retained in memory by the converted {@link Email} and are included when that email is Java
+	 * <p>A limited import from a caller-supplied {@code MimeMessage} can leave this value unavailable when its permitted content could not
+	 * be completely visited. Complete raw EML bytes
+	 * already captured remain available even when later traversal stops; byte availability and verification/decryption facts are independent.</p>
+	 *
+	 * <p>When present, the bytes are retained in memory by the converted {@link Email} and are included when that email is Java
 	 * serialized. For a large protected message, account for roughly another full-message byte array while keeping the
-	 * converted email. The exact representation remains available even when signature verification or decryption fails, or inspection is
-	 * unavailable because the optional module is absent. Outlook MSG input has no exact original EML representation;
+	 * converted email. Failed or unavailable verification/decryption does not discard a complete protected representation already captured.
+	 * Outlook MSG input has no exact original EML representation;
 	 * this accessor does not invent one.</p>
 	 */
 	default byte @Nullable [] getOriginalProtectedMessage() {

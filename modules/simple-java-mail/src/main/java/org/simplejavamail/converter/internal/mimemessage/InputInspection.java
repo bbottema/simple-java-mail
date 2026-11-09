@@ -8,6 +8,7 @@ import jakarta.mail.internet.MimePart;
 import org.simplejavamail.api.email.*;
 import org.simplejavamail.api.outlook.OutlookMessageData;
 import org.simplejavamail.internal.email.EmailInspection;
+import org.simplejavamail.internal.converter.ImportTraversal;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -30,6 +31,28 @@ public final class InputInspection {
     private final List<EmailSourcePart> originalHtmlParts = new ArrayList<>();
     private boolean contentTypeReadUnavailable;
     private EmailSourceData source;
+    private ImportTraversal traversal = ImportTraversal.unlimited();
+    private String contentStop;
+    private boolean readableBodyMaterialized;
+    private boolean importLimitStoppedContent;
+    private boolean unvisitedStructure;
+    private boolean traversalFinished;
+
+    public InputInspection withImportTraversal(final ImportTraversal scope) { traversal = scope; return this; }
+    public ImportTraversal importTraversal() { return traversal; }
+    public InputInspection withoutContent(final String reason) { contentStop = reason; return this; }
+    String contentStop() { return contentStop; }
+    void noteReadableBody() { readableBodyMaterialized = true; }
+    void noteImportLimit() { importLimitStoppedContent = true; }
+    public boolean hasReadableBodyMaterialized() { return readableBodyMaterialized; }
+    public boolean hasImportLimitStop() { return importLimitStoppedContent; }
+    boolean needsCompleteProjection() { return traversal.hasLimits(); }
+    void noteUnvisitedStructure() { unvisitedStructure = true; }
+    void finishTraversal() { traversalFinished = true; }
+    /** Only a finished bounded walk with no opaque, failed or skipped structure permits fresh whole-message evidence. */
+    public boolean hasCompleteProjection() {
+        return traversalFinished && traversal.hasLimits() && !unvisitedStructure && !importLimitStoppedContent && contentStop == null;
+    }
 
     private InputInspection(final List<Header> receivedHeaders, final String messageId,
             final EmailSourceData.Format format, final EmailSourceData.Representation representation,

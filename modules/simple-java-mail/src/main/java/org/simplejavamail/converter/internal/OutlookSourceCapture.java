@@ -13,6 +13,7 @@ import org.simplejavamail.api.internal.outlooksupport.model.OutlookFileAttachmen
 import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
 import org.simplejavamail.internal.email.EmailInspection;
 import org.simplejavamail.internal.email.InspectionOutlookData;
+import org.simplejavamail.internal.converter.ImportTraversal;
 import org.simplejavamail.converter.internal.mimemessage.InputInspection;
 
 import java.util.ArrayList;
@@ -48,15 +49,22 @@ final class OutlookSourceCapture {
 
 	static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
 			final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures) {
+        return capture(metadata, message, represented, problems, attachmentFailures, ImportTraversal.unlimited());
+    }
+
+    static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
+            final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures, final ImportTraversal traversal) {
 		final EmailSourceIdentity origin = metadata.getOrigin();
 		final List<EmailSourcePart> parts = new ArrayList<>();
 		final Email merged = represented != null && represented.isMergeSingleSMIMESignedAttachment() ? represented.getSmimeSignedEmail() : null;
-		body(parts, origin, "plain", message.getBodyText(), merged != null ? merged.getPlainText() : represented != null ? represented.getPlainText() : null);
-		body(parts, origin, "html", message.getBodyHTML(), merged != null ? merged.getHTMLText() : represented != null ? represented.getHTMLText() : null);
+		body(parts, origin, "plain", message.getBodyText(), merged != null ? merged.getPlainText() : represented != null ? represented.getPlainText() : null, traversal);
+		body(parts, origin, "html", message.getBodyHTML(), merged != null ? merged.getHTMLText() : represented != null ? represented.getHTMLText() : null, traversal);
 		// RTF is not exposed by a normal Email body getter. Its original reader text survives a successful HTML conversion.
-		body(parts, origin, "rtf", message.getBodyRTF(), null);
+		body(parts, origin, "rtf", message.getBodyRTF(), null, traversal);
 		final List<OutlookAttachment> nativeAttachments = message.getOutlookAttachments();
 		for (int attachmentIndex = 0; attachmentIndex < nativeAttachments.size(); attachmentIndex++) {
+            final ImportTraversal attachmentScope = traversal.child("attachments[" + attachmentIndex + "]");
+            if (!attachmentScope.isAdmitted()) break;
 			final OutlookAttachment attachment = nativeAttachments.get(attachmentIndex);
 			final String location = "source/parts[" + parts.size() + "]";
 			final List<EmailSourceProperty> properties = new ArrayList<>();
@@ -72,6 +80,8 @@ final class OutlookSourceCapture {
 				// The normal attachment/image already owns the canonical file bytes. Do not retain another copy here.
 			} else if (attachment.getEmbeddedMessage() != null) {
 				property(properties, origin, location, "kind", "String", "embedded-message");
+			    final ImportTraversal nestedScope = attachmentScope.child("message");
+                if (nestedScope.isAdmitted()) {
 				final OutlookMessage nested = attachment.getEmbeddedMessage();
 				final InspectionOutlookData nativeData = InspectionOutlookData.builder().rawHeaders(nested.getHeaders())
 						.messageClass(nested.getMessageClass()).propertiesAsHex(nested.getPropertiesAsHex())
@@ -83,17 +93,23 @@ final class OutlookSourceCapture {
 				}
 				final EmailSourceData nestedMetadata = nestedInspection.getSourceData();
 				final List<EmailProblem> nestedProblems = new ArrayList<>(nestedInspection.getProblems());
-				final EmailSourceData nestedSource = capture(nestedMetadata, nested, null, nestedProblems);
+				final EmailSourceData nestedSource = capture(nestedMetadata, nested, null, nestedProblems,
+                        java.util.Collections.emptyMap(), nestedScope);
 				children = singletonList(EmailInspection.part(nestedSource.getOrigin(), "source/message", nestedSource.getHeaders(),
 						nestedSource.getProperties(), nestedSource.getParts(), null, null));
 				for (EmailProblem problem : nestedProblems) {
 					problems.add(EmailInspection.qualify(problem, location + "/message/"));
 				}
+                }
 			} else {
 				property(properties, origin, location, "kind", "String", "reader-resource");
 			}
 			final EmailSourcePart source = EmailInspection.part(origin, location, emptyList(), properties, children, null, null);
 			parts.add(source);
+            if (attachmentScope.stoppedChildrenDescription() != null) {
+                problems.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.IMPORT_LIMIT_EXCEEDED,
+                        location, null, attachmentScope.stoppedChildrenDescription(), singletonList(source)));
+            }
 			if (attachmentFailures.containsKey(attachmentIndex)) {
 				problems.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.PROTECTION_FAILED,
 						location, null, attachmentFailures.get(attachmentIndex), singletonList(source)));
@@ -108,7 +124,7 @@ final class OutlookSourceCapture {
 			final boolean body = code == 0x1000 || code == 0x1009 || code == 0x1013;
 			final boolean interpretedBody = code == 0x1000 ? message.getBodyText() != null
 					: code == 0x1009 ? message.getBodyRTF() != null : code == 0x1013 && message.getBodyHTML() != null;
-			if (body && !interpretedBody && value != null) {
+			if (body && !interpretedBody && value != null && admitBody(traversal, code == 0x1009 ? "rtf" : code == 0x1013 ? "html" : "plain")) {
 				final String bodyLocation = "source/parts[" + parts.size() + "]";
 				final List<EmailSourceProperty> bodyProperties = new ArrayList<>();
 				property(bodyProperties, origin, bodyLocation, "bodyFormat", "String", code == 0x1009 ? "rtf" : code == 0x1013 ? "html" : "plain");
@@ -128,18 +144,29 @@ final class OutlookSourceCapture {
 					? String.valueOf(value) : !body && value instanceof Date ? Long.toString(((Date) value).getTime()) : null;
 			properties.add(EmailInspection.property(origin, location, name, value == null ? null : value.getClass().getSimpleName(), scalar, content));
 		}
+        if (traversal.stoppedChildrenDescription() != null) {
+            problems.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.IMPORT_LIMIT_EXCEEDED,
+                    "source", null, traversal.stoppedChildrenDescription(), emptyList()));
+        }
 		return EmailInspection.withProperties(EmailInspection.withParts(metadata, parts), properties);
 	}
 
 	private static void body(final List<EmailSourcePart> parts, final EmailSourceIdentity origin, final String kind,
-			final String original, final String represented) {
+			final String original, final String represented, final ImportTraversal traversal) {
 		if (original == null) return;
+        if (!admitBody(traversal, kind)) return;
 		final String location = "source/parts[" + parts.size() + "]";
 		final List<EmailSourceProperty> properties = new ArrayList<>();
 		property(properties, origin, location, "bodyFormat", "String", kind);
 		parts.add(EmailInspection.part(origin, location, emptyList(), properties, emptyList(),
 				Objects.equals(original, represented) ? null : original, null));
 	}
+
+    private static boolean admitBody(final ImportTraversal traversal, final String kind) {
+        if (traversal.child("body[" + kind + "]").admit()) return true;
+        traversal.noteStoppedChildren();
+        return false;
+    }
 
 	private static void property(final List<EmailSourceProperty> values, final EmailSourceIdentity origin, final String parent,
 			final String name, final String type, final String value) {

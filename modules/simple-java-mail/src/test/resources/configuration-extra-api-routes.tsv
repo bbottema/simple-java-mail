@@ -1,4 +1,5 @@
 # Additional discovered setup/source boundaries: exact erased route and owner.
+org.simplejavamail.api.converter.config.ImportLimitsConfig#toBuilder():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
 org.simplejavamail.api.SimpleJavaMail#converter():org.simplejavamail.api.converter.ConfiguredEmailConverter	CONFIGURATION_CONTAINER
 org.simplejavamail.api.SimpleJavaMail#emailBuilder():org.simplejavamail.api.email.EmailStartingBuilder	CONFIGURATION_CONTAINER
 org.simplejavamail.api.SimpleJavaMail#fromDefaults():org.simplejavamail.api.SimpleJavaMail	CONFIGURATION_CONTAINER

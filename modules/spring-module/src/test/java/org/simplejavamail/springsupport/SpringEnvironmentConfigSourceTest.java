@@ -33,6 +33,31 @@ import static org.simplejavamail.config.ConfigLoader.Property.SMIME_SIGNING_KEY_
 import static org.simplejavamail.config.ConfigLoader.Property.SMTP_HOST;
 
 class SpringEnvironmentConfigSourceTest {
+
+	@Test
+	void importLimitsKeepSpringPrecedencePlaceholdersAndLockedMetadata() {
+		final StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources().addLast(new MapPropertySource("application import choices", Map.of(
+				"simplejavamail.conversion.import.maximuminputbytes", "10",
+				"simplejavamail.conversion.import.maximumpartcount", "500")));
+		environment.getPropertySources().addFirst(new MapPropertySource("deployment import choices", Map.of(
+				"simple-java-mail.conversion.import.maximuminputbytes", "${accepted.bytes}", "accepted.bytes", "4294967296",
+				"simplejavamail.locked.conversion.import.maximumpartcount", "100",
+				"simplejavamail.conversion.import.maximumnestingdepth", "0")));
+		ConfigurationPropertySources.attach(environment);
+		final SimpleJavaMailConfig config = loadConfig(environment);
+		assertThat(config.get(ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES)).isEqualTo(4_294_967_296L);
+		assertThat(config.get(ConfigKeys.IMPORT_MAXIMUM_PART_COUNT)).isEqualTo(100);
+		assertThat(config.get(ConfigKeys.IMPORT_MAXIMUM_NESTING_DEPTH)).isZero();
+		assertThat(locksOf(config).contains(ConfigLoader.Property.IMPORT_MAXIMUM_PART_COUNT)).isTrue();
+		final ConfigPropertyDiagnostic ordinary = diagnostic(config.getDiagnostics(), ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES.key());
+		assertThat(ordinary.getSourceName()).isEqualTo("deployment import choices");
+		assertThat(ordinary.getDisplayValue()).isEqualTo("4294967296");
+		assertThat(ordinary.getGroup()).isEqualTo(ConfigDiagnosticGroup.DIAGNOSTICS_AND_VALIDATION);
+		assertThat(ordinary.isRedacted()).isFalse();
+		assertThat(diagnostic(config.getDiagnostics(), "simplejavamail.locked.conversion.import.maximumpartcount").getSourceName())
+				.isEqualTo("deployment import choices");
+	}
 	@Test
 	void resolvesConnectionConflictPolicyAfterSpringPrecedenceAndPlaceholderResolution() {
 		final StandardEnvironment environment = new StandardEnvironment();

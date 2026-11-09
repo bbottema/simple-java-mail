@@ -10,6 +10,10 @@ import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.SimpleJavaMail;
+import jakarta.mail.internet.MimeMessage;
+import org.simplejavamail.internal.clisupport.valueinterpreters.MessageFilePathToMimeMessageFunction;
 import org.simplejavamail.recipient.internal.MailboxInterpretation;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
@@ -39,6 +43,11 @@ class CliCommandLineConsumer {
     
     // we reach here when terminal input was value and no help was requested
     static CliReceivedCommand consumeCommandLineInput(ParseResult providedCommand, @SuppressWarnings("SameParameterValue") Iterable<CliDeclaredOptionSpec> declaredOptions) {
+        return consumeCommandLineInput(providedCommand, declaredOptions, null);
+    }
+
+    static CliReceivedCommand consumeCommandLineInput(ParseResult providedCommand, Iterable<CliDeclaredOptionSpec> declaredOptions,
+            final SimpleJavaMail factory) {
         assumeTrue(providedCommand.hasSubcommand(), "Command was empty, expected one of: " + Arrays.toString(CliCommandType.values()));
         
         final ParseResult mailCommand = providedCommand.subcommand();
@@ -61,7 +70,7 @@ class CliCommandLineConsumer {
                     format("provided %s arguments for '%s', but need at least %s", providedStringValues.size(), declaredOption, mandatoryParameters));
             assumeTrue(providedStringValues.size() <= sourceMethod.getParameterTypes().length,
                     format("provided %s arguments for '%s', but need at most %s", providedStringValues.size(), declaredOption, sourceMethod.getParameterTypes().length));
-			receivedOptions.add(new CliReceivedOptionData(declaredOption, convertProvidedOptionValues(providedStringValues, sourceMethod)));
+			receivedOptions.add(new CliReceivedOptionData(declaredOption, convertProvidedOptionValues(providedStringValues, sourceMethod, factory)));
         }
         
         return new CliReceivedCommand(matchedCommand, receivedOptions,
@@ -69,6 +78,10 @@ class CliCommandLineConsumer {
     }
 	
 	static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Method m) {
+        return convertProvidedOptionValues(providedStringValues, m, null);
+    }
+
+    static List<Object> convertProvidedOptionValues(List<String> providedStringValues, Method m, final SimpleJavaMail factory) {
 		List<Object> providedValuesConverted = new ArrayList<>();
 		
 		final Annotation[][] annotations = m.getParameterAnnotations();
@@ -87,7 +100,7 @@ class CliCommandLineConsumer {
 						&& m.getName().equals("withEnvelopeRecipients")) {
 					providedValueConverted = MailboxInterpretation.splitEnvelopeEntries(source);
 				} else {
-					providedValueConverted = parseStringInput(source, declaredParameters[i]);
+					providedValueConverted = parseStringInput(source, declaredParameters[i], factory, m);
 				}
 			}
 			providedValuesConverted.add(providedValueConverted);
@@ -97,11 +110,17 @@ class CliCommandLineConsumer {
 		return providedValuesConverted;
 	}
     
-    private static Object parseStringInput(@NotNull String stringValue, @NotNull Class<?> targetType) {
+    private static Object parseStringInput(@NotNull String stringValue, @NotNull Class<?> targetType,
+            final SimpleJavaMail factory, final Method owner) {
 		if (targetType == String[].class) {
 			return MiscUtil.extractEmailAddresses(stringValue);
 		}
 		try {
+            if (targetType == MimeMessage.class && factory != null) {
+                final boolean importsMime = owner.getDeclaringClass() == EmailStartingBuilder.class
+                        && (owner.getName().startsWith("replying") || owner.getName().equals("copying"));
+                return new MessageFilePathToMimeMessageFunction(factory, importsMime).convertValue(stringValue);
+            }
 			// Parse at the declared numeric width; generic conversion can coerce booleans or narrow numbers.
 			if (targetType == int.class || targetType == Integer.class) {
 				return Integer.valueOf(stringValue);

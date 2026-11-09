@@ -17,7 +17,7 @@ public interface EmailProblem extends Serializable {
     /** Stable categories; human-readable message text is not a machine-readable classifier. */
     enum Code {
         VALUE_NOT_DECODED, FIELD_NOT_INTERPRETED, INTERPRETATION_WARNING, SIGNATURE_INVALID, PROTECTION_FAILED,
-        CONTENT_READ_FAILED, CONTENT_NOT_REPRESENTED, CONVERSION_FAILED, RESOURCE_CLOSE_FAILED
+        CONTENT_READ_FAILED, CONTENT_NOT_REPRESENTED, CONVERSION_FAILED, RESOURCE_CLOSE_FAILED, IMPORT_LIMIT_EXCEEDED
     }
     /** Original input identity, retained through copying and serialization. */
     @NotNull EmailSourceIdentity getOrigin();

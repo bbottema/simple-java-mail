@@ -140,6 +140,10 @@ application builders own detailed setters, inspection and clearing/resetting. Ro
 and restoration. Removed scalar routes may remain only on internal runtime or CLI contracts; they are not deprecated application aliases.
 Preserve core-only continuing usage, borrowed provider identity, secret redaction and optional-module ownership across these new boundaries.
 
+[ADR 0042](0042-optional-import-limits.md) adds a core-owned `ImportLimitsConfig` application value to the existing fluent import stages.
+The public value contains supplied choices only; per-import counters and cross-module enforcement remain internal. Source and terminal
+methods do not acquire parallel limit-taking overload families.
+
 ### Individual OpenPGP result inspection (accepted 28 October 2026)
 
 The complete signature-result decision in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#complete-incoming-openpgp-signature-results-accepted-28-october-2026)

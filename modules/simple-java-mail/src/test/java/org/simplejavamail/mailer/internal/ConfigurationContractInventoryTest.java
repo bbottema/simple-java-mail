@@ -12,6 +12,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConfigurationContractInventoryTest {
     @Test
+    void theImportGroupMakesItsValueBuilderAndCopyRouteReachable() {
+        final String group = "org.simplejavamail.api.converter.config.ImportLimitsConfig";
+        final String builder = group + "$Builder";
+        final String incoming = "org.simplejavamail.api.converter.ConfiguredEmailConverter$IncomingConversion";
+        assertThat(ConfigurationContractInventory.discoverFrom(List.of(org.simplejavamail.api.converter.ConfiguredEmailConverter.class)))
+                .contains(incoming + "#withImportLimitsConfig(" + group + "):" + incoming,
+                        incoming + "#useConfiguredImportLimitsConfig():" + incoming,
+                        builder + "#withMaximumInputBytes(long):" + builder,
+                        builder + "#resetMaximumPartCount():" + builder,
+                        builder + "#useConfiguredMaximumNestingDepth():" + builder,
+                        group + "#toBuilder():" + builder);
+    }
+
+    @Test
     void aNewReachableSetupInterfaceAndEveryOverloadBecomeRequiredRoutes() {
         assertThat(ConfigurationContractInventory.discoverFrom(List.of(SetupDiscoveryFixture.Root.class)))
                 .containsExactlyInAnyOrderElementsOf(expectedRoutes());

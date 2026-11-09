@@ -85,8 +85,8 @@ public final class ConfigurationLocks {
 	public IllegalArgumentException conflict(final String propertyName, final String remedy) {
 		return new IllegalArgumentException("Configuration property " + fullLockedPropertyName(propertyName)
 				+ " is locked by " + escapeControlCharacters(sources.get(propertyName))
-				+ ". This key uses simplejavamail.locked.*, so its setting is fixed for every Mailer created by this factory. "
-				+ "Ordinary properties, builder calls and Email settings cannot override it. " + remedy);
+				+ ". This key uses simplejavamail.locked.*, so its setting is fixed within this factory's configured objects and operations. "
+				+ "Ordinary properties, builder calls, Email settings and conversion options cannot override it. " + remedy);
 	}
 
 	/** Named Mailer definitions store ordinary schema keys, but errors must identify the property the user actually configured. */

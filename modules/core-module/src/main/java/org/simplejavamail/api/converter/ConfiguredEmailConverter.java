@@ -7,6 +7,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
@@ -99,6 +100,41 @@ public interface ConfiguredEmailConverter {
 
 	/** Receive-side options shared by EML and MIME imports. Options affect Email conversion, not direct MIME/EML export. */
 	interface IncomingConversion<T extends IncomingConversion<T>> {
+
+		/**
+		 * Replaces supplied import-limit choices for this conversion. Omitted members inherit this converter's captured factory configuration,
+		 * not an earlier supplied group. Zero explicitly selects unlimited, subject to configured locks. A null group is rejected before changing
+		 * the selection. Choices are resolved before terminal source consumption, with one fresh allowance shared by selected nested imports.
+		 * <p>
+		 * These choices apply to {@link #toEmail()} and {@link #toEmailBuilder()}. An explicitly supplied group must be restored before choosing a
+		 * direct MIME/EML transformation that bypasses Email import. A finite raw-input byte limit is incompatible with an externally supplied
+		 * MimeMessage because its original encoded size is unavailable; that combination is rejected without consuming the conversion.
+		 * <p>
+		 * Import remains best effort: a limit stop is reported in Problems with available content and source evidence. Incomplete content is not
+		 * represented as a complete normal resource. Cancellation and unrelated application failures keep their existing propagation.
+		 *
+		 * @param importLimitsConfig Immutable supplied choices; it may be reused by independent simultaneous conversions.
+		 * @return This conversion with the replacement group selected.
+		 * @throws NullPointerException When the supplied group is null, before changing the selection.
+		 * @see ImportLimitsConfig
+		 * @see #getImportLimitsConfig()
+		 * @see #useConfiguredImportLimitsConfig()
+		 */
+		@NotNull T withImportLimitsConfig(@NotNull ImportLimitsConfig importLimitsConfig);
+
+		/**
+		 * Returns the supplied choices, including absence, without resolving factory defaults or consuming the source.
+		 * @return The supplied group, or an empty group when no choices were supplied.
+		 * @see #withImportLimitsConfig(ImportLimitsConfig)
+		 */
+		@NotNull ImportLimitsConfig getImportLimitsConfig();
+
+		/**
+		 * Removes this conversion's supplied group and restores captured factory inheritance, with configured locks still binding.
+		 * @return This conversion with local import-limit choices removed.
+		 * @see #withImportLimitsConfig(ImportLimitsConfig)
+		 */
+		@NotNull T useConfiguredImportLimitsConfig();
 
 		/**
 		 * Supplies the private key store for reading S/MIME-encrypted content. Repeated calls replace the previous configuration.
@@ -219,6 +255,38 @@ public interface ConfiguredEmailConverter {
 	 * the resulting Email.
 	 */
 	interface OutlookConversion {
+
+		/**
+		 * Replaces supplied limits for the Outlook import. Omitted members inherit captured factory configuration, not a previous group;
+		 * zero explicitly selects unlimited, subject to configured locks. Null is rejected before changing the selection. A fresh allowance is
+		 * shared by selected embedded messages and extracted content, including when import is delegated by an artifact terminal.
+		 * <p>
+		 * Best-effort limit stops retain usable completed content and source evidence with Problems. Raw-input acquisition failure cannot be
+		 * hidden by exporting a source-only Email as a successful artifact. Existing direct/result failure and stream ownership contracts apply.
+		 * Native parsing may allocate before control returns to Simple Java Mail; these choices are not a whole-JVM memory guarantee.
+		 *
+		 * @param importLimitsConfig Immutable supplied choices; it may be reused by independent simultaneous conversions.
+		 * @return This conversion with the replacement group selected.
+		 * @throws NullPointerException When the supplied group is null, before changing the selection.
+		 * @see ImportLimitsConfig
+		 * @see #getImportLimitsConfig()
+		 * @see #useConfiguredImportLimitsConfig()
+		 */
+		@NotNull OutlookConversion withImportLimitsConfig(@NotNull ImportLimitsConfig importLimitsConfig);
+
+		/**
+		 * Returns supplied choices without resolving factory defaults or consuming the source.
+		 * @return The supplied group, or an empty group when no choices were supplied.
+		 * @see #withImportLimitsConfig(ImportLimitsConfig)
+		 */
+		@NotNull ImportLimitsConfig getImportLimitsConfig();
+
+		/**
+		 * Removes the supplied group and restores captured factory inheritance, with configured locks still binding.
+		 * @return This conversion with local import-limit choices removed.
+		 * @see #withImportLimitsConfig(ImportLimitsConfig)
+		 */
+		@NotNull OutlookConversion useConfiguredImportLimitsConfig();
 
 		/** Supplies the private key store for reading S/MIME-encrypted attachments. Repeated calls replace the previous configuration. */
 		@NotNull OutlookConversion withSmimeDecryption(@NotNull Pkcs12Config pkcs12Config);

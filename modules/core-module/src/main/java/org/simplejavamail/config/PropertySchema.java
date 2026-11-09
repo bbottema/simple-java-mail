@@ -165,6 +165,9 @@ final class PropertySchema {
 		// Individual named leaves use their ordinary schema's group and sensitivity; never render the aggregate's raw credentials.
 		setDiagnostics(SMTP_CONNECTION, SensitivityPolicy.REDACT, Property.NAMED_MAILERS);
 		setDiagnostics(DIAGNOSTICS_AND_VALIDATION, SensitivityPolicy.VISIBLE,
+				Property.IMPORT_MAXIMUM_INPUT_BYTES,
+				Property.IMPORT_MAXIMUM_PART_COUNT,
+				Property.IMPORT_MAXIMUM_NESTING_DEPTH,
 				Property.TELEMETRY_ENABLED,
 				Property.TELEMETRY_SMTP_ENDPOINT_ATTRIBUTES,
 				Property.JAVAXMAIL_DEBUG,

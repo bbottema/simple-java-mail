@@ -1,5 +1,18 @@
 # Frozen public setup routes: declaring type, method, erased parameter types, return type, and resolution owner.
 # New or changed overloads require an explicit inventory update and suitable behavioral coverage.
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumInputBytes():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumNestingDepth():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumPartCount():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#useConfiguredMaximumInputBytes():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#useConfiguredMaximumNestingDepth():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#useConfiguredMaximumPartCount():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#withMaximumInputBytes(long):org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#withMaximumNestingDepth(int):org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#withMaximumPartCount(int):org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.ConfiguredEmailConverter$IncomingConversion#useConfiguredImportLimitsConfig():org.simplejavamail.api.converter.ConfiguredEmailConverter$IncomingConversion	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.ConfiguredEmailConverter$IncomingConversion#withImportLimitsConfig(org.simplejavamail.api.converter.config.ImportLimitsConfig):org.simplejavamail.api.converter.ConfiguredEmailConverter$IncomingConversion	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.ConfiguredEmailConverter$OutlookConversion#useConfiguredImportLimitsConfig():org.simplejavamail.api.converter.ConfiguredEmailConverter$OutlookConversion	CONVERTER_IMPORT_LIMITS
+org.simplejavamail.api.converter.ConfiguredEmailConverter$OutlookConversion#withImportLimitsConfig(org.simplejavamail.api.converter.config.ImportLimitsConfig):org.simplejavamail.api.converter.ConfiguredEmailConverter$OutlookConversion	CONVERTER_IMPORT_LIMITS
 org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion#clearEmailGovernance():org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion	CONVERTER_SETUP
 org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion#resetSession():org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion	CONVERTER_SETUP
 org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion#withEmailGovernance(org.simplejavamail.api.mailer.config.EmailGovernance):org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion	CONVERTER_SETUP

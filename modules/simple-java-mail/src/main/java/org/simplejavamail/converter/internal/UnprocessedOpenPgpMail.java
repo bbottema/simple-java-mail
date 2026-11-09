@@ -12,6 +12,7 @@ import org.simplejavamail.api.internal.protectionsupport.model.InboundProtection
 @Builder
 class UnprocessedOpenPgpMail implements InboundProtectionResult<OriginalOpenPgpDetails> {
     boolean recognized;
+    boolean protectedBytesDeferred;
     @NonNull MimeMessage effectiveMimeMessage;
     @NonNull OriginalOpenPgpDetails details;
 }

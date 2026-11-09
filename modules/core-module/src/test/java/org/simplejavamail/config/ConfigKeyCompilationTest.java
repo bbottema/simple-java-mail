@@ -17,6 +17,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** Compile application code against core: wrong key/type pairs must fail even with a broad Object target type. */
 class ConfigKeyCompilationTest {
+
+    @Test
+    void importLimitKeysRetainTheirDeclaredWidths() throws Exception {
+        assertCompiles("Long bytes = c.get(ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES); "
+                + "Integer parts = c.get(ConfigKeys.IMPORT_MAXIMUM_PART_COUNT); "
+                + "Integer depth = c.get(ConfigKeys.IMPORT_MAXIMUM_NESTING_DEPTH);");
+        assertDoesNotCompile("Integer bytes = c.get(ConfigKeys.IMPORT_MAXIMUM_INPUT_BYTES);");
+        assertDoesNotCompile("Long depth = c.get(ConfigKeys.IMPORT_MAXIMUM_NESTING_DEPTH);");
+    }
     @TempDir Path classes;
 
     @Test

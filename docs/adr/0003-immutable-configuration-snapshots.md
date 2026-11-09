@@ -122,6 +122,9 @@ Keep ordinary SMTP setup and message composition directly discoverable. Move adv
 `ContentEncodingConfig`, `EmailTemplateOptions`, and `SmtpDeliveryOptions`. Keep recipient metadata, resource-level encoding,
 read receipts, and typed signing/encryption operations at their existing scopes.
 
+[ADR 0042](0042-optional-import-limits.md) applies this same supplied-group and captured-factory model to optional received-mail import limits.
+The converter owns those choices and each import owns its allowance; the policy is not Email governance or Mailer sending configuration.
+
 A group assignment replaces all previously supplied choices for that group. Unset members inherit the captured factory configuration,
 not the previous group. Inspection of supplied values retains absence; built-object inspection describes resolved choices. Removing
 a local optional choice and restoring captured configuration retain their existing distinct meanings, as do mandatory locks and the
