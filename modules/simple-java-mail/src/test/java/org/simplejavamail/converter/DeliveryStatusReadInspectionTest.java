@@ -256,10 +256,11 @@ class DeliveryStatusReadInspectionTest {
         message.setSubject("Readable subject");
         message.setHeader("Content-Transfer-Encoding", "8bit");
 
-        // Ordinary report declarations bypass protection serialization; interrupt the report's first selected acquisition.
+        // The ordinary-MIME fast path from 3c2b63d7e (#704) skips protection serialization.
+        // Interrupt the report parser's first selected acquisition.
         assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail())
                 .isInstanceOf(CancellationException.class).hasCause(source.failure);
-        assertThat(serializations).hasValue(0);
+        assertThat(serializations).as("ordinary MIME must bypass protection serialization (#704)").hasValue(0);
         assertThat(source.opens).hasValue(1);
         assertThat(source.closes).hasValue(0);
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
