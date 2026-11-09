@@ -32,12 +32,14 @@ class SocksSetupAdmissionTest {
     @Test
     void fullPendingAdmissionRefusesOnlyTheNewPeerAndIdleWorkersRetire() throws Exception {
         final Raw healthy = new Raw();
+        final AtomicReference<SocksTunnel> healthyTunnel = new AtomicReference<>();
         final List<Raw> pending = new CopyOnWriteArrayList<>();
         final AtomicInteger calls = new AtomicInteger();
         final Socks5Bridge bridge = (id, address, owner) -> {
             final int number = calls.incrementAndGet();
             final Raw raw = number == 1 ? healthy : new Raw();
             owner.own(raw);
+            if (number == 1) { healthyTunnel.set((SocksTunnel) owner); }
             if (number > 1 && number <= 101) {
                 pending.add(raw);
                 awaitClose(raw);
@@ -91,10 +93,20 @@ class SocksSetupAdmissionTest {
         } finally {
             for (Socket socket : waiting) { socket.close(); }
             server.stop();
-            healthy.closeIfOpen();
-            pending.forEach(Raw::closeIfOpen);
-            setup.shutdownNow();
-            assertThat(setup.awaitTermination(3, SECONDS)).isTrue();
+            try {
+                // Let the established owner finish before emergency fixture cleanup can compete with its counted close.
+                final SocksTunnel healthyOwner = healthyTunnel.get();
+                if (healthyOwner != null) {
+                    assertThat(healthy.closed.await(3, SECONDS)).as("established owner closes the healthy remote").isTrue();
+                    healthyOwner.awaitClientReader();
+                    healthyOwner.awaitReservedForwarding();
+                }
+            } finally {
+                healthy.closeIfOpen();
+                pending.forEach(Raw::closeIfOpen);
+                setup.shutdownNow();
+                assertThat(setup.awaitTermination(3, SECONDS)).isTrue();
+            }
         }
         assertThat(healthy.closes).hasValue(1);
         assertThat(pending).allSatisfy(raw -> assertThat(raw.closes).hasValue(1));
