@@ -26,12 +26,14 @@ import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.ForwardOptions;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader;
+import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -59,6 +61,8 @@ class ReceivedProtectionBoundaryTest {
     private static final BouncyCastleProvider PROVIDER = new BouncyCastleProvider();
     private static final String TOKEN = "PRIVATE-HEADER-123";
     private static final String BODY = "Confidential body";
+    private static final String PRIVATE_RECEIPT = "private-notification@example.org";
+    private static final String PUBLIC_RECEIPT = "public-notification@example.org";
     private static final String HTML = "<p>Protected HTML</p><img src=\"cid:logo\">";
     private static final byte[] IMAGE = {1, 2, 3, 4};
     private static X509Certificate certificate;
@@ -175,6 +179,149 @@ class ReceivedProtectionBoundaryTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void privateReceiptDestinationsRequireProtectionBeyondTheForwardedBody(final String header) throws Exception {
+        final Email source = receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n");
+        assertEquals(PRIVATE_RECEIPT, receiptDestinations(source, header).get(0).getAddress());
+        assertConfidentialForwardRefused(encrypting(source));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void replacingTheBodyDoesNotReleasePrivateReceiptDestinations(final String header) throws Exception {
+        final Email source = MAIL.emailBuilder().copying(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"))
+                .clearPlainText().withPlainText("Public replacement").buildEmail();
+        assertConfidentialForwardRefused(source);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void clearingGenericHeadersKeepsActivePrivateReceiptDestinationsProtected(final String header) throws Exception {
+        final Email source = MAIL.emailBuilder().copying(encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n")))
+                .clearHeaders().buildEmail();
+        assertEquals(Boolean.TRUE, header.equals("Disposition-Notification-To")
+                ? source.getUseDispositionNotificationTo() : source.getUseReturnReceiptTo());
+        assertEquals(PRIVATE_RECEIPT, receiptDestinations(source, header).get(0).getAddress());
+        assertConfidentialForwardRefused(source);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void explicitPublicReceiptReplacementReleasesOnlyTheReplacedDestination(final String header) throws Exception {
+        final Email original = encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"));
+        final Email source = withReceipt(MAIL.emailBuilder().copying(original), header, PUBLIC_RECEIPT).buildEmail();
+        final String wire = text(MAIL.converter().fromEmail(forward(source)).toEmlBytes());
+        assertTrue(wire.contains(PUBLIC_RECEIPT));
+        assertFalse(wire.contains(PRIVATE_RECEIPT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void clearingTheTypedReceiptRemovesThePrivateDestination(final String header) throws Exception {
+        final Email original = encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"));
+        final Email source = clearReceipt(MAIL.emailBuilder().copying(original), header).buildEmail();
+        assertTrue(receiptDestinations(source, header).isEmpty());
+        assertFalse(text(MAIL.converter().fromEmail(forward(source)).toEmlBytes()).contains(PRIVATE_RECEIPT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void genericReceiptAppendDoesNotReleaseTheRetainedPrivateDestination(final String header) throws Exception {
+        final Email source = MAIL.emailBuilder().copying(encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n")))
+                .withHeader(header, PUBLIC_RECEIPT).buildEmail();
+        assertEquals(2, receiptDestinations(source, header).size());
+        assertConfidentialForwardRefused(source);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void governanceKeepsTheReceiptOriginAfterGenericHeadersAreCleared(final String header) throws Exception {
+        final Email source = MAIL.emailBuilder().copying(encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n")))
+                .clearHeaders().buildEmail();
+        final Email governed = new EmailGovernanceImpl(null, null, null, null).produceEmailApplyingDefaultsAndOverrides(source);
+        assertEquals(PRIVATE_RECEIPT, receiptDestinations(governed, header).get(0).getAddress());
+        assertConfidentialForwardRefused(governed);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void governanceUsesThePublicReceiptOverrideInsteadOfPrivateHeaderHistory(final String header) throws Exception {
+        final Email source = encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"));
+        final Email overrides = withReceipt(MAIL.emailBuilder().startingBlank(), header, PUBLIC_RECEIPT).buildEmail();
+        final Email governed = new EmailGovernanceImpl(null, null, overrides, null).produceEmailApplyingDefaultsAndOverrides(source);
+        assertEquals(PUBLIC_RECEIPT, receiptDestinations(governed, header).get(0).getAddress());
+        assertFalse(text(MAIL.converter().fromEmail(forward(governed)).toEmlBytes()).contains(PRIVATE_RECEIPT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void snapshotsRetainPrivateReceiptDestinationsWithoutTheirRawHeaders(final String header) throws Exception {
+        final Email source = MAIL.emailBuilder().copying(encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n")))
+                .clearHeaders().buildEmail();
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) { output.writeObject(source); }
+        final Email restored;
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+            restored = (Email) input.readObject();
+        }
+        assertConfidentialForwardRefused(MAIL.emailBuilder().copying(restored).buildEmail());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void explicitReceiptDisclosurePermissionKeepsTheConfiguredInnerEncryption(final String header) throws Exception {
+        final Email source = encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"));
+        final Email forwarded = MAIL.emailBuilder().forwarding(source, ForwardOptions.allowUnencryptedContent())
+                .from("sender@example.org").to("recipient@example.org").buildEmail();
+        final String wire = text(MAIL.converter().fromEmail(forwarded).toEmlBytes());
+        assertTrue(wire.contains(PRIVATE_RECEIPT));
+        assertFalse(wire.contains(BODY));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void completeForwardEncryptionCoversPrivateReceiptDestinations(final String header) throws Exception {
+        final Email source = encrypting(receivedHeader(header + ": " + PRIVATE_RECEIPT + "\r\n"));
+        final byte[] wire = MAIL.converter().fromEmail(encrypting(forward(source))).toEmlBytes();
+        assertFalse(text(wire).contains(PRIVATE_RECEIPT));
+        final Email decoded = MAIL.converter().fromEml(wire).withSmimeDecryption(keys).toEmail();
+        assertEquals(PRIVATE_RECEIPT, receiptDestinations(decoded.getAttachments().get(0).getEmail(), header).get(0).getAddress());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void ordinaryReceiptAddressesNeedNoDisclosurePermission(final String header) {
+        final Email source = MAIL.converter().fromEml((header + ": " + PRIVATE_RECEIPT + "\r\n\r\nPublic body")
+                .getBytes(StandardCharsets.UTF_8)).toEmail();
+        assertTrue(text(MAIL.converter().fromEmail(forward(source)).toEmlBytes()).contains(PRIVATE_RECEIPT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void aCompletedPrivateReceiptDefaultSurvivesReplacingItsFromAndReplyToFields(final String header) throws Exception {
+        final Email source = receivedHeader("From: " + PRIVATE_RECEIPT + "\r\n");
+        final EmailPopulatingBuilder requested = MAIL.emailBuilder().copying(source);
+        if (header.equals("Disposition-Notification-To")) requested.withDispositionNotificationTo(); else requested.withReturnReceiptTo();
+        final Email completed = new EmailGovernanceImpl(null, null, null, null).produceEmailApplyingDefaultsAndOverrides(requested.buildEmail());
+        final Email replaced = MAIL.emailBuilder().copying(completed).from("public@example.org").clearReplyTo().buildEmail();
+        assertEquals(PRIVATE_RECEIPT, receiptDestinations(replaced, header).get(0).getAddress());
+        assertConfidentialForwardRefused(encrypting(replaced));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void aMergedPrivateReplyToKeepsItsCompletedReceiptDestinationProtected(final String header) throws Exception {
+        final Email source = receivedHeader("Reply-To: " + PRIVATE_RECEIPT + "\r\n");
+        final EmailPopulatingBuilder requested = MAIL.emailBuilder().copying(source);
+        if (header.equals("Disposition-Notification-To")) requested.withDispositionNotificationTo(); else requested.withReturnReceiptTo();
+        final Email defaults = MAIL.emailBuilder().startingBlank().withReplyTo(PUBLIC_RECEIPT).buildEmail();
+        final Email completed = new EmailGovernanceImpl(null, defaults, null, null).produceEmailApplyingDefaultsAndOverrides(requested.buildEmail());
+        assertEquals(2, receiptDestinations(completed, header).size());
+        final Email replaced = MAIL.emailBuilder().copying(completed).from("public@example.org").clearReplyTo().buildEmail();
+        assertConfidentialForwardRefused(encrypting(replaced));
+    }
+
+    @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "<p>Different native rendering</p>", "<img src=\"cid:logo\">"})
     void selectedProtectedHtmlUsesAnUnambiguousSameMessageNativeImage(final String nativeHtml) throws Exception {
@@ -264,6 +411,19 @@ class ReceivedProtectionBoundaryTest {
         final MailException refusal = assertThrows(MailException.class, () -> MAIL.converter().fromEmail(forward(source)).toEmlBytes());
         assertTrue(refusal.getMessage().contains("confidential"));
         assertFalse(refusal.getMessage().contains(TOKEN));
+        assertFalse(refusal.getMessage().contains(PRIVATE_RECEIPT));
+    }
+
+    private static EmailPopulatingBuilder withReceipt(final EmailPopulatingBuilder builder, final String header, final String address) {
+        return header.equals("Disposition-Notification-To") ? builder.withDispositionNotificationTo(address) : builder.withReturnReceiptTo(address);
+    }
+
+    private static EmailPopulatingBuilder clearReceipt(final EmailPopulatingBuilder builder, final String header) {
+        return header.equals("Disposition-Notification-To") ? builder.clearDispositionNotificationTo() : builder.clearReturnReceiptTo();
+    }
+
+    private static List<org.simplejavamail.api.email.Recipient> receiptDestinations(final Email email, final String header) {
+        return header.equals("Disposition-Notification-To") ? email.getDispositionNotificationToRecipients() : email.getReturnReceiptToRecipients();
     }
 
     private static Email encrypting(final Email email) {

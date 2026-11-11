@@ -98,7 +98,8 @@ final class HelperContentReuse {
 
     private static boolean privateHeaders(final Email source) {
         final EmailInspection inspection = source.getInspection();
-        return privateAncestry(source) || privateAdditionalHeaders(source) || confidential(inspection.getSubject()) || confidential(inspection.getId()) || confidential(inspection.getSentDate())
+        return privateAncestry(source) || privateAdditionalHeaders(source) || privateReceiptDestinations(source)
+                || confidential(inspection.getSubject()) || confidential(inspection.getId()) || confidential(inspection.getSentDate())
                 || confidential(inspection.getFromRecipient()) || confidential(inspection.getToRecipients())
                 || confidential(inspection.getCcRecipients()) || confidential(inspection.getBccRecipients())
                 || confidential(inspection.getReplyToRecipients()) || confidential(inspection.getBounceToRecipient());
@@ -108,6 +109,14 @@ final class HelperContentReuse {
         final Set<String> confidential = InternalEmail.requireInternalEmail(source).getConfidentialHeaderNames();
         return source.getHeaders().entrySet().stream().anyMatch(header -> confidential.contains(header.getKey())
                 && !header.getValue().isEmpty() && OutgoingHeaderRoles.shouldEmit(source, header.getKey()));
+    }
+
+    private static boolean privateReceiptDestinations(final Email source) {
+        final Set<String> confidential = InternalEmail.requireInternalEmail(source).getConfidentialHeaderNames();
+        return Boolean.TRUE.equals(source.getUseDispositionNotificationTo()) && !source.getDispositionNotificationToRecipients().isEmpty()
+                    && confidential.contains("Disposition-Notification-To")
+                || Boolean.TRUE.equals(source.getUseReturnReceiptTo()) && !source.getReturnReceiptToRecipients().isEmpty()
+                    && confidential.contains("Return-Receipt-To");
     }
 
     private static boolean privateAncestry(final Email source) {

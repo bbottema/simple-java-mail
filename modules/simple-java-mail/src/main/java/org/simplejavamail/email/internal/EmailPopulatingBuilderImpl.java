@@ -207,11 +207,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
                 if (!replace && headers.containsKey(name) && headers.get(name).contains(supplied == null ? null : value)) break;
                 final boolean disposition = name.equalsIgnoreCase("Disposition-Notification-To");
                 final List<Recipient> notifications = new ArrayList<>();
+                boolean retainedPrivateDestination = false;
                 if (!replace && Boolean.TRUE.equals(disposition ? useDispositionNotificationTo : useReturnReceiptTo)) {
                     notifications.addAll(disposition ? dispositionNotificationToRecipients : returnReceiptToRecipients);
+                    retainedPrivateDestination = !notifications.isEmpty() && confidentialHeaderNames.contains(name);
                 }
                 notifications.addAll(requested);
                 if (disposition) withDispositionNotificationToState(true, notifications); else withReturnReceiptToState(true, notifications);
+                if (retainedPrivateDestination) confidentialHeaderNames.add(name);
                 break;
             default: break;
         }
@@ -2331,7 +2334,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder clearHeaders() {
 		this.headers.clear();
         explicitHeaderNames.clear();
-        confidentialHeaderNames.clear();
+        confidentialHeaderNames.removeIf(name -> !(name.equalsIgnoreCase("Disposition-Notification-To") && !dispositionNotificationToRecipients.isEmpty())
+                && !(name.equalsIgnoreCase("Return-Receipt-To") && !returnReceiptToRecipients.isEmpty()));
         capturedReceiptGroups.clear();
 		return this;
 	}
@@ -2402,6 +2406,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
         final List<Recipient> destinations = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		this.useDispositionNotificationTo = requested;
         this.dispositionNotificationToRecipients = destinations;
+        confidentialHeaderNames.remove("Disposition-Notification-To");
         removeActiveHeader("Disposition-Notification-To");
 		return this;
 	}
@@ -2421,6 +2426,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
         final List<Recipient> destinations = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		this.useReturnReceiptTo = requested;
         this.returnReceiptToRecipients = destinations;
+        confidentialHeaderNames.remove("Return-Receipt-To");
         removeActiveHeader("Return-Receipt-To");
 		return this;
 	}

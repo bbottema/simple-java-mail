@@ -402,7 +402,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		GovernedEmailInspection.restoreReceivedAssociations((InternalEmailPopulatingBuilder) builder, provided, emailDefaults, emailOverrides,
 				collectionSelections, lockedEmailConfiguration::replacesInspection);
 		((InternalEmailPopulatingBuilder) builder).retainExplicitHeaderNames(resolveSelectedHeaderNames(provided, selectedHeaders, InternalEmail::getExplicitHeaderNames));
-		((InternalEmailPopulatingBuilder) builder).retainConfidentialHeaderNames(resolveSelectedHeaderNames(provided, selectedHeaders, InternalEmail::getConfidentialHeaderNames));
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialHeaderNames(resolveConfidentialHeaderNames(provided, selectedHeaders,
+				(InternalEmailPopulatingBuilder) builder, collectionSelections));
 		val email = builder.buildEmail();
 		retainSubmissionRestrictions(provided, email);
 
@@ -415,6 +416,51 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		//noinspection deprecation
 		((InternalEmail) email).markAsDefaultsAndOverridesApplied();
 		return email;
+	}
+
+	private Set<String> resolveConfidentialHeaderNames(final Email provided, final List<ConfigurationResolution<List<String>>> selectedHeaders,
+			final InternalEmailPopulatingBuilder current, final Map<EmailProperty, CollectionSelection<?>> collections) {
+		final Set<String> names = resolveSelectedHeaderNames(provided, selectedHeaders, InternalEmail::getConfidentialHeaderNames);
+		// Receipt output follows its typed destinations, independently of retained generic header groups.
+		names.remove("Disposition-Notification-To");
+		names.remove("Return-Receipt-To");
+		final boolean privateDefault = confidentialReceiptDefaultSource(provided, collections);
+		if (TRUE.equals(current.getUseDispositionNotificationTo()) && !current.getDispositionNotificationToRecipients().isEmpty()
+				&& confidentialReceiptSource(provided, "Disposition-Notification-To", EmailProperty.DISPOSITION_NOTIFICATION_TO,
+						Email::getDispositionNotificationToRecipients, privateDefault)) names.add("Disposition-Notification-To");
+		if (TRUE.equals(current.getUseReturnReceiptTo()) && !current.getReturnReceiptToRecipients().isEmpty()
+				&& confidentialReceiptSource(provided, "Return-Receipt-To", EmailProperty.RETURN_RECEIPT_TO,
+						Email::getReturnReceiptToRecipients, privateDefault)) names.add("Return-Receipt-To");
+		return names;
+	}
+
+	private boolean confidentialReceiptSource(final Email provided, final String name, final EmailProperty property,
+			final Function<Email, List<Recipient>> recipients, final boolean privateDefault) {
+		final Email owner = selectedComponentSource(provided, property, email -> nullableRecipients(recipients.apply(email)));
+		if (owner != null) return InternalEmail.requireInternalEmail(owner).getConfidentialHeaderNames().contains(name);
+		return privateDefault;
+	}
+
+	private boolean confidentialReceiptDefaultSource(final Email provided, final Map<EmailProperty, CollectionSelection<?>> collections) {
+		// Match the sources used when completing destinations, before locks can replace the From or Reply-To fields.
+		final CollectionSelection<?> replyTo = collections.get(EmailProperty.REPLYTO_RECIPIENT);
+		if (!replyTo.getOccurrences().isEmpty()) {
+			for (final EmailConfigurationResolver.CollectionOccurrence<?> occurrence : replyTo.getOccurrences()) {
+				final Email owner;
+				switch (occurrence.getOrigin()) {
+					case SUBMITTED: owner = provided; break;
+					case DEFAULT: owner = emailDefaults; break;
+					case OVERRIDE: owner = emailOverrides; break;
+					default: throw new IllegalStateException("Unexpected receipt fallback owner");
+				}
+				if (owner != null && owner.getInspection().getReplyToRecipients().getDecryptions().stream()
+						.anyMatch(attempt -> attempt.getStatus() == org.simplejavamail.api.email.DecryptionStatus.DECRYPTED)) return true;
+			}
+			return false;
+		}
+		final Email from = selectedComponentSource(provided, EmailProperty.FROM_RECIPIENT, Email::getFromRecipient);
+		return from != null && from.getInspection().getFromRecipient().getDecryptions().stream()
+				.anyMatch(attempt -> attempt.getStatus() == org.simplejavamail.api.email.DecryptionStatus.DECRYPTED);
 	}
 
 	private Set<String> resolveSelectedHeaderNames(final Email provided, final List<ConfigurationResolution<List<String>>> selectedHeaders,
