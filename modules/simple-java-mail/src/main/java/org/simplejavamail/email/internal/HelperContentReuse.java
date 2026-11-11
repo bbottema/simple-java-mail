@@ -6,6 +6,7 @@ import org.simplejavamail.api.email.EmailInspection;
 import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.api.email.ValueAvailability;
+import org.simplejavamail.converter.internal.mimemessage.OutgoingHeaderRoles;
 import org.simplejavamail.internal.email.OriginalMessageProtection;
 
 import java.util.EnumSet;
@@ -97,10 +98,16 @@ final class HelperContentReuse {
 
     private static boolean privateHeaders(final Email source) {
         final EmailInspection inspection = source.getInspection();
-        return privateAncestry(source) || confidential(inspection.getSubject()) || confidential(inspection.getId()) || confidential(inspection.getSentDate())
+        return privateAncestry(source) || privateAdditionalHeaders(source) || confidential(inspection.getSubject()) || confidential(inspection.getId()) || confidential(inspection.getSentDate())
                 || confidential(inspection.getFromRecipient()) || confidential(inspection.getToRecipients())
                 || confidential(inspection.getCcRecipients()) || confidential(inspection.getBccRecipients())
                 || confidential(inspection.getReplyToRecipients()) || confidential(inspection.getBounceToRecipient());
+    }
+
+    private static boolean privateAdditionalHeaders(final Email source) {
+        final Set<String> confidential = InternalEmail.requireInternalEmail(source).getConfidentialHeaderNames();
+        return source.getHeaders().entrySet().stream().anyMatch(header -> confidential.contains(header.getKey())
+                && !header.getValue().isEmpty() && OutgoingHeaderRoles.shouldEmit(source, header.getKey()));
     }
 
     private static boolean privateAncestry(final Email source) {

@@ -147,6 +147,18 @@ final class LogicalOutlookReader {
         final List<EmailSourcePart> attachmentLocations = new ArrayList<>();
         final List<Boolean> childAlreadyAggregated = new ArrayList<>();
         final List<ValueInspection> imageFacts = new ArrayList<>();
+        final Map<String, List<AttachmentResource>> nativeCandidates = nativeImageCandidates(imported, nativeAttachments, nativeImages, envelope, opened);
+        final Set<String> ambiguousImages = new java.util.LinkedHashSet<>(imported.getAmbiguousContentIds());
+        final Map<AttachmentResource, String> nativeFallbacks = new java.util.IdentityHashMap<>();
+        for (final Map.Entry<String, List<AttachmentResource>> candidate : nativeCandidates.entrySet()) {
+            if (candidate.getValue().size() == 1) nativeFallbacks.put(candidate.getValue().get(0), candidate.getKey());
+            else ambiguousImages.add(candidate.getKey());
+        }
+        if (opened != null && opened.getHTMLText() != null) {
+            for (int index = 0; index < opened.getEmbeddedImages().size(); index++) imageFacts.add(opened.getInspection().getEmbeddedImage(index));
+        } else {
+            for (final AttachmentResource image : nativeImages) imageFacts.add(nativeResource(source, imported, image));
+        }
         final List<ProtectionScope> attachmentScopes = new ArrayList<>();
         attachmentScopes.add(enclosing);
         final LogicalMimeReader attachmentReader = reader();
@@ -162,6 +174,10 @@ final class LogicalOutlookReader {
             selected.add(result.resource); originals.add(retained); attachmentFacts.add(result.inspection);
             attachmentScopes.add(result.scope);
             attachmentLocations.add(part); childAlreadyAggregated.add(false);
+            if (nativeFallbacks.containsKey(resource) && result.resource.getEmail() == null) {
+                builder.withEmbeddedImage(boundImage(result.resource, nativeFallbacks.get(resource)));
+                imageFacts.add(result.inspection);
+            }
         }
         if (opened != null) {
             for (int index = 0; index < opened.getAttachments().size(); index++) {
@@ -174,6 +190,11 @@ final class LogicalOutlookReader {
             if (opened.getHTMLText() != null) {
                 final Set<String> referenced = CidReferences.inHtml(opened.getHTMLText());
                 for (final AttachmentResource image : nativeImages) {
+                    if (nativeFallbacks.containsKey(image)) {
+                        builder.withEmbeddedImage(boundImage(image, nativeFallbacks.get(image)));
+                        imageFacts.add(nativeResource(source, imported, image));
+                        continue;
+                    }
                     selected.add(referenced.contains(image.getContentId()) ? image.toBuilder().clearContentId().build() : image);
                     originals.add(isNativeFile(imported, image) ? image : null);
                     attachmentFacts.add(nativeResource(source, imported, image));
@@ -182,11 +203,6 @@ final class LogicalOutlookReader {
             }
         }
         builder.clearAttachments().withAttachments(selected);
-        if (opened != null && opened.getHTMLText() != null) {
-            for (int index = 0; index < opened.getEmbeddedImages().size(); index++) imageFacts.add(opened.getInspection().getEmbeddedImage(index));
-        } else {
-            for (final AttachmentResource image : nativeImages) imageFacts.add(nativeResource(source, imported, image));
-        }
         problems.addAll(attachmentReader.getProcessingProblems());
         final List<EmailSourceData> derived = new ArrayList<>(source.getDerivedSources());
         if (opened != null) derived.add(opened.getSourceData());
@@ -196,10 +212,16 @@ final class LogicalOutlookReader {
                 for (final EmailProblem problem : child.getProblems()) problems.add(EmailInspection.qualify(problem, attachmentLocations.get(index).getLocation() + "/message/"));
             }
         }
-        for (final String cid : imported.getAmbiguousContentIds()) {
+        for (final String cid : ambiguousImages) {
             final List<EmailSourceElement> candidates = new ArrayList<>();
-            for (final EmailSourcePart part : source.getParts()) {
-                if (part.getProperties().stream().anyMatch(property -> property.getName().equals("contentId") && cid.equals(property.getValue()))) candidates.add(part);
+            if (nativeCandidates.containsKey(cid)) {
+                for (final AttachmentResource candidate : nativeCandidates.get(cid)) {
+                    candidates.add(nativePart(source, imported.getAttachmentSourceIndices().get(candidate.getDataSource())));
+                }
+            } else {
+                for (final EmailSourcePart part : source.getParts()) {
+                    if (part.getProperties().stream().anyMatch(property -> property.getName().equals("contentId") && cid.equals(property.getValue()))) candidates.add(part);
+                }
             }
             problems.add(EmailInspection.problem(source.getOrigin(), EmailProblem.Operation.IMPORT, EmailProblem.Code.CONTENT_NOT_REPRESENTED,
                     "source/resources", cid, "Multiple native resources match this selected HTML Content-ID; no unique association was established", candidates));
@@ -218,9 +240,12 @@ final class LogicalOutlookReader {
         final java.util.Set<String> confidentialHeaders = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         if (authoredHeaders && !authoredUnavailable) {
             confidentialHeaders.addAll(((org.simplejavamail.email.internal.InternalEmail) opened).getConfidentialHeaderNames());
-        } else {
-            for (final String name : List.of("References", "In-Reply-To")) {
-                if (selectedHeaders.containsKey(name) && nativeValue(source, name, selectedHeaders.get(name)).getEncryptionStatus() == EncryptionStatus.DECRYPTED) confidentialHeaders.add(name);
+        }
+        for (final String name : nativeHeaders.keySet()) {
+            if (selectedHeaders.containsKey(name)) {
+                final ValueInspection facts = nativeValue(source, name, selectedHeaders.get(name));
+                if (facts.getEncryptionStatus() == EncryptionStatus.DECRYPTED
+                        || facts.getDecryptions().stream().anyMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED)) confidentialHeaders.add(name);
             }
         }
         builder.retainConfidentialHeaderNames(confidentialHeaders);
@@ -379,6 +404,41 @@ final class LogicalOutlookReader {
         final Integer index = imported.getAttachmentSourceIndices().get(resource.getDataSource());
         return index != null && index >= 0 && index < imported.getOutlookMessage().getOutlookAttachments().size()
                 && imported.getOutlookMessage().getOutlookAttachments().get(index) instanceof OutlookFileAttachment;
+    }
+
+    private static Map<String, List<AttachmentResource>> nativeImageCandidates(final EmailFromOutlookMessage imported,
+            final List<AttachmentResource> attachments, final List<AttachmentResource> images, final int envelope, final Email opened) {
+        final Map<String, List<AttachmentResource>> candidates = new java.util.LinkedHashMap<>();
+        if (opened == null || opened.getHTMLText() == null) return candidates;
+        final Set<String> missing = new java.util.LinkedHashSet<>(CidReferences.inHtml(opened.getHTMLText()));
+        for (final AttachmentResource image : opened.getEmbeddedImages()) {
+            // Received MIME resources can retain their established CID in the legacy name field.
+            final String cid = image.getContentId();
+            missing.remove(cid == null || cid.isEmpty() ? image.getName() : cid);
+        }
+        if (missing.isEmpty()) return candidates;
+        final List<AttachmentResource> resources = new ArrayList<>(attachments);
+        resources.addAll(images);
+        for (final AttachmentResource resource : resources) {
+            if ((envelope >= 0 && resource == attachments.get(envelope)) || resource.getEmail() != null || !isNativeFile(imported, resource)) continue;
+            final int index = imported.getAttachmentSourceIndices().get(resource.getDataSource());
+            final OutlookFileAttachment file = (OutlookFileAttachment) imported.getOutlookMessage().getOutlookAttachments().get(index);
+            if (file.getData().length == 0) continue;
+            final String reference = nativeImageReference(file, missing);
+            if (reference != null) candidates.computeIfAbsent(reference, ignored -> new ArrayList<>()).add(resource);
+        }
+        return candidates;
+    }
+
+    private static String nativeImageReference(final OutlookFileAttachment file, final Set<String> references) {
+        if (file.getContentId() != null && references.contains(file.getContentId())) return file.getContentId();
+        if (file.getFilename() != null && references.contains(file.getFilename())) return file.getFilename();
+        if (file.getLongFilename() != null && references.contains(file.getLongFilename())) return file.getLongFilename();
+        return null;
+    }
+
+    private static AttachmentResource boundImage(final AttachmentResource image, final String contentId) {
+        return contentId.equals(image.getContentId()) ? image : image.toBuilder().withContentId(contentId).build();
     }
 
     private static EmailSourcePart nativePart(final EmailSourceData source, final Integer index) {

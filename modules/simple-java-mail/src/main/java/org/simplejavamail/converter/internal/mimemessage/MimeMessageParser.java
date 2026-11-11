@@ -199,6 +199,7 @@ public final class MimeMessageParser {
                     || org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.MIME_STRUCTURE)
                     && outer.inspection.headers().stream().anyMatch(header -> header.getName().equalsIgnoreCase(name))) owner = outer;
             else owner = preferred.stream().filter(view -> view.inspection.headers().stream().anyMatch(header -> header.getName().equalsIgnoreCase(name))).findFirst().orElse(outer);
+            target.headerProtectionByName.put(name, owner.protection);
             for (final Header header : owner.inspection.headers()) {
                 if (!header.getName().equalsIgnoreCase(name)) continue;
                 if (target.authoredHeaderViewUnavailable && authoredField(name)) {
@@ -1624,6 +1625,7 @@ public final class MimeMessageParser {
         @Getter(AccessLevel.NONE) private ProtectionScope headerProtection = ProtectionScope.plain();
         @Getter(AccessLevel.NONE) private ProtectionScope carrierProtection = ProtectionScope.plain();
         @Getter(AccessLevel.NONE) private ProtectionScope subjectProtection = ProtectionScope.plain();
+        @Getter(AccessLevel.NONE) private final Map<String, ProtectionScope> headerProtectionByName = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         @Getter(AccessLevel.NONE) private final List<HeaderView> headerViews = new ArrayList<>();
         @Getter(AccessLevel.NONE) private HeaderView authoredView;
         @Getter(AccessLevel.NONE) private int unavailableAuthoredDepth = -1;
@@ -1667,10 +1669,13 @@ public final class MimeMessageParser {
         }
         public Set<String> getConfidentialHeaderNames() {
             final Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            for (final String name : List.of("References", "In-Reply-To")) {
-                final Collection<Object> values = headers.get(name);
-                if (values != null && !values.isEmpty()
-                        && getHeaderInspection(name, values).getEncryptionStatus() == EncryptionStatus.DECRYPTED) names.add(name);
+            for (final Map.Entry<String, Collection<Object>> header : headers.entrySet()) {
+                if (header.getValue() == null || header.getValue().isEmpty()) continue;
+                final ProtectionScope protection = headerProtectionByName.get(header.getKey());
+                if (protection != null && protection.getDecryptions().stream()
+                        .anyMatch(attempt -> attempt.getStatus() == org.simplejavamail.api.email.DecryptionStatus.DECRYPTED)) {
+                    names.add(header.getKey());
+                }
             }
             return Collections.unmodifiableSet(names);
         }

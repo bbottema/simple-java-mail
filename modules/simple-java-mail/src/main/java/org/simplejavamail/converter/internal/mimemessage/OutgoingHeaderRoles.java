@@ -10,7 +10,8 @@ import org.simplejavamail.internal.email.HeaderRoles;
 public final class OutgoingHeaderRoles {
     private OutgoingHeaderRoles() { }
 
-    static boolean shouldEmit(final Email email, final String name) {
+    /** Whether a retained generic header contributes to reconstructed output, including explicit-authorship requirements. */
+    public static boolean shouldEmit(final Email email, final String name) {
         final HeaderRoles.Role role = HeaderRoles.classify(name);
         final InternalEmail represented = InternalEmail.requireInternalEmail(email);
         final boolean explicit = represented.getExplicitHeaderNames().contains(name);
