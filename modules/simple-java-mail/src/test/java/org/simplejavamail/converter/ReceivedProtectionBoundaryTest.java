@@ -30,6 +30,8 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.ForwardOptions;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.ValueAvailability;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader;
@@ -396,6 +398,23 @@ class ReceivedProtectionBoundaryTest {
 
     private static Email receivedHeader(final String headers) throws Exception {
         return receivedHeader(headers, null);
+    }
+
+    @Test
+    void anUnreadableDecryptedCalendarKeepsItsCapturedSourceAndProtectionAttempt() throws Exception {
+        final String calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:FUTUREMETHOD\r\nEND:VCALENDAR";
+        final MimeBodyPart content = new MimeBodyPart();
+        content.setContent(calendar, "text/calendar; charset=UTF-8; method=FUTUREMETHOD");
+        final Email received = MAIL.converter().fromEml(bytes(encrypt(content))).withSmimeDecryption(keys).toEmail();
+        assertNull(received.getCalendarText());
+        assertEquals(ValueAvailability.UNAVAILABLE, received.getInspection().getCalendar().getAvailability());
+        assertEquals(1, received.getInspection().getCalendar().getSources().size());
+        final EmailSourcePart source = (EmailSourcePart) received.getInspection().getCalendar().getSources().get(0);
+        assertTrue(source.getText() != null || source.getContent() != null);
+        assertTrue(received.getInspection().getCalendar().getDecryptions().stream()
+                .anyMatch(attempt -> attempt.getStatus() == org.simplejavamail.api.email.DecryptionStatus.DECRYPTED));
+        assertTrue(received.getProblems().stream().anyMatch(problem -> problem.getSources().stream()
+                .anyMatch(part -> part.getLocation().equals(source.getLocation()))));
     }
 
     private static Email receivedHeader(final String headers, final String publicRoute) throws Exception {

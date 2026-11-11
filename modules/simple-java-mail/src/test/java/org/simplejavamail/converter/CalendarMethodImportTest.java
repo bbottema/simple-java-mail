@@ -11,6 +11,7 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.ValueAvailability;
 import testutil.ConfigLoaderTestHelper;
 
 import java.io.ByteArrayInputStream;
@@ -174,6 +175,15 @@ class CalendarMethodImportTest {
         assertThat(email.getCalendarMethod()).isNull();
         assertThat(email.getCalendarText()).isNull();
         assertThat(email.getAttachments()).isEmpty();
+        assertThat(email.getInspection().getCalendar().getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
+        assertThat(email.getInspection().getCalendar().getSources()).singleElement().satisfies(source -> {
+            assertThat(source).isInstanceOf(EmailSourcePart.class);
+            final EmailSourcePart part = (EmailSourcePart) source;
+            final String content = part.getText() != null ? part.getText() : new String(part.getContent().readAllBytes(), UTF_8);
+            assertThat(content).isEqualTo(original);
+            assertThat(email.getProblems()).anySatisfy(problem -> assertThat(problem.getSources())
+                    .anySatisfy(problemSource -> assertThat(problemSource.getLocation()).isEqualTo(source.getLocation())));
+        });
         assertThat(email.getSourceData().getHeaders()).anySatisfy(header -> {
             assertThat(header.getName()).isEqualToIgnoringCase("Content-Type");
             assertThat(header.getRawValue()).isEqualTo(type);
@@ -194,6 +204,56 @@ class CalendarMethodImportTest {
 		assertThat(email.getCalendarMethod()).isEqualTo(method);
 		assertThat(email.getCalendarText()).isEqualTo(calendar);
 		assertThat(email.getAttachments()).isEmpty();
+		assertThat(email.getInspection().getCalendar().getAvailability()).isEqualTo(ValueAvailability.PRESENT);
+	}
+
+	@ParameterizedTest
+	@EnumSource(ImportRoute.class)
+	void unreadableCalendarInspectionKeepsItsSourceAcrossImportRoutes(final ImportRoute route) throws Exception {
+		final String type = "text/calendar; charset=UTF-8; method=FUTUREMETHOD";
+		final String original = calendar("METHOD:FUTUREMETHOD");
+		assertUnrepresentedCalendar(convert(route, message(type, original)), type, original);
+	}
+
+	@Test
+	void anInputWithoutCalendarRemainsGenuinelyAbsent() {
+		final Email email = mail.converter().fromEml(message("text/plain; charset=UTF-8", "Plain body")).toEmail();
+		assertThat(email.getCalendarText()).isNull();
+		assertThat(email.getInspection().getCalendar().getAvailability()).isEqualTo(ValueAvailability.ABSENT);
+		assertThat(email.getInspection().getCalendar().getSources()).isEmpty();
+	}
+
+	@Test
+	void anIndependentlyAttachedCalendarDoesNotBecomeTheParentCalendar() {
+		final String body = "--calendar-parts\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nPlain body\r\n"
+				+ "--calendar-parts\r\nContent-Type: text/calendar; method=FUTUREMETHOD\r\n"
+				+ "Content-Disposition: attachment; filename=event.ics\r\n\r\n" + calendar("METHOD:FUTUREMETHOD")
+				+ "\r\n--calendar-parts--\r\n";
+		final Email email = mail.converter().fromEml(message("multipart/mixed; boundary=calendar-parts", body)).toEmail();
+		assertThat(email.getAttachments()).hasSize(1);
+		assertThat(email.getCalendarText()).isNull();
+		assertThat(email.getInspection().getCalendar().getAvailability()).isEqualTo(ValueAvailability.ABSENT);
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void anUnreadableCalendarDoesNotReplaceAnAvailableCalendar(final boolean unreadableFirst) {
+		final String valid = "Content-Type: text/calendar; charset=UTF-8; method=REQUEST\r\n\r\n" + calendar("METHOD:REQUEST");
+		final String unreadable = "Content-Type: text/calendar; charset=UTF-8; method=FUTUREMETHOD\r\n\r\n" + calendar("METHOD:FUTUREMETHOD");
+		final String body = "--calendar-parts\r\n" + (unreadableFirst ? unreadable : valid)
+				+ "\r\n--calendar-parts\r\n" + (unreadableFirst ? valid : unreadable) + "\r\n--calendar-parts--\r\n";
+		final Email email = mail.converter().fromEml(message("multipart/mixed; boundary=calendar-parts", body)).toEmail();
+		assertCalendar(email, CalendarMethod.REQUEST, calendar("METHOD:REQUEST"));
+		assertThat(email.getInspection().getCalendar().getSources()).hasSize(1);
+		assertThat(email.getProblems()).hasSize(1);
+	}
+
+	@Test
+	void copiesKeepAnUnreadableCalendarDistinctFromAbsence() {
+		final String type = "text/calendar; charset=UTF-8; method=FUTUREMETHOD";
+		final String original = calendar("METHOD:FUTUREMETHOD");
+		final Email email = mail.converter().fromEml(message(type, original)).toEmail();
+		assertUnrepresentedCalendar(mail.emailBuilder().copying(email).buildEmail(), type, original);
 	}
 
 	private Email convert(final ImportRoute route, final String eml) throws Exception {

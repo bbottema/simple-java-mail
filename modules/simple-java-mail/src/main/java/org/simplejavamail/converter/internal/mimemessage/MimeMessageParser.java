@@ -417,6 +417,7 @@ public final class MimeMessageParser {
 				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(parsedComponents, capture);
 			}
         } else if (isMimeType(currentPart, "text/calendar", capture) && canSupplyBody) {
+            parsedComponents.calendarInputs.put(capture, protection);
             if (!prepareTransferEncoding(currentPart, capture, true)) return;
 			final String content = parseCalendarContent(currentPart, capture);
             final String contentType = retrieveDataHandler(currentPart).getContentType();
@@ -1637,6 +1638,7 @@ public final class MimeMessageParser {
         @Getter(AccessLevel.NONE) private final List<BodyValue> htmlValues = new ArrayList<>();
         @Getter(AccessLevel.NONE) private final Deque<AlternativeChoice> activeAlternatives = new ArrayDeque<>();
         @Getter(AccessLevel.NONE) private final List<MimePartCapture> calendarSources = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private final Map<MimePartCapture, ProtectionScope> calendarInputs = new LinkedHashMap<>();
         @Getter(AccessLevel.NONE) private MimePartCapture calendarSource;
         @Getter(AccessLevel.NONE) private ProtectionScope calendarProtection;
         @Getter(AccessLevel.NONE) private int calendarDepth = -1;
@@ -1695,7 +1697,11 @@ public final class MimeMessageParser {
         public ValueInspection getPlainInspection() { return bodyInspection(plainValues); }
         public ValueInspection getHtmlInspection() { return bodyInspection(htmlValues); }
         public ValueInspection getCalendarInspection() {
-            return calendarSource == null ? absentBodyInspection() : calendarProtection.inspect(List.of(calendarSource.snapshot()), ValueAvailability.PRESENT);
+            if (calendarSource != null) return calendarProtection.inspect(List.of(calendarSource.snapshot()), ValueAvailability.PRESENT);
+            if (calendarInputs.isEmpty()) return absentBodyInspection();
+            final List<EmailSourceElement> sources = new ArrayList<>();
+            calendarInputs.keySet().forEach(input -> sources.add(input.snapshot()));
+            return ProtectionScope.combine(new ArrayList<>(calendarInputs.values()), sources, ValueAvailability.UNAVAILABLE, ValueDerivation.NONE);
         }
         public ValueInspection getHeaderInspection(final String name, final Object value) {
             final InputInspection source = name.equalsIgnoreCase("Return-Path") ? carrierHeaders : name.equalsIgnoreCase("Subject") ? subjectHeaders : selectedHeaders;
