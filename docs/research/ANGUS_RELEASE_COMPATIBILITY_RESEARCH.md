@@ -1,22 +1,16 @@
 # Angus release compatibility research for Simple Java Mail 10+
 
-Status: **parked, awaiting a newer final Angus Mail release**. Initial source/runtime audit: **10 October 2026**.
-Last release-status check and document update: **11 October 2026**. Tracking issue: [#758](https://github.com/bbottema/simple-java-mail/issues/758).
+Status: **10.0.0 follows the latest Angus development snapshot pending a compatible final release**. The maintainer selected this default on **10 November 2026**, after the hostname-verifier correction merged upstream in [Angus PR #236](https://github.com/eclipse-ee4j/angus-mail/pull/236). Tracking issue: [#758](https://github.com/bbottema/simple-java-mail/issues/758).
 
-This is a living research record. It preserves the tested milestone findings and the questions to revisit when Angus releases.
-It does not approve an upgrade or turn the experimental compatibility proposals into accepted SJM changes.
+The current stack is Angus Mail `2.1.0-SNAPSHOT`, Jakarta Mail API `2.2.0-M1`, Jakarta Activation API `2.2.0-M1` and Angus Activation `2.1.0-M1`. The POM declares Central Portal snapshots for ordinary builds; [developer setup](../DEVELOPMENT.md#angus-development-dependency-for-1000) explains refresh and the temporary release-dependency exception. The dated October audit below preserves its original 2.0.5 baseline and should not be interpreted as the current dependency choice.
+
+This is a living research record. It preserves the original milestone findings and the questions to revisit when Angus releases. The November snapshot decision authorizes the current coordinated dependency change; the older experimental mitigation proposals remain subject to their own acceptance decisions.
 
 ## Activation and ownership
 
-Pick up the tracking issue when a **final, non-SNAPSHOT Angus Mail version newer than SJM's then-effective dependency** is published
-in [Maven Central](https://repo.maven.apache.org/maven2/org/eclipse/angus/angus-mail/maven-metadata.xml).
-Cross-check the published POM/source/binary artifacts with the [upstream releases](https://github.com/eclipse-ee4j/angus-mail/releases)
-and tags. Milestones, betas and release candidates provide early warning; they do not activate implementation work.
+Use [Maven Central](https://repo.maven.apache.org/maven2/org/eclipse/angus/angus-mail/maven-metadata.xml) to identify final Angus releases that could replace the development snapshot. Cross-check their published POM/source/binary artifacts with the [upstream releases](https://github.com/eclipse-ee4j/angus-mail/releases) and tags. Snapshot updates remain the normal 10.0.0 development path until a compatible final release is selected.
 
-Use Maven version ordering and check every release line. A later 2.0.x final still needs attention even after auditing 2.1.0-M1.
-Re-evaluation should establish whether each milestone change survived, was backtracked, changed again or does not apply to that release,
-and identify additional changes before choosing an SJM mitigation. Keep the issue without a milestone until the final-release review
-establishes concrete SJM work and a release target.
+Use Maven version ordering and check every release line. A later 2.0.x final still merits review but must not replace the snapshot merely because it is final: the selected release must retain the fixes and capabilities adopted from Angus development. Re-evaluation should establish whether each relevant change survived, was backtracked, changed again or does not apply to that release, and identify additional changes before choosing a mitigation or changing the dependency stack.
 
 GitHub owns current task status. This document owns the dated evidence, compatibility reasoning and re-evaluation record.
 Related maintained contracts: [Angus transport ownership](../concurrency/07-angus-transport-abort.md),

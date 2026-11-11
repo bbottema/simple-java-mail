@@ -498,10 +498,9 @@ class SmtpAuthenticationTlsCharacterizationTest {
     }
 
     @Test
-    void failedPostTlsEhloStillUsesThePreTlsAuthListButNotAPlaintextSocket() throws Exception {
+    void failedPostTlsEhloKeepsTlsAndDiscardsPreTlsAuthList() throws Exception {
         try (Peer server = new Peer(peer -> {
             establishTls(peer, SMTP_TLS, "500 EHLO unavailable after TLS");
-            authenticate(peer, "LOGIN", PASSWORD);
             acceptMessageAndQuit(peer);
         }); Mailer mailer = passwordBuilder(server.port(), SMTP_TLS).withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(trustedFactory()).build()).buildMailer()) {
             assertAccepted(mailer);

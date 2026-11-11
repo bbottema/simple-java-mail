@@ -95,6 +95,9 @@
                                 </requireProperty>
                                 <requireReleaseDeps>
                                     <onlyWhenRelease>true</onlyWhenRelease>
+                                    <excludes>
+                                        <exclude>org.eclipse.angus:angus-mail:${angus.mail.version}</exclude>
+                                    </excludes>
                                 </requireReleaseDeps>
                             </rules>
                         </configuration>
@@ -312,6 +315,7 @@
                             <configurationSourceDirectory>${project.build.directory}/cli-configuration</configurationSourceDirectory>
                             <copyConfigurationDirectory>true</copyConfigurationDirectory>
                             <repositoryLayout>flat</repositoryLayout>
+                            <useTimestampInSnapshotFileName>false</useTimestampInSnapshotFileName>
                             <useWildcardClassPath>true</useWildcardClassPath>
                             <repositoryName>lib</repositoryName>
                             <showConsoleWindow>true</showConsoleWindow>

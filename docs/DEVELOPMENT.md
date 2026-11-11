@@ -42,6 +42,16 @@ java -version   # should report 17 or newer for a full build
 
 ---
 
+## Angus development dependency for 10.0.0
+
+The unreleased 10.0.0 branch uses `org.eclipse.angus:angus-mail:2.1.0-SNAPSHOT` by default until a final Angus release contains the required fixes. This includes the custom hostname-verifier rejection correction tracked in [Angus #235](https://github.com/eclipse-ee4j/angus-mail/issues/235) and merged in [PR #236](https://github.com/eclipse-ee4j/angus-mail/pull/236).
+
+The project POM declares the [Central Portal snapshot repository](https://central.sonatype.com/repository/maven-snapshots/) with snapshot refresh enabled and checksum verification required. No personal Maven settings or opt-in profile is needed. `mvn -U ...` can explicitly refresh cached dependency metadata; offline builds use the snapshot already in their local repository.
+
+Keep the dependency stack coordinated: Angus Mail `2.1.0-SNAPSHOT`, Jakarta Mail API `2.2.0-M1`, Jakarta Activation API `2.2.0-M1` and Angus Activation `2.1.0-M1`. Their versions are the `angus.mail.version`, `jakarta.mail.version`, `jakarta.activation.version` and `angus.activation.version` properties in the root POM. Replacing only the provider while retaining the older APIs can cause runtime linkage failures.
+
+The root and CLI release-dependency checks allow the selected Angus Mail snapshot specifically; other snapshot dependencies remain subject to the normal rule. CLI distributions retain the base `-SNAPSHOT` filename so their existing dependency-content checks apply to the packaged snapshot. When a compatible final Angus release is available, replace the development dependency and remove the temporary exceptions. The compatibility follow-up remains tracked in [#758](https://github.com/bbottema/simple-java-mail/issues/758).
+
 ## Build
 
 Standard full build (skipping tests and slow checks):

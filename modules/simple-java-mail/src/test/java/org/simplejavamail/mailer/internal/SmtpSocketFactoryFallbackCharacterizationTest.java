@@ -25,6 +25,7 @@ import testutil.smtp.SmtpConversation;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -344,13 +345,20 @@ class SmtpSocketFactoryFallbackCharacterizationTest {
         final MailSSLSocketFactory application = new MailSSLSocketFactory();
         application.setTrustedHosts("localhost");
         final String prefix = strategy == SMTPS ? "mail.smtps" : "mail.smtp";
+        final AtomicInteger verificationCalls = new AtomicInteger();
+        final Properties verifierProperties = new Properties();
+        verifierProperties.put(prefix + ".ssl.hostnameverifier", (HostnameVerifier) (host, session) -> {
+            verificationCalls.incrementAndGet();
+            return false;
+        });
         try (ScriptedSmtpServer server = new ScriptedSmtpServer(1, peer -> {
             beginTls(peer, strategy);
             peer.expectClosed();
         }); Mailer mailer = updateMailer(builder(server.port(), strategy), fixture -> fixture.withTlsConfig(fixture.getTlsConfig().toBuilder().withCustomSSLFactoryInstance(application).build()))
                 .withProperty(prefix + ".ssl.protocols", "TLSv1.2")
-                .withProperty(prefix + ".ssl.hostnameverifier", (HostnameVerifier) (host, session) -> false).buildMailer()) {
-            assertThatThrownBy(() -> mailer.sync().sendMail(email())).hasStackTraceContaining("Unable to check server identity for: localhost");
+                .withProperties(verifierProperties).buildMailer()) {
+            assertThatThrownBy(() -> mailer.sync().sendMail(email())).hasRootCauseInstanceOf(SSLPeerUnverifiedException.class);
+            assertThat(verificationCalls).hasValue(1);
         }
     }
 

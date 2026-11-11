@@ -32,6 +32,11 @@
         <mockito.version>4.11.0</mockito.version>
         <bouncycastle.version>1.84</bouncycastle.version>
         <opentelemetry.version>1.67.0</opentelemetry.version>
+        <!-- The unreleased 10.0.0 line follows Angus development until its fixes reach a final release. -->
+        <angus.mail.version>2.1.0-SNAPSHOT</angus.mail.version>
+        <jakarta.mail.version>2.2.0-M1</jakarta.mail.version>
+        <jakarta.activation.version>2.2.0-M1</jakarta.activation.version>
+        <angus.activation.version>2.1.0-M1</angus.activation.version>
         <se.eris.notnull.instrument>false</se.eris.notnull.instrument>
         <configuration.contract.skip>false</configuration.contract.skip>
     </properties>
@@ -237,12 +242,12 @@
             <dependency>
                 <groupId>jakarta.mail</groupId>
                 <artifactId>jakarta.mail-api</artifactId>
-                <version>2.1.5</version>
+                <version>${jakarta.mail.version}</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.activation</groupId>
                 <artifactId>jakarta.activation-api</artifactId>
-                <version>2.1.4</version>
+                <version>${jakarta.activation.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -252,7 +257,7 @@
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-mail</artifactId>
-                <version>2.0.5</version>
+                <version>${angus.mail.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -282,7 +287,7 @@
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-activation</artifactId>
-                <version>2.0.3</version>
+                <version>${angus.activation.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -345,6 +350,22 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>central-snapshots</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>fail</checksumPolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <resources>
@@ -496,6 +517,9 @@
                                 </requireProperty>
                                 <requireReleaseDeps>
                                     <onlyWhenRelease>true</onlyWhenRelease>
+                                    <excludes>
+                                        <exclude>org.eclipse.angus:angus-mail:${angus.mail.version}</exclude>
+                                    </excludes>
                                 </requireReleaseDeps>
                             </rules>
                         </configuration>

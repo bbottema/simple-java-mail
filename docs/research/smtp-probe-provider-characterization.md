@@ -3,8 +3,10 @@
 - Issue: [#733](https://github.com/bbottema/simple-java-mail/issues/733), part of [#722](https://github.com/bbottema/simple-java-mail/issues/722)
 - Date: 11 September 2026
 - Status: Characterization complete. The subsequent Java/CLI probe, dedicated-connection integration, demo and third-party adapter fixture were accepted under #733 on 15 September 2026; see the [dedicated-probe ADR](../adr/0020-dedicated-smtp-connection-diagnostics.md).
-- Provider baseline: the repository's pinned Angus Mail 2.0.5, not Angus `master` or the separate upstream PR branch.
+- Original provider baseline: Angus Mail 2.0.5, rather than Angus `master` or the separate upstream PR branch.
 - Executable evidence: [SmtpCapabilityProbeCharacterizationTest](../../modules/simple-java-mail/src/test/java/org/simplejavamail/mailer/internal/SmtpCapabilityProbeCharacterizationTest.java).
+
+On 10 November 2026, the 10.0.0 branch adopted Angus `2.1.0-SNAPSHOT`. That provider includes the [capability-cache correction](https://github.com/eclipse-ee4j/angus-mail/pull/218), so a failed post-TLS EHLO now discards the provider's pre-TLS extensions and authentication advertisements. The executable characterizations have been updated to require that behavior while retaining the TLS connection. The dated observations below describe the original 2.0.5 investigation.
 
 ## What we can observe without taking over SMTP or TLS
 

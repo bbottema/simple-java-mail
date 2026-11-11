@@ -103,7 +103,7 @@ class SmtpCapabilityProbeCharacterizationTest {
     }
 
     @Test
-    void failedPostTlsEhloLeavesAngusPreTlsExtensionsBehind() throws Exception {
+    void failedPostTlsEhloDiscardsPreTlsExtensions() throws Exception {
         final Session session = session(true);
         session.getProperties().setProperty("mail.smtp.starttls.required", "true");
         withPeer(session, false, peer -> {
@@ -114,9 +114,9 @@ class SmtpCapabilityProbeCharacterizationTest {
             assertThat(transport.startTlsCompleted).isTrue();
             assertThat(transport.encryptedEhlo).containsExactly(false, true);
             assertThat(transport.ehloSucceeded).containsExactly(true, false);
-            // Characterization, not the desired probe behavior: never present this stale map as post-TLS facts.
-            assertThat(transport.getExtensionParameter("SIZE")).isEqualTo("1024");
-            assertThat(transport.supportsExtension("STARTTLS")).isTrue();
+            assertThat(transport.getExtensionParameter("SIZE")).isNull();
+            assertThat(transport.getExtensionParameter("AUTH")).isNull();
+            assertThat(transport.supportsExtension("STARTTLS")).isFalse();
         });
     }
 
