@@ -64,6 +64,9 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    # Completed received-email review scratch and planning-retirement records (#961).
+    '.local/received-email-review-20261111'
+    '.local/received-email-retirement-20261111'
     # #976: retained maintainer evidence; remove after inspection.
     '.local/review-integer-cli-20261108-evidence'
     # BEGIN review-delivery-20261108 custody
@@ -146,18 +149,6 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
-    # BEGIN received-email-overhaul-20261110 retirement (#961)
-    # Active until accepted delivery and maintainer inspection; scheduling does not authorize deletion.
-    'docs/plans/received-email-api-design-20261109.md'
-    'docs/plans/received-email-overhaul-implementation-20261110.md'
-    'docs/plans/received-email-core-inventory-20261110.md'
-    'docs/plans/received-email-inbound-inventory-20261110.md'
-    'docs/plans/received-email-crypto-inventory-20261110.md'
-    'docs/plans/received-email-output-inventory-20261110.md'
-    'docs/plans/received-email-migration-inventory-20261110.md'
-    'docs/plans/received-email-website-inventory-20261110.md'
-    'docs/plans/received-email-lead-ledger-20261110.md'
-    # END received-email-overhaul-20261110 retirement
     # #976: retire this task's plan after delivery.
     'docs/plans/976-cli-integer-input.md'
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
@@ -174,11 +165,6 @@ $relativeFileTargets = @(
     # #966: the retired work packet remains available for individual cleanup after inspection.
     # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\pooled-oauth-protocol-20261105.md' -Force
     'docs/plans/pooled-oauth-protocol-20261105.md'
-    # Retire these #961 specifications after delivery; keep email-inspection-roadmap-20261104.md durable.
-    'docs/plans/email-source-inspection-20261103.md'
-    'docs/plans/email-source-content-contract-20261104.md'
-    'docs/plans/email-conversion-outcomes-20261104.md'
-    'docs/plans/email-omissions-and-retention-20261104.md'
     # Retire the active merge-contract review plan before running cleanup.
     'docs/plans/decrypted-merge-contract-20261103.md'
     'docs/plans/smime-helper-id-contract-20261103.md'
